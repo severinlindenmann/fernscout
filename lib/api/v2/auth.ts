@@ -58,3 +58,30 @@ export function ownerOnlyRefusal() {
 }
 
 export { ownsUser, mayActAsOwner };
+
+/**
+ * The whole owner gate in one call — B1609, folded in when the figures
+ * parcel and the journal parcel turned out to have written the same thing
+ * twice in parallel worktrees.
+ *
+ * A journal-level resource — the journal document itself, its default figure
+ * set, the figure library every trip references — is the **owner's**, and a
+ * trip-scoped token is refused even though it belongs to the right journal.
+ * Being on one trip does not make a figure that every trip can reference
+ * yours to write, which is the same line `mayActAsOwner` draws in v1 and the
+ * same line publishing draws: writing to a trip and changing the journal
+ * around it are different authorities.
+ *
+ * A trip's own routes do NOT use this — they ask `mayWriteTrip`, because a
+ * trip-scoped token is exactly what is meant to write there.
+ */
+export type OwnerAuth = { ok: true; session: Session } | { ok: false; response: ReturnType<typeof fail> };
+
+export async function requireJournalOwner(request: Request, username: string): Promise<OwnerAuth> {
+  const auth = await resolveBearer(request);
+  if (!auth.ok) return auth;
+  const { session } = auth;
+  if (!ownsUser(session, username)) return { ok: false, response: outOfScopeRefusal(session, username) };
+  if (!mayActAsOwner(session, username)) return { ok: false, response: ownerOnlyRefusal() };
+  return { ok: true, session };
+}

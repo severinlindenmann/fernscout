@@ -64,6 +64,7 @@ export const ERROR_CODES = {
   // ── the body is wrong ──────────────────────────────────────────────────
   invalid_json: "The body did not parse as JSON. Check the content-type header and the quoting.",
   invalid_request: "The body is missing something this call needs, or a value is not usable. The `message` says which.",
+  stale_document: "The document you wrote against has moved on — either it changed since you last read it and your `If-Match` no longer covers the current version, or you PUT a client-chosen id that already exists with no `If-Match` at all (a client-chosen-id create refuses to silently overwrite what is already there). `details.current` is the document exactly as it stands now: read it, and send `If-Match` with its ETag if you still mean to write.",
   bad_request: "The body is not usable. The `message` says why.",
   invalid_entry: "One or more fields of the day are wrong. `problems` lists every one at once — field, what arrived, what was expected — so fix them all and send once, rather than a round trip each.",
   invalid_trip: "One or more fields of the trip are wrong; `problems` lists them. A field name that is not a field is refused here rather than dropped, and the hint names the field you probably meant.",
@@ -89,9 +90,10 @@ export const ERROR_CODES = {
   invalid_tracks: "A row in `tracks` is not one this server knows, or its value is not true or false. The rows are costs, coordinates and photos.",
   invalid_translations: "A translation names a locale this journal does not declare, or its shape is wrong. Declare the locale first with PATCH .../config, or drop it.",
   trip_exists: "A trip with that id is already here. Ids are the URL, so they are unique within a journal — pick another, or edit the one that exists.",
+  figure_referenced: "This figure is still named in the journal's own default figures, or a trip's figures — `message` lists which. Deleting it would leave a dangling reference, so nothing was deleted. Remove it from every set that names it first (PATCH the journal or the trip's figures), then delete it again.",
   trip_unreadable: "The trip was written and could not be read back, which means it would be invisible on the site. Nothing was kept. This is a bug — report it rather than retrying.",
   no_frontmatter: "The file has no frontmatter block, so nothing can be read out of it. This is a fault on disk rather than in your call.",
-  invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET .../travellers/presets for the vocabulary.",
+  invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET /api/v2/{user}/figures/presets for the vocabulary.",
   unsupported_field: "A field name this call does not take. The `message` lists the ones it does — send only those, and note that publishing is never a field.",
   nothing_to_change: "The body names no field this call writes, so there was nothing to do and nothing was written. The `message` lists the ones it takes.",
   mixed_change: "`features` cannot travel with a profile field. Send it in a call of its own, so switching a capability cannot also rename the journal.",
@@ -164,5 +166,4 @@ export const ERROR_CODES = {
 
   // ── v2 only ─────────────────────────────────────────────────────────────
   incomplete: "The document is missing an answer to something this journal keeps track of. `details.missing` lists every open section at once — each with why it is asked, a schema excerpt of what to send, and how to decline it instead. Ask the person; never invent a value to get past this.",
-  stale_document: "The `If-Match` you sent does not cover the document as it stands now — somebody else wrote it since you last read it. `details` carries the current document; read it, decide what still applies, and send your change again against it.",
 } as const satisfies Record<string, string>;

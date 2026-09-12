@@ -327,3 +327,32 @@ describe("DELETE /api/v2/{user}", () => {
     expect(body.error).toBe("forbidden");
   });
 });
+
+describe("T5 — the writable-fields list is the journal's, not one door's", () => {
+  /**
+   * `JOURNAL_WRITABLE_FIELDS` exists so the `/api/web` cookie door and the
+   * `/api/v2` bearer door cannot disagree about what a person may edit. Only
+   * one of those doors is built (the web one lands in step 5), so until then
+   * the list has no second reader — and a list with no reader is a list that
+   * drifts silently from the schema beside it.
+   *
+   * This is that reader. It fails the day `journalWrite` grows a field and
+   * the list does not, which is exactly the moment the two doors would start
+   * to disagree, rather than months later when somebody notices the web form
+   * silently dropping something an agent can write.
+   *
+   * `declined` is deliberately absent from the list: it is not a field a
+   * caller *asks for*, it is the answer to having been asked, and it travels
+   * with the sections it declines.
+   */
+  test("covers exactly what journalWrite accepts, minus declined", async () => {
+    const { JOURNAL_WRITABLE_FIELDS } = await import("@/lib/api/v2/write");
+    const { journalWrite } = await import("@/lib/api/v2/schemas");
+    const schemaKeys = Object.keys(
+      (journalWrite as unknown as { def: { shape: Record<string, unknown> } }).def.shape,
+    )
+      .filter((key) => key !== "declined")
+      .sort();
+    expect([...JOURNAL_WRITABLE_FIELDS].sort()).toEqual(schemaKeys);
+  });
+});
