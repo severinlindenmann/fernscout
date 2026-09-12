@@ -326,11 +326,10 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (13)
+## in-development (12)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1551](in-development/B1551-any-route-buffers-512-mib-in.md) | Any route buffers 512 MiB in memory before auth runs; Caddy sets no request_body max_size | SECURITY | high | low | `5c987a64` |
 | [B1552](in-development/B1552-email-code-endpoints-have-per-ip.md) | Email code endpoints have per-IP limits only — no per-recipient or per-instance cap | SECURITY | high | low | `5c987a64` |
 | [B1560](in-development/B1560-on-mobile-the-chat-page-scrolls.md) | On mobile, the chat page scrolls the whole document and the tab bar stops sticking | ISSUE | high | low | `5a4744c4` |
 | [B1561](in-development/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium | `47912984` |
@@ -344,7 +343,7 @@ Do not edit them by hand; run the script.
 | [B1559](in-development/B1559-paid-send-routes-rely-on-samesite.md) | Paid send routes rely on SameSite=lax alone — no Origin check as second layer | SECURITY | low | low | `5c987a64` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (26)
+## testing (27)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -353,6 +352,7 @@ Do not edit them by hand; run the script.
 | [B1521](testing/B1521-the-budget-panel-projects-a-finished.md) | The budget panel projects a finished trip forward and fills unrecorded days with an average | ISSUE | high | medium | — |
 | [B1524](testing/B1524-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium | — |
 | [B1550](testing/B1550-transcription-trusts-caller-claimed-seconds-and.md) | Transcription trusts caller-claimed seconds and the top-up charge fails open | SECURITY | high | low | — |
+| [B1551](testing/B1551-any-route-buffers-512-mib-in.md) | Any route buffers 512 MiB in memory before auth runs; Caddy sets no request_body max_size | SECURITY | high | low | — |
 | [B1553](testing/B1553-test-usernames-skip-phone-proof-but.md) | test- usernames skip phone proof but still receive the 10-credit grant and 5 GB quota | SECURITY | high | low | — |
 | [B1484](testing/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium | — |
 | [B1506](testing/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | — |
