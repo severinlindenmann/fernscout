@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (220)
+## backlog (221)
 
 ### security (4)
 
@@ -119,10 +119,11 @@ Do not edit them by hand; run the script.
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 
-### big-feature (12)
+### big-feature (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1577](backlog/big-feature/B1577-six-hand-kept-key-lists-in.md) | Six hand-kept key lists in the helper mirror the instance, and nothing fails when one falls behind | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
 | [B1541](backlog/big-feature/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
