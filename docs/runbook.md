@@ -276,8 +276,11 @@ by starting one upload. `deploy/fernscout.caddy` sets `request_body { max_size
 upload (a trip's media, the inbox, an import, a helper photo upload) get
 520MiB — just above the app's own 512 MiB ceiling, so a caller past the real
 limit sees the app's own error rather than a bare Caddy 413 — and everything
-else, which is JSON and small, is capped at 10MB. Keep the path list there in
-step with whichever routes actually call `request.formData()`.
+else, which is JSON and small, is capped at 10MB — except `/api/helper/*/transcribe`,
+which carries base64 audio *inside* JSON and gets its own 25MB, just past
+`MAX_AUDIO_BYTES` (16 MiB) inflated by base64 encoding, so a legitimate
+recording is not the thing that hits Caddy's own limit. Keep the path list
+there in step with whichever routes actually call `request.formData()`.
 
 `caddy validate` before the reload, always: a reload of a broken config leaves
 the old one running, but a *restart* of one does not, and the difference is
