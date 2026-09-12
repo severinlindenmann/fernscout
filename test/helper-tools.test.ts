@@ -367,6 +367,93 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  /**
+   * A day with nothing on it does not get a publish button — B1561. The
+   * owner pressed one of these on 2026-09-12: the placeholder `NO_PROSE`
+   * (`lib/helper/draft.ts`) plus an empty gallery, exactly as `start_day`
+   * leaves a day nobody has written yet.
+   */
+  describe("publish_day refuses a day with nothing on it", () => {
+    function setUp(content: string, gallery: string) {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-publish-empty-"));
+      fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+      fs.writeFileSync(
+        path.join(dir, "alex", "config.json"),
+        JSON.stringify({
+          title: "Alex",
+          tagline: "t",
+          owner: { name: "A B", nickname: "A", email: "a@example.test" },
+          defaultLocale: "en",
+          locales: ["en"],
+          baseCurrency: "CHF",
+        }),
+      );
+      fs.writeFileSync(
+        path.join(dir, "alex", "trips", "reise", "trip.md"),
+        ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join("\n"),
+      );
+      fs.writeFileSync(
+        path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.md"),
+        ["---", "title: 2026-05-01", 'date: "2026-05-01"', "status: draft", gallery, "---", "", content].join(
+          "\n",
+        ),
+      );
+      return dir;
+    }
+
+    test("empty content and no gallery: refuse, no button", async () => {
+      const dir = setUp("…", "");
+      const before = process.env.CONTENT_DIR;
+      process.env.CONTENT_DIR = dir;
+      try {
+        const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
+        expect(ran.refused).toBe(true);
+        expect(ran.blocks).toEqual([{ shape: "say", text: "agent.tool.publishDayEmpty" }]);
+        expect(ran.proposal).toBeUndefined();
+      } finally {
+        if (before === undefined) delete process.env.CONTENT_DIR;
+        else process.env.CONTENT_DIR = before;
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test("photos but no words: a button, with a warning in the sentence", async () => {
+      const dir = setUp(
+        "…",
+        ["gallery:", '  - src: "/alex/media/reise/one/photo.jpg"'].join("\n"),
+      );
+      const before = process.env.CONTENT_DIR;
+      process.env.CONTENT_DIR = dir;
+      try {
+        const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
+        expect(ran.refused).toBeFalsy();
+        expect(ran.proposal).toBeDefined();
+        expect(ran.proposal?.sentence).toContain("agent.tool.publishDayNoWords");
+      } finally {
+        if (before === undefined) delete process.env.CONTENT_DIR;
+        else process.env.CONTENT_DIR = before;
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    test("words on the day: untouched, no warning added", async () => {
+      const dir = setUp("Ein schöner Tag am See.", "");
+      const before = process.env.CONTENT_DIR;
+      process.env.CONTENT_DIR = dir;
+      try {
+        const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
+        expect(ran.refused).toBeFalsy();
+        expect(ran.proposal).toBeDefined();
+        expect(ran.proposal?.sentence).not.toContain("agent.tool.publishDayNoWords");
+        expect(ran.proposal?.sentence).not.toContain("agent.tool.publishDayEmpty");
+      } finally {
+        if (before === undefined) delete process.env.CONTENT_DIR;
+        else process.env.CONTENT_DIR = before;
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
 });
 
 /**

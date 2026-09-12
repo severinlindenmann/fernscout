@@ -1947,6 +1947,8 @@
   "agent.tool.startDayDone": "Der Tag ist angelegt. Er ist ein Entwurf, also kann ihn niemand ausser dir lesen.",
   "agent.tool.startDayUnknown": "Die Fragen unten stehen auf „Niemand hat es“ — nichts ist erfunden, es hat nur noch niemand gefragt. Ändere es jetzt, oder nenne mir später eine echte Zahl.",
   "agent.tool.publishDayUnknown": "Eines noch: Diese Reise merkt sich Dinge, zu denen dieser Tag nichts sagt. Die Fragen unten stehen auf „Niemand hat es“ — nichts ist erfunden, es hat nur noch niemand gefragt. Ändere es, wenn du die Antwort weißt.",
+  "agent.tool.publishDayEmpty": "Dieser Tag ist noch leer — erzähl mir vom Tag oder häng zuerst Fotos an.",
+  "agent.tool.publishDayNoWords": "Eines noch: Dieser Tag hat Fotos, aber noch keine Worte.",
   "agent.tool.createTripVisibility": "Lies „Wer darf es lesen“, bevor du drückst: Gäste sind alle, die du in dieses Journal gelassen hast, und privat sind nur die Leute, die auf der Reise dabei waren.",
   "agent.tool.editTrip": "{title}, {start} bis {end}. Es ändert sich nichts, bevor du drückst.",
   "agent.tool.editTripAccept": "Diese Änderungen speichern",

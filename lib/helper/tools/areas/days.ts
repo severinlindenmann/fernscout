@@ -6,6 +6,7 @@ import { DAY_ARGS, DAY_REF_ARGS, PREVIEW_CHARACTERS, TRIP_ARG } from "../args";
 import { draftsForWizard } from "../../server";
 import { type CatalogueRow, searchCatalogueFor } from "../../../search";
 import { factsOfEntry } from "../../../api/entries";
+import { isWritten } from "../../draft";
 import { firstUnwritten, noTrip, readersOf, resolveDay, resolveTrip, tripIdFor } from "../resolve";
 
 /**
@@ -379,6 +380,21 @@ export const DAYS_TOOLS: readonly Tool[] = [
       const sentence = found
         ? `${say("agent.tool.publishDay", { date: found.entry.date, title: found.entry.title })} ${audience}`
         : say("agent.tool.publishNoDay");
+      /**
+       * **Nothing to publish is not a day to publish** — B1561.
+       *
+       * A day is created with `NO_PROSE` (`lib/helper/draft.ts`) so a closed
+       * tab loses no photographs, and that placeholder plus an empty gallery
+       * is not a day anybody described — it is the day exactly as
+       * `start_day` left it. `isWritten` is the same test the wizard uses to
+       * decide whether the words step is done; a photo-only day is a real
+       * day (photo-only days are legitimate) and still gets the button, but
+       * the sentence says the words are still missing.
+       */
+      const empty = found
+        ? !isWritten(found.entry.content) && found.entry.gallery.length === 0
+        : false;
+      const wordless = found ? !isWritten(found.entry.content) && found.entry.gallery.length > 0 : false;
       return {
         /**
          * A day already on the site does not go up twice — B1305,
@@ -389,9 +405,15 @@ export const DAYS_TOOLS: readonly Tool[] = [
          * wasted press (the route's own `already_published` 409 kept the
          * write itself safe, but the card shown before it was pointless).
          */
+        ...(empty ? { refuse: "agent.tool.publishDayEmpty" } : {}),
         ...(found && !found.entry.draft ? { refuse: "agent.tool.alreadyPublished" } : {}),
-        sentence:
-          asked.length > 0 ? `${sentence} ${say("agent.tool.publishDayUnknown")}` : sentence,
+        sentence: [
+          sentence,
+          wordless ? say("agent.tool.publishDayNoWords") : "",
+          asked.length > 0 ? say("agent.tool.publishDayUnknown") : "",
+        ]
+          .filter((part) => part !== "")
+          .join(" "),
         accept: say("agent.tool.publishDayAccept"),
         done: say("agent.tool.publishDayDone"),
         preview: found
