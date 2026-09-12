@@ -7,8 +7,7 @@ complexity: medium
 area: owner tools, visibility, day page, trip page, /me
 found: "2026-09-12T17:05:00Z"
 started: "2026-09-12T14:55:30Z"
-session: 8ab36c58-f1c6-4425-bad2-8726044a90c9
-claimed: "2026-09-12T14:55:30Z"
+merged: "2026-09-12T15:36:35Z"
 ---
 
 # B1591 — The visibility badge's explainer and its chooser both push the page open instead of floating above it
