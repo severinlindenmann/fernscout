@@ -277,6 +277,52 @@ describe("reverseUrl", () => {
       expect(target.searchParams.get("lon")).toBe("8.2");
     });
 
+    test("keeps explicit region and country hints ahead of nearer mismatches", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                features: [
+                  {
+                    properties: {
+                      name: "Hausen",
+                      state: "Bavaria",
+                      country: "Germany",
+                      countrycode: "de",
+                      type: "village",
+                    },
+                    geometry: { type: "Point", coordinates: [8.201, 47.401] },
+                  },
+                  {
+                    properties: {
+                      name: "Hausen",
+                      state: "Aargau",
+                      country: "Switzerland",
+                      countrycode: "ch",
+                      type: "village",
+                    },
+                    geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                  },
+                ],
+              }),
+            ),
+        ),
+      );
+
+      await expect(
+        geocodePlace("Hausen", "de", {
+          countryHint: "Switzerland",
+          regionHint: "Aargau",
+          contextCoordinates: [{ lat: 47.4, lng: 8.2 }],
+        }),
+      ).resolves.toMatchObject([
+        { country: "Switzerland", adminRegion: "Aargau" },
+        { country: "Germany", adminRegion: "Bavaria" },
+      ]);
+    });
+
     test("uses the best available subdivision for adminRegion and keeps hits without one", async () => {
       vi.stubGlobal(
         "fetch",

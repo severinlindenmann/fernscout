@@ -267,6 +267,15 @@ function candidateScore(candidate: GeocodeCandidate): number {
   return Number(Boolean(candidate.countryCode)) + Number(Boolean(candidate.adminRegion)) + Number(Boolean(candidate.type));
 }
 
+function hintScore(candidate: GeocodeCandidate, options: { countryHint?: string; regionHint?: string }): number {
+  const countryHint = options.countryHint?.trim().toLowerCase();
+  const regionHint = options.regionHint?.trim().toLowerCase();
+  let score = 0;
+  if (countryHint && candidate.country.toLowerCase() === countryHint) score += 1;
+  if (regionHint && candidate.adminRegion?.toLowerCase() === regionHint) score += 2;
+  return score;
+}
+
 function mergeCandidates(existing: GeocodeCandidate, candidate: GeocodeCandidate): GeocodeCandidate {
   return {
     ...existing,
@@ -343,6 +352,8 @@ export async function geocodePlace(
 
   const candidates = [...out.values()];
   const ranked = [...candidates].sort((a, b) => {
+    const byHint = hintScore(b, options) - hintScore(a, options);
+    if (byHint !== 0) return byHint;
     if (!bias) return candidateScore(b) - candidateScore(a);
     const byDistance = distanceSquared(a, bias) - distanceSquared(b, bias);
     if (byDistance !== 0) return byDistance;
