@@ -22,6 +22,50 @@
                     {
                       "handle": [
                         {
+                          "handler": "request_body",
+                          "max_size": 545259520
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/api/v1/*/trips/*/media",
+                            "/api/v1/*/inbox",
+                            "/api/helper/*/inbox",
+                            "/api/helper/*/day/media",
+                            "/api/v1/*/import",
+                            "/api/v1/*/trips/*/travellers/from-photo"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "request_body",
+                          "max_size": 10000000
+                        }
+                      ],
+                      "match": [
+                        {
+                          "not": [
+                            {
+                              "path": [
+                                "/api/v1/*/trips/*/media",
+                                "/api/v1/*/inbox",
+                                "/api/helper/*/inbox",
+                                "/api/helper/*/day/media",
+                                "/api/v1/*/import",
+                                "/api/v1/*/trips/*/travellers/from-photo"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
                           "encodings": {
                             "gzip": {},
                             "zstd": {}

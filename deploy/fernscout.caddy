@@ -51,6 +51,42 @@
 		respond 405
 	}
 
+	# B1551: Next buffers a request's whole body in memory before the route
+	# handler — and therefore before authenticate() — ever runs, up to
+	# `REQUEST_MAX_BYTES` in lib/validate/media.ts (512 MiB, applied
+	# instance-wide by `experimental.proxyClientMaxBodySize` in
+	# next.config.ts). Below that ceiling Next does not refuse; it truncates
+	# silently. So an unauthenticated caller can hold half a gigabyte of RAM
+	# per connection just by opening one, and Caddy — sitting in front of that
+	# buffer — is the only thing that can refuse a huge body before it ever
+	# reaches the app's memory.
+	#
+	# Two tiers. The handful of routes that legitimately take a large upload
+	# (a trip's media, the inbox, an import, a helper photo upload) get just
+	# enough headroom to clear the app's own ceiling — 520MiB, so a caller past
+	# the real limit sees the app's own error message rather than a bare Caddy
+	# 413. Everything else is JSON and small, and is capped at 10MB. Keep this
+	# list in step with `lib/validate/media.ts`'s REQUEST_MAX_BYTES and with
+	# whichever routes actually call `request.formData()` — see the comment
+	# there.
+	@bigbody {
+		path /api/v1/*/trips/*/media
+		path /api/v1/*/inbox
+		path /api/helper/*/inbox
+		path /api/helper/*/day/media
+		path /api/v1/*/import
+		path /api/v1/*/trips/*/travellers/from-photo
+	}
+	@smallbody {
+		not path /api/v1/*/trips/*/media /api/v1/*/inbox /api/helper/*/inbox /api/helper/*/day/media /api/v1/*/import /api/v1/*/trips/*/travellers/from-photo
+	}
+	request_body @bigbody {
+		max_size 520MiB
+	}
+	request_body @smallbody {
+		max_size 10MB
+	}
+
 	handle {
 		reverse_proxy 127.0.0.1:{$PORT:3000} {
 			# Overwrite, never append — and this line is load-bearing.
