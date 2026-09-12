@@ -2,9 +2,9 @@
  * Every word the book prints that the trip did not write.
  *
  * Headings, labels, the colophon, the names of the ways of travelling. Not the
- * day's prose, the trip's title or a photograph's caption — those are the
- * author's and are printed as written, in whatever language they were written
- * in.
+ * trip's title or a photograph's caption — those are the author's and are
+ * printed as written. A day's title and prose may use a saved author-provided
+ * translation selected before the planner reaches this module.
  *
  * ## Why these are not in `lib/i18n.ts`
  *

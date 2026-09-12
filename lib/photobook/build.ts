@@ -36,6 +36,7 @@ export function specFor(options: BookOptions): BookSpec {
 
 export function planFor(trip: string, options: BookOptions, followers?: string[]): Photobook {
   const source = buildBookSource(trip, {
+    locale: options.locale,
     excludePhotos: options.excludePhotos,
     includeNames: options.includeNames,
     followers,
@@ -152,6 +153,7 @@ export async function buildPhotobook(
   // `BookSource` `planFor` discards, and building it twice would mean two
   // reads of the trip's entries for one order.
   const source = buildBookSource(trip, {
+    locale: options.locale,
     excludePhotos: options.excludePhotos,
     includeNames: options.includeNames,
     followers,

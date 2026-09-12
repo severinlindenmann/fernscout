@@ -7,6 +7,8 @@ import sharp from "sharp";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { buildBookSource, printSourceFor, resolvePrintFile } from "@/lib/photobook/source";
+import { planFor } from "@/lib/photobook/build";
+import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
 import { planBook } from "@/lib/photobook/plan";
 import { defaultSpec, BOOK_SIZES } from "@/lib/photobook/spec";
 
@@ -40,7 +42,12 @@ function write(file: string, contents: string | Buffer) {
 }
 
 /** One day, one photograph per `names` entry, numbered as ingest numbers them. */
-function writeDay(slug: string, date: string, images: { width: number; height: number }[]) {
+function writeDay(
+  slug: string,
+  date: string,
+  images: { width: number; height: number }[],
+  translation?: { locale: string; title?: string; content?: string },
+) {
   write(
     path.join(tripPath(), "entries", `${date}-${slug}.md`),
     [
@@ -61,6 +68,14 @@ function writeDay(slug: string, date: string, images: { width: number; height: n
         `    width: ${image.width}`,
         `    height: ${image.height}`,
       ]),
+      ...(translation
+        ? [
+            "translations:",
+            `  ${translation.locale}:`,
+            ...(translation.title ? [`    title: ${JSON.stringify(translation.title)}`] : []),
+            ...(translation.content ? [`    content: ${JSON.stringify(translation.content)}`] : []),
+          ]
+        : []),
       "---",
       "",
       "Words about the day.",
@@ -398,6 +413,40 @@ describe("originals kept outside the content root", () => {
     const photo = buildBookSource(REF, { madeOn: "2026-02-01" }).days[0].photos[0];
     expect(photo.file).toBe("vault/alex/asia-2026/day-one/01.jpg");
     expect(fs.existsSync(resolvePrintFile(photo.file))).toBe(true);
+  });
+});
+
+describe("entry language", () => {
+  test("uses saved entry translations in the book locale and falls back per entry", () => {
+    writeDay("translated", "2026-01-01", [], {
+      locale: "hu",
+      title: "Magyar cím",
+      content: "Magyar szöveg.",
+    });
+    writeDay("written-only", "2026-01-02", []);
+
+    const source = buildBookSource(REF, { locale: "hu" });
+
+    expect(source.days.map(({ title, paragraphs }) => ({ title, paragraphs }))).toEqual([
+      { title: "Magyar cím", paragraphs: ["Magyar szöveg."] },
+      { title: "written-only", paragraphs: ["Words about the day."] },
+    ]);
+  });
+
+  test("threads the selected locale through the preview planner", () => {
+    writeDay("translated", "2026-01-01", [], {
+      locale: "hu",
+      title: "Magyar cím",
+      content: "Magyar szöveg.",
+    });
+
+    const book = planFor(REF, { ...DEFAULT_OPTIONS, locale: "hu" });
+    const page = book.volumes.flatMap((volume) => volume.pages).find((item) => item.kind === "day");
+
+    expect(page?.kind).toBe("day");
+    if (page?.kind !== "day") throw new Error("The translated day was not planned");
+    expect(page.title).toBe("Magyar cím");
+    expect(page.lines.join(" ")).toContain("Magyar szöveg.");
   });
 });
 

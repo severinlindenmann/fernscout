@@ -30,10 +30,10 @@ export type BookOptions = {
    * colophon, the names of the ways of travelling. See
    * `lib/photobook/strings.ts`.
    *
-   * Never the trip's prose, its title or a caption: those are the author's and
-   * are printed as written. A German journal was getting German days inside an
-   * English book, which is the inconsistency this exists to end — not a
-   * translation service.
+   * Saved entry translations in this language are used for the day's prose and
+   * title. Missing translations fall back to what the author wrote; choosing a
+   * language never invokes a translation service. The trip title and captions
+   * are still printed as written.
    */
   locale: string;
   /** `MediaTile.src` values left out of the book. */
