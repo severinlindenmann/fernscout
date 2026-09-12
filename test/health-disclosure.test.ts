@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vite
 import { GET as health } from "@/app/api/health/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { validateEntry } from "@/lib/validate/entry";
 
 /**
  * B234 — what `/api/health` says to somebody who is not the operator.
@@ -346,5 +347,65 @@ describe("the other public document that names a journal", () => {
     expect(PRIVATE_JOURNAL < PUBLIC_JOURNAL, "the fixture only bites if the private name sorts first").toBe(true);
     expect(document).not.toContain(PRIVATE_JOURNAL);
     expect(document).toContain(PUBLIC_JOURNAL);
+  });
+});
+
+/**
+ * B1580 — the reserved weather sources, published so nobody has to guess them.
+ *
+ * `weatherData.source` is free text on purpose: it names whatever actually
+ * took the reading. The closed part is the short list of names meaning *this
+ * server looked it up itself*, which `lib/validate/entry.ts` refuses — one
+ * string standing between a measurement and an invention.
+ *
+ * It was enforced in code and described only in prose, so a client had
+ * nothing to read and `fernscout-helper` hard-coded it (B1578). These tests
+ * are what make the copy unnecessary: the list is served, and it cannot drift
+ * from the one the validator actually uses, because both are the same import.
+ */
+describe("the reserved weather sources are published (B1580)", () => {
+  test("/api/health serves them, unauthenticated", async () => {
+    const { RESERVED_SOURCES } = await import("@/lib/weather");
+    const response = await health(new Request("https://example.test/api/health"));
+    const body = (await response.json()) as { weather?: { reservedSources?: string[] } };
+    expect(body.weather?.reservedSources).toEqual([...RESERVED_SOURCES]);
+    expect(body.weather?.reservedSources).toContain("open-meteo");
+  });
+
+  test("the published list is the one the validator refuses by — not a second copy", async () => {
+    const { RESERVED_SOURCES } = await import("@/lib/weather");
+    const { validateEntry } = await import("@/lib/validate/entry");
+    const response = await health(new Request("https://example.test/api/health"));
+    const body = (await response.json()) as { weather?: { reservedSources?: string[] } };
+
+    // Every name the document publishes is actually refused. A list that said
+    // more than the validator enforces would send a client round a bend that
+    // is not there; one that said less is the drift this ticket is about.
+    for (const source of body.weather?.reservedSources ?? []) {
+      const problems = validateEntry({
+        title: "A day",
+        date: "2026-06-24",
+        content: "Something happened.",
+        weatherData: { tempMax: 14, source, recordedAt: "2026-06-24T17:00:00Z" },
+      });
+      expect(problems.map((p) => p.field)).toContain("weatherData.source");
+    }
+    expect(body.weather?.reservedSources).toHaveLength(RESERVED_SOURCES.length);
+  });
+
+  test("an ordinary source is not refused — the deny list denies only what it names", () => {
+    // The guard-that-fires-on-an-honest-run case: this field is free text and
+    // almost every value is valid.
+    const problems = validateEntry({
+      title: "A day",
+      date: "2026-06-24",
+      content: "Something happened.",
+      weatherData: {
+        tempMax: 14,
+        source: "the Kestrel on my handlebars",
+        recordedAt: "2026-06-24T17:00:00Z",
+      },
+    });
+    expect(problems).toEqual([]);
   });
 });

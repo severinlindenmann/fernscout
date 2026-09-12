@@ -6,6 +6,7 @@ import { resolveCapabilities } from "@/lib/capabilities";
 import { loadServerConfig } from "@/lib/config";
 import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES } from "@/lib/config";
 import { DEFAULT_MEDIA_LIMITS } from "@/lib/mediaLimits";
+import { RESERVED_SOURCES } from "@/lib/weather";
 import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
 import { contentRootProblem, contentRootWriteProblem, getUsernames } from "@/lib/users";
 import pkg from "@/package.json";
@@ -404,6 +405,29 @@ export async function GET(request: Request) {
       perJournalBytes: configOk
         ? loadServerConfig().media.perUserBytes
         : DEFAULT_MEDIA_LIMITS.perUserBytes,
+    },
+    /**
+     * The weather source names only this server may claim — B1580.
+     *
+     * `weatherData.source` is otherwise free text, and deliberately: it names
+     * whatever actually took the reading, which no server can enumerate. What
+     * *is* closed is the short list of names that mean **this server looked it
+     * up itself**, and `lib/validate/entry.ts` refuses those outright — one
+     * string standing between a measurement and an invention.
+     *
+     * Here because a client needs it before it sends, and because it was the
+     * one part of this rule a client was forced to hard-code: a day whose
+     * weather this server fetched carries `source: "open-meteo"` in its own
+     * file, so anything forwarding a journal's days hits the refusal on every
+     * such day. `fernscout-helper` found that by failing (B1578) and carried
+     * its own copy until this existed — which is the same shape as the upload
+     * formats two blocks up, and the same fix.
+     *
+     * A deny list rather than an `enum` on the field: every other value is
+     * valid, which is the opposite of what an enum says.
+     */
+    weather: {
+      reservedSources: [...RESERVED_SOURCES],
     },
     /**
      * How many printed photobook orders a journal keeps on disk before older

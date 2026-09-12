@@ -13,6 +13,7 @@ import {
   VISIBILITY_NOT_A_LOCK,
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
+import { RESERVED_SOURCES } from "@/lib/weather";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 
 /** Markdown emphasis is prose's, not a JSON `description`'s — the same trim
@@ -3688,6 +3689,24 @@ export function openApiDocument() {
                     properties: {
                       status: { type: "string", enum: ["ok", "error"] },
                       version: { type: "string" },
+                      weather: {
+                        type: "object",
+                        description:
+                          "`reservedSources` — the source names only this server may " +
+                          "claim on a day's `weatherData`, refused from any caller " +
+                          "because they mean this server performed the lookup itself " +
+                          "(B1580). Every other source is valid, so this is a deny " +
+                          "list rather than an enum on the field. Read it before " +
+                          "forwarding a journal's days: one whose weather this server " +
+                          "fetched carries a reserved source in its own file, and " +
+                          "sending it back is refused.",
+                        properties: {
+                          reservedSources: {
+                            type: "array",
+                            items: { type: "string", enum: [...RESERVED_SOURCES] },
+                          },
+                        },
+                      },
                       backup: {
                         type: "object",
                         description:
