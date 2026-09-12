@@ -7,8 +7,7 @@ complexity: medium
 area: agent room
 found: "2026-09-12T08:54:28Z"
 started: "2026-09-12T09:29:44Z"
-session: 5a4744c4-0424-4149-9d23-d8a0bd9dd3b1
-claimed: "2026-09-12T09:29:44Z"
+merged: "2026-09-12T09:58:18Z"
 ---
 
 # B1573 — The room's preview and Verlauf > Tage only ever show the newest trip
