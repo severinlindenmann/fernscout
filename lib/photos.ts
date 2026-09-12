@@ -113,6 +113,45 @@ export function strictestVisibility(
 }
 
 /**
+ * The three words a reader-facing label may say, widest first — B1585.
+ *
+ * Deliberately *not* `PHOTO_VISIBILITIES` with `public` bolted on. Those two
+ * are what a photograph or an update may be **set** to, and `public` is
+ * excluded there on purpose: a label narrows and can never widen. This is the
+ * different question of what the audience for a thing **turns out to be** once
+ * its own label and every gate above it are taken together, and the answer to
+ * that genuinely can be "everybody".
+ *
+ * Same order as `READER_LEVELS` above and the same order as a trip's own
+ * `VISIBILITIES`, which is what lets one comparison serve all three.
+ */
+export const AUDIENCES = ["public", "guest", "private"] as const;
+
+export type Audience = (typeof AUDIENCES)[number];
+
+/**
+ * What a thing's audience actually is, given the gate above it and its own
+ * label — B1585.
+ *
+ * The whole of "effective visibility", and it is one line because
+ * `AUDIENCES`' order is the whole rule: a label narrows, so the answer is
+ * whichever of the two is further down the list. A `guest` photograph inside a
+ * `private` trip is private; a `private` update on a `public` trip is private;
+ * an unlabelled day on a `guest` trip is guest.
+ *
+ * Never a gate. `maySeePhoto`, `visible()` and `mayReadTrip` decide who gets
+ * in; this decides what to *say* about it, and a page that used this to admit
+ * somebody would be asking the wrong function.
+ */
+export function effectiveAudience(
+  above: Audience,
+  own: PhotoVisibility | undefined,
+): Audience {
+  if (!own) return above;
+  return AUDIENCES.indexOf(own) > AUDIENCES.indexOf(above) ? own : above;
+}
+
+/**
  * The looser of two labels, which is the right answer when one file is
  * reachable by more than one route.
  *

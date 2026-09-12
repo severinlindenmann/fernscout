@@ -44,6 +44,14 @@ const EDITABLE = [
   "date",
   "visibility",
   "translations",
+  // Round 2's two, and they were missing for four days — B1586. The rule the
+  // comment above states is the right one; this list simply stopped following
+  // the panel when the panel grew a caption box and a per-photograph select.
+  // Getting it wrong was expensive rather than merely incomplete: the panel
+  // sends one patch per update, and an unknown key refuses the whole of it, so
+  // a title corrected in the same press was lost too.
+  "captions",
+  "photoVisibility",
 ];
 
 const NOT_FOR_AGENTS = {

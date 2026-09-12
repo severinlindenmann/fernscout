@@ -56,7 +56,7 @@ export default async function GalleryPage({
   // B318: this page called getAllMedia/getPlaces with no options at all, so
   // it filtered drafts out for every viewer, owner included — the one
   // reading path in the trip that never checked who was asking.
-  const { read, canPublish } = await readFor(trip);
+  const { read, canPublish, owner } = await readFor(trip);
 
   // B441. One call, and deliberately not `isOwner` inline: this file decides
   // draft visibility three lines up, and `lib/postcard/entry.ts` explains why
@@ -71,6 +71,7 @@ export default async function GalleryPage({
       isCurrent
       canPublish={canPublish}
       reader={read.reader}
+      owner={owner}
     >
       <GalleryPageContent
         media={getAllMedia(tripId, read)}

@@ -187,11 +187,25 @@ export async function readerLevelFor(trip: Trip, request?: Request): Promise<Rea
 export async function readFor(
   trip: Trip,
   request?: Request,
-): Promise<{ read: ReadOptions; canPublish: boolean }> {
+): Promise<{ read: ReadOptions; canPublish: boolean; owner: boolean }> {
   const drafts = await draftsVisibleTo(trip, request);
   return {
     read: { includeDrafts: drafts.visible, reader: await readerLevelFor(trip, request) },
     canPublish: drafts.canPublish,
+    /**
+     * Whether this reader owns the journal — B1585, and deliberately a second
+     * field rather than a second reading of `canPublish`.
+     *
+     * The two are the same boolean today, from the same `isOwner` call one
+     * line above, and they are still two questions: `canPublish` is "may you
+     * put a draft on the site", this is "is the journal yours". The visibility
+     * controls need the second — deciding who may read a trip is not deciding
+     * whether a day is finished — and `GalleryGrid`'s own comment already
+     * warned, before this existed, that borrowing `canPublish` for a different
+     * question is how two answers end up sharing one field and then need to
+     * stop. No extra work: `draftsVisibleTo` has already asked.
+     */
+    owner: drafts.canPublish,
   };
 }
 

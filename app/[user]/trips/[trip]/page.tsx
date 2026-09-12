@@ -78,7 +78,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
 
   // B327: who may see this trip's unpublished days, and whether putting one
   // on the site is theirs. Owner, or somebody on the trip.
-  const { read, canPublish } = await readFor(trip);
+  const { read, canPublish, owner } = await readFor(trip);
 
   // Not `status === "upcoming"` alone: see `showsCountdown` for why a
   // published day settles it whatever the status says (B72).
@@ -115,7 +115,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     // at the top of this function and was simply never handed on, so an
     // owner's own controls on a past trip's story, `DayNotify` among them,
     // rendered for nobody.
-    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader} owner={owner}>
       <BlogStructuredData
         entries={getAllEntries(trip.ref)}
         site={site}

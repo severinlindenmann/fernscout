@@ -179,6 +179,47 @@ describe("the owner's own correction door", { shuffle: false }, () => {
     expect((await POST(asStranger, params)).status).toBe(403);
   });
 
+  /**
+   * B1586. Round 2 of B980 drew a caption box and a visibility select for
+   * every photograph and sent both through this route; `EDITABLE` was round
+   * 1's list and was never widened, so the route answered 400
+   * `unsupported_field` and `save()` stopped there.
+   *
+   * The assertion that matters is the second one: the patch is *one* call per
+   * update, so an unknown key took the title down with it. An owner fixing a
+   * typo and writing a caption in the same press lost the typo fix as well.
+   */
+  test("a caption and a photograph's label are what the panel draws, so the route takes them", async () => {
+    const file = entryFile();
+    fs.writeFileSync(
+      file,
+      fs
+        .readFileSync(file, "utf8")
+        .replace(
+          'country: "Nowhere"\n',
+          `country: "Nowhere"\ngallery:\n  - src: "/media/${TRIP}/${SLUG}/01.jpg"\n    type: "image"\n    width: 800\n    height: 600\n`,
+        ),
+    );
+    const src = `/${OWNER}/media/${TRIP}/${SLUG}/01.jpg`;
+    const { PATCH } = await route();
+
+    const response = await PATCH(
+      req({
+        title: "Arrival",
+        captions: { [src]: "Lanterns" },
+        photoVisibility: { [src]: "private" },
+      }),
+      params,
+    );
+    expect(response.status).toBe(200);
+
+    const written = fs.readFileSync(file, "utf8");
+    expect(written).toContain("Lanterns");
+    expect(written).toContain("private");
+    // The title travelled in the same patch and must not have been lost with it.
+    expect(written).toContain('title: "Arrival"');
+  });
+
   test("a correction lands on disk", async () => {
     const { PATCH } = await route();
     const response = await PATCH(req({ title: "Arrival", content: "It rained." }), params);

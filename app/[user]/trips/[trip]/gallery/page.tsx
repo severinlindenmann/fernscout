@@ -53,7 +53,7 @@ export default async function TripGalleryPage({
   // B318: this page called getAllMedia/getPlaces with no options at all, so
   // it filtered drafts out for every viewer, owner included — the one
   // reading path in the trip that never checked who was asking.
-  const { read, canPublish } = await readFor(trip);
+  const { read, canPublish, owner } = await readFor(trip);
 
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // current-trip gallery page.
@@ -68,6 +68,7 @@ export default async function TripGalleryPage({
       isCurrent={false}
       canPublish={canPublish}
       reader={read.reader}
+      owner={owner}
     >
       <GalleryPageContent
         media={getAllMedia(trip.ref, read)}
