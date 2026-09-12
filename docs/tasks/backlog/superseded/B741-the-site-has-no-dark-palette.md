@@ -5,12 +5,26 @@ type: FEATURE
 priority: low
 complexity: medium
 area: brand
+superseded: "B1541"
 found: "2026-09-07T12:37:09Z"
 ---
 
 # B741 — The site has no dark palette at all, though the brand mockups already draw one
 
 ## Why
+
+Superseded by B1541, which is the same problem captured on 2026-09-11 as a
+`big-feature` rather than a `small-feature`, and which carries the decision
+this file left open. Both describe one light-only palette in
+`app/globals.css`, `colorScheme: "light"` hardcoded in `app/layout.tsx`, and a
+brand mockup that already draws a complete dark block.
+
+B1541 adds what is missing here: the measured scale of the change (~1,565
+hardcoded colour-utility uses across 121 components), the choice between
+flipping the token hexes under a dark selector and renaming the tokens
+semantically first, and the four drawing benches at `/docs/branding` needing
+their own pass. The AAA re-audit and the `/docs/branding/identity` check this
+file asks for survive into it unchanged.
 
 Found while building B733 (yellow-led ground/panel treatment for `/` and
 `/agent`). Its mockup — a private artifact drawn against this brand — ships a

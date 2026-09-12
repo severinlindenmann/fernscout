@@ -85,3 +85,10 @@ guessing at a fix. Whoever picks this up should:
   depends on spying a Node builtin to be tested deterministically, and
   `test/analytics-visitors.test.ts`'s pinned-salt test passes every time
   under `--sequence.shuffle`, run at least 20 times.
+
+## Related
+
+Probably the same root cause as B1106 — a test that passes standalone and
+fails only inside a large shuffled full run, on a tree that touched nothing
+related. Investigate the two together rather than separately; a state leak
+between forked workers would explain both, and finding it twice is waste.

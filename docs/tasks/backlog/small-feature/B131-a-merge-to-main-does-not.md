@@ -42,6 +42,15 @@ somebody else's instance reach out to GitHub on its own. Related,
 deliberately not one task — and B253 is the first observation of what B131
 costs.
 
+B1313 must land before this one. It gives `scripts/deploy.sh` the lock that
+stops two deploys running at once — the fault that caused a real ten-minute
+outage on 2026-09-10, with a corrupt build cache and a detached HEAD to
+recover from by hand. The `concurrency` group below guards two *Actions* runs
+against each other; it does nothing about an Actions run racing a person at a
+terminal, which is exactly what happened. Automating the trigger before that
+lock exists adds a second thing that can start a deploy, against a race that
+has already taken the site down.
+
 ## Work
 
 Add a `deploy` job to `.github/workflows/ci.yml`, gated on `needs: [build]`

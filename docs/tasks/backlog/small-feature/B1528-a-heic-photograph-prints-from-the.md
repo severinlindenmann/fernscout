@@ -70,3 +70,10 @@ dimensions and no `fallbackReason`, and the postcard's low-resolution warning
 goes quiet where the camera file was big enough. Re-ingesting an already
 imported trip converts nothing twice (`.ingest.json`). The storage decision
 above is implemented and named in the task file.
+
+## Related
+
+B1531 must not land before this one. It switches the stored derivative to a
+format the printer cannot embed, and the print fallback this ticket exists to
+remove is what would be left holding those bytes. B1531's own body says the
+same; this note is the other half of the pair so neither is picked up alone.

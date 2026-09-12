@@ -34,3 +34,11 @@ Curl the requested derivative URL for a files-rail row's thumbnail and
 confirm it asks for `?w=320`, not a larger candidate — this is a
 network-bytes bug, not a rendering one, so verify by curl rather than
 screenshot.
+
+## Related
+
+Same fix as B1417, and the same mistake B1298 already fixed once: a `fill`
+layout with a fixed pixel `sizes` value does not narrow the candidate widths,
+so the loader serves the 320px floor for a thumbnail. Do the two together, and
+grep for any third instance while you are in there — the pattern has now
+recurred twice after being fixed.

@@ -45,3 +45,11 @@ transcription-failure path and reuse it rather than inventing a second one).
 A `spendAndTranscribe` outcome with `ok: false` and an error other than
 `no_credits` produces a non-empty reply to the sender, with a test alongside
 `test/whatsapp-voice.test.ts`'s existing no-credits case.
+
+## Related
+
+Same missing sentence as B1431, in the same file: a branch of the WhatsApp
+dispatch that logs and returns without ever replying to the sender. B1431 is
+the wider surface (every ordinary reply, not just a voice note). One pass
+should close both, and should check the remaining branches of the same file
+for a third.

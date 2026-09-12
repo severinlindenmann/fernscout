@@ -59,3 +59,9 @@ tool genuinely is not available, rather than being the silent default.
   and it is a step the running agent can actually execute.
 - `work-on-a-task` step 6 notes the dispatched-agent limitation and points at
   that step rather than asking a subagent to run a tool it does not have.
+
+## Related
+
+B1462 and B1483 are the other two findings about a dispatched agent, with
+unrelated root causes and the same two skill documents as their fix. One
+editing pass should carry all three.

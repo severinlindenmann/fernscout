@@ -42,3 +42,11 @@ Check whether anything else on that page derives tense for itself while there.
   and the page heading agree.
 - Nothing on the map page computes the tense twice.
 - `npm run verify` clean.
+
+## Related
+
+B1476 is the same tense, computed a second time. This ticket is the
+screen-reader label deriving its own answer; B1476 is the visible heading
+deriving a wrong one from whether any day names a place. Fixing B1476 alone
+leaves this label still computing independently, so do them together and let
+one value feed both.

@@ -53,3 +53,9 @@ still unbuilt regardless of whether the webhook is switched on.
 `STANNP_WEBHOOK_SECRET` is set in the live env, the webhook is registered in
 Stannp's dashboard against the live URL, and a real delivery from Stannp
 shows up in the live logs as accepted rather than as a 404.
+
+## Related
+
+This is the operator half of the same webhook B1441 and B1532 extend. Until
+this is done neither of those can be verified against a real delivery, because
+the route is unreachable in production. Do this one first.

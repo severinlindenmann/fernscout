@@ -5,12 +5,21 @@ type: DOCS
 priority: high
 complexity: low
 area: docs
+superseded: "B1384"
 found: "2026-09-11T05:11:55Z"
 ---
 
 # B1414 — docs/TESTING.md's privacy section never mentions buddy links or per-photo visibility
 
 ## Why
+
+Superseded by B1384: the work described below was done inside that ticket's
+docs pass and is on `main`. `docs/TESTING.md` now carries **F6a** (issue a
+buddy link, approve it, confirm write access to the named trip and read access
+to every `guest` trip) at line 144 and **F7a** (mark one gallery item
+`visibility: guest`, confirm it leaves the grid and its own URL answers 404) at
+line 146, with F13's cleanup line updated to name both. Nothing here is
+outstanding.
 
 Found while triaging B1384. `docs/TESTING.md`'s section F ("Privacy") walked
 13 cases (F1-F13) covering trip visibility, `listed`, `teaser` and

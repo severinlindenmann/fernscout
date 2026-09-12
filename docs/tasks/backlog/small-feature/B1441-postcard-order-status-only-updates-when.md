@@ -70,3 +70,18 @@ no new inbound route, but means a cron script instead of a push).
   `dispatched`, and none for any other status transition.
 - The order page reflects the current Stannp status without the owner having
   had to press anything.
+
+## Related
+
+Three tickets extend the same Stannp webhook and should be sequenced as one
+piece of work:
+
+- **B1536** is the operator step that makes the route reachable at all — it is
+  built and verified locally but has never been registered or given a secret in
+  production, so it currently answers 404 to every real delivery.
+- **This ticket** is the status-update body and the once-only dispatch mail.
+- **B1532** is the refund and notice when the printer reports a cancellation
+  after acceptance.
+
+Doing them separately means writing the same signature verification and the
+same duplicate-delivery handling two or three times.

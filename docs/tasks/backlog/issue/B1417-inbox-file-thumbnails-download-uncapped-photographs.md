@@ -32,3 +32,8 @@ new tier.
 Curl the requested derivative URL for an inbox tile and confirm it asks
 for `?w=320`, not a larger candidate — this is a network-bytes bug, not a
 rendering one, so verify by curl rather than screenshot.
+
+## Related
+
+Same fix as B1416, and the same mistake B1298 already fixed once. Do the two
+together, and grep for a third instance while you are in there.

@@ -56,3 +56,11 @@ unaffected by caching.
 
 - The test's metric equals the wire prefix within rounding.
 - `npm run verify` green, with the new ceiling and stated headroom.
+
+## Related
+
+Do this before B1049 or B1238, both of which add to the prompt. This ticket's
+whole point is that the tracked budget measures a different string than the one
+that goes over the wire and sits 21 tokens from its ceiling, so either of those
+would break the build on a limit nobody would think to look at, for a reason
+that has nothing to do with the change being made.

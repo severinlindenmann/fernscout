@@ -53,3 +53,14 @@ The runbook names both traps; ideally `deploy.sh` self-heals a corrupt
 Turbopack cache. Verified by a deploy that survives a deliberately corrupted
 `.turbo`.
 
+
+## Related
+
+Partly covered by B1313, which is the higher-priority write-up of the same
+deploy surface and whose Work already carries the lock and the self-healing
+Turbopack retry this file asks for. **Not superseded** — the third bullet here
+has no counterpart there: writing both traps into the vps skill and the
+runbook, so that a config-only change is known to need a build and a
+`turbo-persistence` panic is known to mean clear the caches rather than debug
+the page it names. Build B1313 and fold this file's documentation bullet into
+the same pass.

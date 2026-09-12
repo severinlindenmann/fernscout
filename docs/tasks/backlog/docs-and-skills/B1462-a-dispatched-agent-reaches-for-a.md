@@ -101,3 +101,13 @@ watching.
 **And it corrupted a brief.** The stale "fifty seconds and the build seventy" in
 AGENTS.md — corrected by B1141 today to a measured 230-290s — is part of why an
 agent plans a 120-second-shaped command in the first place.
+
+## Related
+
+B1483 is the sibling finding — a dispatched agent's working directory stays the
+shared checkout even though its edits land in the worktree — and B1144 is the
+third: the security skill needs a tool a dispatched subagent does not have.
+Three unrelated root causes, all landing as edits to the same two skill
+documents. Edit them in one pass rather than three, and note this ticket's own
+argument that prose has already failed twice here, so the durable answer is a
+hook rather than another paragraph.

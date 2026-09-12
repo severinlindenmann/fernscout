@@ -45,3 +45,10 @@ A postcard order whose only card is cancelled by Stannp after acceptance is
 refunded exactly once, the owner is mailed once, and a second delivery of
 the same cancellation event changes nothing further (idempotent, the same
 guarantee `test/photobook-webhook.test.ts` already checks for Gelato).
+
+## Related
+
+Sits on the same Stannp webhook as B1441 (status updates and the dispatch
+mail) and B1536 (registering the endpoint and its secret in production, without
+which the route answers 404 to every real delivery). The idempotency and
+signature handling are shared — build them once, across all three.
