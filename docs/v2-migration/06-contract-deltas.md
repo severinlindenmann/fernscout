@@ -142,6 +142,73 @@ buddies question.
 **Drift:** none. This is the 422 body telling the truth about itself; the set
 of accepted documents is unchanged.
 
+### D11 — `null` on a PATCH clears `cover`, `accent`, `tagline` or `intro` back to absent
+**What:** `.nullable()` added to these four fields, on the **patch shape
+only** (`tripPatch` in `schemas/trip.ts`). `tripCreate`, `tripDoc`, and every
+other field, are untouched. Sending `null` for one of the four removes the
+key from the stored document, returning it to the state before that field
+was ever set — the same effective result as never having answered it.
+**Why:** B1626 found the gap twice on the same shape: `cover: ""` was
+accepted as an ordinary string (stored verbatim, so `trip.cover ??
+pickCover(days)` never fell through to the auto-pick — `??` only treats
+`null`/`undefined` as absent), and an already-set `accent` could not be
+declined, because a patch supplying only `declined.accent` merges over a
+stored `accent` that survives untouched, and the merged document then has
+the field both present and declined at once. Both are the same missing
+convention: v2's merge-patch had **no spelling at all** for "remove this
+field" — omitting a key means "unchanged", which is what makes a patch a
+patch, but it left the opposite unsayable. The contract already names **RFC
+7386 JSON Merge Patch** as its patch semantics, and in RFC 7386 `null` means
+*remove the member*. This finishes the convention already cited rather than
+adding one. `""` was rejected as the spelling for the same reason R1
+rejected an absent translation title: an empty value and an absent value are
+different claims.
+**Where it acts:** once, in the shared write path (`lib/api/v2/write.ts`'s
+new `applyNullClears`), on the MERGED document a PATCH is about to
+revalidate — not in the schema (only `tripPatch` ever sees `null`) and not
+on the raw incoming patch (which still needs its `null` intact for
+`retractDeclines`/`checkPatchConflicts` to read as "this field is being
+answered," not silently omitted, before it is deleted for good). This is the
+one shared write path the doors sit on (T5), so a later `/api/web` cookie
+door inherits the behaviour rather than reimplementing it.
+**`accent` and `checkPatchConflicts`:** pairing `accent: null` with
+`declined.accent` in the same call — the only way to swap a chosen accent
+for a declined one — was itself refused before this ticket, because
+`checkPatchConflicts` (`schemas/shared.ts`) read *any* non-`undefined` value,
+`null` included, as "brought," and a field both brought and declined in one
+patch is exactly the contradiction that function exists to catch. Fixed by
+excluding `null` from "brought" there — not by touching
+`DECLINE_ANSWERED_BY` (`write.ts`), which is B1616's mechanism for a decline
+answered by a *different* field (`buddies`/`people`) and has nothing to say
+about a field clearing itself. T6's own `retractDeclines` needed no change:
+it already treats a field's presence in the incoming body — `null` included
+— as "this question has been answered," so a stray `declined.accent` left
+over from before the value was ever set is retracted the same way a real
+value retracts it.
+**Deliberately NOT in scope:**
+- **Declinable sections** (`costs`, `plan`, `rates`, `figures`, `media`,
+  `translations`, …) keep the `declined` map as their only "not answered"
+  spelling. `{"costs": null}` is refused — not by new code, but because
+  `costs` was never marked `.nullable()`, so Zod's own type check refuses it
+  before any write-path logic runs. A second spelling for one thing is
+  exactly the drift this row exists to avoid.
+- **Derived and conditional fields** (`listed`, `teaser`, `buddies`,
+  `status`, `track`) keep B1616's reconciliation
+  (`reconcileVisibility`, `DECLINE_ANSWERED_BY`) and gain no `null`
+  spelling. `{"listed": null}` is refused the same mechanical way as
+  `costs`.
+- **`PUT`.** A full replace already expresses absence by omission (decision
+  7). `tripCreate` — the schema a PUT validates against — never gained
+  `.nullable()` on any field, so `null` there is an ordinary type error.
+**Authorised:** the owner, 2026-09-12 — the widening described in B1626's
+own Work section, decided rather than built unilaterally because a merge-
+patch convention is a contract question.
+**Drift:** a **widening of the patch shape only**. No write shape changes
+beyond it (create/replace still refuse `null` on every field), no read shape
+changes (a GET never returns `null` for these four — the key is either
+present or absent), and nothing that validated before this row stops
+validating now.
+
 ---
 
 ## Considered and REJECTED — the contract stands
