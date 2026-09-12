@@ -93,17 +93,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "address_lookup_disabled" }, { status: 404 });
   }
 
-  const limit = rateLimitFor("place-geocode", `${clientIp(request)}:${username}`, {
-    max: 1,
-    windowMs: 1000,
-  });
-  if (!limit.ok) {
-    return Response.json(
-      { error: "too_many_requests", retryAfter: limit.retryAfter },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
-    );
-  }
-
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return Response.json({ error: "invalid_json" }, { status: 400 });
@@ -136,6 +125,17 @@ export async function POST(request: Request) {
 
   if (problems.length > 0) {
     return Response.json({ error: "invalid_request", problems }, { status: 400 });
+  }
+
+  const limit = rateLimitFor("place-geocode", `${clientIp(request)}:${username}`, {
+    max: 1,
+    windowMs: 1000,
+  });
+  if (!limit.ok) {
+    return Response.json(
+      { error: "too_many_requests", retryAfter: limit.retryAfter },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+    );
   }
 
   const locale = request.headers.get("accept-language")?.split(",")[0]?.trim().split("-")[0] ?? "en";

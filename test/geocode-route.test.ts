@@ -178,6 +178,15 @@ describe("POST /api/v1/geocode", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  test("does not spend the rate limit on a payload that is refused before lookup", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ features: [] }))));
+    const accessToken = await token();
+    expect(
+      (await call(accessToken, { query: "ab", contextCoordinates: [{ lat: 200, lng: 8.2 }] }, "203.0.113.96")).status,
+    ).toBe(400);
+    expect((await call(accessToken, { query: "Hausen" }, "203.0.113.96")).status).toBe(200);
+  });
+
   test("answers 404 when the journal has place lookup switched off", async () => {
     writeConfigs({ enabled: false, provider: "photon" });
     const fetchMock = vi.fn();
