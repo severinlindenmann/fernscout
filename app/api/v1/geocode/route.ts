@@ -1,5 +1,6 @@
 import { authenticate, errorResponse } from "@/lib/api/auth";
 import { checkAgainstContract } from "@/lib/api/contract";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
 import {
   geocodePlace,
   MAX_QUERY_LEN,
@@ -90,7 +91,10 @@ export async function POST(request: Request) {
 
   const username = auth.session.owner;
   if (!isEnabled("addressLookup", username)) {
-    return Response.json({ error: "address_lookup_disabled" }, { status: 404 });
+    return Response.json(
+      { error: "address_lookup_disabled", message: ERROR_CODES.address_lookup_disabled },
+      { status: 404 },
+    );
   }
 
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;

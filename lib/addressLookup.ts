@@ -188,7 +188,7 @@ export type GeocodeContextCoordinate = { lat: number; lng: number };
 export type GeocodeCandidate = {
   displayName: string;
   country: string;
-  countryCode: string;
+  countryCode?: string;
   adminRegion?: string;
   lat: number;
   lon: number;
@@ -244,16 +244,16 @@ function geocodeCandidate(feature: PhotonPlaceFeature): GeocodeCandidate | null 
   const countryCode = (p.countrycode ?? "").trim().toUpperCase();
   const adminRegion = uniqueParts([p.state ?? "", p.county ?? "", p.district ?? "", p.city ?? ""])[0] ?? "";
   const displayName = uniqueParts([p.name ?? "", p.city ?? "", p.district ?? "", adminRegion, country]).join(", ");
-  if (displayName === "" || country === "" || countryCode === "") return null;
+  if (displayName === "" || country === "") return null;
 
   const type = (p.type ?? p.osm_value ?? "").trim();
 
   return {
     displayName,
     country,
-    countryCode,
     lat,
     lon,
+    ...(countryCode ? { countryCode } : {}),
     ...(adminRegion ? { adminRegion } : {}),
     ...(type ? { type } : {}),
   };
@@ -261,6 +261,19 @@ function geocodeCandidate(feature: PhotonPlaceFeature): GeocodeCandidate | null 
 
 function distanceSquared(a: { lat: number; lon: number }, b: GeocodeContextCoordinate): number {
   return (a.lat - b.lat) ** 2 + (a.lon - b.lng) ** 2;
+}
+
+function candidateScore(candidate: GeocodeCandidate): number {
+  return Number(Boolean(candidate.countryCode)) + Number(Boolean(candidate.adminRegion)) + Number(Boolean(candidate.type));
+}
+
+function mergeCandidates(existing: GeocodeCandidate, candidate: GeocodeCandidate): GeocodeCandidate {
+  return {
+    ...existing,
+    ...(existing.countryCode ? {} : candidate.countryCode ? { countryCode: candidate.countryCode } : {}),
+    ...(existing.adminRegion ? {} : candidate.adminRegion ? { adminRegion: candidate.adminRegion } : {}),
+    ...(existing.type ? {} : candidate.type ? { type: candidate.type } : {}),
+  };
 }
 
 /**
@@ -311,19 +324,26 @@ export async function geocodePlace(
     return null;
   }
 
-  const out: GeocodeCandidate[] = [];
-  const seen = new Set<string>();
+  const out = new Map<string, GeocodeCandidate>();
   for (const feature of body.features ?? []) {
     const candidate = geocodeCandidate(feature);
     if (!candidate) continue;
-    const key = `${candidate.displayName}|${candidate.lat}|${candidate.lon}|${candidate.type}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(candidate);
+    const key = `${candidate.displayName}|${candidate.lat}|${candidate.lon}`;
+    const existing = out.get(key);
+    if (!existing) {
+      out.set(key, candidate);
+      continue;
+    }
+    if (candidateScore(candidate) > candidateScore(existing)) {
+      out.set(key, mergeCandidates(candidate, existing));
+    } else {
+      out.set(key, mergeCandidates(existing, candidate));
+    }
   }
 
-  if (!bias) return out;
-  return [...out].sort((a, b) => distanceSquared(a, bias) - distanceSquared(b, bias));
+  const candidates = [...out.values()];
+  if (!bias) return candidates;
+  return [...candidates].sort((a, b) => distanceSquared(a, bias) - distanceSquared(b, bias));
 }
 
 /**

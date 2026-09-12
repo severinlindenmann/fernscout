@@ -286,7 +286,7 @@ describe("reverseUrl", () => {
               JSON.stringify({
                 features: [
                   {
-                    properties: { name: "Hausen", country: "Switzerland", countrycode: "ch", type: "village" },
+                    properties: { name: "Hausen", country: "Switzerland", type: "village" },
                     geometry: { type: "Point", coordinates: [8.216, 47.463] },
                   },
                   {
@@ -307,7 +307,6 @@ describe("reverseUrl", () => {
         {
           displayName: "Hausen, Switzerland",
           country: "Switzerland",
-          countryCode: "CH",
           lat: 47.463,
           lon: 8.216,
           type: "village",
@@ -319,6 +318,7 @@ describe("reverseUrl", () => {
           adminRegion: "Aargau",
           lat: 47.463,
           lon: 8.216,
+          type: "village",
         },
       ]);
     });

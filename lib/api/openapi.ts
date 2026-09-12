@@ -229,7 +229,7 @@ export function openApiDocument() {
         },
         GeocodeCandidate: {
           type: "object",
-          required: ["displayName", "country", "countryCode", "lat", "lon"],
+          required: ["displayName", "country", "lat", "lon"],
           properties: {
             displayName: {
               type: "string",
@@ -240,7 +240,7 @@ export function openApiDocument() {
             country: { type: "string" },
             countryCode: {
               type: "string",
-              description: "ISO-3166 alpha-2 country code.",
+              description: "ISO-3166 alpha-2 country code, when the provider supplies one.",
             },
             adminRegion: {
               type: "string",
