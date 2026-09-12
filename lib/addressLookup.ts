@@ -188,11 +188,11 @@ export type GeocodeContextCoordinate = { lat: number; lng: number };
 export type GeocodeCandidate = {
   displayName: string;
   country: string;
-  countryCode: string;
+  countryCode?: string;
   adminRegion: string;
   lat: number;
   lon: number;
-  type: string;
+  type?: string;
 };
 
 function combinedQuery(query: string, regionHint?: string, countryHint?: string): string {
@@ -244,16 +244,18 @@ function geocodeCandidate(feature: PhotonPlaceFeature): GeocodeCandidate | null 
   const countryCode = (p.countrycode ?? "").trim().toUpperCase();
   const adminRegion = (p.state ?? p.county ?? "").trim();
   const displayName = uniqueParts([p.name ?? "", p.city ?? "", p.district ?? "", adminRegion, country]).join(", ");
-  if (displayName === "") return null;
+  if (displayName === "" || country === "" || adminRegion === "") return null;
+
+  const type = (p.type ?? p.osm_value ?? "").trim();
 
   return {
     displayName,
     country,
-    countryCode,
     adminRegion,
     lat,
     lon,
-    type: (p.type ?? p.osm_value ?? "").trim(),
+    ...(countryCode ? { countryCode } : {}),
+    ...(type ? { type } : {}),
   };
 }
 

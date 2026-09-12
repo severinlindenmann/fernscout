@@ -229,7 +229,7 @@ export function openApiDocument() {
         },
         GeocodeCandidate: {
           type: "object",
-          required: ["displayName", "country", "adminRegion", "lat", "lon", "type"],
+          required: ["displayName", "country", "adminRegion", "lat", "lon"],
           properties: {
             displayName: {
               type: "string",
@@ -251,7 +251,7 @@ export function openApiDocument() {
             type: {
               type: "string",
               description:
-                "What kind of place the provider thinks this is — city, village, hamlet, suburb, and so on.",
+                "What kind of place the provider thinks this is — city, village, hamlet, suburb, and so on, where it named one.",
             },
           },
         },
