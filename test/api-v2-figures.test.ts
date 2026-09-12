@@ -65,6 +65,14 @@ function req(url: string, init: RequestInit & { token?: string } = {}): Request 
   return new Request(url, { ...rest, headers: h });
 }
 
+/**
+ * The route context Next hands a handler. Overloaded rather than returning a
+ * union: `RouteContext<"/api/v2/[user]/figures/[id]">` and its `[user]`-only
+ * sibling are different types, and one function answering both with a union
+ * satisfies neither at the call site.
+ */
+function ctx(id: string): { params: Promise<{ user: string; id: string }> };
+function ctx(): { params: Promise<{ user: string }> };
 function ctx(id?: string) {
   return { params: Promise.resolve(id === undefined ? { user: OWNER } : { user: OWNER, id }) };
 }
