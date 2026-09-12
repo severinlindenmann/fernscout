@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (62)
+### issue (61)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -87,7 +87,6 @@ Do not edit them by hand; run the script.
 | [B1416](backlog/issue/B1416-the-files-rail-chip-downloads-uncapped.md) | The files-rail chip downloads uncapped photographs for a 42px avatar | ISSUE | medium | low |
 | [B1417](backlog/issue/B1417-inbox-file-thumbnails-download-uncapped-photographs.md) | Inbox file thumbnails download uncapped photographs for a 96px tile | ISSUE | medium | low |
 | [B1431](backlog/issue/B1431-a-model-turn-that-throws-says.md) | A model turn that throws says nothing, on every ordinary WhatsApp reply | ISSUE | medium | low |
-| [B1443](backlog/issue/B1443-the-files-pane-still-quotes-a.md) | The files pane still quotes a label that is not on it, and PhotoPicker's override for it is never passed | ISSUE | medium | low |
 | [B1444](backlog/issue/B1444-an-honesty-guard-s-replacement-sentence.md) | An honesty guard's replacement sentence is rendered twice around the card it replaces | ISSUE | medium | low |
 | [B1456](backlog/issue/B1456-the-landing-page-still-pastes-people.md) | The landing page still pastes people at the full guide, which is now a redirect to an index | ISSUE | medium | low |
 | [B1471](backlog/issue/B1471-the-messenger-number-is-printed-for.md) | The messenger number is printed for a person to dial in a form only a machine can use | ISSUE | medium | low |
@@ -219,7 +218,7 @@ Do not edit them by hand; run the script.
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (92)
+### superseded (93)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -266,6 +265,7 @@ Do not edit them by hand; run the script.
 | [B14](backlog/superseded/B14-postcards-cannot-address-themselves-from-the.md) | Postcards cannot address themselves from the contacts that hold the addresses | FEATURE | medium | medium |
 | [B1419](backlog/superseded/B1419-the-open-mobile-menu-gives-no.md) | The open mobile menu gives no sign that it scrolls | ISSUE | medium | low |
 | [B1420](backlog/superseded/B1420-x.md) | x | ISSUE | medium | medium |
+| [B1443](backlog/superseded/B1443-the-files-pane-still-quotes-a.md) | The files pane still quotes a label that is not on it, and PhotoPicker's override for it is never passed | ISSUE | medium | low |
 | [B1477](backlog/superseded/B1477-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B275](backlog/superseded/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
