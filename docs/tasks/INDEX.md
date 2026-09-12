@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (220)
+## backlog (221)
 
 ### security (4)
 
@@ -99,7 +99,7 @@ Do not edit them by hand; run the script.
 | [B1538](backlog/issue/B1538-validate-content-truncated-its-own-json.md) | validate-content truncated its own JSON report, and selftest blamed the fixture | ISSUE | medium | low |
 | [B1540](backlog/issue/B1540-the-country-is-in-every-exported.md) | The country is in every exported photo and the helper throws it away, so the photobook says "elsewhere" on every day | ISSUE | medium | low |
 | [B1570](backlog/issue/B1570-helper-gps-import-and-photobook-order.md) | Helper GPS import and photobook order still use unlocked storageRefusal check | ISSUE | medium | low |
-| [B1578](backlog/issue/B1578-three-day-fields-the-instance-accepts.md) | Three day fields the instance accepts are never sent, so a timezone, a handed-over weather reading and a day's visibility stay on the laptop | ISSUE | medium | low |
+| [B1579](backlog/issue/B1579-a-day-s-timezone-accepts-a.md) | A day's timezone accepts a fixed offset, which has no daylight saving, while the refusal says it will not | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -162,7 +162,7 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (8)
+### chore (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -174,6 +174,7 @@ Do not edit them by hand; run the script.
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
 | [B1453](backlog/chore/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
 | [B1473](backlog/chore/B1473-twenty-three-photobook-print-strings-lost.md) | Twenty-three photobook print strings lost their reader in B1428 and are still shipped in three languages | CHORE | low | low |
+| [B1580](backlog/chore/B1580-reserved-sources-is-enforced-but-published.md) | RESERVED_SOURCES is enforced but published only as prose, so a client has to hardcode it | CHORE | low | low |
 
 ### ops (14)
 
@@ -326,7 +327,7 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (7)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -336,6 +337,7 @@ Do not edit them by hand; run the script.
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
+| [B1578](in-development/B1578-three-day-fields-the-instance-accepts.md) | Three day fields the instance accepts are never sent, so a timezone, a handed-over weather reading and a day's visibility stay on the laptop | ISSUE | medium | low | `615a7d13` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
 ## testing (42)
