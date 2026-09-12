@@ -7,8 +7,7 @@ complexity: low
 area: signup/credits
 found: "2026-09-11T23:06:54Z"
 started: "2026-09-12T07:22:48Z"
-session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
-claimed: "2026-09-12T07:22:48Z"
+merged: "2026-09-12T07:34:22Z"
 ---
 
 # B1553 — test- usernames skip phone proof but still receive the 10-credit grant and 5 GB quota

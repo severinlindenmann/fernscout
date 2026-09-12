@@ -7,8 +7,7 @@ complexity: low
 area: test/credits
 found: "2026-09-11T23:06:54Z"
 started: "2026-09-12T07:22:51Z"
-session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
-claimed: "2026-09-12T07:22:51Z"
+merged: "2026-09-12T07:34:23Z"
 ---
 
 # B1557 — REFUND_ALLOWED test walks app/ only while grant's walks app/ and lib/
