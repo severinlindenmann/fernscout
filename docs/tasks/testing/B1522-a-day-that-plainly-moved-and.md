@@ -6,9 +6,20 @@ priority: medium
 complexity: low
 area: helper, content
 found: "2026-09-11T20:15:00Z"
+merged: "2026-09-12T12:51:31Z"
 ---
 
 # B1522 — A day that plainly moved and carries no transportMode draws no leg, and only a tip says so
+
+## Status — done in fernscout-helper; moved to testing for a person to confirm
+
+Fixed in `fernscout-helper` commit `57fa24d` ("B1520 B1522: validate-content
+catches a title-slug collision and an unmarked leg"). `validate.mjs` now warns
+when consecutive days are far apart and the later one has no `transportMode`,
+naming both dates, and only tips `travelScene` on a day that actually draws a
+leg. Found stale in `fernscout`'s `docs/tasks/open/` on 2026-09-12. Verify: run
+`validate-content` on a trip with a big coordinate jump and no transport mode
+set, and confirm the warning (not a tip) fires and names both days.
 
 ## Why
 

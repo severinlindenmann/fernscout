@@ -6,20 +6,25 @@ priority: medium
 complexity: low
 area: helper, publish, docs
 found: "2026-09-11T20:40:00Z"
+merged: "2026-09-12T12:51:31Z"
 ---
 
 # B1525 — publish never sends cover, and its SKILL.md still says eight trip fields have no door
 
 
-## Status — worked around by hand, NOT fixed
+## Status — done in fernscout-helper; moved to testing for a person to confirm
 
-The cover on `severin/thailand-2025` was set with a hand-written
-`PATCH /api/v1/severin/trips/thailand-2025 {"cover": …}` on 2026-09-11. That is
-the workaround, not the fix.
-
-**`publish.mjs` is unchanged** — it still sends none of the eight fields on an
-existing trip, and `publish/SKILL.md` still describes the old B245 limitation.
-Everything below is open work.
+Fixed in `fernscout-helper` commit `a62c659` ("B1525 B1529: publish sends all
+nine trip fields, cover translated to the instance's slug, and
+--replace-media"). `publish.mjs` now PATCHes all nine trip fields on an
+existing trip via `TRIP_GENERAL_PATCH_KEYS` / `TRIP_DEDICATED_DOORS`, sends
+`cover` after media upload once each entry's real (instance) slug is known and
+translates it from local terms, and `SKILL.md` was rewritten to match. Found
+stale in `fernscout`'s `docs/tasks/open/` on 2026-09-12 — the earlier
+hand-written `curl` workaround below predates this fix. Verify: publish a trip
+with a `cover:` set in `trip.md` and confirm it reaches the site without a
+hand-written call, and that the other eight fields (title, tagline, start,
+end, accent, costsVisibility, intro, translations) update on a re-publish.
 
 Note for whoever picks it up: `cover` has an ordering constraint the other seven
 do not. Its value must be a `src` the trip's gallery already carries, so it can

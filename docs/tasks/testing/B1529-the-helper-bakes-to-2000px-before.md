@@ -6,12 +6,23 @@ priority: high
 complexity: low
 area: helper, photobook, media
 found: "2026-09-11T21:00:00Z"
+merged: "2026-09-12T12:51:32Z"
 ---
 
 # B1529 — The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file
 
 
-## Status — fixed in fernscout-helper; the docs half is B1533
+## Status — done in fernscout-helper; moved to testing for a person to confirm
+
+Also fixed since this was last touched: `--replace-media` was added to
+`publish.mjs` in commit `a62c659` (`replaceMedia` flag, line ~66/860),
+deleting and re-uploading a day's photographs by src rather than requiring
+hand-driven DELETEs. That closes the "Still open here" section below. Found
+stale in `fernscout`'s `docs/tasks/open/` on 2026-09-12. Verify: run `publish
+--replace-media` against a day whose photographs were already uploaded at a
+smaller size and confirm they are replaced rather than skipped.
+
+## Status (original) — fixed in fernscout-helper; the docs half is B1533
 
 **Fixed and committed** in `fernscout-helper` on 2026-09-11:
 

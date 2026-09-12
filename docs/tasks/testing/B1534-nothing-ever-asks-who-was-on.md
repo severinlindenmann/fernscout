@@ -6,9 +6,21 @@ priority: medium
 complexity: low
 area: helper, content
 found: "2026-09-11T21:25:00Z"
+merged: "2026-09-12T12:51:33Z"
 ---
 
 # B1534 — Nothing ever asks who was on the trip, so people stays empty and the journal has one byline
+
+## Status — done in fernscout-helper; moved to testing for a person to confirm
+
+Fixed in `fernscout-helper` commit `bc89b83` ("icloud-export asks who else was
+on the trip, before anything is exported"). The interview in section 2 of
+`icloud-export/SKILL.md` now asks "Who else was on this trip?" before export,
+with the never-infer-an-address warning attached, and the answer is written
+into `people:` (and `travellers[].for` where an address was given). Found
+stale in `fernscout`'s `docs/tasks/open/` on 2026-09-12. Verify: run the
+icloud-export interview on a fresh trip and confirm the question is asked
+before anything is exported, not offered afterwards.
 
 ## Why
 

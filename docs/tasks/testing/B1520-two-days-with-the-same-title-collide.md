@@ -6,14 +6,21 @@ priority: medium
 complexity: low
 area: helper, api
 found: "2026-09-11T19:20:00Z"
+merged: "2026-09-12T12:51:30Z"
 ---
 
 # B1520 — Two days with the same title collide at publish with 409, and nothing catches it first
 
 
-## Status — not started; do not confuse with the local-slug fix
+## Status — done in fernscout-helper; moved to testing for a person to confirm
 
-Untouched. `validate-content` still cannot see this collision.
+Fixed in `fernscout-helper` commit `57fa24d` ("B1520 B1522: validate-content
+catches a title-slug collision and an unmarked leg"). `validate.mjs` now slugs
+each entry's title with `titleSlugify` (mirroring `lib/slug.ts`) and errors
+when two days' titles slug the same, naming both files. Found stale in
+`fernscout`'s `docs/tasks/open/` on 2026-09-12 — the work was done in the
+sibling repo and nothing moved this ticket. Verify: run `validate-content` on
+two entries with colliding titles and confirm the error fires before publish.
 
 One thing to keep straight, because the two look alike: `build.mjs` in
 `fernscout-helper` was separately fixed on 2026-09-11 so that its **own**
