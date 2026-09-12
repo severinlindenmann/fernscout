@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (223)
+## backlog (224)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (56)
+### issue (57)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -76,6 +76,7 @@ Do not edit them by hand; run the script.
 | [B1498](backlog/issue/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium |
 | [B1539](backlog/issue/B1539-ten-days-on-one-island-shared.md) | Ten days on one island shared one media folder and one slug, and two thirds of the photographs were lost | ISSUE | high | low |
 | [B1586](backlog/issue/B1586-correcting-a-caption-or-a-photograph.md) | Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it | ISSUE | high | low |
+| [B1590](backlog/issue/B1590-next-generated-route-types-reject-helper.md) | Next generated route types reject helper exports from two route modules | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
