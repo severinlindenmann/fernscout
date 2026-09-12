@@ -7,6 +7,7 @@ complexity: low
 area: photobook, i18n
 found: "2026-09-12T13:52:51Z"
 started: "2026-09-12T14:17:03Z"
+merged: "2026-09-12T15:08:50Z"
 ---
 
 # B1589 — Photobook prints the written-language entry text, ignoring the book's own language and the entry's translations
