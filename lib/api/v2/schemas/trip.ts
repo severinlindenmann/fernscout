@@ -253,10 +253,11 @@ export const tripDoc = z.object({
   // ── server-owned ──
   /** Derived from the dates on every read; stored nowhere. */
   status: z.enum(STATUSES),
-  /** The cover actually in effect: the chosen src, or — when cover was
-   * declined — the newest photograph, with `auto: true` so the agent knows
-   * the server picked it. */
-  coverResolved: z.strictObject({ src: z.string(), auto: z.boolean() }).optional(),
+  /** One field on read too: the cover actually in effect. When the write
+   * declined it, this is the auto-picked newest photograph — the
+   * `declined.cover` entry standing beside it is how an agent tells a
+   * choice from an auto-pick. Absent only while the trip has no photos. */
+  cover: z.string().optional(),
   /** The ground actually covered, derived from the gps store, clipped and
    * cleaned. Never writable; the store itself is reachable by no route. */
   track: z.strictObject({ present: z.boolean(), updatedAt: z.string().optional() }).optional(),

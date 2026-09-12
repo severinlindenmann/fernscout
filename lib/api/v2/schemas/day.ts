@@ -198,6 +198,10 @@ export const dayDoc = z.object({
   ...dayWrite.def.shape,
   // ── server-owned: present in every read, rejected in every write ──
   status: z.enum(["draft", "published"]),
+  /** One field on read too: each item comes back with the URL of its
+   * browser-served derivative — the proof the photograph is attached and
+   * servable, not merely accepted (the B540 distinction). */
+  media: z.array(dayMediaItem.extend({ url: z.string() })).optional(),
   /** One field on read too: still `true` while a requested lookup has no
    * answer yet, otherwise the reading — whose `source` says whose it is.
    * "open-meteo" means the server looked it up; anything else is what the
@@ -205,8 +209,6 @@ export const dayDoc = z.object({
    * journal skips open-meteo entries rather than sending them back (B1578) —
    * the write shape enforces that by refusing the reserved source. */
   weather: z.union([z.literal(true), weatherData]).optional(),
-  /** Derivative URLs per media item, from the media door. */
-  mediaResolved: z.array(z.object({ src: z.string(), url: z.string(), caption: z.string().optional() })).optional(),
 });
 
 export type DayWrite = z.infer<typeof dayWrite>;
