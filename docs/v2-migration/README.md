@@ -53,10 +53,20 @@ replay migration), and nothing survives because it was easier to keep.
   (the import-boundary test enforces it — build it first, see 04).
 - Anything surprising becomes a `backlog/` ticket, never silent scope.
 
-## Artifacts (the owner reviews from these; update, don't fork)
+## Where the review pages went
 
-- Concept: https://claude.ai/code/artifact/b98c2a46-81b8-48e8-9791-b1302cd6499e
-- Core schemas review: https://claude.ai/code/artifact/f52e3ad6-3093-4456-9887-16dcb1738345
-- Full contract + decisions tables: https://claude.ai/code/artifact/d03db943-56de-456f-997c-1bfe2d5315bb
-- API explorer (Swagger-style, openapi.json): https://claude.ai/code/artifact/76c92f48-7f0e-4c7a-83e3-024dd4e929a7
-- Migration plan: https://claude.ai/code/artifact/c3bee44b-5e2e-476f-af43-8f5a7409bae9
+The five review artifacts (concept, schemas review, contract, API explorer,
+migration plan) were deleted by the owner after everything was committed —
+the repo is the record now. Nothing was lost:
+
+- Decisions (all of them, by id): `00-decisions.md` here.
+- Full contracts, challenges, ticket scan, openapi.json:
+  `docs/plans/2026-09-12-api-v2/`.
+- The plan: `02-plan.md` + `03-build-order.md` here.
+- The Swagger-style explorer: `explorer.html` here — serve the repo root
+  (`python3 -m http.server`) and open
+  `/docs/v2-migration/explorer.html`; it reads
+  `../plans/2026-09-12-api-v2/openapi.json`.
+
+If the owner wants a review page again, publish a fresh artifact from the
+repo content — never rely on the old URLs, they are gone.
