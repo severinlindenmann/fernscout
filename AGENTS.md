@@ -142,19 +142,56 @@ them.** B829 is the first record of it and every ticket since has agreed. The
 prompt is also the scarcer resource — four separate fixes ran into its token
 ceiling, and each time the answer was a guard rather than more words.
 
-**Weather has one true route, and it is not your memory.** Since B325 a day
-may carry `weather: true`, and the *server* looks it up — from a public
-archive, at the coordinates that day already carries, credited to the archive
-on the page. That does not soften the sentence above; it is what makes it
-survivable, because until there was a measurement, guessing was the only way
-to answer at all. What stays forbidden is the whole of it: an agent writing a
-temperature, a condition or a wet afternoon from its own belief. A reading a
-person handed you goes in `weatherData` and must name its source, and
-`open-meteo` is refused there, because that name means this server measured
-it. **Ask for the lookup; never supply the answer.** `npm run weather:update`
-fills in every day that asked and has none yet, never overwrites one already
-there, and leaves a day the archive cannot answer for the next run rather than
-filling it with something plausible.
+**Weather has two true routes, and neither of them is your memory.** Since
+B325 a day may carry `weather: true`, and the *server* looks it up — from a
+public archive, at the coordinates that day already carries, credited to the
+archive on the page. That does not soften the sentence above; it is what makes
+it survivable, because until there was a measurement, guessing was the only
+way to answer at all. `npm run weather:update` fills in every day that asked
+and has none yet, never overwrites one already there, and leaves a day the
+archive cannot answer for the next run rather than filling it with something
+plausible.
+
+**The second route is `weatherData`, and an agent may use it.** A reading that
+came from somewhere real — a person's own instrument, a station they run, a
+weather service they pay for, an export from a device that was on the trip —
+goes in `weatherData`, and this is a supported thing for an agent to send, not
+a grudging exception. It is what lets somebody use their own tools to produce
+their own data rather than this service's: the instance is not the only thing
+allowed to know what the weather was, it is only the thing that must be able
+to tell a measurement from a story.
+
+So the field is accepted on exactly one condition — **it says where it came
+from** — and the server checks the shape of that claim rather than taking your
+word for its tidiness (`checkWeatherData`, `lib/validate/entry.ts`):
+
+- `source` is required and non-empty. A number with no source is
+  indistinguishable from one you made up.
+- `recordedAt` is required and must be a real ISO instant.
+- At least one measurement, and every measurement inside a plausible range —
+  `tempMax: 900` is refused.
+- No key the field does not define.
+- **`open-meteo` is refused outright**, because that name means *this server*
+  looked it up, and an agent able to claim it could erase the distinction with
+  one string. A day whose weather the server fetched carries that source in
+  its own file, so a client forwarding a journal must skip those rather than
+  send them back (B1578).
+
+**What is forbidden is unchanged, and it is the only thing that was ever
+forbidden: inventing the reading.** A temperature, a condition or a wet
+afternoon from your own belief about what that Tuesday was probably like. Your
+confidence is not a source, and neither is a plausible-sounding instrument you
+made up to satisfy the check — the server can validate that a source was
+*named*, never that it was *real*, so that half is instruction and rests on
+you. **Ask for the lookup, or pass on a reading somebody actually took. Never
+compose one.**
+
+The same line governs the two fields beside it. `timezone` and `visibility` on
+a day are likewise sent when the file or the person supplies them, checked for
+shape by the server — an IANA zone name, and `guest`/`private`/`null`, where
+there is deliberately no `public` because a label narrows what the trip
+already allows and can never widen it — and never guessed at on somebody's
+behalf.
 
 **`test: true`** is the exception, and the only one. A day or a trip carrying it
 is content nobody lived, written to prove the pipeline works: the page says so
