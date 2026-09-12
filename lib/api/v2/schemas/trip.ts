@@ -24,6 +24,12 @@ import {
  * decline path. */
 const person = z.strictObject({
   name: z.string().trim().min(1),
+  /** What this trip calls them, where that is shorter than their name.
+   * Optional, unlike the journal owner's: `peopleOf`/`partyNames`
+   * (lib/tripPeople.ts) fall back to `name` when it is absent, and
+   * `lib/trips.ts` already reads it as optional off disk. Here because the
+   * byline renders it, not because v1 had it. */
+  nickname: z.string().trim().min(1).optional(),
   email: z.email(),
 });
 
@@ -227,7 +233,15 @@ export const tripCreate = tripBase.superRefine((doc, ctx) => {
       if (solo && !buddiesDeclined) {
         ctx.addIssue({
           code: "custom",
-          path: ["people"],
+          // `buddies` — not `people` — because `incompleteFrom` keys the
+          // 422 row by `issue.path[0]` and a caller resolves any other row
+          // by sending `declined.<field>` built from that same field. On
+          // `people` the row read `declined.people`, which is not a
+          // DECLINABLE_KEYS entry at all and would earn a fresh, unrelated
+          // refusal (B1601, moderate finding 3); `to_provide` would also
+          // have shown the `people` array's own shape, which says nothing
+          // about the buddies question being asked.
+          path: ["buddies"],
           message:
             "only one person is on this trip — add the buddies who were there (name + email; the server mails them), or decline: declined.buddies (e.g. travelling solo)",
           params: { v2: "missing", toDecline: "declined.buddies: <reason>" },

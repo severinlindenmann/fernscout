@@ -206,6 +206,47 @@ describe("dayToMarkdown / dayFromMarkdown", () => {
     });
     expect(dayFromMarkdown("2024-01-02-odd-day", raw).status).toBe("draft");
   });
+
+  it("prunes an undefined property nested inside an object and inside an array element (B1601)", () => {
+    // rates.manual nested two levels deep, and a cost item's undefined
+    // `category` inside an array element — either used to make gray-matter's
+    // stringify throw "unacceptable kind of an object to dump".
+    const day: DayFile = {
+      ...minimalDay,
+      declined: undefined,
+      costs: [{ label: "Fuel", amount: 10, category: undefined }],
+    };
+    expect(() => dayToMarkdown(day)).not.toThrow();
+    const back = dayFromMarkdown(day.slug, dayToMarkdown(day));
+    expect(back.costs).toEqual([{ label: "Fuel", amount: 10 }]);
+  });
+
+  describe("a body that opens with a frontmatter-shaped line (B1601)", () => {
+    // gray-matter's stringify() re-parses the body for frontmatter of its
+    // own: any string starting "---" (unless the 4th character is a 4th
+    // dash) is read as a second opening delimiter, and everything up to the
+    // next "---" line is sliced out and merged into the data object instead
+    // of being written as content. Three dashes to start a day's prose — a
+    // horizontal rule, a dialogue separator — is ordinary travel writing.
+    it.each([
+      ["exactly ---", "---"],
+      ["--- then a line", "---\nthis looks like frontmatter\n---\nmore"],
+      ["four dashes (already safe, asserted here)", "----\nstill just text"],
+      ["--- in the middle only (already safe, asserted here)", "hello\n---\nmiddle\n---\nend"],
+    ])("day content: %s", (_label, content) => {
+      const day: DayFile = { ...minimalDay, content };
+      expect(dayFromMarkdown(day.slug, dayToMarkdown(day)).content).toBe(content);
+    });
+
+    it.each([
+      ["exactly ---", "---"],
+      ["--- then a line", "---\nthis looks like frontmatter\n---\nmore"],
+      ["four dashes (already safe, asserted here)", "----\nstill just text"],
+    ])("trip intro: %s", (_label, intro) => {
+      const trip: TripFile = { ...minimalTrip, intro };
+      expect(tripFromMarkdown(tripToMarkdown(trip)).intro).toBe(intro);
+    });
+  });
 });
 
 const maximalTrip: TripFile = {

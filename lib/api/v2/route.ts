@@ -70,7 +70,18 @@ export function etagFor(doc: unknown): string {
   return `"${hash}"`;
 }
 
+/**
+ * `Object.keys(new Date(...))` is `[]` — a `Date` has no *own enumerable
+ * properties*, its value lives in an internal slot — so without this check
+ * every `Date`, whatever instant it holds, stringified as `{}` and two
+ * documents differing only in a date collided on one ETag (B1601, V11). Not
+ * reachable through this module's own callers today (the markdown emitter
+ * quotes date-shaped scalars before they reach here), but `dayFromMarkdown`
+ * hands back a real `Date` the moment a file carries an unquoted
+ * `date: 2026-09-12` — a hand edit or a future replay migrator away.
+ */
 function stableStringify(value: unknown): string {
+  if (value instanceof Date) return JSON.stringify(value.toISOString());
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
   if (value !== null && typeof value === "object") {
     const keys = Object.keys(value as Record<string, unknown>).sort();
@@ -101,12 +112,29 @@ export function ifMatchStale(request: Request, current: string): boolean {
  * write body is a `z.strictObject`, so an unknown key would be refused
  * rather than read — and a flag that changes whether bytes are written is
  * not part of the document being written anyway.
+ *
+ * `true` = preview, `false` = write, `null` = the caller said something this
+ * cannot read. `null` is not a default — T1 exists precisely so a caller who
+ * asked for a preview can never silently get a write instead, and guessing
+ * at an unrecognised value is exactly that risk in the other direction.
+ * `URLSearchParams.get("dryRun")` alone missed `?dryrun=1` (case) and could
+ * not distinguish "no header" from "invalid", both reading as `false` — the
+ * asymmetry this replaces `isDryRun` to close (B1601, the second serious
+ * finding). The caller answers a `null` with `fail("invalid_request", …)`
+ * rather than treating it as either state.
  */
-export function isDryRun(request: Request): boolean {
+export function readDryRun(request: Request): boolean | null {
   const url = new URL(request.url);
-  const value = url.searchParams.get("dryRun");
-  if (value === null) return false;
-  return value === "" || value.toLowerCase() === "1" || value.toLowerCase() === "true";
+  const values = new Set<string>();
+  for (const [key, value] of url.searchParams) {
+    if (key.toLowerCase() === "dryrun") values.add(value.toLowerCase());
+  }
+  if (values.size === 0) return false;
+  if (values.size > 1) return null; // given twice with disagreeing values
+  const value = [...values][0];
+  if (["", "1", "true", "yes", "on"].includes(value)) return true;
+  if (["0", "false", "no", "off"].includes(value)) return false;
+  return null;
 }
 
 /** Parses the body as JSON, never throwing — a malformed body is the

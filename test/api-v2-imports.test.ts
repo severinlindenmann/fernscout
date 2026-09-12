@@ -60,7 +60,13 @@ function walk(dir: string): string[] {
  * with no `from`, which nothing under app/api or lib/api writes. */
 const IMPORT_FROM = /^\s*import\s[\s\S]*?\sfrom\s+["']([^"']+)["']/gm;
 const EXPORT_FROM = /^\s*export\s[\s\S]*?\sfrom\s+["']([^"']+)["']/gm;
-const DYNAMIC_IMPORT = /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g;
+// A backtick-quoted specifier with no `${…}` interpolation is a perfectly
+// static string — ``import(`@/lib/api/tripDetails`)`` resolves exactly like
+// its single-quoted twin — and the old `["']` class made it invisible to
+// this rule (B1601, moderate finding 5). Interpolation inside the backticks
+// still will not match: a specifier that is not a literal at scan time is
+// not a violation this static check can prove either way.
+const DYNAMIC_IMPORT = /\bimport\s*\(\s*["'`]([^"'`]+)["'`]\s*\)/g;
 
 function extractSpecifiers(source: string): string[] {
   const specifiers: string[] = [];
@@ -128,6 +134,7 @@ describe("the v2 import boundary", () => {
       'import { helper } from "@/lib/api/tripDetails";',
       'export { helper } from "../tripDetails";',
       'const mod = await import("@/lib/api/tripDetails");',
+      "const mod = await import(`@/lib/api/tripDetails`);",
     ];
     for (const source of badImports) {
       expect(findViolations(fake, source), source).not.toEqual([]);
