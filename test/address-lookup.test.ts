@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { addressLookupEndpoints, lookupAddresses, reversePlace } from "@/lib/addressLookup";
+import { addressLookupEndpoints, geocodePlace, lookupAddresses, reversePlace } from "@/lib/addressLookup";
 import { clearConfigCache } from "@/lib/config";
 
 /**
@@ -190,6 +190,183 @@ describe("reverseUrl", () => {
     expect(addressLookupEndpoints()).toEqual({
       url: "https://photon.komoot.io/api/",
       reverseUrl: "https://photon.komoot.io/reverse",
+    });
+  });
+
+  describe("geocodePlace", () => {
+    test("returns ranked place candidates with the fields a day-entry flow needs", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                features: [
+                  {
+                    properties: {
+                      name: "Hausen",
+                      state: "Aargau",
+                      country: "Switzerland",
+                      countrycode: "ch",
+                      type: "village",
+                    },
+                    geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                  },
+                ],
+              }),
+            ),
+        ),
+      );
+
+      const results = await geocodePlace("Hausen", "de");
+      expect(results).toEqual([
+        {
+          displayName: "Hausen, Aargau, Switzerland",
+          country: "Switzerland",
+          countryCode: "CH",
+          adminRegion: "Aargau",
+          lat: 47.463,
+          lon: 8.216,
+          type: "village",
+        },
+      ]);
+    });
+
+    test("biases the ranking towards nearby context coordinates and includes hints in the query", async () => {
+      const fetchMock = vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              features: [
+                {
+                  properties: {
+                    name: "Hausen",
+                    state: "Bavaria",
+                    country: "Germany",
+                    countrycode: "de",
+                    type: "village",
+                  },
+                  geometry: { type: "Point", coordinates: [11.0, 48.0] },
+                },
+                {
+                  properties: {
+                    name: "Hausen",
+                    state: "Aargau",
+                    country: "Switzerland",
+                    countrycode: "ch",
+                    type: "village",
+                  },
+                  geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                },
+              ],
+            }),
+          ),
+      );
+      vi.stubGlobal("fetch", fetchMock);
+
+      const results = await geocodePlace("Hausen", "de", {
+        countryHint: "Switzerland",
+        regionHint: "Aargau",
+        contextCoordinates: [{ lat: 47.4, lng: 8.2 }],
+      });
+
+      expect(results?.map((candidate) => candidate.adminRegion)).toEqual(["Aargau", "Bavaria"]);
+      const [target] = fetchMock.mock.calls[0] as unknown as [URL];
+      expect(target.searchParams.get("q")).toBe("Hausen, Aargau, Switzerland");
+      expect(target.searchParams.get("lat")).toBe("47.4");
+      expect(target.searchParams.get("lon")).toBe("8.2");
+    });
+
+    test("keeps explicit region and country hints ahead of nearer mismatches", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                features: [
+                  {
+                    properties: {
+                      name: "Hausen",
+                      state: "Bavaria",
+                      country: "Germany",
+                      countrycode: "de",
+                      type: "village",
+                    },
+                    geometry: { type: "Point", coordinates: [8.201, 47.401] },
+                  },
+                  {
+                    properties: {
+                      name: "Hausen",
+                      state: "Aargau",
+                      country: "Switzerland",
+                      countrycode: "ch",
+                      type: "village",
+                    },
+                    geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                  },
+                ],
+              }),
+            ),
+        ),
+      );
+
+      await expect(
+        geocodePlace("Hausen", "de", {
+          countryHint: "Switzerland",
+          regionHint: "Aargau",
+          contextCoordinates: [{ lat: 47.4, lng: 8.2 }],
+        }),
+      ).resolves.toMatchObject([
+        { country: "Switzerland", adminRegion: "Aargau" },
+        { country: "Germany", adminRegion: "Bavaria" },
+      ]);
+    });
+
+    test("uses the best available subdivision for adminRegion and keeps hits without one", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(
+          async () =>
+            new Response(
+              JSON.stringify({
+                features: [
+                  {
+                    properties: { name: "Hausen", country: "Switzerland", type: "village" },
+                    geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                  },
+                  {
+                    properties: { name: "Hausen", state: "Aargau", country: "Switzerland", type: "village" },
+                    geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                  },
+                  {
+                    properties: { name: "Hausen", district: "Aargau", country: "Switzerland", countrycode: "ch" },
+                    geometry: { type: "Point", coordinates: [8.216, 47.463] },
+                  },
+                ],
+              }),
+            ),
+        ),
+      );
+
+      await expect(geocodePlace("Hausen", "de")).resolves.toEqual([
+        {
+          displayName: "Hausen, Aargau, Switzerland",
+          country: "Switzerland",
+          countryCode: "CH",
+          adminRegion: "Aargau",
+          lat: 47.463,
+          lon: 8.216,
+          type: "village",
+        },
+        {
+          displayName: "Hausen, Switzerland",
+          country: "Switzerland",
+          lat: 47.463,
+          lon: 8.216,
+          type: "village",
+        },
+      ]);
     });
   });
 
