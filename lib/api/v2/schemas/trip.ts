@@ -9,6 +9,7 @@ import { MAX_TRIP_PEOPLE } from "../../../trips";
 import { dayDoc, dayWrite } from "./day";
 import { tripFigures } from "./figures";
 import {
+  checkPatchConflicts,
   checkRequiredOrDeclined,
   declinedMap,
   isoDate,
@@ -71,7 +72,13 @@ const plan = z.strictObject({
  * rendered — that check needs the journal's config and lives at the door. */
 const translations = z.record(
   z.string(),
-  z.strictObject({ title: z.string().optional(), tagline: z.string().optional() }),
+  z.strictObject({
+    title: z.string().optional(),
+    tagline: z.string().optional(),
+    /** T4/B1589: the photobook prints from this — built into the set now
+     * rather than grown field-by-field a fourth time. */
+    intro: z.string().optional(),
+  }),
 );
 
 /** ── the required-or-declined ledger for a trip ──────────────────────── */
@@ -102,11 +109,9 @@ export const TRIP_DECLINABLES: readonly Declinable[] = [
     field: "accent",
     whyRequired: "every trip picks the colour its cards are drawn in, or leaves it to the default with a reason",
   },
-  {
-    field: "cover",
-    whyRequired:
-      "a trip names the photograph its card shows (a media src), or declines — a declined cover is auto-picked from the newest photograph, and the echo says which",
-  },
+  // cover is deliberately NOT asked at create (V8): no photograph can exist
+  // yet, so the question had no honest answer and every create declined it
+  // identically. The route asks it on update once the trip holds media.
   {
     field: "figures",
     whyRequired:
@@ -145,7 +150,7 @@ const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "acce
  * - v1's `tracks:` — "what this trip keeps track of" is now the same
  *   declined map as everything else, one mechanism instead of two.
  */
-export const tripCreate = z
+const tripBase = z
   .strictObject({
     // ── always required ──
     /** Client-chosen, forever. Retried create → 409 with the stored doc. */
@@ -178,8 +183,10 @@ export const tripCreate = z
     days: z.array(dayWrite).optional(),
     translations: translations.optional(),
     accent: z.enum(ACCENTS).optional(),
-    /** The media src the trip's card shows. Upload through the media door
-     * first; set or change it here any time. */
+    /** The media src the trip's card shows. Not asked at create (V8 — no
+     * photograph can exist yet, so the question had no honest answer); the
+     * route asks it on update once the trip holds media, same conditional
+     * shape as listed/teaser. Declined → auto-pick newest, echo says so. */
     cover: z.string().optional(),
     /** Which figures walk this trip's animation — see ./figures.ts. */
     figures: tripFigures.optional(),
@@ -196,8 +203,9 @@ export const tripCreate = z
     // ── plain optional ──
     /** Content nobody lived. */
     test: z.boolean().optional(),
-  })
-  .superRefine((doc, ctx) => {
+  });
+
+export const tripCreate = tripBase.superRefine((doc, ctx) => {
     const declinables =
       doc.visibility === "public" ? [...TRIP_DECLINABLES, LISTED_DECLINABLE] : TRIP_DECLINABLES;
     checkRequiredOrDeclined(doc, declinables, ctx);
@@ -251,6 +259,31 @@ export const tripCreate = z
         params: { v2: "missing" },
       });
     }
+});
+
+/**
+ * Editing a trip (V2): merge-patch over the same shape. Nothing is asked —
+ * a patch answers only the questions it raises — but it cannot contradict
+ * itself, `days` is refused (a day changes through its own route, so
+ * deleting one is never a side effect of shortening a list), and supplying
+ * a previously declined section clears the stored decline (T6, write path).
+ * The conditional rules (teaser/listed vs visibility, the buddy question,
+ * cover-once-media-exists) need the STORED document and run in the route,
+ * where old and new can be merged first.
+ */
+export const tripPatch = tripBase
+  .partial()
+  .superRefine((doc, ctx) => {
+    checkPatchConflicts(doc, DECLINABLE_KEYS, ctx);
+    if (doc.days !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["days"],
+        message:
+          "days are not editable through the trip document — write each day through its own route",
+        params: { v2: "conflict" },
+      });
+    }
   });
 
 /**
@@ -260,7 +293,7 @@ export const tripCreate = z
  * deleting one can never be a side effect of shortening a list.
  */
 export const tripDoc = z.object({
-  ...tripCreate.def.shape,
+  ...tripBase.def.shape,
   days: z.array(dayDoc),
   // ── server-owned ──
   /** Derived from the dates on every read; stored nowhere. */

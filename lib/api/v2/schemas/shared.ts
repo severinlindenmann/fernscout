@@ -74,6 +74,31 @@ export function checkRequiredOrDeclined(
 }
 
 /**
+ * The patch half of the asked-or-declined rule (V2/T6). A patch answers only
+ * the questions it raises: nothing is required, but a field brought and
+ * declined in the same patch is a contradiction, and — the T6 invariant,
+ * enforced in the write path — a patch that supplies what was previously
+ * declined clears the stored decline.
+ */
+export function checkPatchConflicts(
+  doc: Record<string, unknown>,
+  keys: readonly string[],
+  ctx: z.core.$RefinementCtx,
+): void {
+  const declined = (doc.declined ?? {}) as Record<string, string>;
+  for (const key of keys) {
+    if (doc[key] !== undefined && declined[key] !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: [key],
+        message: "both provided and declined in one patch — remove one",
+        params: { v2: "conflict" },
+      });
+    }
+  }
+}
+
+/**
  * The one error envelope — every v2 refusal is this shape. `error` comes from
  * the single published vocabulary (lib/api/errorCodes.ts), `message` is the
  * human sentence, `details` is per-code structure (for `incomplete`, the

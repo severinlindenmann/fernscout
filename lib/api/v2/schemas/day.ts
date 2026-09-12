@@ -10,6 +10,7 @@ import { TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "../../../validate/entry"
 import { COST_CATEGORIES } from "../../../costFormat";
 import { RESERVED_SOURCES } from "../../../weather";
 import {
+  checkPatchConflicts,
   checkRequiredOrDeclined,
   declinedMap,
   isoDate,
@@ -146,7 +147,7 @@ const DAY_DECLINABLE_KEYS = [
  * literal "draft" and nothing else, so publish stays a separate call (B28)
  * and there is a moment for a person to read the day back first.
  */
-export const dayWrite = z
+const dayBase = z
   .strictObject({
     /** Client-chosen, forever: YYYY-MM-DD-slug. Retried create → 409. */
     slug: z.string().regex(/^\d{4}-\d{2}-\d{2}-[a-z0-9]+(-[a-z0-9]+)*$/),
@@ -187,15 +188,29 @@ export const dayWrite = z
     travelScene: z.enum(TRAVEL_SCENE_VARIANTS).optional(),
     /** Content nobody lived, written to prove the pipeline works. */
     test: z.boolean().optional(),
-  })
-  .superRefine((doc, ctx) => checkRequiredOrDeclined(doc, DAY_DECLINABLES, ctx));
+  });
+
+export const dayWrite = dayBase.superRefine((doc, ctx) =>
+  checkRequiredOrDeclined(doc, DAY_DECLINABLES, ctx),
+);
+
+/**
+ * Correcting a day (V2): JSON-merge-patch semantics over the same shape.
+ * Nothing is asked — attaching one photograph must not re-open 14 questions
+ * — but a patch cannot contradict itself, and supplying a previously
+ * declined section clears the decline in the write path (T6). The slug in
+ * the URL is the identity; a slug in the body must match it (route check).
+ */
+export const dayPatch = dayBase
+  .partial()
+  .superRefine((doc, ctx) => checkPatchConflicts(doc, DAY_DECLINABLE_KEYS, ctx));
 
 /**
  * What every GET (and every write's echo) answers: the write shape plus the
  * server-owned truth. "It was accepted" and "it is there" are the same claim.
  */
 export const dayDoc = z.object({
-  ...dayWrite.def.shape,
+  ...dayBase.def.shape,
   // ── server-owned: present in every read, rejected in every write ──
   status: z.enum(["draft", "published"]),
   /** One field on read too: each item comes back with the URL of its

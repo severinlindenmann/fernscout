@@ -1,8 +1,8 @@
 // The v2 contract, whole — B1587, phase 0. These schemas are the spec:
 // validator, TypeScript type, and (later ticket) the generated
 // /v2/openapi.json all come from here.
-export { dayDoc, dayWrite, DAY_DECLINABLES } from "./day";
-export { tripCreate, tripDoc, TRIP_DECLINABLES } from "./trip";
+export { dayDoc, dayWrite, dayPatch, DAY_DECLINABLES } from "./day";
+export { tripCreate, tripPatch, tripDoc, TRIP_DECLINABLES } from "./trip";
 export { journalDoc, journalWrite, journalPatch } from "./journal";
 export { mediaIntent, mediaItem, MEDIA_KINDS } from "./media";
 export { instanceStatus, journalStatus } from "./status";

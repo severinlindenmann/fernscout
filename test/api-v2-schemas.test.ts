@@ -4,6 +4,7 @@
 // AND declined) is refused.
 import { describe, expect, it } from "vitest";
 import {
+  dayPatch,
   dayWrite,
   figureDoc,
   instanceStatus,
@@ -12,6 +13,7 @@ import {
   journalWrite,
   mediaIntent,
   tripCreate,
+  tripPatch,
 } from "../lib/api/v2/schemas";
 
 function withoutDecline(doc: typeof fullTrip, key: string) {
@@ -40,7 +42,6 @@ const fullTrip = {
     figures: "owner has not designed figures yet",
     days: "trip has not started yet",
     translations: "owner writes this journal in English only for now",
-    cover: "no photographs uploaded yet — auto-pick the newest",
   },
 };
 
@@ -84,7 +85,7 @@ describe("required-or-declined", () => {
     expect(r.success).toBe(false);
     const missing = r.error!.issues.filter((i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing");
     expect(missing.map((i) => i.path[0]).sort()).toEqual([
-      "accent", "costs", "cover", "days", "figures", "intro", "people", "plan", "rates", "tagline", "translations",
+      "accent", "costs", "days", "figures", "intro", "people", "plan", "rates", "tagline", "translations",
     ]);
     // Each carries how to decline, so the refusal is the documentation.
     for (const issue of missing) {
@@ -216,6 +217,34 @@ describe("day", () => {
       weather: { tempMax: 900, source: "own thermometer", recordedAt: "2026-09-21T18:00:00Z" },
     });
     expect(r.success).toBe(false);
+  });
+});
+
+describe("patches (V2/T6)", () => {
+  it("a day patch answers only the questions it raises", () => {
+    expect(dayPatch.safeParse({ media: [{ src: "abc123", caption: "Late light" }] }).success).toBe(true);
+    expect(dayPatch.safeParse({ declined: { costs: "nothing was spent that day" } }).success).toBe(true);
+    // …but cannot contradict itself in one patch,
+    expect(
+      dayPatch.safeParse({ costs: [], declined: { costs: "nothing was spent that day" } }).success,
+    ).toBe(false);
+    // …and still refuses server-owned and unknown keys.
+    expect(dayPatch.safeParse({ status: "published" }).success).toBe(false);
+    expect(dayPatch.safeParse({ weathr: true }).success).toBe(false);
+  });
+
+  it("a trip patch refuses days and self-contradiction", () => {
+    expect(tripPatch.safeParse({ tagline: "New subtitle after all" }).success).toBe(true);
+    expect(tripPatch.safeParse({ days: [] }).success).toBe(false);
+    expect(
+      tripPatch.safeParse({ accent: "navy", declined: { accent: "keep the default colour" } }).success,
+    ).toBe(false);
+  });
+
+  it("trip translations carry intro (T4)", () => {
+    expect(
+      tripPatch.safeParse({ translations: { de: { title: "Alpen", intro: "Eine Woche auf Schmalspur." } } }).success,
+    ).toBe(true);
   });
 });
 
