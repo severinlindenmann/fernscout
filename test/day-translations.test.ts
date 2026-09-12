@@ -26,15 +26,15 @@ vi.mock("next/headers", () => ({
  * whether every declared locale was covered — each with its own named
  * refusal (`translations.fr`, `translations.de`, "Missing hu").
  *
- * **v2 originally had only the first half**, and B1625 closed one slice of
- * the rest: a locale the journal does not declare is now refused at the door
+ * **v2 originally had only the first half**, and B1625/B1619 closed the
+ * rest: a locale the journal does not declare, the day's own language
+ * duplicated under `translations`, and a `translations` map covering only
+ * some of what the journal is owed are all refused at the door
  * (`checkTranslations`, lib/api/v2/write.ts, called from both the trip and
- * the day route) — the "wrong language" case below. Two findings from the
- * same gap remain open and are demonstrated rather than worked around: the
- * day's own language duplicated under `translations`, and a `translations`
- * map covering only some of what the journal is owed (the full completeness
- * contract v1 enforced — "you owe every language, named, or a declined
- * reason" — beyond "declared, or not this journal's at all").
+ * the day route) — the first two as `invalid` (something wrong was sent),
+ * the third as `incomplete` (something owed was not answered), matching the
+ * full completeness contract v1 enforced — "you owe every language, named,
+ * or a declined reason" — beyond "declared, or not this journal's at all".
  */
 
 const OWNER = "viki";
@@ -278,9 +278,7 @@ describe("a journal read in three languages", () => {
    * B1625 closed this one of the three gaps this file's comment lists: a
    * locale the journal does not declare is refused at the door
    * (`checkTranslations`, lib/api/v2/write.ts), on both the trip and the day
-   * route. The other two gaps this file documents — the day's own language
-   * duplicated under `translations`, and a translations map that covers only
-   * some of what is owed — are unrelated findings and remain open.
+   * route. B1619 (below) closed the other two.
    */
   test("a translation for a language the journal never declared is refused", async () => {
     const refused = await putDay({
@@ -290,16 +288,26 @@ describe("a journal read in three languages", () => {
     expect(refused.body.error).toBe("invalid_translations");
   });
 
-  test("v2 currently accepts the day's own language duplicated under translations", async () => {
-    const created = await putDay({
+  /** B1619 closed the second of the three gaps: the day's own written
+   * language duplicated under `translations` is now refused as `invalid` —
+   * two answers to one question with no way to tell which wins. */
+  test("the day's own language duplicated under translations is refused", async () => {
+    const refused = await putDay({
       translations: { ...OTHERS, de: { title: "Nochmal", content: "Nochmal." } },
     });
-    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    expect(refused.status, JSON.stringify(refused.body)).toBe(400);
+    expect(refused.body.error).toBe("invalid_translations");
   });
 
-  test("v2 currently accepts translations covering only one of the two languages actually owed", async () => {
-    const created = await putDay({ translations: { en: OTHERS.en } }); // hu missing entirely
-    expect(created.status, JSON.stringify(created.body)).toBe(201);
+  /** B1619 closed the third gap: a translations map that covers only some of
+   * what the journal is owed is now `incomplete` (422), naming the missing
+   * language, rather than silently accepted. */
+  test("translations covering only one of the two languages actually owed is incomplete", async () => {
+    const incomplete = await putDay({ translations: { en: OTHERS.en } }); // hu missing entirely
+    expect(incomplete.status, JSON.stringify(incomplete.body)).toBe(422);
+    expect(incomplete.body.error).toBe("incomplete");
+    const missing = (incomplete.body.details as { missing: { field: string }[] }).missing;
+    expect(missing.map((m) => m.field)).toEqual(["translations.hu"]);
   });
 });
 

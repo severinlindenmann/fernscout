@@ -13,7 +13,14 @@ import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { skillDocPath } from "@/lib/api/skillDocMeta";
 import { serverSite } from "@/lib/site";
 import { readTripFile, readDayFile, writeDayFile, deleteDayFile } from "@/lib/api/v2/store";
-import { stripMediaEcho, toStoredMedia, dayEchoInput, resolveStatusEcho, weatherLookupRefused } from "@/lib/api/v2/days";
+import {
+  stripMediaEcho,
+  toStoredMedia,
+  dayEchoInput,
+  withResolvedTest,
+  resolveStatusEcho,
+  weatherLookupRefused,
+} from "@/lib/api/v2/days";
 import type { DayFile, TripFile } from "@/lib/api/v2/documents";
 import type { Trip } from "@/lib/types";
 import { getUser } from "@/lib/users";
@@ -54,7 +61,7 @@ export async function GET(request: Request, { params }: RouteCtx) {
   const day = readDayFile(user, tripId, slug);
   if (!day) return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
 
-  const doc = dayDoc.parse(dayEchoInput(day));
+  const doc = dayDoc.parse(withResolvedTest(dayEchoInput(day), gate.trip, day));
   return ok(doc, { etag: etagFor(doc) });
 }
 
@@ -76,7 +83,7 @@ export async function PUT(request: Request, { params }: RouteCtx) {
 
   const stored = readDayFile(user, tripId, slug);
   if (stored) {
-    const currentDoc = dayDoc.parse(dayEchoInput(stored));
+    const currentDoc = dayDoc.parse(withResolvedTest(dayEchoInput(stored), gate.trip, stored));
     const currentEtag = etagFor(currentDoc);
     // PUT is create-only (decision 7): an id that already exists with no
     // `If-Match` is a retried create, not a replace, and is refused exactly
@@ -148,11 +155,23 @@ export async function PUT(request: Request, { params }: RouteCtx) {
     return fail("invalid_entry", ERROR_CODES.invalid_entry, problems, 400);
   }
 
-  // B1625 — a translation naming a locale this journal does not declare. A
-  // Zod schema cannot see the journal's config, so this check lives at the
-  // door (00-decisions.md), shared with the trip route.
-  const localeProblem = checkTranslations(parsed.data.translations, getUser(user)?.locales ?? []);
-  if (localeProblem) return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+  // B1625/B1619 — a translation naming a locale this journal does not
+  // declare, the day's own language duplicated under translations, or a
+  // translations map missing a language the journal is owed. A Zod schema
+  // cannot see the journal's config, so this check lives at the door
+  // (00-decisions.md), shared with the trip route.
+  const dayJournal = getUser(user);
+  const localeProblem = checkTranslations(
+    parsed.data.translations,
+    dayJournal?.locales ?? [],
+    dayJournal?.defaultLocale ?? "en",
+  );
+  if (localeProblem?.kind === "invalid") {
+    return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+  }
+  if (localeProblem?.kind === "incomplete") {
+    return fail("incomplete", ERROR_CODES.incomplete, { missing: localeProblem.missing }, 422);
+  }
 
   const dryRun = readDryRun(request);
   if (dryRun === null) {
@@ -166,12 +185,12 @@ export async function PUT(request: Request, { params }: RouteCtx) {
   };
 
   if (dryRun) {
-    const preview = dayDoc.parse(dayEchoInput(toWrite));
+    const preview = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), gate.trip, toWrite));
     return ok(preview, { etag: etagFor(preview) });
   }
 
   writeDayFile(user, tripId, slug, toWrite);
-  const echo = dayDoc.parse(dayEchoInput(toWrite));
+  const echo = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), gate.trip, toWrite));
   // The next link in B311's chain — see the trip route's own comment. B1621.
   const echoBody = stored
     ? echo
@@ -197,7 +216,7 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   const stored = readDayFile(user, tripId, slug);
   if (!stored) return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
 
-  const currentDoc = dayDoc.parse(dayEchoInput(stored));
+  const currentDoc = dayDoc.parse(withResolvedTest(dayEchoInput(stored), gate.trip, stored));
   const currentEtag = etagFor(currentDoc);
   if (ifMatchStale(request, currentEtag)) {
     return fail("stale_document", ERROR_CODES.stale_document, currentDoc, 409);
@@ -250,9 +269,19 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
     return fail("invalid_entry", ERROR_CODES.invalid_entry, problems, 400);
   }
 
-  // B1625 — same door check the PUT route runs, against the merged document.
-  const localeProblem = checkTranslations(finalParsed.data.translations, getUser(user)?.locales ?? []);
-  if (localeProblem) return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+  // B1625/B1619 — same door checks the PUT route runs, against the merged document.
+  const patchJournal = getUser(user);
+  const patchLocaleProblem = checkTranslations(
+    finalParsed.data.translations,
+    patchJournal?.locales ?? [],
+    patchJournal?.defaultLocale ?? "en",
+  );
+  if (patchLocaleProblem?.kind === "invalid") {
+    return fail("invalid_translations", patchLocaleProblem.message, patchLocaleProblem.problems, 400);
+  }
+  if (patchLocaleProblem?.kind === "incomplete") {
+    return fail("incomplete", ERROR_CODES.incomplete, { missing: patchLocaleProblem.missing }, 422);
+  }
 
   const dryRun = readDryRun(request);
   if (dryRun === null) {
@@ -266,12 +295,12 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   };
 
   if (dryRun) {
-    const preview = dayDoc.parse(dayEchoInput(toWrite));
+    const preview = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), gate.trip, toWrite));
     return ok(preview, { etag: etagFor(preview) });
   }
 
   writeDayFile(user, tripId, slug, toWrite);
-  const echo = dayDoc.parse(dayEchoInput(toWrite));
+  const echo = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), gate.trip, toWrite));
   return ok(echo, { etag: etagFor(echo) });
 }
 

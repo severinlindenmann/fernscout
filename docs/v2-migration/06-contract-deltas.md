@@ -22,6 +22,19 @@ touching that folder must correspond to a row here.
 same four fields, which is a list that disagrees with itself within a month.
 **Drift:** none. The wire is byte-identical before and after.
 
+### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
+**What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
+any field, message or accepted document.
+**Why:** the 422 body keys each row by `issue.path[0]`, so the row came back
+as `{field: "people", to_decline: "declined.buddies: …"}`. A caller building
+`declined.<field>` from the row — which works for every other row — sends
+`declined.people`, which is not a decline key at all, and gets a fresh
+unrelated refusal instead of resolving the point. `to_provide` was wrong too:
+it showed the `people` array's schema, which says nothing about answering the
+buddies question.
+**Drift:** none. This is the 422 body telling the truth about itself; the set
+of accepted documents is unchanged.
+
 ### D2 — `trip.costs` gains `items` and `note`
 **What:** `costs: {budget, visibility?}` → `costs: {budget, items?, note?, visibility?}`,
 where `items` is `costItem[]` and `note` is a string.
@@ -129,18 +142,51 @@ what surfaced it.
 **Drift:** a **narrowing** of a schema written in this same step (D8), not of
 a reviewed one. It refuses input that was never meaningful.
 
-### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
-**What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
-any field, message or accepted document.
-**Why:** the 422 body keys each row by `issue.path[0]`, so the row came back
-as `{field: "people", to_decline: "declined.buddies: …"}`. A caller building
-`declined.<field>` from the row — which works for every other row — sends
-`declined.people`, which is not a decline key at all, and gets a fresh
-unrelated refusal instead of resolving the point. `to_provide` was wrong too:
-it showed the `people` array's schema, which says nothing about answering the
-buddies question.
-**Drift:** none. This is the 422 body telling the truth about itself; the set
-of accepted documents is unchanged.
+### D11 — `schemas/auth.ts` (new file)
+**What:** request/response shapes for the credential doors under `/api/auth`
+— `codesRequest`, `codesRedeemRequest`, `linksRedeemRequest` and their
+responses (B1600, phase 2 step 2).
+**Why:** these replace six v1 routes
+(`/api/auth/{request,verify,link,identity/request,identity/verify,
+identity/link,signup/request,signup/verify}` → `/api/auth/codes`,
+`/api/auth/codes/redeem`, `/api/auth/links/redeem`) and needed their own wire
+shapes. `00-decisions.md`'s field-level list covers day/trip/journal/figures/
+media/status; auth's own request bodies were never part of that review round,
+so this is new schema for new routes, the same shape as D8.
+**Drift:** none to any reviewed schema — a new file for routes that had no
+schema at all.
+
+### D12 — `schemas/geocode.ts` (new file)
+**What:** `geocodeRequest`/`geocodeResponse` for `POST /api/v2/geocode`
+(B1608, phase 2 step 3).
+**Why:** mirrors v1's `/api/v1/geocode` body and response. Like D11, this is
+new schema for a route the golden-contract review round never named, not a
+change to a reviewed one — added here for the same reason D8 and D11 are:
+this file is easier to trust as the complete list of `schemas/` files than as
+a list with an unstated exception for "the ones that are net-new". The file's
+own header comment previously argued a net-new schema needs no row here; that
+argument is sound about WHY there is no drift, but this ledger records rows
+for net-new surfaces anyway (see D8, D11), so the comment has been corrected
+rather than left to disagree with this file.
+**Drift:** none to any reviewed schema — a new file for a route that had no
+schema at all.
+
+### D13 — `journalStatus.drafts` widened to `{trip, slug, title, test?}`
+**What:** `drafts: z.array(z.strictObject({trip, slug}))` →
+`drafts: z.array(z.strictObject({trip, slug, title, test?}))`.
+**Why:** an agent reading the review queue (`GET /api/v2/{user}/status`) has
+to say WHICH day is waiting without a GET per row, and whether it is content
+nobody lived before offering to publish it. `listDrafts` (`lib/api/entries.ts`)
+already resolves both `title` and `test` (the latter inheriting from the
+trip, B116's fix) — the v2 schema was narrower than the domain read it is
+built on, for no reason tied to anything reviewed.
+**Authorised:** `00-decisions.md`'s own field-level list already names the
+wider shape — "credits, drafts+title+test, trips, storage, inbox, token
+scope" — so this is not a new decision, only the code catching up to Q14's
+answer ("widen: yes") on a comment (`lib/api/v2/status.ts`) that had
+mistakenly called the narrow shape "frozen".
+**Drift:** none. This restores what was already decided; the narrow shape
+that shipped was the drift.
 
 ---
 

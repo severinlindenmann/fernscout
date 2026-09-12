@@ -11,7 +11,9 @@
 // finds it before trusting a width or a served URL that were never measured.
 import type { DayWrite } from "./schemas/day";
 import { isEnabled } from "@/lib/capabilities";
-import type { DayFile } from "./documents";
+import { isTestContent } from "@/lib/access";
+import type { Trip } from "@/lib/types";
+import type { DayFile, TripFile } from "./documents";
 
 type WireMediaItem = NonNullable<DayWrite["media"]>[number];
 
@@ -110,6 +112,39 @@ export function dayEchoInput(day: DayFile): Record<string, unknown> {
       url: m.src,
     })),
   };
+}
+
+/**
+ * B1620 #1 — `daySummary.test`/`dayDoc.test` resolved wherever a day is
+ * listed or read, not only on the page that draws the "nobody lived this"
+ * banner. Mirrors `isTestContent` (lib/access.ts) — a day inherits the flag
+ * from a wholly-invented trip even when it carries no flag of its own. Not
+ * exported: every caller goes through `withResolvedTest` below, which is the
+ * version safe to hand a `dayEchoInput` result.
+ */
+function resolveDayTest(trip: Pick<TripFile, "test">, day: Pick<DayFile, "test">): boolean | undefined {
+  return isTestContent(trip as unknown as Trip, day) || trip.test === true || day.test === true || undefined;
+}
+
+/**
+ * Applies `resolveDayTest` to a `dayEchoInput` result WITHOUT ever adding a
+ * literal `test: undefined` key — `etagFor` (lib/api/v2/route.ts) hashes
+ * `Object.keys()`, so a key present with an `undefined` value hashes
+ * differently than the same key absent altogether. Every `dayDoc.parse(...)`
+ * call site across the day routes (list, GET, PUT, PATCH) goes through this
+ * rather than setting `test` ad hoc, so the same stored day always produces
+ * the same ETag regardless of which route last read it — the exact "GET it,
+ * PUT it back" round trip V11 exists to keep working
+ * (`test/api-v2-days.test.ts`'s echo-tolerance suite is what caught the
+ * first, ad hoc version of this getting it wrong).
+ */
+export function withResolvedTest(
+  input: Record<string, unknown>,
+  trip: Pick<TripFile, "test">,
+  day: Pick<DayFile, "test">,
+): Record<string, unknown> {
+  const test = resolveDayTest(trip, day);
+  return test === undefined ? input : { ...input, test };
 }
 
 /**
