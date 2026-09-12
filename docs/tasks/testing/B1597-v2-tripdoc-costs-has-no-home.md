@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: API v2
 found: 2026-09-12T00:00:00Z
+merged: "2026-09-12T17:23:11Z"
 ---
 
 ## Why
