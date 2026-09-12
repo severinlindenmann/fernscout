@@ -26,6 +26,7 @@ const fullTrip = {
   tagline: "Six passes in seven days",
   intro: "A week on the narrow-gauge lines.",
   declined: {
+    buddies: "travelling solo this time",
     days: "trip has not started yet",
     translations: "owner writes this journal in English only for now",
     cover: "no photographs uploaded yet — auto-pick the newest",
@@ -62,7 +63,7 @@ describe("required-or-declined", () => {
     expect(r.success).toBe(false);
     const missing = r.error!.issues.filter((i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing");
     expect(missing.map((i) => i.path[0]).sort()).toEqual([
-      "accent", "costs", "cover", "days", "intro", "plan", "rates", "tagline", "translations",
+      "accent", "costs", "cover", "days", "intro", "people", "plan", "rates", "tagline", "translations",
     ]);
     // Each carries how to decline, so the refusal is the documentation.
     for (const issue of missing) {
@@ -107,6 +108,19 @@ describe("required-or-declined", () => {
         declined: { ...fullTrip.declined, listed: "not applicable to this trip" },
       }).success,
     ).toBe(false);
+  });
+
+  it("asks the buddy question: a solo trip says so, a crewed trip has answered", () => {
+    const decl = { ...fullTrip.declined } as Record<string, string>;
+    delete decl.buddies;
+    // Solo without the decline: refused, with the decline instruction.
+    const r = tripCreate.safeParse({ ...fullTrip, declined: decl });
+    expect(r.success).toBe(false);
+    // Two people: the question is answered by the list itself…
+    const two = [...people, { name: "Anna Example", email: "anna@example.com" }];
+    expect(tripCreate.safeParse({ ...fullTrip, people: two, declined: decl }).success).toBe(true);
+    // …and declining on top of a crew is a conflict.
+    expect(tripCreate.safeParse({ ...fullTrip, people: two }).success).toBe(false);
   });
 
   it("refuses a section both brought and declined", () => {

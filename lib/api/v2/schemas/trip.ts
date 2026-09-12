@@ -121,7 +121,7 @@ const LISTED_DECLINABLE: Declinable = {
     "a public trip states whether it is advertised (sitemap, feed, switcher): listed true or false, or declined",
 };
 
-const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "tagline", "intro", "listed"] as const;
+const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "tagline", "intro", "listed", "buddies"] as const;
 
 /**
  * Creating a trip: the whole document at once. Every declinable section is
@@ -146,6 +146,14 @@ export const tripCreate = z
      * somebody's trip. Unrecognised reads as private on disk; here it is
      * refused outright. */
     visibility: z.enum(VISIBILITIES),
+    /** Who is on the trip — the owner plus any buddies, each name + email.
+     * Everyone listed may write to the trip; the access only materialises
+     * when that person proves the address through the sign-in code, so a
+     * wrong email grants nothing. The server mails every newly added
+     * non-owner: a "you are on trip X" note if the address is already known
+     * to this journal, an onboarding invite if it is not — and the echo's
+     * `notifications` says which went out. A trip with only the owner on it
+     * declines `buddies` instead ("travelling solo"). */
     people: z.array(person).min(1).max(MAX_TRIP_PEOPLE),
     /** Required on a closed trip (guest/private): may the trip's existence
      * show as a locked card? A boolean is its own answer, so there is no
@@ -181,6 +189,28 @@ export const tripCreate = z
     const declinables =
       doc.visibility === "public" ? [...TRIP_DECLINABLES, LISTED_DECLINABLE] : TRIP_DECLINABLES;
     checkRequiredOrDeclined(doc, declinables, ctx);
+    // buddies: a solo trip says so; a trip with buddies has answered.
+    if (doc.people !== undefined) {
+      const solo = doc.people.length <= 1;
+      const buddiesDeclined = doc.declined?.buddies !== undefined;
+      if (solo && !buddiesDeclined) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["people"],
+          message:
+            "only one person is on this trip — add the buddies who were there (name + email; the server mails them), or decline: declined.buddies (e.g. travelling solo)",
+          params: { v2: "missing", toDecline: "declined.buddies: <reason>" },
+        });
+      }
+      if (!solo && buddiesDeclined) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["people"],
+          message: "buddies are both listed in people and declined — remove one",
+          params: { v2: "conflict" },
+        });
+      }
+    }
     // listed: a public trip's question only.
     if (doc.visibility !== "public" && (doc.listed !== undefined || doc.declined?.listed !== undefined)) {
       ctx.addIssue({
@@ -230,9 +260,13 @@ export const tripDoc = z.object({
   /** The ground actually covered, derived from the gps store, clipped and
    * cleaned. Never writable; the store itself is reachable by no route. */
   track: z.strictObject({ present: z.boolean(), updatedAt: z.string().optional() }).optional(),
-  /** Merged write-access list: the people block plus approved buddy rows.
-   * The byline stays the file's own people. */
-  peopleResolved: z.array(z.strictObject({ name: z.string(), viaBuddyLink: z.boolean() })).optional(),
+  /** What the server mailed when people were added: a "you are on trip X"
+   * note to an address this journal already knows, an onboarding invite to
+   * one it does not. Report these as mails sent — never as access granted;
+   * access materialises when the person proves the address. */
+  notifications: z
+    .array(z.strictObject({ email: z.string(), kind: z.enum(["trip-added", "journal-invite"]) }))
+    .optional(),
 });
 
 export type TripCreate = z.infer<typeof tripCreate>;
