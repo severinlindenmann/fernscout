@@ -107,6 +107,7 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/contacts/add-me": () => import("@/app/api/helper/[user]/contacts/add-me/route"),
   "/contacts/import": () => import("@/app/api/helper/[user]/contacts/import/route"),
   "/invite-contact": () => import("@/app/api/helper/[user]/invite-contact/route"),
+  "/assemble-day": () => import("@/app/api/helper/[user]/assemble-day/route"),
 };
 
 /** The gallery item `remove_photo`'s own row below removes — `DRAFT`'s own
@@ -145,6 +146,10 @@ const SAID: Record<string, Record<string, string>> = {
     currency: "CHF",
     category: "Food",
   },
+  // A date nothing has staged yet — the ask branch. Its trip tracks
+  // everything by default, so `costs`/`coordinates` come back as questions,
+  // answered "unknown" the same way `start_day`'s own questions open.
+  assemble_day: { trip: AS_SAID, date: "2026-05-09" },
   publish_day: { trip: AS_SAID, slug: DRAFT },
   unpublish_day: { trip: AS_SAID, slug: PUBLISHED },
   attach_files: { trip: AS_SAID, slug: DRAFT },

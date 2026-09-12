@@ -17,10 +17,19 @@
  * quietly drift in either direction.
  *
  * Write each sentence for somebody who cannot read this repository.
+ *
+ * **`as const satisfies` rather than a `Record<string, string>` annotation**,
+ * since B1596. The annotation widened `keyof typeof ERROR_CODES` to `string`,
+ * which meant a helper typed against it — v2's `fail()` is the first — would
+ * accept `"invalid_reqest"` as happily as the real code and answer with a
+ * word no document defines. That is B540's failure exactly one level up: a
+ * transposed letter, no refusal, and a caller told something untrue. The
+ * `satisfies` clause keeps the shape check; dropping the annotation is what
+ * keeps the keys literal.
  */
-export const ERROR_CODES: Record<string, string> = {
+export const ERROR_CODES = {
   // ── who you are, and what you may touch ────────────────────────────────
-  missing_token: "No `Authorization: Bearer` header. Every /api/v1 call needs one; get a token from /api/auth/request and /api/auth/verify, both with `\"kind\": \"agent\"`.",
+  missing_token: "No `Authorization: Bearer` header. Every /api/v1 call needs one; get a token from /api/auth/codes and /api/auth/codes/redeem, both with `\"for\": \"write\"`.",
   invalid_token: "The token is not one this server issued, or it has expired. Tokens last seven days — ask for a new one the same way.",
   out_of_scope: "The token is valid, and it belongs to a different journal or a different trip than the one in the URL. Do not retry: ask for a token for this journal.",
   forbidden: "This call is the journal owner's, and the credential is not theirs. A trip-scoped token cannot do it either.",
@@ -29,7 +38,7 @@ export const ERROR_CODES: Record<string, string> = {
   no_session: "No session cookie, and this route takes nothing else.",
   invalid_handover: "The 20-minute handover credential is spent, expired or not for this journal. The owner makes a new one from their own page.",
   invalid_code: "The six-digit code is wrong, used, or more than 30 minutes old. Ask for a new one; the newest is the only live one.",
-  too_many_journals: "This address already owns as many journals as this server allows (the refusal names them). Do not sign up again: ask for a write token for the journal it owns, via /api/auth/request and /api/auth/verify with `\"kind\": \"agent\"`.",
+  too_many_journals: "This address already owns as many journals as this server allows (the refusal names them). Do not sign up again: ask for a write token for the journal it owns, via /api/auth/codes and /api/auth/codes/redeem with `\"for\": \"write\"`.",
   link_spent: "This single-use link has already been followed. It cannot be followed again — ask for a new one.",
 
   // ── what you asked about does not exist ────────────────────────────────
@@ -55,6 +64,7 @@ export const ERROR_CODES: Record<string, string> = {
   // ── the body is wrong ──────────────────────────────────────────────────
   invalid_json: "The body did not parse as JSON. Check the content-type header and the quoting.",
   invalid_request: "The body is missing something this call needs, or a value is not usable. The `message` says which.",
+  stale_document: "The document you wrote against has moved on — either it changed since you last read it and your `If-Match` no longer covers the current version, or you PUT a client-chosen id that already exists with no `If-Match` at all (a client-chosen-id create refuses to silently overwrite what is already there). `details.current` is the document exactly as it stands now: read it, and send `If-Match` with its ETag if you still mean to write.",
   bad_request: "The body is not usable. The `message` says why.",
   invalid_entry: "One or more fields of the day are wrong. `problems` lists every one at once — field, what arrived, what was expected — so fix them all and send once, rather than a round trip each.",
   invalid_trip: "One or more fields of the trip are wrong; `problems` lists them. A field name that is not a field is refused here rather than dropped, and the hint names the field you probably meant.",
@@ -62,7 +72,6 @@ export const ERROR_CODES: Record<string, string> = {
   invalid_plan: "A stop on the route is not usable; `problems` lists each one.",
   invalid_media: "The upload is not usable — a file this server does not take, one too large, or a `day` that is not a day of this trip. /api/health carries the formats and the limits.",
   invalid_email: "That is not an address this server can send to.",
-  invalid_user: "`user` is missing from the body. It is the journal's own address segment — the one in its URLs.",
   invalid_listed: "`listed` must be true or false, and it cannot be true on a trip no visibility advertises. A string is refused rather than read as truthy: `\"false\"` would otherwise have advertised the trip.",
   invalid_teaser:
     "`teaser` must be true or false, and it cannot be true on a public trip — there is nothing to tease. It names a `guest` or `private` trip on the trips page without opening it.",
@@ -81,9 +90,10 @@ export const ERROR_CODES: Record<string, string> = {
   invalid_tracks: "A row in `tracks` is not one this server knows, or its value is not true or false. The rows are costs, coordinates and photos.",
   invalid_translations: "A translation names a locale this journal does not declare, or its shape is wrong. Declare the locale first with PATCH .../config, or drop it.",
   trip_exists: "A trip with that id is already here. Ids are the URL, so they are unique within a journal — pick another, or edit the one that exists.",
+  figure_referenced: "This figure is still named in the journal's own default figures, or a trip's figures — `message` lists which. Deleting it would leave a dangling reference, so nothing was deleted. Remove it from every set that names it first (PATCH the journal or the trip's figures), then delete it again.",
   trip_unreadable: "The trip was written and could not be read back, which means it would be invisible on the site. Nothing was kept. This is a bug — report it rather than retrying.",
   no_frontmatter: "The file has no frontmatter block, so nothing can be read out of it. This is a fault on disk rather than in your call.",
-  invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET .../travellers/presets for the vocabulary.",
+  invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET /api/v2/{user}/figures/presets for the vocabulary.",
   unsupported_field: "A field name this call does not take. The `message` lists the ones it does — send only those, and note that publishing is never a field.",
   nothing_to_change: "The body names no field this call writes, so there was nothing to do and nothing was written. The `message` lists the ones it takes.",
   mixed_change: "`features` cannot travel with a profile field. Send it in a call of its own, so switching a capability cannot also rename the journal.",
@@ -126,7 +136,7 @@ export const ERROR_CODES: Record<string, string> = {
   // ── this server cannot do that ─────────────────────────────────────────
   auth_disabled: "This server has authentication switched off entirely, so there are no tokens to hold. /api/health says what it can do.",
   signup_disabled: "This server does not take new journals.",
-  phone_required: "A journal needs a proven telephone number as well as a proven address. POST /api/auth/signup/phone/request with the signup token, then /api/auth/signup/phone/verify with the code, and retry.",
+  phone_required: "A journal needs a proven telephone number as well as a proven address. POST /api/auth/signup/phone with the signup token, then /api/auth/signup/phone/redeem with the code, and retry.",
   verification_failed: "The phone code could not be sent. Try again in a minute, or check the number.",
   contacts_disabled: "This server has contacts off, so invitations and approvals are unavailable.",
   postcards_disabled: "This server has postcards off.",
@@ -153,4 +163,7 @@ export const ERROR_CODES: Record<string, string> = {
   model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
   address_lookup_disabled:
     "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
-};
+
+  // ── v2 only ─────────────────────────────────────────────────────────────
+  incomplete: "The document is missing an answer to something this journal keeps track of. `details.missing` lists every open section at once — each with why it is asked, a schema excerpt of what to send, and how to decline it instead. Ask the person; never invent a value to get past this.",
+} as const satisfies Record<string, string>;

@@ -2502,6 +2502,10 @@ function FilesPane({
             src: file.src,
             bytes: file.bytes,
             at: file.uploadedAt,
+            // A day folder's own content (Phase 2, Task 4) — absent for the
+            // flat bucket, which is everything `InboxFileGroups` grouped by
+            // kind before this.
+            date: file.date,
           }))}
           selected={selected}
           onToggle={onToggle}

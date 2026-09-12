@@ -75,6 +75,7 @@ function session(over: Partial<Session>): Session {
     owner: "ana",
     kind: "agent",
     scope: SESSION_SCOPE.agent,
+    expiresAt: "2099-01-01T00:00:00.000Z",
     email: "ana@example.test",
     publicId: null,
     phone: null,
@@ -130,10 +131,23 @@ describe("mayActAsOwner", () => {
 });
 
 describe("no owner-only gate re-derives the scope check on its own", () => {
-  test("only lib/api/auth.ts compares a session's scope against SESSION_SCOPE.agent", () => {
+  /**
+   * B1609 added a second owner-only gate — `lib/api/v2/auth.ts`, for the
+   * figure library — and the v2 import boundary (`test/api-v2-imports.
+   * test.ts`) refuses it importing `lib/api/auth.ts`'s route glue at all.
+   * Rather than let it re-derive the comparison this test exists to catch,
+   * the comparison itself moved to `lib/auth/index.ts` (`isJournalWideScope`)
+   * — domain, not route glue, and importable from both doors — so both
+   * `mayActAsOwner` (v1) and `requireJournalOwner` (v2) call one function
+   * instead of each holding their own copy of the string. That is one more
+   * file in the allowlist below, not a second place the comparison itself
+   * lives: the pattern this scan looks for should still appear nowhere else.
+   */
+  test("only lib/auth/index.ts compares a session's scope against SESSION_SCOPE.agent", () => {
     const roots = ["app", "lib"];
     const offenders: string[] = [];
     const pattern = /session\.scope\s*(?:!==|===)\s*SESSION_SCOPE\.agent/;
+    const ALLOWED = [path.join("lib", "auth", "index.ts")];
 
     function walk(dirPath: string) {
       let entries: fs.Dirent[];
@@ -149,7 +163,7 @@ describe("no owner-only gate re-derives the scope check on its own", () => {
           walk(full);
         } else if (/\.tsx?$/.test(entry.name) && !entry.name.endsWith(".test.ts")) {
           const rel = path.relative(process.cwd(), full);
-          if (rel === path.join("lib", "api", "auth.ts")) continue;
+          if (ALLOWED.includes(rel)) continue;
           const source = fs.readFileSync(full, "utf8");
           if (pattern.test(source)) offenders.push(rel);
         }

@@ -1302,24 +1302,35 @@ export function buddyPrompt(input: {
   email: string;
 }): string {
   const { siteUrl, username, tripId, email } = input;
-  const request = JSON.stringify({ user: username, email, kind: "agent", trip: tripId });
-  const verify = JSON.stringify({ user: username, email, kind: "agent", code: "<the six digits>" });
+  const request = JSON.stringify({
+    user: username,
+    email,
+    for: "write",
+    scope: { trip: tripId },
+  });
+  const redeem = JSON.stringify({
+    user: username,
+    email,
+    for: "write",
+    scope: { trip: tripId },
+    code: "<the six digits>",
+  });
   return [
     `You are writing one trip in a Fernscout travel journal: ${siteUrl}/${username}/trips/${tripId}`,
     "",
     "1. Ask for a code. It is emailed to me, and I will read it to you — this",
     "   call tells you nothing on its own:",
     "",
-    `   curl -X POST ${siteUrl}/api/auth/request \\`,
+    `   curl -X POST ${siteUrl}/api/auth/codes \\`,
     `     -H "content-type: application/json" \\`,
     `     -d ${shellQuote(request)}`,
     "",
     "2. Exchange the six digits for your own 7-day token. The trip was decided",
     "   when the code was issued, so there is nothing more to name here:",
     "",
-    `   curl -X POST ${siteUrl}/api/auth/verify \\`,
+    `   curl -X POST ${siteUrl}/api/auth/codes/redeem \\`,
     `     -H "content-type: application/json" \\`,
-    `     -d ${shellQuote(verify)}`,
+    `     -d ${shellQuote(redeem)}`,
     "",
     "3. Then, before anything else, read where the journal stands:",
     "",

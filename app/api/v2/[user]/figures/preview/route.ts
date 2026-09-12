@@ -1,0 +1,101 @@
+import { renderPartySvg } from "@/lib/travellers/render";
+import { MAX_FIGURES, type Figure } from "@/lib/travellers/vocabulary";
+import { parseTravellers } from "@/lib/travellers/parse";
+import { getUser } from "@/lib/users";
+import { fail } from "@/lib/api/v2/route";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * `GET /api/v2/<user>/figures/preview?…` — moved from
+ * `/api/v1/<user>/travellers/preview` (B1609). See that ticket's history for
+ * why this exists; unchanged in behaviour.
+ *
+ * **This is what makes the interview honest.** An agent asks "how would you
+ * like to be drawn?", maps the answer onto attributes, and then has to hand
+ * back something a person can actually confirm. Reading `skin: medium-deep,
+ * hairStyle: braids` down a phone is not confirmation; a picture is. A person
+ * cannot agree to a description they cannot see.
+ *
+ * It is also the reason `lib/travellers/render.ts` is pure. A drawing that
+ * lives inside a React component cannot be reached without booting Next, and
+ * this route, the component and `scripts/travellers.mjs` all need the same
+ * one — otherwise the preview is a second implementation that drifts, and the
+ * person confirms one picture and gets another.
+ *
+ * ## Read-only, and no controls
+ *
+ * There is no character editor in the browser and there will not be one
+ * (decision 24). This answers with an image and nothing else: no form, no
+ * state, nothing to press. It is the agent that edits, as everywhere else.
+ *
+ * ## Two shapes
+ *
+ *   ?figure={json}    one figure
+ *   ?party=[{…},{…}]  a whole party, arranged as the hero would arrange it
+ *
+ * Open to anyone who can see the journal, because nothing here is stored or
+ * read from disk — the caller supplies the figures and gets a picture back.
+ */
+export async function GET(
+  request: Request,
+  { params }: RouteContext<"/api/v2/[user]/figures/preview">,
+) {
+  const { user } = await params;
+  if (!getUser(user)) {
+    return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
+  }
+
+  const url = new URL(request.url);
+  const raw = url.searchParams.get("party") ?? url.searchParams.get("figure");
+  if (!raw) {
+    return fail(
+      "nothing_to_draw",
+      "Pass ?figure={…} for one traveller or ?party=[{…},{…}] for a group, both as JSON. " +
+        `GET /api/v2/${user}/figures/presets lists every word they take.`,
+      undefined,
+      400,
+    );
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return fail(
+      "invalid_json",
+      "figure and party are JSON, and this did not parse. Remember to URL-encode it.",
+      undefined,
+      400,
+    );
+  }
+
+  // The same reader a figure's own write goes through, so what the preview
+  // draws and what a written figure draws cannot disagree. It fails open,
+  // which is right here too: showing somebody a figure with one field
+  // defaulted, and saying so, beats refusing to show them anything.
+  const figures: Figure[] = parseTravellers(
+    Array.isArray(parsed) ? parsed : [parsed],
+    "the preview query",
+  );
+  if (figures.length === 0) {
+    return fail(
+      "nothing_to_draw",
+      `Expected an object, or a list of up to ${MAX_FIGURES} of them.`,
+      undefined,
+      400,
+    );
+  }
+
+  const size = Math.max(24, Math.min(240, Number(url.searchParams.get("size")) || 106));
+  const body = renderPartySvg(figures, size);
+
+  return new Response(body, {
+    headers: {
+      "content-type": "image/svg+xml; charset=utf-8",
+      // Nothing to cache across callers: the picture is entirely a function of
+      // the query, and the query is a draft somebody is still editing.
+      "cache-control": "no-store",
+    },
+  });
+}

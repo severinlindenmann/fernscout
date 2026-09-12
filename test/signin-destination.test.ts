@@ -116,16 +116,20 @@ afterEach(async () => {
  * assertions follow it there.
  */
 async function follow(linkToken: string): Promise<string | null> {
-  const route = await import("@/app/api/auth/link/route");
+  const route = await import("@/app/api/auth/links/redeem/route");
   const response = await route.POST(
-    new Request(`${SITE}/api/auth/link`, {
+    new Request(`${SITE}/api/auth/links/redeem`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": "10.0.0.7" },
-      body: JSON.stringify({ user: OWNER, token: linkToken }),
+      body: JSON.stringify({ user: OWNER, token: linkToken, for: "read" }),
     }),
   );
-  const body = (await response.json()) as { next?: string };
-  return body.next ? `${SITE}${body.next}` : null;
+  // On success the door's own body carries `next`; on a spent/expired link
+  // the v2 envelope carries the same information one level down, under
+  // `details` — either way there is somewhere to send the reader next.
+  const body = (await response.json()) as { next?: string; details?: { next?: string } };
+  const next = body.next ?? body.details?.next;
+  return next ? `${SITE}${next}` : null;
 }
 
 /** A code for the reader, optionally asked for from a particular page. */

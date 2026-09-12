@@ -68,18 +68,18 @@ afterAll(async () => {
 });
 
 async function ask(body: Record<string, unknown>, ip: string) {
-  const { POST } = await import("@/app/api/auth/request/route");
+  const { POST } = await import("@/app/api/auth/codes/route");
   const response = await POST(
-    new Request("https://example.test/api/auth/request", {
+    new Request("https://example.test/api/auth/codes", {
       method: "POST",
       headers: headers(ip),
-      body: JSON.stringify(body),
+      body: JSON.stringify({ for: "read", ...body }),
     }),
   );
   return { status: response.status, body: (await response.json()) as { error?: string } };
 }
 
-describe("POST /api/auth/request tells a malformed body apart from an unknown address", () => {
+describe("POST /api/auth/codes tells a malformed body apart from an unknown address", () => {
   test("a syntactically malformed email is refused by name, 400", async () => {
     const result = await ask({ user: OWNER, email: "not-an-address" }, "10.10.1.1");
     expect(result.status).toBe(400);
@@ -87,15 +87,18 @@ describe("POST /api/auth/request tells a malformed body apart from an unknown ad
   });
 
   test("no email field at all is refused the same way", async () => {
+    // Caught by the schema itself (`email` is required) rather than the
+    // manual `isEmail` check below it, so the code is the generic shape
+    // refusal — still 400, still never a lookup.
     const result = await ask({ user: OWNER }, "10.10.1.2");
     expect(result.status).toBe(400);
-    expect(result.body.error).toBe("invalid_email");
+    expect(result.body.error).toBe("invalid_request");
   });
 
   test("a missing username is refused by name, 400", async () => {
     const result = await ask({ email: OWNER_EMAIL }, "10.10.1.3");
     expect(result.status).toBe(400);
-    expect(result.body.error).toBe("invalid_user");
+    expect(result.body.error).toBe("invalid_request");
   });
 
   test("a syntactically valid but unrecognised address still gets the uniform 202", async () => {

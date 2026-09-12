@@ -166,7 +166,7 @@ export async function POST(request: Request) {
   /**
    * No session, so this redemption ends in a six-digit code — and the code has
    * to be sendable before anything is written. B205, the same shape B160
-   * removed from `POST /api/auth/request`.
+   * removed from `POST /api/auth/codes`.
    *
    * With mail off, `sendCodeMail` returns null without sending and the reader
    * was told `{"status":"code"}` all the same: an inbox nothing will ever

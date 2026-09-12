@@ -39,7 +39,7 @@ function usage(): never {
       "  --size <px>    figure width (default 106)",
       "",
       "The vocabulary is lib/travellers/vocabulary.ts, and",
-      "GET /api/v1/<user>/travellers/presets serves the same list.",
+      "GET /api/v2/<user>/figures/presets serves the same list.",
     ].join("\n"),
   );
   process.exit(1);

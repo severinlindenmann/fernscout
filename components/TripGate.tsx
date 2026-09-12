@@ -22,7 +22,7 @@ import { useI18n } from "@/components/LocaleProvider";
  * the mail.
  *
  * **Signing in is not what opens the trip**, and that is the whole design.
- * `/api/auth/request` will mail a code to any address on earth — it has to,
+ * `/api/auth/codes` will mail a code to any address on earth — it has to,
  * because answering differently for a known address would turn this form into
  * a way of asking who reads somebody's journal. The session it produces is an
  * identity claim and nothing more; whether it opens this trip is decided

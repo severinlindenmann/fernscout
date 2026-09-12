@@ -87,36 +87,60 @@ function writeDraft(tripId: string, slug: string) {
  * which is where the trip is checked and, since B230, written down.
  */
 async function requestCode(email: string, trip?: string) {
-  const { POST } = await import("@/app/api/auth/request/route");
+  const { POST } = await import("@/app/api/auth/codes/route");
   const response = await POST(
-    new Request("https://example.test/api/auth/request", {
+    new Request("https://example.test/api/auth/codes", {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({
         user: OWNER,
         email,
-        kind: "agent",
-        ...(trip ? { trip } : {}),
+        for: "write",
+        ...(trip ? { scope: { trip } } : {}),
       }),
     }),
   );
   return { status: response.status, body: (await response.json()) as { error?: string } };
 }
 
-/** The real verify route, with whatever body an agent chooses to send. */
+/**
+ * The real redeem route, with whatever body an agent chooses to send.
+ *
+ * Takes the old `{kind, trip}` shape callers below already use and
+ * translates it to the wire vocabulary (`for`, `scope.trip`) in one place,
+ * so the many call sites below did not each need the rename. `body.scope` on
+ * the way back is the wire literal (`"write"`), never the internal
+ * `write:trip:<id>` string — `realScope` reads that back from the minted
+ * token itself, the same way `GET /api/v2/{user}/status` would.
+ */
 async function verify(body: Record<string, unknown>) {
-  const { POST } = await import("@/app/api/auth/verify/route");
+  const { kind, trip, ...rest } = body as { kind?: string; trip?: string };
+  const { POST } = await import("@/app/api/auth/codes/redeem/route");
   const response = await POST(
-    new Request("https://example.test/api/auth/verify", {
+    new Request("https://example.test/api/auth/codes/redeem", {
       method: "POST",
       headers: headers(),
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...rest,
+        for: kind === "agent" ? "write" : "read",
+        ...(trip ? { scope: { trip } } : {}),
+      }),
     }),
   );
   return {
     status: response.status,
-    body: (await response.json()) as { token?: string; scope?: string[]; error?: string },
+    body: (await response.json()) as { token?: string; scope?: string; error?: string },
   };
+}
+
+/** What a minted write token can actually do — the internal scope string,
+ * read back through `resolveSession` rather than trusted from the wire
+ * response, which (B1600) only ever says the wire word `"write"`. */
+async function realScope(token: string | undefined): Promise<string | undefined> {
+  if (!token) return undefined;
+  const { resolveSession } = await import("@/lib/auth");
+  const session = await resolveSession(token, "agent");
+  return session?.scope;
 }
 
 async function writeDay(token: string, trip: string, title: string) {
@@ -181,7 +205,8 @@ async function tripToken(email: string, trip: string): Promise<string> {
   const asked = await requestCode(email, trip);
   expect(asked.status).toBe(202);
   const result = await verify({ user: OWNER, email, code: CODE, kind: "agent" });
-  expect(result.body.scope).toEqual([`write:trip:${trip}`]);
+  expect(result.body.scope).toBe("write");
+  expect(await realScope(result.body.token)).toBe(`write:trip:${trip}`);
   return result.body.token!;
 }
 
@@ -261,7 +286,8 @@ describe("B230 — a code issued for one trip cannot be verified into a journal-
     const result = await verify({ user: OWNER, email: ROBIN, code: CODE, kind: "agent" });
 
     expect(result.status).toBe(200);
-    expect(result.body.scope).toEqual(["write:trip:alps-2026"]);
+    expect(result.body.scope).toBe("write");
+    expect(await realScope(result.body.token)).toBe("write:trip:alps-2026");
   });
 
   test("repeating the trip at verify time is accepted and changes nothing", async () => {
@@ -275,7 +301,8 @@ describe("B230 — a code issued for one trip cannot be verified into a journal-
     });
 
     expect(result.status).toBe(200);
-    expect(result.body.scope).toEqual(["write:trip:alps-2026"]);
+    expect(result.body.scope).toBe("write");
+    expect(await realScope(result.body.token)).toBe("write:trip:alps-2026");
   });
 
   test("naming a trip they are not on is refused, not honoured and not widened", async () => {
@@ -303,7 +330,8 @@ describe("B230 — a code issued for one trip cannot be verified into a journal-
     // must not cost somebody a code they have to ask for again.
     const second = await verify({ user: OWNER, email: ROBIN, code: CODE, kind: "agent" });
     expect(second.status).toBe(200);
-    expect(second.body.scope).toEqual(["write:trip:alps-2026"]);
+    expect(second.body.scope).toBe("write");
+    expect(await realScope(second.body.token)).toBe("write:trip:alps-2026");
   });
 
   test("the token it does hand out cannot write into a private trip its holder was never on", async () => {
@@ -371,14 +399,15 @@ describe("B230 — a code issued for one trip cannot be verified into a journal-
 
       const result = await verify({ user: OWNER, email: OWNER_EMAIL, code: CODE, kind: "agent" });
       expect(result.status).toBe(200);
-      expect(result.body.scope).toEqual(["write:content"]);
+      expect(result.body.scope).toBe("write");
+      expect(await realScope(result.body.token)).toBe("write:content");
     });
 
     test("naming a trip still narrows the token, at either call", async () => {
       // At the request, which is where the guide now tells everybody to name it.
       await requestCode(OWNER_EMAIL, "honeymoon-2026");
       const bound = await verify({ user: OWNER, email: OWNER_EMAIL, code: CODE, kind: "agent" });
-      expect(bound.body.scope).toEqual(["write:trip:honeymoon-2026"]);
+      expect(await realScope(bound.body.token)).toBe("write:trip:honeymoon-2026");
 
       // And at the verify, for an unqualified code — the behaviour `agentScope`
       // was written for, which a narrowing must never lose.
@@ -390,7 +419,7 @@ describe("B230 — a code issued for one trip cannot be verified into a journal-
         kind: "agent",
         trip: "alps-2026",
       });
-      expect(late.body.scope).toEqual(["write:trip:alps-2026"]);
+      expect(await realScope(late.body.token)).toBe("write:trip:alps-2026");
     });
 
     test("naming a trip that does not exist is refused rather than widened", async () => {
@@ -478,7 +507,7 @@ describe("B231/B1086 — export.zip is owner-only and hands nothing to anyone el
   test("the journal's owner still gets all of it", async () => {
     await requestCode(OWNER_EMAIL);
     const session = await verify({ user: OWNER, email: OWNER_EMAIL, code: CODE, kind: "agent" });
-    expect(session.body.scope).toEqual(["write:content"]);
+    expect(await realScope(session.body.token)).toBe("write:content");
 
     const archive = await exportZip(session.body.token);
     expect(archive.names).toContain("trips/honeymoon-2026/trip.md");

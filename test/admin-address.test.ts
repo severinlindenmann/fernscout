@@ -107,12 +107,17 @@ function writeTrip(username: string, id: string) {
 
 /** Ask for an agent code the way an agent does — the route is the gate. */
 async function requestCode(username: string, email: string, trip?: string) {
-  const { POST } = await import("@/app/api/auth/request/route");
+  const { POST } = await import("@/app/api/auth/codes/route");
   const response = await POST(
-    new Request("https://example.test/api/auth/request", {
+    new Request("https://example.test/api/auth/codes", {
       method: "POST",
       headers: headers(),
-      body: JSON.stringify({ user: username, email, kind: "agent", ...(trip ? { trip } : {}) }),
+      body: JSON.stringify({
+        user: username,
+        email,
+        for: "write",
+        ...(trip ? { scope: { trip } } : {}),
+      }),
     }),
   );
   return { status: response.status, body: (await response.json()) as { error?: string } };
@@ -121,16 +126,19 @@ async function requestCode(username: string, email: string, trip?: string) {
 async function agentToken(username: string, email: string): Promise<string> {
   const asked = await requestCode(username, email);
   expect(asked.status, `a code for ${username}`).toBe(202);
-  const { POST } = await import("@/app/api/auth/verify/route");
+  const { POST } = await import("@/app/api/auth/codes/redeem/route");
   const response = await POST(
-    new Request("https://example.test/api/auth/verify", {
+    new Request("https://example.test/api/auth/codes/redeem", {
       method: "POST",
       headers: headers(),
-      body: JSON.stringify({ user: username, email, code: CODE, kind: "agent" }),
+      body: JSON.stringify({ user: username, email, code: CODE, for: "write" }),
     }),
   );
-  const body = (await response.json()) as { token?: string; scope?: string[] };
-  expect(body.scope).toEqual(["write:content"]);
+  const body = (await response.json()) as { token?: string; scope?: string };
+  expect(body.scope).toBe("write");
+  const { resolveSession } = await import("@/lib/auth");
+  const session = await resolveSession(body.token!, "agent");
+  expect(session?.scope).toBe("write:content");
   return body.token!;
 }
 
@@ -247,6 +255,7 @@ describe("with no FERNSCOUT_ADMIN_EMAIL, the address is a stranger", () => {
       owner: ADMIN_JOURNAL,
       kind: "agent" as const,
       scope: "write:content",
+      expiresAt: "2099-01-01T00:00:00.000Z",
       email: ADMIN,
       publicId: null,
       phone: null,

@@ -448,8 +448,9 @@ describe("the documents an agent reads", () => {
    */
   test("the summary is self-sufficient for signup: it carries the three calls", () => {
     const summary = instanceDocumentation();
-    expect(summary).toContain("/api/auth/signup/request");
-    expect(summary).toContain("/api/auth/signup/verify");
+    expect(summary).toContain("/api/auth/codes");
+    expect(summary).toMatch(/"for":\s*"signup"/);
+    expect(summary).toContain("/api/auth/codes/redeem");
     expect(summary).toContain("POST");
     expect(summary).toMatch(/\/api\/v1\/journals/);
     // A complete body, not just the path: the fields a signup token cannot
@@ -461,8 +462,8 @@ describe("the documents an agent reads", () => {
 
   test("the guide documents authentication without ever mailing a token", () => {
     const guide = agentGuide();
-    expect(guide).toContain("/api/auth/request");
-    expect(guide).toContain("/api/auth/verify");
+    expect(guide).toContain("/api/auth/codes");
+    expect(guide).toContain("/api/auth/codes/redeem");
     expect(guide).toMatch(/never sent by email/i);
   });
 

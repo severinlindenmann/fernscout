@@ -19,8 +19,8 @@ import { typeInto } from "./support/type-input";
  * B688 — a visitor with no journal, inside `/agent`.
  *
  * No network call anywhere here: `global.fetch` is stubbed with the exact
- * shapes `/api/auth/signup/request`, `/api/auth/signup/verify` and
- * `/api/v1/journals` already answer with, so what is under test is the
+ * shapes `/api/auth/codes` and `/api/auth/codes/redeem` (both `for: "signup"`)
+ * and `/api/v1/journals` already answer with, so what is under test is the
  * component reading those answers — not the routes themselves, which have
  * their own tests (`test/signup-token.test.ts`, `test/signup-credit-grant.test.ts`).
  */

@@ -119,11 +119,12 @@ function whole(mail: Mail): string {
 
 describe("a journal that says it is Hungarian gets Hungarian mail", () => {
   test("the sign-in code, subject and body", async () => {
-    const { POST } = await import("@/app/api/auth/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     const response = await POST(
-      post("https://example.test/api/auth/request", {
+      post("https://example.test/api/auth/codes", {
         user: JOURNAL,
         email: "reader@example.test",
+        for: "read",
       }),
     );
     expect(response.status).toBe(202);
@@ -142,12 +143,12 @@ describe("a journal that says it is Hungarian gets Hungarian mail", () => {
   });
 
   test("the agent code, which arrives after the journal exists", async () => {
-    const { POST } = await import("@/app/api/auth/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     const response = await POST(
-      post("https://example.test/api/auth/request", {
+      post("https://example.test/api/auth/codes", {
         user: JOURNAL,
         email: OWNER,
-        kind: "agent",
+        for: "write",
       }),
     );
     expect(response.status).toBe(202);
@@ -160,11 +161,12 @@ describe("a journal that says it is Hungarian gets Hungarian mail", () => {
   });
 
   test("the journal's own title is carried through, never translated", async () => {
-    const { POST } = await import("@/app/api/auth/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     await POST(
-      post("https://example.test/api/auth/request", {
+      post("https://example.test/api/auth/codes", {
         user: JOURNAL,
         email: "reader@example.test",
+        for: "read",
       }),
     );
     expect(sent[0].subject).toContain(TITLE);
@@ -172,11 +174,11 @@ describe("a journal that says it is Hungarian gets Hungarian mail", () => {
   });
 
   test("the journal wins over a device asking for something else", async () => {
-    const { POST } = await import("@/app/api/auth/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     await POST(
       post(
-        "https://example.test/api/auth/request",
-        { user: JOURNAL, email: "reader@example.test" },
+        "https://example.test/api/auth/codes",
+        { user: JOURNAL, email: "reader@example.test", for: "read" },
         "de-DE,de;q=0.9",
       ),
     );
@@ -186,9 +188,9 @@ describe("a journal that says it is Hungarian gets Hungarian mail", () => {
 
 describe("before a journal exists, the request's own language decides", () => {
   test("accept-language: de gets a German signup code", async () => {
-    const { POST } = await import("@/app/api/auth/signup/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     const response = await POST(
-      post("https://example.test/api/auth/signup/request", { email: "neu@example.test" }, "de"),
+      post("https://example.test/api/auth/codes", { email: "neu@example.test", for: "signup" }, "de"),
     );
     expect(response.status).toBe(202);
     expect(sent).toHaveLength(1);
@@ -199,17 +201,17 @@ describe("before a journal exists, the request's own language decides", () => {
   });
 
   test("quality values are honoured, so hu;q=0.9 behind an unknown language still wins", async () => {
-    const { POST } = await import("@/app/api/auth/signup/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     await POST(
-      post("https://example.test/api/auth/signup/request", { email: "uj@example.test" }, "sq,hu;q=0.9"),
+      post("https://example.test/api/auth/codes", { email: "uj@example.test", for: "signup" }, "sq,hu;q=0.9"),
     );
     expect(sent[0].subject).toBe("A kódod, amellyel útinaplót indíthatsz itt: Testbed");
   });
 
   test("a language this instance does not speak falls back to English", async () => {
-    const { POST } = await import("@/app/api/auth/signup/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     await POST(
-      post("https://example.test/api/auth/signup/request", { email: "someone@example.test" }, "sq-AL"),
+      post("https://example.test/api/auth/codes", { email: "someone@example.test", for: "signup" }, "sq-AL"),
     );
     expect(sent[0].subject).toBe("Your code to start a journal on Testbed");
     expect(sent[0].text).toMatch(/Your code is \d{6}\./);
@@ -219,11 +221,11 @@ describe("before a journal exists, the request's own language decides", () => {
   // over whatever the request's own browser-set header says — no
   // reconciliation between the two, no warning either way.
   test("a locale in the body wins outright over accept-language", async () => {
-    const { POST } = await import("@/app/api/auth/signup/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     await POST(
       post(
-        "https://example.test/api/auth/signup/request",
-        { email: "kettonyelvu@example.test", locale: "hu" },
+        "https://example.test/api/auth/codes",
+        { email: "kettonyelvu@example.test", locale: "hu", for: "signup" },
         "de",
       ),
     );
@@ -231,8 +233,8 @@ describe("before a journal exists, the request's own language decides", () => {
   });
 
   test("no accept-language at all is English", async () => {
-    const { POST } = await import("@/app/api/auth/signup/request/route");
-    await POST(post("https://example.test/api/auth/signup/request", { email: "quiet@example.test" }));
+    const { POST } = await import("@/app/api/auth/codes/route");
+    await POST(post("https://example.test/api/auth/codes", { email: "quiet@example.test", for: "signup" }));
     expect(sent[0].subject).toBe("Your code to start a journal on Testbed");
   });
 });

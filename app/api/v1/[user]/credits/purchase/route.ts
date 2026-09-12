@@ -84,7 +84,7 @@ export async function POST(
 
   // Authenticated and owner-only, so this is about a stuck client looping
   // rather than an attacker enumerating anything — one purchase mail a
-  // minute is generous. Same bucket shape `/api/auth/request` uses.
+  // minute is generous. Same bucket shape `/api/auth/codes` uses.
   const limit = rateLimitFor("credits-purchase", clientIp(request), {
     max: 5,
     windowMs: 60 * 1000,

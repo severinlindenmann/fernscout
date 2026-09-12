@@ -92,12 +92,12 @@ describe("the trip gate and the capability report already agree", () => {
 
 describe("POST /api/auth/request now asks the same question", () => {
   test("a guest code is refused for a journal that has not turned auth on", async () => {
-    const { POST } = await import("@/app/api/auth/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     const response = await POST(
       new Request("https://example.test/api/auth/request", {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ user: SILENT, email: OWNER_EMAIL, kind: "guest" }),
+        body: JSON.stringify({ user: SILENT, email: OWNER_EMAIL, for: "read" }),
       }),
     );
     expect(response.status).toBe(404);
@@ -105,40 +105,40 @@ describe("POST /api/auth/request now asks the same question", () => {
   });
 
   test("a guest code still goes through for a journal that has", async () => {
-    const { POST } = await import("@/app/api/auth/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     const response = await POST(
-      new Request("https://example.test/api/auth/request", {
+      new Request("https://example.test/api/auth/codes", {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ user: LOUD, email: OWNER_EMAIL, kind: "guest" }),
+        body: JSON.stringify({ user: LOUD, email: OWNER_EMAIL, for: "read" }),
       }),
     );
     expect(response.status).toBe(202);
   });
 
   test("an unknown journal is unaffected — still the uniform 202", async () => {
-    const { POST } = await import("@/app/api/auth/request/route");
+    const { POST } = await import("@/app/api/auth/codes/route");
     const response = await POST(
-      new Request("https://example.test/api/auth/request", {
+      new Request("https://example.test/api/auth/codes", {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ user: "no-such-journal", email: OWNER_EMAIL, kind: "guest" }),
+        body: JSON.stringify({ user: "no-such-journal", email: OWNER_EMAIL, for: "read" }),
       }),
     );
     expect(response.status).toBe(202);
   });
 });
 
-describe("POST /api/auth/verify now asks the same question", () => {
+describe("POST /api/auth/codes/redeem now asks the same question", () => {
   test("a code minted for a journal that has not turned auth on cannot be redeemed", async () => {
-    // Agent, not guest — see the note on the success case below for why.
+    // Write, not read — see the note on the success case below for why.
     const { code } = await issueCode(SILENT, OWNER_EMAIL, "agent");
-    const { POST } = await import("@/app/api/auth/verify/route");
+    const { POST } = await import("@/app/api/auth/codes/redeem/route");
     const response = await POST(
-      new Request("https://example.test/api/auth/verify", {
+      new Request("https://example.test/api/auth/codes/redeem", {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ user: SILENT, email: OWNER_EMAIL, code, kind: "agent" }),
+        body: JSON.stringify({ user: SILENT, email: OWNER_EMAIL, code, for: "write" }),
       }),
     );
     expect(response.status).toBe(404);
@@ -146,34 +146,34 @@ describe("POST /api/auth/verify now asks the same question", () => {
   });
 
   test("the same code shape still redeems for a journal that has turned auth on", async () => {
-    // Agent, not guest: a guest session sets a cookie via `next/headers`,
-    // which needs a request scope this direct route call has no reason to
-    // build — the same choice `test/scope-escalation.test.ts` makes for the
-    // same reason. The route asks the same `isEnabled("auth", user)`
-    // question regardless of kind, so this still exercises the fix.
+    // Write, not read: a read redeem sets a cookie via `next/headers`, which
+    // needs a request scope this direct route call has no reason to build —
+    // the same choice `test/scope-escalation.test.ts` makes for the same
+    // reason. The route asks the same `isEnabled("auth", user)` question
+    // regardless of `for`, so this still exercises the fix.
     const { code } = await issueCode(LOUD, OWNER_EMAIL, "agent");
-    const { POST } = await import("@/app/api/auth/verify/route");
+    const { POST } = await import("@/app/api/auth/codes/redeem/route");
     const response = await POST(
-      new Request("https://example.test/api/auth/verify", {
+      new Request("https://example.test/api/auth/codes/redeem", {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ user: LOUD, email: OWNER_EMAIL, code, kind: "agent" }),
+        body: JSON.stringify({ user: LOUD, email: OWNER_EMAIL, code, for: "write" }),
       }),
     );
     expect(response.status).toBe(200);
   });
 
   test("an unknown journal still fails as a wrong code, not as auth_disabled", async () => {
-    const { POST } = await import("@/app/api/auth/verify/route");
+    const { POST } = await import("@/app/api/auth/codes/redeem/route");
     const response = await POST(
-      new Request("https://example.test/api/auth/verify", {
+      new Request("https://example.test/api/auth/codes/redeem", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({
           user: "no-such-journal",
           email: OWNER_EMAIL,
           code: "000000",
-          kind: "guest",
+          for: "write",
         }),
       }),
     );

@@ -180,6 +180,61 @@ export function tripWriteScope(tripId: string): string {
 }
 
 /**
+ * Whether a session's own scope is the unqualified, journal-wide one —
+ * `SESSION_SCOPE.agent` — rather than something narrower like a trip scope.
+ *
+ * Centralised here (B240, extended by B1609) so that every owner-only gate
+ * asks the same question from the same code: v1's `mayActAsOwner`
+ * (`lib/api/auth.ts`) and v2's `requireJournalOwner`
+ * (`lib/api/v2/auth.ts`) both call this rather than each re-deriving
+ * `session.scope !== SESSION_SCOPE.agent` on its own, which is exactly the
+ * drift `test/owner-gate.test.ts`'s source scan exists to catch — and which
+ * a second, v2-only re-derivation would otherwise have reintroduced the
+ * moment v2 needed its own owner-only gate and could not import v1's.
+ */
+export function isJournalWideScope(scope: string): boolean {
+  return scope === SESSION_SCOPE.agent;
+}
+
+/**
+ * The two-value answer `GET /api/v2/{user}/status` and `GET
+ * /api/auth/{user}/keys` put on the wire for "what can this token do" —
+ * `docs/plans/2026-09-12-api-v2/auth.md` §3. It belongs beside
+ * `SESSION_SCOPE` and `tripWriteScope` because it reads the same vocabulary
+ * those two write: v1 had two independent readings of `session.scope` (a raw
+ * string on the keys page, and `mayWriteTrip`'s own parsing of it), which is
+ * how a scope format kept in two places ends up disagreeing with itself. This
+ * is the one place a session's scope becomes a public shape, so it is the
+ * only place allowed to parse the `write:trip:` prefix — done by asking
+ * `tripWriteScope` itself for it (`tripWriteScope("")`) rather than writing
+ * the string a third time.
+ *
+ * "owner" here means journal-wide — `write:content`, the unqualified scope
+ * an owner's own token carries — never "this person owns the journal". A
+ * session that happens to belong to the owner but was minted for one trip
+ * (there is no such case today, but nothing stops one existing tomorrow)
+ * would still answer `"trip"`: the enum describes what the *token* is good
+ * for, not who is holding it. The schema's enum is frozen at two values
+ * (§3's "keep the two-value enum as-is"), so a scope this cannot describe
+ * exactly is described as the wider of the two rather than inventing a
+ * third — which is why an unrecognised or missing scope also falls to
+ * `"owner"` below, same as `SESSION_SCOPE`'s own default did.
+ */
+export function describeScope(
+  session: Session,
+): { scope: "owner" | "trip"; trip?: string; expiresAt: string } {
+  const tripPrefix = tripWriteScope("");
+  if (session.scope.startsWith(tripPrefix) && session.scope !== tripPrefix) {
+    return {
+      scope: "trip",
+      trip: session.scope.slice(tripPrefix.length),
+      expiresAt: session.expiresAt,
+    };
+  }
+  return { scope: "owner", expiresAt: session.expiresAt };
+}
+
+/**
  * A six-digit code.
  *
  * Six digits is 20 bits, and what makes that safe is the **attempt counter**,
@@ -1036,6 +1091,11 @@ export type Session = {
   owner: string;
   kind: SessionKind;
   scope: string;
+  /** When the session stops working, as an ISO instant. `sessions.expires_at`
+   * was always selected for the check on line above; this is that same value,
+   * carried onto the object so a caller can *say* it rather than only enforce
+   * it — `describeScope` below is the first of those callers. */
+  expiresAt: string;
   email: string;
   /** An identity's opaque public name, and null on every other kind. Safe to
    * return in a response body; never accepted as authentication. B412 names a
@@ -1107,6 +1167,7 @@ async function lookUpSession(
     owner: row.owner,
     kind: row.kind as SessionKind,
     scope: row.scope ?? SESSION_SCOPE[expected],
+    expiresAt: row.expiresAt,
     email: row.email,
     publicId: row.publicId,
     phone: row.phone,

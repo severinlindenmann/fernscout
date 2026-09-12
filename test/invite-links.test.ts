@@ -544,39 +544,44 @@ describe("redeeming a buddy link", { shuffle: false }, () => {
   test("and can write to that trip, and is refused against another one", async () => {
     process.env.AUTH_DEV_CODE = "424242";
     try {
-      const { POST: request } = await import("@/app/api/auth/request/route");
+      const { POST: request } = await import("@/app/api/auth/codes/route");
       const ask = async (trip: string) =>
         request(
-          new Request("https://example.test/api/auth/request", {
+          new Request("https://example.test/api/auth/codes", {
             method: "POST",
             headers: headers(),
-            body: JSON.stringify({ user: OWNER, email: ROBIN, kind: "agent", trip }),
+            body: JSON.stringify({ user: OWNER, email: ROBIN, for: "write", scope: { trip } }),
           }),
         );
 
       // The journal recognises them for the trip they were let onto...
       expect((await ask("bus-2026")).status).toBe(202);
-      // ...and not for one they were not. `/api/auth/request` answers this
+      // ...and not for one they were not. `/api/auth/codes` answers this
       // truthfully on purpose, so an agent is told rather than left waiting.
       expect((await ask("secret-2026")).status).toBe(403);
 
-      const { POST: verify } = await import("@/app/api/auth/verify/route");
+      const { POST: verify } = await import("@/app/api/auth/codes/redeem/route");
       const verified = await verify(
-        new Request("https://example.test/api/auth/verify", {
+        new Request("https://example.test/api/auth/codes/redeem", {
           method: "POST",
           headers: headers(),
           body: JSON.stringify({
             user: OWNER,
             email: ROBIN,
             code: "424242",
-            kind: "agent",
-            trip: "bus-2026",
+            for: "write",
+            scope: { trip: "bus-2026" },
           }),
         }),
       );
       expect(verified.status).toBe(200);
-      const body = (await verified.json()) as { token: string; scope: string[] };
-      expect(body.scope).toEqual(["write:trip:bus-2026"]);
+      const body = (await verified.json()) as { token: string; scope: string };
+      expect(body.scope).toBe("write");
+      {
+        const { resolveSession: resolveSessionCheck } = await import("@/lib/auth");
+        const check = await resolveSessionCheck(body.token, "agent");
+        expect(check?.scope).toBe("write:trip:bus-2026");
+      }
 
       // And the write check itself, which is what actually guards the API.
       const { resolveSession } = await import("@/lib/auth");

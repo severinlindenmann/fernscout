@@ -268,7 +268,32 @@ export type UserConfig = {
    * here and empty on the trip means one neutral figure.
    */
   travellers: Figure[];
+  /**
+   * The v2 journal-level figure library's default selection — B1608. `{mode:
+   * "off"}`, or `{mode: "set", figures: [ids]}` pointing into the (separate,
+   * not-yet-built) figure library. Undefined means nothing has been written
+   * here yet, which v2's asked-or-declined rule on `journalWrite` treats the
+   * same as any other silently-omitted section: refused until answered or
+   * declined. Unrelated to `travellers` above, which is v1's inline vocabulary
+   * and stays exactly as it was.
+   */
+  figures?: JournalFigureSelection;
+  /**
+   * v2's asked-or-declined map for the journal document — which declinable
+   * sections (today: `tagline`, `figures`) were consciously left out, and why.
+   * v1 never had a concept of a silent decline, so this is undefined on every
+   * journal migrated from before v2, which is exactly the state
+   * `checkRequiredOrDeclined` is built to catch and ask about.
+   */
+  declined?: Record<string, string>;
 };
+
+/** The v2 figure-selection shape, kept here rather than imported from
+ * `lib/api/v2/schemas/figures.ts` so this foundational config file does not
+ * reach up into the API contract layer — see that file's `journalFigures` for
+ * the schema that actually validates a write of this shape; the two must
+ * describe the same wire value. */
+export type JournalFigureSelection = { mode: "off" } | { mode: "set"; figures: string[] };
 
 /**
  * Deployment settings, from `site/config.json`. A user cannot change these.
@@ -804,7 +829,37 @@ function parseUser(
     // not be the thing that takes a journal off the site. `parseTravellers`
     // warns and falls back; see lib/travellers/parse.ts.
     travellers: parseTravellers(src.travellers, `${username}/config.json`),
+    // Both v2-only and both lenient, like `travellers` above: a malformed
+    // `figures` or `declined` block in a hand-edited file must not be the
+    // thing that takes a whole journal off the site. v2's own write path is
+    // what enforces their shape; a read that cannot make sense of what is on
+    // disk just reads it as absent, which the asked-or-declined rule already
+    // knows how to ask about.
+    figures: parseJournalFigures(src.figures),
+    declined: parseDeclinedMap(src.declined),
   };
+}
+
+function parseJournalFigures(raw: unknown): JournalFigureSelection | undefined {
+  if (!isRecord(raw)) return undefined;
+  if (raw.mode === "off") return { mode: "off" };
+  if (
+    raw.mode === "set" &&
+    Array.isArray(raw.figures) &&
+    raw.figures.every((f) => typeof f === "string")
+  ) {
+    return { mode: "set", figures: raw.figures as string[] };
+  }
+  return undefined;
+}
+
+function parseDeclinedMap(raw: unknown): Record<string, string> | undefined {
+  if (!isRecord(raw)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (typeof value === "string") out[key] = value;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function parseFeatures(

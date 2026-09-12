@@ -21,7 +21,7 @@ import { getContactByEmail, type ContactRecord } from "./index";
  *
  * - the **guest cookie**, which is how they read their own site in a browser;
  * - an **agent bearer token**, which only the owner address can ever obtain
- *   (`app/api/auth/request` refuses to issue one to anybody else) and which is
+ *   (`app/api/auth/codes` refuses to issue one to anybody else) and which is
  *   how a script or an agent approves someone.
  *
  * A journal with no `owner.email` has no owner, and therefore no admin surface.

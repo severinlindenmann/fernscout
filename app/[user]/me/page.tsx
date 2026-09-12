@@ -42,8 +42,8 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
   if (!journal) notFound();
 
   // Why they are here rather than inside the journal. Both values are written
-  // by this codebase — `/api/auth/link` on a spent link, and the same route on
-  // a throttle — and anything else in the query is ignored rather than
+  // by this codebase — `/api/auth/links/redeem` on a spent link, and the same
+  // route on a throttle — and anything else in the query is ignored rather than
   // rendered, so the parameter cannot be used to put a sentence of somebody
   // else's choosing on the page.
   const signin = (await searchParams).signin;
@@ -208,6 +208,10 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
           start: trip.start,
           end: trip.end,
           visibility: trip.visibility,
+          // B1591 — the shared control writes these two as well, so the panel
+          // has to be handed what they currently are.
+          listed: trip.listed,
+          teaser: trip.teaser,
         }))
     : undefined;
 

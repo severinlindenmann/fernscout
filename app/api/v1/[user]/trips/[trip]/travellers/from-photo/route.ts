@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  * a group photograph, instead of asking forty questions about it — B1517.
  *
  * **Proposed, never written.** The response is a party in the same shape
- * `GET .../travellers` reads back, plus the preview `GET .../travellers/preview`
+ * `GET .../travellers` reads back, plus the preview `GET .../figures/preview`
  * already draws — an owner looks at the picture and decides whether to `PATCH
  * .../travellers` with it. This call cannot write that block itself, on
  * purpose: an inferred face becoming a written fact about a person is exactly

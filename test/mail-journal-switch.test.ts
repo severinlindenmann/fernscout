@@ -14,7 +14,7 @@ import { sendWelcome } from "@/lib/journals";
 import { sendCodeMail } from "@/lib/contacts/mail";
 import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { requestDeletion } from "@/lib/deletions";
-import { POST as authRequest } from "@/app/api/auth/request/route";
+import { POST as authRequest } from "@/app/api/auth/codes/route";
 import { GET as health } from "@/app/api/health/route";
 
 /**
@@ -252,10 +252,10 @@ describe("letters about access to the journal — not governed by its switch", (
    */
   test("a sign-in code is sent to a journal that has mail off", async () => {
     const response = await authRequest(
-      new Request(`${SITE}/api/auth/request`, {
+      new Request(`${SITE}/api/auth/codes`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ user: QUIET, email: OWNER, kind: "agent" }),
+        body: JSON.stringify({ user: QUIET, email: OWNER, for: "write" }),
       }),
     );
 
@@ -333,13 +333,13 @@ describe("asking for a code on a server that cannot send mail", () => {
   function ask(user: string, email: string, kind: "agent" | "guest" = "agent") {
     caller++;
     return authRequest(
-      new Request(`${SITE}/api/auth/request`, {
+      new Request(`${SITE}/api/auth/codes`, {
         method: "POST",
         headers: {
           "content-type": "application/json",
           "x-forwarded-for": `203.0.113.${caller}`,
         },
-        body: JSON.stringify({ user, email, kind }),
+        body: JSON.stringify({ user, email, for: kind === "agent" ? "write" : "read" }),
       }),
     );
   }

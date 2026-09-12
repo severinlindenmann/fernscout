@@ -34,7 +34,7 @@ import { buddyPrompt } from "@/lib/api/agentCopy";
  * cannot reach a second one. Somebody on two trips therefore needs two
  * prompts, not one prompt with an id to edit — and editing an id inside a
  * pasted prompt is precisely the step that would fail quietly, because the
- * refusal it earns is `/api/auth/verify`'s uniform `invalid_code`.
+ * refusal it earns is `/api/auth/codes/redeem`'s uniform `invalid_code`.
  *
  * Draws no outer margin: the caller decides where it sits.
  */

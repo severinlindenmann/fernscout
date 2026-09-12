@@ -108,7 +108,7 @@ afterEach(async () => {
 });
 
 describe("a location pin", () => {
-  test("lands in the inbox rather than attaching to any day automatically", async () => {
+  test("lands staged under its date rather than attaching to any day automatically", async () => {
     await bindGreetAcknowledge("locontest", "41760020202");
     writeTrip("locontest", "reise", "2023-11-01", "2023-11-20");
 
@@ -118,8 +118,11 @@ describe("a location pin", () => {
     const days = getDays(tripRef("locontest", "reise"), AS_AUTHOR);
     expect(days).toHaveLength(0); // nothing created on any day
 
-    const { listInbox } = await import("@/lib/inbox");
-    const staged = listInbox("locontest").location;
+    // Dated by its own message timestamp, so it files into that date's own
+    // staging folder rather than the flat, undated bucket (Task 3).
+    const { listInbox, listDayInbox } = await import("@/lib/inbox");
+    expect(listInbox("locontest").location).toHaveLength(0);
+    const staged = listDayInbox("locontest", "2023-11-14").location;
     expect(staged).toHaveLength(1);
     expect(staged[0].lat).toBeCloseTo(46.5, 1);
     expect(staged[0].lon).toBeCloseTo(7.9, 1);
@@ -128,6 +131,26 @@ describe("a location pin", () => {
     const files = repliesTo("locontest");
     const last = String(files[files.length - 1].body);
     expect(last).toContain("Got it — saved");
+  });
+
+  test("a dated pin lands in that date's own folder, not the flat bucket", async () => {
+    const username = "loc2";
+    await bindGreetAcknowledge(username, "41000000004");
+    writeTrip(username, "trip", "2026-01-01", "2026-01-31");
+    await handleInboundMessage(locationMessage("41000000004", "wamid.loc2.pin", "1767225600"));
+    // 1767225600 = 2026-01-01T00:00:00Z.
+
+    const { listInbox } = await import("@/lib/inbox");
+    expect(listInbox(username).location).toHaveLength(0); // not in the flat bucket
+
+    const { listDayInbox } = await import("@/lib/inbox");
+    const dated = listDayInbox(username, "2026-01-01");
+    expect(dated.location).toHaveLength(1);
+    expect(dated.location[0].source).toBe("whatsapp");
+
+    const { readDayReadiness } = await import("@/lib/dayReadiness");
+    const readiness = readDayReadiness(username, "2026-01-01");
+    expect(readiness.location?.source).toBe("whatsapp");
   });
 });
 

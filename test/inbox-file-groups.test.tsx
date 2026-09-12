@@ -9,10 +9,10 @@ import { dictionaryFor } from "@/lib/locales";
 /**
  * The grouped, newest-first view over the inbox — B1123.
  *
- * `HelperRoom.tsx` is not wired to this yet (see the ticket's report); this
- * proves the component's own three claims in isolation: photographs and
+ * This proves the component's own claims in isolation: photographs and
  * documents land in different groups, each group is newest first, and a
  * document row carries its size and date rather than nothing at all.
+ * `test/helper-room.test.tsx` checks the wiring into `HelperRoom.tsx` itself.
  */
 
 const dictionary = dictionaryFor("en");
@@ -120,6 +120,59 @@ describe("a document's row", () => {
     ]);
     const label = el.querySelector("label[data-inbox-id='inbox:a']");
     expect(label?.className).toMatch(/\bmin-w-0\b/);
+  });
+});
+
+describe("a day folder's staged content", () => {
+  // Phase 2 (inbox day-assembly), Task 4: a date-keyed group, above the
+  // undated ones, naming the date rather than "Photographs"/"Documents"/
+  // "Other" — so a person can see *that* something staged for a day exists,
+  // which is the whole point of this ticket.
+  test("groups under a heading naming its own date, above the undated groups", () => {
+    const el = render([
+      { id: "inbox:a", name: "old-undated.csv", kind: "document", bytes: 10, at: OLD },
+      { id: "inbox:b", name: "pin.json", kind: "location", date: "2026-01-01" },
+    ]);
+    expect(el.textContent).toContain("2026-01-01");
+    expect(el.textContent).toContain("pin.json");
+    const headings = [...el.querySelectorAll("h3")].map((h) => h.textContent);
+    expect(headings[0]).toBe("2026-01-01");
+  });
+
+  test("two dated items for the same date land in one group, not two", () => {
+    const el = render([
+      { id: "inbox:a", name: "pin.json", kind: "location", date: "2026-01-01" },
+      { id: "inbox:b", name: "harbour.jpg", kind: "photo", date: "2026-01-01" },
+    ]);
+    const headings = [...el.querySelectorAll("h3")].filter((h) => h.textContent === "2026-01-01");
+    expect(headings.length).toBe(1);
+  });
+
+  // Final-review fix: `discard_file` and the discard route both resolve an
+  // id through `findInboxFile`, which only ever searches the flat bucket —
+  // pressed on a dated row it either does nothing or 404s. Full day-folder
+  // discard is Phase 3's job; until then a dated row renders with no ×
+  // rather than one that looks like it works.
+  test("a dated row has no discard button, unlike an undated one", () => {
+    const el = render([
+      { id: "inbox:a", name: "old-undated.csv", kind: "document", bytes: 10, at: OLD },
+      { id: "inbox:b", name: "pin.json", kind: "location", date: "2026-01-01" },
+    ]);
+    const rows = [...el.querySelectorAll("li")];
+    const datedRow = rows.find((li) => li.textContent?.includes("pin.json"));
+    const undatedRow = rows.find((li) => li.textContent?.includes("old-undated.csv"));
+    expect(datedRow?.querySelector("button")).toBeNull();
+    expect(undatedRow?.querySelector("button")).not.toBeNull();
+  });
+
+  // Same fix: the thumbnail route 404s for a dated media item too (latent
+  // today — only location pins are dated so far), so a dated photo must not
+  // carry a `src` even if `kind` says photo.
+  test("a dated photo does not render an <img>, even if it carries a src", () => {
+    const el = render([
+      { id: "inbox:a", name: "harbour.jpg", kind: "photo", date: "2026-01-01", src: "/x/thumb.webp" },
+    ]);
+    expect(el.querySelectorAll("img").length).toBe(0);
   });
 });
 

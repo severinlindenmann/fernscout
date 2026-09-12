@@ -431,7 +431,7 @@ describe("the details panel, inline", () => {
  *
  * Somebody named in a trip's `people:`, or approved through a buddy link
  * (B33), may write days into that trip and may hold a token scoped to it —
- * `AGENTS.md` says so, and `mayRequestAgentToken` in `/api/auth/request`
+ * `AGENTS.md` says so, and `mayRequestAgentToken` in `/api/auth/codes`
  * enforces it. Nothing they could reach said it. Every sentence on this page
  * about writing sat inside `{viewer.owner && …}`, and the details panel beside
  * it told them the journal was written by an agent and nothing here could be
@@ -507,8 +507,8 @@ describe("what somebody on a trip is told they can write", () => {
   test("the prompt asks for a code for their own address and nobody else's", () => {
     const html = render({ viewer: buddy });
     expect(html).toContain("kevin@example.test");
-    expect(html).toContain("/api/auth/request");
-    expect(html).toContain("/api/auth/verify");
+    expect(html).toContain("/api/auth/codes");
+    expect(html).toContain("/api/auth/codes/redeem");
   });
 
   /**
@@ -532,14 +532,14 @@ describe("what somebody on a trip is told they can write", () => {
   test("a guest of the journal gets none of it, and the sentence is unchanged", () => {
     const html = render({ viewer: guestOnly, contactsEnabled: true, manage: record });
     expect(html).not.toContain(dictionaryFor("en")["me.buddyTitle"]);
-    expect(html).not.toContain("/api/auth/verify");
+    expect(html).not.toContain("/api/auth/codes/redeem");
     expect(html).toContain(dictionaryFor("en")["me.detailsBody"]);
   });
 
   test("and neither does a stranger, who has no address to ask for a code with", () => {
     const html = render({ viewer: stranger, canSignIn: true });
     expect(html).not.toContain(dictionaryFor("en")["me.buddyTitle"]);
-    expect(html).not.toContain("/api/auth/verify");
+    expect(html).not.toContain("/api/auth/codes/redeem");
   });
 
   /**
@@ -555,7 +555,7 @@ describe("what somebody on a trip is told they can write", () => {
     });
     expect(html).toContain(dictionaryFor("en")["me.handoverCreate"]);
     expect(html).not.toContain(dictionaryFor("en")["me.buddyTitle"]);
-    expect(html).not.toContain("/api/auth/verify");
+    expect(html).not.toContain("/api/auth/codes/redeem");
   });
 });
 

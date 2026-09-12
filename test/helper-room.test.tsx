@@ -1114,3 +1114,37 @@ test("every quoted label in the files pane's note appears on the pane — B1443"
     expect(labels).toContain(label);
   }
 });
+
+/**
+ * A day folder's staged content, surfaced under its own heading — Phase 2,
+ * Task 4 (`docs/tasks` SDD plan `2026-09-12-inbox-day-assembly-phase-2`).
+ *
+ * Task 3 files a WhatsApp location pin straight into
+ * `content/<user>/inbox/days/<date>/`, invisible to the flat-bucket
+ * `listInbox` read `filesForRoom` used before this ticket — a person watching
+ * the files pane after sending that pin saw nothing move. `filesForRoom` now
+ * also reads every day folder with content and marks each `RoomFile` with the
+ * date it is staged under; `InboxFileGroups` groups those under a heading
+ * naming the date itself, above the undated groups.
+ */
+test("a date with staged content shows its own heading in the files pane", () => {
+  const files: RoomFiles = {
+    inbox: [
+      { id: "inbox:aaa111-statement.csv", name: "statement.csv" },
+      {
+        id: "inbox:ccc333-pin.json",
+        name: "Zermatt",
+        kind: "location",
+        date: "2026-01-01",
+      },
+    ],
+    trips: [],
+  };
+  const box = render(null, files);
+  const pane = box.querySelector('section[aria-label="Files"]')!;
+  expect(pane.textContent).toContain("2026-01-01");
+  expect(pane.textContent).toContain("Zermatt");
+  // The dated item is still selectable, same as any other tile.
+  const tile = pane.querySelector('[data-inbox-id="inbox:ccc333-pin.json"]');
+  expect(tile).not.toBeNull();
+});

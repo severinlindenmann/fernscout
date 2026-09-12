@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { POST } from "@/app/api/auth/signup/request/route";
+import { POST } from "@/app/api/auth/codes/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -27,13 +27,13 @@ let caller = 0;
 function request(email: string) {
   caller += 1;
   return POST(
-    new Request("https://t.test/api/auth/signup/request", {
+    new Request("https://t.test/api/auth/codes", {
       method: "POST",
       headers: {
         "content-type": "application/json",
         "x-forwarded-for": `203.0.113.${caller}`,
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, for: "signup" }),
     }),
   );
 }
@@ -77,7 +77,7 @@ afterEach(async () => {
   fs.rmSync(data, { recursive: true, force: true });
 });
 
-describe("POST /api/auth/signup/request", () => {
+describe("POST /api/auth/codes (for: signup)", () => {
   test("writes the code under <DATA_DIR>/mail/, not the working directory", async () => {
     // A stale `mail/` from a checkout that ran the old code must not decide
     // this test either way: what is asserted is what this request writes.
