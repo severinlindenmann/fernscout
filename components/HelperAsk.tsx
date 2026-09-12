@@ -152,6 +152,7 @@ const NAMED_FAILURES = [
   "consent_required",
   "no_credits",
   "already_published",
+  "empty_day",
   "no_day_on_date",
   "invalid_trip",
   "unknown_trip",
