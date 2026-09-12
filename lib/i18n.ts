@@ -583,6 +583,7 @@ export type TranslationKey =
   | "agent.slot.amount"
   | "agent.slot.category"
   | "agent.slot.channel"
+  | "agent.slot.contact"
   | "agent.slot.content"
   | "agent.slot.coordinates"
   | "agent.slot.costs"

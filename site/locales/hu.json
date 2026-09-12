@@ -2193,6 +2193,7 @@
   "agent.slot.src": "Fénykép",
   "agent.slot.file": "Fájl",
   "agent.slot.all": "Minden váró fájl",
+  "agent.slot.contact": "Melyik kontakt",
   "agent.statementConsentShort": "Elküldi a fájl fejlécsorát és az első öt sorát egy modellnek, hogy megmondja, melyik oszlop micsoda.",
   "agent.pickPhotosWhy": "Amit a fényképezőgép rögzített – a nap, az időpont és a hely – kitölti a többit, és semmi nem lesz kitalálva.",
   "postcard.result.providerFailed": "A nyomda minden lapot elutasított, így semmi nem lett elküldve, és a kreditek visszakerültek.",

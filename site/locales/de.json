@@ -2193,6 +2193,7 @@
   "agent.slot.src": "Foto",
   "agent.slot.file": "Datei",
   "agent.slot.all": "Alle wartenden Dateien",
+  "agent.slot.contact": "Welcher Kontakt",
   "agent.statementConsentShort": "Schickt die Überschriftenzeile dieser Datei und ihre ersten fünf Zeilen an ein Modell, damit es sagt, welche Spalte welche ist.",
   "agent.pickPhotosWhy": "Was die Kamera aufgezeichnet hat – Tag, Uhrzeit und Ort – füllt den Rest aus, und nichts davon wird erfunden.",
   "postcard.result.providerFailed": "Die Druckerei hat alle Karten abgelehnt. Es wurde nichts gesendet, und deine Credits sind zurück auf dem Konto.",

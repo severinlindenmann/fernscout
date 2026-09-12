@@ -531,10 +531,9 @@ export const FILES_TOOLS: readonly Tool[] = [
     name: "invite_contact",
     kind: "write",
     renders: "confirm",
-    describe:
-      "Propose inviting a contact waiting in the inbox as a guest — \"invite Maria\", \"send her a guest link\". Needs the contact to have an email; say so if it does not.",
+    describe: "Propose inviting a waiting contact as a guest. Needs an email; say so if it has none.",
     properties: {
-      contact: { type: "string", description: "The inbox id of the contact, or their name." },
+      contact: { type: "string", description: "Its inbox id or name." },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/invite-contact`,
     propose: async (username, args, say, _today, selected) => {
