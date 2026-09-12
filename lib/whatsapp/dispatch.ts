@@ -1,8 +1,6 @@
 import "server-only";
 import { factsOfEntry } from "../api/entries";
-import { isEmail } from "../auth";
 import { isEnabled } from "../capabilities";
-import { createInvite, inviteLinkUrl } from "../contacts/invites";
 import { balanceOf, refund, spend } from "../credits";
 import { getUser } from "../users";
 import { AS_AUTHOR, getAllEntries } from "../entries";
@@ -609,48 +607,32 @@ async function handleLocationPin(
 }
 
 /**
- * A shared contact card — B1074, option A.
+ * A shared contact card — B1074, revised.
  *
- * **Reuses `createInvite` unchanged.** No new storage, no new page: the
- * reply itself is the invitation waiting to be sent, and the owner forwards
- * it — from here, or however they would actually reach this person. Double
- * opt-in stays intact because nothing here grants anything; opening the link
- * still lands the recipient in the owner's own approval queue, exactly as a
- * guest link issued from `/‹user›/contacts` does.
- *
- * **Guest, never buddy** — a card carries no trip context, and a buddy link
- * needs one. **An email is required and never guessed**: WhatsApp's contact
- * cards usually carry a phone and sometimes an email; without one this stops
- * rather than half-creating a row with no way to reach the person about it.
+ * Auto-inviting the moment a card arrived was the same shape of mistake as
+ * auto-attaching a location pin to a day: nobody had asked for it yet, it
+ * just happened. This lands the card in the inbox instead — as a minimal
+ * vCard (`toVCard`, this file's own vCard) — the same bucket a photo lands
+ * in, and says so. Inviting the person is now a deliberate press: the
+ * `invite_contact` tool (`lib/helper/tools/areas/files.ts`), matching
+ * `attach_files`' own propose/confirm shape.
  */
 async function handleContactCard(
   username: string,
   locale: string,
   message: Extract<InboundMessage, { kind: "contacts" }>,
 ): Promise<void> {
+  const { toVCard } = await import("./vcard");
   for (const contact of message.contacts) {
-    const email = (contact.emails ?? []).find((one) => isEmail(one.trim()))?.trim();
-    if (!email) {
-      await sendServiceReply(
-        message.from,
-        translateIn(locale, "wa.contactNeedsEmail", { name: contact.name ?? "" }),
-        username,
-      );
-      continue;
-    }
-    const created = await createInvite(username, {
-      kind: "guest",
-      name: contact.name,
-      locale,
-      email,
-    });
-    const url = inviteLinkUrl(serverSite().url, username, "guest", created.token);
-    await sendServiceReply(
-      message.from,
-      translateIn(locale, "wa.contactInviteMade", { name: contact.name ?? "", url }),
+    storeInboxFile(
       username,
+      "contact",
+      `${(contact.name ?? "contact").toLowerCase().replace(/[^a-z0-9]+/g, "-")}.vcf`,
+      Buffer.from(toVCard(contact)),
+      { source: "whatsapp", receivedAt: new Date().toISOString() },
     );
   }
+  await sendServiceReply(message.from, translateIn(locale, "wa.contactSaved"), username);
 }
 
 /**

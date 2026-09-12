@@ -132,29 +132,31 @@ describe("a location pin", () => {
 });
 
 describe("a shared contact card", () => {
-  test("with an email makes a guest invite link, unsent", async () => {
-    await bindGreetAcknowledge("locontest", "41760050505");
+  test("lands in the inbox rather than inviting anyone automatically", async () => {
+    const username = "con1";
+    await bindGreetAcknowledge(username, "41000000002");
     await handleInboundMessage(
-      contactsMessage("41760050505", "wamid.card-1", [
-        { name: "Anna Muster", phones: ["+41791234567"], emails: ["anna@example.test"] },
+      contactsMessage("41000000002", "wamid.con1.card", [
+        { name: "Maria", emails: ["maria@example.test"] },
       ]),
     );
+    const { listInbox } = await import("@/lib/inbox");
+    const staged = listInbox(username).contact;
+    expect(staged).toHaveLength(1);
+    expect(staged[0].source).toBe("whatsapp");
 
-    const files = repliesTo("locontest");
-    const last = String(files[files.length - 1].body);
-    expect(last).toContain("Anna Muster");
-    expect(last).toMatch(/invite\/guest\//);
+    const { getContactByEmail } = await import("@/lib/contacts");
+    const contact = await getContactByEmail(username, "maria@example.test");
+    expect(contact).toBeNull(); // no invite made — that is now a deliberate press
   });
 
-  test("with no email stops and says one is needed", async () => {
-    await bindGreetAcknowledge("locontest", "41760060606");
+  test("with no email still stages the card — the invite-time refusal moves to the new press", async () => {
+    const username = "con2";
+    await bindGreetAcknowledge(username, "41000000003");
     await handleInboundMessage(
-      contactsMessage("41760060606", "wamid.card-2", [{ name: "Bruno", phones: ["+41791111111"] }]),
+      contactsMessage("41000000003", "wamid.con2.card", [{ name: "NoEmail" }]),
     );
-
-    const files = repliesTo("locontest");
-    const last = String(files[files.length - 1].body);
-    expect(last).toContain("Bruno");
-    expect(last).not.toMatch(/invite\/guest\//);
+    const { listInbox } = await import("@/lib/inbox");
+    expect(listInbox(username).contact).toHaveLength(1);
   });
 });

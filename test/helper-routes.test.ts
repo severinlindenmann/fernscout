@@ -154,8 +154,11 @@ describe("the helper routes", () => {
   // photographs, on demand: the files pane's own trip picker calls it only
   // once a trip is chosen, rather than `filesForRoom` preloading one trip's
   // media on every page load. Same cookie, same owner check as the rest.
-  test("there are forty-five of them, and each is guarded", () => {
-    expect(sources).toHaveLength(45);
+  // Forty-six: `invite-contact` (B1074's successor) — the deliberate press
+  // behind `invite_contact`, the tool that replaces what a shared WhatsApp
+  // contact card used to do automatically. Same cookie, same owner check.
+  test("there are forty-six of them, and each is guarded", () => {
+    expect(sources).toHaveLength(46);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
