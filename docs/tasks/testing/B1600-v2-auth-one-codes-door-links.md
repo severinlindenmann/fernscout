@@ -7,8 +7,7 @@ complexity: high
 area: API v2
 found: 2026-09-12T00:00:00Z
 started: "2026-09-12T17:27:23Z"
-session: ea65563f-a0a9-407d-afe4-aaeeceab7f38
-claimed: "2026-09-12T17:27:23Z"
+merged: "2026-09-12T18:09:05Z"
 ---
 
 Phase 2 step 2 of the v2 migration (B1587 is the umbrella; the brief is

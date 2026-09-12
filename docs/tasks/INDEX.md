@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (232)
+## backlog (233)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (60)
+### issue (61)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -78,6 +78,7 @@ Do not edit them by hand; run the script.
 | [B1586](backlog/issue/B1586-correcting-a-caption-or-a-photograph.md) | Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it | ISSUE | high | low |
 | [B1601](backlog/issue/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low |
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
+| [B1607](backlog/issue/B1607-documentation-txt-tells-agents-to-call.md) | documentation.txt tells agents to call the eight auth routes that no longer exist | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -332,14 +333,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (10)
+## in-development (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1561](in-development/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium | `47912984` |
 | [B1562](in-development/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low | `47912984` |
 | [B1563](in-development/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium | `47912984` |
-| [B1600](in-development/B1600-v2-auth-one-codes-door-links.md) | v2 auth: one codes door, links redeem, keys, handover mint moved — and the six v1 code routes deleted | CHORE | high | high | `ea65563f` |
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
@@ -347,7 +347,7 @@ _Nothing here._
 | [B1589](in-development/B1589-photobook-prints-the-written-language-entry.md) | Photobook language leaves trip text and fallback labels untranslated | ISSUE | medium | medium | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (15)
+## testing (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -358,6 +358,7 @@ _Nothing here._
 | [B1590](testing/B1590-next-generated-route-types-reject-helper.md) | Next generated route types reject helper exports from two route modules | ISSUE | high | low | — |
 | [B1596](testing/B1596-v2-plumbing-route-helper-incomplete-422.md) | v2 plumbing: route helper, incomplete-422, dryRun, ETag, request log, import boundary, md serializer | CHORE | high | medium | — |
 | [B1597](testing/B1597-v2-tripdoc-costs-has-no-home.md) | v2 tripDoc.costs has no home for costs.md's preparation cost lines or its prose | ISSUE | high | low | — |
+| [B1600](testing/B1600-v2-auth-one-codes-door-links.md) | v2 auth: one codes door, links redeem, keys, handover mint moved — and the six v1 code routes deleted | CHORE | high | high | — |
 | [B1604](testing/B1604-a-day-whose-prose-begins-with.md) | A day whose prose begins with three hyphens loses everything up to the next fence | ISSUE | high | low | — |
 | [B1605](testing/B1605-dryrun-fails-in-the-direction-that.md) | dryRun fails in the direction that writes — a mis-cased parameter performs the write it was asked to preview | ISSUE | high | low | — |
 | [B1606](testing/B1606-content-on-disk-becomes-json-the.md) | Content on disk becomes JSON — the document, stored as itself | CHORE | high | medium | — |
