@@ -1,5 +1,7 @@
 import "server-only";
 import type { Tool } from "../types";
+import type { ProposalField } from "../../blocks";
+import type { Say } from "../../intents";
 import { ALL_TRACKED, TRACKS, TRACK_ROWS, UNKNOWN, missingFrom } from "../../../tracks";
 import { AS_AUTHOR, getAllEntries } from "../../../entries";
 import { DAY_ARGS, DAY_REF_ARGS, PREVIEW_CHARACTERS, TRIP_ARG } from "../args";
@@ -8,6 +10,66 @@ import { type CatalogueRow, searchCatalogueFor } from "../../../search";
 import { factsOfEntry } from "../../../api/entries";
 import { isWritten } from "../../draft";
 import { firstUnwritten, noTrip, readersOf, resolveDay, resolveTrip, tripIdFor } from "../resolve";
+import { missingForDayFolder, type DayFolderMissing } from "../../../dayMissing";
+import { listDayInbox, listInbox } from "../../../inbox";
+import { readWords } from "../../../dayReadiness";
+
+/**
+ * One `DayFolderMissing` item, as one or two proposal fields —
+ * `assemble_day`'s own version of `start_day`'s `asked.map(...)` above,
+ * extended for the two questions `lib/tracks.ts` does not carry at all
+ * (`weather`, `caption`).
+ *
+ * The two-option shape (`unknown`/`none`) is `start_day`'s own for a `Track`
+ * row, reused rather than reinvented — a trip's own three-answer prose
+ * (`TRACK_ROWS[row].decline`/`.unknown`) is written for the honesty-net's
+ * retry message, not for a button label. `weather` gets the same two options
+ * for the same reason: "unknown" is the honest default (nobody has been
+ * asked), "none" declines the lookup.
+ *
+ * `caption` is the one free-text field, and it is named `caption` rather than
+ * `caption_<photoId>` on purpose: a field's label comes from
+ * `agent.slot.<name>` (`components/HelperAsk.tsx`), a static lookup against
+ * the locale files, and a name built from a photo's own hash could never have
+ * one. `caption_photo` rides beside it, `fixed`, so the press still says
+ * which photograph the words are for. `propose()` below asks about at most
+ * one photograph's caption per batch for exactly this reason — two caption
+ * questions in one press would collide on the same field name.
+ */
+function fieldFor(missing: DayFolderMissing, say: Say): ProposalField[] {
+  if (missing.field === "caption") {
+    return [
+      { name: "caption", value: "" },
+      { name: "caption_photo", value: missing.photoId, fixed: true },
+    ];
+  }
+  const name = missing.field === "weather" ? "weather" : missing.field;
+  return [
+    {
+      name,
+      value: UNKNOWN,
+      options: [
+        { value: UNKNOWN, label: say("agent.answerUnknown") },
+        { value: "none", label: say("agent.answerNone") },
+      ],
+    },
+  ];
+}
+
+/**
+ * The distinct dates undated inbox content implies — the "several days from
+ * one batch" question (Phase 3's own Global Constraint). `takenAt` is a
+ * photograph's own EXIF measurement, `receivedAt` a WhatsApp message's
+ * arrival time; either is a real timestamp nobody typed, never a guess.
+ */
+function undatedDates(username: string): string[] {
+  const dates = new Set<string>();
+  for (const entry of Object.values(listInbox(username)).flat()) {
+    const stamp = entry.takenAt ?? entry.receivedAt;
+    if (stamp && stamp.length >= 10) dates.add(stamp.slice(0, 10));
+  }
+  return [...dates].sort();
+}
 
 /**
  * A day, from empty to on the site — the arc this product is for.
@@ -439,6 +501,100 @@ export const DAYS_TOOLS: readonly Tool[] = [
               { value: "none", label: say("agent.answerNone") },
             ],
           })),
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * The front door for the case Phase 1/2 (inbox day-assembly) exist to
+     * serve — B1573's Phase 3. Everything for a date already sits in its own
+     * folder (photographs, a location pin, a note or two); this surveys it
+     * once and either asks about everything still missing in one batch, or
+     * proposes the real entry once nothing is. It replaces none of
+     * `start_day`/`attach_files`/`draft_words` — those remain the one-step-
+     * at-a-time door for a person who wants it.
+     *
+     * Two shapes are folded into the one `endpoint`, because the person only
+     * ever sees one card at a time and both are a press on the same journal
+     * fact: what a date folder still owes. The confirm-side route decides
+     * from the body which one a press meant.
+     */
+    name: "assemble_day",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Survey a date's staged content — photos, a location, words already said — and ask what's still missing, or propose creating the day when nothing is. Prefer this over start_day once a date already has something staged.",
+    properties: {
+      ...TRIP_ARG,
+      date: { type: "string", description: "The date to assemble, as YYYY-MM-DD." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/assemble-day`,
+    propose: async (username, args, say, today) => {
+      const trip = resolveTrip(username, args.trip);
+      const date = (args.date ?? "").trim();
+
+      /**
+       * **Several days from one batch, asked before anything else** — the
+       * plan's own Global Constraint. Undated content whose own timestamps
+       * imply more than one day is not this trip's to guess at: "one day, or
+       * several?" comes before any single date folder is surveyed.
+       */
+      if (date === "") {
+        const dates = undatedDates(username);
+        if (dates.length > 1) {
+          return {
+            sentence: say("agent.tool.assembleDayMultipleDates", { count: String(dates.length) }),
+            accept: say("agent.tool.assembleDayMultipleDatesAccept"),
+            done: say("agent.tool.assembleDayMultipleDatesDone"),
+            fields: [
+              { name: "trip", value: trip?.id ?? "", fixed: true },
+              {
+                name: "date",
+                value: dates[0],
+                options: dates.map((d) => ({ value: d, label: d })),
+              },
+            ],
+          };
+        }
+      }
+
+      const chosenDate = date || today;
+      const missing = missingForDayFolder(username, chosenDate, trip?.tracks ?? ALL_TRACKED);
+      if (missing.length > 0) {
+        // Ask, once, about everything still missing. `missingForDayFolder`
+        // has already filtered out anything declined, unrecorded or answered
+        // — a field that reaches here is genuinely unasked, so nothing is
+        // asked twice across turns.
+        //
+        // At most one caption question per batch — `fieldFor`'s own note on
+        // why a caption field cannot be named per photo. A second missing
+        // caption still surfaces, on the next call, once this one is
+        // answered and no longer "missing".
+        const firstCaptionIndex = missing.findIndex((m) => m.field === "caption");
+        const capped = missing.filter((m, index) => m.field !== "caption" || index === firstCaptionIndex);
+        return {
+          sentence: say("agent.tool.assembleDayMissing", { date: chosenDate, count: String(missing.length) }),
+          accept: say("agent.tool.assembleDayAsk"),
+          done: say("agent.tool.assembleDayAsked"),
+          fields: [
+            { name: "trip", value: trip?.id ?? "", fixed: true },
+            { name: "date", value: chosenDate, fixed: true },
+            ...capped.flatMap((m) => fieldFor(m, say)),
+          ],
+        };
+      }
+
+      const staged = listDayInbox(username, chosenDate);
+      const words = readWords(username, chosenDate);
+      return {
+        sentence: say("agent.tool.assembleDayReady", { date: chosenDate, photos: String(staged.media.length) }),
+        accept: say("agent.tool.assembleDayCreateAccept"),
+        done: say("agent.tool.assembleDayCreateDone"),
+        preview: [words.slice(0, PREVIEW_CHARACTERS)].filter((line) => line !== ""),
+        fields: [
+          { name: "trip", value: trip?.id ?? "", fixed: true },
+          { name: "date", value: chosenDate, fixed: true },
         ],
       };
     },

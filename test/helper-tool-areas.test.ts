@@ -43,7 +43,7 @@ describe("a turn is offered one area's tools, not the whole registry", () => {
     // Named so the two numbers cannot silently drift apart without a person
     // reading this comment — update both together if an area's tool count
     // changes enough to move the worst case.
-    expect(worstCase).toBe(20);
-    expect(TOOLS.length).toBe(49);
+    expect(worstCase).toBe(21);
+    expect(TOOLS.length).toBe(50);
   });
 });

@@ -495,6 +495,9 @@ describe("the tools", () => {
     ).toEqual([
       "add_contact",
       "add_cost",
+      // Phase 3 (inbox day-assembly) — survey a date folder, ask once about
+      // everything still missing, propose the real entry once nothing is.
+      "assemble_day",
       "attach_files",
       // B1042 — the journal's own account, read out and now writable too.
       "buy_room",
@@ -779,7 +782,17 @@ describe("what a turn costs", () => {
   // twice to cut — `describe` is already as bare as `import_contacts`'
   // ("Propose vCard contacts.") allows for a tool the model must still tell
   // apart from it.
-  const CEILING = 8100;
+  //
+  // Raised to 8300 for `assemble_day` (SDD plan: inbox day-assembly Phase 3,
+  // Task 2). Its own `describe` was trimmed once already — the argument for
+  // preferring it over `start_day` was cut to one clause, the same trade
+  // every earlier raise here made first — and there was only four tokens of
+  // headroom to spend against. What is left is the tool's own two-argument
+  // schema and one sentence the model needs to tell it apart from
+  // `start_day`, `attach_files` and `draft_words`: which of the four to reach
+  // for is exactly the choice this ceiling exists to keep legible, so the
+  // words stay rather than getting cut to make the number.
+  const CEILING = 8300;
 
   /**
    * **What to do when this fails** — B930, and it is the half the number never
