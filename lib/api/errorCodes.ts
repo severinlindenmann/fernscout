@@ -49,6 +49,7 @@ export const ERROR_CODES = {
   unknown_trip: "No trip of that id in this journal — or none this token may write to. The two answer alike on purpose, so this cannot be used to ask which trips exist. GET the trips list first.",
   unknown_day: "No day of that slug in this trip. The slug is made from the title and is in the answer to the call that wrote it; GET the days list to see them.",
   unknown_invite: "No invite of that id, or it has been revoked.",
+  unknown_contact: "No contact of that id in this journal.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
   unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
   unknown_payment: "No payment of that id.",
@@ -162,6 +163,11 @@ export const ERROR_CODES = {
   model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
   address_lookup_disabled:
     "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
+
+  contact_exists: "This address is already a contact of this journal — or it is blocked, and re-adding it that way is refused. GET the contacts list to see the existing row.",
+  not_confirmed: "This address has not proved it can be read yet, so approving it would let somebody in nobody has confirmed. It has to redeem its own invite or ask itself first.",
+  self_authored: "This row was written by its own address, through the traveller self-registration door, and the owner cannot rewrite it — only revoke or delete it.",
+  capability_unavailable: "This server does not offer that capability, so a journal cannot switch it on. /api/health says what is missing; switching it off is always allowed.",
 
   // ── v2 only ─────────────────────────────────────────────────────────────
   incomplete: "The document is missing an answer to something this journal keeps track of. `details.missing` lists every open section at once — each with why it is asked, a schema excerpt of what to send, and how to decline it instead. Ask the person; never invent a value to get past this.",
