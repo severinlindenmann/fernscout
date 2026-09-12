@@ -1,4 +1,5 @@
 import { isOwner } from "@/lib/contacts/session";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { sendOrder } from "@/lib/postcard/send";
 import { answerJson, backToPreview, wantsJson } from "@/lib/postcard/redirectBack";
 
@@ -54,6 +55,10 @@ export async function POST(
   { params }: RouteContext<"/[user]/postcards/[id]/send">,
 ) {
   const { user, id } = await params;
+
+  if (foreignOrigin(request)) {
+    return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
+  }
 
   if (request.headers.get("authorization")) {
     return Response.json(

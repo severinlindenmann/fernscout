@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (217)
+## backlog (218)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (51)
+### issue (52)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -98,6 +98,7 @@ Do not edit them by hand; run the script.
 | [B1535](backlog/issue/B1535-an-agent-code-for-the-instance.md) | An agent code for the instance admin is refused on every journal they do not own | ISSUE | medium | low |
 | [B1538](backlog/issue/B1538-validate-content-truncated-its-own-json.md) | validate-content truncated its own JSON report, and selftest blamed the fixture | ISSUE | medium | low |
 | [B1540](backlog/issue/B1540-the-country-is-in-every-exported.md) | The country is in every exported photo and the helper throws it away, so the photobook says "elsewhere" on every day | ISSUE | medium | low |
+| [B1569](backlog/issue/B1569-publish-hardcodes-nine-journal-profile-keys.md) | publish hardcodes nine journal profile keys, so ownerTel and travellers are dropped in silence | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -323,25 +324,23 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (13)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1560](in-development/B1560-on-mobile-the-chat-page-scrolls.md) | On mobile, the chat page scrolls the whole document and the tab bar stops sticking | ISSUE | high | low | `5a4744c4` |
 | [B1561](in-development/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium | `47912984` |
 | [B1562](in-development/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low | `47912984` |
 | [B1563](in-development/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium | `47912984` |
 | [B1568](in-development/B1568-signup-lets-a-proven-address-that.md) | Signup lets a proven address that already owns a journal walk through phone verification before refusing | ISSUE | high | low | `94440113` |
-| [B1555](in-development/B1555-submitbuiltbook-refunds-before-claiming-the-failure.md) | submitBuiltBook refunds before claiming the failure — double refund race with the Gelato webhook | SECURITY | medium | low | `5c987a64` |
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
 | [B491](in-development/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high | `615a7d13` |
 | [B1504](in-development/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low | `615a7d13` |
-| [B1558](in-development/B1558-submitrequest-lost-race-mails-the-operator.md) | submitRequest lost race mails the operator a dead approval link | ISSUE | low | low | `5c987a64` |
-| [B1559](in-development/B1559-paid-send-routes-rely-on-samesite.md) | Paid send routes rely on SameSite=lax alone — no Origin check as second layer | SECURITY | low | low | `5c987a64` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (29)
+## testing (31)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -353,7 +352,6 @@ Do not edit them by hand; run the script.
 | [B1551](testing/B1551-any-route-buffers-512-mib-in.md) | Any route buffers 512 MiB in memory before auth runs; Caddy sets no request_body max_size | SECURITY | high | low | — |
 | [B1552](testing/B1552-email-code-endpoints-have-per-ip.md) | Email code endpoints have per-IP limits only — no per-recipient or per-instance cap | SECURITY | high | low | — |
 | [B1553](testing/B1553-test-usernames-skip-phone-proof-but.md) | test- usernames skip phone proof but still receive the 10-credit grant and 5 GB quota | SECURITY | high | low | — |
-| [B1560](testing/B1560-on-mobile-the-chat-page-scrolls.md) | On mobile, the chat page scrolls the whole document and the tab bar stops sticking | ISSUE | high | low | — |
 | [B1484](testing/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium | — |
 | [B1506](testing/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | — |
 | [B1507](testing/B1507-owner-new-onboard-whatsapp-assumes-a.md) | owner-new-onboard-whatsapp assumes a draft appears without completing WhatsApp onboarding | CHORE | medium | low | — |
@@ -370,10 +368,13 @@ Do not edit them by hand; run the script.
 | [B1548](testing/B1548-poll-stannp-for-a-card-s.md) | Poll Stannp for a card's status when the order page is opened | FEATURE | medium | low | — |
 | [B1549](testing/B1549-the-order-receipt-says-the-photobook.md) | The order receipt says the photobook is on its way when it has only reached the printer's queue | ISSUE | medium | low | — |
 | [B1554](testing/B1554-api-upload-path-never-enforces-imageedge.md) | API upload path never enforces imageEdge; pixel bombs bounded only by sharp defaults and HEIC fallback unbounded | SECURITY | medium | medium | — |
+| [B1555](testing/B1555-submitbuiltbook-refunds-before-claiming-the-failure.md) | submitBuiltBook refunds before claiming the failure — double refund race with the Gelato webhook | SECURITY | medium | low | — |
 | [B1556](testing/B1556-storage-quota-is-check-then-write.md) | Storage quota is check-then-write — parallel uploads pass the ceiling arbitrarily | SECURITY | medium | medium | — |
 | [B1527](testing/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low | — |
 | [B1545](testing/B1545-the-animation-bench-s-own-vehicle.md) | The animation bench's own vehicle list predates metro/tram/ferry, so B1519's new modes are invisible there | ISSUE | low | low | — |
 | [B1557](testing/B1557-refund-allowed-test-walks-app-only.md) | REFUND_ALLOWED test walks app/ only while grant's walks app/ and lib/ | ISSUE | low | low | — |
+| [B1558](testing/B1558-submitrequest-lost-race-mails-the-operator.md) | submitRequest lost race mails the operator a dead approval link | ISSUE | low | low | — |
+| [B1559](testing/B1559-paid-send-routes-rely-on-samesite.md) | Paid send routes rely on SameSite=lax alone — no Origin check as second layer | SECURITY | low | low | — |
 
 ## completed (1261)
 

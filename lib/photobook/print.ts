@@ -109,12 +109,14 @@ export async function submitBuiltBook(owner: string, id: string): Promise<PrintO
   );
 
   if ("error" in result) {
-    // Everything back. `payload.credits` is what the owner actually pressed —
-    // build and print together — not just the print portion. The stored
-    // failure is the real GelatoFailure, not a fixed word, so /admin (B1165)
-    // can eventually show what actually happened.
-    await refund(owner, order.payload.credits, id);
-    await markPrintFailed(owner, id, order.payload, result.error, result.message);
+    // Claim before refunding, never after — B1348, same reasoning as
+    // `settleRefusedPrint` in reconcile.ts. `payload.credits` is what the
+    // owner actually pressed — build and print together — not just the print
+    // portion. The stored failure is the real GelatoFailure, not a fixed
+    // word, so /admin (B1165) can eventually show what actually happened.
+    if (await markPrintFailed(owner, id, order.payload, result.error, result.message)) {
+      await refund(owner, order.payload.credits, id);
+    }
     return { ok: false, reason: isOperatorFault(result.error) ? "refused" : "provider_unavailable" };
   }
 
@@ -155,8 +157,13 @@ export async function submitBuiltBook(owner: string, id: string): Promise<PrintO
    */
   const settled = await settlementFailure(result.providerRef);
   if (settled) {
-    await refund(owner, order.payload.credits, id);
-    await markPrintFailed(owner, id, order.payload, settled);
+    // Claim before refunding, never after — B1348/B1555. Gelato's own webhook
+    // can settle this same order, by the same providerRef, while this poll is
+    // still waiting; `markPrintFailed` is the conditional update that lets
+    // only one of the two refund.
+    if (await markPrintFailed(owner, id, order.payload, settled)) {
+      await refund(owner, order.payload.credits, id);
+    }
     return { ok: false, reason: "refused" };
   }
 

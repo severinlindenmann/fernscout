@@ -236,6 +236,7 @@ export type TranslationKey =
   | "agent.error.contacts_disabled"
   | "agent.error.day_exists"
   | "agent.error.deleted_username"
+  | "agent.error.empty_day"
   | "agent.error.expected_files"
   | "agent.error.helper_disabled"
   | "agent.error.helper_unavailable"

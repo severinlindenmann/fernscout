@@ -1,5 +1,6 @@
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { balanceOf, spend } from "@/lib/credits";
 import { parseOptions } from "@/lib/photobook/options";
 import { buildPhotobook, followerNames, planFor } from "@/lib/photobook/build";
@@ -71,6 +72,10 @@ function back(
  */
 export async function POST(request: Request, { params }: RouteContext<"/[user]/photobook/order">) {
   const { user } = await params;
+
+  if (foreignOrigin(request)) {
+    return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
+  }
 
   if (request.headers.get("authorization")) {
     return Response.json(

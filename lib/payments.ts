@@ -351,7 +351,7 @@ export async function submitRequest(
   // mail that was never sent. No method, no token, no queue entry.
   const manual = method !== null;
   const token = manual ? crypto.randomBytes(32).toString("base64url") : "";
-  await handle.db
+  const result = await handle.db
     .updateTable("payments")
     .set({
       status: "requested",
@@ -362,7 +362,17 @@ export async function submitRequest(
     .where("id", "=", id)
     .where("owner_id", "=", owner)
     .where("status", "=", "pending")
-    .execute();
+    .executeTakeFirst();
+
+  if (Number(result.numUpdatedRows ?? 0) === 0) {
+    // Lost the race: another concurrent submitRequest got here first and
+    // already moved the row off `pending`. The token minted above was never
+    // stored, so mailing it would be a link nobody can ever approve —
+    // report it the same way as an already-requested row instead.
+    const payment = await getPayment(owner, id);
+    if (!payment) return { ok: false, reason: "unknown" };
+    return { ok: true, payment, token: "", alreadyRequested: true };
+  }
 
   const payment = await getPayment(owner, id);
   if (!payment || payment.status !== "requested") return { ok: false, reason: "unknown" };

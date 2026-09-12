@@ -1650,6 +1650,7 @@
   "agent.error.no_credits": "Ehhez nincs elég kredit. Tölts fel a saját oldaladon, majd nyomd meg újra.",
   "agent.noCredits": "Ez {cost} kreditbe kerülne, az egyenleg pedig {balance} — töltsd fel itt: {url}.",
   "agent.error.already_published": "Ez a nap már fenn van az oldalon, nem volt mit közzétenni.",
+  "agent.error.empty_day": "Ezen a napon még nincs semmi — se szavak, se fényképek. Előbb mesélj a napról vagy tegyél rá fotókat, aztán tedd közzé.",
   "agent.error.no_day_on_date": "Azon a napon még nincs bejegyzés. Előbb hozd létre a napot, utána lesz itt mit módosítani.",
   "agent.error.invalid_trip": "Egy utazáshoz kell név és mindkét dátum. Töltsd ki az üres mezőt, és nyomd meg újra.",
   "agent.error.unknown_trip": "Ez az utazás nincs ebben a naplóban. Mondd meg, melyikre gondolsz.",

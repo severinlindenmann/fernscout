@@ -33,6 +33,43 @@ same claim as "it is there"*, and a person reading the run's output has no
 other way to know. The same argument the helper's own stale-trip-field warning
 was built on — `publish.mjs:395-418` already does exactly this for trip fields.
 
+## Revalidated 2026-09-12 — valid, with one correction and one decision
+
+**Still true.** `JOURNAL_FIELD_REFUSALS` (`lib/journals.ts:912`) still refuses
+`owner`, `baseCurrency` and `media`, and the refusal is whole-body rather than
+silent — so a caller that *sends* one is told. What nobody is told is the case
+this ticket is about: a client that correctly declines to send them, and
+therefore reports a clean run while the line never reaches the site.
+`publish.mjs:293` is that client, and its key list is hardcoded.
+
+**Correction to the Why.** The ticket says the comparison is possible once the
+client asks the instance. Only one of the three is readable today:
+
+| field | readable from `GET .../config`? |
+| --- | --- |
+| `baseCurrency` | **yes** — `journalProfile()`, `lib/journals.ts:977`, and deliberately so: a caller sending `displayCurrencies` must know what it has to contain |
+| `media` | **no** — not in `JournalProfile` at all. `/api/health`'s `media` block is the *server's* ceiling, not this journal's narrowing of it |
+| `owner.email` | **no**, and on purpose — `app/api/v1/[user]/config/route.ts:150-155`: *"a token that can read a journal's config is not the same thing as permission to collect its owner's email"* |
+
+**Decided 2026-09-12, by the owner.** `media` is read back, so it can be
+compared exactly; `owner.email` is not, and that refusal stands. The up leg
+therefore does two different things:
+
+- **An unconditional scope line, every run**, naming all three fields and
+  saying they are never sent. That is the "no silent caps" pattern, and it is
+  what covers `owner.email`, whose local edit cannot be detected at all without
+  a read-back. It is a statement, not an alarm.
+- **A named warning, only on a real difference**, for `baseCurrency` and
+  `media`. A guard that fires on an honest run is a bug, so these are
+  conditional on a compared value actually differing.
+
+**Second problem found in the same line, captured not absorbed:** `publish.mjs`
+hardcodes nine profile keys where `JOURNAL_PROFILE_FIELDS` now has eleven, so
+`ownerTel` (B614) and `travellers` (B1526) are dropped in silence — the same
+drift B1518 fixed one level down for `trip.md`. Captured as its own id; the fix
+is the same edit, because replacing the hardcoded list with a shared
+`journalFields.mjs` is what this ticket needs anyway.
+
 ## Work
 
 The up leg compares those three fields against what the instance reports and
@@ -50,3 +87,20 @@ enough to make the comparison, that part is here.
   run does not report those fields as applied.
 - Editing a field that *does* have a door still reaches the site with no
   warning — a guard that fires on an honest run is a bug.
+
+
+## Built, 2026-09-12
+
+**In this repository:** `journalProfile()` (`lib/journals.ts`) gains `media`,
+read-only, beside the `baseCurrency` that was already there for the same
+reason. `app/api/v1/[user]/config/route.ts` says why; `lib/api/openapi.ts`
+describes both read-only fields and, now, says out loud that `owner.email` is
+deliberately absent. `owner.email` is unchanged and stays unreadable.
+
+**In `fernscout-helper`:** `shared/journalFields.mjs` is the one list —
+`JOURNAL_UPDATE_DOORS` (eleven), `JOURNAL_NO_UPDATE_DOOR` (the three, with the
+sentence a person is told) and `JOURNAL_COMPARABLE_NO_DOOR` (the two that can
+be read back). `publish.mjs` prints the scope line on every run and the named
+warning only on a real difference, and sends the shared eleven keys instead of
+its hardcoded nine — which is B1569, fixed in the same edit because it is the
+same line.

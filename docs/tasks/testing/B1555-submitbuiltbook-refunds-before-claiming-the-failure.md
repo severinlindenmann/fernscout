@@ -7,8 +7,7 @@ complexity: low
 area: photobook/credits
 found: "2026-09-11T23:06:54Z"
 started: "2026-09-12T07:22:49Z"
-session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
-claimed: "2026-09-12T07:22:49Z"
+merged: "2026-09-12T08:34:44Z"
 ---
 
 # B1555 — submitBuiltBook refunds before claiming the failure — double refund race with the Gelato webhook

@@ -47,7 +47,63 @@ journal out and cannot put it in, short of one REST call per day.
   ask "would this be refused?" gets most of the value of this ticket without
   the destructive part.
 
-## Work
+## Revalidated 2026-09-12 — valid, and the Work section rewritten
+
+**The problem is still real.** `lib/exportZip.ts` still builds the tree and
+`app/[user]/export.zip/route.ts` still serves it; nothing takes a folder back.
+`fernscout-helper` still has `publish` and no `sync` skill, and `publish.mjs`
+does no hashing at all — a matched day is re-`PATCH`ed whether or not its bytes
+changed, and a photograph is compared by filename alone.
+
+**But the approach in Work was refuted before it was built, by B1495.** That
+ticket shipped the server half of sync on 2026-09-11 and carries owner
+decisions taken before any code was written, marked *settled; do not
+re-litigate*. Two of them delete this ticket's plan outright:
+
+- **There is no file `PUT` and no file `DELETE`, and there will not be a zip-in
+  route.** A raw byte door onto a day bypasses `lib/validate/entry.ts` and
+  `lib/api/entries.ts` entirely — required fields, `TRANSPORT_MODES`, currency
+  codes, the B294 every-locale rule, `EDITABLE_DAY_FIELDS` keeping `status` out
+  of a `PATCH`, and `checkWeather`, which refuses a caller supplying its own
+  reading. That last one decides it on its own: a zip-in route is a door
+  through which an agent writes a temperature nobody measured, by design rather
+  than by bug. So `POST /api/v1/<user>/content` is **not** built, and the merge
+  semantics this ticket calls its whole risk were answered instead as a
+  three-way diff in the client (B1495's table).
+- **The up leg goes through the typed routes that already exist.** B1495 walked
+  the tree kind by kind and found a door for everything except three
+  `config.json` fields (B1504) and a media file belonging to no day (B1503).
+
+**What is actually left is the client**, which B1495 states plainly under
+*Still to build* and which has no ticket of its own — so this is it. Its
+decisions are all written in B1495 and are not re-opened here.
+
+## Work — rewritten 2026-09-12
+
+In `fernscout-helper`, a new `sync` skill, per B1495's decisions:
+
+- `sync down` — read `GET /api/v1/<user>/sync/manifest`, three-way compare
+  against `.fernscout-sync.json` and the local tree, fetch only what differs
+  through `GET /api/v1/<user>/sync/file/<path>`, verifying each file's bytes on
+  arrival against what the manifest said.
+- `sync up` — the same diff, sent through the typed routes `publish` already
+  calls. Including B1504: the three `config.json` fields with no door are named
+  out loud rather than passed over.
+- Both sides changed the same file → print every conflicting path, write
+  nothing, exit non-zero. `--prefer-local` / `--prefer-remote` resolve per file.
+- Deletions propagate behind a named confirmation, and a run that would delete
+  more than half the files on a side is **refused**, not confirmed.
+- `publish` becomes a thin wrapper over the up leg, keeping its name, its flags
+  and its exact stdout — `publish.test.mjs` asserts on the phrasing.
+
+**In this repository**, one change only: `GET /api/v1/<user>/config` reads back
+the journal's own `media` block, so the up leg can tell whether a local edit to
+it differs. `owner.email` stays unreadable, deliberately (see B1504).
+
+**Not doing:** a daemon or watcher, file locking, multi-machine concurrency
+beyond the conflict stop, a guest scope, and `gps/` in any form.
+
+## Superseded Work — kept for the record
 
 What is left is the inbound route and its merge semantics, which is the whole
 of the risk:
@@ -83,3 +139,47 @@ of a push that would delete a trip says so before anything is written.
 - Zip only, or also a plain multipart push for an agent that cannot build an
   archive? B671 answered the same question with "several doors for the bytes",
   and that answer is probably reusable.
+
+
+## Built, 2026-09-12 — and two deliberate deviations from B1495's decisions
+
+The client is `fernscout-helper/.claude/skills/sync/` — `sync.mjs`, `SKILL.md`
+and `sync.test.mjs` — over `shared/syncManifest.mjs` (the walk, the hash, the
+base manifest, the three-way compare) and `shared/journalFields.mjs`. In this
+repository the change is four files and 66 lines: `GET .../config` reads back
+the journal's own `media` block.
+
+Both deviations are from decisions B1495 marked settled, so both are named
+here rather than made quietly. Either is a person's to overrule.
+
+**1. Deletions on the site are named and never performed** — B1495 decision 4
+says they propagate behind a confirmation. They cannot, and the reason is in
+the door rather than in caution. `DELETE /api/v1/<user>/trips/<trip>/days`
+(`lib/api/openapi.ts:2049`) refuses a **published** day outright, with no
+confirmation code that could ever satisfy it — B224 and B1118, destroying what
+people have already read is not a self-served round trip — and a draft needs a
+signed `confirm` handshake of its own. A day that has been on the site is the
+ordinary case in a journal worth syncing, so "deletions propagate" would have
+meant a run that confirms loudly and then fails on nearly every file it named.
+Taking a day off the site is `unpublish`, and that is editorial. Pruning the
+*local* folder is unaffected and works as decided, behind `--yes` and refused
+outright above half a side.
+
+**2. `sync up` calls `publish`, rather than `publish` becoming a wrapper over
+`sync`'s up leg** — decision 7 says the latter. The decision's own stated
+purpose is that no existing prompt breaks and there is one up leg rather than
+two, and delegation in this direction gives both: `publish.mjs` is still where
+every typed route and refusal lives, its flags and its exact stdout are
+untouched, and `publish.test.mjs` (which asserts on phrasing and request order)
+passes unmodified — 22 of 22. Inverting it would have meant moving 800 lines
+through a test that pins their output, to reach the same one-up-leg property.
+What sync adds is the thing publish never had: `--changed`, a list of paths
+that actually differ, so a fourteen-day trip is no longer re-`PATCH`ed to
+correct one day.
+
+**A third thing worth knowing.** The client needs its own copy of `inSync()`,
+because no door publishes the rule — and a copy of a rule disagrees with
+itself within a month. It is not left to trust: every `down` run compares its
+own walk against the manifest the server actually sent and says so when this
+side turns out to be the wider of the two. That check is why the copy is
+acceptable, and it is the same argument `content-model.snapshot.json` rests on.
