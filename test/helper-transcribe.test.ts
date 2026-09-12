@@ -6,7 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { balanceOf, grant } from "@/lib/credits";
+import { balanceOf, grant, spend } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { clearLocaleCache } from "@/lib/locales";
 import { creditsForSeconds, speechLanguageFor } from "@/lib/helper/speech";
@@ -319,6 +319,47 @@ describe("the ledger", () => {
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("recording_too_long");
     expect(await balanceOf("alex")).toBe(10);
+  });
+
+  // B1550 — the top-up charge used to fail open: when the provider measured
+  // far more than the caller claimed and the balance could not cover the
+  // difference, the old code quietly kept the floor charge and handed back
+  // the transcript anyway. A caller claiming 0 (or lying) must not be able to
+  // buy a full transcription for a hundredth of a credit.
+  test("a caller who claims 0 seconds and Deepgram measures 10 minutes is refused, not handed a transcript, when the balance holds only the floor", async () => {
+    // Spend the balance down to just the one-hundredth floor a 0-second claim
+    // costs, so the top-up for 600 measured seconds cannot be afforded.
+    expect(await spend("alex", 9.99, "transcription", "drain-for-test")).toBe(true);
+    expect(await balanceOf("alex")).toBe(0.01);
+
+    transcribeAudio.mockResolvedValueOnce({ text: "Ten minutes of speech.", seconds: 600 });
+    const refused = await read(await call({ seconds: 0 }));
+    expect(refused.status).toBe(402);
+    expect(refused.body.error).toBe("no_credits");
+    expect(refused.body.text).toBeUndefined();
+    // The floor that was pre-charged comes back — nobody is left charged for
+    // words they never received.
+    expect(await balanceOf("alex")).toBe(0.01);
+  });
+
+  // The measured ceiling is enforced even when nobody claimed anything past
+  // it: MAX_SPEECH_SECONDS is a promise about what this instance will pay
+  // Deepgram for, not only about what a caller is honest enough to claim.
+  test("a provider measuring past the ceiling is refused, and the floor charge is refunded", async () => {
+    transcribeAudio.mockResolvedValueOnce({ text: "A very long one.", seconds: 1200 });
+    const refused = await read(await call({ seconds: 12 }));
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("recording_too_long");
+    expect(await balanceOf("alex")).toBe(10);
+  });
+
+  test("an honest short recording still transcribes and charges only the floor", async () => {
+    transcribeAudio.mockResolvedValueOnce({ text: "Hi.", seconds: 3 });
+    const done = await read(await call({ seconds: 0 }));
+    expect(done.status).toBe(200);
+    expect(done.body.text).toBe("Hi.");
+    expect(done.body.spent).toBe(0.01);
+    expect(await balanceOf("alex")).toBe(9.99);
   });
 });
 
