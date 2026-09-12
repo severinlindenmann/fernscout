@@ -230,7 +230,10 @@ describe("journal", () => {
     displayCurrencies: ["CHF", "EUR"],
     units: "metric",
     visibility: "public",
-    declined: { tagline: "the title says it all already" },
+    declined: {
+      tagline: "the title says it all already",
+      manualRates: "CHF and EUR are both ECB-published",
+    },
   };
 
   it("accepts a complete journal", () => {
@@ -250,8 +253,26 @@ describe("journal", () => {
     ).toBe(false);
   });
 
+  it("takes manual rates or a decline, and a narrowing media block", () => {
+    const decl = { tagline: fullJournal.declined.tagline };
+    expect(
+      journalDoc.safeParse({
+        ...fullJournal,
+        declined: decl,
+        manualRates: { VND: 30500 },
+        media: { perUserBytes: 1_000_000_000 },
+      }).success,
+    ).toBe(true);
+    expect(
+      journalDoc.safeParse({ ...fullJournal, declined: decl }).success,
+    ).toBe(false);
+    expect(
+      journalDoc.safeParse({ ...fullJournal, manualRates: { VND: -1 }, declined: decl }).success,
+    ).toBe(false);
+  });
+
   it("asks the tagline question", () => {
-    const noDecl = { ...fullJournal } as Record<string, unknown>;
+    const noDecl = { ...fullJournal, manualRates: { VND: 30500 } } as Record<string, unknown>;
     delete noDecl.declined;
     expect(journalDoc.safeParse(noDecl).success).toBe(false);
     expect(
