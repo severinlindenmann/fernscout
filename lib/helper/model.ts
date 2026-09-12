@@ -1495,6 +1495,43 @@ export function claimsWhatADaySays(text: string): boolean {
 }
 
 /**
+ * Descriptions or a location, said to already be on the day — B1563.
+ *
+ * Asked to "beschreibe fotos ergänze text und hole standort raus", a turn
+ * that read the day and nothing else answered *"du findest die
+ * Beschreibungen und Standorte auf der Seite selbst"* — the day carried no
+ * captions, no coordinates and a body of `…`. `claimsWhatADaySays` did not
+ * catch it: that matcher is for a sentence quoting or paraphrasing a day's
+ * own words ("the text already mentions…"), and this is the opposite shape
+ * — a deflection to "look at the page yourself" for something the read this
+ * turn had just shown is not there.
+ *
+ * Deliberately its own matcher rather than folded into `SAYS_WHAT_IT_SAYS`:
+ * the claim here is specifically about captions and locations, which is what
+ * lets it be checked against `read_day`'s own `hasCaptions`/`hasCoordinates`
+ * rather than against the day's prose.
+ */
+const DESCRIPTIONS_OR_LOCATION_ON_PAGE = new RegExp(
+  [
+    // en — "you'll find the descriptions and location on the page/site"
+    "\\b(?:descriptions?|captions?|locations?)\\b[^.!?]{0,60}?\\bon\\s+the\\s+(?:page|site|day)(?:\\s+itself)?\\b",
+    "\\bfind\\s+(?:the\\s+)?(?:descriptions?|captions?|locations?)\\b[^.!?]{0,60}?\\bon\\s+the\\s+(?:page|site|day)\\b",
+    // de — "du findest die Beschreibungen und Standorte auf der Seite selbst"
+    "\\b(?:beschreibung|standort)\\w*[^.!?]{0,60}?\\bauf\\s+der\\s+seite\\b",
+    // hu — "a leírásokat és a helyszínt megtalálod az oldalon"
+    "\\b(?:le\\u00edr\\u00e1s|helysz\\u00edn)\\w*[^.!?]{0,60}?\\baz\\s+oldalon\\b",
+  ].join("|"),
+  "i",
+);
+
+/** True when this text claims descriptions or a location are already on the day/page. */
+export function claimsDescriptionsOrLocationOnPage(text: string): boolean {
+  return withoutMarkers(text)
+    .split(/(?<=[.!?\n])\s+/)
+    .some((sentence) => DESCRIPTIONS_OR_LOCATION_ON_PAGE.test(sentence) && !DENIED.test(sentence));
+}
+
+/**
  * Words, said to be in the proposal — B961.
  *
  * One turn read:
@@ -1950,6 +1987,14 @@ const READ_IT_RETRY = `Stop. Your last answer said what a day contains, and you 
 Answer again. Call read_day first, and quote the words that are actually there back to them — a quote they can check, not a summary. If the day does not say what they are asking about, say so, and propose the change.`;
 
 /**
+ * What the model is told when it said descriptions or a location are already
+ * on a day that `read_day` just showed has neither — B1563.
+ */
+const ON_THE_PAGE_RETRY = `Stop. Your last answer said descriptions and a location are already on the day, or on the page — and read_day this turn showed the opposite: no caption on any photograph, and no coordinates saved. There is nothing there for them to go and find.
+
+Answer again and say plainly that this day has no descriptions or location yet. Offer to help: write captions from what they tell you about each photograph, or ask for a location lookup rather than naming a place yourself.`;
+
+/**
  * What the model is told when it has totalled somebody's money itself — B955.
  */
 /**
@@ -2114,6 +2159,18 @@ export async function answerInThread(
    * nothing new — see `claimsIsARecipient` below.
    */
   let postcardRecipientsEmpty = false;
+  /**
+   * Whether `read_day` was read this turn and the day it found carries
+   * neither a caption nor a coordinate — B1563.
+   *
+   * The same shape as `postcardRecipientsEmpty` above: this turn's own
+   * reading, not an older one still sitting in the conversation. Several
+   * `read_day` calls in one turn are rare but possible (a person asking
+   * about more than one day); this is true only when every day the turn
+   * actually read was empty of both, so a turn that read one bare day and
+   * one day that does carry them is not flagged.
+   */
+  let readDayLacksCaptionsAndLocation = false;
   const blocks: Block[] = [];
   const proposals: Proposal[] = [];
   /** A tool declining itself, held back rather than shown at once — B1299.
@@ -2276,6 +2333,14 @@ export async function answerInThread(
           const said = result as { available?: boolean; recipients?: unknown[] } | null;
           postcardRecipientsEmpty = said?.available === true && (said.recipients?.length ?? 0) === 0;
         }
+        if (call.name === "read_day") {
+          const said = result as { hasCaptions?: boolean; hasCoordinates?: boolean }[] | null;
+          if (Array.isArray(said) && said.length > 0) {
+            readDayLacksCaptionsAndLocation = said.every(
+              (one) => !one.hasCaptions && !one.hasCoordinates,
+            );
+          }
+        }
         results.push({
           type: "tool_result",
           tool_use_id: call.id,
@@ -2377,6 +2442,7 @@ export async function answerInThread(
     | "recipient"
     | "eligible"
     | "day"
+    | "onPage"
     | "up"
     | "total"
     | "partial"
@@ -2415,7 +2481,16 @@ export async function answerInThread(
     if (proposals.length === 0 && asksForFields(answer)) return "fields";
     // B1161 — the rows are on screen; the paragraph under them is the same
     // answer again, in a form nobody can press.
-    if (saysTheListAgain(answer, blocks)) return "list";
+    //
+    // B1565 — except when this turn also proposed something. "wegänzen" (a
+    // typo for "ergänzen") ran attach_files, inbox, attach_files, proposed
+    // attach_files, and the prose partly echoed the inbox list; the guard
+    // fired anyway and the fallback pointed at old rows while a pressable
+    // card sat on the screen. A turn that proposed a write is not the B1161
+    // shape — the answer is not *only* the list again, there is a card too —
+    // so it is excluded here rather than in `saysTheListAgain` itself, which
+    // stays a pure check of the list and the text against each other.
+    if (proposals.length === 0 && saysTheListAgain(answer, blocks)) return "list";
     if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
       return "access";
     }
@@ -2434,6 +2509,16 @@ export async function answerInThread(
     // is ready and the answer said somebody is.
     if (claimsIsARecipient(answer) && postcardRecipientsEmpty) return "eligible";
     if (claimsWhatADaySays(answer) && !looked.includes("read_day")) return "day";
+    /**
+     * B1563 — the opposite deflection: descriptions and a location said to
+     * already be "on the page", on a turn that *did* call `read_day` and
+     * whose own reading showed neither a caption nor a coordinate. Gated on
+     * `read_day` having run, which is what keeps this and the `day` check
+     * above mutually exclusive rather than double-firing on one answer.
+     */
+    if (claimsDescriptionsOrLocationOnPage(answer) && readDayLacksCaptionsAndLocation) {
+      return "onPage";
+    }
     /**
      * B970 — whether it is on the site, asserted without looking. The press
      * having happened is not the same fact as the day being up, so a written
@@ -2569,6 +2654,7 @@ export async function answerInThread(
     recipient: RECIPIENT_RETRY,
     eligible: IS_A_RECIPIENT_RETRY,
     day: READ_IT_RETRY,
+    onPage: ON_THE_PAGE_RETRY,
     up: IS_IT_UP_RETRY,
     total: COUNT_IT_RETRY,
     partial: PARTIAL_RETRY,
@@ -2595,6 +2681,7 @@ export async function answerInThread(
     recipient: "agent.noRecipientAddTool",
     eligible: "agent.noOneIsARecipientYet",
     day: "agent.notRead",
+    onPage: "agent.noDescriptionsOrLocationYet",
     up: "agent.notRead",
     total: "agent.notCounted",
     partial: "agent.notCounted",

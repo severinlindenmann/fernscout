@@ -365,6 +365,7 @@ export type TranslationKey =
   | "agent.newTripToggle"
   | "agent.noAccessYet"
   | "agent.noCredits"
+  | "agent.noDescriptionsOrLocationYet"
   | "agent.noExif"
   | "agent.noJournal"
   | "agent.noOneIsARecipientYet"

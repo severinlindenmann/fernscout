@@ -97,6 +97,13 @@ export const DAYS_TOOLS: readonly Tool[] = [
         draft: Boolean(entry.draft),
         photos: entry.gallery.length,
         words: entry.content,
+        // Whether this day actually carries a caption or a coordinate —
+        // B1563. The honesty net checks a claim that they are "on the page"
+        // against this, never against the day's words alone: a claim about
+        // captions is a claim about the gallery, and one about a location is
+        // a claim about `lat`/`lng`, neither of which `words` can answer.
+        hasCaptions: entry.gallery.some((item) => (item.caption ?? "").trim() !== ""),
+        hasCoordinates: Number.isFinite(entry.lat) && Number.isFinite(entry.lng),
       }));
     },
     block: (data, say) => {

@@ -2026,6 +2026,7 @@
   "agent.noOneIsARecipientYet": "Nobody is a postcard recipient yet, whatever I just said. Ask me again and I will read who is close, and what is still missing.",
   "agent.noRecipientAddTool": "I cannot add anybody as a postcard recipient — no tool here does that. Say who should be invited and I will put a link in front of you to send; whether they opt in as a recipient afterwards is theirs to decide. You can also point people to “Readers” — “Your access” in the menu.",
   "agent.notRead": "I have not read that day in this answer, so I cannot tell you what it says — and I will not guess at somebody's own words. Say it again and I will open the day and quote it back to you.",
+  "agent.noDescriptionsOrLocationYet": "This day has no descriptions and no location yet. Tell me about a photograph and I will write a caption for it, or ask me to look up the location if you know roughly where it was.",
   "agent.notCounted": "I would rather not give you a figure I have not added up properly — a wrong number about your own money is worse than none. Ask me again and I will read the costs first.",
   "agent.theListIsAbove": "Take a look at the options already given — pick one.",
   "agent.stillHasAQuestion": "I think I only got to part of what you asked — go ahead and ask the other part again and I will look into it properly this time.",
