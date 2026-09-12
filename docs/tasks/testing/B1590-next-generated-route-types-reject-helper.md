@@ -7,6 +7,7 @@ complexity: low
 area: next, build
 found: "2026-09-12T14:22:50Z"
 started: "2026-09-12T14:56:39Z"
+merged: "2026-09-12T15:02:44Z"
 ---
 
 # B1590 — Next generated route types reject helper exports from two route modules
