@@ -411,13 +411,12 @@ export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = 
     api: "— does not cross —",
     note:
       `Photographs are their own call: ${MEDIA_ENDPOINT_PATH} with an \`intent\` naming the ` +
-      "trip and day and the bytes under `file` (one per call, B1613), and `DELETE " +
-      `${MEDIA_ENDPOINT_PATH}\` with the \`src\` that call answered with, to take a ` +
-      "photograph off again — the derivative, the poster and the kept original are actually " +
-      "deleted, not merely detached, and an unknown `src` refuses rather than quietly doing " +
+      "trip and day, the bytes under `file`, one per call. `DELETE` the same path with the " +
+      "`src` it answered with to take one off — derivative, poster and kept original all " +
+      "go, not merely detached, and an unknown `src` refuses rather than quietly doing " +
       "nothing. Sending `gallery` in the day body writes nothing. A caption travels in the " +
-      "same `intent`, or later as `captions` on a `PATCH` — and so does `visibility`, the " +
-      "one photograph held back from readers the trip otherwise lets in.",
+      "same `intent`, or later as `captions` on a `PATCH` — and so does `visibility`, one " +
+      "photograph held back from readers the trip lets in.",
   },
   {
     key: "gallery[].visibility",
@@ -1118,11 +1117,10 @@ const WEATHER_QUESTION =
 export const PHOTOS_SECOND_CALL =
   "Photographs are never part of this call. They are a second one, once the day exists — " +
   `offer it, naming the call: ${MEDIA_ENDPOINT_PATH}, sent as \`multipart/form-data\` with ` +
-  'the bytes under `file` and an `intent` field (JSON) of `{"kind": "photo", "trip": ' +
-  '"<trip-id>", "day": "<slug>"}`. One photograph per call. There is nothing to paste into ' +
-  "the entry itself — a day references a photograph by the `src` this call answers with. " +
-  "Offer coordinates too, if the day names a real place and carries no `lat`/`lng` yet — the " +
-  "same `PATCH` the day itself takes, not a new call.";
+  "the bytes under `file` and an `intent` (JSON) naming `kind`, `trip` and `day`. One per " +
+  "call, nothing to paste into the day. Offer coordinates too, if the day names a " +
+  "real place and carries no `lat`/`lng` yet — the same `PATCH` the day itself takes, not " +
+  "a new call.";
 
 /**
  * Greedy wrap to a column, for the documents that are assembled as arrays of

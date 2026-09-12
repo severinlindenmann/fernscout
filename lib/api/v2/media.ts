@@ -37,12 +37,12 @@ import { validateMediaBatch, type Problem } from "../../validate/media";
 import { mediaKey } from "../../photos";
 import type { MediaIntent } from "./schemas/media";
 
-export type MediaKind = MediaIntent["kind"];
+type MediaKind = MediaIntent["kind"];
 
 /** What a stored item answers with — `mediaItem` in ./schemas/media.ts, minus
  * the zod wrapper. `trip`/`day`/`caption`/`url`/`duplicateOf` are each
  * present only when they apply, matching that schema's own optionality. */
-export type MediaItemOut = {
+type MediaItemOut = {
   src: string;
   kind: MediaKind;
   trip?: string;
