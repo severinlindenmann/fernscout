@@ -11,7 +11,7 @@ import { pickLocale } from "@/lib/contacts/locale";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { sendMail } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -72,6 +72,10 @@ export async function POST(request: Request) {
     { status: 202 },
   );
   if (!isEmail(email)) return accepted;
+
+  // The per-address and per-instance email ceilings — B1552, shared with the
+  // other two code-request routes under one instance-wide bucket.
+  if (!emailCodeAllowed(email)) return accepted;
 
   const { code, linkToken } = await issueCode(NO_JOURNAL, email, "identity");
 

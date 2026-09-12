@@ -1,7 +1,7 @@
 import { isEmail } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { sendSignupCode } from "@/lib/signupCode";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +57,10 @@ export async function POST(request: Request) {
     { status: 202 },
   );
   if (!isEmail(email)) return accepted;
+
+  // The per-address and per-instance email ceilings — B1552, shared with the
+  // other two code-request routes under one instance-wide bucket.
+  if (!emailCodeAllowed(email)) return accepted;
 
   /**
    * The language the request asked for — B857, and B1134 for the override.

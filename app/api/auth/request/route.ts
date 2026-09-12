@@ -16,7 +16,7 @@ import { sendWhatsappCode } from "@/lib/whatsapp";
 import { toE164 } from "@/lib/whatsapp/phone";
 import { authTemplateFor } from "@/lib/whatsapp/settings";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
-import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -254,6 +254,14 @@ export async function POST(request: Request) {
     if (!perInstance.ok) return accepted;
     whatsappTel = tel;
   }
+
+  /**
+   * The per-address and per-instance email ceilings — B1552, the mail-channel
+   * mirror of the WhatsApp buckets just above. Same silent 202 when exceeded,
+   * for the same reason: a distinct answer would confirm the address owns
+   * this journal.
+   */
+  if (channel === "email" && !emailCodeAllowed(email)) return accepted;
 
   const { code, linkToken } = await issueCode(username, email, kind, {
     destination,
