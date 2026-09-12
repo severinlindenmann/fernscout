@@ -12,6 +12,7 @@ import {
   type UserConfig,
 } from "./config";
 import { contentRoot } from "./contentRoot";
+import type { MediaLimits } from "./mediaLimits";
 import { normalizeCurrency, type RateTable } from "./currency";
 import { release, reserve } from "./registry";
 import { toE164 } from "./whatsapp/phone";
@@ -957,6 +958,24 @@ export type JournalProfile = {
   /** Read-only here, and included because `displayCurrencies` must contain
    * it — a caller that cannot see it can only guess. */
   baseCurrency: string;
+  /**
+   * This journal's own media allowance, already narrowed to the server's —
+   * read-only here, for the same reason `baseCurrency` is (B1504).
+   *
+   * It is refused by `PATCH`, on purpose: the server is a ceiling above it, so
+   * a write could only narrow the journal against itself. That refusal is
+   * right and is not what this is about. What was missing is the *read*: a
+   * client that syncs a local `content/<user>/config.json` up to the site has
+   * no way to tell whether the `media` block in the folder is the one the site
+   * is actually using, so a person who edited it got a run reporting success
+   * and a line that never arrived. `/api/health`'s `media` is the **server's**
+   * ceiling and answers a different question; this is the journal's own
+   * narrowing of it.
+   *
+   * Not a secret: it is this journal's own settings, and only an owner-scoped
+   * token reaches this route at all.
+   */
+  media: MediaLimits;
   /** The journal's own default party — see the note on `travellers` above.
    * `[]` means no default; `partyFor()` then draws one neutral figure. */
   travellers: Figure[];
@@ -987,6 +1006,7 @@ export function journalProfile(user: UserConfig): JournalProfile {
     manualRates: user.manualRates,
     ownerTel: user.owner.tel ?? "",
     baseCurrency: user.baseCurrency,
+    media: user.media,
     travellers: user.travellers,
   };
 }
