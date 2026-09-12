@@ -26,6 +26,33 @@ secrets in code; see `docs/plans/INDEX.md` for the ground rules the codebase
 follows (feature flags default off, secrets stay in the environment, and so
 on).
 
+## Working with an agent
+
+Start the agent in this checkout. [AGENTS.md](AGENTS.md) is the shared
+instruction file; [CLAUDE.md](CLAUDE.md) imports it for Claude Code. The
+startup section tells agents to read the complete file from disk, since it
+is longer than some harnesses include automatically.
+
+Skills are maintained once in `.claude/skills/`. Individual relative links
+under `.agents/skills/` expose the same instructions and helper files to
+Codex and compatible agents. Keep Git symlinks enabled when cloning; if your
+platform checks them out as text files, open the original skills directly.
+No global install, Claude account, or personal plugin configuration is needed
+to read and follow them. See the Skills catalog in AGENTS.md.
+
+In a new session, ask the agent to name the shared instruction file and the
+skill relevant to your task, then read that skill. If automatic discovery
+misses it, ask it to read `AGENTS.md` and the matching
+`.claude/skills/<name>/SKILL.md` explicitly; restart the agent if its skill
+menu remains stale. Other harnesses can use that same explicit startup
+instruction, even without native support for either filename.
+
+Codex's [skill discovery documentation](https://learn.chatgpt.com/docs/build-skills)
+describes `.agents/skills/` and symlink support; its
+[instruction documentation](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+describes the default 32 KiB limit. Repository instructions make files
+available each session; they cannot force a harness to load or obey them.
+
 ## Before you open a PR
 
 Run all of these — CI runs the same checks (`npm run verify` runs them in this
