@@ -70,9 +70,13 @@ the DB drop (see below).
 
 ## The DB drop rides this step's DEPLOY, not this merge
 
-`00-decisions.md` M1 drops the database when the new auth lands. **The owner
-must see this list and say yes before it happens**, and should take an
-out-of-band backup first. Signing in again does NOT restore:
+`00-decisions.md` M1 drops the database when the new auth lands.
+
+**APPROVED by the owner, 2026-09-12**: a backup is held, and everything on
+fernscout.ch is test content that may be deleted. The drop is cleared to go
+ahead with this step's deploy. The inventory below stays because it is what
+was approved, not because it is still an open question. Signing in again does
+NOT restore:
 
 - `credits`, `credit_ledger`, `payments` — balances and the whole audit trail
   an operator reconciles a card statement against.
