@@ -467,7 +467,7 @@ export function checkCover(cover: string | undefined, mediaSrcs: ReadonlySet<str
  * `checkPatchConflicts` to see it as "this field is being answered, not
  * silently omitted" before it is deleted for good.
  */
-export const NULLABLE_PATCH_FIELDS = ["cover", "accent", "tagline", "intro"] as const;
+const NULLABLE_PATCH_FIELDS = ["cover", "accent", "tagline", "intro"] as const;
 
 export function applyNullClears(
   merged: Record<string, unknown>,
