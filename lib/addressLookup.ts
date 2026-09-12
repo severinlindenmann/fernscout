@@ -354,10 +354,9 @@ export async function geocodePlace(
   const ranked = [...candidates].sort((a, b) => {
     const byHint = hintScore(b, options) - hintScore(a, options);
     if (byHint !== 0) return byHint;
-    if (!bias) return candidateScore(b) - candidateScore(a);
-    const byDistance = distanceSquared(a, bias) - distanceSquared(b, bias);
-    if (byDistance !== 0) return byDistance;
-    return candidateScore(b) - candidateScore(a);
+    const byQuality = candidateScore(b) - candidateScore(a);
+    if (!bias || byQuality !== 0) return byQuality;
+    return distanceSquared(a, bias) - distanceSquared(b, bias);
   });
   return ranked;
 }
