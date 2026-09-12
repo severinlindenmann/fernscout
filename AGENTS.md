@@ -8,6 +8,46 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+## Start of every session — all agents
+
+This is the shared instruction file for Claude Code, Codex and other agents.
+`CLAUDE.md` imports it; agents that understand `AGENTS.md` read it directly.
+**Before working, read this file in full from disk.** It exceeds some agents'
+automatic instruction limits (including Codex's default 32 KiB), so the text
+in your initial context may stop before the workflow and skills sections.
+Use bounded reads, for example `sed -n '1,200p' AGENTS.md`, then `201,400p`
+and so on through the end; do not count truncated tool output as a full read.
+After context compaction, recover the relevant instructions and active skill
+from disk if they are no longer in context.
+
+**Skills are shared source.** Read the Skills catalog below, then open
+`.claude/skills/<name>/SKILL.md` for the task you are doing, and follow its
+referenced resources as needed. Do this even if your harness has no skill
+menu or omitted repository skills from its initial list. `.agents/skills/`
+contains relative links to the same tracked skill directories for Codex and
+other agents that discover that location. Edit the originals in
+`.claude/skills/`; when adding a shared skill, add its matching link and
+catalog row. Keep instance-only skills such as `vps` local.
+
+**Tool names in a skill describe capabilities, not a required vendor.**
+Claude's `Read`, `Edit`, `Write` and `Bash` mean your file-reading, editing
+and shell tools. `AskUserQuestion` means your available question tool or a
+plain-text question. A skill invocation means reading that skill's `SKILL.md`.
+Use `git worktree add` when `EnterWorktree` is unavailable, following the
+isolation rules below. Use your available browser tooling or the shipped
+Playwright helpers for browser checks. `.claude/runs/` and
+`.claude/worktrees/` are shared local paths, usable by any agent.
+
+Plugins and hooks mentioned later are optional, per-user Claude integrations;
+they are not assumed installed or enforcing rules in another harness. Use
+available equivalent tools and perform the underlying checks yourself. If a
+required capability is missing, say which check remains unverified. Ordinary
+batch work can run sequentially without subagents; tests that require an
+independent persona or reviewer still need that independence. A local `vps`
+skill is used only where installed; elsewhere use the shared `deploy` skill
+and the operator's own configuration. A skill does not grant permission to
+publish, deploy or contact somebody beyond what the user authorised.
+
 # Fernscout, for agents
 
 A self-hostable travel journal. **The content is markdown and photographs in a
@@ -825,6 +865,7 @@ and the `/skill/<task>.md` guides it indexes are the guide for it.
 | `work-on-a-task` | Take one approved task, build it in a worktree, merge it |
 | `run-a-batch` | Carry an answered brief through build, merge, deploy and live check without stopping to ask |
 | `test-the-live-site` | Empty `testing/` against the deployed instance, one subagent per ticket |
+| `test-a-feature` | Find the persona flows for a capability and drive them locally with simulated providers |
 | `test-in-a-browser` | Drive a local checkout in a real browser: sign in as an owner, switch a capability on, check a page at 390px |
 | `test-with-personas` | Drive `/agent` as somebody who has never seen it — a subagent per persona, handed a URL and nothing else |
 
@@ -898,10 +939,10 @@ refactor its 89 callers cannot survive. Call again, or check the first answer
 against `grep`, before concluding anything from a small number.
 
 **None of this is in the repository.** Plugins are installed per user and
-`.claude/settings.json` is gitignored, so a fresh clone has the seven skills
-above and nothing else. An eighth may be on disk and is deliberately not in
-that table: `.claude/skills/vps/` is this instance's own deploy — it knows a
-host, a directory and a domain — and is gitignored for that reason. Where it
+`.claude/settings.json` is gitignored, so a fresh clone has the repository skills
+listed above, without those plugins. An additional skill may be on disk and
+is deliberately not in that table: `.claude/skills/vps/` is this instance's
+own deploy — it knows a host, a directory and a domain — and is gitignored for that reason. Where it
 exists it is the answer to "deploy", and `deploy` is the procedure for somebody
 else's server. That is deliberate — the repository must not require
 somebody else's plugin list to be workable — but it means a recommendation
