@@ -8,7 +8,7 @@ import { resolveBearer, ownsUser, outOfScopeRefusal } from "@/lib/api/v2/auth";
 import { mayWriteTrip } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { readTripFile, listDaySlugs, readDayFile } from "@/lib/api/v2/store";
-import { dayEchoInput } from "@/lib/api/v2/days";
+import { dayEchoInput, withResolvedTest } from "@/lib/api/v2/days";
 import type { Trip } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export async function GET(
   const days = page
     .map((slug) => readDayFile(user, tripId, slug))
     .filter((d): d is NonNullable<typeof d> => d !== null)
-    .map((d) => dayDoc.parse(dayEchoInput(d)));
+    .map((d) => dayDoc.parse(withResolvedTest(dayEchoInput(d), stored, d)));
 
   return ok({ trip: tripId, days, next_cursor: next });
 }

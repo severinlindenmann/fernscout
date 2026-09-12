@@ -8,7 +8,7 @@
 //
 //   - V2 — echo-tolerant server-owned/immutable fields (`stripEchoedFields`)
 //   - T6 — decline retraction (`retractDeclines`)
-//   - D11 — `null` clears a scalar back to absent (`applyNullClears`)
+//   - D14 — `null` clears a scalar back to absent (`applyNullClears`)
 //
 // Plus T5: one writable-fields list per resource, shared by /api/web and
 // /api/v2, so the two doors cannot drift about what a caller may set.
@@ -18,7 +18,7 @@
 // door rather than in ./schemas/ (00-decisions.md): `checkTranslations`
 // (B1625) and `checkCover` (B1626, the immediately-buildable half).
 import { ERROR_CODES } from "../errorCodes";
-import type { ProblemRow } from "./incomplete";
+import type { MissingRow, ProblemRow } from "./incomplete";
 
 /** A field this resource never actually lets a caller change, described by
  * where it lives in the document and what to say if somebody tries. */
@@ -387,42 +387,107 @@ export const DAY_IMMUTABLE_FIELDS: readonly Immutable[] = [
   },
 ];
 
+/** What `checkTranslations` answers — the two remaining gaps split by kind
+ * (B1619), on top of B1625's original refusal:
+ *
+ *   - `invalid` — the caller sent something wrong: a locale the journal does
+ *     not declare, or the day's own written language duplicated under
+ *     `translations` (it is already IN the day's own title/content; a second
+ *     copy under its own key is two answers to one question with no way to
+ *     tell which wins). A `problems` row, same shape `invalid_translations`
+ *     already used.
+ *   - `incomplete` — the caller has not finished answering: the journal
+ *     declares a language `translations` does not cover. A 422 `missing`
+ *     entry, the same asked-or-declined shape every other open section uses
+ *     — a silent gap here is a reader getting no page rather than a wrong
+ *     one, which is worse.
+ *
+ * The specific language names live in these detail rows, built per request
+ * from the journal's own locales — NOT in `DAY_DECLINABLES`' static
+ * `whyRequired` (00-decisions.md: that string is part of the schema, and a
+ * per-journal fact does not belong there).
+ */
+export type TranslationsCheck =
+  | { kind: "invalid"; message: string; problems: ProblemRow[] }
+  | { kind: "incomplete"; missing: MissingRow[] };
+
 /**
- * B1625 — a translation naming a locale the journal does not declare.
+ * B1625/B1619 — a translation naming a locale the journal does not declare,
+ * the day's own language duplicated under `translations`, or a translations
+ * map that covers only some of what the journal is owed.
  *
  * `schemas/trip.ts` and `schemas/day.ts` both carry the same comment on their
  * own `translations` field: the route refuses a locale the journal does not
  * declare, since it would be written and never rendered. A Zod schema cannot
- * make that check — it never sees the journal's config — so it lives here,
- * called from both the trip and the day write paths, on create and on patch
- * alike (T5's shape: one shared function so the two resources and the two
- * doors cannot drift about what "declared" means).
+ * make any of these checks — it never sees the journal's config — so they
+ * live here, called from both the trip and the day write paths, on create
+ * and on patch alike (T5's shape: one shared function so the two resources
+ * and the two doors cannot drift about what "declared" and "owed" mean).
  *
- * Names every offending locale at once, not the first — `problemsFrom`'s own
- * convention (./incomplete.ts): a caller fixes every bad key in one round
- * trip rather than being told about them one at a time.
+ * Names every offending or missing locale at once, not the first —
+ * `problemsFrom`'s own convention (./incomplete.ts): a caller fixes every bad
+ * key, or answers every open language, in one round trip rather than being
+ * told about them one at a time.
+ *
+ * `writtenLocale` is the journal's own `defaultLocale` — the language a
+ * day's or trip's own title/content/tagline/intro is already written in, and
+ * so the one language `translations` must never repeat a key for. Owed
+ * languages (every OTHER locale the journal declares) are only checked once
+ * every key given is confirmed valid — a `translations` map with a bad key
+ * in it is reported as that, not additionally as missing the language it
+ * should have used instead.
  *
  * `translations` is read as `unknown` because it arrives before or after
  * `schema.parse()` depending on the caller's own shape — a non-object value
  * is not this function's problem (the schema's own shape check already
  * refuses it) and is silently passed as "nothing to check" rather than
- * duplicating that refusal here.
+ * duplicating that refusal here. Likewise: `translations` entirely absent is
+ * schema territory too — `DAY_DECLINABLES`/`TRIP_DECLINABLES` already require
+ * it present-or-declined, so a genuinely single-language journal (`owed` is
+ * empty) never reaches the incomplete check below at all.
  */
 export function checkTranslations(
   translations: unknown,
   locales: readonly string[],
-): { message: string; problems: ProblemRow[] } | null {
+  writtenLocale: string,
+): TranslationsCheck | null {
   if (translations === undefined || translations === null) return null;
   if (typeof translations !== "object" || Array.isArray(translations)) return null;
 
-  const bad = Object.keys(translations).filter((code) => !locales.includes(code));
-  if (bad.length === 0) return null;
+  const keys = Object.keys(translations);
+  const bad = keys.filter((code) => !locales.includes(code));
+  const duplicated = keys.filter((code) => code === writtenLocale);
+
+  if (bad.length > 0 || duplicated.length > 0) {
+    return {
+      kind: "invalid",
+      message: ERROR_CODES.invalid_translations,
+      problems: [
+        ...bad.map((code) => ({
+          field: `translations.${code}`,
+          problem: `"${code}" is not a locale this journal declares (${locales.join(", ") || "none"}).`,
+        })),
+        ...duplicated.map((code) => ({
+          field: `translations.${code}`,
+          problem:
+            `"${code}" is this journal's own written language — the day's (or trip's) own title ` +
+            `and content already hold it. A second copy under translations.${code} is the same ` +
+            `thing said twice with no way to tell which one wins; delete it, or move it here if ` +
+            `it actually holds different words.`,
+        })),
+      ],
+    };
+  }
+
+  const owed = locales.filter((code) => code !== writtenLocale && !keys.includes(code));
+  if (owed.length === 0) return null;
 
   return {
-    message: ERROR_CODES.invalid_translations,
-    problems: bad.map((code) => ({
+    kind: "incomplete",
+    missing: owed.map((code) => ({
       field: `translations.${code}`,
-      problem: `"${code}" is not a locale this journal declares (${locales.join(", ") || "none"}).`,
+      why_required: `this journal is read in ${locales.join(", ")}, so this carries "${code}" too, or the whole translations section declines`,
+      to_decline: "declined.translations: <reason>",
     })),
   };
 }
@@ -450,7 +515,7 @@ export function checkCover(cover: string | undefined, mediaSrcs: ReadonlySet<str
 }
 
 /**
- * D11 (06-contract-deltas.md, the owner's decision of 2026-09-12) — a PATCH
+ * D14 (06-contract-deltas.md, the owner's decision of 2026-09-12) — a PATCH
  * may send `null` for `cover`, `accent`, `tagline` or `intro` to remove the
  * field outright, finishing RFC 7386 (JSON Merge Patch), which the contract
  * already names as v2's patch semantics and where `null` already means

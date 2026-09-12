@@ -653,7 +653,7 @@ describe("PATCH /api/v2/{user}/trips/{trip} — cover is checked against the tri
 });
 
 /**
- * D11 (06-contract-deltas.md, owner's decision 2026-09-12) — `null` on a
+ * D14 (06-contract-deltas.md, owner's decision 2026-09-12) — `null` on a
  * PATCH removes `cover`, `accent`, `tagline` or `intro`, finishing RFC 7386
  * (JSON Merge Patch). Scope is exactly these four plain scalars: a
  * declinable SECTION keeps `declined` as its only "not answered" spelling,
@@ -661,7 +661,7 @@ describe("PATCH /api/v2/{user}/trips/{trip} — cover is checked against the tri
  * (decision 7 — a full replace already expresses absence by omission)
  * refuses `null` outright.
  */
-describe("PATCH /api/v2/{user}/trips/{trip} — null clears a scalar back to absent (D11)", () => {
+describe("PATCH /api/v2/{user}/trips/{trip} — null clears a scalar back to absent (D14)", () => {
   async function setupWithPhoto(tripId: string, token: string): Promise<string> {
     await putTrip(OWNER, tripId, fullTrip(tripId), token);
     const photoSrc = `/${OWNER}/media/${tripId}/day-one/01.jpg`;
@@ -705,7 +705,7 @@ describe("PATCH /api/v2/{user}/trips/{trip} — null clears a scalar back to abs
 
     // Clearing a required-or-declined field returns it to the state before
     // it was ever answered — which still needs an answer, so the same call
-    // declines each one it clears (D11's own `checkPatchConflicts` change:
+    // declines each one it clears (D14's own `checkPatchConflicts` change:
     // `null` paired with a decline of the same field is a deliberate swap,
     // not a contradiction).
     const { status, body } = await patchTrip(

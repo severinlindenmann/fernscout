@@ -212,15 +212,15 @@ const tripBase = z
      * photograph can exist yet, so the question had no honest answer); the
      * route asks it on update once the trip holds media, same conditional
      * shape as listed/teaser. Declined → auto-pick newest, echo says so.
-     * On a PATCH only, `null` clears it back to absent (D11). */
+     * On a PATCH only, `null` clears it back to absent (D14). */
     cover: z.string().optional(),
     /** Which figures walk this trip's animation — see ./figures.ts. */
     figures: tripFigures.optional(),
     /** One line under the title on the trip card. On a PATCH only, `null`
-     * clears it back to absent (D11). */
+     * clears it back to absent (D14). */
     tagline: z.string().optional(),
     /** The trip page's opening prose — trip.md's body. On a PATCH only,
-     * `null` clears it back to absent (D11). */
+     * `null` clears it back to absent (D14). */
     intro: z.string().optional(),
     /** Public trips only: is the trip advertised (sitemap, feed, switcher)?
      * false is "unlisted" — still readable at its URL. On a closed trip the
@@ -298,7 +298,7 @@ export const tripCreate = tripBase.superRefine((doc, ctx) => {
 });
 
 /**
- * D11 (06-contract-deltas.md) — a PATCH only, widening these four plain
+ * D14 (06-contract-deltas.md) — a PATCH only, widening these four plain
  * scalars to accept `null` as well as their ordinary type: sending `null`
  * removes the field, returning the document to the state before it was ever
  * set. Finishes RFC 7386 (JSON Merge Patch), which the contract already

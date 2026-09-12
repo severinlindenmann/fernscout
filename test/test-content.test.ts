@@ -404,23 +404,22 @@ describe("v2's day list — GET /api/v2/{user}/trips/{trip}/days (B1612 repoint)
   });
 
   /**
-   * KNOWN GAP, found by this repoint: unlike v1's day list (B116, still
-   * exercised above), v2's does NOT resolve a day's `test` status from its
-   * trip. A day with no flag of its own, inside a `test: true` trip, reads
-   * as ordinary here — the exact bug B116 exists to have fixed, present
-   * again in the v2-native path. `app/api/v2/[user]/trips/[trip]/days/route.ts`
-   * is where the fix belongs (mirroring the `isTestContent`/`trip.test`
-   * check the publish route already makes); this test asserts the CURRENT,
-   * honest behaviour rather than the fixed one, so a future fix will need to
-   * update it rather than merely notice it is red.
+   * B1620 #1 closed the gap this test used to document: unlike v1's day list
+   * (B116, still exercised above), v2's did NOT resolve a day's `test` status
+   * from its trip — a day with no flag of its own, inside a `test: true`
+   * trip, read as ordinary here, the exact bug B116 exists to have fixed,
+   * present again in the v2-native path. `resolveDayTest`
+   * (`lib/api/v2/days.ts`), called from `app/api/v2/[user]/trips/[trip]/days/route.ts`,
+   * is the fix — mirroring the `isTestContent`/`trip.test` check the publish
+   * route already makes.
    */
-  test("inheriting the flag from the trip is NOT resolved here (the B116 bug, back)", async () => {
+  test("inheriting the flag from the trip is resolved here (the B116 bug, fixed)", async () => {
     v2Trip("v2-proving", { test: true });
     v2Day("v2-proving", "2026-01-05-provingday"); // no flag of its own
 
     const days = await v2DayList(await agentToken(), "v2-proving");
     expect(days).toHaveLength(1);
-    expect(days[0]).not.toHaveProperty("test");
+    expect(days[0]).toMatchObject({ test: true });
   });
 });
 
@@ -499,8 +498,8 @@ describe("the review queue says which drafts nobody lived — repointed onto dra
   });
 });
 
-describe("v2's status endpoint — GET /api/v2/{user}/status (KNOWN GAP, found by this repoint)", () => {
-  test("its drafts list carries no test field at all — B134's property is unreachable here", async () => {
+describe("v2's status endpoint — GET /api/v2/{user}/status (B1620 #2: drafts widened)", () => {
+  test("its drafts list carries title and test, resolved from listDrafts", async () => {
     // `buildJournalStatus` reads through `listDrafts` — the v1 markdown
     // reader — regardless of anything v2-native, so the already-fixtured
     // "proving-2026" trip (whole-trip `test: true`, beforeEach above) and a
@@ -514,8 +513,9 @@ describe("v2's status endpoint — GET /api/v2/{user}/status (KNOWN GAP, found b
     const status = await v2Status(await agentToken());
     const row = status.drafts.find((d) => d.slug === "queueday");
     expect(row).toBeDefined();
-    // `{trip, slug}` — not `test: undefined`, but no `test` KEY at all, on
-    // any row, ever: the field is narrowed away before it reaches the wire.
-    expect(Object.keys(row as object).sort()).toEqual(["slug", "trip"]);
+    // `{trip, slug, title, test}` — widened per Q14 ("widen: yes"), so an
+    // agent reading the review queue can say which day is waiting and
+    // whether it is content nobody lived, with no GET per row.
+    expect(row).toMatchObject({ trip: "proving-2026", slug: "queueday", title: "queueday", test: true });
   });
 });
