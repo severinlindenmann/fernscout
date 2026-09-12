@@ -18,6 +18,30 @@ journal.example {
 		respond 405
 	}
 
+	@bigbody {
+		path /api/v1/*/trips/*/media
+		path /api/v1/*/inbox
+		path /api/helper/*/inbox
+		path /api/helper/*/day/media
+		path /api/v1/*/import
+		path /api/v1/*/trips/*/travellers/from-photo
+	}
+	@transcribe {
+		path /api/helper/*/transcribe
+	}
+	@smallbody {
+		not path /api/v1/*/trips/*/media /api/v1/*/inbox /api/helper/*/inbox /api/helper/*/day/media /api/v1/*/import /api/v1/*/trips/*/travellers/from-photo /api/helper/*/transcribe
+	}
+	request_body @bigbody {
+		max_size 520MiB
+	}
+	request_body @transcribe {
+		max_size 25MB
+	}
+	request_body @smallbody {
+		max_size 10MB
+	}
+
 	handle {
 		reverse_proxy 127.0.0.1:3000 {
 			header_up X-Forwarded-For {remote_host}

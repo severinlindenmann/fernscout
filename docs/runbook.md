@@ -264,6 +264,24 @@ The upstream port is `{$PORT:3000}`, so a deployment that moved the app off
 that same drop-in — Caddy expands the placeholder from its own environment, not
 from the app's. Still no proxy edit.
 
+**It also caps a request body before Next ever sees it, and that cap is not
+optional (B1551).** Next buffers a whole request body in memory before the
+route handler — and therefore before `authenticate()` — runs, up to
+`REQUEST_MAX_BYTES` in `lib/validate/media.ts` (512 MiB, wired instance-wide by
+`experimental.proxyClientMaxBodySize` in `next.config.ts`); below that ceiling
+it does not refuse, it truncates. Without a limit in front of it, an
+unauthenticated caller can hold half a gigabyte of RAM open per connection just
+by starting one upload. `deploy/fernscout.caddy` sets `request_body { max_size
+… }`, scoped by path: the handful of routes that legitimately take a large
+upload (a trip's media, the inbox, an import, a helper photo upload) get
+520MiB — just above the app's own 512 MiB ceiling, so a caller past the real
+limit sees the app's own error rather than a bare Caddy 413 — and everything
+else, which is JSON and small, is capped at 10MB — except `/api/helper/*/transcribe`,
+which carries base64 audio *inside* JSON and gets its own 25MB, just past
+`MAX_AUDIO_BYTES` (16 MiB) inflated by base64 encoding, so a legitimate
+recording is not the thing that hits Caddy's own limit. Keep the path list
+there in step with whichever routes actually call `request.formData()`.
+
 `caddy validate` before the reload, always: a reload of a broken config leaves
 the old one running, but a *restart* of one does not, and the difference is
 easy to discover the wrong way round.
