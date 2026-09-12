@@ -32,33 +32,53 @@ two fields that live elsewhere (`slug` is the filename, `content` is the
 body), plus what the server derives. One fact, one address, and the address
 is the one the wire already uses.
 
-What the file shape becomes:
+What the file shape becomes (corrected below: this table originally described
+a v2-canonical **markdown** file with frontmatter, before the same-day JSON
+decision superseded that — see the note above):
 
-| | was (v1) | is (v2-canonical) |
+| | was (v1, markdown + frontmatter) | is (v2-canonical, one JSON file) |
 |---|---|---|
+| day file | `entries/YYYY-MM-DD-slug.md`, frontmatter + prose body | `entries/YYYY-MM-DD-slug.json` — the whole document, `content` a normal JSON string |
 | day position | `lat:` / `lng:` | `coordinates: {lat, lng}` |
 | day photographs | `gallery:` | `media:` |
 | day draft state | `draft: true` | `status: "draft" \| "published"` |
 | day weather | `weather: true` + `weatherData:` | one `weather:` key — the server's own reading is simply one whose `source` is `open-meteo` |
 | day declines | `without:` / `unrecorded:` / `costs: false` | `declined: {}` |
+| trip files | `trip.md` + `costs.md` + `plan.md`, each frontmatter + prose | **one** `trip.json` — `intro`, `costs`, `plan` are keys, not files |
 | trip dates | `start:` / `end:` | `dates: {from, to}` |
 | trip figures | `travellers:` | `figures:` |
-| trip costs visibility | `costsVisibility:` in `trip.md` | `visibility:` in `costs.md` |
+| trip costs visibility | `costsVisibility:` in `trip.md` | `visibility` inside the `costs` object in `trip.json` |
 | trip rates | flat `rates: {EUR: 0.94}` | `rates: {currencies, manual}` |
 
 `trip.md`, `costs.md` and `plan.md` stay three files. Not for compatibility
 — each has a real prose body, and this is a folder a person owns and reads.
 The wire document unifies them; splitting them is the serializer's job.
 
+**Superseded the same day.** The owner overruled the storage-format decision
+this section was written under (decision 4, `00-decisions.md`): storage
+becomes JSON, not markdown-with-frontmatter. `trips/<id>/entries/YYYY-MM-DD-
+slug.md` becomes `entries/YYYY-MM-DD-slug.json`, and the three trip files —
+`trip.md`, `costs.md`, `plan.md` — collapse into **one** `trip.json`, because
+the only reason they were three was a real prose body each, and JSON has no
+prose-vs-frontmatter split to keep that argument alive. `costs` and `plan`
+were already sections of one wire document; now they are sections of one
+file too. Days stay one file each — they are separate documents with their
+own slugs. No schema changed. `lib/api/v2/markdown.ts` is now
+`lib/api/v2/documents.ts` (`dayToJson`/`dayFromJson`/`tripToJson`/
+`tripFromJson`); the table below is corrected to match. See
+`06-contract-deltas.md`'s final section for the record.
+
 **Built** (branch `b1596-v2-plumbing`):
 
 - `lib/api/v2/route.ts` — the one error envelope (`fail`/`ok`), `etagFor`
   and `ifMatchStale` (V11: absent `If-Match` is never stale, last-write-wins
   is the documented default; a stale write answers 409 with the current
-  document), `isDryRun` (T1 — a **query parameter**, because every v2 write
+  document), `readDryRun` (T1 — a **query parameter**, because every v2 write
   body is a `strictObject` and would refuse an unknown key, and a flag that
   decides whether bytes are written is not part of the document being
-  written), `readJson`, `logV2Request`.
+  written; renamed from `isDryRun` — B1601 — because a `boolean` return could
+  not say "the caller sent something this cannot read", and that case has to
+  refuse rather than guess in either direction), `readJson`, `logV2Request`.
 - `V2_ONLY_CODES = ["incomplete", "stale_document"]` — the contract's IOU.
   Both are deliberately NOT in `lib/api/errorCodes.ts` yet:
   `test/openapi-contract.test.ts` fails on a code no route answers. **The
@@ -68,11 +88,13 @@ The wire document unifies them; splitting them is the serializer's job.
   `splitIssues`. The 422 `missing[]` rows carry `to_provide` **generated**
   from the section's own Zod schema (`z.toJSONSchema`), never prose typed
   beside it. A body that is both incomplete and wrong reports both halves.
-- `lib/api/v2/markdown.ts` — the pure md↔document serializer, v2-canonical,
-  whole-file. Emission goes through gray-matter's `stringify` (js-yaml
-  under it) rather than hand-built YAML lines: B204's two private copies of
-  the same wrong escaping are exactly what this avoids having a third of.
-  Round-trip losslessness is the test.
+- `lib/api/v2/documents.ts` — the pure JSON↔document serializer,
+  v2-canonical, whole-file (renamed from `markdown.ts` the same day, once
+  the owner overruled storage staying markdown — see the note above and
+  `06-contract-deltas.md`). `JSON.stringify` with a fixed key order and a
+  two-space indent; no frontmatter, no YAML escaping to get wrong. A day is
+  one file, a trip's `costs`/`plan` are sections of the one `trip.json`
+  rather than `costs.md`/`plan.md`. Round-trip losslessness is the test.
 - `formatV2RequestLine` in `lib/requestLog.ts` — per-call, metadata only,
   never a body, never a query string, never an IP.
 - `describeScope()` and `Session.expiresAt` in `lib/auth/index.ts`, parsing

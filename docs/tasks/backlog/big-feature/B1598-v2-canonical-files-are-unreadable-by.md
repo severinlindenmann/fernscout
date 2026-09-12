@@ -28,8 +28,14 @@ the v2 serializer (B1596) writes a genuinely different file:
 | day declines | `without:` / `unrecorded:` / `costs: false` | `declined: {}` |
 | trip dates | `start:` / `end:` | `dates: {from, to}` |
 | trip figures | `travellers:` | `figures:` |
-| trip costs visibility | `costsVisibility:` in `trip.md` | `visibility:` in `costs.md` |
+| trip costs visibility | `costsVisibility:` in `trip.md` | `visibility:` inside the `costs` section of `trip.json` |
 | trip rates | flat `rates: {EUR: 0.94}` | `rates: {currencies, manual}` |
+
+**Since B1606 the gap is wider still: content on disk is now JSON, not
+markdown at all.** The table above describes key names; the readers also have
+to stop reaching for `gray-matter` and stop looking for `.md` files. A day is
+`entries/YYYY-MM-DD-slug.json`, and `trip.md` + `costs.md` + `plan.md` are one
+`trip.json`.
 
 `readAllEntries` (`lib/entries.ts:255-371`) and `readTrip`
 (`lib/trips.ts:577`) read none of the right-hand column. The day this
@@ -43,14 +49,15 @@ readers expect. It shows up the first time somebody opens a page.
 ## Work
 
 - Rewrite `readAllEntries` and `readTrip` to read the v2-canonical shape,
-  reusing `dayFromMarkdown`/`tripFromMarkdown` from `lib/api/v2/markdown.ts`
-  (B1596) rather than a second parser beside it — the whole point of that
-  module is that there is one.
+  reusing `dayFromJson`/`tripFromJson` from `lib/api/v2/documents.ts`
+  (B1596/B1606 — storage moved from markdown to JSON on 2026-09-12) rather
+  than a second parser beside it — the whole point of that module is that
+  there is one.
 - `Entry` and `Trip` in `lib/types.ts` are the render layer's own vocabulary
   and do **not** have to become the wire shape. Decide deliberately: either
   they stay and the readers map, or they collapse into the schemas' inferred
   types. Whichever, one mapping, in one place.
-- `costsVisibility` moving into `costs.md` and `travellers:` becoming
+- `costsVisibility` moving into `trip.json`'s `costs` section and `travellers:` becoming
   `figures:` each have readers of their own (`lib/api/tripVisibility.ts`,
   `lib/travellers/parse.ts`, `components/Travelers.tsx`) — they move too.
 - **This merge must also convert `content/example/`**, or land after the
@@ -62,7 +69,7 @@ readers expect. It shows up the first time somebody opens a page.
 
 ## Acceptance
 
-- A day and a trip written by `lib/api/v2/markdown.ts` render correctly at
+- A day and a trip written by `lib/api/v2/documents.ts` render correctly at
   `/{user}/trips/{trip}` and on the day page, checked in a browser at 390px —
   not only in a test.
 - `content/example/` is v2-canonical and the local site renders it whole:

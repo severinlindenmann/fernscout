@@ -176,7 +176,12 @@ const dayBase = z
     transportMode: z.enum(TRANSPORT_MODES).optional(),
     tags: z.array(z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(30)).max(10).optional(),
     /** title+content in the journal's other languages, keyed by locale.
-     * Declined falls back to the main language. */
+     * Declined falls back to the main language. Both fields are required —
+     * a translator who leaves the title as-is writes that same string into
+     * the locale's own `title` (owner review, 2026-09-12): an absent title
+     * and a title deliberately identical to the original are different
+     * claims, and only the written-out one survives being read back a year
+     * later. */
     translations: z.record(z.string(), z.strictObject({ title: z.string(), content: z.string() })).optional(),
     /** Narrows only: guest|private on top of the trip's own gate. There is
      * deliberately no "public". */

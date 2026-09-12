@@ -5,7 +5,7 @@ import type { ZodType } from "zod";
 import { describe, expect, it } from "vitest";
 import { dayDoc, dayWrite } from "../lib/api/v2/schemas";
 import { incompleteFrom, problemsFrom, splitIssues } from "../lib/api/v2/incomplete";
-import { etagFor, fail, ifMatchStale, isDryRun, logV2Request, ok, readJson, V2_ONLY_CODES, V2_STATUS } from "../lib/api/v2/route";
+import { etagFor, fail, ifMatchStale, logV2Request, ok, readDryRun, readJson, V2_ONLY_CODES, V2_STATUS } from "../lib/api/v2/route";
 import { ERROR_CODES } from "../lib/api/errorCodes";
 
 const people = [{ name: "Example Owner", email: "owner@example.com" }];
@@ -137,6 +137,12 @@ describe("etagFor", () => {
   it("is a quoted strong tag", () => {
     expect(etagFor({ x: 1 })).toMatch(/^"[0-9a-f]{32}"$/);
   });
+
+  it("gives two documents differing only in a Date different tags (B1601 — Object.keys(Date) is [])", () => {
+    const a = etagFor({ date: new Date("2026-09-12T00:00:00Z") });
+    const b = etagFor({ date: new Date("2026-09-13T00:00:00Z") });
+    expect(a).not.toBe(b);
+  });
 });
 
 function reqWithIfMatch(value: string | null): Request {
@@ -173,18 +179,37 @@ function reqWithQuery(query: string): Request {
   return new Request(`https://example.com/v2/x${query}`);
 }
 
-describe("isDryRun", () => {
+describe("readDryRun", () => {
   it.each([
     ["?dryRun", true],
     ["?dryRun=", true],
     ["?dryRun=1", true],
     ["?dryRun=true", true],
     ["?dryRun=TRUE", true],
+    ["?dryRun=yes", true],
+    ["?dryRun=YES", true],
+    ["?dryRun=on", true],
     ["?dryRun=0", false],
     ["?dryRun=false", false],
+    ["?dryRun=no", false],
+    ["?dryRun=off", false],
     ["", false],
+    // case-insensitive on the *parameter name* too — ?dryrun=1 must not
+    // silently read as "not a dry run" and perform a real write (B1601).
+    ["?dryrun=1", true],
+    ["?DRYRUN=true", true],
+    ["?DryRun=0", false],
+    // an unrecognised value is a refusal, never a guess in either direction.
+    ["?dryRun=maybe", null],
+    ["?dryRun=2", null],
+    // given twice with disagreeing values: also a refusal, not "last wins".
+    ["?dryRun=true&dryRun=false", null],
   ] as const)("%s -> %s", (query, expected) => {
-    expect(isDryRun(reqWithQuery(query))).toBe(expected);
+    expect(readDryRun(reqWithQuery(query))).toBe(expected);
+  });
+
+  it("given twice with the same value agrees with itself", () => {
+    expect(readDryRun(reqWithQuery("?dryRun=true&dryRun=TRUE"))).toBe(true);
   });
 });
 
