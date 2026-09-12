@@ -155,3 +155,38 @@ test("a staged photograph carries a thumbnail, and it is the owner-only route", 
   expect(photo?.bytes).toBeGreaterThan(0);
   expect(photo?.uploadedAt).toBeTruthy();
 });
+
+test("a location item stores its coordinate and place name, and a contact item stores as its own kind", () => {
+  journal();
+  const location = storeInboxFile(
+    "u",
+    "location",
+    "location.json",
+    Buffer.from(JSON.stringify({ lat: 46.02, lon: 7.75 })),
+    { lat: 46.02, lon: 7.75, location: "Zermatt", country: "Switzerland", countryCode: "CH" },
+  );
+  expect(location.entry.kind).toBe("location");
+  expect(location.entry.location).toBe("Zermatt");
+
+  const contact = storeInboxFile(
+    "u",
+    "contact",
+    "maria.vcf",
+    Buffer.from("BEGIN:VCARD\nVERSION:3.0\nFN:Maria\nEND:VCARD\n"),
+    {},
+  );
+  expect(contact.entry.kind).toBe("contact");
+});
+
+test("descriptionAsked and measuredFrom round-trip through the sidecar", () => {
+  journal();
+  const stored = storeInboxFile(
+    "u",
+    "media",
+    "sunset.jpg",
+    Buffer.from("not a real jpeg"),
+    { lat: 46.02, lon: 7.75, measuredFrom: "exif", descriptionAsked: true },
+  );
+  expect(stored.entry.measuredFrom).toBe("exif");
+  expect(stored.entry.descriptionAsked).toBe(true);
+});

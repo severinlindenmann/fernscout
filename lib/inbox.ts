@@ -63,7 +63,7 @@ import { VIDEO_EXTENSIONS } from "./ingest/video";
  * own media route is a separate door and also files `files`, for anything
  * that is not a photograph or a video — B683.)
  */
-export const INBOX_KINDS = ["media", "files", "photobook", "postcards"] as const;
+export const INBOX_KINDS = ["media", "files", "photobook", "postcards", "location", "contact"] as const;
 export type InboxKind = (typeof INBOX_KINDS)[number];
 
 /**
@@ -84,6 +84,28 @@ export type InboxMeta = {
   takenAt?: string;
   caption?: string;
   tags?: string[];
+  /**
+   * A place name for a `location`-kind item, from a reverse-geocode lookup
+   * — never typed by a person, never guessed by an agent. Absent when the
+   * `addressLookup` capability is off, or the lookup found nothing.
+   */
+  location?: string;
+  country?: string;
+  countryCode?: string;
+  /**
+   * A named exception to "nothing on a sidecar is inferred" — B1573's
+   * successor ticket. `"exif"` means `lat`/`lon`/`takenAt` came from the
+   * photograph's own embedded metadata, a real measurement the camera took,
+   * not a guess and not what the person said. Every reader that might
+   * otherwise credit these fields to the uploader must check this first.
+   */
+  measuredFrom?: "exif";
+  /**
+   * Whether the conversation has already asked for a caption on this
+   * photograph and been told no — mirrors `Entry.weatherAsked` exactly.
+   * Absent means not asked yet; `caption` present means answered.
+   */
+  descriptionAsked?: boolean;
   /**
    * Where this arrived from, when it was not the ordinary web upload —
    * B1059. Absent means the web door, as it always meant before this field
