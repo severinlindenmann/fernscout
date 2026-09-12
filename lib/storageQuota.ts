@@ -168,17 +168,88 @@ export async function storageFor(username: string): Promise<StorageUsage> {
 }
 
 /**
+ * One journal's queue of pending checks-plus-writes — B1556.
+ *
+ * `storageRefusal` alone answers from a directory walk with nothing held: two
+ * uploads that each individually fit can both pass the check before either
+ * has written a byte, and both proceed, taking the journal arbitrarily far
+ * past its ceiling. The fix is not a reservation counter — this process has
+ * no shared store to reserve bytes in, and inventing one is the multi-process
+ * upgrade, not this ticket — it is making "check, then write" one atomic step
+ * per journal, the same single-process assumption `lib/rateLimit.ts` already
+ * makes and documents for its own in-memory buckets.
+ *
+ * A `Promise` chain per username rather than a real lock: the next caller's
+ * work is simply queued onto the settlement of the previous one, win or lose.
+ * `.catch(() => undefined)` is what goes into the map — not what is returned
+ * to the caller — so one journal's write throwing never wedges every later
+ * caller behind a permanently-rejected chain.
+ *
+ * ponytail: in-process only, so a second app server serving the same journal
+ * still races past this. A reserved-bytes counter in a shared store (Postgres,
+ * Redis) is the upgrade if that ever matters; this queue is the ceiling until
+ * an instance actually runs more than one process.
+ */
+const queues = new Map<string, Promise<unknown>>();
+
+function withLock<T>(username: string, fn: () => Promise<T>): Promise<T> {
+  const prior = queues.get(username) ?? Promise.resolve();
+  const result = prior.then(fn, fn);
+  queues.set(username, result.then(
+    () => undefined,
+    () => undefined,
+  ));
+  return result;
+}
+
+/**
+ * The one door for putting real bytes into a journal — `write` runs only once
+ * the quota check has passed, and no other call for the same username can
+ * interleave its own check between this one's check and its write.
+ *
+ * Every caller that used to do `if (await storageRefusal(...)) return;` and
+ * then write independently should call this instead: `storeUploads` and
+ * `attachOriginal` in `lib/api/media.ts`, `receiveInboxUpload`, the WhatsApp
+ * media handler, and the GPS import route. The photobook order route checks
+ * a nominal one byte before generating a PDF whose real size it cannot know
+ * up front, so it is a plain read of `storageRefusal` rather than a write this
+ * function could serialise around.
+ */
+export async function withStorageQuota<T>(
+  username: string,
+  incomingBytes: number | (() => Promise<number> | number),
+  write: () => Promise<T> | T,
+): Promise<{ ok: true; value: T } | { ok: false; problem: string }> {
+  return withLock(username, async () => {
+    // A function rather than a plain number is for the one caller whose
+    // "incoming" figure depends on what is currently on disk (`attachOriginal`
+    // nets off the bytes it is about to replace) — computed here, inside the
+    // lock, rather than by the caller before it ever queued, so that number is
+    // fresh at the moment it is checked rather than possibly stale by the time
+    // this call's turn comes.
+    const bytes = typeof incomingBytes === "function" ? await incomingBytes() : incomingBytes;
+    const refusal = await storageRefusal(username, bytes);
+    if (refusal) return { ok: false, problem: refusal };
+    return { ok: true, value: await write() };
+  });
+}
+
+/**
  * Why a write of `incomingBytes` cannot happen, or null.
  *
- * The one guard, called by every path that puts real bytes into a journal —
- * `storeUploads` in `lib/api/media.ts` and the photobook order route. Markdown
- * writes are deliberately *not* gated: a day is kilobytes, and a journal that
- * could not correct a typo because its photographs filled the disk would be
- * held hostage by the thing it is being asked to fix.
+ * The one check both this file's own `withStorageQuota` and the photobook
+ * order route call. Markdown writes are deliberately *not* gated: a day is
+ * kilobytes, and a journal that could not correct a typo because its
+ * photographs filled the disk would be held hostage by the thing it is being
+ * asked to fix.
  *
  * Warning the owner is part of the same call rather than a caller's
  * responsibility, because a check that mails only where somebody remembered to
  * is a check that goes quiet exactly on the path nobody reviewed.
+ *
+ * Called on its own — with no lock — only where nothing is about to be
+ * written from the answer (the photobook order route's own up-front nominal
+ * check). Every real write should go through `withStorageQuota` above instead.
  */
 export async function storageRefusal(
   username: string,

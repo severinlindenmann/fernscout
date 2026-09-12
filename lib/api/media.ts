@@ -25,7 +25,7 @@ import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } fro
 import { contentHash, isDuplicate } from "../ingest/hash.ts";
 import { loadUserConfig } from "../config";
 import { mediaKey, type PhotoVisibility } from "../photos";
-import { storageRefusal } from "../storageQuota";
+import { withStorageQuota } from "../storageQuota";
 import type { GalleryItem } from "../types";
 
 /**
@@ -425,20 +425,41 @@ export async function storeUploads(
     });
   }
 
+  if (problems.length > 0) return { ok: false, problems };
+
   // The journal's whole allowance — every byte under `content/<user>/`, not
   // only this trip's photographs. `lib/storageQuota.ts` owns the question, and
-  // owns telling the owner when the answer is getting close; it is the same
-  // guard the photobook order route calls, so a journal cannot be full for one
-  // and roomy for the other.
-  const refusal = await storageRefusal(
+  // owns telling the owner when the answer is getting close.
+  //
+  // Checked and written under the same per-username lock (B1556): the check
+  // alone answers from a directory walk with nothing held, so two uploads
+  // that each individually fit could both pass it before either had written a
+  // byte, and both proceed — taking the journal arbitrarily far past its
+  // ceiling. `withStorageQuota` is what makes "check, then write" one step.
+  const guard = await withStorageQuota(
     parseTripRef(ref)!.username,
     uploads.reduce((n, u) => n + u.bytes.byteLength, 0),
+    () => writeUploads(ref, slug, uploads, limits, mediaOut, originalsOut),
   );
-  if (refusal) {
-    problems.push({ field: "media", got: "no room left in this journal", expected: refusal });
+  if (!guard.ok) {
+    return { ok: false, problems: [{ field: "media", got: "no room left in this journal", expected: guard.problem }] };
   }
+  return guard.value;
+}
 
-  if (problems.length > 0) return { ok: false, problems };
+/**
+ * The part of `storeUploads` that actually touches disk — split out so it can
+ * run inside `withStorageQuota`'s lock rather than after a separate check.
+ */
+async function writeUploads(
+  ref: string,
+  slug: string,
+  uploads: UploadCandidate[],
+  limits: ReturnType<typeof loadUserConfig>["media"],
+  mediaOut: string,
+  originalsOut: string,
+): Promise<UploadResult> {
+  const tripId = parseTripRef(ref)!.tripId;
 
   // Everything is built in a staging directory and moved into place only once
   // the whole batch has succeeded.
@@ -943,45 +964,58 @@ export async function attachOriginal(
   }
 
   // What the web copy left under this stem comes off the ledger: the journal
-  // is not charged twice for one photograph.
-  let siblings: string[] = [];
-  try {
-    siblings = fs.readdirSync(originalsDir);
-  } catch {
-    // First original into this day's folder.
-  }
-  const superseded = siblings.filter((s) => path.basename(s, path.extname(s)) === stem);
-  const freed = superseded.reduce((n, s) => {
-    try {
-      return n + fs.statSync(path.join(originalsDir, s)).size;
-    } catch {
-      return n;
-    }
-  }, 0);
+  // is not charged twice for one photograph. Recomputed inside the lock below
+  // rather than here, because a sibling call for the same stem could still be
+  // mid-write when this one queues — the figure `storageRefusal` judges has to
+  // reflect the disk at the moment this call's turn actually comes, not the
+  // moment it arrived (B1556).
+  let superseded: string[] = [];
 
-  const refusal = await storageRefusal(username, Math.max(0, bytes.byteLength - freed));
-  if (refusal) {
-    return { ok: false, problems: [{ field: "media", got: "no room left in this journal", expected: refusal }] };
+  const guard = await withStorageQuota(
+    username,
+    () => {
+      let siblings: string[] = [];
+      try {
+        siblings = fs.readdirSync(originalsDir);
+      } catch {
+        // First original into this day's folder.
+      }
+      superseded = siblings.filter((s) => path.basename(s, path.extname(s)) === stem);
+      const freed = superseded.reduce((n, s) => {
+        try {
+          return n + fs.statSync(path.join(originalsDir, s)).size;
+        } catch {
+          return n;
+        }
+      }, 0);
+      return Math.max(0, bytes.byteLength - freed);
+    },
+    () => {
+      const name = `${stem}${path.extname(filename).toLowerCase()}`;
+      fs.mkdirSync(originalsDir, { recursive: true });
+      // Written under a temporary name and renamed, so a connection that dies
+      // halfway cannot leave a truncated file standing where the real original
+      // should be — which would look like a kept original and print like a
+      // ruin.
+      const staged = path.join(originalsDir, `.${stem}.part`);
+      fs.writeFileSync(staged, bytes);
+      fs.renameSync(staged, path.join(originalsDir, name));
+      for (const old of superseded) {
+        if (old === name) continue;
+        try {
+          fs.unlinkSync(path.join(originalsDir, old));
+        } catch {
+          // Already gone.
+        }
+      }
+      return name;
+    },
+  );
+  if (!guard.ok) {
+    return { ok: false, problems: [{ field: "media", got: "no room left in this journal", expected: guard.problem }] };
   }
 
-  const name = `${stem}${path.extname(filename).toLowerCase()}`;
-  fs.mkdirSync(originalsDir, { recursive: true });
-  // Written under a temporary name and renamed, so a connection that dies
-  // halfway cannot leave a truncated file standing where the real original
-  // should be — which would look like a kept original and print like a ruin.
-  const staged = path.join(originalsDir, `.${stem}.part`);
-  fs.writeFileSync(staged, bytes);
-  fs.renameSync(staged, path.join(originalsDir, name));
-  for (const old of superseded) {
-    if (old === name) continue;
-    try {
-      fs.unlinkSync(path.join(originalsDir, old));
-    } catch {
-      // Already gone.
-    }
-  }
-
-  return { ok: true, stored: name };
+  return { ok: true, stored: guard.value };
 }
 
 // ---------------------------------------------------------------------------

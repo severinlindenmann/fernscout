@@ -9,7 +9,7 @@ import {
 } from "@/lib/gps/api";
 import { readStatement } from "@/lib/statements/read";
 import { readContactsFile } from "@/lib/contacts/readImport";
-import { storageRefusal } from "@/lib/storageQuota";
+import { storageRefusal, withStorageQuota } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 import { REQUEST_MAX_BYTES } from "@/lib/validate/media";
 import fs from "node:fs";
@@ -341,7 +341,24 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
     });
   }
 
-  const result = importGps(user, text, filename, { format, dryRun });
+  // The early check above answers fast for every kind, including the two that
+  // never write at all; this is the one that actually matters for the race
+  // (B1556) — a second import for the same journal, arriving while this one
+  // is still writing, must not see a stale "there is room" answer that the
+  // early check already gave it. `dryRun` writes nothing, so it runs outside
+  // the lock rather than queuing for no reason.
+  let result: ReturnType<typeof importGps>;
+  if (dryRun) {
+    result = importGps(user, text, filename, { format, dryRun });
+  } else {
+    const guard = await withStorageQuota(user, Buffer.byteLength(text), () =>
+      importGps(user, text, filename, { format, dryRun }),
+    );
+    if (!guard.ok) {
+      return Response.json({ error: "storage_full", message: guard.problem }, { status: 400 });
+    }
+    result = guard.value;
+  }
 
   if (isRefusal(result)) {
     return Response.json(

@@ -27,7 +27,7 @@ import { translateIn } from "../locales";
 import { claimPhoneLink } from "../phoneVerify/inboundLink";
 import { journalForNumber } from "../registry";
 import { serverSite } from "../site";
-import { storageRefusal } from "../storageQuota";
+import { withStorageQuota } from "../storageQuota";
 import { missingFrom, UNKNOWN } from "../tracks";
 import { getTrips, tripRef } from "../trips";
 import type { Trip } from "../types";
@@ -547,12 +547,6 @@ async function handleMedia(username: string, locale: string, message: MediaMessa
     return;
   }
 
-  const refusal = await storageRefusal(username, downloaded.data.byteLength);
-  if (refusal) {
-    await sendServiceReply(message.from, refusal, username);
-    return;
-  }
-
   const mimeType = (downloaded.mimeType || message.mimeType).split(";")[0].toLowerCase();
   // A photograph sent *as a photograph* carries no filename at all — and
   // deliberately not one built from `message.mediaId` either: `storeInboxFile`
@@ -566,11 +560,22 @@ async function handleMedia(username: string, locale: string, message: MediaMessa
       : `whatsapp-photo${MIME_EXTENSION[mimeType] ?? ".bin"}`;
   const kind = kindForExtension(filename) ?? "files";
 
-  const stored = storeInboxFile(username, kind, filename, downloaded.data, {
-    ...(message.caption ? { caption: message.caption } : {}),
-    source: "whatsapp",
-    receivedAt: new Date(Number(message.timestamp) * 1000 || Date.now()).toISOString(),
-  });
+  // Checked and written under the same per-username lock every other upload
+  // door uses (B1556): a phone that sends several photographs in a burst is
+  // several of these calls in flight together, and the check alone would let
+  // all of them pass before any had written a byte.
+  const guard = await withStorageQuota(username, downloaded.data.byteLength, () =>
+    storeInboxFile(username, kind, filename, downloaded.data, {
+      ...(message.caption ? { caption: message.caption } : {}),
+      source: "whatsapp",
+      receivedAt: new Date(Number(message.timestamp) * 1000 || Date.now()).toISOString(),
+    }),
+  );
+  if (!guard.ok) {
+    await sendServiceReply(message.from, guard.problem, username);
+    return;
+  }
+  const stored = guard.value;
 
   const topic = message.kind === "document" ? "document" : "photo";
   // One reply for the whole batch, not one per item — B1240. Resets a short
