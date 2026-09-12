@@ -443,8 +443,18 @@ select:disabled {
     appearance: base-select;
   }
 
+  /* `base-select` makes the button a layout container. Without an explicit
+     one-line flex layout its picker icon is allowed to wrap under the selected
+     text while closed, then snaps to the right when the picker opens. */
+  select:not([size]):not([multiple]) {
+    display: inline-flex;
+    align-items: center;
+  }
+
   select:not([size]):not([multiple])::picker-icon {
     color: var(--color-navy-500);
+    flex: 0 0 auto;
+    margin-inline-start: auto;
     transition: rotate 150ms ease;
   }
   select:not([size]):not([multiple]):open::picker-icon {
