@@ -7,8 +7,7 @@ complexity: high
 area: content-model, contract, fernscout-helper
 found: "2026-09-12T09:06:17Z"
 started: "2026-09-12T12:38:17Z"
-session: 615a7d13-b735-48b0-a399-bf28e199b7bb
-claimed: "2026-09-12T12:38:17Z"
+merged: "2026-09-12T12:50:18Z"
 ---
 
 # B1577 — Six hand-kept key lists in the helper mirror the instance, and nothing fails when one falls behind
@@ -131,3 +130,96 @@ know about doors yet.
 - A journal carrying a field added since the helper's snapshot was taken still
   publishes it, with no change to the helper.
 - B1518's and B1569's own regressions stay caught.
+
+
+## Built, 2026-09-12
+
+### In this repository — the half that matters
+
+`content-model.json` gains a top-level `doors` section: per file a `create`
+call, a `call` (the file's own general update call), an `update` map of key to
+the call that writes it, and a `noUpdate` map of key to why none does.
+
+**Derived, and that is the point.** `lib/contentModel/doors.ts` imports
+`EDITABLE_DAY_FIELDS`, `JOURNAL_PROFILE_FIELDS`, `JOURNAL_FIELD_REFUSALS` and
+a new `TRIP_DETAIL_FIELDS` — which the trip route now imports rather than
+declaring inline, the one constant this ticket had to create. Adding a field
+to any of those changes the document with no second edit.
+
+**`test/content-model-doors.test.ts` is the ticket.** A key of any file that
+appears in neither list fails the build, naming the key, here where the field
+was added. Two-way: a door naming a key the model does not have fails too,
+which is what a rename or a removal leaves behind. Both directions were driven
+rather than assumed — a `soundtrack` key planted in `trip.md` went red with
+*"trip.md may carry soundtrack and lib/contentModel/doors.ts says nothing
+about it"*, and a stale door for a removed key went red with the mirror
+message.
+
+Also asserted: the three refusal sentences are `JOURNAL_FIELD_REFUSALS`
+**verbatim**, not a paraphrase — the client prints one of them to a person
+(B1504), and two wordings of one fact disagree within a month.
+
+### The two decisions worth knowing
+
+**A new top-level section, not a ninth `assert` kind** — the owner's call, and
+`noTip` is the precedent: a fact about a *key*, living beside the file's prose,
+because it never fires and refuses nothing. W41 closes the assertion vocabulary
+at eight and this does not reopen it, so a client that walks `rules` sees
+byte-identical input.
+
+**The version stays `1`, which departs from the mockup I showed.** Adding a
+section takes nothing away, and `contentModel` means "a client that does not
+understand this refuses to validate" — bumping it would make every existing
+client refuse a document it can still use. `doors` is optional instead, so
+absent means "older than B1577", which is exactly what a client needs in order
+to fall back rather than guess.
+
+### In `fernscout-helper` — and a deviation from the acceptance
+
+`contentModel.mjs` folds `doors` into `MODEL[file]`, `shared/doors.mjs` reads
+it, and the instance's answer wins.
+
+**The three key lists are not gone, and the acceptance said they would be.**
+They cannot be yet: an instance older than B1577 publishes no doors, these
+tools are built to follow whatever instance they are pointed at, and a client
+with no list and no document cannot know what to send. Deleting them would
+break every pre-B1577 instance.
+
+What they are instead is a **fallback, relabelled as one at the top of each
+file, and checked**: `doorsDrift()` compares every list against a live
+document's doors and `selftest.mjs` fails on a disagreement. That is the same
+bargain `content-model.snapshot.json` already makes for the file shape, and
+it is the difference between these and the six unchecked lists this ticket was
+raised about. They can be deleted once every instance these tools follow
+publishes doors — which needs a deploy and a snapshot refresh first.
+
+**The comparison took two attempts, and the first was wrong in a way worth
+recording.** It asked whether the two sides partition keys the same way. They
+do not, and are not meant to: this side splits a plain field from one it
+handles another way (a photograph is a file, publishing is its own call), while
+the instance simply names the call for each. Comparing partitions reported
+**eleven false disagreements on a perfectly healthy pair** — a guard firing on
+an honest run. The question that actually matters is whether every key the
+instance knows is accounted for *somewhere* on this side, because one in
+neither list is one dropped in silence. Proved green against the published
+doors, and red naming the key when `visibility` was taken out of a fallback.
+
+### Found by the gate on its first run
+
+**B1584** — `captions` and `photoVisibility` are in `EDITABLE_DAY_FIELDS`, so
+`PATCH .../days/{slug}` accepts both, and neither appeared in
+`content-model.json` as a key of a day in any form. The contract was *silent*
+rather than wrong, which is the harder kind to notice. Captured, and fixed
+here because the gate cannot pass until the document and that constant agree —
+carving an exemption for a real gap would have made the gate lie on its first
+day.
+
+### Evidence
+
+- `npm run verify` green — all 5, 226s.
+- `/content-model.json` on a running instance serves `doors` for all five
+  files, `contentModel: 1`, with every key of each file on one side or the
+  other.
+- The gate red in both directions, by planting a key and a stale door.
+- `selftest.mjs` 70 checks green, including the new fallback-vs-doors
+  comparison; red and naming the key when a fallback list is edited.
