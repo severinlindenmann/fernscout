@@ -1576,9 +1576,12 @@ function ChooseBlock({
 }) {
   const { t } = useI18n();
   const [expanded, setExpanded] = useState(false);
+  const [chosen, setChosen] = useState<string | null>(null);
   const shown = expanded ? options : options.slice(0, CHOOSE_ROWS_SHOWN);
   const rowClass =
     "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-navy-300 bg-white px-4 py-2 text-left text-base text-navy-800 transition-colors hover:bg-navy-50";
+  const spentRowClass =
+    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-2 text-left text-base text-navy-700";
 
   return (
     <div>
@@ -1602,10 +1605,19 @@ function ChooseBlock({
                 <a href={option.href} className={rowClass}>
                   {row}
                 </a>
-              ) : (
-                <button type="button" onClick={() => onChoose(option.label)} className={rowClass}>
+              ) : chosen === null ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChosen(option.value);
+                    onChoose(option.label);
+                  }}
+                  className={rowClass}
+                >
                   {row}
                 </button>
+              ) : (
+                <div className={spentRowClass}>{row}</div>
               )}
             </li>
           );

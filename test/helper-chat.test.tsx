@@ -345,6 +345,13 @@ describe("the blocks a tool declares", () => {
     expect(field().value).toBe("");
     const sent = calls.filter((call) => call.url.endsWith("/ask")).map((call) => call.body.said);
     expect(sent).toContain("Japan");
+    // B1445: this turn's options now describe the choice that was made; they
+    // must not remain focusable controls whose second press cannot do anything.
+    expect(
+      [...container!.querySelectorAll("button")].some((button) =>
+        ["Japan", "Alps"].some((label) => (button.textContent ?? "").includes(label)),
+      ),
+    ).toBe(false);
   });
 
   test("`preview` draws the thing itself, line by line", async () => {
