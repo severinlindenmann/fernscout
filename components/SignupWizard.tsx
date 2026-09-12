@@ -474,7 +474,14 @@ export default function SignupWizard({
   return (
     <section className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
       <h2 className="font-display text-xl font-semibold text-navy-900">
-        {step === "trip" ? t("agent.journalCreated") : t("agent.startTitle")}
+        {/* The "owns" heading is the door's own question — B1568: "New
+            here?" above "this address already owns a journal" contradicted
+            itself; the question the sentence below answers does not. */}
+        {step === "trip"
+          ? t("agent.journalCreated")
+          : step === "owns"
+            ? t("agent.haveJournal")
+            : t("agent.startTitle")}
       </h2>
       {/* B1292 — the journal already exists by the time this step shows; the
           "New here?" pitch above used to survive a successful create and say

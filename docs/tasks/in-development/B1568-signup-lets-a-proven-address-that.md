@@ -89,3 +89,20 @@ kind. If it recurs while `/<user>/trips` still shows them as owner in the
 same browser, capture that separately with the cookie jar's contents —
 `IdentityUpgrade`'s fetch swallows failures (`catch(() => {})`), so a broken
 upgrade route is invisible from the page.
+
+## Evidence (2026-09-12)
+
+- `npm run verify` — all 5 passed (after merging main; a sibling session's
+  B1555 landed mid-build).
+- `test/signup-verify-owned.test.ts` — refusal, its ordering after a correct
+  code, and the untouched no-journal path: 3/3.
+- Browser, against pre-existing content (`content/example`, owned by
+  agent@fernscout.ch, not authored for this check): /agent → "No, I am
+  starting one" → email → code → the owns card ("Do you already have a
+  journal? / This address already owns a journal…/ Yes, sign me in"), no
+  phone step; the button lands on the sign-in form. Captures:
+  scratchpad `b1568-shots/{code-step,owns-step,sign-in-form}.png`.
+- Security pass on the diff: refusal only after `verifyCode` succeeds (no
+  enumeration oracle — asserted by the ordering test); disclosure matches
+  what `createJournal` already tells the same proven caller; rate limit
+  unchanged.
