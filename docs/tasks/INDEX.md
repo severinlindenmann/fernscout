@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (235)
+## backlog (232)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (62)
+### issue (60)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -78,8 +78,6 @@ Do not edit them by hand; run the script.
 | [B1586](backlog/issue/B1586-correcting-a-caption-or-a-photograph.md) | Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it | ISSUE | high | low |
 | [B1601](backlog/issue/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low |
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
-| [B1604](backlog/issue/B1604-a-day-whose-prose-begins-with.md) | A day whose prose begins with three hyphens loses everything up to the next fence | ISSUE | high | low |
-| [B1605](backlog/issue/B1605-dryrun-fails-in-the-direction-that.md) | dryRun fails in the direction that writes — a mis-cased parameter performs the write it was asked to preview | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -172,12 +170,11 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (10)
+### chore (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
-| [B1606](backlog/chore/B1606-content-on-disk-becomes-json-the.md) | Content on disk becomes JSON — the document, stored as itself | CHORE | high | medium |
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
@@ -350,7 +347,7 @@ _Nothing here._
 | [B1589](in-development/B1589-photobook-prints-the-written-language-entry.md) | Photobook language leaves trip text and fallback labels untranslated | ISSUE | medium | medium | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (12)
+## testing (15)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -361,6 +358,9 @@ _Nothing here._
 | [B1590](testing/B1590-next-generated-route-types-reject-helper.md) | Next generated route types reject helper exports from two route modules | ISSUE | high | low | — |
 | [B1596](testing/B1596-v2-plumbing-route-helper-incomplete-422.md) | v2 plumbing: route helper, incomplete-422, dryRun, ETag, request log, import boundary, md serializer | CHORE | high | medium | — |
 | [B1597](testing/B1597-v2-tripdoc-costs-has-no-home.md) | v2 tripDoc.costs has no home for costs.md's preparation cost lines or its prose | ISSUE | high | low | — |
+| [B1604](testing/B1604-a-day-whose-prose-begins-with.md) | A day whose prose begins with three hyphens loses everything up to the next fence | ISSUE | high | low | — |
+| [B1605](testing/B1605-dryrun-fails-in-the-direction-that.md) | dryRun fails in the direction that writes — a mis-cased parameter performs the write it was asked to preview | ISSUE | high | low | — |
+| [B1606](testing/B1606-content-on-disk-becomes-json-the.md) | Content on disk becomes JSON — the document, stored as itself | CHORE | high | medium | — |
 | [B1520](testing/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low | — |
 | [B1522](testing/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low | — |
 | [B1525](testing/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low | — |
