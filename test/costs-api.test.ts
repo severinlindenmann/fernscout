@@ -14,6 +14,7 @@ import {
   PATCH as patchRoute,
   PUT as putRoute,
 } from "@/app/api/v1/[user]/trips/[trip]/costs/route";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B295 — a costs door: a trip's budget could only ever be written by hand,
@@ -38,23 +39,15 @@ function tripFile(name: string): string {
 }
 
 function writeTrip() {
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    tripFile("trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Reise",
+    start: "2026-09-01",
+    end: "2026-09-05",
+    status: "current",
+    visibility: "public",
+    intro: "Body.",
+  });
 }
 
 async function agentToken(): Promise<string> {

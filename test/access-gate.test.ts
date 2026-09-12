@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import type { Trip } from "@/lib/types";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * The panel and the gate, asked the same question.
@@ -259,30 +260,18 @@ function writeConfigs() {
 }
 
 function writeTrip(spec: TripSpec) {
-  const root = path.join(dir, OWNER, "trips", spec.id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${spec.id}"`,
-      `title: "${spec.id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${spec.visibility}"`,
-      ...(spec.listed === undefined ? [] : [`listed: ${spec.listed}`]),
-      `costsVisibility: "${spec.costsVisibility}"`,
-      ...(spec.test ? ["test: true"] : []),
-      ...(spec.people.length > 0
-        ? ["people:", ...spec.people.map((e) => `  - { name: "Robin", email: "${e}" }`)]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: spec.id,
+    title: spec.id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: spec.visibility as "public" | "guest" | "private",
+    listed: spec.listed,
+    costsVisibility: spec.costsVisibility,
+    test: spec.test,
+    people: spec.people.map((email) => ({ name: "Robin", email })),
+  });
 }
 
 async function signIn(email: string): Promise<string> {

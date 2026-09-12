@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B318 — a draft day showed three of its nine photographs, all nine once
@@ -43,49 +44,32 @@ vi.mock("next/headers", () => ({
 let dir: string;
 
 function entry(name: string, date: string, photos: number, draft: boolean) {
-  const gallery = Array.from({ length: photos }, (_, i) => [
-    `  - src: "/media/asia-2023/${name.replace(".md", "")}/0${i + 1}.jpg"`,
-    "    type: image",
-  ].join("\n")).join("\n");
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "asia-2023", "entries", name),
-    [
-      "---",
-      `title: "${name}"`,
-      `date: "${date}"`,
-      'location: "Bangkok"',
-      'country: "Thailand"',
-      "lat: 13.7",
-      "lng: 100.5",
-      "gallery:",
-      gallery,
-      ...(draft ? ["status: draft"] : []),
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  const slug = name.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(".md", "");
+  writeDayFixture(dir, "alex", "asia-2023", {
+    slug,
+    date,
+    title: name,
+    location: "Bangkok",
+    country: "Thailand",
+    coordinates: { lat: 13.7, lng: 100.5 },
+    media: Array.from({ length: photos }, (_, i) => ({
+      src: `/media/asia-2023/${slug}/0${i + 1}.jpg`,
+      type: "image" as const,
+    })),
+    status: draft ? "draft" : undefined,
+  });
 }
 
 function writeTrip(id: string, status: "current" | "past") {
-  fs.mkdirSync(path.join(dir, "alex", "trips", id, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", id, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      'title: "Asia"',
-      'start: "2026-01-01"',
-      'end: "2026-01-09"',
-      `status: "${status}"`,
-      'visibility: "public"',
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id,
+    title: "Asia",
+    start: "2026-01-01",
+    end: "2026-01-09",
+    status,
+    visibility: "public",
+    intro: "Body.",
+  });
 }
 
 beforeEach(() => {

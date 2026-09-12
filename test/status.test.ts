@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * `GET /api/v1/<user>/status` — B91.
@@ -36,48 +37,28 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
 }
 
 function writeTrip(id: string, people: string[]) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      'visibility: "public"',
-      ...(people.length
-        ? ["people:", ...people.flatMap((email) => [`  - name: "R"`, `    email: "${email}"`])]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "public",
+    people: people.map((email) => ({ name: "R", email })),
+  });
 }
 
 /** A day on disk, draft or published, as ingest or an agent would leave it. */
 function writeDay(trip: string, slug: string, draft: boolean) {
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", trip, "entries", `2026-08-25-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      'date: "2026-08-25"',
-      'location: "Somewhere"',
-      'country: "Switzerland"',
-      "lat: 47.0",
-      "lng: 8.0",
-      ...(draft ? ['status: "draft"'] : []),
-      "---",
-      "",
-      "Something happened.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, trip, {
+    slug,
+    date: "2026-08-25",
+    location: "Somewhere",
+    country: "Switzerland",
+    coordinates: { lat: 47.0, lng: 8.0 },
+    status: draft ? "draft" : undefined,
+    content: "Something happened.",
+  });
 }
 
 async function ownerToken(): Promise<string> {

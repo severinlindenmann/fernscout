@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
@@ -26,34 +27,24 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
 }
 
 function writeTrip(id: string, people: string[] = []) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      'visibility: "public"',
-      ...(people.length
-        ? ["people:", ...people.flatMap((email) => [`  - name: "R"`, `    email: "${email}"`])]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "public",
+    people: people.map((email) => ({ name: "R", email })),
+  });
 }
 
 function writeDraft(tripId: string, slug: string) {
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", tripId, "entries", `2026-08-25-${slug}.md`),
-    ["---", `title: "${slug}"`, 'date: "2026-08-25"', 'status: "draft"', "---", "", "Words.", ""].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, tripId, {
+    slug,
+    date: "2026-08-25",
+    status: "draft",
+    content: "Words.",
+  });
 }
 
 async function ownerToken(): Promise<string> {
