@@ -67,7 +67,7 @@ afterEach(() => {
 test("a media upload with EXIF GPS gets lat/lon it never said, tagged measuredFrom exif", async () => {
   const bytes = await paintJpegWithExif(40, 30, { lat: 46.5, lon: 7.9, takenAt: "2026-05-04T10:00:00.000Z" });
   const form = new FormData();
-  form.set("files", new File([bytes], "hafen.jpg", { type: "image/jpeg" }));
+  form.set("files", new File([new Uint8Array(bytes)], "hafen.jpg", { type: "image/jpeg" }));
   const response = await receiveInboxUpload("alex", new Request("https://t.test/x", { method: "POST", body: form }));
   const body = (await response.json()) as { items: { lat?: number; measuredFrom?: string }[] };
   expect(body.items[0].lat).toBeCloseTo(46.5, 2);
@@ -77,7 +77,7 @@ test("a media upload with EXIF GPS gets lat/lon it never said, tagged measuredFr
 test("an explicitly-said lat/lon is never overwritten by EXIF", async () => {
   const bytes = await paintJpegWithExif(40, 30, { lat: 46.5, lon: 7.9, takenAt: "2026-05-04T10:00:00.000Z" });
   const form = new FormData();
-  form.set("files", new File([bytes], "hafen.jpg", { type: "image/jpeg" }));
+  form.set("files", new File([new Uint8Array(bytes)], "hafen.jpg", { type: "image/jpeg" }));
   form.set("meta", JSON.stringify({ lat: 1, lon: 1 }));
   const response = await receiveInboxUpload("alex", new Request("https://t.test/x", { method: "POST", body: form }));
   const body = (await response.json()) as { items: { lat?: number; measuredFrom?: string }[] };

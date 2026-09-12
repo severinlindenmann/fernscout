@@ -446,7 +446,7 @@ test("the share-location button uploads the browser's own coordinate into the in
     await Promise.resolve();
   });
   expect(getCurrentPosition).toHaveBeenCalled();
-  const call = (fetch as ReturnType<typeof vi.fn>).mock.calls.find(([url]: [string]) => url.endsWith("/inbox"));
+  const call = (fetch as ReturnType<typeof vi.fn>).mock.calls.find((args) => (args[0] as string).endsWith("/inbox"));
   expect(call).toBeDefined();
 });
 
