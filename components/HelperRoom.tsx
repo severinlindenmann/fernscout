@@ -203,6 +203,24 @@ export default function HelperRoom({
    *  scroll to it rather than opening the phone's full-screen sheet over a
    *  layout that already has room for the preview — B1016. */
   const previewRef = useRef<HTMLElement>(null);
+  // The room is meant to be the whole viewport, not a page inside one — B1560.
+  // Nothing in `app/globals.css` stops `<body>` itself from scrolling, and the
+  // header and the mobile tab bar below are ordinary flex siblings rather than
+  // `position: fixed`. So the moment anything moves the document's own scroll
+  // position — a stray `scrollIntoView` reaching past its own scroll box, a
+  // `dvh` rounding mismatch during a mobile keyboard transition — the header
+  // and tab bar go with it, off the top and bottom of the screen, revealing
+  // bare page below. Locking body scroll for as long as the room is mounted
+  // is the same fix `SlideShow.tsx` already uses for its own full-screen
+  // overlay; it makes "the room is the whole viewport" true structurally
+  // instead of by convention.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
   const [scrollTick, setScrollTick] = useState(0);
   useEffect(() => {
     if (scrollTick > 0) previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });

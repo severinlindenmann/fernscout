@@ -176,6 +176,22 @@ grep -E "fs_session|fs_identity" /tmp/wt-cookies.txt | awk '{print $6"="$7}'
 Signing in through the UI is not an option on a public journal — there is no
 guest form to drive.
 
+**Both MCP browsers refuse with *"Browser is already in use … use
+--isolated"* when another session on this machine already holds the
+profile** — the flag is not yours to pass. Fall back to driving headless
+Chrome yourself over CDP: `check-page.mjs`'s own client (a few lines of
+`WebSocket` + `Network.setCookie`, no dependency) is the pattern to copy for a
+one-off interactive script when a static screenshot is not enough. Do **not**
+put a cookie-injecting HTTP proxy in front of `next dev` instead — the page
+renders and never hydrates (every client component silently dead, no console
+error), which reads exactly like a bug in whatever you were testing rather
+than in the harness. B1560 cost a few rounds re-discovering this.
+
+**`/agent` specifically also wants the `fs.journal` cookie** (the same one
+`HelperRoom`'s own journal switcher writes) alongside `fs_session`/
+`fs_identity` — without it a person who owns more than one journal, or whose
+signed-in address is ambiguous, may not land on the one you meant to test.
+
 ## 5. Test at 390px
 
 390 × 844 is the design width for anything a reader touches. Test there first

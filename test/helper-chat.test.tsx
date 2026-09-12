@@ -675,8 +675,11 @@ describe("a turn with two proposals", () => {
  * two effects that ran every render and disagreed: the second always undid
  * the first, so a tall card opened scrolled past the sentence explaining it.
  * jsdom has no layout, so this asserts which DOM call fires for which kind
- * of turn rather than any pixel — `scrollIntoView` for a card, the log's
- * `scrollTop` setter for plain text.
+ * of turn rather than any pixel — the log's own `scrollTop` setter for both,
+ * since B1560 replaced the proposal branch's `scrollIntoView` with the same
+ * manual `scrollTop` write: `scrollIntoView` walks every scrollable
+ * ancestor, including the window, which is exactly what carried the room's
+ * header and tab bar off-screen on a phone.
  */
 describe("where the screen goes when a turn lands — B1253", () => {
   // The log only mounts once a turn exists (`inRoom || turns.length > 0`),
@@ -701,14 +704,14 @@ describe("where the screen goes when a turn lands — B1253", () => {
     });
   });
 
-  test("a proposal turn scrolls the card into view and leaves the log's own scrollTop alone", async () => {
+  test("a proposal turn scrolls the log to the card's top, never the window", async () => {
     answers(proposed());
     render();
 
     await ask("plan a trip");
 
-    expect(scrollIntoView).toHaveBeenCalled();
-    expect(scrollTopSpy).not.toHaveBeenCalled();
+    expect(scrollTopSpy).toHaveBeenCalled();
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
   test("a plain-text turn scrolls the log to its newest line, not any card", async () => {
