@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: agent room, mobile
 found: "2026-09-12T08:54:29Z"
+started: "2026-09-12T09:17:43Z"
+session: 5a4744c4-0424-4149-9d23-d8a0bd9dd3b1
+claimed: "2026-09-12T09:17:43Z"
 ---
 
 # B1575 — The Dateien tab's upload control sits below every file, out of reach on a long list
