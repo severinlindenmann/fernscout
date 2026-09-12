@@ -151,6 +151,8 @@ export type TranslationKey =
   | "agent.block.days"
   | "agent.block.findDay"
   | "agent.block.inbox"
+  | "agent.block.inboxKindPhotograph"
+  | "agent.block.inboxKindVideo"
   | "agent.block.invites"
   | "agent.block.invitesRevoked"
   | "agent.block.invitesUsed"

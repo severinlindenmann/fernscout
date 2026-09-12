@@ -1936,6 +1936,8 @@
   "agent.chat.startOver": "Start over",
   "agent.block.days": "Days in this trip",
   "agent.block.inbox": "Waiting in the inbox",
+  "agent.block.inboxKindPhotograph": "photograph",
+  "agent.block.inboxKindVideo": "video",
   "agent.tool.createTrip": "A trip called {title}, from {start} to {end}. Nothing exists until you press.",
   "agent.tool.createTripAccept": "Make this trip",
   "agent.tool.createTripDone": "The trip is made.",

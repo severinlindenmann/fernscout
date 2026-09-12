@@ -1936,6 +1936,8 @@
   "agent.chat.startOver": "Kezdjük elölről",
   "agent.block.days": "Az utazás napjai",
   "agent.block.inbox": "A bejövőben várakozik",
+  "agent.block.inboxKindPhotograph": "fénykép",
+  "agent.block.inboxKindVideo": "videó",
   "agent.tool.createTrip": "Egy utazás {title} címmel, {start} és {end} között. Semmi nem jön létre, amíg meg nem nyomod.",
   "agent.tool.createTripAccept": "Utazás létrehozása",
   "agent.tool.createTripDone": "Az utazás létrejött.",
