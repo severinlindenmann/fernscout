@@ -7,8 +7,7 @@ complexity: low
 area: helper/transcription
 found: "2026-09-11T23:06:54Z"
 started: "2026-09-12T07:22:46Z"
-session: 5c987a64-dfc0-4ac9-9b57-3804213ba1b8
-claimed: "2026-09-12T07:22:46Z"
+merged: "2026-09-12T07:33:08Z"
 ---
 
 # B1550 — Transcription trusts caller-claimed seconds and the top-up charge fails open

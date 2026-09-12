@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (219)
+## backlog (226)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (52)
+### issue (59)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -75,6 +75,9 @@ Do not edit them by hand; run the script.
 | [B1472](backlog/issue/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low |
 | [B1498](backlog/issue/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium |
 | [B1539](backlog/issue/B1539-ten-days-on-one-island-shared.md) | Ten days on one island shared one media folder and one slug, and two thirds of the photographs were lost | ISSUE | high | low |
+| [B1561](backlog/issue/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium |
+| [B1562](backlog/issue/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low |
+| [B1563](backlog/issue/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -98,6 +101,9 @@ Do not edit them by hand; run the script.
 | [B1535](backlog/issue/B1535-an-agent-code-for-the-instance.md) | An agent code for the instance admin is refused on every journal they do not own | ISSUE | medium | low |
 | [B1538](backlog/issue/B1538-validate-content-truncated-its-own-json.md) | validate-content truncated its own JSON report, and selftest blamed the fixture | ISSUE | medium | low |
 | [B1540](backlog/issue/B1540-the-country-is-in-every-exported.md) | The country is in every exported photo and the helper throws it away, so the photobook says "elsewhere" on every day | ISSUE | medium | low |
+| [B1564](backlog/issue/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low |
+| [B1565](backlog/issue/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low |
+| [B1567](backlog/issue/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -116,6 +122,7 @@ Do not edit them by hand; run the script.
 | [B1504](backlog/issue/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low |
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
+| [B1566](backlog/issue/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low |
 
 ### big-feature (13)
 
@@ -325,11 +332,10 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (11)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1550](in-development/B1550-transcription-trusts-caller-claimed-seconds-and.md) | Transcription trusts caller-claimed seconds and the top-up charge fails open | SECURITY | high | low | `5c987a64` |
 | [B1551](in-development/B1551-any-route-buffers-512-mib-in.md) | Any route buffers 512 MiB in memory before auth runs; Caddy sets no request_body max_size | SECURITY | high | low | `5c987a64` |
 | [B1552](in-development/B1552-email-code-endpoints-have-per-ip.md) | Email code endpoints have per-IP limits only — no per-recipient or per-instance cap | SECURITY | high | low | `5c987a64` |
 | [B1553](in-development/B1553-test-usernames-skip-phone-proof-but.md) | test- usernames skip phone proof but still receive the 10-credit grant and 5 GB quota | SECURITY | high | low | `5c987a64` |
@@ -341,7 +347,7 @@ Do not edit them by hand; run the script.
 | [B1558](in-development/B1558-submitrequest-lost-race-mails-the-operator.md) | submitRequest lost race mails the operator a dead approval link | ISSUE | low | low | `5c987a64` |
 | [B1559](in-development/B1559-paid-send-routes-rely-on-samesite.md) | Paid send routes rely on SameSite=lax alone — no Origin check as second layer | SECURITY | low | low | `5c987a64` |
 
-## testing (21)
+## testing (22)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -349,6 +355,7 @@ Do not edit them by hand; run the script.
 | [B1511](testing/B1511-the-message-on-the-back-preview.md) | The message on the back preview is far larger than the message that prints | ISSUE | high | medium | — |
 | [B1521](testing/B1521-the-budget-panel-projects-a-finished.md) | The budget panel projects a finished trip forward and fills unrecorded days with an average | ISSUE | high | medium | — |
 | [B1524](testing/B1524-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium | — |
+| [B1550](testing/B1550-transcription-trusts-caller-claimed-seconds-and.md) | Transcription trusts caller-claimed seconds and the top-up charge fails open | SECURITY | high | low | — |
 | [B1484](testing/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium | — |
 | [B1506](testing/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | — |
 | [B1507](testing/B1507-owner-new-onboard-whatsapp-assumes-a.md) | owner-new-onboard-whatsapp assumes a draft appears without completing WhatsApp onboarding | CHORE | medium | low | — |
