@@ -153,7 +153,15 @@ const LISTED_DECLINABLE: Declinable = {
     "a public trip states whether it is advertised (sitemap, feed, switcher): listed true or false, or declined",
 };
 
-const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "figures", "tagline", "intro", "listed", "buddies"] as const;
+/**
+ * Exported (D9, 06-contract-deltas.md) so the shared write path's T6 decline
+ * retraction (`lib/api/v2/write.ts`) can clear a stored decline of `listed`
+ * or `buddies` too — both are decline-able (the schema's `declined` map
+ * accepts them) even though neither is in `TRIP_DECLINABLES`, since each is
+ * asked by a bespoke `superRefine` check rather than
+ * `checkRequiredOrDeclined`. No change to any accepted document.
+ */
+export const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "figures", "tagline", "intro", "listed", "buddies"] as const;
 
 /**
  * Creating a trip: the whole document at once. Every declinable section is

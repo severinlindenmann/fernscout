@@ -209,3 +209,61 @@ export const JOURNAL_IMMUTABLE_FIELDS: readonly Immutable[] = [
     remove: true,
   },
 ];
+
+/**
+ * A trip's echo-tolerant fields — B1612 (phase 2 step 3, parcel B). `id` is a
+ * genuine `tripCreate`/`tripPatch` field (unlike a journal's `username`), so
+ * an echo needs no `remove` — the schema already accepts it, and this only
+ * refuses a caller trying to rename the trip out from under its own folder.
+ *
+ * `status` and `track` need `remove: true` for the same reason a day's own
+ * `status` does (see `DAY_IMMUTABLE_FIELDS` below): `tripDoc` adds both on
+ * every read, and `tripBase` — the `z.strictObject` `tripCreate`/`tripPatch`
+ * are built from — declares neither, so a caller that GETs a trip and PUTs
+ * or PATCHes the whole thing back would be refused for two keys it never
+ * chose to send, on every echo, always. Both are server-derived (`status`
+ * from the dates, `track` from the gps store) and never writable regardless
+ * of value, so there is nothing to compare an echo against — either field
+ * present is simply dropped before the schema ever sees it.
+ */
+export const TRIP_IMMUTABLE_FIELDS: readonly Immutable[] = [
+  {
+    path: ["id"],
+    refusal:
+      "id is not writable after a trip exists. It is the trip's folder name and the URL segment " +
+      "that addresses it. Send it back exactly as GET returned it, or leave it out of the patch.",
+  },
+  {
+    path: ["status"],
+    refusal: "status is not writable. It is derived from the trip's dates on every read.",
+    remove: true,
+  },
+  {
+    path: ["track"],
+    refusal: "track is not writable. It is derived from the gps store, which no route can write to.",
+    remove: true,
+  },
+];
+
+/**
+ * A day's echo-tolerant fields — same ticket. `status` is NOT here despite
+ * being server-influenced too: unlike a trip's `id` or `track`, a day's
+ * `status` has exactly one value the write schema can represent
+ * (`z.literal("draft")`), and that value is also the one `DAY_DECLINABLES`
+ * requires present-or-declined at CREATE — so a generic byte-identical-echo
+ * removal would strip `status: "draft"` off every ordinary PUT replace of a
+ * still-draft day (the obvious GET → edit one field → PUT the whole thing
+ * back) and turn it into a 422 for a field the schema never stopped wanting.
+ * `resolveStatusEcho` (./days.ts) is the value-aware version this needs
+ * instead: "draft" always reaches the schema untouched, and only "published"
+ * — the one value the literal can never accept at all — is dropped when it
+ * merely echoes what's already stored.
+ */
+export const DAY_IMMUTABLE_FIELDS: readonly Immutable[] = [
+  {
+    path: ["slug"],
+    refusal:
+      "slug is not writable after a day exists. It is the day's filename and the URL segment that " +
+      "addresses it. Send it back exactly as GET returned it, or leave it out of the patch.",
+  },
+];
