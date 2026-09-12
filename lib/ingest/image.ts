@@ -24,9 +24,21 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import sharp from "sharp";
 import { DHASH_GRID, dHash } from "./hash.ts";
+import { IMAGE_MAX_EDGE } from "../validate/media";
 
 /** Longest edge of a served derivative. */
 export const MAX_EDGE = 2000;
+
+/**
+ * Sharp's own default is roughly 268 megapixels (0x3FFF²) — generous enough
+ * that a crafted file a few kilobytes long can still claim to decode into a
+ * gigabyte of raw pixels, paid for on every decode this module does (the
+ * duplicate-check grid, the derivative, the HEIC fallback's own read-back).
+ * `IMAGE_MAX_EDGE` is already the hard ceiling no instance's `imageEdge`
+ * config may widen past (see AGENTS.md), so its square is the backstop here
+ * too, independent of whatever a narrower per-instance limit says — B1554.
+ */
+export const MAX_DECODE_PIXELS = IMAGE_MAX_EDGE * IMAGE_MAX_EDGE;
 
 export type DerivativeFormat = "jpeg" | "webp";
 
@@ -105,7 +117,7 @@ export type DecodedSource = {
 /** The 9×9 greyscale grid the difference hashes compare — and, incidentally,
  * the cheapest possible proof that a decoder can actually read this file. */
 async function greyGrid(input: string | Buffer): Promise<Uint8Array> {
-  const raw = await sharp(input, { failOn: "error" })
+  const raw = await sharp(input, { failOn: "error", limitInputPixels: MAX_DECODE_PIXELS })
     .resize(DHASH_GRID, DHASH_GRID, { fit: "fill" })
     .greyscale()
     .raw()
@@ -132,6 +144,26 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
 
   const decoder = findHeifDecoder();
   if (!decoder) throw new UndecodableImageError(file, failure);
+
+  /**
+   * Bound the fallback before it runs, not after — B1554.
+   *
+   * `greyGrid` above already refuses anything past `MAX_DECODE_PIXELS` that
+   * sharp itself would decode, but a HEIC's HEVC payload is exactly what
+   * sharp *cannot* decode, so that pixel limit never had a chance to fire —
+   * the failure that sent us here is "can't read this", not "too big". sharp
+   * can still read the container's *declared* size without touching the
+   * pixel data (the same fact the thumbnail check below relies on), so that
+   * is checked here, before a shell-out and an uncapped temp file get spent
+   * on a fallback certain to be refused once it finishes anyway.
+   */
+  const declared = await sharp(file).metadata().catch(() => undefined);
+  if (declared?.width && declared?.height && declared.width * declared.height > MAX_DECODE_PIXELS) {
+    throw new UndecodableImageError(
+      file,
+      `declares ${declared.width}×${declared.height}, more pixels than this server will decode`,
+    );
+  }
 
   const temp = path.join(
     fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-ingest-")),
@@ -162,20 +194,20 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
    * read at all has nothing to check against, and refusing those would refuse
    * formats this has no opinion about.
    */
-  const [got, declared] = await Promise.all([
-    sharp(temp).metadata().catch(() => undefined),
-    sharp(file).metadata().catch(() => undefined),
+  const [got, redeclared] = await Promise.all([
+    sharp(temp, { limitInputPixels: MAX_DECODE_PIXELS }).metadata().catch(() => undefined),
+    sharp(file, { limitInputPixels: MAX_DECODE_PIXELS }).metadata().catch(() => undefined),
   ]);
   const pair = (m?: { width?: number; height?: number }) =>
     m?.width && m.height ? [Math.min(m.width, m.height), Math.max(m.width, m.height)] : undefined;
-  const a = pair(declared);
+  const a = pair(redeclared);
   const b = pair(got);
   if (a && b && (a[0] !== b[0] || a[1] !== b[1])) {
     fs.rmSync(path.dirname(temp), { recursive: true, force: true });
     throw new UndecodableImageError(
       file,
       `${decoder.command} returned a ${got!.width}×${got!.height} image for a file that ` +
-        `declares ${declared!.width}×${declared!.height}, so what it decoded is not this ` +
+        `declares ${redeclared!.width}×${redeclared!.height}, so what it decoded is not this ` +
         `photograph — most likely the embedded thumbnail, because it could not read the ` +
         `image data itself`,
     );
@@ -199,7 +231,7 @@ export function heifDecoderName(): string | null {
 // ---------------------------------------------------------------------------
 
 function oriented(source: DecodedSource) {
-  const image = sharp(source.file, { failOn: "error" });
+  const image = sharp(source.file, { failOn: "error", limitInputPixels: MAX_DECODE_PIXELS });
   return source.alreadyOriented ? image : image.rotate();
 }
 
@@ -231,7 +263,7 @@ export async function perceptualHashOf(bytes: Buffer): Promise<string> {
  * run on every file rather than only the ones that look suspicious.
  */
 export async function sourceLongestEdge(source: DecodedSource): Promise<number | undefined> {
-  const meta = await sharp(source.file, { failOn: "error" }).metadata();
+  const meta = await sharp(source.file, { failOn: "error", limitInputPixels: MAX_DECODE_PIXELS }).metadata();
   if (!meta.width || !meta.height) return undefined;
   return Math.max(meta.width, meta.height);
 }

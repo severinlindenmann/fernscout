@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import {
+  MAX_DECODE_PIXELS,
   decodeSource,
   extensionFor,
   makeDerivative,
@@ -356,12 +357,43 @@ export async function storeUploads(
   // Every upload used to be declared an image, so an .mp4 was measured
   // against the image formats and refused as a broken photograph — while the
   // limits table in /agent.md advertised video. The extension decides.
-  const candidates: MediaCandidate[] = uploads.map((u) => ({
-    name: u.filename,
-    kind: kindOf(u.filename),
-    format: path.extname(u.filename).replace(".", "").toLowerCase().replace("jpg", "jpeg"),
-    bytes: u.bytes.byteLength,
-  }));
+  //
+  // `longestEdge` used to be left undefined here, which made `imageEdge` in
+  // `validateMediaBatch` below dead code on this path — B1554. It is read off
+  // the header, not decoded (`limitInputPixels` makes sharp refuse a header
+  // claiming more pixels than this server will ever decode, rather than
+  // allocating the raw buffer to find out), so a crafted small file claiming
+  // an enormous image is caught here, before the loop below ever calls
+  // `decodeSource` or `makeDerivative` on it.
+  const candidates: MediaCandidate[] = [];
+  for (const u of uploads) {
+    const kind = kindOf(u.filename);
+    let longestEdge: number | undefined;
+    if (kind === "image") {
+      try {
+        const meta = await sharp(u.bytes, { limitInputPixels: MAX_DECODE_PIXELS }).metadata();
+        if (meta.width && meta.height) longestEdge = Math.max(meta.width, meta.height);
+      } catch (err) {
+        // Sharp's own refusal for a header claiming more pixels than
+        // `MAX_DECODE_PIXELS` — the exact figure does not matter, only that
+        // the batch is refused for it rather than silently passed through
+        // with no `longestEdge` for the check below to see. Anything else —
+        // a file that is not an image at all, a format sharp cannot even
+        // read the header of — is left for the decode loop further down,
+        // which already reports that with a real message (`UndecodableImageError`).
+        if (/exceeds pixel limit/i.test((err as Error).message ?? "")) {
+          longestEdge = limits.imageEdge + 1;
+        }
+      }
+    }
+    candidates.push({
+      name: u.filename,
+      kind,
+      format: path.extname(u.filename).replace(".", "").toLowerCase().replace("jpg", "jpeg"),
+      bytes: u.bytes.byteLength,
+      longestEdge,
+    });
+  }
   const problems = validateMediaBatch(candidates, limits);
 
   // Video needs ffmpeg, which is the one thing here that is not an npm
@@ -590,7 +622,7 @@ export async function storeUploads(
         // because a HEIC's own header is not something sharp can always read —
         // `decodeSource` is what guarantees a file with legible dimensions.
         // These are the *original's* pixels; the derivative's are below.
-        original = await sharp(source.file).metadata();
+        original = await sharp(source.file, { limitInputPixels: MAX_DECODE_PIXELS }).metadata();
         derivative = await makeDerivative(source);
       } finally {
         source.dispose();
