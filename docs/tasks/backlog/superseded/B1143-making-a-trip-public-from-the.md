@@ -6,11 +6,18 @@ priority: low
 complexity: low
 area: day page, owner tools, visibility
 found: "2026-09-09T18:37:00Z"
+superseded: "B1585 — the author decided every level gets a second press, always"
 ---
 
 # B1143 — Making a trip public from the day panel is the same single press as fixing a typo
 
 ## Why
+
+**Closed 2026-09-12, superseded by B1585.** The author was asked directly and
+answered the open question this ticket holds: every visibility control, at
+every level, takes a second press — not only the widening ones. That is written
+into B1585's Work section, which rebuilds the day panel's trip select as part
+of one shared control. Nothing below is wrong; it is simply decided elsewhere.
 
 B980 round 3 put the trip's own `visibility` and `listed` into the edit panel on
 the day, and both are sent by `save()` alongside the title and the prose. So one

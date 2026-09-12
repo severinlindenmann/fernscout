@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (221)
+## backlog (222)
 
 ### security (4)
 
@@ -120,10 +120,11 @@ Do not edit them by hand; run the script.
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 
-### big-feature (13)
+### big-feature (14)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1585](backlog/big-feature/B1585-nothing-on-a-trip-a-day.md) | Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
 | [B1541](backlog/big-feature/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
@@ -138,7 +139,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -156,7 +157,6 @@ Do not edit them by hand; run the script.
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
 | [B1028](backlog/small-feature/B1028-the-owner-s-own-trip-form.md) | The owner's own trip form cannot edit the three fields the API just gained | FEATURE | low | low |
-| [B1143](backlog/small-feature/B1143-making-a-trip-public-from-the.md) | Making a trip public from the day panel is the same single press as fixing a typo | FEATURE | low | low |
 | [B1317](backlog/small-feature/B1317-the-sms-number-is-domestic-only.md) | The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send | FEATURE | low | medium |
 | [B1441](backlog/small-feature/B1441-postcard-order-status-only-updates-when.md) | Postcard order status only updates when the page is opened | FEATURE | low | medium |
 | [B1497](backlog/small-feature/B1497-a-book-whose-cover-the-planner.md) | A book whose cover the planner picked cannot show it anywhere outside the preview frame | FEATURE | low | medium |
@@ -207,7 +207,7 @@ Do not edit them by hand; run the script.
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (88)
+### superseded (89)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -281,6 +281,7 @@ Do not edit them by hand; run the script.
 | [B1034](backlog/superseded/B1034-agentdoor-tsx-still-imports-agentrow-helperask.md) | AgentDoor.tsx still imports AgentRow, HelperAsk, AgentHandover and LOW_CREDITS from the journal card B984 removed | CHORE | low | low |
 | [B1043](backlog/superseded/B1043-the-helper-has-no-tool-for.md) | The helper has no tool for captioning a photograph or telling readers a day is up | FEATURE | low | low |
 | [B1047](backlog/superseded/B1047-two-sessions-running-verify-in-the.md) | Two sessions running verify in the shared checkout collide on the next build lock | DOCS | low | low |
+| [B1143](backlog/superseded/B1143-making-a-trip-public-from-the.md) | Making a trip public from the day panel is the same single press as fixing a typo | FEATURE | low | low |
 | [B1226](backlog/superseded/B1226-the-resolution-floor-is-200-dpi.md) | The resolution floor is 200 dpi where the printer starts warning at 225 | FEATURE | low | low |
 | [B1432](backlog/superseded/B1432-german-phrasing-for-where-s-my.md) | German phrasing for “where's my stuff” still routes to the bytes-only account tool | ISSUE | low | low |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
