@@ -331,20 +331,19 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (8)
+## in-development (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1561](in-development/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium | `47912984` |
 | [B1562](in-development/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low | `47912984` |
 | [B1563](in-development/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium | `47912984` |
-| [B1568](in-development/B1568-signup-lets-a-proven-address-that.md) | Signup lets a proven address that already owns a journal walk through phone verification before refusing | ISSUE | high | low | `94440113` |
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (34)
+## testing (35)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -357,6 +356,7 @@ Do not edit them by hand; run the script.
 | [B1552](testing/B1552-email-code-endpoints-have-per-ip.md) | Email code endpoints have per-IP limits only — no per-recipient or per-instance cap | SECURITY | high | low | — |
 | [B1553](testing/B1553-test-usernames-skip-phone-proof-but.md) | test- usernames skip phone proof but still receive the 10-credit grant and 5 GB quota | SECURITY | high | low | — |
 | [B1560](testing/B1560-on-mobile-the-chat-page-scrolls.md) | On mobile, the chat page scrolls the whole document and the tab bar stops sticking | ISSUE | high | low | — |
+| [B1568](testing/B1568-signup-lets-a-proven-address-that.md) | Signup lets a proven address that already owns a journal walk through phone verification before refusing | ISSUE | high | low | — |
 | [B1484](testing/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium | — |
 | [B1506](testing/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium | — |
 | [B1507](testing/B1507-owner-new-onboard-whatsapp-assumes-a.md) | owner-new-onboard-whatsapp assumes a draft appears without completing WhatsApp onboarding | CHORE | medium | low | — |

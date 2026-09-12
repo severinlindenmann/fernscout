@@ -7,8 +7,7 @@ complexity: low
 area: signup / agent door
 found: "2026-09-12T07:58:58Z"
 started: "2026-09-12T08:20:40Z"
-session: 94440113-24c0-47b4-a2ba-1cc4aedf74a6
-claimed: "2026-09-12T08:20:40Z"
+merged: "2026-09-12T08:55:23Z"
 ---
 
 # B1568 — Signup lets a proven address that already owns a journal walk through phone verification before refusing
