@@ -40,9 +40,19 @@ const fullDay = {
   content: "We took the first train up.",
   coordinates: { lat: 46.62, lng: 8.03 },
   weather: true,
+  time: "08:40",
+  timezone: "Europe/Zurich",
+  location: "Grindelwald",
+  country: "Switzerland",
+  countryCode: "CH",
+  transportMode: "train",
+  status: "draft",
+  media: [{ src: "abc123", caption: "First light", visibility: "guest" }],
   declined: {
-    media: "no photographs were taken this day",
     costs: "nothing was spent — a walking day",
+    tags: "owner does not tag their days",
+    translations: "journal is written in English only",
+    visibility: "shown to everyone the trip lets in",
   },
 };
 
@@ -147,8 +157,30 @@ describe("day", () => {
     expect(dayWrite.safeParse(fullDay).success).toBe(true);
   });
 
-  it("rejects the server-owned status in a write", () => {
+  it('accepts status "draft" and nothing else — publish stays its own call', () => {
     expect(dayWrite.safeParse({ ...fullDay, status: "published" }).success).toBe(false);
+    expect(dayWrite.safeParse(fullDay).success).toBe(true);
+  });
+
+  it("names every silently omitted day section in one round trip", () => {
+    const r = dayWrite.safeParse({
+      slug: "2026-09-21-grindelwald",
+      title: "Up the valley",
+      date: "2026-09-21",
+      content: "We took the first train up.",
+    });
+    expect(r.success).toBe(false);
+    const missing = r.error!.issues
+      .filter((i) => (i as { params?: { v2?: string } }).params?.v2 === "missing")
+      .map((i) => i.path[0]);
+    expect(missing.length).toBe(14);
+  });
+
+  it("retired v1's per-field declines — costs: false is now a shape error", () => {
+    expect(dayWrite.safeParse({ ...fullDay, costs: false }).success).toBe(false);
+    const noCaps = { ...fullDay } as Record<string, unknown>;
+    noCaps.captions = { abc123: "First light" };
+    expect(dayWrite.safeParse(noCaps).success).toBe(false);
   });
 
   it("refuses weatherData claiming the server's own source", () => {
