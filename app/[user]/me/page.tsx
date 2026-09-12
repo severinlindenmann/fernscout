@@ -208,6 +208,10 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
           start: trip.start,
           end: trip.end,
           visibility: trip.visibility,
+          // B1591 — the shared control writes these two as well, so the panel
+          // has to be handed what they currently are.
+          listed: trip.listed,
+          teaser: trip.teaser,
         }))
     : undefined;
 

@@ -136,3 +136,55 @@ As the owner, in a real browser, on a trip that predates the branch:
 
 `npm run verify` green, including `test/locales.test.ts` and
 `test/no-browser-dialogs.test.ts`. Screenshots on disk at 390 and 1280.
+
+## What building it changed
+
+**The popover is portalled, and that turned out to be required rather than
+tidy.** `StoryPager` wraps every day in a `motion.div` that animates `y`; a
+transform on an ancestor becomes the containing block for `position: fixed`,
+so the bottom sheet would have pinned itself to the middle of the day card —
+and only while the animation ran. `components/VisibilityPopover.tsx` carries
+that, with the phrasing-content and overflow-clipping reasons beside it.
+
+**Two controls collapsed into one, which was not in the Work section.**
+Building it made the duplication plain: the journal had a checkbox on `/me`
+*and* the new badge, and a trip had the shared control on its own page *and*
+a separate `<select>` with its own two-press button in `/me`'s pencil. Both
+were the same field with two shapes and two sets of words. `JournalVisibility`
+and `TripVisibilityFor` are now the single control in both places — `/me`'s
+trip panel writes through `/<user>/trips/<id>/visibility` instead of
+`/api/trip`, which is also what gives it `listed` and `teaser`. Every string
+the old controls used moved across; none was dropped.
+
+**`TripEditPanel` gained `listed` and `teaser`**, passed from
+`app/[user]/me/page.tsx`, because the shared control writes them.
+
+**A test that could not fail, caught by trying to break it.**
+`test/me-journal-badge.test.tsx` first asserted `details.open === false` after
+pressing the badge — and passed with the `stopPropagation` guard deleted,
+because **jsdom does not toggle a disclosure when its summary is clicked**. It
+now asserts the click was cancelled, which is the mechanism that stops the
+toggle, and it fails when the guard is removed. Verified both ways.
+
+**`VisibilityHelp` renders inside the control**, not at each mount point. The
+first cut left it to callers and the trip page silently had no `?` at all —
+found in the browser, not by any test.
+
+## Acceptance, as met
+
+Driven with real pointer clicks in Chrome against `alps-2024`, which predates
+the branch:
+
+- Badge press opens the *chooser*; the `?` opens the explainer. Both at the
+  trip hero, the day heading, `/me`'s trip panel and `/me`'s journal card.
+- The dates under the trip hero moved **0px** when either opened.
+- Escape closes; a click outside closes.
+- At 390px the card is a sheet pinned to the bottom, spanning the full
+  viewport width (375px of a 390px window — the rest is the scrollbar), with
+  no horizontal page scroll.
+- The journal badge inside the `<summary>` opens the chooser and the
+  disclosure stays shut.
+- A real save round trip: public → Guests → public, landing on disk each time.
+- `/me` reports 0 console errors.
+
+Screenshots: `/tmp/b1591-evidence-{sheet-390,help-390,card-1280}.png`.

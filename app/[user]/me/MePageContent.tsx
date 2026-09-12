@@ -19,14 +19,17 @@ import AgentKeys from "@/components/AgentKeys";
 import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentList";
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
-import ConfirmPanel from "@/components/ConfirmPanel";
 import GuestSignIn from "@/components/GuestSignIn";
 import PushOptIn from "@/components/PushOptIn";
 import DeleteAccount from "@/components/DeleteAccount";
 import ExportAccount from "@/components/ExportAccount";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
-import { VisibilityBadge, VisibilityHelp } from "@/components/Visibility";
+import {
+  JournalVisibility,
+  TripVisibilityFor,
+  VisibilityBadge,
+} from "@/components/Visibility";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
@@ -66,10 +69,11 @@ const FIELD_INPUT =
  * currency codes is a different piece of work than the one field per line
  * every other row here is. It stays API-only.
  *
- * **Visibility saves separately, behind its own `ConfirmPanel`** — B852
+ * **Visibility saves separately, behind its own second press** — B852
  * decided this the same way the account page's storage buttons do: a
  * consequential, one-way-feeling change earns its own confirmation rather
- * than riding along with an ordinary field save. See `VisibilitySetting`.
+ * than riding along with an ordinary field save. Since B1591 that press
+ * lives inside `JournalVisibility`; see `VisibilitySetting` below.
  */
 function JournalSettings({
   username,
@@ -415,83 +419,21 @@ function VisibilitySetting({
   journal: JournalPanel;
 }) {
   const { t } = useI18n();
-  const router = useRouter();
-  const [visibility, setVisibility] = useState(journal.visibility);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-
-  // The checkbox moves the moment it is clicked, same as `TripEditor`'s own
-  // visibility control — what confirms is the *save*, not the tick, so the
-  // panel below is free to say exactly what is about to change.
-  const asking = visibility !== journal.visibility;
-
-  async function commit() {
-    setBusy(true);
-    setError(undefined);
-    const response = await fetch("/api/journal", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, visibility }),
-    }).catch(() => null);
-    setBusy(false);
-    if (!response?.ok) {
-      const said = (await response?.json().catch(() => null)) as { message?: string } | null;
-      setError(said?.message ?? t("me.journalFailed"));
-      return;
-    }
-    router.refresh();
-  }
-
+  // B1591 — one control, two placements. This was a checkbox with its own
+  // `ConfirmPanel`, and B1585 put a badge above it so the panel said the word
+  // as well as the state; that is two controls for one field, and the checkbox
+  // was the one that never said the word. Both are gone, replaced by the same
+  // `JournalVisibility` the card above this panel now carries, so they cannot
+  // drift apart. Every string the checkbox used — the hint, both confirm
+  // questions, both button labels — moved into it.
   return (
     <div>
-      {/* B1585 — the word, before the switch that changes it. The checkbox
-          said "Advertise this journal" and its state was the only account of
-          which of the two the journal *is*, so the answer had to be inferred
-          from a tick. The `?` carries the journal-level meaning of `guest`,
-          which is not the trip-level one. */}
-      <div className="mb-2 flex items-center">
-        <VisibilityBadge audience={journal.visibility} />
-        <VisibilityHelp journal />
+      <p className="text-sm font-semibold text-navy-900">{t("me.journalVisibility")}</p>
+      {/* No `?` of its own — `VisibilityControl` draws one beside every badge
+          it renders, and two here would be two answers to one question. */}
+      <div className="mt-1 flex items-center">
+        <JournalVisibility username={username} journal={journal} />
       </div>
-      <label className="flex min-h-11 cursor-pointer items-center gap-3">
-        <input
-          type="checkbox"
-          checked={visibility === "public"}
-          disabled={busy}
-          onChange={(event) => {
-            setError(undefined);
-            setVisibility(event.target.checked ? "public" : "guest");
-          }}
-          className="h-5 w-5 shrink-0 rounded border-navy-300 text-navy-900"
-        />
-        <span className="text-sm leading-6 text-navy-800">{t("me.journalVisibility")}</span>
-      </label>
-      <p className="mt-1 text-xs leading-5 text-navy-500">{t("me.journalVisibilityHint")}</p>
-
-      {asking && (
-        <div className="mt-3">
-          <ConfirmPanel
-            label={t("me.journalVisibility")}
-            question={
-              visibility === "public"
-                ? t("me.journalVisibilityConfirmPublic")
-                : t("me.journalVisibilityConfirmGuest")
-            }
-            confirmLabel={
-              visibility === "public"
-                ? t("me.journalVisibilityGoPublic")
-                : t("me.journalVisibilityGoGuest")
-            }
-            busy={busy}
-            error={error}
-            onConfirm={commit}
-            onCancel={() => {
-              setVisibility(journal.visibility);
-              setError(undefined);
-            }}
-          />
-        </div>
-      )}
     </div>
   );
 }
@@ -600,8 +542,6 @@ function TripEditor({
   const [tagline, setTagline] = useState(trip.tagline);
   const [start, setStart] = useState(trip.start);
   const [end, setEnd] = useState(trip.end);
-  const [visibility, setVisibility] = useState(trip.visibility);
-  const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -710,54 +650,12 @@ function TripEditor({
         </div>
       </div>
 
-      <div className="mt-5 border-t border-navy-200 pt-4">
-        {/* The same `?` the trip page and the day carry — B1585. One
-            explanation of the three words, wherever they are being chosen. */}
-        <div className="mb-1 flex items-center">
-          <VisibilityBadge audience={trip.visibility} />
-          <VisibilityHelp />
-        </div>
-        <label className="block">
-          <span className="text-sm font-semibold text-navy-900">
-            {t("me.tripWho")}
-          </span>
-          <select
-            value={visibility}
-            onChange={(event) => {
-              setVisibility(event.target.value as TripEditPanel["visibility"]);
-              setConfirming(false);
-            }}
-            className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
-          >
-            <option value="private">{t("me.tripWhoPrivate")}</option>
-            <option value="guest">{t("me.tripWhoGuest")}</option>
-            <option value="public">{t("me.tripWhoPublic")}</option>
-          </select>
-        </label>
-        {visibility !== trip.visibility && (
-          <>
-            {/* Two presses, always — not only when it widens. Everything
-                already published on this journey answers to the new value the
-                moment it is written, and a `<select>` is one careless click. */}
-            <p className="mt-2 text-sm leading-6 text-navy-700">
-              {t("me.tripWhoWarning")}
-            </p>
-            <BusyButton
-              busy={busy}
-              type="button"
-              onClick={async () => {
-                if (!confirming) {
-                  setConfirming(true);
-                  return;
-                }
-                if (await save({ visibility })) onClose();
-              }}
-              className="mt-2 inline-flex min-h-11 w-fit items-center rounded-full border border-coral-400 px-5 text-base font-semibold text-coral-600 transition-colors hover:bg-coral-50 disabled:opacity-50"
-            >
-              {t(confirming ? "me.tripWhoConfirm" : "me.tripWhoChange")}
-            </BusyButton>
-          </>
-        )}
+      {/* B1591 — the same control the trip's own page draws, rather than a
+          second `<select>` with its own two-press button and its own words.
+          It writes through `/<user>/trips/<id>/visibility`, not `/api/trip`,
+          which is what gives this panel `listed` and `teaser` as well. */}
+      <div className="mt-5 flex items-center border-t border-navy-200 pt-4">
+        <TripVisibilityFor trip={{ ...trip, username }} />
       </div>
 
       {problem && (
@@ -783,6 +681,10 @@ export type TripEditPanel = {
   start: string;
   end: string;
   visibility: "public" | "guest" | "private";
+  /** The other half of "who can find this" — B1591 brought the shared control
+   *  here, and it carries both. */
+  listed: boolean;
+  teaser?: boolean;
 };
 
 /** The journal's own description, for the card that edits it — B619. Owner
@@ -1295,8 +1197,22 @@ export default function MePageContent({
                   <details className="mt-3">
                     <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
                       <span className="min-w-0">
-                        <span className="block truncate font-display text-lg font-semibold text-navy-900">
-                          {journal.title}
+                        {/* B1591 — the word beside the name, so the card
+                            answers "is my journal advertised" without being
+                            opened. `truncate` moves to the title alone: with
+                            the badge inside it, a long title would clip the
+                            badge rather than itself.
+
+                            It is a control, and it lives inside a `<summary>`
+                            — pressing it would toggle this disclosure if
+                            `VisibilityControl` did not stop the event, which
+                            it does, and `test/me-journal-badge.test.tsx`
+                            holds that. */}
+                        <span className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
+                          <span className="truncate font-display text-lg font-semibold text-navy-900">
+                            {journal.title}
+                          </span>
+                          <JournalVisibility username={username} journal={journal} />
                         </span>
                         {journal.tagline && (
                           <span className="block truncate text-sm text-navy-600">
