@@ -1602,6 +1602,8 @@
   "agent.missingPhotos": "Photographs",
   "agent.answerNone": "There was none",
   "agent.answerUnknown": "Nobody has it",
+  "agent.answerLookUpWeather": "Look it up",
+  "agent.answerSkipWeather": "No, skip it",
   "agent.uploadingOriginals": "The full-size copies are still going up — {done} of {total}. Carry on writing; they finish on their own.",
   "agent.noRoom": "There is not room for these: {needed} MB to send, {left} MB left in this journal. Send fewer, or free some space first.",
   "agent.helperHint": "If you would rather not shape this yourself, the words above can be tidied into a day for you. Nothing is added that you did not say, and you read what comes back before any of it is kept.",

@@ -6,10 +6,13 @@ import {
   storeInboxFile,
   findInboxFile,
   dayInboxDir,
+  inboxDir,
   listDayInbox,
   moveInboxFileToDay,
+  moveInboxFileFromDay,
   findDayInboxFile,
   removeDayInboxFile,
+  updateInboxMeta,
 } from "@/lib/inbox";
 
 const SERVER_CFG =
@@ -77,5 +80,49 @@ describe("removeDayInboxFile", () => {
     expect(removeDayInboxFile("u", "2026-05-04", entry.id)).toBe(true);
     expect(findDayInboxFile("u", "2026-05-04", entry.id)).toBeNull();
     expect(removeDayInboxFile("u", "2026-05-04", entry.id)).toBe(false); // already gone
+  });
+});
+
+describe("moveInboxFileFromDay", () => {
+  test("moves a staged file back to the flat bucket, bytes and sidecar both — the inverse of moveInboxFileToDay", () => {
+    journal();
+    const { entry } = storeInboxFile("u", "contact", "friend.vcf", Buffer.from("BEGIN:VCARD"), {});
+    moveInboxFileToDay("u", entry.id, "2026-05-04");
+    expect(findDayInboxFile("u", "2026-05-04", entry.id)).not.toBeNull();
+
+    const back = moveInboxFileFromDay("u", "2026-05-04", entry.id);
+    expect(back?.entry.id).toBe(entry.id);
+    expect(findDayInboxFile("u", "2026-05-04", entry.id)).toBeNull();
+    expect(findInboxFile("u", entry.id)).not.toBeNull();
+    expect(fs.existsSync(path.join(inboxDir("u", "contact"), entry.id))).toBe(true);
+  });
+
+  test("an id not staged for that date moves nothing and answers null", () => {
+    journal();
+    expect(moveInboxFileFromDay("u", "2026-05-04", "no-such-id.jpg")).toBeNull();
+  });
+});
+
+describe("updateInboxMeta", () => {
+  test("merges a patch into a date-folder sidecar without moving the file", () => {
+    journal();
+    const { entry } = storeInboxFile("u", "media", "a.jpg", Buffer.from("a"), {});
+    moveInboxFileToDay("u", entry.id, "2026-05-04");
+    expect(updateInboxMeta("u", entry.id, { caption: "The pass" }, "2026-05-04")).toBe(true);
+    const found = findDayInboxFile("u", "2026-05-04", entry.id);
+    expect(found?.entry.caption).toBe("The pass");
+    expect(found?.entry.filename).toBe("a.jpg"); // the rest of the sidecar survives
+  });
+
+  test("merges a patch into a flat-bucket sidecar when no date is given", () => {
+    journal();
+    const { entry } = storeInboxFile("u", "media", "b.jpg", Buffer.from("b"), {});
+    expect(updateInboxMeta("u", entry.id, { descriptionAsked: true })).toBe(true);
+    expect(findInboxFile("u", entry.id)?.entry.descriptionAsked).toBe(true);
+  });
+
+  test("an id nowhere in the place named answers false", () => {
+    journal();
+    expect(updateInboxMeta("u", "no-such-id.jpg", { caption: "x" }, "2026-05-04")).toBe(false);
   });
 });

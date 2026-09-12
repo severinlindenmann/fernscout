@@ -1602,6 +1602,8 @@
   "agent.missingPhotos": "Fotos",
   "agent.answerNone": "Es gab nichts",
   "agent.answerUnknown": "Niemand hat es",
+  "agent.answerLookUpWeather": "Nachschlagen",
+  "agent.answerSkipWeather": "Nein, danke",
   "agent.uploadingOriginals": "Die Originale in voller Größe laufen noch — {done} von {total}. Schreib ruhig weiter; sie werden von selbst fertig.",
   "agent.noRoom": "Dafür ist kein Platz: {needed} MB zu senden, {left} MB frei in diesem Journal. Schick weniger, oder mach zuerst Platz.",
   "agent.helperHint": "Wenn du das nicht selbst ausformulieren willst, können deine Worte von oben zu einem Tag geordnet werden. Es kommt nichts dazu, was du nicht gesagt hast, und du liest das Ergebnis, bevor irgendetwas übernommen wird.",

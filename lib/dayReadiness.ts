@@ -23,6 +23,11 @@ export type DayReadiness = {
   without: Track[];
   unrecorded: Track[];
   weatherAsked: boolean;
+  /** Set alongside `weatherAsked` only when the answer was "look it up" —
+   *  `weatherAsked` alone means only "asked", never which way it went, and
+   *  the create step needs to tell "look it up" from "no" to know whether to
+   *  request the archive at all. */
+  weatherLookup?: boolean;
   /** A coordinate this date is tied to, and where it came from — the same
    *  three-word vocabulary `InboxMeta.source` uses for a file's own origin,
    *  restated here because a day's location may come from the browser
@@ -62,6 +67,7 @@ export function readDayReadiness(username: string, date: string): DayReadiness {
       without: parseWithout(raw.without),
       unrecorded: parseUnrecorded(raw.unrecorded),
       weatherAsked: raw.weatherAsked === true,
+      weatherLookup: raw.weatherLookup === true ? true : undefined,
       location: parseLocation(raw.location),
     };
   } catch {
@@ -82,6 +88,7 @@ export function writeDayReadiness(
     without: patch.without ?? current.without,
     unrecorded: patch.unrecorded ?? current.unrecorded,
     weatherAsked: patch.weatherAsked ?? current.weatherAsked,
+    weatherLookup: patch.weatherLookup ?? current.weatherLookup,
     location: patch.location ?? current.location,
   };
   const dir = dayInboxDir(username, date);

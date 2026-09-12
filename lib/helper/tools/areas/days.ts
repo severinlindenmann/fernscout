@@ -23,9 +23,10 @@ import { readWords } from "../../../dayReadiness";
  * The two-option shape (`unknown`/`none`) is `start_day`'s own for a `Track`
  * row, reused rather than reinvented — a trip's own three-answer prose
  * (`TRACK_ROWS[row].decline`/`.unknown`) is written for the honesty-net's
- * retry message, not for a button label. `weather` gets the same two options
- * for the same reason: "unknown" is the honest default (nobody has been
- * asked), "none" declines the lookup.
+ * retry message, not for a button label. `weather` gets its own two options
+ * instead (`lookup`/`decline`): it is never "nobody has it" the way a `Track`
+ * row can be, it is "look it up, or don't bother", and the confirm route
+ * needs to tell those two apart — only `lookup` requests the archive.
  *
  * `caption` is the one free-text field, and it is named `caption` rather than
  * `caption_<photoId>` on purpose: a field's label comes from
@@ -43,10 +44,25 @@ function fieldFor(missing: DayFolderMissing, say: Say): ProposalField[] {
       { name: "caption_photo", value: missing.photoId, fixed: true },
     ];
   }
-  const name = missing.field === "weather" ? "weather" : missing.field;
+  if (missing.field === "weather") {
+    // Its own two answers, not `start_day`'s `unknown`/`none` — a weather
+    // question is never "nobody has it", it is "look it up, or don't
+    // bother", and the confirm route needs to tell those two apart to know
+    // whether the create step requests the archive at all.
+    return [
+      {
+        name: "weather",
+        value: "lookup",
+        options: [
+          { value: "lookup", label: say("agent.answerLookUpWeather") },
+          { value: "decline", label: say("agent.answerSkipWeather") },
+        ],
+      },
+    ];
+  }
   return [
     {
-      name,
+      name: missing.field,
       value: UNKNOWN,
       options: [
         { value: UNKNOWN, label: say("agent.answerUnknown") },
@@ -544,11 +560,17 @@ export const DAYS_TOOLS: readonly Tool[] = [
         const dates = undatedDates(username);
         if (dates.length > 1) {
           return {
+            // `assemble_day` again, once the chosen date's undated content is
+            // actually moved into its folder — the confirm route tells this
+            // press apart from an ordinary missing-fields answer by the
+            // `chooseDate` marker below, and moves rather than creates.
+            next: { tool: "assemble_day", from: {} },
             sentence: say("agent.tool.assembleDayMultipleDates", { count: String(dates.length) }),
             accept: say("agent.tool.assembleDayMultipleDatesAccept"),
             done: say("agent.tool.assembleDayMultipleDatesDone"),
             fields: [
               { name: "trip", value: trip?.id ?? "", fixed: true },
+              { name: "chooseDate", value: "1", fixed: true },
               {
                 name: "date",
                 value: dates[0],
@@ -574,7 +596,10 @@ export const DAYS_TOOLS: readonly Tool[] = [
         const firstCaptionIndex = missing.findIndex((m) => m.field === "caption");
         const capped = missing.filter((m, index) => m.field !== "caption" || index === firstCaptionIndex);
         return {
-          sentence: say("agent.tool.assembleDayMissing", { date: chosenDate, count: String(missing.length) }),
+          // `capped.length`, not `missing.length` — the sentence should count
+          // what the fields below actually ask, and a second missing caption
+          // that is not shown this batch must not inflate the number.
+          sentence: say("agent.tool.assembleDayMissing", { date: chosenDate, count: String(capped.length) }),
           accept: say("agent.tool.assembleDayAsk"),
           done: say("agent.tool.assembleDayAsked"),
           fields: [

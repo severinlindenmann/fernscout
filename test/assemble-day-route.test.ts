@@ -7,8 +7,10 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
-import { appendWords, writeDayReadiness } from "@/lib/dayReadiness";
-import { dayInboxDir, moveInboxFileToDay, storeInboxFile } from "@/lib/inbox";
+import { missingForDayFolder } from "@/lib/dayMissing";
+import { appendWords, readDayReadiness, writeDayReadiness } from "@/lib/dayReadiness";
+import { ALL_TRACKED } from "@/lib/tracks";
+import { dayInboxDir, findDayInboxFile, findInboxFile, inboxDir, moveInboxFileToDay, storeInboxFile } from "@/lib/inbox";
 import { paintJpeg } from "./support/pictures";
 
 /**
@@ -92,11 +94,40 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   await closeDatabase();
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+/** Both halves have to say yes (`lib/capabilities.ts`'s `resolveOne`) — the
+ *  server config's own switch, and this journal's own opt-in. Only the
+ *  weather tests below need it, so it rewrites both configs rather than
+ *  being the default every other test would otherwise have to account for. */
+function enableWeather(): void {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "T", url: "https://t.test" },
+      features: { auth: { enabled: true }, weather: { enabled: true } },
+    }),
+  );
+  fs.writeFileSync(
+    path.join(dir, "alex", "config.json"),
+    JSON.stringify({
+      title: "Alex",
+      tagline: "t",
+      owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF",
+      features: { weather: { enabled: true } },
+    }),
+  );
+  clearConfigCache();
+  clearUserCache();
+}
 
 describe("assemble-day: the create press", () => {
   test("creates the day from a ready date folder: words, photos, and readiness answers all land on the new entry", async () => {
@@ -145,5 +176,172 @@ describe("assemble-day: the create press", () => {
     // decided yet" stands, and no entry appeared in the trip.
     const entries = fs.readdirSync(path.join(dir, "alex", "trips", TRIP, "entries"));
     expect(entries).toHaveLength(0);
+  });
+});
+
+describe("assemble-day: final-review Fix 1 — captions", () => {
+  test("answering a photo's caption clears it from missingForDayFolder, and the day can then be created carrying it", async () => {
+    const date = "2026-05-06";
+    const bytes = await paintJpeg(200, 150);
+    const { entry } = storeInboxFile("alex", "media", "harbour.jpg", bytes, {});
+    moveInboxFileToDay("alex", entry.id, date);
+    writeDayReadiness("alex", date, {
+      without: ["costs"],
+      location: { lat: 1, lon: 2, source: "browser" },
+    });
+
+    // Before the answer, the caption is what's missing.
+    expect(missingForDayFolder("alex", date, ALL_TRACKED).map((m) => m.field)).toContain("caption");
+
+    const recorded = await read(
+      await POST(json({ trip: TRIP, date, caption: "The old harbour", caption_photo: entry.id }), params),
+    );
+    expect(recorded.status).toBe(200);
+    expect(recorded.body.recorded).toBe(true);
+
+    // The sidecar carries it, wherever the photo is staged.
+    expect(findDayInboxFile("alex", date, entry.id)?.entry.caption).toBe("The old harbour");
+    expect(missingForDayFolder("alex", date, ALL_TRACKED).map((m) => m.field)).not.toContain("caption");
+
+    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    expect(made.status).toBe(201);
+    const day = getEntryBySlug(`alex/${TRIP}`, String(made.body.slug), AS_AUTHOR);
+    expect(day?.gallery[0]?.caption).toBe("The old harbour");
+  });
+
+  test("a caption question answered with nothing typed records descriptionAsked, and stops asking", async () => {
+    const date = "2026-05-07";
+    const bytes = await paintJpeg(200, 150);
+    const { entry } = storeInboxFile("alex", "media", "street.jpg", bytes, {});
+    moveInboxFileToDay("alex", entry.id, date);
+
+    const recorded = await read(await POST(json({ trip: TRIP, date, caption: "", caption_photo: entry.id }), params));
+    expect(recorded.status).toBe(200);
+
+    const staged = findDayInboxFile("alex", date, entry.id);
+    expect(staged?.entry.descriptionAsked).toBe(true);
+    expect(staged?.entry.caption).toBeUndefined();
+    expect(missingForDayFolder("alex", date, ALL_TRACKED).map((m) => m.field)).not.toContain("caption");
+  });
+});
+
+describe("assemble-day: final-review Fix 2 — weather look-up vs decline", () => {
+  test('choosing "look it up" requests the archive once the day is created, and the entry carries what came back', async () => {
+    enableWeather();
+    const date = "2026-05-08";
+    writeDayReadiness("alex", date, {
+      without: ["costs"],
+      location: { lat: 46.5, lon: 8.5, source: "browser" },
+    });
+    expect(missingForDayFolder("alex", date, ALL_TRACKED).map((m) => m.field)).toContain("weather");
+
+    const recorded = await read(await POST(json({ trip: TRIP, date, weather: "lookup" }), params));
+    expect(recorded.status).toBe(200);
+
+    const readiness = readDayReadiness("alex", date);
+    expect(readiness.weatherAsked).toBe(true);
+    expect(readiness.weatherLookup).toBe(true);
+    expect(missingForDayFolder("alex", date, ALL_TRACKED).map((m) => m.field)).not.toContain("weather");
+
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        daily: {
+          time: [date],
+          weather_code: [1],
+          temperature_2m_max: [22.5],
+          temperature_2m_min: [12.1],
+          precipitation_sum: [0],
+          wind_speed_10m_max: [10],
+        },
+      }),
+    } as unknown as Response);
+
+    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    expect(made.status).toBe(201);
+
+    const day = getEntryBySlug(`alex/${TRIP}`, String(made.body.slug), AS_AUTHOR);
+    expect(day?.weatherAsked).toBe(true);
+    expect(day?.weather?.source).toBe("open-meteo");
+    expect(day?.weather?.tempMax).toBe(22.5);
+  });
+
+  test('declining ("no, skip it") never asks the archive anything', async () => {
+    enableWeather();
+    const date = "2026-05-09";
+    writeDayReadiness("alex", date, {
+      without: ["costs"],
+      location: { lat: 46.5, lon: 8.5, source: "browser" },
+    });
+
+    await read(await POST(json({ trip: TRIP, date, weather: "decline" }), params));
+    const readiness = readDayReadiness("alex", date);
+    expect(readiness.weatherAsked).toBe(true);
+    expect(readiness.weatherLookup).toBeFalsy();
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    expect(made.status).toBe(201);
+    expect(fetchSpy).not.toHaveBeenCalled();
+
+    const day = getEntryBySlug(`alex/${TRIP}`, String(made.body.slug), AS_AUTHOR);
+    expect(day?.weatherAsked).toBeFalsy();
+    expect(day?.weather).toBeUndefined();
+  });
+});
+
+describe("assemble-day: final-review Fix 3 — several days from one batch", () => {
+  test("choosing a date moves the matching undated content into its folder, and the answer is never a claim that a day was created", async () => {
+    const bytes = await paintJpeg(100, 100);
+    const { entry } = storeInboxFile("alex", "media", "one.jpg", bytes, { takenAt: "2026-05-10T09:00:00Z" });
+    // An item from a different implied date must stay put.
+    storeInboxFile("alex", "media", "other.jpg", await paintJpeg(100, 100), { takenAt: "2026-05-12T09:00:00Z" });
+
+    const moved = await read(await POST(json({ trip: TRIP, date: "2026-05-10", chooseDate: "1" }), params));
+    expect(moved.status).toBe(200);
+    expect(moved.body.moved).toBe(1);
+    expect(moved.body.ok).toBe(true);
+    expect(moved.body.slug).toBeUndefined(); // never "created"
+
+    expect(findInboxFile("alex", entry.id)).toBeNull();
+    expect(findDayInboxFile("alex", "2026-05-10", entry.id)?.entry.id).toBe(entry.id);
+
+    // The other date's own item was left alone.
+    const stillFlat = fs.readdirSync(inboxDir("alex", "media")).filter((n) => n.endsWith(".meta.json"));
+    expect(stillFlat).toHaveLength(1);
+  });
+});
+
+describe("assemble-day: final-review Fix 4 — cleanup keeps unattached content", () => {
+  test("a contact vCard staged alongside a photo survives the create — it lands back in the flat bucket, never deleted", async () => {
+    const date = "2026-05-11";
+    const bytes = await paintJpeg(200, 150);
+    const { entry: photo } = storeInboxFile("alex", "media", "pass.jpg", bytes, { caption: "The pass" });
+    moveInboxFileToDay("alex", photo.id, date);
+    const { entry: contact } = storeInboxFile(
+      "alex",
+      "contact",
+      "friend.vcf",
+      Buffer.from("BEGIN:VCARD\nEND:VCARD\n"),
+      {},
+    );
+    moveInboxFileToDay("alex", contact.id, date);
+
+    writeDayReadiness("alex", date, {
+      without: ["costs"],
+      location: { lat: 1, lon: 2, source: "browser" },
+    });
+
+    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    expect(made.status).toBe(201);
+
+    // The day folder is gone — its job was staging and a real entry now
+    // holds what it carried...
+    expect(fs.existsSync(dayInboxDir("alex", date))).toBe(false);
+    // ...but the contact card was moved back to the flat bucket, not
+    // destroyed with the folder.
+    const back = findInboxFile("alex", contact.id);
+    expect(back?.entry.id).toBe(contact.id);
+    expect(fs.existsSync(path.join(inboxDir("alex", "contact"), contact.id))).toBe(true);
   });
 });
