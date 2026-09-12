@@ -251,7 +251,7 @@ export function openApiDocument() {
             type: {
               type: "string",
               description:
-                "What kind of place the provider thinks this is — city, village, hamlet, suburb, and so on, where it named one.",
+                "What kind of place the provider thinks this is — city, village, hamlet, suburb, and so on. Omitted when the provider named no place kind.",
             },
           },
         },

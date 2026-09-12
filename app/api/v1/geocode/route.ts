@@ -88,8 +88,8 @@ export async function POST(request: Request) {
   const auth = await authenticate(request);
   if (!auth.ok) return errorResponse(auth);
 
-  const username = auth.session.owner ?? "";
-  if (!username || !isEnabled("addressLookup", username)) {
+  const username = auth.session.owner;
+  if (!isEnabled("addressLookup", username)) {
     return Response.json({ error: "address_lookup_disabled" }, { status: 404 });
   }
 
