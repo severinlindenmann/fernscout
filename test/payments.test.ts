@@ -179,6 +179,30 @@ describe("pressing Pay files a request and grants nothing", () => {
     await reset(OPERATOR_EMAIL);
   });
 
+  test("two concurrent submits on one pending row: exactly one mints a stored token", async () => {
+    await reset(OPERATOR_EMAIL);
+    const { submitRequest, approvableByToken } = await import("@/lib/payments");
+    const p = await newPending(OWNER);
+
+    const [a, b] = await Promise.all([
+      submitRequest(OWNER, p.id, "twint"),
+      submitRequest(OWNER, p.id, "card"),
+    ]);
+    if (!a.ok || !b.ok) throw new Error("submit failed");
+
+    // Exactly one call minted and stored a token; the other lost the race
+    // and reports alreadyRequested rather than mailing a dead link.
+    const winners = [a, b].filter((r) => !r.alreadyRequested);
+    const losers = [a, b].filter((r) => r.alreadyRequested);
+    expect(winners.length).toBe(1);
+    expect(losers.length).toBe(1);
+    expect(winners[0].token).not.toBe("");
+    expect(losers[0].token).toBe("");
+
+    // The winner's token is the one actually stored on the row.
+    expect(await approvableByToken(OWNER, p.id, winners[0].token)).not.toBeNull();
+  });
+
   test("a bad method is refused and files nothing", async () => {
     await reset(OPERATOR_EMAIL);
     const { getPayment } = await import("@/lib/payments");
