@@ -23,12 +23,16 @@ import { mediaLoader } from "@/components/mediaLoader";
  * size and date, and neither group hides the other because both matter to
  * "what is waiting".
  *
- * **Not wired into `HelperRoom.tsx` by this ticket.** That file's `FilesPane`
- * and `Tile` are private to it and out of scope here; wiring this component
- * in means `filesForRoom` (`lib/helper/server.ts`) growing `kind`, `bytes`
- * and `uploadedAt` on `RoomFile`, and setting an inbox photograph's `src` to
- * this new route rather than leaving it `undefined`. Both are called out in
- * the ticket's own report rather than done here.
+ * Wired into `HelperRoom.tsx`'s files pane, fed by `filesForRoom`
+ * (`lib/helper/server.ts`), which carries `kind`, `bytes` and `uploadedAt` on
+ * `RoomFile` and points an inbox photograph's `src` at this route rather than
+ * leaving it `undefined`.
+ *
+ * A fourth kind of group, added by inbox day-assembly Phase 2's Task 4: a
+ * `date` on a file (`content/<user>/inbox/days/<date>/`, staged there by a
+ * WhatsApp pin among other things) groups it under a heading naming that
+ * date, above the three undated groups — otherwise it would sit in `filesForRoom`
+ * unread and never show that anything had moved.
  */
 
 type InboxFileKind = "photo" | "video" | "document" | "location" | "contact";
@@ -46,6 +50,15 @@ export type InboxFile = {
   /** ISO timestamp — `InboxEntry.uploadedAt` (`lib/inbox.ts`), or an
    *  already-placed photograph's own date. */
   at?: string;
+  /**
+   * `YYYY-MM-DD` — set only for content staged under a day folder
+   * (`content/<user>/inbox/days/<date>/`, `lib/inbox.ts`'s `listDayInbox`).
+   * Phase 2 (inbox day-assembly) Task 4: a person watching this pane after a
+   * WhatsApp pin lands into a date folder (Task 3) saw nothing move, since
+   * nothing here read that folder. A file carrying this groups under its own
+   * date heading instead of the three undated groups below.
+   */
+  date?: string;
 };
 
 /** `1.2 MB`, `340 KB`, `12 B` — a client-safe one-liner rather than an import
@@ -80,6 +93,63 @@ function newestFirst(files: InboxFile[]): InboxFile[] {
   });
 }
 
+/**
+ * One row in a list group — a document, an "other" item, or a day folder's
+ * staged item. Documents and "other" already drew this exact markup twice;
+ * a day-folder group (Task 4) reuses it rather than a third copy.
+ */
+function FileRow({
+  file,
+  selected,
+  onToggle,
+  onRemove,
+  t,
+}: {
+  file: InboxFile;
+  selected: string[];
+  onToggle: (id: string) => void;
+  onRemove: (id: string) => void;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
+  return (
+    <li className="flex items-center gap-1">
+      <label
+        data-inbox-id={file.id}
+        className={`flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
+          selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200 bg-white"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={selected.includes(file.id)}
+          onChange={() => onToggle(file.id)}
+          className="sr-only"
+        />
+        <KindIcon kind={file.kind} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm text-navy-900">{file.name}</span>
+          {(file.bytes !== undefined || file.at) && (
+            <span className="block text-xs text-navy-600">
+              {t("agent.room.fileMeta", {
+                size: file.bytes !== undefined ? formatBytes(file.bytes) : "",
+                date: file.at ? new Date(file.at).toLocaleDateString() : "",
+              })}
+            </span>
+          )}
+        </span>
+      </label>
+      <button
+        type="button"
+        onClick={() => onRemove(file.id)}
+        aria-label={t("agent.room.menuDiscard")}
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-navy-500 hover:bg-navy-50"
+      >
+        ×
+      </button>
+    </li>
+  );
+}
+
 export function InboxFileGroups({
   files,
   selected,
@@ -99,12 +169,36 @@ export function InboxFileGroups({
   onRemove: (id: string) => void;
 }) {
   const { t } = useI18n();
-  const photos = newestFirst(files.filter((f) => f.kind === "photo" || f.kind === "video"));
-  const documents = newestFirst(files.filter((f) => f.kind === "document"));
-  const other = newestFirst(files.filter((f) => f.kind === "location" || f.kind === "contact"));
+  // A day folder's own content (Task 4) is pulled out first and grouped by
+  // its date, above the three undated groups below; everything without a
+  // `date` groups exactly as it did before this ticket.
+  const dated = files.filter((f) => f.date);
+  const undated = files.filter((f) => !f.date);
+  const dateGroups = new Map<string, InboxFile[]>();
+  for (const file of dated) {
+    const group = dateGroups.get(file.date!);
+    if (group) group.push(file);
+    else dateGroups.set(file.date!, [file]);
+  }
+  const days = [...dateGroups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+
+  const photos = newestFirst(undated.filter((f) => f.kind === "photo" || f.kind === "video"));
+  const documents = newestFirst(undated.filter((f) => f.kind === "document"));
+  const other = newestFirst(undated.filter((f) => f.kind === "location" || f.kind === "contact"));
 
   return (
     <>
+      {days.map(([date, dayFiles]) => (
+        <section className="mt-4" key={date}>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">{date}</h3>
+          <ul className="mt-2 space-y-1">
+            {newestFirst(dayFiles).map((file) => (
+              <FileRow key={file.id} file={file} selected={selected} onToggle={onToggle} onRemove={onRemove} t={t} />
+            ))}
+          </ul>
+        </section>
+      ))}
+
       {photos.length > 0 && (
         <section className="mt-4">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
@@ -174,41 +268,7 @@ export function InboxFileGroups({
           </h3>
           <ul className="mt-2 space-y-1">
             {documents.map((file) => (
-              <li key={file.id} className="flex items-center gap-1">
-                <label
-                  data-inbox-id={file.id}
-                  className={`flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
-                    selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200 bg-white"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(file.id)}
-                    onChange={() => onToggle(file.id)}
-                    className="sr-only"
-                  />
-                  <KindIcon kind={file.kind} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-navy-900">{file.name}</span>
-                    {(file.bytes !== undefined || file.at) && (
-                      <span className="block text-xs text-navy-600">
-                        {t("agent.room.fileMeta", {
-                          size: file.bytes !== undefined ? formatBytes(file.bytes) : "",
-                          date: file.at ? new Date(file.at).toLocaleDateString() : "",
-                        })}
-                      </span>
-                    )}
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => onRemove(file.id)}
-                  aria-label={t("agent.room.menuDiscard")}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-navy-500 hover:bg-navy-50"
-                >
-                  ×
-                </button>
-              </li>
+              <FileRow key={file.id} file={file} selected={selected} onToggle={onToggle} onRemove={onRemove} t={t} />
             ))}
           </ul>
         </section>
@@ -221,41 +281,7 @@ export function InboxFileGroups({
           </h3>
           <ul className="mt-2 space-y-1">
             {other.map((file) => (
-              <li key={file.id} className="flex items-center gap-1">
-                <label
-                  data-inbox-id={file.id}
-                  className={`flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
-                    selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200 bg-white"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(file.id)}
-                    onChange={() => onToggle(file.id)}
-                    className="sr-only"
-                  />
-                  <KindIcon kind={file.kind} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm text-navy-900">{file.name}</span>
-                    {(file.bytes !== undefined || file.at) && (
-                      <span className="block text-xs text-navy-600">
-                        {t("agent.room.fileMeta", {
-                          size: file.bytes !== undefined ? formatBytes(file.bytes) : "",
-                          date: file.at ? new Date(file.at).toLocaleDateString() : "",
-                        })}
-                      </span>
-                    )}
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => onRemove(file.id)}
-                  aria-label={t("agent.room.menuDiscard")}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-navy-500 hover:bg-navy-50"
-                >
-                  ×
-                </button>
-              </li>
+              <FileRow key={file.id} file={file} selected={selected} onToggle={onToggle} onRemove={onRemove} t={t} />
             ))}
           </ul>
         </section>

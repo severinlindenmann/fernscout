@@ -1,5 +1,6 @@
 import "server-only";
 import fs from "node:fs";
+import path from "node:path";
 import { COSTS_IMPORTERS } from "@/importers/costs";
 import { GPS_IMPORTERS } from "@/importers/gps";
 import { resolveAccess } from "../auth/handshake";
@@ -7,7 +8,8 @@ import { costForDay, costLocalForDay } from "../costs";
 import { AS_AUTHOR, getAllEntries, getAllMedia, getDays, getEntryBySlug } from "../entries";
 import { getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
-import { findInboxFile, listInbox, type InboxEntry, type InboxKind } from "../inbox";
+import { findInboxFile, listDayInbox, listInbox, type InboxEntry, type InboxKind } from "../inbox";
+import { userDir } from "../users";
 import { resolveCookieCaller, trustedCaller } from "./caller";
 import { isWritten, type WizardDraft } from "./draft";
 
@@ -372,6 +374,15 @@ export type RoomFile = {
   kind?: InboxKind;
   bytes?: number;
   uploadedAt?: string;
+  /**
+   * `YYYY-MM-DD` — set only for a file staged under a day folder
+   * (`content/<user>/inbox/days/<date>/`, `listDayInbox`), never for the flat
+   * bucket. Inbox day-assembly Phase 2, Task 4: without this the pane had no
+   * way to say *that* dated content exists for a day, which is invisible
+   * work the moment something (a WhatsApp pin, Task 3) files straight into a
+   * date folder rather than the flat bucket.
+   */
+  date?: string;
 };
 
 /** One trip the pane can offer photographs from — cheap to list (`getTrips`
@@ -399,25 +410,64 @@ function tripsNewestFirst(username: string) {
   return [...getTrips(username)].sort((a, b) => b.start.localeCompare(a.start));
 }
 
+/** One entry from either the flat bucket or a day folder, as a `RoomFile` —
+ *  the two reads in `filesForRoom` below share this rather than each writing
+ *  its own version of the same seven fields. `date` is the one thing that
+ *  tells them apart downstream, in `InboxFileGroups`. */
+function toRoomFile(username: string, entry: InboxEntry, date?: string): RoomFile {
+  return {
+    id: `inbox:${entry.id}`,
+    name: entry.filename,
+    // Only a photograph has one. The route refuses anything else, so
+    // pointing a document at it would draw a broken frame.
+    src:
+      entry.kind === "media"
+        ? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(entry.id)}/thumbnail`
+        : undefined,
+    detail: entry.description || entry.caption || undefined,
+    kind: entry.kind,
+    bytes: entry.bytes,
+    uploadedAt: entry.uploadedAt,
+    date,
+  };
+}
+
+/**
+ * Every date folder with content — `content/<user>/inbox/days/<date>/`,
+ * Phase 2's staging area (Task 3 files a WhatsApp pin straight in there).
+ * `listInbox`'s flat-bucket read never sees these, so without this a person
+ * watching the files pane after such a pin lands saw nothing move at all.
+ * An unknown or missing `days/` folder reads as no dates, not as an error —
+ * the ordinary case for a journal that has never staged anything by date.
+ */
+function dayInboxRoomFiles(username: string): RoomFile[] {
+  const daysRoot = path.join(userDir(username), "inbox", "days");
+  let dates: string[];
+  try {
+    dates = fs
+      .readdirSync(daysRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch {
+    return [];
+  }
+  return dates.flatMap((date) => {
+    const staged = listDayInbox(username, date);
+    return [...staged.media, ...staged.files, ...staged.location, ...staged.contact].map((entry) =>
+      toRoomFile(username, entry, date),
+    );
+  });
+}
+
 export function filesForRoom(username: string): RoomFiles {
   const staged = listInbox(username);
   const inbox: RoomFile[] = [...staged.media, ...staged.files]
-    // Newest first — what somebody just put there is what they mean.
-    .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
-    .map((entry) => ({
-      id: `inbox:${entry.id}`,
-      name: entry.filename,
-      // Only a photograph has one. The route refuses anything else, so
-      // pointing a document at it would draw a broken frame.
-      src:
-        entry.kind === "media"
-          ? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(entry.id)}/thumbnail`
-          : undefined,
-      detail: entry.description || entry.caption || undefined,
-      kind: entry.kind,
-      bytes: entry.bytes,
-      uploadedAt: entry.uploadedAt,
-    }));
+    .map((entry) => toRoomFile(username, entry))
+    // Newest first — what somebody just put there is what they mean. Day
+    // folders sort after: a person reads the pane top to bottom and the
+    // flat bucket is what nothing has been decided about yet.
+    .sort((a, b) => (b.uploadedAt ?? "").localeCompare(a.uploadedAt ?? ""))
+    .concat(dayInboxRoomFiles(username));
 
   const trips: RoomTrip[] = tripsNewestFirst(username).map((trip) => ({
     id: trip.id,
