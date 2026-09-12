@@ -123,10 +123,9 @@ export async function POST(
   // than kept here as a copy for it to drift from.
   const outcome = await spendAndTranscribe(user, audio, mediaType, language, claimed);
   if (!outcome.ok) {
-    return Response.json(
-      { error: outcome.error },
-      { status: outcome.error === "no_credits" ? 402 : 502 },
-    );
+    const status =
+      outcome.error === "no_credits" ? 402 : outcome.error === "recording_too_long" ? 400 : 502;
+    return Response.json({ error: outcome.error }, { status });
   }
 
   const answer = {
