@@ -286,9 +286,7 @@ export default function HelperRoom({
    * button. What changes is which width a person with nothing to attach
    * starts at.
    */
-  const [filesCollapsed, setFilesCollapsed] = useState(
-    !(files.inbox.length > 0 || files.trip.length > 0),
-  );
+  const [filesCollapsed, setFilesCollapsed] = useState(!(files.inbox.length > 0));
   /**
    * Closed until there is something to look at — B1320, the owner's own
    * revision of D24: an open column holding an empty-state sentence was
@@ -1123,7 +1121,7 @@ export default function HelperRoom({
         <FilesRail
           collapsed={filesCollapsed}
           onToggleCollapsed={() => setFilesCollapsed((was) => !was)}
-          count={files.inbox.length + files.trip.length}
+          count={files.inbox.length}
           filesLabel={t("agent.room.files")}
           showLabel={t("agent.room.showFiles")}
           hideLabel={t("agent.room.hideFiles")}
@@ -1810,8 +1808,10 @@ function HistoryPanel({
   const [panelTab, setPanelTab] = useState<"history" | "days">("history");
   /** The search words — B1217 (D36). Debounced by the effect below. */
   const [q, setQ] = useState("");
-  const [tripDays, setTripDays] = useState<PanelDay[]>([]);
-  const [tripTitle, setTripTitle] = useState("");
+  /** Every trip in the journal, id and title only — cheap to list, and
+   *  nothing past this is fetched until the Tage tab's own picker names one
+   *  — B1573, the same split `trip-files` gives the files pane. */
+  const [trips, setTrips] = useState<{ id: string; title: string }[]>([]);
   useEffect(() => {
     let live = true;
     const load = () => {
@@ -1824,15 +1824,13 @@ function HistoryPanel({
             body: {
               sessions?: SessionRow[];
               live?: string | null;
-              days?: PanelDay[];
-              tripTitle?: string;
+              trips?: { id: string; title: string }[];
             } | null,
           ) => {
             if (live) {
               setSessions(body?.sessions ?? []);
               setLiveId(body?.live ?? null);
-              setTripDays(body?.days ?? []);
-              setTripTitle(body?.tripTitle ?? "");
+              setTrips(body?.trips ?? []);
             }
           },
         )
@@ -1848,6 +1846,36 @@ function HistoryPanel({
       if (timer !== null) window.clearTimeout(timer);
     };
   }, [username, q]);
+
+  /** A trip's own days, loaded only once the Tage tab's picker names one —
+   *  B1573. `null` before a trip is chosen and while loading; `[]` once
+   *  answered with nothing, the same `null`/`[]` distinction `sessions`
+   *  above already draws. */
+  const [tripId, setTripId] = useState("");
+  const [tripDays, setTripDays] = useState<PanelDay[] | null>(null);
+  const [tripTitle, setTripTitle] = useState("");
+  useEffect(() => {
+    if (!tripId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTripDays(null);
+      return;
+    }
+    let live = true;
+    fetch(`/api/helper/${encodeURIComponent(username)}/sessions?trip=${encodeURIComponent(tripId)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { days?: PanelDay[]; tripTitle?: string } | null) => {
+        if (live) {
+          setTripDays(body?.days ?? []);
+          setTripTitle(body?.tripTitle ?? "");
+        }
+      })
+      .catch(() => {
+        if (live) setTripDays([]);
+      });
+    return () => {
+      live = false;
+    };
+  }, [username, tripId]);
 
   // Newest conversation first, and within that the days themselves in the
   // order `sessionsOf` already returned them — grouping must not re-sort
@@ -1914,8 +1942,31 @@ function HistoryPanel({
       )}
       {panelTab === "days" && (
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-          {tripDays.length === 0 ? (
-            <p className="text-sm leading-6 text-navy-700">{t("agent.room.daysEmpty")}</p>
+          {/* A picker, not a preload — B1573: every trip is listed, and
+              choosing one is the one thing that fetches its days. */}
+          {trips.length > 0 && (
+            <label className="mb-3 block">
+              <span className="sr-only">{t("agent.room.chooseTrip")}</span>
+              <select
+                value={tripId}
+                onChange={(event) => setTripId(event.target.value)}
+                className="min-h-11 w-full rounded-lg border border-navy-300 bg-white px-3 text-sm text-navy-900"
+              >
+                <option value="">{t("agent.room.chooseTrip")}</option>
+                {trips.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    {trip.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {tripDays === null || tripDays.length === 0 ? (
+            <p className="text-sm leading-6 text-navy-700">
+              {trips.length > 0 && !tripId
+                ? t("agent.room.daysPickTrip")
+                : t("agent.room.daysEmpty")}
+            </p>
           ) : (
             <>
               {tripTitle && (
@@ -2253,7 +2304,45 @@ function FilesPane({
       document.removeEventListener("keydown", close);
     };
   }, [menu]);
-  const empty = files.inbox.length === 0 && files.trip.length === 0;
+  // "Empty" is the inbox and every trip both having nothing to offer — a
+  // journal with trips but nothing waiting still has something to do here
+  // (pick one), so it is not this. B1573.
+  const empty = files.inbox.length === 0 && files.trips.length === 0;
+
+  /**
+   * A trip's own photographs, loaded only once it is picked — B1573. Nothing
+   * here is preloaded: `files.trips` (id + title) costs nothing to list, and
+   * everything past that is one fetch to `trip-files`, on selection, same as
+   * every trip after it — picking a different trip replaces this rather than
+   * accumulating it, so the pane never holds more than one trip's media.
+   */
+  const [tripId, setTripId] = useState("");
+  const [tripPhotos, setTripPhotos] = useState<RoomFile[] | null>(null);
+  const [loadingTrip, setLoadingTrip] = useState(false);
+  useEffect(() => {
+    if (!tripId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTripPhotos(null);
+      return;
+    }
+    let live = true;
+    setLoadingTrip(true);
+    fetch(`/api/helper/${encodeURIComponent(username)}/trip-files?trip=${encodeURIComponent(tripId)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { files?: RoomFile[] } | null) => {
+        if (live) setTripPhotos(body?.files ?? []);
+      })
+      .catch(() => {
+        if (live) setTripPhotos([]);
+      })
+      .finally(() => {
+        if (live) setLoadingTrip(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [username, tripId]);
+  const tripTitle = files.trips.find((one) => one.id === tripId)?.title ?? "";
 
   return (
     <div>
@@ -2381,12 +2470,41 @@ function FilesPane({
         </div>
       )}
 
-      {files.trip.length > 0 && (
-        <Group heading={t("agent.room.onTrip", { trip: files.tripTitle })}>
-          {files.trip.map((file) => (
-            <Tile key={file.id} file={file} on={selected.includes(file.id)} onToggle={onToggle} />
-          ))}
-        </Group>
+      {/* A picker, not a preload — B1573. `files.trips` is every trip in the
+          journal, id and title only; choosing one is the one thing that
+          fetches its photographs, and choosing a different one replaces
+          them rather than adding to what is already shown. */}
+      {files.trips.length > 0 && (
+        <div className="mt-4">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+              {t("agent.room.tripPhotosHeading")}
+            </span>
+            <select
+              value={tripId}
+              onChange={(event) => setTripId(event.target.value)}
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-navy-300 bg-white px-3 text-sm text-navy-900"
+            >
+              <option value="">{t("agent.room.chooseTrip")}</option>
+              {files.trips.map((trip) => (
+                <option key={trip.id} value={trip.id}>
+                  {trip.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          {loadingTrip && <p className="mt-2 text-sm text-navy-700">{t("agent.room.historyLoading")}</p>}
+          {!loadingTrip && tripPhotos !== null && tripPhotos.length === 0 && (
+            <p className="mt-2 text-sm text-navy-700">{t("agent.room.tripPhotosEmpty")}</p>
+          )}
+          {!loadingTrip && tripPhotos !== null && tripPhotos.length > 0 && (
+            <Group heading={t("agent.room.onTrip", { trip: tripTitle })}>
+              {tripPhotos.map((file) => (
+                <Tile key={file.id} file={file} on={selected.includes(file.id)} onToggle={onToggle} />
+              ))}
+            </Group>
+          )}
+        </div>
       )}
     </div>
   );
@@ -2428,7 +2546,10 @@ function FilesStrip({
   onOpen: () => void;
 }) {
   const { t, tn } = useI18n();
-  const items = [...files.inbox, ...files.trip];
+  // The inbox only — B1573. Trip photographs are no longer loaded until a
+  // trip is chosen in the pane itself, so there is nothing else to preview
+  // here without a fetch this strip has no business making.
+  const items = files.inbox;
   const show = items.length > 0 && !collapsed;
 
   return (

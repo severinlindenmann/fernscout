@@ -56,8 +56,7 @@ const FILES: RoomFiles = {
     { id: "inbox:aaa111-statement.csv", name: "statement.csv" },
     { id: "inbox:bbb222-harbour.jpg", name: "harbour.jpg" },
   ],
-  trip: [{ id: "photo:tuesday:/u/media/x/01.jpg", name: "The harbour", src: "/u/media/x/01.jpg" }],
-  tripTitle: "A Trip",
+  trips: [{ id: "x", title: "A Trip" }],
 };
 
 const CURRENCY = { base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } } as never;
@@ -197,10 +196,41 @@ test("the panes are dismissible from the keyboard, and the conversation stays", 
 });
 
 test("a selection is made with checkboxes and travels with the next sentence", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: { body?: string }) => {
+      calls.push({
+        url,
+        body: init?.body ? (JSON.parse(init.body) as Record<string, unknown>) : {},
+      });
+      // B1573 — the trip photo used to arrive preloaded; now it is this
+      // on-demand response, once the pane's own picker names the trip.
+      if (url.includes("/trip-files")) {
+        return {
+          ok: true,
+          json: async () => ({
+            ok: true,
+            title: "A Trip",
+            files: [{ id: "photo:tuesday:/u/media/x/01.jpg", name: "The harbour", src: "/u/media/x/01.jpg" }],
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
   const box = render();
-  const ticks = [...box.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
-  // Two inbox files and one photograph already on a day — the pane holds both
-  // folders, which is the whole of B902.
+  let ticks = [...box.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
+  // Two inbox files only, until a trip is picked — B1573.
+  expect(ticks).toHaveLength(2);
+
+  const tripPicker = box.querySelector("select") as HTMLSelectElement;
+  await act(async () => {
+    tripPicker.value = "x";
+    tripPicker.dispatchEvent(new Event("change", { bubbles: true }));
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+  ticks = [...box.querySelectorAll<HTMLInputElement>("input[type=checkbox]")];
   expect(ticks).toHaveLength(3);
 
   act(() => ticks[1].click());
@@ -268,8 +298,10 @@ test("the files tab is a full view with the same pane, one tap away — B1215", 
   const pane = [...document.querySelectorAll("section")].find(
     (one) => one.getAttribute("aria-label") === "Files" && one.className.includes("lg:hidden"),
   )!;
-  // The same pane, the same checkboxes: one selection, two places to make it.
-  expect(pane.querySelectorAll("input[type=checkbox]")).toHaveLength(3);
+  // The same pane, the same checkboxes: one selection, two places to make
+  // it. Two inbox files only — B1573 stopped preloading a trip's photos, so
+  // there is no third tile until a trip is picked.
+  expect(pane.querySelectorAll("input[type=checkbox]")).toHaveLength(2);
   // And the way back is the tab bar's own Chat tab.
   const chat = [...document.querySelectorAll<HTMLButtonElement>("nav button")].find(
     (button) => (button.textContent ?? "").includes("Chat"),
@@ -340,7 +372,7 @@ describe("the upload control's place in the files pane", () => {
  * starts in.
  */
 describe("the files column on a journal with nothing waiting", () => {
-  const EMPTY: RoomFiles = { inbox: [], trip: [], tripTitle: "A Trip" };
+  const EMPTY: RoomFiles = { inbox: [], trips: [] };
 
   test("does not open on its own", () => {
     const box = render(null, EMPTY);
@@ -1030,8 +1062,7 @@ test("every quoted label in the files pane's note appears on the pane — B1443"
       { id: "inbox:aaa111-harbour.jpg", name: "harbour.jpg", kind: "media" },
       { id: "inbox:bbb222-statement.csv", name: "statement.csv", kind: "files" },
     ],
-    trip: [],
-    tripTitle: "A Trip",
+    trips: [],
   };
   const box = render(null, files);
   const pane = box.querySelector('section[aria-label="Files"]')!;
