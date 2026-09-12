@@ -58,6 +58,23 @@ type PhotonFeature = {
   };
 };
 
+type PhotonPlaceFeature = {
+  properties?: {
+    name?: string;
+    city?: string;
+    district?: string;
+    county?: string;
+    state?: string;
+    country?: string;
+    countrycode?: string;
+    type?: string;
+    osm_value?: string;
+  };
+  geometry?: {
+    coordinates?: unknown;
+  };
+};
+
 function line1From(street: string, housenumber: string, countrycode: string): string {
   if (housenumber === "") return street;
   if (street === "") return housenumber;
@@ -165,6 +182,147 @@ export async function lookupAddresses(query: string, locale: string): Promise<Ad
 /** What a coordinate turns into: a place a day can be labelled with, never a
  *  street address. See `reversePlace`. */
 export type ReversePlace = { location: string; country: string; countryCode: string };
+
+export type GeocodeContextCoordinate = { lat: number; lng: number };
+
+export type GeocodeCandidate = {
+  displayName: string;
+  country: string;
+  countryCode: string;
+  adminRegion: string;
+  lat: number;
+  lon: number;
+  type: string;
+};
+
+function combinedQuery(query: string, regionHint?: string, countryHint?: string): string {
+  return [query, regionHint, countryHint].map((part) => part?.trim() ?? "").filter(Boolean).join(", ");
+}
+
+function centroid(points: readonly GeocodeContextCoordinate[]): GeocodeContextCoordinate | null {
+  const valid = points.filter(
+    ({ lat, lng }) =>
+      Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180,
+  );
+  if (valid.length === 0) return null;
+  const totals = valid.reduce(
+    (sum, point) => ({ lat: sum.lat + point.lat, lng: sum.lng + point.lng }),
+    { lat: 0, lng: 0 },
+  );
+  return { lat: totals.lat / valid.length, lng: totals.lng / valid.length };
+}
+
+function uniqueParts(parts: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of parts.map((value) => value.trim()).filter(Boolean)) {
+    const key = part.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(part);
+  }
+  return out;
+}
+
+function geocodeCandidate(feature: PhotonPlaceFeature): GeocodeCandidate | null {
+  const [lon, lat] = Array.isArray(feature.geometry?.coordinates) ? feature.geometry.coordinates : [];
+  if (
+    typeof lat !== "number" ||
+    !Number.isFinite(lat) ||
+    lat < -90 ||
+    lat > 90 ||
+    typeof lon !== "number" ||
+    !Number.isFinite(lon) ||
+    lon < -180 ||
+    lon > 180
+  ) {
+    return null;
+  }
+
+  const p = feature.properties ?? {};
+  const country = (p.country ?? "").trim();
+  const countryCode = (p.countrycode ?? "").trim().toUpperCase();
+  const adminRegion = (p.state ?? p.county ?? "").trim();
+  const displayName = uniqueParts([p.name ?? "", p.city ?? "", p.district ?? "", adminRegion, country]).join(", ");
+  if (displayName === "") return null;
+
+  return {
+    displayName,
+    country,
+    countryCode,
+    adminRegion,
+    lat,
+    lon,
+    type: (p.type ?? p.osm_value ?? "").trim(),
+  };
+}
+
+function distanceSquared(a: { lat: number; lon: number }, b: GeocodeContextCoordinate): number {
+  return (a.lat - b.lat) ** 2 + (a.lon - b.lng) ** 2;
+}
+
+/**
+ * A place name into a shortlist of candidate coordinates for a day — never one
+ * silent guess.
+ *
+ * Uses the same provider configuration as address lookup: Photon by default,
+ * or whatever compatible endpoint the instance has pointed `addressLookup.url`
+ * at. `countryHint`/`regionHint` are appended to the search text, while
+ * `contextCoordinates` bias both the provider query and the final ranking
+ * towards where the surrounding days already were.
+ */
+export async function geocodePlace(
+  query: string,
+  locale: string,
+  options: {
+    countryHint?: string;
+    regionHint?: string;
+    contextCoordinates?: readonly GeocodeContextCoordinate[];
+  } = {},
+): Promise<GeocodeCandidate[] | null> {
+  const { url } = providerConfig();
+  const lang = SUPPORTED_LANGS.has(locale) ? locale : "en";
+  const key = process.env.ADDRESS_LOOKUP_API_KEY;
+  const bias = centroid(options.contextCoordinates ?? []);
+
+  let target: URL;
+  try {
+    target = new URL(url);
+  } catch {
+    return null;
+  }
+  target.searchParams.set("q", combinedQuery(query, options.regionHint, options.countryHint));
+  target.searchParams.set("limit", String(MAX_RESULTS));
+  target.searchParams.set("lang", lang);
+  if (bias) {
+    target.searchParams.set("lat", String(bias.lat));
+    target.searchParams.set("lon", String(bias.lng));
+  }
+  if (key) target.searchParams.set("key", key);
+
+  let body: { features?: PhotonPlaceFeature[] };
+  try {
+    const response = await fetch(target, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return null;
+    body = (await response.json()) as { features?: PhotonPlaceFeature[] };
+  } catch {
+    return null;
+  }
+
+  const out: GeocodeCandidate[] = [];
+  const seen = new Set<string>();
+  for (const feature of body.features ?? []) {
+    const candidate = geocodeCandidate(feature);
+    if (!candidate) continue;
+    const key = `${candidate.displayName}|${candidate.lat}|${candidate.lon}|${candidate.type}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(candidate);
+  }
+
+  if (!bias) return out;
+  return [...out].sort((a, b) => distanceSquared(a, bias) - distanceSquared(b, bias));
+}
 
 /**
  * The reverse of the above: coordinates in, a place name out — B682.

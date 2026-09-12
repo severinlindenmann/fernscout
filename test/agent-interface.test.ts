@@ -876,6 +876,14 @@ describe("what the guide has to tell an agent before it starts", () => {
     expect(flat(instanceDocumentation())).toContain(flat(COORDINATES_QUESTION));
   });
 
+  test("both documents name the geocoding route and say ambiguity must be asked back", () => {
+    for (const document of [agentGuide(), instanceDocumentation()]) {
+      const flattened = flat(document);
+      expect(flattened).toContain("/api/v1/geocode");
+      expect(flattened).toMatch(/ask which one (they meant|they want)/i);
+    }
+  });
+
   test("a journal's own document shows a twin URL with a real trip in it", () => {
     // The demo journal's docs said "append .md to a day's URL" and left the
     // reader to guess that the URL has a trip in it. It does.
