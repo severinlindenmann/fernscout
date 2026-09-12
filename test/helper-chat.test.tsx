@@ -304,28 +304,47 @@ describe("while it thinks, and the server says what it is doing — B1213 (D19)"
 });
 
 describe("the blocks a tool declares", () => {
-  test("`choose` is a list of buttons, and pressing one fills the field", async () => {
-    answers({
-      ok: true,
-      kind: "read",
-      blocks: [
-        {
-          shape: "choose",
-          text: "Trips in this journal",
-          options: [
-            { value: "japan", label: "Japan", detail: "2026-03-01 – 2026-03-14" },
-            { value: "alps", label: "Alps" },
-          ],
-        },
-      ] satisfies Block[],
-    });
+  /**
+   * B1576 — a `choose` row used to fill the field with its own label and
+   * focus it, which is exactly what raises a phone's on-screen keyboard for
+   * a press that already named the tool's own exact label: nothing was left
+   * to edit before sending in the ordinary case. It now sends immediately,
+   * through the same `go()` door every other chip in this file already uses
+   * (`RoomOpening`'s chips, the `agent.about.*` chips).
+   */
+  test("`choose` is a list of buttons, and pressing one sends its label at once", async () => {
+    answers(
+      {
+        ok: true,
+        kind: "read",
+        blocks: [
+          {
+            shape: "choose",
+            text: "Trips in this journal",
+            options: [
+              { value: "japan", label: "Japan", detail: "2026-03-01 – 2026-03-14" },
+              { value: "alps", label: "Alps" },
+            ],
+          },
+        ] satisfies Block[],
+      },
+      { ok: true, kind: "read", blocks: saying("Here is Japan.") },
+    );
     render();
     await ask("which trips");
     const option = buttonSaying("Japan");
     expect(option.tagName).toBe("BUTTON");
-    act(() => option.click());
-    expect(field().value).toBe("Japan");
-    expect(document.activeElement).toBe(field());
+    await act(async () => {
+      option.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    // Sent, not merely typed: the next turn has already landed, and the
+    // field is empty again the way it is after any other sent sentence.
+    expect(container!.textContent).toContain("Here is Japan.");
+    expect(field().value).toBe("");
+    const sent = calls.filter((call) => call.url.endsWith("/ask")).map((call) => call.body.said);
+    expect(sent).toContain("Japan");
   });
 
   test("`preview` draws the thing itself, line by line", async () => {

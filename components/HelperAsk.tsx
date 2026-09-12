@@ -621,9 +621,10 @@ export default function HelperAsk({
    * any click a browser would treat as permission to raise the keyboard. So
    * neither should tell the strip a keyboard is coming; this flag is what
    * the `onFocus` handler below checks before it says so. A real tap on the
-   * field — or the `choose` chips, which call the same `.focus()` from
-   * inside their own click handler — leaves the flag unset and collapses the
-   * strip exactly as it should.
+   * field leaves the flag unset and collapses the strip exactly as it
+   * should. (A `choose` block's own rows used to focus the field the same
+   * way, before B1576 sent them straight through `go()` instead — they no
+   * longer focus anything, so there is no keyboard for the strip to react to.)
    */
   const silentFocus = useRef(false);
   useEffect(() => {
@@ -1237,10 +1238,14 @@ export default function HelperAsk({
                         : undefined
                     }
                     busy={busy}
-                    onChoose={(label) => {
-                      setSaid(label);
-                      box.current?.focus();
-                    }}
+                    // Send immediately, the same door every other chip in this
+                    // file already goes through (`go()`, B1066) — B1576. This
+                    // used to fill the field and focus it instead, which is
+                    // exactly what raises a phone's on-screen keyboard for a
+                    // press that already named the tool's own exact label
+                    // (`ChooseBlock`'s own doc comment); there was nothing left
+                    // to edit before sending in the ordinary case.
+                    onChoose={(label) => go(label)}
                     onAccept={accept}
                   />
                 ))}
