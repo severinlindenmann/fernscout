@@ -108,76 +108,26 @@ afterEach(async () => {
 });
 
 describe("a location pin", () => {
-  test("with a trip covering that date creates a draft day carrying only the coordinates", async () => {
+  test("lands in the inbox rather than attaching to any day automatically", async () => {
     await bindGreetAcknowledge("locontest", "41760020202");
     writeTrip("locontest", "reise", "2023-11-01", "2023-11-20");
 
-    // 2023-11-14 12:00:00 UTC
+    // 2023-11-14 12:00:00 UTC — inside the trip above.
     await handleInboundMessage(locationMessage("41760020202", "wamid.loc-1", "1699963200"));
 
     const days = getDays(tripRef("locontest", "reise"), AS_AUTHOR);
-    const day = days.find((d) => d.date === "2023-11-14");
-    expect(day).toBeDefined();
-    expect(day?.lead.lat).toBeCloseTo(46.5);
-    expect(day?.lead.lng).toBeCloseTo(7.9);
+    expect(days).toHaveLength(0); // nothing created on any day
 
-    const files = repliesTo("locontest");
-    expect(String(files[files.length - 1].body)).toContain("2023-11-14");
-
-    // B1193: the whole round trip was a WhatsApp webhook, so the thread note
-    // `wrote()` left behind must carry that origin, not the "web" default.
-    const { db } = (await getDatabase())!;
-    const row = await db.selectFrom("helper_threads").selectAll().where("owner_id", "=", "locontest").executeTakeFirst();
-    expect(row?.channel).toBe("whatsapp");
-  });
-
-  test("with no trip covering that date is refused, naming the date", async () => {
-    await bindGreetAcknowledge("locontest", "41760030303");
-    // No trip written at all.
-    await handleInboundMessage(locationMessage("41760030303", "wamid.loc-2", "1699963200"));
+    const { listInbox } = await import("@/lib/inbox");
+    const staged = listInbox("locontest").location;
+    expect(staged).toHaveLength(1);
+    expect(staged[0].lat).toBeCloseTo(46.5, 1);
+    expect(staged[0].lon).toBeCloseTo(7.9, 1);
+    expect(staged[0].source).toBe("whatsapp");
 
     const files = repliesTo("locontest");
     const last = String(files[files.length - 1].body);
-    expect(last).toContain("2023-11-14");
-  });
-
-  test("on a date that already has a day attaches the coordinates instead of refusing — B1263", async () => {
-    await bindGreetAcknowledge("locontest", "41760070707");
-    writeTrip("locontest", "reise", "2023-11-01", "2023-11-20");
-    const entryPath = path.join(dir, "locontest", "trips", "reise", "entries", "2023-11-14-hike.md");
-    fs.writeFileSync(
-      entryPath,
-      ["---", 'title: "Hike"', 'date: "2023-11-14"', "status: draft", "---", "", "We hiked."].join("\n"),
-    );
-
-    await handleInboundMessage(locationMessage("41760070707", "wamid.loc-existing", "1699963200"));
-
-    const days = getDays(tripRef("locontest", "reise"), AS_AUTHOR);
-    const matching = days.filter((d) => d.date === "2023-11-14");
-    // Exactly one day for the date — nothing new was created alongside it.
-    expect(matching.length).toBe(1);
-    expect(matching[0].lead.lat).toBeCloseTo(46.5);
-    expect(matching[0].lead.lng).toBeCloseTo(7.9);
-    // The original prose survives — this was an edit, not a fresh write.
-    expect(fs.readFileSync(entryPath, "utf8")).toContain("We hiked.");
-
-    const files = repliesTo("locontest");
-    const last = String(files[files.length - 1].body);
-    expect(last).toContain("2023-11-14");
-  });
-
-  test("with two trips covering the date, the most recently created wins", async () => {
-    await bindGreetAcknowledge("locontest", "41760040404");
-    writeTrip("locontest", "older", "2023-11-01", "2023-11-20", "Older trip");
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    writeTrip("locontest", "newer", "2023-11-05", "2023-11-25", "Newer trip");
-
-    await handleInboundMessage(locationMessage("41760040404", "wamid.loc-3", "1699963200"));
-
-    const newerDays = getDays(tripRef("locontest", "newer"), AS_AUTHOR);
-    const olderDays = getDays(tripRef("locontest", "older"), AS_AUTHOR);
-    expect(newerDays.some((d) => d.date === "2023-11-14")).toBe(true);
-    expect(olderDays.some((d) => d.date === "2023-11-14")).toBe(false);
+    expect(last).toContain("Got it — saved");
   });
 });
 
