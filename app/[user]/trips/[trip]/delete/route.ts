@@ -1,4 +1,5 @@
 import { isOwner } from "@/lib/contacts/session";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { deleteTrip, humanBytes, summarise } from "@/lib/deletions";
 import { getUser } from "@/lib/users";
 
@@ -65,6 +66,9 @@ export async function POST(
 ) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
+  }
+  if (foreignOrigin(request)) {
+    return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
   }
   const { user, trip } = await params;
   if (!(await isOwner(user))) {
