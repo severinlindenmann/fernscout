@@ -31,6 +31,12 @@ the v2 serializer (B1596) writes a genuinely different file:
 | trip costs visibility | `costsVisibility:` in `trip.md` | `visibility:` in `costs.md` |
 | trip rates | flat `rates: {EUR: 0.94}` | `rates: {currencies, manual}` |
 
+**Since B1606 the gap is wider still: content on disk is now JSON, not
+markdown at all.** The table above describes key names; the readers also have
+to stop reaching for `gray-matter` and stop looking for `.md` files. A day is
+`entries/YYYY-MM-DD-slug.json`, and `trip.md` + `costs.md` + `plan.md` are one
+`trip.json`.
+
 `readAllEntries` (`lib/entries.ts:255-371`) and `readTrip`
 (`lib/trips.ts:577`) read none of the right-hand column. The day this
 repository writes a v2 file is the day that file renders as an empty,
