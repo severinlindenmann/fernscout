@@ -7,8 +7,7 @@ complexity: low
 area: docs, roadmap page
 found: "2026-09-11T22:29:57Z"
 started: "2026-09-12T09:08:46Z"
-session: 9f435a39-d903-4469-aea7-a258f7052b66
-claimed: "2026-09-12T09:08:46Z"
+merged: "2026-09-12T09:22:59Z"
 ---
 
 # B1546 — Roadmap page shows stale data and is hard to scan

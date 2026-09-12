@@ -328,7 +328,7 @@ Do not edit them by hand; run the script.
 | [B1573](open/B1573-the-room-s-preview-and-verlauf.md) | The room's preview and Verlauf > Tage only ever show the newest trip | FEATURE | medium | medium |
 | [B1576](open/B1576-tapping-a-choose-block-option-fills.md) | Tapping a choose-block option fills the field and raises the keyboard instead of sending | ISSUE | medium | low |
 
-## in-development (9)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -338,11 +338,10 @@ Do not edit them by hand; run the script.
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
-| [B1546](in-development/B1546-roadmap-page-shows-stale-data-and.md) | Roadmap page shows stale data and is hard to scan | CHORE | low | low | `9f435a39` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 | [B1575](in-development/B1575-the-dateien-tab-s-upload-control.md) | The Dateien tab's upload control sits below every file, out of reach on a long list | ISSUE | low | low | `5a4744c4` |
 
-## testing (38)
+## testing (39)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -381,6 +380,7 @@ Do not edit them by hand; run the script.
 | [B1504](testing/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low | — |
 | [B1527](testing/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low | — |
 | [B1545](testing/B1545-the-animation-bench-s-own-vehicle.md) | The animation bench's own vehicle list predates metro/tram/ferry, so B1519's new modes are invisible there | ISSUE | low | low | — |
+| [B1546](testing/B1546-roadmap-page-shows-stale-data-and.md) | Roadmap page shows stale data and is hard to scan | CHORE | low | low | — |
 | [B1557](testing/B1557-refund-allowed-test-walks-app-only.md) | REFUND_ALLOWED test walks app/ only while grant's walks app/ and lib/ | ISSUE | low | low | — |
 | [B1558](testing/B1558-submitrequest-lost-race-mails-the-operator.md) | submitRequest lost race mails the operator a dead approval link | ISSUE | low | low | — |
 | [B1559](testing/B1559-paid-send-routes-rely-on-samesite.md) | Paid send routes rely on SameSite=lax alone — no Origin check as second layer | SECURITY | low | low | — |
