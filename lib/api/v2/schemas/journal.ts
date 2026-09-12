@@ -64,21 +64,14 @@ export const journalWrite = base.superRefine((doc, ctx) => {
 export const journalPatch = base.partial();
 
 /**
- * What every GET answers: the editable document plus the server-owned facts
- * about this journal. Storage is accounting, not an editorial choice — it is
- * read here and written nowhere (the quota is the operator's; buying past it
- * goes through credits). /status stays about the *agent's* standing (token,
- * drafts, capabilities); this is about the journal.
+ * What every GET answers: the editable document plus the server-owned
+ * identity. The live numbers — storage, drafts, trips, credits — live on
+ * GET /{user}/status, so one fact has one address.
  */
 export const journalDoc = z.object({
   ...base.def.shape,
   // ── server-owned ──
   username: z.string(),
-  storage: z.strictObject({
-    usedBytes: z.number().int().nonnegative(),
-    maxBytes: z.number().int().positive().nullable(),
-  }),
-  trips: z.number().int().nonnegative(),
 });
 
 export type JournalDoc = z.infer<typeof journalDoc>;

@@ -6,7 +6,9 @@ import { describe, expect, it } from "vitest";
 import {
   dayWrite,
   figureDoc,
+  instanceStatus,
   journalDoc,
+  journalStatus,
   journalWrite,
   mediaIntent,
   tripCreate,
@@ -263,6 +265,37 @@ describe("media intent", () => {
   });
 });
 
+describe("status", () => {
+  it("splits instance facts from journal standing", () => {
+    expect(
+      instanceStatus.safeParse({
+        capabilities: { costs: true, weather: true },
+        limits: { imageMaxEdge: 8000, imageMaxBytes: 52_428_800, videoMaxBytes: 209_715_200, videoMaxSeconds: 120, itemsPerDay: 30 },
+        media: {
+          kinds: ["photo", "bank_export", "gps_history", "document"],
+          imageFormats: ["image/jpeg", "image/png"],
+          videoFormats: ["video/mp4"],
+          importFormats: { bank_export: ["revolut-csv"], gps_history: ["gpx", "google-timeline"] },
+        },
+        pricing: { postcard: 3, "storage-5gb": 10 },
+      }).success,
+    ).toBe(true);
+    expect(
+      journalStatus.safeParse({
+        journal: "example",
+        credits: 12,
+        drafts: [{ trip: "alps-2026", slug: "2026-09-21-grindelwald" }],
+        trips: [{ id: "alps-2026", title: "Alps by rail" }],
+        storage: { usedBytes: 123_456, maxBytes: 5_000_000_000 },
+        inbox: { media: 4, files: 1 },
+        token: { scope: "owner", expiresAt: "2026-09-19T14:02:00Z" },
+      }).success,
+    ).toBe(true);
+    // A journal answer does not carry instance facts.
+    expect(journalStatus.safeParse({ journal: "example", capabilities: {} }).success).toBe(false);
+  });
+});
+
 describe("figures", () => {
   it("accepts a figure from the real vocabulary and refuses outside it", () => {
     expect(
@@ -332,19 +365,10 @@ describe("journal", () => {
     expect(journalWrite.safeParse({ ...fullJournal, manualRates: { VND: 30500 } }).success).toBe(false);
     expect(journalWrite.safeParse({ ...fullJournal, media: { perUserBytes: 1 } }).success).toBe(false);
     expect(journalWrite.safeParse({ ...fullJournal, storageBytes: 1 }).success).toBe(false);
-    // The read shape carries the server-owned facts…
-    expect(
-      journalDoc.safeParse({
-        ...fullJournal,
-        username: "example",
-        storage: { usedBytes: 123, maxBytes: 5_000_000_000 },
-        trips: 2,
-      }).success,
-    ).toBe(true);
-    // …which the write shape refuses.
-    expect(
-      journalWrite.safeParse({ ...fullJournal, storage: { usedBytes: 0, maxBytes: null } }).success,
-    ).toBe(false);
+    // The read shape carries the server-owned identity…
+    expect(journalDoc.safeParse({ ...fullJournal, username: "example" }).success).toBe(true);
+    // …which the write shape refuses; the live numbers live on /status.
+    expect(journalWrite.safeParse({ ...fullJournal, username: "example" }).success).toBe(false);
   });
 
   it("takes manual rates per trip, inside rates", () => {
