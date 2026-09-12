@@ -1,15 +1,25 @@
 // The journal document — B1587, phase 0.
 //
-// Only what is genuinely the journal's. The `features` block is gone from
-// journal config in v2 (decided 2026-09-12): every flag in it answered "is
-// the plumbing configured", which is the operator's fact, reported read-only
-// by /api/health and /status. A `features` block in an existing config.json
-// parses and is ignored; nothing writes one back.
+// Only what is genuinely the journal's. Deliberately absent (owner review,
+// 2026-09-12):
+// - `features` — instance-only; every flag answered "is the plumbing
+//   configured", the operator's fact, reported read-only by /api/health and
+//   /status. A block in an existing config.json parses and is ignored.
+// - `startLocation` — stored and editable in v1, rendered and computed by
+//   nothing. v1 keeps parsing it from old files; it joins v2 if a feature
+//   ever wants it.
 import { z } from "zod";
+import { checkRequiredOrDeclined, declinedMap, type Declinable } from "./shared";
 
-export const journalDoc = z.strictObject({
+const JOURNAL_DECLINABLES: readonly Declinable[] = [
+  {
+    field: "tagline",
+    whyRequired: "the line under the journal's title on its landing page, or a reason it has none",
+  },
+] as const;
+
+const base = z.strictObject({
   title: z.string().trim().min(1).max(200),
-  tagline: z.string().optional(),
   owner: z.strictObject({
     name: z.string().trim().min(1),
     email: z.email(),
@@ -17,13 +27,31 @@ export const journalDoc = z.strictObject({
   /** UI languages this journal maintains; the first is the default. */
   locales: z.array(z.string()).min(1),
   baseCurrency: z.string().length(3),
+  /** The currencies cost figures are offered in, alongside conversion.
+   * Must include baseCurrency — the journal's own money is always shown. */
+  displayCurrencies: z.array(z.string().length(3)).min(1),
+  /** How measurements render. Required and explicit — no guessed default. */
+  units: z.enum(["metric", "imperial"]),
   /** Whether this instance advertises the journal (landing page, sitemap,
-   * documentation.txt). guest = unlisted, not locked — who may read a trip is
-   * still the trip's own gate. Absent reads as public. */
-  visibility: z.enum(["public", "guest"]).optional(),
+   * documentation.txt). guest = unlisted, not locked — who may read a trip
+   * is still the trip's own gate. Required and explicit in v2. */
+  visibility: z.enum(["public", "guest"]),
+  tagline: z.string().optional(),
+  declined: declinedMap(["tagline"]).optional(),
+});
+
+export const journalDoc = base.superRefine((doc, ctx) => {
+  checkRequiredOrDeclined(doc, JOURNAL_DECLINABLES, ctx);
+  if (!doc.displayCurrencies.includes(doc.baseCurrency)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["displayCurrencies"],
+      message: `displayCurrencies must include baseCurrency ("${doc.baseCurrency}")`,
+    });
+  }
 });
 
 /** PATCH is a merge: send only what changes. Owner only. */
-export const journalPatch = journalDoc.partial();
+export const journalPatch = base.partial();
 
 export type JournalDoc = z.infer<typeof journalDoc>;

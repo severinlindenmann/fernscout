@@ -222,14 +222,40 @@ describe("media intent", () => {
 });
 
 describe("journal", () => {
+  const fullJournal = {
+    title: "An example journal",
+    owner: { name: "Example Owner", email: "owner@example.com" },
+    locales: ["en", "de"],
+    baseCurrency: "CHF",
+    displayCurrencies: ["CHF", "EUR"],
+    units: "metric",
+    visibility: "public",
+    declined: { tagline: "the title says it all already" },
+  };
+
+  it("accepts a complete journal", () => {
+    expect(journalDoc.safeParse(fullJournal).success).toBe(true);
+  });
+
   it("carries no features block — instance-only since the 2026-09-12 decision", () => {
-    const r = journalDoc.safeParse({
-      title: "An example journal",
-      owner: { name: "Example Owner", email: "owner@example.com" },
-      locales: ["en", "de"],
-      baseCurrency: "CHF",
-      features: { costs: { enabled: true } },
-    });
-    expect(r.success).toBe(false);
+    expect(journalDoc.safeParse({ ...fullJournal, features: { costs: { enabled: true } } }).success).toBe(false);
+  });
+
+  it("requires units, visibility and displayCurrencies including the base", () => {
+    const bare = { ...fullJournal } as Record<string, unknown>;
+    delete bare.units;
+    expect(journalDoc.safeParse(bare).success).toBe(false);
+    expect(
+      journalDoc.safeParse({ ...fullJournal, displayCurrencies: ["EUR"] }).success,
+    ).toBe(false);
+  });
+
+  it("asks the tagline question", () => {
+    const noDecl = { ...fullJournal } as Record<string, unknown>;
+    delete noDecl.declined;
+    expect(journalDoc.safeParse(noDecl).success).toBe(false);
+    expect(
+      journalDoc.safeParse({ ...noDecl, tagline: "Two of us, mostly by rail" }).success,
+    ).toBe(true);
   });
 });
