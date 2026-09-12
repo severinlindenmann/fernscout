@@ -34,11 +34,22 @@ more than 15° from the largest part:
   Arctic islands, Hawaii and Alaska, Tasmania, Hainan, Tierra del Fuego,
   Russia's north, Fiji.
 
+The build script already knows about this one: `build-world-countries.mts:99`
+forces the label onto the largest landmass so that the word "France" does not
+land in South America. The fill had no such correction.
+
 The Caribbean départements he also names — Guadeloupe, Martinique, Réunion,
 Mayotte — are **below the 110m resolution and are not drawn at all**, so they
-are not part of the visible fault today. They would become one if the baked
-resolution ever changed, which is a reason to fix this at the build script
-rather than at the fill.
+are not part of the visible fault today. They are a quieter fault of their own:
+a day tagged `country: Réunion` resolves cleanly to `RE`, finds no shape, and
+is dropped at `app/[user]/trips/page.tsx:291-308`. So a real visit colours
+nothing while an imagined one colours a continent — the same seam, cut both
+ways, which is the reason to fix this at the build script rather than at the
+fill.
+
+Worth knowing before touching it: a country comes from a day's `country:`
+frontmatter string, never from its coordinates (`lib/entries.ts:297`,
+`lib/flags.ts:45`). Nothing infers a country from where a day was.
 
 There is a second symptom from the same path, and it is the more visible one:
 `countryCorners` (`app/[user]/trips/page.tsx:363`) takes the **bounding box of
@@ -76,3 +87,6 @@ Not in scope: raising the baked resolution, and any handling of territories
   more than a plausible longitude range for its mainland — or, more simply,
   that `FR`'s path stays east of −10°.
 - A day in French Guiana still colours something.
+- The component under this is `components/LifetimeMap.tsx` (fill at :185); check
+  it in a browser on an existing journal, not only in a test — the fill is only
+  drawn when `visits.length > 0`.
