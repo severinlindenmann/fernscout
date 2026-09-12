@@ -511,6 +511,9 @@ describe("the tools", () => {
       // B1394 — a phone's own address book, read and reported into the
       // conversation, a tick per row.
       "import_contacts",
+      // B1074's successor — the deliberate press behind a shared WhatsApp
+      // contact card, replacing what used to invite automatically.
+      "invite_contact",
       // B931 — the only way somebody who was not on a trip can ever read it.
       "invite_guest",
       "journal_settings",
@@ -767,7 +770,16 @@ describe("what a turn costs", () => {
   // answer when it binds is grouping the tools — not another raise. If this
   // ceiling is met again by adding tools rather than words, read B1049 before
   // changing this number.
-  const CEILING = 8000;
+  //
+  // Raised to 8100 for `invite_contact` (SDD plan: inbox day-assembly Phase
+  // 1, Task 7). A shared WhatsApp contact card used to invite automatically;
+  // it now only stages a vCard in the inbox, and this one tool is the whole
+  // of what turns that into a guest invite. There were four tokens of
+  // headroom left and no sentence anywhere else paying for the same rule
+  // twice to cut — `describe` is already as bare as `import_contacts`'
+  // ("Propose vCard contacts.") allows for a tool the model must still tell
+  // apart from it.
+  const CEILING = 8100;
 
   /**
    * **What to do when this fails** — B930, and it is the half the number never

@@ -520,4 +520,46 @@ export const FILES_TOOLS: readonly Tool[] = [
       };
     },
   },
+  {
+    /**
+     * A shared contact, waiting in the inbox, invited as a guest on
+     * request — B1074's successor. The invite used to happen automatically
+     * the moment a contact card arrived; now it is a press like any other
+     * write in this family, same as `attach_files` never uploads and never
+     * decides on its own which files move.
+     */
+    name: "invite_contact",
+    kind: "write",
+    renders: "confirm",
+    describe: "Propose inviting a waiting contact as a guest. Needs an email; say so if it has none.",
+    properties: {
+      contact: { type: "string", description: "Its inbox id or name." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/invite-contact`,
+    propose: async (username, args, say, _today, selected) => {
+      const asked = (args.contact ?? "").trim();
+      const ticked = selected
+        .filter((id) => id.startsWith("inbox:"))
+        .map((id) => id.slice("inbox:".length));
+      const staged =
+        (asked !== "" ? findInboxFile(username, asked)?.entry : undefined) ??
+        Object.values(listInbox(username))
+          .flat()
+          .find(
+            (e) =>
+              e.kind === "contact" &&
+              (ticked.includes(e.id) || (asked !== "" && e.filename.toLowerCase().includes(asked.toLowerCase()))),
+          );
+      if (!staged || staged.kind !== "contact") {
+        return { sentence: "", accept: "", done: "", fields: [], refuse: "agent.tool.inviteContactNotFound" };
+      }
+      return {
+        sentence: say("agent.tool.inviteContact", { name: staged.filename.replace(/\.vcf$/, "") }),
+        accept: say("agent.tool.inviteContactAccept"),
+        done: say("agent.tool.inviteContactDone"),
+        preview: [staged.filename],
+        fields: [{ name: "contact", value: staged.id, fixed: true }],
+      };
+    },
+  },
 ];

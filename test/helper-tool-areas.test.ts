@@ -44,6 +44,6 @@ describe("a turn is offered one area's tools, not the whole registry", () => {
     // reading this comment — update both together if an area's tool count
     // changes enough to move the worst case.
     expect(worstCase).toBe(20);
-    expect(TOOLS.length).toBe(48);
+    expect(TOOLS.length).toBe(49);
   });
 });

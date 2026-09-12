@@ -1,4 +1,6 @@
 import "server-only";
+import { reversePlace } from "@/lib/addressLookup";
+import { isEnabled } from "@/lib/capabilities";
 import {
   INBOX_KINDS,
   kindForExtension,
@@ -6,6 +8,7 @@ import {
   type InboxKind,
   type InboxMeta,
 } from "@/lib/inbox";
+import { photoMetaFromExif } from "@/lib/ingest/exif";
 import { withStorageQuota } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 import { MAX_ITEMS_PER_DAY, REQUEST_MAX_BYTES } from "@/lib/validate/media";
@@ -173,6 +176,26 @@ export async function receiveInboxUpload(user: string, request: Request): Promis
   // file was the problem and send the lot again.
   if (problems.length > 0) {
     return Response.json({ error: "invalid_media", problems }, { status: 400 });
+  }
+
+  // A camera measured this; a reverse-geocode looked that up — neither is a
+  // guess, so both are fair game, and only ever a fallback for what nobody
+  // already said (AGENTS.md: never overwrite what somebody said).
+  for (const file of staged) {
+    if (file.kind === "media") {
+      if (file.meta.lat === undefined && file.meta.lon === undefined && file.meta.takenAt === undefined) {
+        const exif = photoMetaFromExif(file.bytes);
+        if (exif) {
+          file.meta = { ...file.meta, ...exif, measuredFrom: "exif" };
+        }
+      }
+    }
+    if (file.kind === "location" && isEnabled("addressLookup", user) && file.meta.lat !== undefined && file.meta.lon !== undefined) {
+      const place = await reversePlace(file.meta.lat, file.meta.lon, journal.defaultLocale).catch(() => null);
+      if (place) {
+        file.meta = { ...file.meta, location: place.location, country: place.country, countryCode: place.countryCode };
+      }
+    }
   }
 
   // B661's ceiling, from this door too. The inbox is inside the journal

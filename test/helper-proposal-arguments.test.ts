@@ -106,6 +106,7 @@ const ROUTES: Record<string, () => Promise<Record<string, unknown>>> = {
   "/day/weather": () => import("@/app/api/helper/[user]/day/weather/route"),
   "/contacts/add-me": () => import("@/app/api/helper/[user]/contacts/add-me/route"),
   "/contacts/import": () => import("@/app/api/helper/[user]/contacts/import/route"),
+  "/invite-contact": () => import("@/app/api/helper/[user]/invite-contact/route"),
 };
 
 /** The gallery item `remove_photo`'s own row below removes — `DRAFT`'s own
@@ -153,6 +154,10 @@ const SAID: Record<string, Record<string, string>> = {
   // photograph — `import_contacts` reads whichever `.vcf` is waiting when
   // nothing is ticked, so there is nothing to say in advance here.
   import_contacts: {},
+  // A vCard is staged per-run, below, the same way `import_contacts` above
+  // stages one — a contact's inbox id is a hash of its own bytes, not
+  // something anybody could say in advance.
+  invite_contact: {},
   invite_guest: { name: "Mira" },
   set_rate: { trip: AS_SAID, currency: "thb", rate: "0.03" },
   set_budget: { trip: AS_SAID, total: "500", days: "5" },
@@ -375,6 +380,16 @@ describe("a proposal's arguments are the press", () => {
         Buffer.from("BEGIN:VCARD\nVERSION:3.0\nFN:Greta Muster\nEMAIL:greta@example.test\nEND:VCARD\n"),
         {},
       );
+    }
+    if (name === "invite_contact") {
+      const staged = await storeInboxFile(
+        "alex",
+        "contact",
+        "greta.vcf",
+        Buffer.from("BEGIN:VCARD\nVERSION:3.0\nFN:Greta Muster\nEMAIL:greta@example.test\nEND:VCARD\n"),
+        { source: "whatsapp" },
+      );
+      said.contact = staged.entry.id;
     }
     const ran = await runTool("alex", name, said, say, "2026-05-06");
     const proposal = ran.proposal;

@@ -19,6 +19,7 @@
  * none.
  */
 import sharp from "sharp";
+import piexif from "piexifjs";
 
 let painted = 0;
 
@@ -50,4 +51,38 @@ export async function paintJpeg(width: number, height: number, seed?: number): P
     }
   }
   return sharp(pixels, { raw: { width, height, channels: 3 } }).jpeg().toBuffer();
+}
+
+/**
+ * The same painted JPEG, with GPS and a capture time embedded as real EXIF —
+ * for testing `photoMetaFromExif` (`lib/ingest/exif.ts`) against bytes that
+ * actually carry the metadata, rather than a mock.
+ */
+export async function paintJpegWithExif(
+  width: number,
+  height: number,
+  gps: { lat: number; lon: number; takenAt: string },
+): Promise<Buffer> {
+  const plain = await paintJpeg(width, height, 1);
+  const dataUrl = `data:image/jpeg;base64,${plain.toString("base64")}`;
+  const toDMS = (deg: number): [number, number][] => {
+    const abs = Math.abs(deg);
+    const d = Math.floor(abs);
+    const m = Math.floor((abs - d) * 60);
+    const s = ((abs - d) * 60 - m) * 60 * 100;
+    return [[d, 1], [m, 1], [Math.round(s), 100]];
+  };
+  const exifObj = {
+    GPS: {
+      [piexif.GPSIFD.GPSLatitude]: toDMS(gps.lat),
+      [piexif.GPSIFD.GPSLatitudeRef]: gps.lat >= 0 ? "N" : "S",
+      [piexif.GPSIFD.GPSLongitude]: toDMS(gps.lon),
+      [piexif.GPSIFD.GPSLongitudeRef]: gps.lon >= 0 ? "E" : "W",
+    },
+    Exif: {
+      [piexif.ExifIFD.DateTimeOriginal]: gps.takenAt.slice(0, 19).replace("T", " ").replace(/-/g, ":"),
+    },
+  };
+  const inserted = piexif.insert(piexif.dump(exifObj), dataUrl);
+  return Buffer.from(inserted.split(",")[1], "base64");
 }

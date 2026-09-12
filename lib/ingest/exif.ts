@@ -524,3 +524,27 @@ export function fromDate(date: Date): ExifDateTime {
     second: date.getSeconds(),
   };
 }
+
+/**
+ * GPS and capture time for an inbox upload, out of this file's own EXIF
+ * reader — a named, sourced exception to `lib/inbox.ts`'s "nothing on a
+ * sidecar is inferred" rule. The camera measured this; nobody guessed it.
+ * Every caller must tag what it writes with `measuredFrom: "exif"` so a
+ * later reader can tell it apart from what a person said.
+ *
+ * `null` when the photo carries none of the three fields — a screenshot, a
+ * WhatsApp forward, a scan. `takenAt` has no timezone, like `ExifDateTime`
+ * itself: the camera's wall-clock reading, not an instant.
+ */
+export function photoMetaFromExif(
+  bytes: Uint8Array,
+): { lat?: number; lon?: number; takenAt?: string } | null {
+  const data = readExif(bytes);
+  const takenAt = data.takenAt ? `${isoDate(data.takenAt)}T${isoTime(data.takenAt)}:00` : undefined;
+  if (data.lat === undefined && data.lng === undefined && takenAt === undefined) return null;
+  return {
+    ...(data.lat !== undefined ? { lat: data.lat } : {}),
+    ...(data.lng !== undefined ? { lon: data.lng } : {}),
+    ...(takenAt !== undefined ? { takenAt } : {}),
+  };
+}
