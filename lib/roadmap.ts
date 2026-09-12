@@ -16,7 +16,7 @@ import { clearMatterCache } from "./matterCache";
  * and calls `process.exit` at module scope, none of which belong in a page
  * render.
  *
- * **Metadata only** — id, title, type, priority. Not the body: a body names
+ * **Metadata only** — id, title, type, priority, area. Not the body: a body names
  * files and argues with itself, and several are security findings written in
  * prose rather than tagged `type: SECURITY`. Publishing bodies would need a
  * person to read all ~1,400 of them first for exactly that reason.
@@ -48,6 +48,7 @@ type RoadmapTask = {
   title: string;
   type: string;
   priority: string;
+  area: string;
 };
 
 export type RoadmapLane = {
@@ -86,6 +87,7 @@ function readTask(file: string): RoadmapTask | null {
     title: data.title,
     type: typeof data.type === "string" ? data.type : "",
     priority: typeof data.priority === "string" ? data.priority : "",
+    area: typeof data.area === "string" ? data.area : "",
   };
 }
 
