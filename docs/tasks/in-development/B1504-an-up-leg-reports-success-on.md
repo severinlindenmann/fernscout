@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: helper, api, config
 found: "2026-09-11T18:32:07Z"
+started: "2026-09-12T08:20:20Z"
+session: 615a7d13-b735-48b0-a399-bf28e199b7bb
+claimed: "2026-09-12T08:20:20Z"
 ---
 
 # B1504 — An up leg reports success on config fields that can never reach the site
