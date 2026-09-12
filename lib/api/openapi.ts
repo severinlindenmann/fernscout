@@ -229,7 +229,7 @@ export function openApiDocument() {
         },
         GeocodeCandidate: {
           type: "object",
-          required: ["displayName", "country", "countryCode", "adminRegion", "lat", "lon"],
+          required: ["displayName", "country", "countryCode", "lat", "lon"],
           properties: {
             displayName: {
               type: "string",
@@ -244,7 +244,7 @@ export function openApiDocument() {
             },
             adminRegion: {
               type: "string",
-              description: "State, canton, province, county or closest named subdivision.",
+              description: "State, canton, province, county or closest named subdivision, when the provider has one.",
             },
             lat: { type: "number" },
             lon: { type: "number" },

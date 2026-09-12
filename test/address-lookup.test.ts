@@ -277,7 +277,7 @@ describe("reverseUrl", () => {
       expect(target.searchParams.get("lon")).toBe("8.2");
     });
 
-    test("uses the best available subdivision for adminRegion and drops hits with none", async () => {
+    test("uses the best available subdivision for adminRegion and keeps hits without one", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn(
@@ -304,6 +304,14 @@ describe("reverseUrl", () => {
       );
 
       await expect(geocodePlace("Hausen", "de")).resolves.toEqual([
+        {
+          displayName: "Hausen, Switzerland",
+          country: "Switzerland",
+          countryCode: "CH",
+          lat: 47.463,
+          lon: 8.216,
+          type: "village",
+        },
         {
           displayName: "Hausen, Aargau, Switzerland",
           country: "Switzerland",
