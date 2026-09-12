@@ -73,7 +73,7 @@ function writeTrip(
   id: string,
   trip: { start: string; end: string; status: string },
   costsFrontmatter: string,
-  days: { date: string; frontmatter?: string }[],
+  days: { date: string; frontmatter?: string; slug?: string }[],
 ): void {
   const tripDir = path.join(dir, "alex", "trips", id);
   fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
@@ -85,7 +85,10 @@ function writeTrip(
   fs.writeFileSync(path.join(tripDir, "costs.md"), costsFrontmatter);
   for (const day of days) {
     fs.writeFileSync(
-      path.join(tripDir, "entries", `${day.date}-d.md`),
+      // `slug` lets two entries share one date — several updates in a day
+      // is normal (lib/types.ts's `Day`), and `d` stays the default so
+      // every existing call site is unaffected.
+      path.join(tripDir, "entries", `${day.date}-${day.slug ?? "d"}.md`),
       `---\ntitle: "D"\ndate: "${day.date}"\n${day.frontmatter ?? ""}---\n\nA day.\n`,
     );
   }
@@ -240,5 +243,84 @@ describe("a trip that is still running", () => {
     const summary = getCostSummary("alex/silent-2026", new Date("2026-09-03T12:00:00Z"));
     expect(summary.budget?.pace?.projectedTotal).toBeUndefined();
     expect(summary.budget?.pace?.projectedFromDays).toBe(0);
+  });
+});
+
+/**
+ * B1629 — "nothing was spent" was never a decline.
+ *
+ * A day was misread as excluded-from-the-average (`unrecorded`) whenever
+ * *any* decline marker for `costs` was present, which conflated two
+ * different facts: `without: [costs]` ("there was no money on this day" —
+ * a real zero, and a real data point) and `unrecorded: [costs]` ("money
+ * was spent and the figures are gone" — no data point at all). The correct
+ * rule branches on whether the day actually carries a recorded figure
+ * (a non-empty items array, `amount > 0`) rather than on which decline was
+ * written: a real zero pulls the average down, and only a day with no
+ * recorded figure at all is excluded.
+ */
+describe("B1629 — zero-spend vs figures-lost", () => {
+  test("a genuine zero-spend day (`without: [costs]`) pulls the average down, never excluded", () => {
+    const dir = journal();
+    writeTrip(
+      dir,
+      "frugal-2026",
+      { start: "2026-09-01", end: "2026-09-04", status: "current" },
+      "---\nbudget:\n  total: 100\n  days: 4\n---\n\nBefore we left.\n",
+      [
+        { date: "2026-09-01", frontmatter: "costs:\n  - label: Food\n    amount: 30\n    category: food\n" },
+        // Two frugal days in a row, genuinely spend-free.
+        { date: "2026-09-02", frontmatter: "without: [costs]\n" },
+        { date: "2026-09-03", frontmatter: "without: [costs]\n" },
+      ],
+    );
+
+    const summary = getCostSummary("alex/frugal-2026", new Date("2026-09-04T12:00:00Z"));
+    expect(summary.unrecordedDays).toBe(0);
+    // 30 across 3 recorded days — the two zero-spend days count in the
+    // denominator and pull the average down, not out of it.
+    expect(summary.perDay).toBe(10);
+    expect(summary.byDay.map((d) => d.unrecorded)).toEqual([false, false, false]);
+  });
+
+  test("a day whose figures are lost (`unrecorded: [costs]`) is excluded, and never charged a zero", () => {
+    const dir = journal();
+    writeTrip(
+      dir,
+      "gap-2026",
+      { start: "2026-09-01", end: "2026-09-04", status: "current" },
+      "---\nbudget:\n  total: 100\n  days: 4\n---\n\nBefore we left.\n",
+      [
+        { date: "2026-09-01", frontmatter: "costs:\n  - label: Food\n    amount: 30\n    category: food\n" },
+        { date: "2026-09-02", frontmatter: "unrecorded: [costs]\n" },
+      ],
+    );
+
+    const summary = getCostSummary("alex/gap-2026", new Date("2026-09-03T12:00:00Z"));
+    expect(summary.unrecordedDays).toBe(1);
+    // 30 over the 1 recorded day only — the lost day neither adds a zero
+    // nor gets averaged over.
+    expect(summary.perDay).toBe(30);
+  });
+
+  test("real recorded spend outranks a stale decline marker for the same day", () => {
+    const dir = journal();
+    writeTrip(
+      dir,
+      "mixed-2026",
+      { start: "2026-09-01", end: "2026-09-02", status: "current" },
+      "---\nbudget:\n  total: 100\n  days: 2\n---\n\nBefore we left.\n",
+      [
+        // Two updates on the same day: one records a real figure, the
+        // other still carries an `unrecorded` marker from before the
+        // figure was found. The day has an answer — it must count as one.
+        { date: "2026-09-01", slug: "a", frontmatter: "costs:\n  - label: Food\n    amount: 40\n    category: food\n" },
+        { date: "2026-09-01", slug: "b", frontmatter: "unrecorded: [costs]\n" },
+      ],
+    );
+
+    const summary = getCostSummary("alex/mixed-2026", new Date("2026-09-02T12:00:00Z"));
+    expect(summary.unrecordedDays).toBe(0);
+    expect(summary.byDay).toEqual([{ date: "2026-09-01", amount: 40, cumulative: 40, unrecorded: false }]);
   });
 });

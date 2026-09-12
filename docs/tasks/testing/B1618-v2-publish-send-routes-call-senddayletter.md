@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: API v2
 found: "2026-09-12T20:19:51Z"
+merged: "2026-09-12T21:33:18Z"
 ---
 
 # B1618 — v2 publish/send routes call sendDayLetter/sendDayWhatsapp with the wrong slug shape, so a requested send always answers unknown_day

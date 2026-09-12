@@ -290,8 +290,22 @@ export function getCostSummary(
        * therefore a floor rather than a figure, and the page has to say so:
        * somebody looking at "we spent 1,240 francs" should know whether that
        * is the answer or the part of the answer anybody has.
+       *
+       * B1629 — the branch is on whether there is a *recorded figure*
+       * (`amount > 0`, the array-of-items case), never on the decline's own
+       * wording. `without: [costs]` ("nothing was spent" — a real zero) and
+       * `unrecorded: [costs]` ("the figures are gone") are the two decline
+       * spellings this file's frontmatter carries; on the wire (v2) they
+       * collapse into one `declined.costs` free-text reason, and a reader
+       * cannot branch on prose. So this never asks which decline was
+       * written — it asks `Array.isArray`'s own question one level up, in
+       * effect: did any entry that day actually carry cost items (a
+       * non-empty array), or is there nothing but a decline standing? A day
+       * with a real, non-zero total is never `unrecorded`, even if an entry
+       * that day also happens to carry a stale `unrecorded: [costs]` marker
+       * — recorded data always outranks a decline about the same day.
        */
-      unrecorded: day.entries.some((e) => e.unrecorded?.includes("costs")),
+      unrecorded: amount === 0 && day.entries.some((e) => e.unrecorded?.includes("costs")),
     };
   });
 

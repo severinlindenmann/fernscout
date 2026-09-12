@@ -78,7 +78,7 @@ export const ERROR_CODES = {
   invalid_title: "The title is not usable — it must be one line. A line break would end the frontmatter block early, so it is refused rather than folded; put the longer version in the prose.",
   invalid_date: "A date is not a real calendar date, or `end` is before `start`. Dates are `2026-09-01`.",
   invalid_tagline: "The subtitle is not usable — it must be one line, like the title. Send `\"\"` to remove it entirely.",
-  invalid_cover: "`cover` must be a `src` this trip's own gallery already carries — read GET .../trips/{trip}/media for the list. `null` or `\"\"` clears it.",
+  invalid_cover: "`cover` must be a `src` this trip's own gallery already carries — read GET .../trips/{trip}/media for the list. `null` on a PATCH clears it back to absent.",
   invalid_accent: "`accent` must be one of the five named colours. `null` or `\"\"` clears it back to no preference.",
   invalid_intro: "`intro` must be text — the trip's own prose, not a frontmatter line.",
   invalid_trip_id: "The trip id must be lowercase letters, digits and single hyphens. It is the URL segment and the folder name.",

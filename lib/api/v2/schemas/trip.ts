@@ -211,13 +211,16 @@ const tripBase = z
     /** The media src the trip's card shows. Not asked at create (V8 — no
      * photograph can exist yet, so the question had no honest answer); the
      * route asks it on update once the trip holds media, same conditional
-     * shape as listed/teaser. Declined → auto-pick newest, echo says so. */
+     * shape as listed/teaser. Declined → auto-pick newest, echo says so.
+     * On a PATCH only, `null` clears it back to absent (D11). */
     cover: z.string().optional(),
     /** Which figures walk this trip's animation — see ./figures.ts. */
     figures: tripFigures.optional(),
-    /** One line under the title on the trip card. */
+    /** One line under the title on the trip card. On a PATCH only, `null`
+     * clears it back to absent (D11). */
     tagline: z.string().optional(),
-    /** The trip page's opening prose — trip.md's body. */
+    /** The trip page's opening prose — trip.md's body. On a PATCH only,
+     * `null` clears it back to absent (D11). */
     intro: z.string().optional(),
     /** Public trips only: is the trip advertised (sitemap, feed, switcher)?
      * false is "unlisted" — still readable at its URL. On a closed trip the
@@ -295,6 +298,31 @@ export const tripCreate = tripBase.superRefine((doc, ctx) => {
 });
 
 /**
+ * D11 (06-contract-deltas.md) — a PATCH only, widening these four plain
+ * scalars to accept `null` as well as their ordinary type: sending `null`
+ * removes the field, returning the document to the state before it was ever
+ * set. Finishes RFC 7386 (JSON Merge Patch), which the contract already
+ * names as v2's patch semantics and where `null` already means exactly this
+ * — v2's own merge-patch had no spelling for it at all until now.
+ *
+ * Deliberately not on `tripBase` itself, so `tripCreate` (a PUT is refused
+ * `null`, decision 7 — a full replace already expresses absence by
+ * omission) and `tripDoc` (a read never sees `null` here) are untouched.
+ * Deliberately not on any other field: a declinable SECTION (`costs`,
+ * `plan`, `rates`, `figures`, `translations`, …) keeps the `declined` map as
+ * its only way to say "not answered" — a `null` spelling there would be a
+ * second way to say one thing, which is the drift this row exists to avoid.
+ * Derived/conditional fields (`listed`, `teaser`, `buddies`) keep B1616's
+ * reconciliation and gain no `null` spelling either.
+ */
+const NULLABLE_ON_PATCH = {
+  cover: z.string().nullable().optional(),
+  accent: z.enum(ACCENTS).nullable().optional(),
+  tagline: z.string().nullable().optional(),
+  intro: z.string().nullable().optional(),
+};
+
+/**
  * Editing a trip (V2): merge-patch over the same shape. Nothing is asked —
  * a patch answers only the questions it raises — but it cannot contradict
  * itself, `days` is refused (a day changes through its own route, so
@@ -306,6 +334,7 @@ export const tripCreate = tripBase.superRefine((doc, ctx) => {
  */
 export const tripPatch = tripBase
   .partial()
+  .extend(NULLABLE_ON_PATCH)
   .superRefine((doc, ctx) => {
     checkPatchConflicts(doc, DECLINABLE_KEYS, ctx);
     if (doc.days !== undefined) {

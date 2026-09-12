@@ -8,6 +8,7 @@
 //
 //   - V2 — echo-tolerant server-owned/immutable fields (`stripEchoedFields`)
 //   - T6 — decline retraction (`retractDeclines`)
+//   - D11 — `null` clears a scalar back to absent (`applyNullClears`)
 //
 // Plus T5: one writable-fields list per resource, shared by /api/web and
 // /api/v2, so the two doors cannot drift about what a caller may set.
@@ -508,7 +509,36 @@ export function checkTranslations(
  * question it says it is not deciding.
  */
 export function checkCover(cover: string | undefined, mediaSrcs: ReadonlySet<string>): string | null {
-  if (cover === undefined || cover === "") return null;
+  if (cover === undefined) return null;
   if (mediaSrcs.has(cover)) return null;
   return `${ERROR_CODES.invalid_cover} Got "${cover}".`;
+}
+
+/**
+ * D11 (06-contract-deltas.md, the owner's decision of 2026-09-12) — a PATCH
+ * may send `null` for `cover`, `accent`, `tagline` or `intro` to remove the
+ * field outright, finishing RFC 7386 (JSON Merge Patch), which the contract
+ * already names as v2's patch semantics and where `null` already means
+ * exactly this. `""` was considered and rejected as the spelling (same
+ * reasoning as R1 above: an absent value and an empty one are different
+ * claims), so `checkCover` no longer carves it out either — an empty string
+ * is now an ordinary invalid `src`.
+ *
+ * Applied ONCE here, in the shared write path, on the MERGED document a
+ * route is about to hand to its create schema for full revalidation — never
+ * on the schema shape itself (only `tripPatch`'s four fields are ever
+ * `.nullable()`) and never on the raw incoming patch, because a caller's own
+ * `null` still has to survive long enough for `retractDeclines`/
+ * `checkPatchConflicts` to see it as "this field is being answered, not
+ * silently omitted" before it is deleted for good.
+ */
+const NULLABLE_PATCH_FIELDS = ["cover", "accent", "tagline", "intro"] as const;
+
+export function applyNullClears(
+  merged: Record<string, unknown>,
+  fields: readonly string[] = NULLABLE_PATCH_FIELDS,
+): void {
+  for (const field of fields) {
+    if (merged[field] === null) delete merged[field];
+  }
 }

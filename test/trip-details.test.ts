@@ -600,34 +600,33 @@ describe("the fifth field, cover", () => {
   });
 
   /**
-   * B1612 finding: v2's merge-patch has no way to clear a scalar field back
-   * to absent once it is set. v1 treated `cover: ""` as "take the key out";
-   * v2's `cover` schema accepts an empty string as a perfectly ordinary
-   * value (`z.string().optional()` puts no floor on length) and
-   * `dataToTripFile` (lib/api/v2/documents.ts) assigns it verbatim — so the
-   * stored `cover` becomes `""` rather than disappearing, and `trip.cover ??
-   * pickCover(days)` (lib/api/v2/trips.ts) never falls through to the
-   * auto-pick because `??` only treats `null`/`undefined` as absent, not an
-   * empty string. Left failing rather than asserting the empty string
-   * sticks: "clearing removes the key" is the property that matters (an
-   * agent correcting a mistaken cover expects the newest photo to stand in
-   * again, not a trip card pointing at `""`), and it does not hold. See this
-   * ticket's report.
+   * B1612 finding, resolved by D11 (06-contract-deltas.md, owner's decision
+   * 2026-09-12): `null` on a PATCH clears a scalar back to absent, finishing
+   * RFC 7386 (JSON Merge Patch) — v2's own patch semantics already named,
+   * which had no spelling for "remove this" until now. `""` was considered
+   * and rejected as that spelling (an absent value and an empty one are
+   * different claims, same reasoning as R1 for a day's `translations`), so
+   * `checkCover` (lib/api/v2/write.ts) no longer carves it out either — an
+   * empty string is an ordinary invalid `src` now, refused like any other.
+   * The trip here has exactly one photo, so clearing `cover` and letting the
+   * auto-pick stand in reads back the same `photoSrc` either way — proving
+   * the fall-through, not merely that nothing changed.
    */
-  // Skipped against B1626, not deleted. `cover: ""` is stored as a valid
-  // string and nothing falls through to the auto-pick, because v2's
-  // merge-patch has no agreed spelling for "make this absent again" —
-  // omitting a key means "unchanged". Deciding that convention (RFC 7386's
-  // `null` is the obvious candidate) is a CONTRACT change, needs a row in
-  // 06-contract-deltas.md and the owner's agreement, and is deliberately not
-  // a build decision. Unskip when B1626 lands.
-  test.skip("clearing a cover removes the key rather than writing an empty one", async () => {
+  test("clearing a cover removes the key rather than writing an empty one", async () => {
     const tripId = "cover-clear-trip";
     const { token, photoSrc } = await setup(tripId);
     await patchTripV2(tripId, { cover: photoSrc }, token);
 
-    const saved = await patchTripV2(tripId, { cover: "" }, token);
+    // The trip has media, so clearing `cover` alone would re-raise "this
+    // trip now has photographs — pick one, or decline"; declining it in the
+    // same call is what lets the newest photo stand in instead.
+    const saved = await patchTripV2(
+      tripId,
+      { cover: null, declined: { cover: "let the newest photo stand in" } },
+      token,
+    );
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    expect(saved.body.cover).toBe(photoSrc);
     const read = await getTripV2(tripId, token);
     expect(read.body.cover).toBe(photoSrc);
   });
@@ -710,31 +709,21 @@ describe("B907's three fields: accent, costsVisibility, intro", () => {
   });
 
   /**
-   * B1612 finding, same shape as the cover-clearing gap above: once `accent`
-   * carries a value, there is no way back to "declined". `TRIP_DECLINABLES`
-   * (lib/api/v2/schemas/trip.ts) makes `accent` required-or-declined, and
-   * `checkRequiredOrDeclined` refuses a document that both supplies AND
-   * declines the same field — but a PATCH that sends only
-   * `declined: {accent: "…"}` merges over a document whose stored `accent`
-   * survives untouched (`merged = {...storedWritable, ...patch}`,
-   * `lib/api/v2/write.ts`'s T6 only clears a decline when the field is newly
-   * SUPPLIED, never the reverse), so the merged document then has `accent`
-   * present AND declined at once and `tripCreate`'s revalidation refuses it
-   * (observed: 400 `invalid_request`, "both provided and declined"). Left
-   * failing rather than asserting the refusal is correct here: the property
-   * is "an owner may change their mind back to no explicit accent", and v2
-   * currently has no route to it at all.
+   * B1612 finding, same shape as the cover-clearing gap above, resolved the
+   * same way by D11: `accent: null` removes the stored value, so it can be
+   * paired with `declined.accent` in one call rather than colliding with it.
+   * `checkPatchConflicts` (lib/api/v2/schemas/shared.ts) treats `null` as
+   * "not brought" for exactly this reason — pairing it with a decline of the
+   * same field is a deliberate swap, not the contradiction the check exists
+   * to catch.
    */
-  // The same gap as the cover case above, seen on a second field: declining
-  // an already-set `accent` collides with "both provided and declined",
-  // because nothing clears the stored value when a decline arrives. B1626.
-  test.skip("clearing accent removes the key", async () => {
+  test("clearing accent removes the key", async () => {
     const tripId = "b907-clear-accent-trip";
     const token = await setup(tripId);
     await patchTripV2(tripId, { accent: "coral" }, token);
     const saved = await patchTripV2(
       tripId,
-      { declined: { accent: "reverted to the renderer's default" } },
+      { accent: null, declined: { accent: "reverted to the renderer's default" } },
       token,
     );
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);

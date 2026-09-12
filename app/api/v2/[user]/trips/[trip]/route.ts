@@ -10,6 +10,7 @@ import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import {
   TRIP_IMMUTABLE_FIELDS,
+  applyNullClears,
   checkCover,
   checkTranslations,
   reconcileVisibility,
@@ -314,6 +315,15 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   const merged: Record<string, unknown> = { ...storedWritable, ...patch };
   if (Object.keys(declinedMerged).length > 0) merged.declined = declinedMerged;
   else delete merged.declined;
+
+  // D11 — a patch's `null` on `cover`/`accent`/`tagline`/`intro` removes the
+  // field. Applied to the MERGED document, after the spread above (which
+  // would otherwise leave the literal `null` sitting in place of the stored
+  // value) and after `retractDeclines`/`checkPatchConflicts` have already
+  // seen the incoming `null` as "this field is being answered" — deleting it
+  // any earlier would make a `{field: null, declined: {field: "…"}}` patch
+  // look like a silent omission instead of a deliberate swap.
+  applyNullClears(merged);
 
   // B1616 — two dead ends this merge alone cannot avoid. `buddies` has no
   // real field of its own for T6 above to key on, so a solo trip's
