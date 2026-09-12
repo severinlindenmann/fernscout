@@ -545,6 +545,7 @@ export type TranslationKey =
   | "agent.room.noFiles"
   | "agent.room.onTrip"
   | "agent.room.openOnSite"
+  | "agent.room.otherFiles"
   | "agent.room.photos"
   | "agent.room.pickAnyFile"
   | "agent.room.preview"

@@ -2490,10 +2490,15 @@ function FilesPane({
           files={files.inbox.map((file) => ({
             id: file.id,
             name: file.name,
-            // The four inbox kinds collapse to the three shapes a person sees.
+            // The six inbox kinds collapse to the five shapes a person sees.
             // Only `media` has a picture; `files`, `photobook` and `postcards`
             // are documents and draw their type instead of an empty frame.
-            kind: file.kind === "media" ? (VIDEO.test(file.name) ? "video" : "photo") : "document",
+            // `location` and `contact` are their own groups.
+            kind:
+              file.kind === "media" ? (VIDEO.test(file.name) ? "video" : "photo")
+              : file.kind === "location" ? "location"
+              : file.kind === "contact" ? "contact"
+              : "document",
             src: file.src,
             bytes: file.bytes,
             at: file.uploadedAt,

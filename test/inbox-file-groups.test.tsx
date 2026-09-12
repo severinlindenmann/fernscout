@@ -122,3 +122,14 @@ describe("a document's row", () => {
     expect(label?.className).toMatch(/\bmin-w-0\b/);
   });
 });
+
+describe("a location or contact item", () => {
+  test("renders its own icon rather than the generic document one", () => {
+    const el = render([
+      { id: "inbox:a", name: "Zermatt", kind: "location", at: NEW },
+      { id: "inbox:b", name: "maria.vcf", kind: "contact", at: NEW },
+    ]);
+    expect(el.textContent).toContain("Zermatt");
+    expect(el.textContent).toContain("maria.vcf");
+  });
+});

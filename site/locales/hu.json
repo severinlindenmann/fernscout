@@ -1855,6 +1855,7 @@
   "agent.room.chooseTrip": "Válassz egy utat…",
   "agent.room.photos": "Fényképek",
   "agent.room.documents": "Dokumentumok",
+  "agent.room.otherFiles": "Egyéb",
   "agent.room.addFiles": "Fényképek vagy fájlok hozzáadása",
   "agent.room.pickAnyFile": "Amit kiválasztasz, fent vár a „Fényképek” vagy a „Dokumentumok” alatt — fényképek, videók, bankszámlakivonat, helyadat-export (csv, gpx, json, pdf). Aztán mondd meg, mit kezdjek velük.",
   "agent.room.fileMeta": "{size} · {date}",

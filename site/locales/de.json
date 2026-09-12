@@ -1855,6 +1855,7 @@
   "agent.room.chooseTrip": "Reise wählen…",
   "agent.room.photos": "Fotos",
   "agent.room.documents": "Dokumente",
+  "agent.room.otherFiles": "Sonstiges",
   "agent.room.addFiles": "Fotos oder Dateien hinzufügen",
   "agent.room.pickAnyFile": "Alles, was du auswählst, wartet oben unter „Fotos“ oder „Dokumente“ — Fotos, Videos, ein Kontoauszug, ein Standortexport (csv, gpx, json, pdf). Sag mir dann, was ich damit tun soll.",
   "agent.room.fileMeta": "{size} · {date}",

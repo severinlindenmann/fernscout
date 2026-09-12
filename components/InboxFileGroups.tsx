@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FileText } from "lucide-react";
+import { Contact, FileText, MapPin } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader } from "@/components/mediaLoader";
 
@@ -31,7 +31,7 @@ import { mediaLoader } from "@/components/mediaLoader";
  * the ticket's own report rather than done here.
  */
 
-type InboxFileKind = "photo" | "video" | "document";
+type InboxFileKind = "photo" | "video" | "document" | "location" | "contact";
 
 export type InboxFile = {
   /** `inbox:<id>` or `photo:<slug>:<src>` — the same selection ids the room
@@ -64,6 +64,8 @@ function formatBytes(n: number): string {
 
 function KindIcon({ kind }: { kind: InboxFileKind }) {
   if (kind === "video") return <span aria-hidden>🎞️</span>;
+  if (kind === "location") return <MapPin className="h-5 w-5 text-navy-600" aria-hidden />;
+  if (kind === "contact") return <Contact className="h-5 w-5 text-navy-600" aria-hidden />;
   return <FileText className="h-5 w-5 text-navy-600" aria-hidden />;
 }
 
@@ -99,6 +101,7 @@ export function InboxFileGroups({
   const { t } = useI18n();
   const photos = newestFirst(files.filter((f) => f.kind === "photo" || f.kind === "video"));
   const documents = newestFirst(files.filter((f) => f.kind === "document"));
+  const other = newestFirst(files.filter((f) => f.kind === "location" || f.kind === "contact"));
 
   return (
     <>
@@ -171,6 +174,53 @@ export function InboxFileGroups({
           </h3>
           <ul className="mt-2 space-y-1">
             {documents.map((file) => (
+              <li key={file.id} className="flex items-center gap-1">
+                <label
+                  data-inbox-id={file.id}
+                  className={`flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
+                    selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200 bg-white"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(file.id)}
+                    onChange={() => onToggle(file.id)}
+                    className="sr-only"
+                  />
+                  <KindIcon kind={file.kind} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm text-navy-900">{file.name}</span>
+                    {(file.bytes !== undefined || file.at) && (
+                      <span className="block text-xs text-navy-600">
+                        {t("agent.room.fileMeta", {
+                          size: file.bytes !== undefined ? formatBytes(file.bytes) : "",
+                          date: file.at ? new Date(file.at).toLocaleDateString() : "",
+                        })}
+                      </span>
+                    )}
+                  </span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => onRemove(file.id)}
+                  aria-label={t("agent.room.menuDiscard")}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-navy-500 hover:bg-navy-50"
+                >
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {other.length > 0 && (
+        <section className="mt-4">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+            {t("agent.room.otherFiles")}
+          </h3>
+          <ul className="mt-2 space-y-1">
+            {other.map((file) => (
               <li key={file.id} className="flex items-center gap-1">
                 <label
                   data-inbox-id={file.id}
