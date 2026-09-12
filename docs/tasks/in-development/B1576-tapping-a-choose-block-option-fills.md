@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: agent room, mobile
 found: "2026-09-12T08:54:29Z"
+started: "2026-09-12T09:24:00Z"
+session: 5a4744c4-0424-4149-9d23-d8a0bd9dd3b1
+claimed: "2026-09-12T09:24:00Z"
 ---
 
 # B1576 — Tapping a choose-block option fills the field and raises the keyboard instead of sending
