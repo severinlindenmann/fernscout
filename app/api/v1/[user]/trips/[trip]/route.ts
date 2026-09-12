@@ -1,3 +1,4 @@
+import { TRIP_DETAIL_FIELDS } from "@/lib/api/tripFields";
 import { authenticate, errorResponse, mayActAsOwner, mayWriteTrip, outOfScope, ownsUser } from "@/lib/api/auth";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { tripTombstone } from "@/lib/tombstones";
@@ -236,17 +237,7 @@ export async function PATCH(
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const FIELDS = [
-    "title",
-    "tagline",
-    "start",
-    "end",
-    "cover",
-    "accent",
-    "costsVisibility",
-    "intro",
-    "translations",
-  ] as const;
+  const FIELDS = TRIP_DETAIL_FIELDS;
   if (!FIELDS.some((field) => body[field] !== undefined)) {
     return Response.json(
       {
