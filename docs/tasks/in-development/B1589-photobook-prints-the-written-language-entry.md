@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: photobook, i18n
 found: "2026-09-12T13:52:51Z"
+started: "2026-09-12T14:17:03Z"
 ---
 
 # B1589 — Photobook prints the written-language entry text, ignoring the book's own language and the entry's translations
@@ -37,6 +38,11 @@ to the entry. Two other call sites resolve this correctly already and can be
 used as the reference: `app/api/v1/[user]/postcards/texts/route.ts:75` and
 `lib/helper/tools/areas/printed.ts:150`, both doing
 `locale === written ? entry.content : entry.translations?.[locale]?.content`.
+
+Revalidated 2026-09-12: **valid**. `lib/photobook/source.ts` still builds the
+day title and paragraphs directly from `day.lead.title`, `entry.title` and
+`entry.content`; both callers in `lib/photobook/build.ts` still omit the book
+locale when they call `buildBookSource`.
 
 ## Work
 
