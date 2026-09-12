@@ -136,6 +136,14 @@ answer (an actual layout question CSS and DOM structure alone decide, for
 instance, is already answerable without a model turn at all: the room mounts
 and lays out the same whether or not a message is ever sent).
 
+**`assertCapabilities` only checks that the variable is set, not that it
+works** — it is a boot-time completeness check, not a credential check. So a
+dummy value (`ANTHROPIC_API_KEY="sk-ant-local-dummy-not-a-real-key"`) boots
+the `helper` capability and mounts the real room for exactly this kind of
+layout-only check, at zero cost, as long as nothing in the session actually
+sends a message (that call would fail against the dummy key, honestly, rather
+than spending anything).
+
 **`site/config.json`'s feature flags can be overridden for one dev run without
 editing the tracked file** — set `FERNSCOUT_CONFIG=/path/to/a/copy.json`
 (the same variable a deployed instance uses) pointing at a JSON file with the
