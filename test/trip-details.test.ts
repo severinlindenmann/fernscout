@@ -678,6 +678,17 @@ describe("the eleventh field, translations", () => {
     });
   });
 
+  test("a translated introduction is corrected and reads back", async () => {
+    const saved = await v1(
+      { translations: { de: { intro: "Die korrigierte Einleitung." } } },
+      await tokenFor(OWNER_EMAIL),
+    );
+    expect(saved.status).toBe(200);
+    expect(saved.body.translations).toEqual({ de: { intro: "Die korrigierte Einleitung." } });
+    expect(fs.readFileSync(tripFile(), "utf8")).toContain('intro: "Die korrigierte Einleitung."');
+    expect((await read()).translations).toEqual({ de: { intro: "Die korrigierte Einleitung." } });
+  });
+
   test("a block added to a trip that had none lands in the frontmatter, prose untouched", async () => {
     const saved = await v1(
       { translations: { de: { title: "Vier Tage um die Alpen" } } },

@@ -125,7 +125,7 @@ export const BUDGET_QUESTION =
  *
  * The complaint: a journal declaring `de`, `en` and `hu` gave a reader who
  * switched to English an English switcher, an English trip title, and German
- * prose. `translations` covered a trip's title and tagline and nothing else,
+ * prose. `translations` covers a trip's title, tagline and introduction,
  * so no call could put a day's words in a second language.
  *
  * The owner chose to require them. B294's wording forbade translating
@@ -505,7 +505,7 @@ export const PERFECT_TRIP_EXAMPLE = [
   '  "tracks": {"costs": true, "coordinates": true, "photos": true},',
   '  "rates": {"JPY": 0.0058},',
   '  "translations": {',
-  '    "de": {"title": "Japan", "tagline": "sechs Wochen mit dem Zug"}',
+  '    "de": {"title": "Japan", "tagline": "sechs Wochen mit dem Zug", "intro": "Sechs Wochen…"}',
   "  }",
   "}",
 ];
@@ -643,9 +643,9 @@ export const TRIP_FIELDS: {
     key: "translations",
     required: false,
     what:
-      "Title and tagline in the journal's other languages — `{\"de\": {\"title\", \"tagline\"}}`. " +
-      "**Set here or nowhere**: no call writes it afterwards. A language the journal does not " +
-      "declare is refused.",
+      "Title, tagline and introduction in the journal's other languages — `{\"de\": {\"title\", \"tagline\", \"intro\"}}`. " +
+      "Correctable later with `PATCH .../trips/<id>`, which replaces the whole translations " +
+      "block. A language the journal does not declare is refused.",
   },
   {
     key: "test",

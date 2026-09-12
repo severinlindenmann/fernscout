@@ -180,6 +180,23 @@ export function tripWriteScope(tripId: string): string {
 }
 
 /**
+ * Whether a session's own scope is the unqualified, journal-wide one —
+ * `SESSION_SCOPE.agent` — rather than something narrower like a trip scope.
+ *
+ * Centralised here (B240, extended by B1609) so that every owner-only gate
+ * asks the same question from the same code: v1's `mayActAsOwner`
+ * (`lib/api/auth.ts`) and v2's `requireJournalOwner`
+ * (`lib/api/v2/auth.ts`) both call this rather than each re-deriving
+ * `session.scope !== SESSION_SCOPE.agent` on its own, which is exactly the
+ * drift `test/owner-gate.test.ts`'s source scan exists to catch — and which
+ * a second, v2-only re-derivation would otherwise have reintroduced the
+ * moment v2 needed its own owner-only gate and could not import v1's.
+ */
+export function isJournalWideScope(scope: string): boolean {
+  return scope === SESSION_SCOPE.agent;
+}
+
+/**
  * The two-value answer `GET /api/v2/{user}/status` and `GET
  * /api/auth/{user}/keys` put on the wire for "what can this token do" —
  * `docs/plans/2026-09-12-api-v2/auth.md` §3. It belongs beside

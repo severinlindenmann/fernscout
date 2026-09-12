@@ -546,6 +546,7 @@ describe("chapters", () => {
 
   test("a day with no country still lands somewhere", () => {
     expect(chaptersOf([day(0, { country: "" })])[0].country).toBe("Elsewhere");
+    expect(chaptersOf([day(0, { country: "" })], "Máshol")[0].country).toBe("Máshol");
   });
 });
 

@@ -410,7 +410,7 @@ export type TripStatus = "past" | "current" | "upcoming";
 export type TripAccent = "sky" | "yellow" | "green" | "coral" | "navy";
 
 /** See EntryTranslations — open by locale code, not a fixed union. */
-export type TripTranslations = Record<string, { title?: string; tagline?: string }>;
+export type TripTranslations = Record<string, { title?: string; tagline?: string; intro?: string }>;
 
 /** One trip: a folder under content/trips/, described by its trip.md. */
 /**
