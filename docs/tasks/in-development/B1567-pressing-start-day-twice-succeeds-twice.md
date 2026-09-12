@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: helper
 found: "2026-09-12T07:32:00Z"
+started: "2026-09-12T07:36:47Z"
+session: 47912984-b51b-4d11-b25e-5b026ba593de
+claimed: "2026-09-12T07:36:47Z"
 ---
 
 # B1567 — Pressing start_day twice succeeds twice

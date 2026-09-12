@@ -315,7 +315,7 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (12)
+## open (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -327,12 +327,9 @@ Do not edit them by hand; run the script.
 | [B1522](open/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low |
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
-| [B1564](open/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low |
 | [B1565](open/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low |
-| [B1567](open/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low |
-| [B1566](open/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low |
 
-## in-development (8)
+## in-development (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -342,8 +339,11 @@ Do not edit them by hand; run the script.
 | [B1554](in-development/B1554-api-upload-path-never-enforces-imageedge.md) | API upload path never enforces imageEdge; pixel bombs bounded only by sharp defaults and HEIC fallback unbounded | SECURITY | medium | medium | `5c987a64` |
 | [B1555](in-development/B1555-submitbuiltbook-refunds-before-claiming-the-failure.md) | submitBuiltBook refunds before claiming the failure — double refund race with the Gelato webhook | SECURITY | medium | low | `5c987a64` |
 | [B1556](in-development/B1556-storage-quota-is-check-then-write.md) | Storage quota is check-then-write — parallel uploads pass the ceiling arbitrarily | SECURITY | medium | medium | `5c987a64` |
+| [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
+| [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
 | [B1558](in-development/B1558-submitrequest-lost-race-mails-the-operator.md) | submitRequest lost race mails the operator a dead approval link | ISSUE | low | low | `5c987a64` |
 | [B1559](in-development/B1559-paid-send-routes-rely-on-samesite.md) | Paid send routes rely on SameSite=lax alone — no Origin check as second layer | SECURITY | low | low | `5c987a64` |
+| [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
 ## testing (24)
 
