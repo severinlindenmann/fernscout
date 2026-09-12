@@ -39,3 +39,24 @@ production build reaches generated route validation before rejecting them.
 - The existing tests for byte ranges and identity upgrades still pass.
 - `npm run verify` passes in an environment where Turbopack may create its
   internal worker process.
+
+## Implementation
+
+- Moved `parseRange` to `lib/mediaRange.ts` and made the media route import it.
+- Moved `shouldUpgradeIdentity` and the page's other test-only helper export,
+  `arrivalFor`, to `lib/helper/pageState.ts`.
+- Updated the focused tests to import the ordinary modules. The App Router
+  entries now expose only Next-supported exports.
+
+## Verification
+
+- `npx vitest run test/media-range.test.ts test/agent-door-identity-upgrade.test.ts test/agent-page-arrival.test.ts` — 14 tests passed.
+- `npx next build --webpack` — compiled, passed generated TypeScript route
+  validation, generated all 91 static pages, and completed successfully.
+- `npm run verify -- --quick` after that production build — types, ESLint,
+  7,228 tests, and knip passed. ESLint reported the existing 71 warnings;
+  restic and Postgres checks remained unavailable as reported by the suite.
+- Manually reviewed the media permission route and identity-upgrade call site:
+  this change only relocates pure helpers and does not alter either gate's
+  inputs, order, or result. The optional `claude-security` reviewer named by
+  the repository is not installed in this harness.

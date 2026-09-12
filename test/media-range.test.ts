@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseRange } from "@/app/[user]/media/[...path]/route";
+import { parseRange } from "@/lib/mediaRange";
 
 /**
  * Seeking a clip — B669.
