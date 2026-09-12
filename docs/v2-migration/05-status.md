@@ -274,3 +274,96 @@ The owner has since granted the permission, so **every later deploy uses
 replay rewrites `content/example` into JSON, a deploy that skips the rsync
 leaves the live demo on the old markdown files while the code that reads them
 is gone.
+
+## 2026-09-12 — phase 2 step 3: the core documents
+
+Step 3 was split into four parcels so they could be built at once. A depends
+on nothing; B, C and D each depend on A's shared write path and on nothing
+else, and they touch no file in common.
+
+| parcel | ticket | what | state |
+|---|---|---|---|
+| A | B1608 | the shared write path (T6 + V2), journal, both status doors, geocode | **merged** |
+| D | B1609 | the figures library — a build from zero, there was no domain layer | **merged** |
+| C | B1613 | media: one door, content-addressed `src`, day-less trip writes | verified, merging |
+| B | B1612 | trips, days, publish/unpublish, one send door | tests repointing |
+
+### What A settled, and why it had to go first
+
+`lib/api/v2/write.ts` owns the two rules that must happen **once** rather than
+per route, or three routes implement them three ways:
+
+- **T6** — a write supplying a previously declined section clears the stored
+  decline. Stateless schema checks cannot do this; it needs the stored
+  document.
+- **V2 echo-tolerance** — a server-owned or immutable field is refused unless
+  byte-identical to what is stored. The non-obvious part: `z.strictObject`
+  refuses an unknown key *before* anything can compare it, so echoes are
+  stripped **before** `.parse()`, not after. Without that, the obvious thing
+  to do — GET a document, change one field, PUT it back — is refused for keys
+  the caller never chose to send.
+
+`baseCurrency` is the worked example and it is why no schema had to narrow:
+identical is accepted, different is refused (R3 in `06-contract-deltas.md`).
+
+### Decisions taken during the build, recorded so they are not re-litigated
+
+**PUT is create-only.** A `PUT` to an id that already exists answers `409
+stale_document` **carrying the stored document**; only a matching `If-Match`
+turns it into a deliberate replace. This reconciles S2 and V11 rather than
+choosing between them: decision 7's 409 is about **retry safety**, V11's
+last-write-wins is about **concurrent writers**, and they govern different
+verbs (`PUT` vs `PATCH`). A blind `PUT` that silently replaced is how
+somebody's day gets overwritten by an agent that thought it was creating one.
+The figures parcel shipped this shape first; trips and days match it, because
+the same verb on the same kind of id must not answer differently per resource.
+
+**`src` is a hash of the bytes** — decision 7's single exception to
+client-chosen ids. The same photograph uploaded twice resolves to the same
+address, which is what makes `duplicateOf` mean anything.
+`findDuplicateMedia` survives: *"these look alike"* is a different question
+from *"these are the same bytes"*, and content-addressing has nothing to say
+about it.
+
+**A day-less trip-scoped photograph** lives in the trip's own `media/` with no
+day association; a day references it by `src` later (T2).
+
+### Two findings from the parcels that were worth more than the code
+
+**A subagent deleted two tests as "v1-only semantics".** Both were wrong to
+delete and both are restored against the v2 door:
+
+- `media-response-src.test.ts` is **B540** — the `src` in an upload response
+  must be the string you read back. v1's bug was the route echoing one form
+  while a day read another, so an agent correcting a caption *keyed by `src`*
+  could never match it. v2 closes this **by construction** (a day read only
+  ever *adds* `url` beside `src`; there is no read-time rewrite left to
+  drift), which is a better answer than v1's — but the test is what says so.
+- `media-url-upload.test.ts` is **B30/B133** — the original bytes survive
+  untouched **through the URL branch specifically**. "The multipart test
+  covers it" is an argument about today's code shape, not a test.
+
+This is the failure mode to watch for in parallel agent work: the mechanism
+changes, the property does not, and a green suite afterwards looks identical
+either way.
+
+**The contract test had a blind spot that deleted a live error code** —
+B1614. Its dead-code scan covered `app/api/v1` and `app/api/auth` only. When
+the v1 media route was deleted, `expected_src` lost its only speaker *inside
+the window* and read as dead, so an agent removed it — while three
+cookie-only routes still answered with it. A caller would have received a
+word no document defines, which is B540 arriving through the test built to
+prevent it. The `spoken` scan now covers `app/api/helper` and `app/[user]`;
+the `answered` scan deliberately does **not**, because holding cookie-only
+internals to the published vocabulary is a step-5 decision nobody has taken.
+
+### Deployed
+
+Steps 1 and 2 are live at `ce571173d82f` → `1465d8c5ea0f`, database dropped
+and recreated, validated over TLS. `ship.sh` is unblocked now, which matters
+for phase 3: it carries the `content/example` rsync the bare `deploy.sh` does
+not, and the replay rewrites that content.
+
+**NEXT:** finish B1612's test repointing, merge C and B, deploy, then B1598 —
+the render layer and the example conversion, which **must be one merge**
+(readers and content flip together or the site renders nothing).
