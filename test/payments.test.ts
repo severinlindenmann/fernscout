@@ -35,9 +35,9 @@ function readMail(user: string, file: string): string {
 }
 
 async function payRoute(user: string, id: string, body: Record<string, unknown>) {
-  const { POST } = await import("@/app/api/v1/[user]/payments/[id]/pay/route");
+  const { POST } = await import("@/app/api/web/[user]/purchases/[id]/pay/route");
   const r = await POST(
-    new Request(`https://example.test/api/v1/${user}/payments/${id}/pay`, {
+    new Request(`https://example.test/api/web/${user}/purchases/${id}/pay`, {
       method: "POST",
       headers: ip(),
       body: JSON.stringify(body),
@@ -46,15 +46,16 @@ async function payRoute(user: string, id: string, body: Record<string, unknown>)
   );
   return { status: r.status, body: (await r.json()) as Record<string, unknown> };
 }
-async function approveRoute(user: string, id: string, body: Record<string, unknown>) {
-  const { POST } = await import("@/app/api/v1/[user]/payments/[id]/approve/route");
+/** The token moved from a body field to a path segment — B1622 — so this
+ *  takes it separately rather than inside `body`. */
+async function approveRoute(user: string, id: string, token: string) {
+  const { POST } = await import("@/app/api/web/[user]/purchases/[id]/approve/[token]/route");
   const r = await POST(
-    new Request(`https://example.test/api/v1/${user}/payments/${id}/approve`, {
+    new Request(`https://example.test/api/web/${user}/purchases/${id}/approve/${token}`, {
       method: "POST",
       headers: ip(),
-      body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user, id }) },
+    { params: Promise.resolve({ user, id, token }) },
   );
   return { status: r.status, body: (await r.json()) as Record<string, unknown> };
 }
@@ -223,7 +224,7 @@ describe("approving grants the credits, exactly once", () => {
     const { id, token } = await requestWithToken(OWNER);
     const buyerMailBefore = mailFiles().length;
 
-    const res = await approveRoute(OWNER, id, { token });
+    const res = await approveRoute(OWNER, id, token);
     expect(res.status).toBe(200);
     expect(res.body.creditsGranted).toBe(200);
     // Balance rose by exactly the tier, one new ledger row (the grant), and the
@@ -240,10 +241,10 @@ describe("approving grants the credits, exactly once", () => {
     await reset(OPERATOR_EMAIL);
     const { balanceOf } = await import("@/lib/credits");
     const { id, token } = await requestWithToken(OWNER);
-    await approveRoute(OWNER, id, { token });
+    await approveRoute(OWNER, id, token);
     const balanceAfterFirst = (await balanceOf(OWNER)) ?? 0;
 
-    const again = await approveRoute(OWNER, id, { token });
+    const again = await approveRoute(OWNER, id, token);
     expect(again.status).toBe(403);
     expect(await balanceOf(OWNER)).toBe(balanceAfterFirst);
   });
@@ -254,7 +255,7 @@ describe("approving grants the credits, exactly once", () => {
     const { id } = await requestWithToken(OWNER);
     const before = (await balanceOf(OWNER)) ?? 0;
 
-    const res = await approveRoute(OWNER, id, { token: "not-the-real-token" });
+    const res = await approveRoute(OWNER, id, "not-the-real-token");
     expect(res.status).toBe(403);
     expect(await balanceOf(OWNER)).toBe(before);
     const { getPayment } = await import("@/lib/payments");
@@ -263,7 +264,7 @@ describe("approving grants the credits, exactly once", () => {
 
   test("an unknown id is 404", async () => {
     await reset(OPERATOR_EMAIL);
-    const res = await approveRoute(OWNER, "no-such-id", { token: "some-token" });
+    const res = await approveRoute(OWNER, "no-such-id", "some-token");
     expect(res.status).toBe(404);
   });
 });

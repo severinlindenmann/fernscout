@@ -114,6 +114,7 @@ export const ERROR_CODES = {
   expected_photo: "Name one photograph — multipart bytes under `photo`, or `inbox` or `gallery` in a JSON body.",
   not_this_trip: "That `gallery` src is not a photograph on this trip's own media — either it names a different trip, or it does not exist. Give a src exactly as a day's gallery already carries it.",
   idempotency_conflict: "That `idempotency_key` was already used for a different call. Nothing was written this time either; send a new key for a new request.",
+  conflict: "That id is already in use for something else — a different amount, or another journal's own purchase. Nothing was written. `details.current` carries the stored document when it is yours to see; pick a different id.",
 
   // ── the day is not wrong, it is incomplete ─────────────────────────────
   incomplete_day: "The trip keeps track of something this day says nothing about. `missing` names each one, how to send it, **and how to decline it** — `\"costs\": false` means there was none. Ask the person; never invent a value to get past this.",

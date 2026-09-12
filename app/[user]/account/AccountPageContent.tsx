@@ -132,11 +132,14 @@ function ChannelSwitch({
  * Five more gigabytes, for fifty credits — B661.
  *
  * A button rather than the tiers dialog above it, because there is one thing
- * to buy and one price. It spends immediately: `POST /api/v1/<user>/storage`
- * takes the credits and the extension exists from that moment, so the
- * confirmation is the browser's own — there is no second page to go to and
- * nothing to come back and finish. `router.refresh()` is what redraws the
- * figure above it from the server.
+ * to buy and one price. It spends immediately: `PUT
+ * /api/web/<user>/storage/purchases/<id>` takes the credits and the
+ * extension exists from that moment, so the confirmation is the browser's
+ * own — there is no second page to go to and nothing to come back and
+ * finish. `router.refresh()` is what redraws the figure above it from the
+ * server. The id is generated here, client-side, and only ever used once —
+ * it exists so a retried request cannot double-spend, not because the
+ * browser needs to remember it afterwards.
  */
 function BuyStorageButton({ username }: { username: string }) {
   const { t } = useI18n();
@@ -148,9 +151,10 @@ function BuyStorageButton({ username }: { username: string }) {
   async function buy() {
     setBusy(true);
     setFailed(false);
-    const response = await fetch(`/api/v1/${username}/storage`, {
-      method: "POST",
-    }).catch(() => null);
+    const response = await fetch(
+      `/api/web/${username}/storage/purchases/${crypto.randomUUID()}`,
+      { method: "PUT" },
+    ).catch(() => null);
     setBusy(false);
     if (response?.ok) {
       setAsking(false);
@@ -227,7 +231,7 @@ function CleanupButton({
     setBusy(true);
     setFailed(false);
     const response = await fetch(
-      `/api/v1/${username}/storage/cleanup${staged ? "?staged=1" : ""}`,
+      `/api/web/${username}/storage/cleanup${staged ? "?staged=1" : ""}`,
       { method: "POST" },
     ).catch(() => null);
     setBusy(false);
@@ -369,12 +373,15 @@ function BuyCreditsPanel({ username }: { username: string }) {
   async function buy() {
     setBusy(true);
     setResult(null);
-    const response = await fetch(`/api/v1/${username}/credits/purchase`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      // The amount, never the price: the server prices it. See the route.
-      body: JSON.stringify({ credits }),
-    }).catch(() => null);
+    const response = await fetch(
+      `/api/web/${username}/purchases/${crypto.randomUUID()}`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        // The amount, never the price: the server prices it. See the route.
+        body: JSON.stringify({ credits }),
+      },
+    ).catch(() => null);
     setBusy(false);
 
     if (response?.ok) {

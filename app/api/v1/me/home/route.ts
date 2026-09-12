@@ -69,7 +69,7 @@ export async function GET() {
        * cacheable, so anything that differs per reader arrives through this
        * route and lands in the identity-keyed cache B412 keeps.
        *
-       * It grants nothing. `/admin` and `/api/admin/grants` each ask
+       * It grants nothing. `/admin` and `/api/web/admin/grants` each ask
        * `isInstanceAdmin()` themselves on every request, so a `true` forged
        * into this response buys a link and a 404 behind it.
        */

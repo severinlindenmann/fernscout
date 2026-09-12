@@ -460,6 +460,27 @@ export async function grant(owner: string, n: number, note?: string): Promise<vo
 }
 
 /**
+ * Has THIS EXACT `ref` already been charged, for this reason? — B1622, the
+ * client-chosen-id storage purchase (money.md §2.6). `spend` has no id
+ * concept of its own; a caller that wants a retried create-with-this-id to
+ * be a no-op rather than a second charge folds the id into `ref` and asks
+ * here first. Not a general idempotency mechanism — just a read of the
+ * append-only ledger, which already is the record.
+ */
+export async function ledgerHasRef(owner: string, reason: SpendReason, ref: string): Promise<boolean> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return false;
+  const row = await handle.db
+    .selectFrom("credit_ledger")
+    .select("id")
+    .where("owner_id", "=", owner)
+    .where("reason", "=", reason)
+    .where("ref", "=", ref)
+    .executeTakeFirst();
+  return Boolean(row);
+}
+
+/**
  * How many times this journal has been charged for one thing.
  *
  * The ledger is append-only and is already the record of every purchase, so a
@@ -555,6 +576,28 @@ export async function ledgerFor(owner: string, limit = 50): Promise<LedgerRow[]>
     note: r.note,
     createdAt: r.created_at,
   }));
+}
+
+export type LedgerPage = { items: LedgerRow[]; nextCursor?: string };
+
+/**
+ * A page of one journal's own ledger — B1622, phase 2 step 4 (money.md
+ * §2.3), V12's `?limit=&cursor=`/`next_cursor` shape over `ledgerFor` above.
+ * In-memory slice-after-cursor, the same shape `listPurchasesPage`
+ * (`lib/payments.ts`) and `listFiguresPage` (`lib/figures.ts`) already use
+ * for a list this size — a journal's own ledger is hundreds of rows at the
+ * very most, never the scale a cursor exists to keep off one database query.
+ */
+export async function ledgerPage(
+  owner: string,
+  { limit, cursor }: { limit: number; cursor?: string },
+): Promise<LedgerPage> {
+  const all = await ledgerFor(owner, 1000);
+  const idx = cursor ? all.findIndex((r) => r.id === cursor) : -1;
+  const from = idx >= 0 ? idx + 1 : 0;
+  const items = all.slice(from, from + limit);
+  const nextCursor = from + limit < all.length ? items[items.length - 1]?.id : undefined;
+  return { items, nextCursor };
 }
 
 /**

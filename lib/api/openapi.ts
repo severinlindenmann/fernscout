@@ -19,13 +19,6 @@ import { CODE_TTL_MINUTES } from "@/lib/auth";
 /** Markdown emphasis is prose's, not a JSON `description`'s — the same trim
  * `VISIBILITY_NOT_A_LOCK` gets a few lines down, done once. */
 const plain = (text: string) => text.replace(/[`*]/g, "");
-import {
-  CREDIT_STEP,
-  EXTRA_STORAGE_BYTES,
-  EXTRA_STORAGE_CREDITS,
-  MAX_CREDITS,
-  MIN_CREDITS,
-} from "@/lib/credits/pricing";
 import { INBOX_FILE_EXTENSIONS, INBOX_KINDS } from "@/lib/inbox";
 import { IMPORT_KINDS } from "@/lib/gps/api";
 import { GPS_FORMATS } from "@/importers/gps";
@@ -2224,7 +2217,7 @@ export function openApiDocument() {
             "delivery is never the outcome. A publish with neither flag is never charged " +
             "and never refused for credits. `GET /api/v1/{user}/status` carries the " +
             "balance; read it first rather than discovering an empty account here. Nothing " +
-            "an agent holds can add credits — `POST /api/v1/{user}/credits/purchase` " +
+            "an agent holds can add credits — `PUT /api/v2/{user}/purchases/{id}` " +
             "answers with a link for the owner to open — so a 402 is a message to pass on, " +
             "never something to retry around.",
           parameters: [
@@ -3992,227 +3985,6 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/v1/{user}/credits/purchase": {
-        post: {
-          summary: "Start a credit purchase and get a link to it (buys nothing)",
-          description:
-            "**Nothing is bought and nothing is granted.** It records a pending payment, mails " +
-            "the owner, and answers with `paymentUrl` — an absolute link to the page where a " +
-            "person chooses how to pay. The money and the credits happen there and at the " +
-            "payment provider, deliberately, so that no token can spend anything. Hand the URL " +
-            "over and report it as a request, never as a purchase.\n\n" +
-            "`credits` is a whole number between `MIN_CREDITS` and `MAX_CREDITS` in steps of " +
-            "`CREDIT_STEP` — " +
-            `${MIN_CREDITS} to ${MAX_CREDITS} in ${CREDIT_STEP}s on this build. It replaced a ` +
-            "`tier` field naming one of a fixed list (B854), so any amount in range can now be " +
-            "asked for. **You name the amount, never the price:** the server computes what it " +
-            "costs, and the response repeats `credits`, `priceRappen` and the `discount` that " +
-            "was applied so you can quote what was started. Buying more at once costs less per " +
-            "credit. Owner-only.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["credits"],
-                  properties: {
-                    credits: {
-                      type: "integer",
-                      minimum: MIN_CREDITS,
-                      maximum: MAX_CREDITS,
-                      multipleOf: CREDIT_STEP,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description:
-                "A pending payment. `paymentUrl` is the absolute link to hand over; " +
-                "`transactionId`, `credits`, `priceRappen` and `discount` say what was " +
-                "started, and `mailedTo` is the owner address the same link went to.",
-            },
-            "400": {
-              description:
-                "Not an amount this server sells — out of range, not a whole number, or off " +
-                "the step. Nothing was recorded and nothing was mailed.",
-            },
-            "403": { description: "Owner only" },
-            "404": { description: "Credits are off on this server" },
-          },
-        },
-      },
-      "/api/v1/{user}/storage": {
-        get: {
-          summary: "Where this journal's space is going",
-          description:
-            "What is used, what is allowed, what is left, and a `breakdown` — one row per " +
-            "trip, plus the inbox, the generated photobooks and postcards, and everything " +
-            "else. The rows sum to `usedBytes` exactly.\n\n" +
-            "`reclaimable` is what a cleanup would take back without touching a photograph: " +
-            "generated PDFs and postcard sheets. Only the owner, in their own browser, can " +
-            "run one — report the number and let them decide.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            "200": { description: "Usage, the breakdown, and what could be reclaimed" },
-            "401": { description: "No live token — authenticate" },
-            "403": { description: "This token belongs to a different journal" },
-          },
-        },
-        post: {
-          summary: `Buy this journal ${EXTRA_STORAGE_BYTES / 1024 ** 3} GB more room`,
-          description:
-            `Spends ${EXTRA_STORAGE_CREDITS} credits and raises this journal's storage ceiling ` +
-            `by ${EXTRA_STORAGE_BYTES / 1024 ** 3} GB, immediately and for good — unlike ` +
-            "`/credits/purchase`, this one really does charge. It cannot be undone, it does not " +
-            "expire, and buying twice adds twice. No request body: there is one thing to buy and " +
-            "one price.\n\n" +
-            "**The owner's own browser session, and nothing else.** A bearer token is refused " +
-            "here whatever it is scoped to, the same way ordering a photobook or posting a card " +
-            "is: an agent that has just been refused an upload reports that the journal is full " +
-            "and lets the owner decide whether to delete something or buy more room. " +
-            "`GET /api/v1/{user}/status` is where the bytes held and the bytes allowed are read " +
-            "back.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            "200": { description: "Bought. The new ceiling and what is used against it" },
-            "402": { description: "The balance does not cover it — nothing was charged" },
-            "403": { description: "Owner only, and never a bearer token — `not_for_agents`" },
-            "404": { description: "Credits are off on this server" },
-            "429": { description: "Too many purchases in a minute" },
-          },
-        },
-      },
-      "/api/v1/{user}/storage/cleanup": {
-        get: {
-          summary: "What a cleanup would remove (removes nothing)",
-          description:
-            "The plan behind the confirmation the owner reads: bytes and file counts, split " +
-            "into photobooks, postcards and staged documents. `?staged=1` includes the " +
-            "documents in `inbox/files/`. Nothing is deleted.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "staged", in: "query", required: false, schema: { type: "string", enum: ["1"] } },
-          ],
-          responses: {
-            "200": { description: "What would go" },
-            "403": { description: "Owner only, and never a bearer token — `not_for_agents`" },
-            "404": { description: "No such journal" },
-          },
-        },
-        post: {
-          summary: "Delete generated photobooks and postcard sheets",
-          description:
-            "**Deletes files.** Generated photobook PDFs for orders that finished printing, " +
-            "and dry-run postcard sheets. `?staged=1` also removes the documents staged in " +
-            "`inbox/files/`; staged *photographs* are never in scope, and are removed one at " +
-            "a time through `DELETE /api/v1/{user}/inbox/{id}` where a person is looking at " +
-            "what they are removing.\n\n" +
-            "Nothing else is touched: every photograph, day and trip stays, and a printed " +
-            "book keeps its record, its price and its date — only the PDF goes, and it can " +
-            "be built again from photographs that are still there. A book still building is " +
-            "never touched.\n\n" +
-            "**The owner's own browser session, and never a token**, for the same reason as " +
-            "buying storage: an agent reports what is taking the space and does not decide " +
-            "which of somebody's files to delete.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "staged", in: "query", required: false, schema: { type: "string", enum: ["1"] } },
-          ],
-          responses: {
-            "200": { description: "Removed, with what was taken" },
-            "403": { description: "Owner only, and never a bearer token — `not_for_agents`" },
-            "404": { description: "No such journal" },
-            "429": { description: "Too many cleanups in a minute" },
-          },
-        },
-      },
-      "/api/v1/{user}/payments/{id}/pay": {
-        post: {
-          summary: "Start paying a pending payment (grants nothing)",
-          security: [],
-          description:
-            "Authenticated by the payment id in the path, which is an unguessable capability " +
-            "reached from a link in the owner's own mail — not by a session and not by a " +
-            "token in the body. It adds **no** credits on any path; `creditsAdded` is zero " +
-            "and always will be.\n\n" +
-            "What it does depends on whether this instance has a payment provider " +
-            "configured (`/api/health` says, under `capabilities.credits.note`). With one, " +
-            "the response carries `url` — a hosted checkout page to send the buyer to — and " +
-            "`method` in the request is ignored, because the provider's own page is where " +
-            "TWINT, a wallet or a card is chosen. Without one, it files a request and mails " +
-            "the instance operator an approval link; `approver` is the address it went to, " +
-            "and `method` is then required.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "id", in: "path", required: true, schema: { type: "string" } },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    method: {
-                      type: "string",
-                      enum: ["twint", "card"],
-                      description:
-                        "Required when no payment provider is configured; ignored when one is.",
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description:
-                "Recorded. `status` is `requested`; `creditsAdded` is `0`; `url` is present " +
-                "when a provider is configured and the buyer should be sent there.",
-            },
-            "400": { description: "Unknown method, and no provider configured" },
-            "404": { description: "No such payment" },
-            "502": { description: "The payment provider could not be reached" },
-          },
-        },
-      },
-      "/api/v1/{user}/payments/{id}/approve": {
-        post: {
-          summary: "Approve a payment — the one call that grants credits",
-          security: [],
-          description:
-            "Authenticated by the single-use `token` in the body. It is reached from a link " +
-            "in the operator's mail rather than by anything an agent holds, and it is one of " +
-            "only two HTTP paths that add credits to a journal — the other is the payment " +
-            "provider's own signed webhook, which no client calls.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "id", in: "path", required: true, schema: { type: "string" } },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["token"],
-                  properties: { token: { type: "string" } },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": { description: "Approved, and the credits added" },
-            "401": { description: "The token does not verify" },
-            "404": { description: "No such payment" },
-          },
-        },
-      },
       "/api/v1/{user}/status": {
         get: {
           summary: "Where you stand, in one call",
@@ -4244,7 +4016,7 @@ export function openApiDocument() {
             "included, not only its photographs. A `limitBytes` of `null` means this " +
             "instance sets no ceiling — never that the answer is unknown. Present for a " +
             "trip-scoped token too, because the whole journal's ceiling is what refuses a " +
-            "trip's photographs. `POST /api/v1/{user}/storage` is how the owner raises it.\n\n" +
+            "trip's photographs. `PUT /api/web/{user}/storage/purchases/{id}` is how the owner raises it.\n\n" +
             "**`inbox`** counts what is staged and belongs to no day yet (B663), with the " +
             "call that lists it. A non-zero count is the first thing to act on for a trip " +
             "somebody has just come back from — the photographs are already here. Absent for " +

@@ -1,3 +1,7 @@
+// Take the generated output off the disk — B1622, phase 2 step 4 (money.md
+// §2.6), moved unchanged from app/api/v1/[user]/storage/cleanup/route.ts.
+// Owner's own session only, never a token — the same line
+// .../storage/purchases draws for spending credits, for the same reason.
 import { isOwner } from "@/lib/contacts/session";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { cleanupPlan, runCleanup } from "@/lib/storageCleanup";
@@ -6,22 +10,6 @@ import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-/**
- * Take the generated output off the disk — B664.
- *
- * The other half of a full journal, and the half that costs nothing: photobook
- * PDFs and dry-run postcard sheets are re-buildable from photographs that stay
- * exactly where they are, and the order rows keep their prices and dates. See
- * `lib/storageCleanup.ts` for what is in scope and what is deliberately not.
- *
- * **The owner's own session, and never a token.** It deletes files, and an
- * agent should be reporting that a journal is full rather than deciding which
- * of somebody's files to remove — the same line `POST .../storage` draws for
- * spending credits, and for the same reason.
- *
- * `GET` on it is the plan without the deletion, which is what the confirmation
- * an owner reads is built from.
- */
 async function guard(request: Request, user: string): Promise<Response | null> {
   const journal = getUser(user);
   if (!journal) return Response.json({ error: "unknown_user" }, { status: 404 });
@@ -46,14 +34,13 @@ async function guard(request: Request, user: string): Promise<Response | null> {
   return null;
 }
 
-/** `staged=1` includes the documents staged in `inbox/files/`. */
 function includesStaged(request: Request): boolean {
   return new URL(request.url).searchParams.get("staged") === "1";
 }
 
 export async function GET(
   request: Request,
-  { params }: RouteContext<"/api/v1/[user]/storage/cleanup">,
+  { params }: RouteContext<"/api/web/[user]/storage/cleanup">,
 ) {
   const { user } = await params;
   const refused = await guard(request, user);
@@ -65,14 +52,12 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: RouteContext<"/api/v1/[user]/storage/cleanup">,
+  { params }: RouteContext<"/api/web/[user]/storage/cleanup">,
 ) {
   const { user } = await params;
   const refused = await guard(request, user);
   if (refused) return refused;
 
-  // Owner-only and destructive: a stuck client looping is the thing to stop,
-  // and a second press a second later is a mistake rather than an intention.
   const limit = rateLimitFor("storage-cleanup", clientIp(request), { max: 3, windowMs: 60_000 });
   if (!limit.ok) {
     return Response.json(
