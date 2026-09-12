@@ -49,13 +49,14 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (235)
+## backlog (236)
 
-### security (4)
+### security (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | high | low |
+| [B1615](backlog/security/B1615-v2-trip-routes-answer-no-such.md) | v2 trip routes answer no_such_journal before authenticating, so an anonymous caller can enumerate usernames | SECURITY | high | low |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
