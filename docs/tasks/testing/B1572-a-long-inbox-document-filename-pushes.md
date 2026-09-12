@@ -7,8 +7,7 @@ complexity: low
 area: agent room, mobile
 found: "2026-09-12T08:54:16Z"
 started: "2026-09-12T09:05:11Z"
-session: 5a4744c4-0424-4149-9d23-d8a0bd9dd3b1
-claimed: "2026-09-12T09:05:11Z"
+merged: "2026-09-12T09:10:24Z"
 ---
 
 # B1572 — A long inbox document filename pushes the Dateien tab into horizontal scroll
