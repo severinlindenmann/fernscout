@@ -13,7 +13,7 @@ import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
 import TestNotice from "./TestNotice";
 import EntryContent from "./EntryContent";
-import EntryVisibilityBadge from "./EntryVisibilityBadge";
+import { EntryVisibility } from "./Visibility";
 import Gallery from "./Gallery";
 import TravelScene from "./TravelScene";
 import { useI18n } from "./LocaleProvider";
@@ -473,9 +473,6 @@ function UpdateBlock({
 }) {
   const { t, localized } = useI18n();
   const { title, content, fallbackNotice } = localized(entry);
-  // Null outside a `TripProvider` (there is no such caller today) — see the
-  // note on `EntryVisibilityBadge`.
-  const reader = useTrip()?.reader;
 
   return (
     <div className={`relative ${first ? "" : "mt-10"}`}>
@@ -524,7 +521,7 @@ function UpdateBlock({
           meant to interrupt. */}
       <h2 className="mb-4 mt-1 font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
         {title}
-        <EntryVisibilityBadge visibility={entry.visibility} reader={reader} />
+        <EntryVisibility entry={entry} />
       </h2>
 
       {/* B305 — a day carried over from before B294 that has no translation

@@ -32,7 +32,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
 
   // B327: the owner, or somebody on the trip. `canPublish` travels with it
   // because the draft banner has to say which of the two is reading.
-  const { read, canPublish } = await readFor(current);
+  const { read, canPublish, owner } = await readFor(current);
   const { trip, index, days, windowStart, initialDate, stats, basemap } = buildStoryProps(tripId, {
     showCosts: await mayViewCosts(current),
     ...read,
@@ -40,7 +40,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   const userConfig = getUser(user);
   if (!userConfig) notFound();
   return (
-    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader}>
+    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader} owner={owner}>
       <BlogStructuredData
         entries={getAllEntries(tripId)}
         site={site}

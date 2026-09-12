@@ -13,6 +13,7 @@ import PushOptIn from "./PushOptIn";
 import Travelers from "./Travelers";
 import { partyFor } from "@/lib/travellers/parse";
 import UnconvertedNotice from "./UnconvertedNotice";
+import { TripVisibility } from "./Visibility";
 import { StackedShareBar, BarList } from "./charts/Charts";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
@@ -190,6 +191,13 @@ export default function TripHero({
             <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-navy-900 sm:text-4xl">
               {heading}
             </h1>
+            {/* B1585 — the trip is the gate, and it was the one level with no
+                label anywhere. Under the heading rather than beside it: the
+                control opens into a select and a confirm panel, which beside
+                a 4xl heading would push the whole masthead around. Owner
+                only, and absent for everybody else — `TripVisibility`
+                returns null. */}
+            <TripVisibility />
             {subheading && (
               <p className="mt-1.5 max-w-md text-sm text-navy-600">
                 {subheading}

@@ -26,6 +26,7 @@ import DeleteAccount from "@/components/DeleteAccount";
 import ExportAccount from "@/components/ExportAccount";
 import SignOut from "@/components/SignOut";
 import PageHeader from "@/components/PageHeader";
+import { VisibilityBadge, VisibilityHelp } from "@/components/Visibility";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
@@ -443,6 +444,15 @@ function VisibilitySetting({
 
   return (
     <div>
+      {/* B1585 — the word, before the switch that changes it. The checkbox
+          said "Advertise this journal" and its state was the only account of
+          which of the two the journal *is*, so the answer had to be inferred
+          from a tick. The `?` carries the journal-level meaning of `guest`,
+          which is not the trip-level one. */}
+      <div className="mb-2 flex items-center">
+        <VisibilityBadge audience={journal.visibility} />
+        <VisibilityHelp journal />
+      </div>
       <label className="flex min-h-11 cursor-pointer items-center gap-3">
         <input
           type="checkbox"
@@ -533,11 +543,21 @@ function TripRow({
               </span>
             )}
           </span>
-          <span
-            className="shrink-0 self-start rounded-full bg-cream-100 px-2.5 py-1 text-xs
-                       font-semibold text-navy-600"
-          >
-            {t(reasonKey)}
+          {/* Two different facts, deliberately side by side — B1585. The tag
+              on the right is `resolveViewer`'s answer to *why this reader may
+              open it*, and it was the only badge here; it looks like a
+              visibility and is not, so an owner reading "Public" off a row
+              that said `me.tagOwner` learned nothing about the trip. The
+              trip's own `visibility:` is the other one, and only the owner
+              gets it — `edit` is undefined for everybody else. */}
+          <span className="flex shrink-0 items-center gap-1.5 self-start">
+            {edit && <VisibilityBadge audience={edit.visibility} />}
+            <span
+              className="rounded-full bg-cream-100 px-2.5 py-1 text-xs
+                         font-semibold text-navy-600"
+            >
+              {t(reasonKey)}
+            </span>
           </span>
         </Link>
         {edit && (
@@ -691,6 +711,12 @@ function TripEditor({
       </div>
 
       <div className="mt-5 border-t border-navy-200 pt-4">
+        {/* The same `?` the trip page and the day carry — B1585. One
+            explanation of the three words, wherever they are being chosen. */}
+        <div className="mb-1 flex items-center">
+          <VisibilityBadge audience={trip.visibility} />
+          <VisibilityHelp />
+        </div>
         <label className="block">
           <span className="text-sm font-semibold text-navy-900">
             {t("me.tripWho")}

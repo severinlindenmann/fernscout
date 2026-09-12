@@ -11,6 +11,7 @@ import LocaleProvider from "@/components/LocaleProvider";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { filesForRoom, isHelperOwner } from "@/lib/helper/server";
 import { openingFor } from "@/lib/helper/opening";
+import { arrivalFor, shouldUpgradeIdentity } from "@/lib/helper/pageState";
 import { turnsIn } from "@/lib/helper/sessions";
 import {
   adopt,
@@ -28,38 +29,6 @@ import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { whatsappDisplayNumber } from "@/lib/whatsapp/settings";
-
-/**
- * What `?c=` and `?about=` together decide — pulled out of the page so it is
- * checkable without rendering one, B1242.
- *
- * `about` alone (B994, a link from a day) starts fresh: `forget` and a note.
- * `c` alone (B1168, reopening from history or a WhatsApp turn's own link)
- * adopts that session as it stands. **Both together** — the shape the
- * WhatsApp preview link carries since B1242, naming the conversation a
- * press already happened in *and* the day that press was about — adopts the
- * session and still opens the preview on that day; forgetting it to show
- * the preview would be losing the very conversation the link is for.
- */
-export function arrivalFor(asked: {
-  c?: string;
-  about?: string;
-}): { opening: { trip: string; slug: string } | null; named: string; shouldForget: boolean } {
-  const [aboutTrip, aboutSlug] = (asked.about ?? "").split("/");
-  const opening = aboutTrip && aboutSlug ? { trip: aboutTrip, slug: aboutSlug } : null;
-  const named = asked.c ?? "";
-  return { opening, named, shouldForget: opening !== null && named === "" };
-}
-
-/**
- * Whether the door should ask for the identity this browser has already
- * earned — B1492, and out here for the same reason `arrivalFor` is: so the
- * rule is checkable without rendering a page. The long note at the call site
- * is the why.
- */
-export function shouldUpgradeIdentity(identity: unknown, journalCookie: string | undefined): boolean {
-  return !identity && Boolean(journalCookie);
-}
 
 // Reads the identity cookie on every request; there is nothing here to
 // prerender, the same reasoning as `/[user]/me`.

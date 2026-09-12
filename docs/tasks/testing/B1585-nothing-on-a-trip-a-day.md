@@ -7,8 +7,7 @@ complexity: high
 area: owner tools, visibility, trip page, day page, gallery, /me
 found: "2026-09-12T13:19:11Z"
 started: "2026-09-12T13:35:34Z"
-session: 8ab36c58-f1c6-4425-bad2-8726044a90c9
-claimed: "2026-09-12T13:35:34Z"
+merged: "2026-09-12T14:22:09Z"
 ---
 
 # B1585 — Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides
@@ -120,6 +119,14 @@ Mount points:
    gallery, or the gallery only labels and the editing stays in `EditDay`, is
    the one thing left open — decide it when the control exists and say which
    in this file.
+
+   **Decided while building: label only.** A photograph's visibility is
+   written by a `PATCH` on the *day* that carries it, and the trip gallery's
+   tiles come from every day at once, so a control there would either need
+   each tile to carry its day or would be a second, lonelier way to do what
+   the correction panel already does with every tile of the day side by side.
+   What the owner was missing was *seeing* the state without opening
+   anything. `PhotoBadge` carries the reasoning.
 4. `/[user]/me` — a badge on each trip row saying the trip's own visibility,
    **beside** the existing reason tag rather than replacing it (they are
    different facts), and one on the journal title. The journal checkbox at
@@ -161,3 +168,42 @@ the change created.
 
 Supersedes B1143, whose question ("does widening a trip from the day panel
 deserve a second press") is answered here: every level gets one, always.
+
+## What building it changed
+
+**B1586, found before a line was written and fixed on this branch.** The route
+this ticket planned to reuse for a photograph's label —
+`PATCH /[user]/trips/[trip]/day/[slug]/edit` — kept an allow-list that B980
+round 2 never widened, so `captions` and `photoVisibility` were answering 400
+`unsupported_field` and taking the rest of the patch (a title, say) down with
+them. Four days broken. It is captured as its own ticket with its own
+regression test, and fixed here because B1585 could not be accepted while the
+door refused the field.
+
+**`readFor` gained `owner`, beside `canPublish`.** They are the same boolean
+from the same `isOwner` call, and they are two questions —
+`GalleryGrid`'s own comment had already argued that borrowing one for the
+other is how a field ends up answering two things. Six pages pass it on.
+
+**Deviation: `listed` is on the trip control, `teaser` is too, and the journal
+level keeps its checkbox.** The journal's existing control on `/me` already
+had two presses and good copy in three languages; it gained the word and the
+`?` rather than being rebuilt as a select, which would have been churn for no
+gain.
+
+**Deviation: no badge in `PageHeader`.** The journal title renders site-wide
+for every reader; an owner badge there would appear on every page of the
+journal. The journal's word sits on `/me`, where the setting is.
+
+**Inherited badges are dimmed.** Found by looking: a public gallery is twelve
+tiles all saying "Public", which is twelve pills the owner reads past — and
+reading past them is how the one held-back photograph gets missed. The word
+stays (absence is what the ticket was about) and the exception carries the
+weight.
+
+**`<details>` cannot live in a `<p>`.** Two of them did on `/me`, which is a
+hydration error and nine console errors. Caught by reading `check-page.mjs`'s
+JSON rather than by looking at the screenshot, which showed nothing wrong.
+
+Not covered, and deliberately: the countdown branch of a trip page (an
+upcoming trip renders `TripCountdown`, not the hero, so it has no badge).

@@ -95,7 +95,7 @@ export default async function TripDayPage({
   // The owner, or somebody on the trip, may open the permalink of a day
   // nobody has published yet; for everybody else a draft slug is simply not a
   // page. B327 — before it, a buddy could not reach a day they had written.
-  const { read, canPublish } = await readFor(trip);
+  const { read, canPublish, owner } = await readFor(trip);
   const entry = getEntryBySlug(trip.ref, slug, read);
   if (!entry) notFound();
 
@@ -113,7 +113,7 @@ export default async function TripDayPage({
   const photobook = await photobookEntryFor(trip);
 
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader} owner={owner}>
       <DayStructuredData
         entry={entry}
         site={site}

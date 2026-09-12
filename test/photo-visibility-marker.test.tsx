@@ -92,12 +92,16 @@ const trip = {
   id: "reise-2026",
   username: OWNER,
   ref: REF,
+  // B1585 reads this to work out what an unlabelled photograph's audience
+  // actually is; the fixture's own `trip.md` says `public`.
+  visibility: "public",
+  listed: true,
 } as unknown as Trip;
 
-function markup(reader: "public" | "person") {
+function markup(reader: "public" | "person", owner = false) {
   return renderToStaticMarkup(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-      <TripProvider trip={trip} isCurrent reader={reader}>
+      <TripProvider trip={trip} isCurrent reader={reader} owner={owner}>
         <GalleryGrid media={getAllMedia(REF, { reader })} />
       </TripProvider>
     </LocaleProvider>,
@@ -111,11 +115,22 @@ describe("a held-back photograph, as the gallery draws it", () => {
     expect(html).not.toContain("Private");
   });
 
-  test("the owner sees the photograph, marked — and only that one", () => {
+  test("a traveller sees the photograph, marked — and only that one", () => {
     const html = markup("person");
     expect(html).toContain("02.jpg");
     // Exactly one marker: the labelled photograph's, and not the unlabelled
-    // one beside it.
+    // one beside it. B1585 changed what the *owner* sees and deliberately
+    // left this alone — somebody who was on the trip is not the owner, and a
+    // page full of "Public" pills is not theirs to be shown.
     expect(html.match(/Private/g)).toHaveLength(1);
+    expect(html).not.toContain("Public");
+  });
+
+  // B1585. The owner's complaint was that an unmarked tile could equally be
+  // public or simply unset, so for them every tile now carries a word.
+  test("the owner sees a word on every tile, not only the held-back one", () => {
+    const html = markup("person", true);
+    expect(html.match(/Private/g)).toHaveLength(1);
+    expect(html.match(/Public/g)).toHaveLength(1);
   });
 });
