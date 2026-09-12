@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: content-model, contract, fernscout-helper
 found: "2026-09-12T09:06:17Z"
+started: "2026-09-12T12:38:17Z"
+session: 615a7d13-b735-48b0-a399-bf28e199b7bb
+claimed: "2026-09-12T12:38:17Z"
 ---
 
 # B1577 — Six hand-kept key lists in the helper mirror the instance, and nothing fails when one falls behind
