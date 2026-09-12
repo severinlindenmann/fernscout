@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper, publish, config
 found: "2026-09-12T08:21:10Z"
 started: "2026-09-12T09:12:25Z"
-session: 615a7d13-b735-48b0-a399-bf28e199b7bb
-claimed: "2026-09-12T09:12:25Z"
+merged: "2026-09-12T09:18:02Z"
 ---
 
 # B1569 — publish hardcodes nine journal profile keys, so ownerTel and travellers are dropped in silence
@@ -59,3 +58,38 @@ title.
 - Adding a twelfth field to `JOURNAL_PROFILE_FIELDS` upstream makes
   `validate-content` say the helper's list is behind, rather than the field
   going missing in silence.
+
+
+## Built, 2026-09-12
+
+The send half landed inside B1504 — `publish.mjs` sends
+`JOURNAL_UPDATE_DOORS`'s eleven keys, so `ownerTel` and `travellers` reach the
+site. This run built the half that keeps it honest, and widened it:
+
+- **`shared/dayFields.mjs`** — the day's keys, which were a hand-written list
+  inside `publish.mjs`'s entry loop with nothing checking it. The least
+  protected of the six such lists and the one a new field is most likely to
+  land in.
+- **`shared/doors.mjs`** — `unaccountedKeys()`, asked once. It replaces three
+  copies of the same loop, B1518's trip version included.
+- **`validate-content`** warns per file when `content-model.json` knows a key
+  neither list accounts for.
+- **`shared/doors.test.mjs`** — seven tests, because a guard nothing tests is
+  decoration.
+
+**Its first run found six false alarms**, all `apiOnly` keys — `username`,
+`ownerName`, `ownerNickname`, `coordinates`, `photos`, `idempotency_key`,
+`dryRun`. Those never appear in a file at all, so nothing on disk could have
+failed to be sent; the guard now skips them and a test pins that. A guard that
+fires on an honest run is a bug, and this one did before it was looked at.
+
+**And three genuine ones**, captured as **B1578** rather than absorbed:
+`timezone`, `weatherData` and a day's `visibility` are all in
+`EDITABLE_DAY_FIELDS` (`lib/api/entries.ts:980`) and `publish` has never sent
+any of them. `weatherData` is the one that matters — it is the sanctioned route
+for a reading a person handed over, and it was being dropped in silence.
+
+**What this does not do**, and the reason it is a fallback rather than a fix:
+it can only notice after the instance has already grown the field. The gate
+belongs where the field is added, in this repository — **B1577**, captured
+with its design and the owner's decision on the document shape.
