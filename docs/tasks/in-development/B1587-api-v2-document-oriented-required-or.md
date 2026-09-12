@@ -44,6 +44,11 @@ Summary of the decided direction:
 - One error envelope from `lib/api/errorCodes.ts`; client-chosen ids
   everywhere (retried create → 409 with stored document); evolution policy
   additive-only within v2 (no v3); per-token request logging, metadata only.
+- Contract layer new, domain layer shared: a v2 route never imports v1
+  route glue (import-boundary test in the gps-store/postcard-orders
+  pattern); one writer of the markdown format; a golden corpus round-trips
+  every existing file byte-identical; a v1/v2 parity test during parallel
+  operation with a quirk ledger naming every deliberate divergence.
 - Publish stays a separate second call; DELETE stays 202 + mail; gps store
   stays unreadable — v2 changes the shape of writing, not the safety
   decisions.
