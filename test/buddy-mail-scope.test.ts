@@ -279,12 +279,12 @@ describe("the agent-code mail (B348)", () => {
       const email = "buddy-agent@example.test";
       await onboard("buddy", invite, email, token);
 
-      const { POST } = await import("@/app/api/auth/request/route");
+      const { POST } = await import("@/app/api/auth/codes/route");
       const response = await POST(
-        new Request("https://example.test/api/auth/request", {
+        new Request("https://example.test/api/auth/codes", {
           method: "POST",
           headers: headers(),
-          body: JSON.stringify({ user: OWNER, email, kind: "agent", trip: TRIP_ID }),
+          body: JSON.stringify({ user: OWNER, email, for: "write", scope: { trip: TRIP_ID } }),
         }),
       );
       expect(response.status).toBe(202);
@@ -300,12 +300,12 @@ describe("the agent-code mail (B348)", () => {
   test("the owner's own code mail is unchanged", async () => {
     process.env.AUTH_DEV_CODE = "424242";
     try {
-      const { POST } = await import("@/app/api/auth/request/route");
+      const { POST } = await import("@/app/api/auth/codes/route");
       const response = await POST(
-        new Request("https://example.test/api/auth/request", {
+        new Request("https://example.test/api/auth/codes", {
           method: "POST",
           headers: headers(),
-          body: JSON.stringify({ user: OWNER, email: OWNER_EMAIL, kind: "agent" }),
+          body: JSON.stringify({ user: OWNER, email: OWNER_EMAIL, for: "write" }),
         }),
       );
       expect(response.status).toBe(202);

@@ -2,8 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { POST as authRequestPOST } from "@/app/api/auth/request/route";
-import { POST as authVerifyPOST } from "@/app/api/auth/verify/route";
+import { POST as authRequestPOST } from "@/app/api/auth/codes/route";
+import { POST as authVerifyPOST } from "@/app/api/auth/codes/redeem/route";
 import { resolveCapabilities } from "@/lib/capabilities";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
@@ -12,7 +12,7 @@ import { checkVerification, startVerification } from "@/lib/phoneVerify";
 
 /**
  * B1222 — the WhatsApp phone-verification backend, and the WhatsApp channel
- * on `POST /api/auth/request`.
+ * on `POST /api/auth/codes`.
  *
  * What these pin: the code lifecycle stays this repository's own discipline
  * while only the delivery changes; a login code goes to WhatsApp only for
@@ -124,11 +124,11 @@ describe("the whatsapp phone-verification backend", () => {
   });
 });
 
-describe("channel: whatsapp on POST /api/auth/request", () => {
+describe("channel: whatsapp on POST /api/auth/codes", () => {
   let nextIp = 1;
   function request(body: Record<string, unknown>) {
     return authRequestPOST(
-      new Request("https://t.test/api/auth/request", {
+      new Request("https://t.test/api/auth/codes", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -147,7 +147,7 @@ describe("channel: whatsapp on POST /api/auth/request", () => {
     const response = await request({
       user: OWNER,
       email: OWNER_EMAIL,
-      kind: "agent",
+      for: "write",
       channel: "whatsapp",
     });
     expect(response.status).toBe(202);
@@ -158,10 +158,10 @@ describe("channel: whatsapp on POST /api/auth/request", () => {
     const code = sent[0].body[0];
 
     const verify = await authVerifyPOST(
-      new Request("https://t.test/api/auth/verify", {
+      new Request("https://t.test/api/auth/codes/redeem", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ user: OWNER, email: OWNER_EMAIL, code, kind: "agent" }),
+        body: JSON.stringify({ user: OWNER, email: OWNER_EMAIL, code, for: "write" }),
       }),
     );
     expect(verify.status).toBe(200);
@@ -172,6 +172,7 @@ describe("channel: whatsapp on POST /api/auth/request", () => {
     const response = await request({
       user: OWNER,
       email: "somebody-else@example.test",
+      for: "read",
       channel: "whatsapp",
     });
     expect(response.status).toBe(202);
@@ -184,6 +185,7 @@ describe("channel: whatsapp on POST /api/auth/request", () => {
     const response = await request({
       user: OWNER,
       email: OWNER_EMAIL,
+      for: "read",
       channel: "whatsapp",
     });
     expect(response.status).toBe(202);
@@ -197,7 +199,7 @@ describe("channel: whatsapp on POST /api/auth/request", () => {
     writeUserConfig({ tel, telProvenAt: "2026-09-10T00:00:00Z" });
     const sentTo = () => payloads(path.join(OWNER, "whatsapp")).filter((m) => m.to === tel);
     for (let i = 0; i < 10; i++) {
-      const r = await request({ user: OWNER, email: OWNER_EMAIL, channel: "whatsapp" });
+      const r = await request({ user: OWNER, email: OWNER_EMAIL, for: "read", channel: "whatsapp" });
       expect(r.status).toBe(202);
     }
     // Two dry-run payloads written in the same millisecond share a filename,
@@ -205,7 +207,7 @@ describe("channel: whatsapp on POST /api/auth/request", () => {
     // sending happened at all, and that the eleventh adds nothing.
     const afterTen = sentTo().length;
     expect(afterTen).toBeGreaterThan(0);
-    const eleventh = await request({ user: OWNER, email: OWNER_EMAIL, channel: "whatsapp" });
+    const eleventh = await request({ user: OWNER, email: OWNER_EMAIL, for: "read", channel: "whatsapp" });
     // Quietly refused: still 202, nothing more sent, and the live code —
     // the tenth — is not revoked by the refused request.
     expect(eleventh.status).toBe(202);
@@ -218,6 +220,7 @@ describe("channel: whatsapp on POST /api/auth/request", () => {
     const response = await request({
       user: OWNER,
       email: OWNER_EMAIL,
+      for: "read",
       channel: "whatsapp",
     });
     expect(response.status).toBe(503);

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { POST } from "@/app/api/auth/signup/verify/route";
+import { POST } from "@/app/api/auth/codes/redeem/route";
 import { NO_JOURNAL, issueCode } from "@/lib/auth";
 import { clearConfigCache } from "@/lib/config";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -30,13 +30,13 @@ let caller = 0;
 function verify(body: Record<string, unknown>) {
   caller += 1;
   return POST(
-    new Request("https://example.test/api/auth/signup/verify", {
+    new Request("https://example.test/api/auth/codes/redeem", {
       method: "POST",
       headers: {
         "content-type": "application/json",
         "x-forwarded-for": `203.0.113.${caller}`,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ for: "signup", ...body }),
     }),
   );
 }
@@ -81,7 +81,7 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("POST /api/auth/signup/verify for an address at the journal cap", () => {
+describe("POST /api/auth/codes/redeem (for: signup) for an address at the journal cap", () => {
   test("refuses with too_many_journals, naming the journal, and returns no token", async () => {
     const { code } = await issueCode(NO_JOURNAL, "owner@example.test", "signup");
     const response = await verify({ email: "owner@example.test", code });

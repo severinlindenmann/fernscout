@@ -124,7 +124,7 @@ describe("the language of the mail", () => {
    */
   test("the route translates rather than hardcoding English", () => {
     const src = fs.readFileSync(
-      path.join(process.cwd(), "app/api/auth/identity/request/route.ts"),
+      path.join(process.cwd(), "app/api/auth/codes/route.ts"),
       "utf8",
     );
     expect(src).toContain("requestLocale()");

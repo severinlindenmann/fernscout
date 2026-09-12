@@ -8,6 +8,8 @@ import { smsPhoneVerify } from "@/lib/phoneVerify/sms";
 import { rateLimitFor } from "@/lib/rateLimit";
 import { smsUnreachable } from "@/lib/sms";
 import { toE164 } from "@/lib/whatsapp/phone";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { fail, ok } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,14 @@ export const dynamic = "force-dynamic";
  * address) and `POST /api/v1/journals` (which spends both), and in that
  * order deliberately: a bot has to pass the free email gate before it can
  * cost the operator an SMS.
+ *
+ * Renamed from `/api/auth/signup/phone/request` for v2
+ * (`docs/plans/2026-09-12-api-v2/auth.md` §2.6) to match the
+ * `codes`/`codes/redeem` naming the rest of `/api/auth` now uses — the
+ * behaviour underneath is unchanged; this stays its own pair rather than
+ * folding into `/api/auth/codes` because the shape here is genuinely
+ * different (an `id` per attempt, a poll-with-no-code mode for WhatsApp
+ * inbound, its own three-tier rate ceiling).
  *
  * A full E.164 number is required, with no default country code — the same
  * rule `owner.tel` itself follows (`lib/config.ts`): this server is not
@@ -40,21 +50,19 @@ const PER_INSTANCE = { max: 50, windowMs: DAY };
 
 export async function POST(request: Request) {
   if (!isEnabled("signup")) {
-    return Response.json({ error: "signup_disabled" }, { status: 404 });
+    return fail("signup_disabled", ERROR_CODES.signup_disabled, undefined, 404);
   }
 
   const header = request.headers.get("authorization") ?? "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   const session = match ? await resolveSession(match[1].trim(), "signup") : null;
   if (!session || session.owner !== NO_JOURNAL) {
-    return Response.json(
-      {
-        error: "invalid_token",
-        message:
-          "This is step two of signup — prove the address first at POST /api/auth/signup/verify, " +
-          "then bring that token here.",
-      },
-      { status: 401 },
+    return fail(
+      "invalid_token",
+      "This is step two of signup — prove the address first at POST /api/auth/codes/redeem " +
+        '(for: "signup"), then bring that token here.',
+      undefined,
+      401,
     );
   }
 
@@ -68,13 +76,7 @@ export async function POST(request: Request) {
    */
   const smsChannel = body.channel === "sms" && phoneProofMode() === "whatsapp-inbound";
   if (smsChannel && !smsFallbackOffered()) {
-    return Response.json(
-      {
-        error: "sms_disabled",
-        message: "This server cannot send SMS — use the WhatsApp confirmation instead.",
-      },
-      { status: 404 },
-    );
+    return fail("sms_disabled", "This server cannot send SMS — use the WhatsApp confirmation instead.", undefined, 404);
   }
 
   /**
@@ -93,15 +95,14 @@ export async function POST(request: Request) {
     const link = await createPhoneLink(session.id, locale);
     if (!link) {
       console.error("[signup] phone proof is whatsapp-inbound but features.whatsapp.number is not set");
-      return Response.json(
-        {
-          error: "verification_failed",
-          message: "This server cannot offer the WhatsApp confirmation right now.",
-        },
-        { status: 503 },
+      return fail(
+        "verification_failed",
+        "This server cannot offer the WhatsApp confirmation right now.",
+        undefined,
+        503,
       );
     }
-    return Response.json(
+    return ok(
       {
         status: "accepted",
         mode: "whatsapp-inbound",
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
         text: link.text,
         next:
           "Have the person open the link and send the prepared message, then poll " +
-          'POST /api/auth/signup/phone/verify with {"token", "id"} (no code) until the ' +
+          'POST /api/auth/signup/phone/redeem with {"token", "id"} (no code) until the ' +
           'answer stops being {"status": "pending"}.',
       },
       { status: 202 },
@@ -123,15 +124,13 @@ export async function POST(request: Request) {
   const rawTel = typeof body.tel === "string" ? body.tel : "";
   const tel = toE164(rawTel);
   if (!tel) {
-    return Response.json(
-      {
-        error: "invalid_request",
-        message:
-          'tel must be a telephone number with its country code — "+41 76 000 00 00", ' +
-          '"0041 76 000 00 00" or "41760000000" — a national number like "076 000 00 00" is ' +
-          "refused: this server is not standing in any country.",
-      },
-      { status: 400 },
+    return fail(
+      "invalid_request",
+      'tel must be a telephone number with its country code — "+41 76 000 00 00", ' +
+        '"0041 76 000 00 00" or "41760000000" — a national number like "076 000 00 00" is ' +
+        "refused: this server is not standing in any country.",
+      undefined,
+      400,
     );
   }
 
@@ -146,14 +145,12 @@ export async function POST(request: Request) {
   if (viaSms) {
     const unreachable = smsUnreachable(tel);
     if (unreachable) {
-      return Response.json(
-        {
-          error: "sms_unreachable",
-          message:
-            `A code cannot be sent to this number: ${unreachable}.` +
-            (smsChannel ? " Use the WhatsApp confirmation instead." : ""),
-        },
-        { status: 400 },
+      return fail(
+        "sms_unreachable",
+        `A code cannot be sent to this number: ${unreachable}.` +
+          (smsChannel ? " Use the WhatsApp confirmation instead." : ""),
+        undefined,
+        400,
       );
     }
   }
@@ -175,40 +172,38 @@ export async function POST(request: Request) {
     const { id } = smsChannel
       ? await smsPhoneVerify.start(tel, locale)
       : await startVerification(tel, locale);
-    return Response.json(
+    return ok(
       {
         status: "accepted",
         id,
-        next: 'POST /api/auth/signup/phone/verify with {"token", "id", "code"}.',
+        next: 'POST /api/auth/signup/phone/redeem with {"token", "id", "code"}.',
       },
       { status: 202 },
     );
   } catch (err) {
     console.error("[signup] could not start a phone verification:", err);
-    return Response.json(
-      {
-        error: "verification_failed",
-        message: "The code could not be sent. Try again in a minute, or check the number.",
-      },
-      { status: 503 },
+    return fail(
+      "verification_failed",
+      "The code could not be sent. Try again in a minute, or check the number.",
+      undefined,
+      503,
     );
   }
 }
 
-function tooMany(reason: "number" | "address" | "instance", retryAfter: number): Response {
+function tooMany(reason: "number" | "address" | "instance", retryAfter: number) {
   const minutes = Math.max(1, Math.ceil(retryAfter / 60));
   const messages: Record<typeof reason, string> = {
     number: `This number has asked for ${PER_NUMBER.max} codes in the last day, which is the limit.`,
     address: `This address has asked for ${PER_ADDRESS.max} phone codes in the last day, which is the limit.`,
     instance: "This server has sent its daily limit of phone codes. Try again tomorrow.",
   };
-  return Response.json(
-    {
-      error: "too_many_requests",
-      reason,
-      retryAfter,
-      message: `${messages[reason]} Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
-    },
-    { status: 429, headers: { "Retry-After": String(retryAfter) } },
+  const response = fail(
+    "too_many_requests",
+    `${messages[reason]} Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+    { reason, retryAfter },
+    429,
   );
+  response.headers.set("Retry-After", String(retryAfter));
+  return response;
 }

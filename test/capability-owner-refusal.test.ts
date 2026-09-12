@@ -121,9 +121,9 @@ async function invites(user: string, token?: string): Promise<{ status: number; 
 }
 
 async function keys(user: string, token?: string): Promise<{ status: number; body: Body }> {
-  const { GET } = await import("@/app/api/v1/[user]/keys/route");
+  const { GET } = await import("@/app/api/auth/[user]/keys/route");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${user}/keys`, {
+    new Request(`https://example.test/api/auth/${user}/keys`, {
       headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
     }),
     { params: Promise.resolve({ user }) },

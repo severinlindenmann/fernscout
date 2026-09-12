@@ -887,7 +887,7 @@ export default function MePageContent({
    * exactly what B301 removed from the owner block.
    *
    * Nothing here grants anything: this decides what to *say*, and
-   * `mayRequestAgentToken` in `/api/auth/request` is still the only thing that
+   * `mayRequestAgentToken` in `/api/auth/codes` is still the only thing that
    * decides whether a code is issued.
    */
   const writableTrips = viewer.owner

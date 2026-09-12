@@ -114,7 +114,10 @@ export async function POST(request: Request) {
   const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) {
     return refuse(
-      { error: "missing_token", message: "Start at POST /api/auth/signup/request." },
+      {
+        error: "missing_token",
+        message: 'Start at POST /api/auth/codes with {"for": "signup"}.',
+      },
       401,
       { "WWW-Authenticate": 'Bearer realm="fernscout"' },
     );
@@ -142,7 +145,7 @@ export async function POST(request: Request) {
           "A signup token creates one journal and is spent by doing so. If you have already " +
           "created one, that succeeded — do not retry, and use the agent token it gave you. " +
           "Otherwise this token has expired (they last twenty minutes): start again at " +
-          "POST /api/auth/signup/request.",
+          'POST /api/auth/codes with {"for": "signup"}.',
       },
       401,
     );
@@ -398,10 +401,10 @@ export async function POST(request: Request) {
         smsFallback: smsFallbackOffered(),
         message:
           "A journal needs a proven telephone number as well as a proven address. " +
-          'POST /api/auth/signup/phone/request with {"tel": "…"} using this same token, ' +
-          "then POST /api/auth/signup/phone/verify with the code, and retry this call. " +
+          'POST /api/auth/signup/phone with {"tel": "…"} using this same token, ' +
+          "then POST /api/auth/signup/phone/redeem with the code, and retry this call. " +
           '(A username starting with "test-" is exempt, for content nobody lived.)',
-        next: "POST /api/auth/signup/phone/request",
+        next: "POST /api/auth/signup/phone",
       },
       400,
     );

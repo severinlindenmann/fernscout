@@ -107,34 +107,34 @@ function eml(bucket: string): string[] {
 }
 
 async function askAuth(email: string) {
-  const { POST } = await import("@/app/api/auth/request/route");
+  const { POST } = await import("@/app/api/auth/codes/route");
   return POST(
-    new Request("https://example.test/api/auth/request", {
+    new Request("https://example.test/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": nextIp() },
-      body: JSON.stringify({ user: OWNER, email }),
+      body: JSON.stringify({ user: OWNER, email, for: "read" }),
     }),
   );
 }
 
 async function askIdentity(email: string) {
-  const { POST } = await import("@/app/api/auth/identity/request/route");
+  const { POST } = await import("@/app/api/auth/codes/route");
   return POST(
-    new Request("https://example.test/api/auth/identity/request", {
+    new Request("https://example.test/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": nextIp() },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, for: "identity" }),
     }),
   );
 }
 
 async function askSignup(email: string) {
-  const { POST } = await import("@/app/api/auth/signup/request/route");
+  const { POST } = await import("@/app/api/auth/codes/route");
   return POST(
-    new Request("https://example.test/api/auth/signup/request", {
+    new Request("https://example.test/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": nextIp() },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, for: "signup" }),
     }),
   );
 }

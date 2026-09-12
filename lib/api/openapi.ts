@@ -33,6 +33,7 @@ import { COSTS_FORMATS } from "@/importers/costs";
 import { CONTACTS_FORMATS } from "@/importers/contacts";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { CREDENTIAL_FOR } from "@/lib/api/v2/schemas/auth";
 // Every enum below is imported rather than typed out. A hand-written list
 // beside a validator's own list is two lists, and the day they disagree the
 // document is telling an agent to send something the server refuses — which
@@ -801,69 +802,87 @@ export function openApiDocument() {
       },
     },
     paths: {
-      "/api/auth/request": {
+      "/api/auth/codes": {
         post: {
-          summary: "Ask for a one-time code",
+          summary: "Ask for a one-time code — B1600, one door for four credentials",
           security: [],
           description:
-            "Always answers 202, whether or not the address owns anything — so " +
-            "it cannot be used to discover which addresses exist. Two " +
-            "exceptions, and neither of them varies with the address: an agent " +
-            "code for an address that neither owns the journal nor is on the trip " +
-            "you named answers 403 rather than leaving you waiting for a code that " +
-            "was never coming, and a server with mail switched off answers 503 " +
-            "`mail_disabled` rather than issuing a code it has no way to deliver.\n\n" +
-            "**A new request invalidates the previous code.** Two of these mails " +
-            "look identical apart from the time in them, and only the newest code " +
-            "works — so if you ask twice, make sure the person reads out the " +
-            "newest one.",
+            "Replaces v1's `/api/auth/request`, `/api/auth/identity/request` and " +
+            "`/api/auth/signup/request`: one door, parameterised by `for`, rather than " +
+            "three copies of the rate limit and the uniform-202 rule. `for` is the wire " +
+            `name for which credential this code redeems into: ${CREDENTIAL_FOR.join(", ")} — ` +
+            '"read" and "write" are what v1 called `kind: "guest"`/`"agent"`.\n\n' +
+            "**Always answers 202, whether or not the address owns anything** — so it " +
+            "cannot be used to discover which addresses exist. The one exception, and it " +
+            "does not vary with the address either: `for: \"write\"` to an address that " +
+            "neither owns the journal nor is on the trip named answers 403 rather than " +
+            "leaving you waiting for a code that was never coming.\n\n" +
+            "**A new request invalidates the previous code.** Two of these mails look " +
+            "identical apart from the time in them, and only the newest code works — so " +
+            "if you ask twice, make sure the person reads out the newest one.",
           requestBody: {
             required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["user", "email"],
+                  required: ["email", "for"],
                   properties: {
+                    email: { type: "string", format: "email" },
+                    for: {
+                      type: "string",
+                      enum: [...CREDENTIAL_FOR],
+                      description:
+                        "Which credential this code will redeem into. `read`/`write` name a " +
+                        "journal and need `user`; `identity`/`signup` name none and refuse it.",
+                    },
                     user: {
                       type: "string",
                       description:
                         "The journal's address — the same segment that appears in its URLs. " +
-                        "Called `username` when a journal is created; the same value.",
+                        'Required with `for: "read"` or `"write"`; refused otherwise, since ' +
+                        "`identity` and `signup` name no journal.",
                     },
-                    email: { type: "string", format: "email" },
-                    kind: {
-                      type: "string",
-                      enum: ["agent", "guest"],
-                      default: "guest",
-                      description: "`agent` for a token that can write.",
-                    },
-                    trip: {
-                      type: "string",
+                    scope: {
+                      type: "object",
+                      required: ["trip"],
+                      properties: { trip: { type: "string" } },
                       description:
-                        "For somebody who is on a trip but does not own the journal. The " +
-                        "token then writes to that trip and nothing else.",
+                        'Only meaningful with `for: "write"`, and refused otherwise: names the ' +
+                        "one trip this code may mint a token for, for somebody who is on a " +
+                        "trip but does not own the journal. Absent and the address is the " +
+                        "owner's own: the journal-wide token. Absent and it is not: refused.",
                     },
                     destination: {
                       type: "string",
                       description:
                         "Where the one-tap link in the mail should land, for the browser " +
-                        "sign-in form: the path the reader was on. Guest codes only — an " +
-                        "agent code has no link. It is stored with the code and never " +
-                        "appears in the mailed URL, and anything that is not a path inside " +
-                        "`/{user}/` is ignored, landing the reader on the journal instead.",
+                        'sign-in form: the path the reader was on. `for: "read"` only — a ' +
+                        "write code has no link. Stored with the code and never appears in " +
+                        "the mailed URL; anything that is not a path inside `/{user}/` is " +
+                        "ignored, landing the reader on the journal instead.",
                     },
                     channel: {
                       type: "string",
-                      enum: ["email", "whatsapp"],
-                      default: "email",
+                      enum: ["mail", "whatsapp"],
+                      default: "mail",
                       description:
-                        "How the code travels. `whatsapp` sends it as a WhatsApp message " +
-                        "to the number the journal's owner proved at signup — so it only " +
-                        "ever delivers for the owner's own address; anything else answers " +
-                        "the same 202 with nothing sent, exactly like an unknown address " +
-                        "by mail. A server without WhatsApp answers 503 " +
-                        "`whatsapp_disabled`.",
+                        "How the code travels. `whatsapp` sends it as a WhatsApp message to " +
+                        "the number the journal's owner proved at signup — so it only ever " +
+                        "delivers for the owner's own address; anything else answers the " +
+                        "same 202 with nothing sent, exactly like an unknown address by mail. " +
+                        "A server without WhatsApp answers 503 `whatsapp_disabled`. Not " +
+                        'offered for `for: "identity"`/`"signup"`: neither names a journal ' +
+                        "with an owner's number to check against.",
+                    },
+                    locale: {
+                      type: "string",
+                      enum: [...MAINTAINED_LOCALES],
+                      description:
+                        `One of ${LOCALE_LIST}. Overrides the request's own language signal ` +
+                        "outright — sent, it wins with no reconciliation and no warning " +
+                        'either way. Meaningful only for `for: "identity"`/`"signup"`, which ' +
+                        "have no journal to read a default locale off.",
                     },
                   },
                 },
@@ -874,15 +893,20 @@ export function openApiDocument() {
             "202": { description: "Accepted" },
             "400": {
               description:
-                "`invalid_user` — `user` is missing. Or `invalid_email` — `email` is " +
-                "missing or not a syntactically valid address. Both are shape checks that " +
-                "never touch a lookup, so refusing them names nothing about who is " +
-                "registered — unlike an unrecognised-but-valid address, which still " +
-                "answers 202.",
+                "`invalid_email` — missing or not a syntactically valid address. Or " +
+                "`invalid_request` — `user` missing where required or present where " +
+                "refused, or `scope` present where refused. All shape checks that never " +
+                "touch a lookup, so refusing them names nothing about who is registered — " +
+                "unlike an unrecognised-but-valid address, which still answers 202.",
             },
-            "403": { description: "That address may not have an agent code for this journal" },
-            "404": { description: "Authentication is off on this server" },
-            "429": { description: "Too many attempts" },
+            "403": { description: "That address may not have a write code for this journal" },
+            "404": {
+              description:
+                '`auth_disabled` (`for: "read"`/`"write"`/`"identity"`) or `signup_disabled` ' +
+                '(`for: "signup"`) — the relevant capability is off, server-wide or, for ' +
+                '`"read"`/`"write"`, on this journal.',
+            },
+            "429": { description: "Too many attempts — the ceiling is narrower for `for: \"write\"`" },
             "503": {
               description:
                 "`mail_disabled` — this server cannot send mail at all, so nothing was " +
@@ -894,29 +918,42 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/auth/verify": {
+      "/api/auth/codes/redeem": {
         post: {
-          summary: "Exchange a code for a token",
+          summary: "Spend a code — B1600, one door for four credentials",
           security: [],
+          description:
+            "Replaces v1's `/api/auth/verify`, `/api/auth/identity/verify` and " +
+            '`/api/auth/signup/verify`. `for: "read"`/`"identity"` set a cookie and put no ' +
+            'token in the body (decision 24); `for: "write"`/`"signup"` return the token ' +
+            "in the body and set no cookie, because the caller is a program with no cookie " +
+            "jar. A wrong code, an expired one, a burned one, the wrong `for`, or a " +
+            "`scope.trip` that does not match the trip bound to the code all answer the " +
+            "identical `invalid_code` — distinguishing them would let a caller holding no " +
+            "code learn something about someone else's.",
           requestBody: {
             required: true,
             content: {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["user", "email", "code"],
+                  required: ["email", "code", "for"],
                   properties: {
-                    user: { type: "string" },
                     email: { type: "string", format: "email" },
                     code: { type: "string", description: `Six digits. ${CODE_TTL_MINUTES} minutes, single use.` },
-                    kind: { type: "string", enum: ["agent", "guest"], default: "guest" },
-                    trip: {
+                    for: { type: "string", enum: [...CREDENTIAL_FOR], description: "Must match what the code was issued as." },
+                    user: {
                       type: "string",
+                      description: 'Required with `for: "read"`/`"write"`; refused otherwise.',
+                    },
+                    scope: {
+                      type: "object",
+                      required: ["trip"],
+                      properties: { trip: { type: "string" } },
                       description:
-                        "Optional, and only ever the same trip named at /api/auth/request: the " +
-                        "trip travels on the code, and the token is scoped to it whether or not " +
-                        "this is sent. Naming a different one is refused with 401. The journal's " +
-                        "owner may name one here to narrow a code they asked for unqualified.",
+                        '`for: "write"` only: the trip travels on the code, and the token is ' +
+                        "scoped to it whether or not this is sent. Naming a different one is " +
+                        "refused with the same `invalid_code` as a wrong digit.",
                     },
                   },
                 },
@@ -924,8 +961,52 @@ export function openApiDocument() {
             },
           },
           responses: {
-            "200": { description: "A token, its expiry and its scope" },
-            "401": { description: "Invalid code" },
+            "200": {
+              description:
+                '`for: "read"`/`"identity"` — `{ok, expires, scope}`, the cookie set on the ' +
+                'response. `for: "write"`/`"signup"` — `{ok, token, expires, scope, user}`, ' +
+                "the token in the body.",
+            },
+            "401": { description: "`invalid_code` — wrong, expired, burned, or the wrong `for`" },
+            "404": { description: '`auth_disabled` or `signup_disabled`, matching /api/auth/codes' },
+            "429": { description: "Too many attempts" },
+          },
+        },
+      },
+      "/api/auth/links/redeem": {
+        post: {
+          summary: "Spend a one-click sign-in link — B1600",
+          security: [],
+          description:
+            "Replaces v1's `/api/auth/link` and `/api/auth/identity/link`. `POST` only: " +
+            "a mail scanner follows a link, it does not submit a form (B142), so acting on " +
+            'arrival cost a reader their own sign-in. `for` is `"read"` or `"identity"` ' +
+            "only — an agent has no browser to follow a link, and a signup link would " +
+            "quietly create a journal on arrival, which nobody has ever wanted.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["token", "for"],
+                  properties: {
+                    token: { type: "string", description: "The link's own token, from the URL." },
+                    for: { type: "string", enum: ["read", "identity"] },
+                    user: {
+                      type: "string",
+                      description: 'Required with `for: "read"`; refused with `for: "identity"`.',
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": { description: "`{ok, next}` — the cookie is set on the response; `next` is where to land." },
+            "401": { description: "`link_spent` — never followed, already spent, or expired; one answer for all three" },
+            "404": { description: "No such journal, or authentication is off" },
+            "429": { description: "Too many attempts" },
           },
         },
       },
@@ -1646,139 +1727,14 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/auth/signup/request": {
-        post: {
-          summary: "Ask for a code to create a journal (no journal needed yet)",
-          description:
-            "There is no journal yet, so there is no `user.locales` to read and no contact " +
-            "record carrying a language — the mail this sends is the first thing the software " +
-            "ever says to this address. Absent `locale`, it reads the request's own " +
-            "`Accept-Language` header, honouring quality values, and falls back to English " +
-            "when that names nothing this instance maintains.",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["email"],
-                  properties: {
-                    email: { type: "string", format: "email" },
-                    locale: {
-                      type: "string",
-                      enum: [...MAINTAINED_LOCALES],
-                      description:
-                        `One of ${LOCALE_LIST}. Overrides \`Accept-Language\` outright — sent, ` +
-                        "it wins with no reconciliation between the two and no warning either way.",
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "202": { description: "Accepted — a code is mailed if the address is usable" },
-            "404": { description: "Signing up is not enabled on this server" },
-            "429": { description: "Too many attempts" },
-            "503": { description: "This server cannot send mail, so signing up cannot finish" },
-          },
-        },
-      },
-      "/api/auth/signup/verify": {
-        post: {
-          summary: "Exchange the code for a token that can create one journal",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["email", "code"],
-                  properties: {
-                    email: { type: "string", format: "email" },
-                    code: { type: "string" },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description:
-                "A signup token. It creates exactly one journal and is spent by doing so; " +
-                "unused, it expires in twenty minutes. A refused creation — a taken or " +
-                "malformed username — does not spend it, so a correctable mistake can be " +
-                "corrected without another emailed code.",
-            },
-            "401": { description: "The code is wrong, expired or already used" },
-            "409": {
-              description:
-                "The code was right, and that is the problem: the address it proved " +
-                "already owns as many journals as this server allows (`too_many_journals`, " +
-                "naming them). No token is returned — creating would only be refused the " +
-                "same way later. The `next` field says how to get a write token for the " +
-                "journal it already owns instead. Checked only after the code verifies, so " +
-                "this route stays useless for asking who is on this server. B1568.",
-            },
-          },
-        },
-      },
-      // B1134: this route's siblings under /api/auth/identity (verify,
-      // upgrade, link) stay out of this document on purpose — they set and
-      // read the browser cookie an agent's bearer token can never use, per
-      // OUT_OF_SCOPE_PREFIXES in test/openapi-contract.test.ts. This one is
-      // different: it is a plain "ask for a code" step, the same shape as
-      // /api/auth/signup/request, and had simply never gained an entry here
-      // at all — not a deliberate exclusion, a gap.
-      "/api/auth/identity/request": {
-        post: {
-          summary: "Ask for a code that proves an address to the whole instance — B410",
-          security: [],
-          description:
-            "Names no journal: this proves an address, not a right to read or write one. " +
-            "Always answers 202, for the same reason every code endpoint here does — an " +
-            "answer that distinguished \"no such address\" from \"sent\" is a way to ask who " +
-            "reads this server.\n\n" +
-            "Absent `locale`, the mail is sent in whatever the reader's browser session " +
-            "already carries — the language cookie the site's own switcher sets, or its own " +
-            "`Accept-Language` fallback when there is no session at all (B430) — because an " +
-            "identity belongs to no journal, so there is no `user.locales` and no contact " +
-            "record to read a language from either.",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["email"],
-                  properties: {
-                    email: { type: "string", format: "email" },
-                    locale: {
-                      type: "string",
-                      enum: [...MAINTAINED_LOCALES],
-                      description:
-                        `One of ${LOCALE_LIST}. Overrides the browser session outright — sent, ` +
-                        "it wins with no reconciliation and no warning either way.",
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "202": { description: "Accepted — a code is mailed if the address is usable" },
-            "404": { description: "Authentication is off on this server" },
-            "429": { description: "Too many attempts" },
-            "503": { description: "This server cannot send mail, so signing in cannot finish" },
-          },
-        },
-      },
-      "/api/auth/signup/phone/request": {
+      "/api/auth/signup/phone": {
         post: {
           summary: "Prove a telephone number, step one — B1065/B1234",
           description:
-            "The second half of proving who is signing up, after the address. Takes the " +
-            "signup token from /api/auth/signup/verify. The `phone_required` refusal on " +
+            "Renamed from /api/auth/signup/phone/request for v2 (auth.md §2.6); behaviour " +
+            "unchanged. The second half of proving who is signing up, after the address. " +
+            "Takes the signup token from /api/auth/codes/redeem (for: \"signup\"). The " +
+            "`phone_required` refusal on " +
             "POST /api/v1/journals carries a `mode` saying which shape this server runs. " +
             'In `"code"` mode a passcode is sent to `tel`, which must carry its own ' +
             "country code — this server is not standing in any country, so a national " +
@@ -1826,7 +1782,7 @@ export function openApiDocument() {
             "202": {
               description:
                 "Accepted — `id` names this verification attempt. Code mode: a passcode " +
-                "is on its way; pass `id` and the code to /api/auth/signup/phone/verify. " +
+                "is on its way; pass `id` and the code to /api/auth/signup/phone/redeem. " +
                 'Whatsapp-inbound mode: `mode` is "whatsapp-inbound" and `link`/`text` ' +
                 "carry the wa.me link and its prefilled message; poll the verify endpoint " +
                 "with `id` and no code. `smsFallback` says whether `channel: \"sms\"` is " +
@@ -1853,11 +1809,12 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/auth/signup/phone/verify": {
+      "/api/auth/signup/phone/redeem": {
         post: {
           summary: "Prove a telephone number, step two — B1065/B1234",
           description:
-            "Takes the signup token, the `id` from the request step, and — in code mode — " +
+            "Renamed from /api/auth/signup/phone/verify for v2 (auth.md §2.6); behaviour " +
+            "unchanged. Takes the signup token, the `id` from the request step, and — in code mode — " +
             "the code. On success the proven number is attached to the signup token " +
             "itself — nothing further to send; POST /api/v1/journals reads it " +
             "automatically. **Leaving `code` out is the poll** for whatsapp-inbound mode " +
@@ -1948,8 +1905,8 @@ export function openApiDocument() {
           summary: "Create a journal",
           description:
             "Takes the signup token. A journal needs a proven telephone number as well as " +
-            "a proven address (B1064) — complete /api/auth/signup/phone/request and " +
-            "/api/auth/signup/phone/verify with the same token first, unless the address " +
+            "a proven address (B1064) — complete /api/auth/signup/phone and " +
+            "/api/auth/signup/phone/redeem with the same token first, unless the address " +
             "is this instance's operator or the username starts with \"test-\", both " +
             "exempt. Answers with an agent token for the journal it just created, so the " +
             "caller can go straight on to creating a trip. The 201's `next` names that " +
@@ -3760,22 +3717,38 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/v1/{user}/handover": {
+      "/api/auth/{user}/handover": {
         post: {
           summary: "Issue a handover credential (owner only)",
           description:
-            "What the owner's own access page calls so it can print a pasteable prompt. " +
-            "Owner only, cookie or bearer. The credential it answers with lasts 20 minutes " +
-            "and can only be exchanged at POST /api/auth/handover — never used to read or " +
-            "write. An agent has no reason to call this; it is here so the contract is " +
-            "complete.",
+            "Moved from /api/v1/{user}/handover for v2 (auth.md §2.5): minting and " +
+            "exchanging a credential belongs under /api/auth regardless of which journal " +
+            "it names, so both halves now live together. What the owner's own access page " +
+            "calls so it can print a pasteable prompt. Owner only, cookie or bearer — and a " +
+            "bearer that resolves to a live agent session counts only when its scope is " +
+            "the unqualified journal-wide one; a token scoped to a single trip is refused " +
+            "even when it belongs to the owner's own address, because a credential good " +
+            "for one trip must not mint a journal-wide handover. The credential it answers " +
+            "with (`handover`) lasts 20 minutes and can only be exchanged at " +
+            "POST /api/auth/handover — never used to read or write.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],
           responses: {
-            "200": { description: "A 20-minute handover credential" },
-            "403": { description: "Not this journal's owner" },
-            "404": { description: "No such journal, or sign-in is off for it" },
+            "200": {
+              description:
+                "`{handover, expiresAt, minutes, exchange, next}` — a 20-minute handover " +
+                "credential, the URL that spends it, and what to do next",
+            },
+            "403": {
+              description:
+                "Not this journal's owner, or a bearer token that resolves to a live agent " +
+                "session scoped to one trip rather than the whole journal",
+            },
+            "404": { description: "No such journal, or sign-in is off for it (`auth_disabled`)" },
+            "409": {
+              description: "This journal's config.json names no owner address (`no_owner_address`)",
+            },
           },
         },
       },
@@ -4172,26 +4145,33 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/v1/{user}/keys": {
+      "/api/auth/{user}/keys": {
         get: {
           summary:
             "The tokens and sessions that can write here — the owner sees every row, " +
             "anybody else only their own (B323)",
           description:
-            "The owner gets one row per live credential in the journal, each with `email`. " +
+            "Moved from /api/v1/{user}/keys for v2 (auth.md §2.7). Kept as one mixed door " +
+            "on purpose rather than splitting an owner door from a keys/mine door. The " +
+            "owner gets one row per live credential in the journal, each with `email`. " +
             "Anybody else who has proved an address — a guest cookie, a year-long identity, " +
             "or a trip-scoped bearer token — gets only the rows issued to *that* address, " +
             "with no `email` field (the list is already implicitly theirs). There is no " +
             "parameter that widens this: the filter is the caller's own proven address, " +
-            "never anything the request sends. Every row carries `scope`, in " +
-            "`tripWriteScope`'s vocabulary, so a trip-bound key can be told apart from a " +
-            "journal-wide one.",
+            "never anything the request sends. Every row carries `scope`, translated from " +
+            "the internal `write:trip:…` vocabulary into `\"owner\"` or `\"trip\"` (with " +
+            "`trip` alongside it when it is one), and `kind`, translated the same way the " +
+            "rest of this area's wire vocabulary was (`CREDENTIAL_FOR`): `\"write\"` for a " +
+            "live agent token, `\"handover\"` for a live handover credential — `handover` " +
+            "is not a `for` value and keeps its own name, since it is minted and exchanged " +
+            "by its own pair of routes rather than redeemed from a code.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           responses: {
             "200": {
               description:
-                "One row per live credential this caller may see, with its kind, scope and " +
-                "expiry",
+                "One row per live credential this caller may see, with its kind " +
+                `(\`${["write", "handover"].join("\`, \`")}\`), scope (\`${["owner", "trip"].join("\`, \`")}\`, plus ` +
+                "`trip` for a trip-scoped one) and expiry",
             },
             "403": {
               description:
@@ -4208,11 +4188,12 @@ export function openApiDocument() {
           summary:
             "Revoke one of them — the owner may revoke any row, anybody else only their own",
           description:
+            "Moved from /api/v1/{user}/keys for v2 (auth.md §2.7). " +
             "`{\"revoke\": \"<key id>\"}`, with an id from the GET above. It ends that " +
             "credential immediately — the way to answer \"an agent has a token I want back\". " +
             "An id that is not this journal's, or — for a non-owner — not this caller's own " +
-            "row, answers the same `404` as an id that does not exist at all, so a guess " +
-            "learns nothing.",
+            "row, answers the same `404` (`unknown_key`) as an id that does not exist at all, " +
+            "so a guess learns nothing.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           requestBody: {
             required: true,
@@ -4228,7 +4209,7 @@ export function openApiDocument() {
           },
           responses: {
             "200": { description: "Revoked" },
-            "400": { description: "No key id sent" },
+            "400": { description: "No key id sent (`invalid_request`)" },
             "403": {
               description:
                 "No proven address at all. For an address that owns the journal this also " +
@@ -4237,8 +4218,8 @@ export function openApiDocument() {
             },
             "404": {
               description:
-                "No such key — either it does not exist, or (for a non-owner) it belongs to " +
-                "somebody else's address",
+                "No such key (`unknown_key`) — either it does not exist, or (for a " +
+                "non-owner) it belongs to somebody else's address",
             },
             "409": {
               description: "A proven address on this journal, but sign-in is off on it (`auth_disabled`)",

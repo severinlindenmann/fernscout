@@ -43,14 +43,13 @@ export default function SignInButton({
 
   async function open() {
     setState("working");
-    const response = await fetch(
-      username ? "/api/auth/link" : "/api/auth/identity/link",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(username ? { user: username, token } : { token }),
-      },
-    ).catch(() => null);
+    const response = await fetch("/api/auth/links/redeem", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        username ? { user: username, token, for: "read" } : { token, for: "identity" },
+      ),
+    }).catch(() => null);
 
     const body = (await response?.json().catch(() => null)) as {
       next?: string;

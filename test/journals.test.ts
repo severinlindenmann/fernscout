@@ -229,7 +229,7 @@ describe("creating a journal", () => {
     const again = make("wanderer");
     expect(again.ok).toBe(false);
     if (again.ok) return;
-    expect(again.next).toContain("/api/auth/request");
+    expect(again.next).toContain("/api/auth/codes");
     expect(again.next).toContain("wanderer");
   });
 
@@ -267,7 +267,7 @@ describe("creating a journal", () => {
     const tooMany = make("journal-last");
     expect(tooMany.ok).toBe(false);
     if (tooMany.ok) return;
-    expect(tooMany.next).toContain("/api/auth/request");
+    expect(tooMany.next).toContain("/api/auth/codes");
     expect(tooMany.next).toContain("journal-0");
   });
 });

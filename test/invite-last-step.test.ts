@@ -193,18 +193,15 @@ describe("a reader who follows every instruction reaches the journal", () => {
     const signIn = letter.match(/https:\/\/example\.test\/ana\/s\/([\w-]+)/);
     expect(signIn, "the approval mail must carry the sign-in link").not.toBeNull();
 
-    const auth = await import("@/app/api/auth/link/route");
+    const auth = await import("@/app/api/auth/links/redeem/route");
     const spent = await auth.POST(
-      new Request("https://example.test/api/auth/link", {
+      new Request("https://example.test/api/auth/links/redeem", {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ user: OWNER, token: signIn![1] }),
+        body: JSON.stringify({ user: OWNER, token: signIn![1], for: "read" }),
       }),
     );
     expect(spent.status).toBe(200);
-    const { GUEST_COOKIE } = await import("@/lib/auth");
-    const { token: session } = (await spent.json()) as { token?: string };
-    if (session) jar.cookies[GUEST_COOKIE] = session;
 
     // And now she is in.
     expect(await isJournalGuest(OWNER), "the approval mail is the way in").toBe(true);
