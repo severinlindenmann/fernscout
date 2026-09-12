@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (237)
+## backlog (241)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (60)
+### issue (64)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -80,6 +80,8 @@ Do not edit them by hand; run the script.
 | [B1601](backlog/issue/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low |
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
 | [B1616](backlog/issue/B1616-a-solo-trip-that-declined-buddies.md) | A solo trip that declined buddies can never add people, and a public trip can never be narrowed | ISSUE | high | medium |
+| [B1618](backlog/issue/B1618-v2-publish-send-routes-call-senddayletter.md) | v2 publish/send routes call sendDayLetter/sendDayWhatsapp with the wrong slug shape, so a requested send always answers unknown_day | ISSUE | high | medium |
+| [B1621](backlog/issue/B1621-v2-creates-stopped-telling-an-agent.md) | v2 creates stopped telling an agent what comes next — B311's chain was broken by the migration | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -108,6 +110,8 @@ Do not edit them by hand; run the script.
 | [B1610](backlog/issue/B1610-analytics-visitors-asserts-a-hash-does.md) | analytics-visitors asserts a hash does not contain a substring — it fails by chance | ISSUE | medium | low |
 | [B1611](backlog/issue/B1611-journalstatus-shows-the-credit-balance-to.md) | journalStatus shows the credit balance to a trip-scoped token where v1 hid it | ISSUE | medium | low |
 | [B1614](backlog/issue/B1614-the-contract-test-s-scan-window.md) | The contract test's scan window could not see cookie-only doors, so a live error code read as dead | ISSUE | medium | low |
+| [B1619](backlog/issue/B1619-v2-s-day-translations-field-has.md) | v2's day translations field has no journal-locale check at all, unlike v1's | ISSUE | medium | medium |
+| [B1620](backlog/issue/B1620-three-v2-surfaces-drop-information-v1.md) | Three v2 surfaces drop information v1 exposed: day-list test inheritance, status drafts' test flag, and mail send error detail | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
