@@ -1936,6 +1936,8 @@
   "agent.chat.startOver": "Von vorn anfangen",
   "agent.block.days": "Tage dieser Reise",
   "agent.block.inbox": "Im Eingang wartend",
+  "agent.block.inboxKindPhotograph": "Foto",
+  "agent.block.inboxKindVideo": "Video",
   "agent.tool.createTrip": "Eine Reise mit dem Titel {title}, vom {start} bis {end}. Es entsteht nichts, bevor du drückst.",
   "agent.tool.createTripAccept": "Diese Reise anlegen",
   "agent.tool.createTripDone": "Die Reise ist angelegt.",

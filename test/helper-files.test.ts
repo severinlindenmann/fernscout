@@ -130,7 +130,7 @@ describe("inbox — what is staged, told rather than shown as a second pane", ()
     expect(block.shape).toBe("files");
     expect(block.files).toHaveLength(2);
     const names = block.files.map((f) => f.name);
-    expect(names.some((n) => n.includes("harbour.jpg") && n.includes("photograph"))).toBe(true);
+    expect(names.some((n) => n.includes("harbour.jpg") && n.includes("agent.block.inboxKindPhotograph"))).toBe(true);
     expect(names.some((n) => n.includes("statement.csv") && n.includes("file"))).toBe(true);
     // No path or URL in what is shown — only the filename, the kind and a
     // rough size. The id is a hash of the bytes, not a route.
@@ -138,6 +138,17 @@ describe("inbox — what is staged, told rather than shown as a second pane", ()
       expect(file.name).not.toMatch(/\//);
       expect(file.id).not.toMatch(/\//);
     }
+  });
+
+  test("a video in the media kind lists as a video, a still as a photograph — B1566", async () => {
+    await storeInboxFile("alex", "media", "harbour.jpg", await paintJpeg(400, 300, 3), {});
+    await storeInboxFile("alex", "media", "clip.mov", Buffer.from("not really a video, only its extension matters here"), {});
+
+    const ran = await runTool("alex", "inbox", {}, say, "2026-05-05");
+    const block = ran.blocks[0] as { files: { name: string }[] };
+    const names = block.files.map((f) => f.name);
+    expect(names.some((n) => n.includes("harbour.jpg") && n.includes("agent.block.inboxKindPhotograph"))).toBe(true);
+    expect(names.some((n) => n.includes("clip.mov") && n.includes("agent.block.inboxKindVideo"))).toBe(true);
   });
 
   test("nothing staged draws nothing", async () => {

@@ -1,5 +1,6 @@
 import "server-only";
 import fs from "node:fs";
+import type { Say } from "../../intents";
 import type { Tool } from "../types";
 import { DAY_ARGS } from "../args";
 import { isEnabled } from "../../../capabilities";
@@ -7,6 +8,7 @@ import { listContacts, normaliseEmail } from "../../../contacts";
 import { readContactsFile } from "../../../contacts/readImport";
 import { AS_AUTHOR, getEntryBySlug } from "../../../entries";
 import { findInboxFile, listInbox } from "../../../inbox";
+import { contentTypeFor } from "../../../media";
 import { formatBytes } from "../../../storageQuota";
 import { getTrips } from "../../../trips";
 import { resolveDay, tripIdFor } from "../resolve";
@@ -35,13 +37,32 @@ function findCard(
 const MAX_VCARD_ROWS = 50;
 
 /** What kind of thing an inbox entry is, in the words a person reads rather
- *  than the folder name — `INBOX_KINDS` from `lib/inbox.ts`. */
+ *  than the folder name — `INBOX_KINDS` from `lib/inbox.ts`. `media` is not
+ *  here: it is a still or a clip, and `inboxKindWord` below tells them apart
+ *  by extension rather than by the folder they share (B1566). */
 const INBOX_KIND_WORD: Record<string, string> = {
-  media: "photograph",
   files: "file",
   photobook: "photobook order",
   postcards: "postcard order",
 };
+
+/**
+ * The human word for one staged file — "photograph" or "video" for `media`,
+ * the fixed word above for everything else.
+ *
+ * `media` holds both: a `.mov` is not a photograph, and calling it one
+ * invites it to be attached where a still belongs (B1566). Told apart by the
+ * same extension → content-type map `contentTypeFor` already uses to serve
+ * the file, not a second list of video extensions.
+ */
+function inboxKindWord(kind: string, filename: string, say: Say): string {
+  if (kind === "media") {
+    return contentTypeFor(filename).startsWith("video/")
+      ? say("agent.block.inboxKindVideo")
+      : say("agent.block.inboxKindPhotograph");
+  }
+  return INBOX_KIND_WORD[kind] ?? kind;
+}
 
 /**
  * The day and the photograph a tick in the files pane names — B925's own
@@ -235,7 +256,7 @@ export const FILES_TOOLS: readonly Tool[] = [
         text: say("agent.block.inbox"),
         files: staged.map((file) => ({
           id: file.id,
-          name: `${file.filename} — ${INBOX_KIND_WORD[file.kind] ?? file.kind}, ${formatBytes(file.bytes)}`,
+          name: `${file.filename} — ${inboxKindWord(file.kind, file.filename, say)}, ${formatBytes(file.bytes)}`,
         })),
       };
     },
