@@ -135,10 +135,29 @@ function dayFile() {
   return fs.readFileSync(path.join(dayDir, first), "utf8");
 }
 
+/**
+ * Gives the day real words directly on disk — B1561. These fixtures are
+ * about the trip's own tracked questions (costs, coordinates, photos), not
+ * about whether the day has been written up, and `publish_day` now refuses a
+ * day that is still `NO_PROSE` with no gallery. A real sentence keeps every
+ * one of these tests about what it was already testing.
+ */
+function giveWords(text = "Ein Tag am See.") {
+  const dayDir = path.join(dir, "alex", "trips", "reise", "entries");
+  for (const name of fs.readdirSync(dayDir)) {
+    const file = path.join(dayDir, name);
+    const raw = fs.readFileSync(file, "utf8");
+    if (/\n…\n*$/.test(raw)) {
+      fs.writeFileSync(file, raw.replace(/\n…\n*$/, `\n${text}\n`));
+    }
+  }
+}
+
 describe("a day written and put on the site, by pressing what the conversation offered", () => {
   test("two proposals and two presses, and no other call", async () => {
     const started = await propose("start_day");
     expect((await post(writeDay, "", pressed(started.proposal))).status).toBe(201);
+    giveWords();
 
     const publishing = await propose("publish_day");
     const answered = await post(publishDay, "/publish", pressed(publishing.proposal));
@@ -157,6 +176,7 @@ describe("a day written and put on the site, by pressing what the conversation o
   test("the photographs question is on the confirmation, opening on “nobody has it”", async () => {
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
 
     const { proposal, blocks } = await propose("publish_day");
     const asked = Object.fromEntries(proposal.fields.map((field) => [field.name, field]));
@@ -177,6 +197,7 @@ describe("a day written and put on the site, by pressing what the conversation o
   test("her own answer is what is written into the day", async () => {
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
 
     const { proposal } = await propose("publish_day");
     const answered = await post(publishDay, "/publish", {
@@ -205,6 +226,7 @@ describe("a day written and put on the site, by pressing what the conversation o
 
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
     const { proposal } = await propose("publish_day");
     expect(proposal.fields.map((field) => field.name)).toEqual(["trip", "slug"]);
     expect((await post(publishDay, "/publish", pressed(proposal))).status).toBe(200);
@@ -239,6 +261,7 @@ describe("no write tool posts into a question it cannot answer", () => {
     // A day exists, so `publish_day` has something to propose about.
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
 
     for (const tool of TOOLS) {
       if (tool.kind !== "write" || tool.method !== undefined) continue;
@@ -254,6 +277,10 @@ describe("no write tool posts into a question it cannot answer", () => {
       const where = moment === "write" ? "" : "/publish";
       const answered = await post(route, where, pressed(proposal));
       expect([201, 200], `${tool.name} asked ${[...asks].join(", ")}`).toContain(answered.status);
+      // `start_day` (the "write" moment) makes a second, empty day — give it
+      // words too, so a later `publish_day` iteration does not land on it and
+      // refuse for B1561 reasons this test is not about.
+      giveWords();
     }
   });
 });
@@ -283,6 +310,7 @@ describe("taking down a day that was never up", () => {
   test("and a day that is up still proposes", async () => {
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
     const publishing = await propose("publish_day");
     expect((await post(publishDay, "/publish", pressed(publishing.proposal))).status).toBe(200);
 
@@ -295,6 +323,7 @@ describe("publishing a day that is already up — B1305", () => {
   test("is refused with its own sentence, and no button", async () => {
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
     const publishing = await propose("publish_day");
     expect((await post(publishDay, "/publish", pressed(publishing.proposal))).status).toBe(200);
 
@@ -305,6 +334,7 @@ describe("publishing a day that is already up — B1305", () => {
 
   test("and a day still a draft still proposes", async () => {
     await propose("start_day").then(({ proposal }) => post(writeDay, "", pressed(proposal)));
+    giveWords();
 
     const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
     expect(ran.proposal).toBeDefined();
@@ -328,6 +358,7 @@ describe("what the publish card says about who can read it", () => {
   test("a private trip with nobody on it says only you, in words", async () => {
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
 
     const { proposal } = await propose("publish_day");
     expect(proposal.sentence).toContain("agent.tool.publishReadersPrivateNobody");
@@ -346,6 +377,7 @@ describe("what the publish card says about who can read it", () => {
 
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
     const { proposal } = await propose("publish_day");
     expect(proposal.sentence).toContain("agent.tool.publishReadersPrivate");
     expect(proposal.sentence).toContain("Mara");
@@ -358,6 +390,7 @@ describe("what the publish card says about who can read it", () => {
 
     const started = await propose("start_day");
     await post(writeDay, "", pressed(started.proposal));
+    giveWords();
     const { proposal } = await propose("publish_day");
     expect(proposal.sentence).toContain("agent.tool.publishReadersPublic");
   });

@@ -1,5 +1,6 @@
 import { editEntry, factsOfEntry, publishDraft } from "@/lib/api/entries";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
+import { isWritten } from "@/lib/helper/draft";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { serverSite } from "@/lib/site";
 import { declinesIn, missingFrom } from "@/lib/tracks";
@@ -55,6 +56,18 @@ export async function POST(
   if (!entry.draft) {
     refused(user, "publish_day", "already_published");
     return Response.json({ error: "already_published" }, { status: 409 });
+  }
+  /**
+   * The route's own mirror of the proposal's own refusal — B1561. The card
+   * is the primary guard (`publish_day`'s `propose` in
+   * `lib/helper/tools/areas/days.ts`), and this is the second half of the
+   * same shape `already_published` above already has: a press that somehow
+   * reaches this route with nothing on the day — no words beyond `NO_PROSE`
+   * and no gallery — does not go live either.
+   */
+  if (!isWritten(entry.content) && entry.gallery.length === 0) {
+    refused(user, "publish_day", "empty_day");
+    return Response.json({ error: "empty_day" }, { status: 422 });
   }
 
   /**

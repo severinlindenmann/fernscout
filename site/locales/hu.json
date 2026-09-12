@@ -1949,6 +1949,8 @@
   "agent.tool.startDayDone": "A nap elkezdve. Piszkozat, így rajtad kívül senki nem olvashatja.",
   "agent.tool.startDayUnknown": "Az alábbi kérdések „Senkinél nincs meg” állásban indulnak — semmi nincs kitalálva, csak még senki nem kérdezte meg. Változtasd meg most, vagy mondj később valódi számot.",
   "agent.tool.publishDayUnknown": "Még egy dolog: ez az utazás számon tart olyasmit, amiről ez a nap nem mond semmit. Az alábbi kérdések „Senkinél nincs meg” állásban indulnak — semmi nincs kitalálva, csak még senki nem kérdezte meg. Változtasd meg, ha tudod a választ.",
+  "agent.tool.publishDayEmpty": "Ez a nap még üres — mesélj a napról, vagy előbb tegyél rá fotókat.",
+  "agent.tool.publishDayNoWords": "Még egy dolog: ezen a napon vannak fotók, de még nincsenek szavak.",
   "agent.tool.createTripVisibility": "Nyomás előtt olvasd el a „Ki olvashatja” sort: a vendégek mindazok, akiket beengedtél ebbe a naplóba, a privát pedig csak azok, akik ott voltak az úton.",
   "agent.tool.editTrip": "{title}, {start}–{end}. Semmi nem változik, amíg meg nem nyomod.",
   "agent.tool.editTripAccept": "Változtatások mentése",

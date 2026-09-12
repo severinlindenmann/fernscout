@@ -762,6 +762,8 @@ export type TranslationKey =
   | "agent.tool.publishDay"
   | "agent.tool.publishDayAccept"
   | "agent.tool.publishDayDone"
+  | "agent.tool.publishDayEmpty"
+  | "agent.tool.publishDayNoWords"
   | "agent.tool.publishDayUnknown"
   | "agent.tool.publishNoDay"
   | "agent.tool.publishReadersGuest"

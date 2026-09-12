@@ -140,6 +140,17 @@ async function writeAndPublishADay(): Promise<{ trip: string; slug: string }> {
   if (!started.proposal) throw new Error("start_day proposed nothing");
   await post(writeDay, "https://t.test/api/helper/alex/day", pressed(started.proposal));
 
+  // `publish_day` refuses a day that is still `NO_PROSE` with no gallery
+  // (B1561) — give it real words so this fixture publishes as before.
+  const dayDir = path.join(dir, "alex", "trips", "reise", "entries");
+  for (const name of fs.readdirSync(dayDir)) {
+    const file = path.join(dayDir, name);
+    const raw = fs.readFileSync(file, "utf8");
+    if (/\n…\n*$/.test(raw)) {
+      fs.writeFileSync(file, raw.replace(/\n…\n*$/, "\nEin Tag am See.\n"));
+    }
+  }
+
   const publishing = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
   if (!publishing.proposal) throw new Error("publish_day proposed nothing");
   const answered = await post(
