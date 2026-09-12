@@ -240,11 +240,11 @@ export function openApiDocument() {
             country: { type: "string" },
             countryCode: {
               type: "string",
-              description: "ISO-3166 alpha-2 where the provider had one.",
+              description: "ISO-3166 alpha-2 country code.",
             },
             adminRegion: {
               type: "string",
-              description: "State, canton, province or county, where the provider named one.",
+              description: "State, canton, province, county or closest named subdivision.",
             },
             lat: { type: "number" },
             lon: { type: "number" },
