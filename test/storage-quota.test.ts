@@ -8,7 +8,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { grant, spend } from "@/lib/credits";
 import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS } from "@/lib/credits/pricing";
-import { journalBytes, storageFor, storageRefusal } from "@/lib/storageQuota";
+import { journalBytes, storageFor, storageRefusal, withStorageQuota } from "@/lib/storageQuota";
 
 /**
  * The ceiling over a journal's whole folder — B661.
@@ -245,6 +245,64 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(response.status).toBe(403);
       expect(await response.json()).toMatchObject({ error: "not_for_agents" });
       expect((await storageFor(who)).purchasedBytes).toBe(0);
+    });
+  });
+
+  describe("parallel writes against one ceiling — B1556", () => {
+    beforeEach(() => setup(10_000));
+
+    /**
+     * `storageRefusal` alone answers from a directory walk with nothing held:
+     * two uploads that each individually fit could both pass the check before
+     * either had written a byte, and both would proceed. `withStorageQuota` is
+     * the fix — check and write, one step, serialised per journal — and this
+     * is what it has to hold: five uploads of 3,000 bytes each against a
+     * 10,000-byte ceiling (fitting three, not five) must land at most three of
+     * them, and never take the journal past the ceiling plus one upload's own
+     * size.
+     *
+     * `setTimeout` inside `write` rather than a synchronous `fs.writeFileSync`
+     * alone is what actually exercises the lock: without it every call's
+     * check and write would already run back-to-back on the same microtask
+     * turn, and the race this ticket is about — another call's check landing
+     * *between* this one's check and its write — would never get a chance to
+     * happen even with no lock at all.
+     */
+    test("uploads that jointly exceed the ceiling refuse the ones that would tip it over", async () => {
+      const bytesPerUpload = 3_000;
+      const attempts = 5;
+      const before = journalBytes(who);
+
+      const results = await Promise.all(
+        Array.from({ length: attempts }, (_, i) =>
+          withStorageQuota(who, bytesPerUpload, () =>
+            new Promise<void>((resolve) => {
+              setTimeout(() => {
+                write(bytesPerUpload, "trips", "alps", "media", "day-1", `${i}.jpg`);
+                resolve();
+              }, 5);
+            }),
+          ),
+        ),
+      );
+
+      const accepted = results.filter((r) => r.ok).length;
+      const refused = results.filter((r) => !r.ok);
+
+      // 10_000 / 3_000 fits three whole uploads (9_000) and refuses a fourth
+      // that would reach 12_000 — so exactly three land, never four or five.
+      expect(accepted).toBe(3);
+      expect(refused).toHaveLength(2);
+      for (const r of refused) {
+        if (!r.ok) expect(r.problem).toContain("would take it to");
+      }
+
+      // The property the ticket actually asks for: total bytes on disk never
+      // exceeds the ceiling plus one upload's own size — which is what a
+      // truly unguarded race (all five landing) would have blown past.
+      const added = journalBytes(who) - before;
+      expect(added).toBeLessThanOrEqual(10_000 + bytesPerUpload);
+      expect(added).toBe(accepted * bytesPerUpload);
     });
   });
 

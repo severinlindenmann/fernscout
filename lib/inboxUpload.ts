@@ -6,7 +6,7 @@ import {
   type InboxKind,
   type InboxMeta,
 } from "@/lib/inbox";
-import { storageRefusal } from "@/lib/storageQuota";
+import { withStorageQuota } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
 import { MAX_ITEMS_PER_DAY, REQUEST_MAX_BYTES } from "@/lib/validate/media";
 
@@ -176,24 +176,25 @@ export async function receiveInboxUpload(user: string, request: Request): Promis
   }
 
   // B661's ceiling, from this door too. The inbox is inside the journal
-  // folder, so it must not be the way round the limit.
-  const refusal = await storageRefusal(
+  // folder, so it must not be the way round the limit. Checked and written
+  // under the same per-username lock as every other upload door (B1556), so
+  // two requests that each individually fit cannot both pass the check before
+  // either has written a byte.
+  const guard = await withStorageQuota(
     user,
     staged.reduce((n, f) => n + f.bytes.byteLength, 0),
+    () => staged.map((file) => storeInboxFile(user, file.kind, file.filename, file.bytes, file.meta)),
   );
-  if (refusal) {
+  if (!guard.ok) {
     return Response.json(
       {
         error: "invalid_media",
-        problems: [{ field: "files", got: "no room left in this journal", expected: refusal }],
+        problems: [{ field: "files", got: "no room left in this journal", expected: guard.problem }],
       },
       { status: 400 },
     );
   }
-
-  const items = staged.map((file) =>
-    storeInboxFile(user, file.kind, file.filename, file.bytes, file.meta),
-  );
+  const items = guard.value;
 
   return Response.json(
     {
