@@ -45,23 +45,50 @@ calling the guard to catch.
   change of words: saying a day has no weather must never hit the capability
   refusal, because no lookup is being asked for.
 
+## The second half: it was asked of the wrong thing
+
+The first fix restored v1's check verbatim — `isEnabled("weather", username)`,
+per journal. **That was wrong, and the contract already said so.**
+`00-decisions.md` §5 and `lib/api/v2/schemas/journal.ts`'s own header both
+state that the per-journal `features` block is **instance-only** in v2: a
+capability answers *"is the plumbing configured"*, which is the operator's
+fact. An archive this server cannot reach is unreachable for everybody on it;
+a journal's own config has no business narrowing that.
+
+So every capability check in v2 now asks the instance and takes no username:
+
+| where | was | is |
+|---|---|---|
+| the day route's weather guard | `isEnabled("weather", username)` | `isEnabled("weather")` |
+| `app/api/v2/geocode/route.ts` | `isEnabled("addressLookup", username)` | `isEnabled("addressLookup")` |
+| the publish route's notify channels | `isEnabled(channel, user)` | `isEnabled(channel)` |
+
+`weatherOffRefusal` lost its `username` parameter entirely rather than
+ignoring it — a parameter nothing reads is the next caller's trap. Its message
+also stopped telling the owner to `PATCH /api/v1/<user>/config {"features":
+…}`, which is a door v2 does not have.
+
+This is the more interesting half of the ticket: the missing check was an
+oversight, but the *per-journal* check was a decision already taken and not
+followed. Restoring v1 behaviour verbatim is how a migration quietly undoes
+its own decisions.
+
 ## Work
 
-The remaining question is the general one, and it is worth an hour:
-
 **Which other capabilities does a v2 route fail to check?** `weather` was
-caught by an existing test that happened to be repointed. The v2 routes were
-written fresh against the schemas, and a schema says nothing about whether the
-instance has a capability switched on — so this class of bug is structural,
-not a one-off.
+caught by an existing test that happened to be repointed. v2's routes were
+written fresh against the schemas, and a schema says nothing about whether a
+capability is switched on — so this class is structural, not a one-off.
 
 Go through `FEATURE_NAMES` in `lib/config.ts` and, for each, find where v1
-enforced it and whether v2's replacement does. Candidates to check first:
-`costs`, `push`, `reactions`, `addressLookup`, `helper`, `transcription`.
+enforced it and whether v2's replacement does. `costs`, `push`, `reactions`,
+`helper` and `transcription` are unchecked in v2 today.
 
 A test in the shape of `test/capability-owner-refusal.test.ts` — every
 capability off, every v2 write door driven, nothing accepted that cannot be
-serviced — would close the class rather than the instance.
+serviced — would close the class rather than the instance. **And it should
+assert the instance dimension too**: that no v2 route consults a journal's own
+`features`, which is the rule this ticket found broken.
 
 ## Acceptance
 
