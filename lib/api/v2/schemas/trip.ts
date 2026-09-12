@@ -6,7 +6,7 @@
 import { z } from "zod";
 import { ACCENTS, COSTS_VISIBILITIES, STATUSES, VISIBILITIES } from "../../../tripWrite";
 import { MAX_TRIP_PEOPLE } from "../../../trips";
-import { dayDoc, dayWrite } from "./day";
+import { costItem, dayDoc, dayWrite } from "./day";
 import { tripFigures } from "./figures";
 import {
   checkPatchConflicts,
@@ -39,7 +39,14 @@ const rates = z.strictObject({
 });
 
 /** Budget + preparation costs — what costs.md carries today. Entries on days
- * live on the days. */
+ * live on the days.
+ *
+ * `items` and `note` joined in B1597: `costs.md` always had a preparation
+ * cost list and a prose body of its own (budgeting for the trip before it
+ * had any days) and the wire section had no field for either — a caller
+ * could set a budget but not the spend that justified it. `items` reuses
+ * the day's own `costItem` shape (imported, not retyped) because a
+ * preparation cost and a day's cost are the same kind of fact. */
 const costs = z.strictObject({
   budget: z.strictObject({
     total: z.number().positive(),
@@ -48,6 +55,10 @@ const costs = z.strictObject({
     /** Absent means the journal's base currency. */
     currency: z.string().length(3).optional(),
   }),
+  /** Preparation spend — before there are any days to carry it. */
+  items: z.array(costItem).optional(),
+  /** `costs.md`'s own prose body. */
+  note: z.string().optional(),
   /** Whether readers of the trip see the money: public (anyone who can read
    * the trip) or guests (narrower). Absent reads as public. */
   visibility: z.enum(COSTS_VISIBILITIES).optional(),

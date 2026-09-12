@@ -247,6 +247,7 @@ describe("with no FERNSCOUT_ADMIN_EMAIL, the address is a stranger", () => {
       owner: ADMIN_JOURNAL,
       kind: "agent" as const,
       scope: "write:content",
+      expiresAt: "2099-01-01T00:00:00.000Z",
       email: ADMIN,
       publicId: null,
       phone: null,

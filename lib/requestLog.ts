@@ -37,3 +37,25 @@ function sanitize(value: string): string {
 export function formatRequestLine(method: string, path: string, userAgent: string | null): string {
   return `[request] ${sanitize(method)} ${sanitize(path)} ua="${sanitize(userAgent ?? "-")}"`;
 }
+
+/**
+ * The v2 line, one call handled rather than one request let through — so it
+ * has a status and a duration, which proxy.ts can never have (see the module
+ * comment above). Still per-token metadata only, never a body: `token` is
+ * the opaque session id `resolveAccess` already carries, never the bearer
+ * secret itself, and there is no query string here either — a v2 route's
+ * `dryRun` flag is exactly the kind of thing this rule exists to keep out of
+ * a log line.
+ */
+export function formatV2RequestLine(fields: {
+  method: string;
+  path: string;
+  status: number;
+  ms: number;
+  token: string | null;
+  journal: string | null;
+}): string {
+  return `[v2] ${sanitize(fields.method)} ${sanitize(fields.path)} ${fields.status} ${Math.round(fields.ms)}ms token=${sanitize(
+    fields.token ?? "-",
+  )} journal=${sanitize(fields.journal ?? "-")}`;
+}

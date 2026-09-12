@@ -17,8 +17,17 @@
  * quietly drift in either direction.
  *
  * Write each sentence for somebody who cannot read this repository.
+ *
+ * **`as const satisfies` rather than a `Record<string, string>` annotation**,
+ * since B1596. The annotation widened `keyof typeof ERROR_CODES` to `string`,
+ * which meant a helper typed against it — v2's `fail()` is the first — would
+ * accept `"invalid_reqest"` as happily as the real code and answer with a
+ * word no document defines. That is B540's failure exactly one level up: a
+ * transposed letter, no refusal, and a caller told something untrue. The
+ * `satisfies` clause keeps the shape check; dropping the annotation is what
+ * keeps the keys literal.
  */
-export const ERROR_CODES: Record<string, string> = {
+export const ERROR_CODES = {
   // ── who you are, and what you may touch ────────────────────────────────
   missing_token: "No `Authorization: Bearer` header. Every /api/v1 call needs one; get a token from /api/auth/request and /api/auth/verify, both with `\"kind\": \"agent\"`.",
   invalid_token: "The token is not one this server issued, or it has expired. Tokens last seven days — ask for a new one the same way.",
@@ -153,4 +162,4 @@ export const ERROR_CODES: Record<string, string> = {
   model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
   address_lookup_disabled:
     "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
-};
+} as const satisfies Record<string, string>;

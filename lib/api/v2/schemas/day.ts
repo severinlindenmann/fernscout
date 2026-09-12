@@ -20,7 +20,10 @@ import {
 
 /** ── building blocks ─────────────────────────────────────────────────── */
 
-const costItem = z.strictObject({
+/** Exported for `trip.ts`'s `costs.items` (B1597) — preparation spend, before
+ * there are any days to carry it, is the same shape as a day's own cost
+ * line. One shape, imported, rather than a second copy that drifts. */
+export const costItem = z.strictObject({
   label: z.string().trim().min(1),
   amount: z.number().positive(),
   category: z.enum(COST_CATEGORIES).optional(),

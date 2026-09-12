@@ -75,6 +75,7 @@ function session(over: Partial<Session>): Session {
     owner: "ana",
     kind: "agent",
     scope: SESSION_SCOPE.agent,
+    expiresAt: "2099-01-01T00:00:00.000Z",
     email: "ana@example.test",
     publicId: null,
     phone: null,
