@@ -142,15 +142,26 @@ export function appendGallery(markdown: string, items: IngestGalleryItem[]): str
    *
    * Here rather than in `attachGallery` so that ingest gets it too: it appends
    * galleries through this same function, to days it wrote itself.
+   *
+   * `unrecorded: [photos]` is the same claim from the other side — nobody
+   * knows whether there were any — and a gallery arriving answers it exactly
+   * as well as `without:` does. B1564 is the same rule as B540 above, for the
+   * second list a day can carry the decline in.
    */
-  const withoutAt = lines.findIndex((line, i) => i > 0 && i < opening && /^without:/.test(line));
-  if (withoutAt >= 0) {
-    const kept = (lines[withoutAt].match(/\[(.*)\]/)?.[1] ?? "")
+  for (const key of ["without", "unrecorded"]) {
+    // Recomputed on every pass, not just once above `opening`: removing the
+    // `without:` line shifts the closing `---` up by one, and a boundary
+    // taken before that splice would let the `unrecorded:` search spill past
+    // the frontmatter and into the body.
+    const end = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+    const at = lines.findIndex((line, i) => i > 0 && i < end && new RegExp(`^${key}:`).test(line));
+    if (at < 0) continue;
+    const kept = (lines[at].match(/\[(.*)\]/)?.[1] ?? "")
       .split(",")
       .map((entry) => entry.trim())
       .filter((entry) => entry && entry !== "photos");
-    if (kept.length > 0) lines[withoutAt] = `without: [${kept.join(", ")}]`;
-    else lines.splice(withoutAt, 1);
+    if (kept.length > 0) lines[at] = `${key}: [${kept.join(", ")}]`;
+    else lines.splice(at, 1);
   }
 
   // Found again rather than adjusted: dropping the `without:` line above moves

@@ -36,4 +36,29 @@ describe("appending photographs to a day that declined them", () => {
     expect(out).toContain("gallery:");
     expect(out).not.toContain("without:");
   });
+
+  /**
+   * B1564 — the same rule for the other decline. `unrecorded: [photos]` says
+   * nobody knows whether there were any; a gallery arriving answers that as
+   * plainly as `without:` does, and the gallery-append path (attach_files, the
+   * media-upload day-attach) left it standing while `editEntry` already
+   * retracted it on an edit.
+   */
+  test("drops the photos unrecorded mark", () => {
+    const out = appendGallery(day("unrecorded: [photos]\n"), [item]);
+    expect(out).not.toContain("unrecorded:");
+    expect(out).toContain("gallery:");
+  });
+
+  test("leaves the other unrecorded marks alone", () => {
+    const out = appendGallery(day("unrecorded: [costs, photos]\n"), [item]);
+    expect(out).toContain("unrecorded: [costs]");
+  });
+
+  test("drops both a decline and an unrecorded mark on the same day", () => {
+    const out = appendGallery(day("without: [photos]\nunrecorded: [coordinates, photos]\n"), [item]);
+    expect(out).not.toContain("without:");
+    expect(out).toContain("unrecorded: [coordinates]");
+    expect(out).toContain("gallery:");
+  });
 });
