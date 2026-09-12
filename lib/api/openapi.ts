@@ -29,7 +29,6 @@ import {
 import { INBOX_FILE_EXTENSIONS, INBOX_KINDS } from "@/lib/inbox";
 import { IMPORT_KINDS } from "@/lib/gps/api";
 import { GPS_FORMATS } from "@/importers/gps";
-import { COSTS_FORMATS } from "@/importers/costs";
 import { CONTACTS_FORMATS } from "@/importers/contacts";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
@@ -45,7 +44,6 @@ import { COST_CATEGORIES } from "@/lib/costFormat";
 import { FEATURE_NAMES } from "@/lib/config";
 import { TRACKS } from "@/lib/tracks";
 import { ACCENTS, COSTS_VISIBILITIES, FIGURE_FIELDS, STATUSES, VISIBILITIES } from "@/lib/tripWrite";
-import { BOOK_SIZES, COVER_TYPES } from "@/lib/photobook/spec";
 import { CAPTION_MAX_CHARS, IMAGE_FORMATS, VIDEO_FORMATS } from "@/lib/validate/media";
 
 /**
@@ -1245,155 +1243,6 @@ export function openApiDocument() {
        * description has to carry one warning the schema cannot, and it is the
        * only warning that matters here — a buddy link ends in write access.
        */
-      "/api/v1/{user}/postcards/recipients": {
-        get: {
-          summary: "Who a printed postcard could be addressed to",
-          description:
-            "A name, a town and a country each — **and never a street**. An agent addresses a " +
-            "card by `contactId` and never holds anybody's home address, which is what makes " +
-            "it impossible to post one to an address that was invented or mistyped in a " +
-            "conversation.\n\n" +
-            "Everybody here is an `active` contact of this journal who asked for a real " +
-            "postcard and left an address themselves. Owner only.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            "200": {
-              description:
-                "`creditsEach`, and a `recipients` array of contact ids, each with the language " +
-                "this journal writes to that person in",
-            },
-            "403": { description: "Not this journal's owner" },
-            "404": { description: "No such journal, or postcards or contacts are off on it" },
-          },
-        },
-      },
-      "/api/v1/{user}/postcards": {
-        post: {
-          summary: "Propose a set of postcards, for a person to send",
-          description:
-            "Writes a draft order and answers with a URL. **It charges nothing and prints " +
-            "nothing.**\n\n" +
-            "There is deliberately no endpoint that sends. Not an owner-only one — none at " +
-            "all: the send is a button on the page this returns, because printing and posting " +
-            "spends real money and ends up in somebody's letterbox, which is not a decision to " +
-            "take on their behalf. Hand the `url` over and stop; do not report the cards as " +
-            "sent, or as being sent. `GET .../postcards/{id}` says later whether they went.\n\n" +
-            "Owner only, and the recipients must be ids from `.../postcards/recipients`. A day " +
-            "is where a photograph is *found*, not something the card needs: give both `trip` " +
-            "and `day`, or neither and name a photograph staged in the inbox instead.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["photo", "message", "from", "recipients"],
-                  properties: {
-                    trip: {
-                      type: "string",
-                      description: "The trip id. Given together with `day`, or omitted with it.",
-                    },
-                    day: {
-                      type: "string",
-                      description: "The slug of the day the card is from. Given together with `trip`.",
-                    },
-                    photo: {
-                      type: "string",
-                      description:
-                        "With `trip` and `day`: a path relative to the trip's media directory, " +
-                        "already in the trip. Without them: an id `GET .../inbox` answered — a " +
-                        "photograph staged there and no day, so its order belongs to no trip.",
-                    },
-                    message: {
-                      type: "string",
-                      maxLength: 600,
-                      description:
-                        "What is written on the back, in the author's own words about what " +
-                        "they actually told you. One person who knows them reads this, which " +
-                        "makes an invented detail worse rather than more forgivable.",
-                    },
-                    from: { type: "string", description: "The signature on the card." },
-                    locale: {
-                      type: "string",
-                      description:
-                        "What language the card is written in. Defaults to the journal's own " +
-                        "default. Nothing inspects the words and decides — a wrong language " +
-                        "asserted confidently is worse than the sensible default. It changes " +
-                        "nothing about what is printed; it is compared against each " +
-                        "recipient's own language so the owner can notice a mismatch before " +
-                        "the button. `.../postcards/recipients` reports theirs.",
-                    },
-                    recipients: {
-                      type: "array",
-                      maxItems: 25,
-                      items: { type: "string" },
-                      description:
-                        "Contact ids from `.../postcards/recipients`. Anything else is " +
-                        "refused by name — there is no way to address a card to somebody who " +
-                        "did not ask this journal for one.",
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "201": {
-              description:
-                "The order: its `id`, the `url` a person opens to look at and send it, what it " +
-                "will cost and what the journal has left. Nothing has been charged.",
-            },
-            "400": { description: "A missing field, a photo not in the trip, a test day, or a recipient who cannot be posted to" },
-            "403": { description: "Not this journal's owner" },
-            "404": { description: "No such journal, trip or day, or postcards are off" },
-            "503": { description: "No database, so an order has nowhere to live" },
-          },
-        },
-      },
-      "/api/v1/{user}/postcards/{id}": {
-        get: {
-          summary: "Where one postcard order stands",
-          description:
-            "`draft` is waiting for a person, `expired` is past its week, `printed` means the " +
-            "cards went to a printer — which is not the same as delivered, and nothing here " +
-            "will ever know that. Owner only.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "id", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": { description: "The order, its cost and its status" },
-            "403": { description: "Not this journal's owner" },
-            "404": { description: "No such order in this journal" },
-          },
-        },
-      },
-      "/api/v1/{user}/photobooks/{id}": {
-        get: {
-          summary: "Where one photobook order stands",
-          description:
-            "What it is, what it cost, and — once it has been bought printed from the trip's " +
-            "photobook page — who it went to, by `contactId`, and at what quote. **Never a " +
-            "street address.** `providerRef` only appears once the printer has actually taken " +
-            "the order; there is no separate press to call from here, because a photobook is " +
-            "bought and printed in one motion on the owner's own trip page (B1157) rather than " +
-            "proposed by an agent and pressed later. Owner only.\n\n" +
-            `\`size\` is one of \`${Object.keys(BOOK_SIZES).join("\`, \`")}\`, and \`coverType\` ` +
-            `is one of \`${COVER_TYPES.join("\`, \`")}\` — the two the order was actually built ` +
-            "with, not every combination the catalogue offers: not every size exists in both " +
-            "covers (`sizesFor` in `lib/photobook/spec.ts` says which does).",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "id", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": { description: "The order, its build, and its print proposal if it has one" },
-            "403": { description: "Not this journal's owner" },
-            "404": { description: "No such order in this journal, or photobooks are off" },
-          },
-        },
-      },
       "/api/v1/{user}/invites": {
         get: {
           summary: "Every invite link this journal has issued",
@@ -1733,7 +1582,7 @@ export function openApiDocument() {
             "unchanged. The second half of proving who is signing up, after the address. " +
             "Takes the signup token from /api/auth/codes/redeem (for: \"signup\"). The " +
             "`phone_required` refusal on " +
-            "POST /api/v1/journals carries a `mode` saying which shape this server runs. " +
+            "POST /api/v2/journals carries a `mode` saying which shape this server runs. " +
             'In `"code"` mode a passcode is sent to `tel`, which must carry its own ' +
             "country code — this server is not standing in any country, so a national " +
             "number is refused rather than guessed; rate-limited per number, per address " +
@@ -1814,7 +1663,7 @@ export function openApiDocument() {
             "Renamed from /api/auth/signup/phone/verify for v2 (auth.md §2.6); behaviour " +
             "unchanged. Takes the signup token, the `id` from the request step, and — in code mode — " +
             "the code. On success the proven number is attached to the signup token " +
-            "itself — nothing further to send; POST /api/v1/journals reads it " +
+            "itself — nothing further to send; POST /api/v2/journals reads it " +
             "automatically. **Leaving `code` out is the poll** for whatsapp-inbound mode " +
             '(B1234): the answer is `{"status": "pending"}` until the person\'s message ' +
             'arrives, then the same success shape; `{"status": "expired"}` means ask the ' +
@@ -1895,162 +1744,6 @@ export function openApiDocument() {
             "404": { description: "This journal does not have place lookup switched on" },
             "429": { description: "Too many lookups too quickly — wait `Retry-After` seconds" },
             "502": { description: "The upstream geocoder could not be reached or answered something unusable" },
-          },
-        },
-      },
-      "/api/v1/journals": {
-        post: {
-          summary: "Create a journal",
-          description:
-            "Takes the signup token. A journal needs a proven telephone number as well as " +
-            "a proven address (B1064) — complete /api/auth/signup/phone and " +
-            "/api/auth/signup/phone/redeem with the same token first, unless the address " +
-            "is this instance's operator or the username starts with \"test-\", both " +
-            "exempt. Answers with an agent token for the journal it just created, so the " +
-            "caller can go straight on to creating a trip. The 201's `next` names that " +
-            "call and links the skill document for it (B311) — a response is not a " +
-            "fetched page, so this is a URL a caller that cannot follow a link found " +
-            "inside a document can still reach.",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: [
-                    "username",
-                    "title",
-                    "ownerName",
-                    "ownerNickname",
-                    "visibility",
-                    "defaultLocale",
-                    "locales",
-                    "baseCurrency",
-                  ],
-                  properties: {
-                    username: { type: "string", description: "The journal's address. Permanent." },
-                    title: {
-                      type: "string",
-                      description:
-                        "What the journal is called — the heading on its front page. Ask; do " +
-                        "not invent one from the username.",
-                    },
-                    tagline: {
-                      type: "string",
-                      description: "One line under the title. Theirs, not a description you write.",
-                    },
-                    ownerName: { type: "string", description: "Whose journal it is, as they would write it. It is the byline." },
-                    ownerNickname: {
-                      type: "string",
-                      description:
-                        "What the site calls them, in its own voice. Never guessed from " +
-                        "ownerName — a first-word split mangles any name whose given name " +
-                        "is not first, so there is no safe guess. Ask. That includes the " +
-                        "case where the owner is the person you are talking to and has " +
-                        "just given you their name: ask them \"what should the site call " +
-                        "you?\" rather than inferring it. There is no default, and that " +
-                        "is deliberate.",
-                    },
-                    visibility: {
-                      type: "string",
-                      // `guest`, not `private` — B306 renamed this level's closed
-                      // value so it stops borrowing the trip's word for a
-                      // different meaning. `"private"` is still accepted on the
-                      // wire (normalizeJournalVisibility) but is not offered here.
-                      enum: ["public", "guest"],
-                      // No `default`: silence used to be read as `public`, which is
-                      // exactly the field that decides whether a stranger can come
-                      // across somebody's journal (B263). Required — ask.
-                      // The same two sentences the /skill/*.md guides and
-                      // /documentation.txt carry, from the one place they are written.
-                      description:
-                        `Required — there is no default. Whether this server advertises the ` +
-                        `journal: ${VISIBILITY_MEANING} ` +
-                        `${VISIBILITY_NOT_A_LOCK.replace(/`/g, "")} Ask which they want.`,
-                    },
-                    startLocation: { type: "string", description: "Where the maps open before a trip has begun — the place they set off from." },
-                    defaultLocale: {
-                      type: "string",
-                      enum: [...MAINTAINED_LOCALES],
-                      // No `default`: silently falling back to English is the other
-                      // half of B263 — the welcome mail, the first thing this
-                      // software says to the owner, arrived in the wrong language.
-                      description:
-                        `Required — there is no default. The language the owner writes in, ` +
-                        `${LOCALE_LIST}. Sets the language of the site's own chrome and of ` +
-                        "the welcome mail sent the moment the journal is created.",
-                    },
-                    locales: {
-                      type: "array",
-                      items: { type: "string", enum: [...MAINTAINED_LOCALES] },
-                      // No `default`: B277 — the same silent shape B263 found in
-                      // visibility and defaultLocale, one field over. Left
-                      // optional, a journal asked for three languages got one,
-                      // with no switcher to reach the other two.
-                      description:
-                        `Required — there is no default. Which languages a reader may switch ` +
-                        `the journal into, as distinct from defaultLocale, the owner's own. ` +
-                        `Must include defaultLocale. Each entry must be one of ${LOCALE_LIST}. ` +
-                        // B855: the field that quietly commits the owner to writing
-                        // everything twice. Same sentence as the guide and the 201.
-                        plain(SECOND_LANGUAGE_COMMITMENT),
-                    },
-                    baseCurrency: {
-                      type: "string",
-                      // No `default`: it was `CHF`, silently, and unlike every
-                      // other field on this route there is no correcting it —
-                      // PATCH /api/v1/{user}/config refuses it. B839.
-                      description:
-                        "Required — there is no default, and this is the only field here that " +
-                        "can never be changed. ISO-4217. Every cost anywhere in the journal is " +
-                        "added up in it; what was actually paid is never converted on the way " +
-                        "in. Tell them it is permanent when you ask.",
-                    },
-                    displayCurrencies: {
-                      type: "array",
-                      items: { type: "string" },
-                      description:
-                        "Shown beside the base currency, so a reader sees both. Each an " +
-                        "ISO-4217 code, and the list must include baseCurrency. Omit it to " +
-                        "offer the base currency alone.",
-                    },
-                    units: { type: "string", enum: ["metric", "imperial"], description: "metric or imperial — distances and temperatures." },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "201": {
-              description:
-                "Created, with an agent token for it. Also `signIn` — a one-time sign-in " +
-                "URL **for the owner, not for you**: put it in your reply so they can open " +
-                "their journal without going to their inbox, and it lets them see drafts " +
-                "and private trips. Single use, expires in 15 minutes, and never to be " +
-                "handed over as the journal's address (that is `url`). Do not follow it " +
-                "yourself — opening it spends it. Hand it over straight away: asking for a " +
-                "sign-in code for that address invalidates an unused one early. The " +
-                "owner's welcome mail carries a **second, standing** link to the same " +
-                "place — a different token with no expiry, not this one. `signInNote` " +
-                "carries the same instruction as one sentence, for pasting into a reply. " +
-                "Both are absent when this server has auth off. When `locales` has more than " +
-                "one entry the reply also carries `localesNote`: " +
-                plain(SECOND_LANGUAGE_COMMITMENT) +
-                " `next` names the call that creates the first trip and links the skill " +
-                "document for it (B311).",
-            },
-            "400": {
-              description:
-                "The username, title or owner name/nickname is not usable, or visibility, " +
-                "defaultLocale, locales or baseCurrency is missing or not a value this server " +
-                "accepts, or locales does not contain defaultLocale, or displayCurrencies does " +
-                "not contain baseCurrency, or (`phone_required`) no proven number is attached " +
-                "to this signup token yet.",
-            },
-            "401": { description: "Missing or invalid signup token" },
-            "403": { description: "This address already owns as many journals as it may" },
-            "404": { description: "Signing up is not enabled on this server" },
-            "409": { description: "That username is taken, or that phone number already belongs to another journal" },
           },
         },
       },
@@ -3003,136 +2696,27 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/v1/{user}/inbox": {
-        get: {
-          summary: "Everything staged, and what was said about it",
-          description:
-            "The journal's inbox: files that have been uploaded and belong to no day yet. " +
-            "Grouped by kind — " +
-            `${INBOX_KINDS.join(", ")}. \`location\` is a WhatsApp location pin waiting to be ` +
-            "put on a day; `contact` is a shared WhatsApp contact card, staged as a vCard, " +
-            "waiting to be invited as a guest or discarded.\n\n" +
-            "Each file carries its id, the name it arrived under, its size, and what is known " +
-            "about it (`description`, `caption`, `lat`, `lon`, `takenAt`, `tags`, `location`, " +
-            "`country`, `countryCode`; absent means nothing is known). **Not all of it is what " +
-            "the uploader said.** `measuredFrom: \"exif\"` marks `lat`/`lon`/`takenAt` as read " +
-            "from a photograph's own embedded metadata rather than typed by anyone; `location`/" +
-            "`country`/`countryCode` on a `location`-kind item come from a reverse-geocode " +
-            "lookup, never from a person. Everything else is exactly what somebody said, never " +
-            "a guess.\n\n" +
-            "Make this call before writing days for a trip somebody has just come back from: " +
-            "the pictures are usually here already. Filing one into a day is " +
-            "`POST /api/v1/{user}/trips/{trip}/media` with `inbox`.\n\n" +
-            "**A trip-scoped token is refused** — the bucket belongs to the journal, and " +
-            "showing it would show files staged for trips you are not on.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            "200": { description: "What is staged, by kind" },
-            "401": { description: "No live token — authenticate" },
-            "403": { description: "A different journal's token, or one scoped to a trip" },
-          },
-        },
-        post: {
-          summary: "Stage files that belong to no day yet",
-          description:
-            "The one upload door that does **not** ask which day a file is for. That is what " +
-            "it is for: a camera emptied on the evening it happened, when the days that will " +
-            "hold the pictures are still unwritten.\n\n" +
-            "multipart/form-data. `files` may repeat; `meta` and `kind` may repeat alongside " +
-            "it, one per file and in the same order. Everything on `meta` is optional and " +
-            "every field of it is **what you were told** — never what you concluded from " +
-            "looking at the file. A file with no description is normal; an invented one is " +
-            "not recoverable.\n\n" +
-            "**Duplicates are free.** A file is named by a hash of its own bytes, so the same " +
-            "file sent twice is stored once and the second call answers with the first one's " +
-            "id and `duplicate: true`. Two different files sharing a name both survive.\n\n" +
-            "Counts against the journal's storage ceiling like everything else — see " +
-            "`storage` in `GET /api/v1/{user}/status`.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          requestBody: {
-            required: true,
-            content: {
-              "multipart/form-data": {
-                schema: {
-                  type: "object",
-                  required: ["files"],
-                  properties: {
-                    files: {
-                      type: "array",
-                      items: { type: "string", format: "binary" },
-                      description:
-                        `Repeatable. Images and video as the media route takes them, plus ` +
-                        `${[...INBOX_FILE_EXTENSIONS].join(", ")} for the documents nothing ` +
-                        "reads yet.",
-                    },
-                    kind: {
-                      type: "array",
-                      items: { type: "string", enum: [...INBOX_KINDS] },
-                      description:
-                        "Optional, one per file and in the same order. Which folder it goes " +
-                        "in. Left out, it is worked out from the extension: a picture or a " +
-                        "clip is `media`, a document is `files`. Say `photobook` or " +
-                        "`postcards` for artwork meant for a printed thing.",
-                    },
-                    meta: {
-                      type: "array",
-                      items: { type: "string" },
-                      description:
-                        "Optional, one JSON object per file and in the same order: " +
-                        "`description`, `caption`, `lat`, `lon`, `takenAt`, `tags`. All " +
-                        "optional. Only what somebody told you.",
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "201": { description: "Staged. Each item carries its id and its sidecar" },
-            "400": { description: "A file was refused — kind, size, or no room left" },
-            "401": { description: "No live token — authenticate" },
-            "403": { description: "A different journal's token, or one scoped to a trip" },
-            "413": { description: "The whole request is too big to buffer" },
-          },
-        },
-      },
-      "/api/v1/{user}/inbox/{id}": {
-        delete: {
-          summary: "Take one staged file back out",
-          description:
-            "No confirmation code: nothing staged has ever been on the site and nobody has " +
-            "read it. A photograph already filed into a day is a different route, and that " +
-            "one does ask. The file and its sidecar go together.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "id", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": { description: "Gone" },
-            "403": { description: "A different journal's token, or one scoped to a trip" },
-            "404": { description: "Nothing staged under that id" },
-          },
-        },
-      },
       "/api/v1/{user}/import": {
         get: {
           summary: "What can be imported, and in which formats",
           description:
             "The kinds of data this instance can read, and who wrote each format it " +
             `understands: ${IMPORT_KINDS.join(", ")}. A kind is what the data *is* — a ` +
-            "location history, a bank statement — and a format is who wrote it.\n\n" +
+            "location history, a phone's own address book — and a format is who wrote it. " +
+            "A bank statement moved to `/api/v2` (`GET /api/v2/{user}/media` with " +
+            '`intent.kind: "bank_export"` to stage it, `GET /api/v2/{user}/statements/{src}` ' +
+            "to read it, `POST /api/v2/{user}/trips/{trip}/costs/apply` to write agreed " +
+            "rows) and is no longer one of these two.\n\n" +
             "This is the only `GET` in the import feature, and it describes the door rather " +
             "than what is behind it. **Nothing anywhere hands back a position.** A location " +
             "history is every address somebody sleeps at and every place they work; what a " +
             "reader ever sees is the derived line for one trip, drawn behind that trip's own " +
             "gate.\n\n" +
-            "**`gps` ends differently from the other two.** It is stored as it is read — a " +
-            "coordinate is a measurement and there is nothing to decide about it. `costs` " +
-            "and `contacts` write nothing at all: a statement covers the trip and the " +
-            "fortnight either side of it, and a vCard is somebody's whole address book, and " +
-            "in both cases what a row is *for* is an editorial decision. They report, a " +
-            "person agrees, and `POST /api/v1/{user}/trips/{trip}/costs/import` or " +
-            "`POST /api/v1/{user}/contacts/import` writes.\n\n" +
+            "**`gps` ends differently from `contacts`.** It is stored as it is read — a " +
+            "coordinate is a measurement and there is nothing to decide about it. `contacts` " +
+            "writes nothing at all: a vCard is somebody's whole address book, and what a " +
+            "row is *for* is an editorial decision. It reports, a " +
+            "person agrees, and `POST /api/v1/{user}/contacts/import` writes.\n\n" +
             "**A trip-scoped token is refused** on all of these — the history belongs to the " +
             "journal, not to the trip you came on.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
@@ -3147,16 +2731,16 @@ export function openApiDocument() {
           description:
             "Takes a file somebody exported from somewhere else — Google Maps Timeline, a " +
             "Takeout `Records.json`, a GPX track, plain JSON Lines from a tool of your own, " +
-            "a Revolut statement, or a phone's own vCard — and reads it into the journal.\n\n" +
-            "**Say the `kind`.** With more than one, an absent one is refused rather than " +
-            "guessed at: reading a bank statement as positions, or a location history as " +
-            "money, is not a mistake to make quietly.\n\n" +
-            "**Three ways to hand over the bytes.** `inbox` names a file already staged with " +
-            "`POST /api/v1/{user}/inbox` and is the normal path for a real export; " +
-            "multipart `file` is a one-shot; `text` is for a handful of lines pasted in. The " +
-            "import leaves the staged file where it is — deleting it is " +
-            "`DELETE /api/v1/{user}/inbox/{id}`, and worth doing, because it is the " +
-            "unthinned original.\n\n" +
+            "or a phone's own vCard — and reads it into the journal.\n\n" +
+            "**Say the `kind`.** An absent one is refused rather than guessed at: reading a " +
+            "location history as an address book is not a mistake to make quietly.\n\n" +
+            "**Three ways to hand over the bytes.** `inbox` names a file already staged — " +
+            'stage one with `POST /api/v2/{user}/media` (`intent.kind: "gps_history"` or ' +
+            '`"document"`, using the id after `"inbox:"` in the `src` it answers with) — and ' +
+            "is the normal path for a real export; multipart `file` is a one-shot; `text` is " +
+            "for a handful of lines pasted in. The import leaves the staged file where it is " +
+            "— deleting it is `DELETE /api/v2/{user}/inbox/{id}`, and worth doing, because it " +
+            "is the unthinned original.\n\n" +
             "**Leave `format` out and the file is recognised from its contents.** Name one " +
             "only when detection gets it wrong, or when you wrote the importer.\n\n" +
             "**Positions are thinned on the way in** — one kept per five minutes or 250 " +
@@ -3181,20 +2765,10 @@ export function openApiDocument() {
                     },
                     format: {
                       type: "string",
-                      enum: [...GPS_FORMATS, ...COSTS_FORMATS, ...CONTACTS_FORMATS],
+                      enum: [...GPS_FORMATS, ...CONTACTS_FORMATS],
                       description:
                         "Who wrote the file, within its kind. Left out, it is detected from " +
                         "the contents.",
-                    },
-                    from: {
-                      type: "string",
-                      description:
-                        "`costs` only: ignore rows before this ISO date. Usually the trip's " +
-                        "start — a statement holds the fortnight either side of it too.",
-                    },
-                    to: {
-                      type: "string",
-                      description: "`costs` only: ignore rows after this ISO date.",
                     },
                     inbox: {
                       type: "string",
@@ -3212,10 +2786,10 @@ export function openApiDocument() {
                       description:
                         "`gps` only: parse, check and report without writing anything. This " +
                         "is how you test an importer you wrote — it runs the same contract " +
-                        "check the format's own `schema.ts` exports. A `costs` or `contacts` " +
-                        "import never writes in the first place, so the flag changes nothing " +
-                        "there; it is accepted, and the answer says so rather than leaving " +
-                        "you to wonder whether the read happened.",
+                        "check the format's own `schema.ts` exports. A `contacts` import " +
+                        "never writes in the first place, so the flag changes nothing there; " +
+                        "it is accepted, and the answer says so rather than leaving you to " +
+                        "wonder whether the read happened.",
                     },
                   },
                 },
@@ -3227,7 +2801,7 @@ export function openApiDocument() {
                   properties: {
                     file: { type: "string", format: "binary" },
                     kind: { type: "string", enum: [...IMPORT_KINDS] },
-                    format: { type: "string", enum: [...GPS_FORMATS, ...COSTS_FORMATS, ...CONTACTS_FORMATS] },
+                    format: { type: "string", enum: [...GPS_FORMATS, ...CONTACTS_FORMATS] },
                     dryRun: { type: "string", enum: ["true", "false"] },
                   },
                 },
@@ -3250,75 +2824,6 @@ export function openApiDocument() {
             "403": { description: "A different journal's token, or one scoped to a trip" },
             "404": { description: "No such journal, or no such file in the inbox" },
             "413": { description: "The whole request is too big to buffer" },
-          },
-        },
-      },
-      "/api/v1/{user}/trips/{trip}/costs/import": {
-        post: {
-          summary: "Put agreed statement rows onto the days they happened",
-          description:
-            "The second half of a `costs` import. `POST /api/v1/{user}/import` read the " +
-            "statement and wrote nothing; this takes back the rows a person has agreed and " +
-            "records them as costs on the days.\n\n" +
-            "**Two decisions happen in between, and neither is yours.** *Which rows* — a " +
-            "statement covers the trip, the rent and the phone bill. *Which category* — a " +
-            "statement says what was paid, never what it was for. Agree them against the " +
-            "import's `merchants` list, which is sorted biggest first because one decision " +
-            "about a merchant covers every payment to it. `other` is a real answer; a guess " +
-            "dressed as a category is not.\n\n" +
-            "**It adds, and never replaces.** Costs somebody wrote by hand stay. Sending the " +
-            "same rows twice writes them twice — visible on the day and correctable there, " +
-            "which is the honest behaviour for an append.\n\n" +
-            "A date whose day has not been written yet is reported back in `orphaned` and " +
-            "nothing is recorded for it. The cost is never moved to a neighbouring day.\n\n" +
-            "Writable by anybody who may write the trip, trip-scoped tokens included: " +
-            "nothing here reads the owner's statement or reaches outside this trip.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "trip", in: "path", required: true, schema: { type: "string" } },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["rows"],
-                  properties: {
-                    rows: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        required: ["date", "label", "amount", "currency", "category"],
-                        properties: {
-                          date: { type: "string", description: "ISO date — which day it goes on" },
-                          label: { type: "string", description: "What it is called on the day" },
-                          amount: {
-                            type: "number",
-                            description:
-                              "Positive: what it cost. A statement's minus sign belongs to " +
-                              "the statement; a negative cost renders as a negative total.",
-                          },
-                          currency: { type: "string" },
-                          category: { type: "string", enum: [...COST_CATEGORIES] },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description:
-                "What was written, per day, with how many existing costs were kept — and " +
-                "`orphaned` for dates with no day",
-            },
-            "400": { description: "`invalid_costs` — every bad field of every row at once" },
-            "401": { description: "No live token — authenticate" },
-            "403": { description: "A token that may not write this trip" },
-            "404": { description: "No such trip" },
           },
         },
       },
@@ -3975,23 +3480,6 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/v1/{user}/postcards/texts": {
-        get: {
-          summary: "What each day of a trip would say on the back of a card",
-          description:
-            "Per day, in the journal's languages, so a person can choose rather than have " +
-            "an agent write one. `trip` is required.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "trip", in: "query", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": { description: "The trip's days and their texts" },
-            "403": { description: "Owner only" },
-            "404": { description: "No such trip, or postcards are off on this server" },
-          },
-        },
-      },
       "/api/v1/{user}/credits/purchase": {
         post: {
           summary: "Start a credit purchase and get a link to it (buys nothing)",
@@ -4110,7 +3598,7 @@ export function openApiDocument() {
             "**Deletes files.** Generated photobook PDFs for orders that finished printing, " +
             "and dry-run postcard sheets. `?staged=1` also removes the documents staged in " +
             "`inbox/files/`; staged *photographs* are never in scope, and are removed one at " +
-            "a time through `DELETE /api/v1/{user}/inbox/{id}` where a person is looking at " +
+            "a time through `DELETE /api/v2/{user}/inbox/{id}` where a person is looking at " +
             "what they are removing.\n\n" +
             "Nothing else is touched: every photograph, day and trip stays, and a printed " +
             "book keeps its record, its price and its date — only the PDF goes, and it can " +
@@ -4262,10 +3750,11 @@ export function openApiDocument() {
             "asked for a postcard and given an address, and no order has been made for " +
             "that trip in the last week either. Each entry carries `kind: \"postcard\"`, " +
             "the `day` and `trip` it is about, a `reason` in words, and the `recipients` " +
-            "it would go to (the same shape as `GET .../postcards/recipients`). Absent — " +
-            "never an empty array — the moment any one of those conditions fails; the " +
-            "same function backs the card on `/{user}/me`, so the two can never disagree. " +
-            "`POST .../postcards` is the call that turns a suggestion into a proposal.",
+            "it would go to (the same shape as `GET /api/v2/{user}/postcards/recipients`). " +
+            "Absent — never an empty array — the moment any one of those conditions fails; " +
+            "the same function backs the card on `/{user}/me`, so the two can never " +
+            "disagree. `PUT /api/v2/{user}/postcards/orders/{id}` is the call that turns a " +
+            "suggestion into a proposal.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
           ],

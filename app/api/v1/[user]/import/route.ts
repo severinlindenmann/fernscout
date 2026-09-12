@@ -7,7 +7,6 @@ import {
   isRefusal,
   type ImportKind,
 } from "@/lib/gps/api";
-import { readStatement } from "@/lib/statements/read";
 import { readContactsFile } from "@/lib/contacts/readImport";
 import { storageRefusal, withStorageQuota } from "@/lib/storageQuota";
 import { getUser } from "@/lib/users";
@@ -20,20 +19,21 @@ export const dynamic = "force-dynamic";
  * Importing somebody's own data — B671.
  *
  * One door, keyed by **kind** and **format**. `kind` is what the data *is* —
- * `gps` for a location history, `costs` for a bank statement, `contacts` for
- * a phone's own address book — and `format` is who wrote it
- * (`google-timeline`, `gpx`, `revolut`, `vcard`, …). Each kind that arrived
- * after the first needed no second route, which is what the shape was for.
+ * `gps` for a location history, `contacts` for a phone's own address book —
+ * and `format` is who wrote it (`google-timeline`, `gpx`, `vcard`, …). Each
+ * kind that arrived after the first needed no second route, which is what the
+ * shape was for.
  *
- * **`gps` ends differently from the other two, and that is deliberate.**
+ * A bank statement (`costs`) moved to `/api/v2` in B1624 — see
+ * `lib/gps/api.ts`'s own note on `IMPORT_KINDS`. It is read and *reported*
+ * exactly as it always was; only the door changed.
+ *
+ * **`gps` ends differently from `contacts`, and that is deliberate.**
  * Positions are written into the journal's store as they are read: a
  * coordinate is a measurement, and there is nothing about it to decide. A
- * statement or a vCard is read and *reported* — a statement covers the trip
- * and the fortnight either side of it, a vCard is somebody's whole address
- * book, and in both cases what a row is *for* is an editorial decision
- * nobody but a person makes. Nothing reaches a trip until a person sends
- * agreed rows to `POST …/trips/<trip>/costs/import`; nothing becomes a
- * contact until they send agreed rows to `POST …/contacts/import`.
+ * vCard is read and *reported* — somebody's whole address book, and what a
+ * row is *for* is an editorial decision nobody but a person makes. Nothing
+ * becomes a contact until they send agreed rows to `POST …/contacts/import`.
  *
  * There was a CLI for this and it is gone. The owner of a hosted journal has
  * no shell on the machine, and an agent never has one, so a capability whose
@@ -82,22 +82,23 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     kinds: importFormats(),
     maxBytes: REQUEST_MAX_BYTES,
     next:
-      `Put the export in the inbox (\`POST /api/v1/${user}/inbox\`, kind \`files\`), then ` +
-      `\`POST /api/v1/${user}/import\` with \`{"kind": "…", "inbox": "<id>"}\`. Say the kind; ` +
-      "leave `format` out and the file is recognised from its own contents. " +
+      `Stage the export with \`POST /api/v2/${user}/media\` (\`intent: {"kind": "gps_history", ` +
+      '"declined": {...}}\` or `"document"`), then ' +
+      `\`POST /api/v1/${user}/import\` with \`{"kind": "…", "inbox": "<the id after "inbox:" in the src it answered with>"}\`. ` +
+      "Say the kind; leave `format` out and the file is recognised from its own contents. " +
       `A \`gps\` import is stored as it is read, and \`POST /api/v1/${user}/trips/<trip>/track\` ` +
-      "then draws one trip's line from it. A `costs` import writes nothing at all: it " +
-      "reports the payments, you agree the categories with the person, and " +
-      `\`POST /api/v1/${user}/trips/<trip>/costs/import\` puts the agreed rows on the days. A ` +
-      "`contacts` import (a vCard) writes nothing either: it reports who was on the card, " +
-      `and \`POST /api/v1/${user}/contacts/import\` files the rows a person agreed are ` +
-      "actually contacts of this journal, each pending its own confirmation mail.",
+      "then draws one trip's line from it. A `contacts` import (a vCard) writes nothing: it " +
+      "reports who was on the card, you agree who is actually a contact, and " +
+      `\`POST /api/v1/${user}/contacts/import\` files the agreed rows, each pending its own ` +
+      "confirmation mail. A bank statement moved here — `GET/POST /api/v2/" +
+      user +
+      '/media` with `intent.kind: "bank_export"` to stage it, then ' +
+      `\`GET /api/v2/${user}/statements/{src}\` to read it and ` +
+      `\`POST /api/v2/${user}/trips/<trip>/costs/apply\` to write the agreed rows.`,
   });
 }
 
 type Body = {
-  from?: unknown;
-  to?: unknown;
   kind?: unknown;
   format?: unknown;
   inbox?: unknown;
@@ -264,52 +265,6 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   }
 
   const format = typeof body.format === "string" ? body.format : undefined;
-
-  if (chosenKind === "costs") {
-    // A statement is read and reported, never written into a trip by itself —
-    // it covers the trip and the fortnight either side of it, and the category
-    // on each line is a person's decision. `dryRun` therefore changes nothing
-    // here, and saying so is more honest than accepting it silently.
-    const statement = readStatement(text, filename, {
-      format,
-      from: typeof body.from === "string" ? body.from : undefined,
-      to: typeof body.to === "string" ? body.to : undefined,
-    });
-    if ("refusal" in statement) {
-      return Response.json(
-        { error: statement.refusal, message: statement.message, problems: statement.problems },
-        { status: 400 },
-      );
-    }
-    return Response.json({
-      ...statement,
-      // B690. The comment above has said "saying so is more honest than
-      // accepting it silently" since B677, and the answer did not say so: a
-      // caller who sent `dryRun` got an ordinary 200 with no mention of it,
-      // and could reasonably read their full statement as having been a
-      // no-op. It is not refused — refusing a harmless flag helps nobody —
-      // but it is answered.
-      ...(dryRun
-        ? {
-            dryRun: false,
-            note:
-              "`dryRun` was sent and changes nothing here: a costs import never writes. " +
-              "This is the whole read — the payments below are what the statement holds. " +
-              "Writing happens only when you send agreed rows to " +
-              `POST /api/v1/${user}/trips/<trip>/costs/import.`,
-          }
-        : {}),
-      next:
-        `Nothing has been written. Agree the categories — one decision per merchant covers ` +
-        `every payment to it, and the list is sorted biggest first — then send the rows to ` +
-        `POST /api/v1/${user}/trips/<trip>/costs/import. Never choose a category yourself: ` +
-        "a statement says what was paid, never what it was for." +
-        (Object.keys(statement.rates).length > 0
-          ? ` The rates above are what the money actually cost; PUT them to ` +
-            `/api/v1/${user}/trips/<trip>/rates if the trip has none.`
-          : ""),
-    });
-  }
 
   if (chosenKind === "contacts") {
     // A vCard is read and reported, never written by itself — see

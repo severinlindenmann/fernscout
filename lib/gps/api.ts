@@ -1,5 +1,4 @@
 import { GPS_IMPORTERS } from "@/importers/gps";
-import { COSTS_IMPORTERS } from "@/importers/costs";
 import { CONTACTS_IMPORTERS } from "@/importers/contacts";
 import { checkGpsImporter, type GpsImporter } from "@/importers/gps/schema";
 import { appendFixes, type AppendResult } from "./store";
@@ -25,16 +24,23 @@ import { readTrack, trackPointCount, writeTrack } from "./track";
 /**
  * The kinds of data that can be imported.
  *
- * Two, since B677: positions, and a bank statement into a trip's costs. Each
- * has its own folder under `importers/`, its own row type and its own writer —
- * the same request shape with a different word, which is why the API takes a
- * kind at all rather than being called `/gps/import`.
+ * Positions and a phone's address book. Each has its own folder under
+ * `importers/`, its own row type and its own writer — the same request shape
+ * with a different word, which is why the API takes a kind at all rather than
+ * being called `/gps/import`.
  *
- * **With two, an absent `kind` is refused rather than defaulted.** Reading a
- * bank statement as positions is not a mistake to make quietly, and it was one
+ * A bank statement (`costs`) moved to `/api/v2` in B1624: the upload half is
+ * the shared media door (`intent.kind: "bank_export"`) and the read half is
+ * `GET /api/v2/{user}/statements/{src}` — see
+ * docs/plans/2026-09-12-api-v2/content.md §3. It never belonged in a door
+ * whose contract is "store bytes, answer with an item, or write a
+ * measurement"; a statement report is neither.
+ *
+ * **An absent `kind` is refused rather than defaulted.** Reading a phone's
+ * address book as positions is not a mistake to make quietly, and it was one
  * word away while there was a single kind to fall back to.
  */
-export const IMPORT_KINDS = ["gps", "costs", "contacts"] as const;
+export const IMPORT_KINDS = ["gps", "contacts"] as const;
 export type ImportKind = (typeof IMPORT_KINDS)[number];
 
 export type ImportOutcome = {
@@ -74,11 +80,6 @@ export function importFormats(): {
       kind: "gps",
       what: "where somebody went — a location history, drawn as one trip's route",
       formats: GPS_IMPORTERS.map((i) => ({ id: i.id, label: i.label })),
-    },
-    {
-      kind: "costs",
-      what: "what a trip cost — a bank statement, read into the days it happened on",
-      formats: COSTS_IMPORTERS.map((i) => ({ id: i.id, label: i.label })),
     },
     {
       kind: "contacts",

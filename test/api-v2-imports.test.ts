@@ -55,6 +55,12 @@ const LIB_API_ALLOWLIST = [
   // its own, reused verbatim by the v2 media door for its `url` upload path
   // rather than reimplemented a second time.
   "lib/api/fetchMedia",
+  // B1624. `SECOND_LANGUAGE_COMMITMENT` is plain, dependency-free UI-facing
+  // prose — one sentence about a real commitment a `locales` answer makes,
+  // read by the guide, the v1 OpenAPI document and now POST /api/v2/journals
+  // so the three cannot say something different about the same fact (B855).
+  // Not route glue: it has no request/response shaping of its own.
+  "lib/api/agentCopy",
 ];
 
 const ROOT = process.cwd();

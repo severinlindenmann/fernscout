@@ -401,6 +401,15 @@ function toOrder(row: {
 
 export type NewOrder = Omit<OrderPayload, "creditsEach" | "expiresAt" | "results"> & {
   provider: string;
+  /**
+   * A client-chosen id — B1624, the v2 door's own idempotency rule (rule 6):
+   * the agent names the order, so a retried propose answers with the stored
+   * order rather than minting a forgotten second one. Absent falls back to a
+   * server-minted id, which is all v1's `POST .../postcards` and the
+   * cookie-only helper door ever ask for — neither retries a create, so
+   * neither needed one.
+   */
+  id?: string;
 };
 
 /** What the preview page may correct: the words, and nothing else. */
@@ -423,12 +432,14 @@ export async function createOrder(owner: string, input: NewOrder): Promise<Postc
     photo: input.photo,
     message: input.message,
     from: input.from,
+    ...(input.crop ? { crop: input.crop } : {}),
+    ...(input.figures !== undefined ? { figures: input.figures } : {}),
     recipients: input.recipients,
     locale: input.locale,
     creditsEach: POSTCARD_CREDITS,
     expiresAt: new Date(Date.now() + ORDER_TTL_MS).toISOString(),
   };
-  const id = newId();
+  const id = input.id ?? newId();
 
   await handle.db
     .insertInto("print_orders")

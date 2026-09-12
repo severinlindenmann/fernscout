@@ -1,39 +1,34 @@
+// GET /api/v2/{user}/photobooks/orders/{id} — B1624, phase 2 step 4.
+//
+// Read-only, unchanged in shape from v1. There is deliberately no PUT here:
+// planning, pricing, choosing a recipient contact and paying a photobook are
+// one page and one press, entirely browser-side, since B1428/B1157 decided
+// splitting the build from the print made no sense. print.contactId and
+// never an address — the same discipline `bookRecipients` already holds.
 import { isEnabled } from "@/lib/capabilities";
-import { isOwner } from "@/lib/contacts/session";
+import { fail, ok } from "@/lib/api/v2/route";
+import { requireJournalOwner } from "@/lib/api/v2/auth";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { getPhotobookOrder } from "@/lib/photobook/orders";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-/**
- * `GET /api/v1/<user>/photobooks/<id>` — where one photobook order stands —
- * the photobook counterpart of `GET /api/v1/<user>/postcards/<id>`.
- *
- * A book is bought and addressed in one motion on the owner's own trip page
- * (B1157) — there is no agent-facing proposal call for this to read back any
- * more (B1428 deleted the pre-B1157 one, which quoted and charged a separate
- * "print portion" for a book bought for its build alone). **`print.contactId`
- * and never an address**: the same discipline `bookRecipients` already holds,
- * so this answers with who the book went to as a contact id and nothing that
- * could be posted to directly.
- */
 export async function GET(
   request: Request,
-  { params }: RouteContext<"/api/v1/[user]/photobooks/[id]">,
+  { params }: RouteContext<"/api/v2/[user]/photobooks/orders/[id]">,
 ) {
   const { user, id } = await params;
-
-  if (!getUser(user) || !isEnabled("photobook", user)) {
-    return Response.json({ error: "photobook_disabled" }, { status: 404 });
+  if (!getUser(user) || !isEnabled("photobook")) {
+    return fail("photobook_disabled", ERROR_CODES.photobook_disabled, undefined, 404);
   }
-  if (!(await isOwner(user, request))) {
-    return Response.json({ error: "forbidden" }, { status: 403 });
-  }
+  const auth = await requireJournalOwner(request, user);
+  if (!auth.ok) return auth.response;
 
   const order = await getPhotobookOrder(user, id);
-  if (!order) return Response.json({ error: "unknown_order" }, { status: 404 });
+  if (!order) return fail("unknown_order", ERROR_CODES.unknown_order, undefined, 404);
 
-  return Response.json({
+  return ok({
     id: order.id,
     status: order.status,
     trip: order.payload.trip,
