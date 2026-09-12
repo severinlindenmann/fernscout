@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (220)
+## backlog (225)
 
 ### security (4)
 
@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (54)
+### issue (58)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -100,6 +100,9 @@ Do not edit them by hand; run the script.
 | [B1540](backlog/issue/B1540-the-country-is-in-every-exported.md) | The country is in every exported photo and the helper throws it away, so the photobook says "elsewhere" on every day | ISSUE | medium | low |
 | [B1569](backlog/issue/B1569-publish-hardcodes-nine-journal-profile-keys.md) | publish hardcodes nine journal profile keys, so ownerTel and travellers are dropped in silence | ISSUE | medium | low |
 | [B1570](backlog/issue/B1570-helper-gps-import-and-photobook-order.md) | Helper GPS import and photobook order still use unlocked storageRefusal check | ISSUE | medium | low |
+| [B1572](backlog/issue/B1572-a-long-inbox-document-filename-pushes.md) | A long inbox document filename pushes the Dateien tab into horizontal scroll | ISSUE | medium | low |
+| [B1574](backlog/issue/B1574-agent-and-handover-keys-are-listed.md) | Agent and handover keys are listed inside Guthaben, which is not about money | ISSUE | medium | low |
+| [B1576](backlog/issue/B1576-tapping-a-choose-block-option-fills.md) | Tapping a choose-block option fills the field and raises the keyboard instead of sending | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -118,6 +121,7 @@ Do not edit them by hand; run the script.
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
+| [B1575](backlog/issue/B1575-the-dateien-tab-s-upload-control.md) | The Dateien tab's upload control sits below every file, out of reach on a long list | ISSUE | low | low |
 
 ### big-feature (12)
 
@@ -136,7 +140,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -150,6 +154,7 @@ Do not edit them by hand; run the script.
 | [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
 | [B1528](backlog/small-feature/B1528-a-heic-photograph-prints-from-the.md) | A HEIC photograph prints from the web copy because nothing kept a JPEG the printer can embed | FEATURE | medium | medium |
 | [B1530](backlog/small-feature/B1530-a-book-warned-about-resolution-can.md) | A book warned about resolution can only be made smaller, never given the bigger photograph | FEATURE | medium | medium |
+| [B1573](backlog/small-feature/B1573-the-room-s-preview-and-verlauf.md) | The room's preview and Verlauf > Tage only ever show the newest trip | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
