@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: next, build
 found: "2026-09-12T14:22:50Z"
+started: "2026-09-12T14:56:39Z"
 ---
 
 # B1590 — Next generated route types reject helper exports from two route modules
@@ -25,6 +26,12 @@ gate.
 Keep both helpers testable without exporting them from App Router entry-point
 modules, moving them to ordinary modules if their current tests need named
 imports. Do not weaken or bypass Next's generated route checks.
+
+Revalidated 2026-09-12: valid. The installed Next.js 16.3.3 documentation for
+App Router pages and route handlers limits entry modules to Next's supported
+exports. The two named helper exports are still present in
+`app/agent/page.tsx` and `app/[user]/media/[...path]/route.ts`, and the webpack
+production build reaches generated route validation before rejecting them.
 
 ## Acceptance
 
