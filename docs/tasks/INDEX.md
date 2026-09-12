@@ -326,7 +326,7 @@ Do not edit them by hand; run the script.
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1534](open/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 
-## in-development (10)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -337,11 +337,9 @@ Do not edit them by hand; run the script.
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
-| [B491](in-development/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high | `615a7d13` |
-| [B1504](in-development/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low | `615a7d13` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (32)
+## testing (34)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -372,6 +370,8 @@ Do not edit them by hand; run the script.
 | [B1554](testing/B1554-api-upload-path-never-enforces-imageedge.md) | API upload path never enforces imageEdge; pixel bombs bounded only by sharp defaults and HEIC fallback unbounded | SECURITY | medium | medium | — |
 | [B1555](testing/B1555-submitbuiltbook-refunds-before-claiming-the-failure.md) | submitBuiltBook refunds before claiming the failure — double refund race with the Gelato webhook | SECURITY | medium | low | — |
 | [B1556](testing/B1556-storage-quota-is-check-then-write.md) | Storage quota is check-then-write — parallel uploads pass the ceiling arbitrarily | SECURITY | medium | medium | — |
+| [B491](testing/B491-there-is-no-way-to-manage.md) | A journal folder can be exported and never pushed back, so writing locally is a one-way trip | FEATURE | medium | high | — |
+| [B1504](testing/B1504-an-up-leg-reports-success-on.md) | An up leg reports success on config fields that can never reach the site | ISSUE | low | low | — |
 | [B1527](testing/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low | — |
 | [B1545](testing/B1545-the-animation-bench-s-own-vehicle.md) | The animation bench's own vehicle list predates metro/tram/ferry, so B1519's new modes are invisible there | ISSUE | low | low | — |
 | [B1557](testing/B1557-refund-allowed-test-walks-app-only.md) | REFUND_ALLOWED test walks app/ only while grant's walks app/ and lib/ | ISSUE | low | low | — |

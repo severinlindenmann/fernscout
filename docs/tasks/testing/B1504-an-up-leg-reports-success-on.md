@@ -7,8 +7,7 @@ complexity: low
 area: helper, api, config
 found: "2026-09-11T18:32:07Z"
 started: "2026-09-12T08:20:20Z"
-session: 615a7d13-b735-48b0-a399-bf28e199b7bb
-claimed: "2026-09-12T08:20:20Z"
+merged: "2026-09-12T08:52:48Z"
 ---
 
 # B1504 — An up leg reports success on config fields that can never reach the site
@@ -104,3 +103,12 @@ be read back). `publish.mjs` prints the scope line on every run and the named
 warning only on a real difference, and sends the shared eleven keys instead of
 its hardcoded nine — which is B1569, fixed in the same edit because it is the
 same line.
+
+**The security question this raises, and the answer.** The change widens what a
+read returns on a route that decides access, so it is worth stating rather than
+assuming: `GET .../config` is gated `authenticate` → `ownsUser` →
+`mayActAsOwner`, unchanged, and `media` is this journal's own settings rather
+than anybody's contact detail. Driven rather than read: a trip-scoped token
+answers **403** on that route and **404** on both sync doors, and no token at
+all answers 401. `owner.email` is the field that would have been a real
+widening and it is untouched.

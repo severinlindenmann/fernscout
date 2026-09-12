@@ -7,8 +7,7 @@ complexity: high
 area: content sync, API
 found: "2026-09-05T15:47:44Z"
 started: "2026-09-12T08:20:18Z"
-session: 615a7d13-b735-48b0-a399-bf28e199b7bb
-claimed: "2026-09-12T08:20:18Z"
+merged: "2026-09-12T08:52:46Z"
 ---
 
 # B491 — A journal folder can be exported and never pushed back, so writing locally is a one-way trip
