@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Users } from "lucide-react";
 import ConfirmPanel from "./ConfirmPanel";
+import VisibilityPopover from "./VisibilityPopover";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
 import { effectiveAudience } from "@/lib/photos";
@@ -125,38 +127,79 @@ export function VisibilityBadge({
 }
 
 /**
- * The `?` — what the three words mean, in one place.
+ * Both triggers are 44px tall with the ink drawn small inside them — B1591,
+ * and this is a rule rather than a style.
  *
- * `<details>` rather than a hover popover, the same call `Why` makes and for
- * the same reasons: it opens with no JavaScript, it is a disclosure in the
- * accessibility tree, and — the deciding one here — **hover is not a gesture a
- * phone has.** An explainer only a mouse can reach is an explainer the owner
- * checking their journal on the bus cannot.
+ * The first attempt kept the `?` thumb-sized by spreading an invisible
+ * `::after` around a small glyph. The glyph had no `position` of its own, so
+ * that rectangle anchored to the nearest positioned ancestor — the whole badge
+ * row — and lay on top of the badge. **Every press on a badge opened the
+ * explainer instead of the chooser.** Playwright names it exactly: *"button
+ * class="help" intercepts pointer events"*.
+ *
+ * So a trigger is genuinely the size it claims, and never a small box wearing
+ * a large invisible one.
  */
-export function VisibilityHelp({ journal = false }: { journal?: boolean }) {
+const TRIGGER = "inline-flex h-11 items-center transition-transform duration-100 active:scale-[0.94]";
+
+/**
+ * The `?` — where to press, and the one fact the chooser does not already say.
+ *
+ * It used to repeat the three sentences that sit beside each option inside the
+ * chooser, which is a glossary in two places. It now points at the badge and
+ * then says what **pale** means, because that is nowhere else: a dimmed badge
+ * is a thing with no setting of its own, following the trip above it.
+ */
+function VisibilityHelp({ journal = false }: { journal?: boolean }) {
   const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
+
   return (
-    <details className="mt-1 inline-block align-middle">
-      <summary
+    <>
+      <button
+        ref={button}
+        type="button"
         aria-label={t("visibility.help")}
-        className="ml-1 inline-flex h-6 w-6 cursor-pointer list-none items-center justify-center
-                   rounded-full border border-navy-300 text-xs font-semibold text-navy-600
-                   hover:border-navy-500 hover:text-navy-900"
+        aria-expanded={open}
+        onClick={() => setOpen((was) => !was)}
+        className={`${TRIGGER} w-8 justify-center text-navy-400 active:scale-[0.88]`}
       >
-        ?
-      </summary>
-      <div className="mt-2 max-w-md rounded-xl border border-navy-200 bg-cream-50 p-3 text-sm leading-6 text-navy-700">
-        <p>{t("agent.tool.visibilityPublic")}</p>
-        {/* The one place the two vocabularies are told apart. At journal level
-            `guest` is "unlisted" and grants nothing; at trip level it is a
-            population. Printing the trip sentence here would be the exact
-            mistake AGENTS.md warns about. */}
-        <p className="mt-1.5">
-          {journal ? t("visibility.journalNote") : t("agent.tool.visibilityGuest")}
+        <span
+          className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold
+                      transition-colors ${open ? "bg-navy-200 text-navy-900" : "hover:bg-navy-100 hover:text-navy-800"}`}
+        >
+          ?
+        </span>
+      </button>
+      <VisibilityPopover
+        open={open}
+        anchor={button}
+        label={t("visibility.help")}
+        onClose={() => setOpen(false)}
+      >
+        <h4 className="font-display text-sm font-semibold text-navy-900">{t("me.tripWho")}</h4>
+        <p className="mt-1.5 text-sm leading-6 text-navy-600">
+          {journal ? t("visibility.journalHint") : t("visibility.hint")}
         </p>
-        {!journal && <p className="mt-1.5">{t("agent.tool.visibilityPrivate")}</p>}
-      </div>
-    </details>
+        {/* The one place the two vocabularies are told apart. At journal level
+            `guest` means only *not advertised* and grants nobody anything; at
+            trip level it is a population. Saying the trip sentence here would
+            be the exact mistake AGENTS.md spends four paragraphs on. */}
+        <p className="mt-2.5 border-t border-navy-100 pt-2.5 text-sm leading-6 text-navy-600">
+          {journal ? (
+            t("visibility.journalNote")
+          ) : (
+            <>
+              <span className="mr-1.5 align-[1px] opacity-70">
+                <VisibilityBadge audience="public" inherited="trip" />
+              </span>
+              {t("visibility.hintPale")}
+            </>
+          )}
+        </p>
+      </VisibilityPopover>
+    </>
   );
 }
 
@@ -176,24 +219,36 @@ function VisibilityControl({
   audience,
   inherited,
   value,
+  title,
   options,
   question,
   confirmLabel,
   onSave,
+  journal = false,
   children,
 }: {
   audience: Audience;
   inherited?: "trip" | "day" | false;
+  /** Passed straight to the `?` — the journal level's `guest` means something
+   *  narrower than a trip's and its explainer has to say so. */
+  journal?: boolean;
   /** The stored value at this level — "" where the level is inheriting. */
   value: string;
-  options: { value: string; label: string }[];
-  /** What the second press is asking, in words a reader would recognise. */
-  question: string;
-  confirmLabel: string;
+  /** The card's own heading: which thing is being decided about. */
+  title: string;
+  /** One row each. `badge` is the word this value ends up meaning; absent on
+   *  the "as the trip says" row, which shows the inherited word dimmed. */
+  options: { value: string; label: string; hint?: string; badge?: Audience }[];
+  /** What the second press is asking, in words a reader would recognise. A
+   *  function where the question depends on which way it is going — the
+   *  journal's two directions have opposite consequences and one sentence
+   *  covering both would be true of neither. */
+  question: string | ((chosen: string) => string);
+  confirmLabel: string | ((chosen: string) => string);
   onSave: (value: string) => Promise<string | null>;
   /** A trip's `listed` and `teaser`, which save through the same call. A
    *  render prop rather than a node: both are only offered for some values of
-   *  the select above them, so they have to see what is currently chosen. */
+   *  the rows above them, so they have to see what is currently chosen. */
   children?: (chosen: string) => React.ReactNode;
 }) {
   const { t } = useI18n();
@@ -201,81 +256,132 @@ function VisibilityControl({
   const [chosen, setChosen] = useState(value);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const button = useRef<HTMLButtonElement>(null);
+  // Distinct per instance, so two controls on one day cannot share a radio
+  // group and silently deselect each other.
+  const group = useId();
 
-  if (!open) {
-    return (
-      // The `?` sits beside the closed badge rather than only inside the open
-      // control: the question "what does Guests actually mean" is asked while
-      // reading the badge, not after deciding to change it.
-      <span className="inline-flex items-center">
-        <button
-          type="button"
-          onClick={() => {
-            setChosen(value);
-            setError(undefined);
-            setOpen(true);
-          }}
-          aria-label={t("visibility.change")}
-          className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-500"
-        >
-          <VisibilityBadge audience={audience} inherited={inherited} />
-        </button>
-        <VisibilityHelp />
-      </span>
-    );
+  function close() {
+    setChosen(value);
+    setError(undefined);
+    setOpen(false);
   }
 
   return (
-    <div className="mt-2 max-w-md">
-      <label className="block">
-        <span className="text-xs font-semibold text-navy-700">{t("me.tripWho")}</span>
-        <select
-          value={chosen}
-          disabled={busy}
-          onChange={(event) => {
-            setChosen(event.target.value);
-            setError(undefined);
-          }}
-          className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+    <>
+      <button
+        ref={button}
+        type="button"
+        aria-label={t("visibility.change")}
+        aria-expanded={open}
+        onClick={(event) => {
+          // The journal's badge sits inside a `<summary>`, where an unstopped
+          // press toggles the disclosure it is nested in — the card would open
+          // and the panel would fold shut underneath it.
+          event.preventDefault();
+          event.stopPropagation();
+          setChosen(value);
+          setError(undefined);
+          setOpen((was) => !was);
+        }}
+        className={`${TRIGGER} rounded-full`}
+      >
+        <span
+          className={`rounded-full transition-shadow ${
+            open
+              ? "shadow-[0_0_0_3px_rgba(214,155,10,0.35)]"
+              : "hover:shadow-[0_0_0_3px_rgba(30,41,59,0.07)]"
+          }`}
         >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <VisibilityHelp />
-      {children?.(chosen)}
+          <VisibilityBadge audience={audience} inherited={inherited} />
+        </span>
+      </button>
+      {/* Beside the badge, at every level — the question "what does Guests
+          actually mean here" is asked while reading the badge, not after
+          deciding to change it. Rendered by the control rather than by each
+          caller, because a mount point that forgot it is a mount point with
+          no explanation and nothing to say so. */}
+      <VisibilityHelp journal={journal} />
 
-      {/* Two presses even when the value has not moved: `children` may have
-          (a trip's `listed`), and a control whose confirm disappears depending
-          on which of its fields you touched is a control nobody trusts. */}
-      <div className="mt-3">
-        <ConfirmPanel
-          label={t("visibility.change")}
-          question={question}
-          confirmLabel={confirmLabel}
-          busy={busy}
-          error={error}
-          onConfirm={async () => {
-            setBusy(true);
-            const failed = await onSave(chosen);
-            setBusy(false);
-            if (failed) {
-              setError(failed);
-              return;
+      <VisibilityPopover
+        open={open}
+        anchor={button}
+        label={t("visibility.change")}
+        onClose={close}
+      >
+        <h4 className="font-display text-sm font-semibold text-navy-900">{title}</h4>
+
+        <div className="mt-1.5">
+          {options.map((option) => {
+            const picked = chosen === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-2.5
+                            ${picked ? "border-navy-300 bg-cream-100" : "border-transparent hover:bg-navy-50"}`}
+              >
+                <input
+                  type="radio"
+                  name={group}
+                  value={option.value}
+                  checked={picked}
+                  disabled={busy}
+                  onChange={() => {
+                    setChosen(option.value);
+                    setError(undefined);
+                  }}
+                  className="mt-1 h-4 w-4 shrink-0"
+                />
+                <span className="min-w-0">
+                  <span className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-navy-900">
+                    {option.badge ? (
+                      <VisibilityBadge audience={option.badge} />
+                    ) : (
+                      option.label
+                    )}
+                  </span>
+                  {option.hint && (
+                    <span className="mt-0.5 block text-xs leading-5 text-navy-600">
+                      {option.hint}
+                    </span>
+                  )}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        {children?.(chosen)}
+
+        {/* Two presses even when the value has not moved: `children` may have
+            (a trip's `listed`), and a control whose confirm disappears
+            depending on which of its fields you touched is a control nobody
+            trusts. The panel is inside the card now rather than under it, so
+            the question and the buttons it belongs to are one thing. */}
+        <div className="mt-3">
+          <ConfirmPanel
+            label={t("visibility.change")}
+            question={typeof question === "function" ? question(chosen) : question}
+            confirmLabel={
+              typeof confirmLabel === "function" ? confirmLabel(chosen) : confirmLabel
             }
-            setOpen(false);
-          }}
-          onCancel={() => {
-            setChosen(value);
-            setError(undefined);
-            setOpen(false);
-          }}
-        />
-      </div>
-    </div>
+            busy={busy}
+            error={error}
+            onConfirm={async () => {
+              setBusy(true);
+              const failed = await onSave(chosen);
+              setBusy(false);
+              if (failed) {
+                setError(failed);
+                return;
+              }
+              setOpen(false);
+            }}
+            onCancel={close}
+          />
+        </div>
+      </VisibilityPopover>
+    </>
   );
 }
 
@@ -379,12 +485,26 @@ export function EntryVisibility({
       audience={effectiveAudience(trip.trip.visibility, entry.visibility)}
       inherited={entry.visibility ? false : "trip"}
       value={entry.visibility ?? ""}
+      title={t("edit.whoSees")}
       options={[
         // No `public`: a label narrows and never widens, so the trip's own
         // visibility is the ceiling and this can only sit under it (B632).
-        { value: "", label: t("edit.seenAsTrip") },
-        { value: "guest", label: t("agent.tool.visibilityGuest") },
-        { value: "private", label: t("agent.tool.visibilityPrivate") },
+        // The first row carries no badge of its own — it is the "as the trip
+        // says" choice, and giving it one would claim a setting it does not
+        // make.
+        { value: "", label: t("edit.seenAsTrip"), hint: t("visibility.inheritedTrip") },
+        {
+          value: "guest",
+          label: t("visibility.guest"),
+          badge: "guest",
+          hint: t("agent.tool.visibilityGuest"),
+        },
+        {
+          value: "private",
+          label: t("visibility.private"),
+          badge: "private",
+          hint: t("agent.tool.visibilityPrivate"),
+        },
       ]}
       question={t("visibility.confirmDay")}
       confirmLabel={t("me.tripWhoConfirm")}
@@ -411,6 +531,76 @@ export function EntryVisibility({
 }
 
 /**
+ * The journal's own word — B1591, and the one level that is not about a trip.
+ *
+ * It renders twice: on the card on `/me`, where the author asked for it so the
+ * card answers "is my journal advertised" without being opened, and inside the
+ * pencil where the checkbox used to be. **One component in both places rather
+ * than a badge here and a checkbox there** — two controls for one field is how
+ * they come to disagree, and the checkbox never said the word out loud anyway,
+ * which was half of what B1585 set out to fix.
+ *
+ * Two values, and no `private`: a journal is advertised or it is not, and who
+ * may read a *journey* is that trip's own gate. `visibility.journalNote`
+ * carries that, because "guest" here is the same word meaning something
+ * narrower than it does one level down.
+ *
+ * `router.refresh()` rather than the full reload the trip and day controls do:
+ * this page is server-rendered with no client-held story to go stale, and a
+ * reload here would throw away the panel the person is standing in.
+ */
+export function JournalVisibility({
+  username,
+  journal,
+}: {
+  username: string;
+  journal: { visibility: "public" | "guest" };
+}) {
+  const { t } = useI18n();
+  const router = useRouter();
+  return (
+    <VisibilityControl
+      audience={journal.visibility}
+      value={journal.visibility}
+      title={t("me.journalVisibility")}
+      journal
+      options={[
+        {
+          value: "public",
+          label: t("visibility.public"),
+          badge: "public",
+          hint: t("me.journalVisibilityHint"),
+        },
+        {
+          value: "guest",
+          label: t("visibility.guest"),
+          badge: "guest",
+          hint: t("visibility.journalNote"),
+        },
+      ]}
+      question={(chosen) =>
+        chosen === "public"
+          ? t("me.journalVisibilityConfirmPublic")
+          : t("me.journalVisibilityConfirmGuest")
+      }
+      confirmLabel={(chosen) =>
+        chosen === "public" ? t("me.journalVisibilityGoPublic") : t("me.journalVisibilityGoGuest")
+      }
+      onSave={async (value) => {
+        const response = await fetch("/api/journal", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ user: username, visibility: value }),
+        }).catch(() => null);
+        if (!response?.ok) return t("me.journalFailed");
+        router.refresh();
+        return null;
+      }}
+    />
+  );
+}
+
+/**
  * The trip's own gate, on the trip's own page — B1585.
  *
  * **Owner only, and absent rather than disabled for everybody else.** B117 is
@@ -424,13 +614,30 @@ export function EntryVisibility({
  * day's correction panel and `teaser` was reachable only over the API.
  */
 export function TripVisibility() {
-  const { t } = useI18n();
   const trip = useTrip();
+  if (!trip?.owner) return null;
+  return <TripVisibilityFor trip={trip.trip} />;
+}
+
+/**
+ * The same control, for a caller with no `TripProvider` around it — B1591.
+ *
+ * `/me` lists every trip the owner may edit and is not inside any one trip, so
+ * it cannot read the context. It had its own `<select>` and its own two-press
+ * button writing to `/api/trip`, which was a second trip-visibility control
+ * with a second shape and a second set of words; this is the same reasoning
+ * that collapsed the journal's checkbox. One control, and `/me` gains
+ * `listed` and `teaser` for free.
+ */
+export function TripVisibilityFor({
+  trip: was,
+}: {
+  trip: { id: string; username: string; visibility: Audience; listed: boolean; teaser?: boolean };
+}) {
+  const { t } = useI18n();
   const [listed, setListed] = useState<boolean | null>(null);
   const [teaser, setTeaser] = useState<boolean | null>(null);
-  if (!trip?.owner) return null;
 
-  const was = trip.trip;
   const nowListed = listed ?? was.listed;
   const nowTeaser = teaser ?? was.teaser === true;
 
@@ -438,10 +645,16 @@ export function TripVisibility() {
     <VisibilityControl
       audience={was.visibility}
       value={was.visibility}
+      title={t("edit.tripVisibility")}
       options={[
-        { value: "public", label: t("me.tripWhoPublic") },
-        { value: "guest", label: t("me.tripWhoGuest") },
-        { value: "private", label: t("me.tripWhoPrivate") },
+        { value: "public", label: t("visibility.public"), badge: "public", hint: t("me.tripWhoPublic") },
+        { value: "guest", label: t("visibility.guest"), badge: "guest", hint: t("me.tripWhoGuest") },
+        {
+          value: "private",
+          label: t("visibility.private"),
+          badge: "private",
+          hint: t("me.tripWhoPrivate"),
+        },
       ]}
       question={t("visibility.confirmTrip")}
       confirmLabel={t("me.tripWhoConfirm")}
@@ -468,30 +681,34 @@ export function TripVisibility() {
       }}
     >
       {(chosen) =>
-        chosen === "public" ? (
-          <label className="mt-2 flex items-center gap-2 text-sm text-navy-700">
+        // Under a rule, because these answer a different question from the
+        // three rows above: not *who may read it* but *is it advertised*.
+        <div className="mt-3 border-t border-navy-100 pt-3">
+        {chosen === "public" ? (
+          <label className="flex items-start gap-2.5 text-sm text-navy-700">
             <input
               type="checkbox"
               checked={nowListed}
               onChange={(event) => setListed(event.target.checked)}
-              className="h-4 w-4 rounded border-navy-300 text-navy-900"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-navy-300 text-navy-900"
             />
             {t("edit.tripListed")}
           </label>
         ) : (
-          <label className="mt-2 flex items-start gap-2 text-sm text-navy-700">
+          <label className="flex items-start gap-2.5 text-sm text-navy-700">
             <input
               type="checkbox"
               checked={nowTeaser}
               onChange={(event) => setTeaser(event.target.checked)}
-              className="mt-1 h-4 w-4 rounded border-navy-300 text-navy-900"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-navy-300 text-navy-900"
             />
             <span>
               {t("visibility.teaser")}
               <span className="block text-xs text-navy-500">{t("visibility.teaserHint")}</span>
             </span>
           </label>
-        )
+        )}
+        </div>
       }
     </VisibilityControl>
   );
