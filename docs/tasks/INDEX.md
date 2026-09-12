@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (221)
+## backlog (222)
 
 ### security (4)
 
@@ -206,7 +206,7 @@ Do not edit them by hand; run the script.
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (89)
+### superseded (90)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -227,6 +227,7 @@ Do not edit them by hand; run the script.
 | [B1422](backlog/superseded/B1422-the-build-charge-is-labelled-as.md) | The build charge is labelled as the print, so the panel names 40 credits for something that costs 165 | ISSUE | high | low |
 | [B1447](backlog/superseded/B1447-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1523](backlog/superseded/B1523-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium |
+| [B1588](backlog/superseded/B1588-api-v2-document-oriented-required-or.md) | API v2: document-oriented, required-or-declined contract (phase 0: Zod schemas) | FEATURE | high | high |
 | [B373](backlog/superseded/B373-the-backup-success-marker-vanished-from.md) | The backup success marker vanished from DATA_DIR between two deploys minutes apart | OPS | high | low |
 | [B377](backlog/superseded/B377-the-deploy-reported-a-healthy-backup.md) | The deploy reported a healthy backup this afternoon and none at all this evening | OPS | high | low |
 | [B65](backlog/superseded/B65-the-deployed-server-has-no-backup.md) | Every backup of the deployed server sits on the same machine it is backing up | OPS | high | medium |
@@ -321,7 +322,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -329,6 +330,7 @@ _Nothing here._
 | [B1562](in-development/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low | `47912984` |
 | [B1563](in-development/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium | `47912984` |
 | [B1585](in-development/B1585-nothing-on-a-trip-a-day.md) | Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides | FEATURE | high | high | `8ab36c58` |
+| [B1587](in-development/B1587-api-v2-document-oriented-required-or.md) | API v2: document-oriented, required-or-declined contract (phase 0: Zod schemas) | FEATURE | high | high | `35a4360e` |
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
