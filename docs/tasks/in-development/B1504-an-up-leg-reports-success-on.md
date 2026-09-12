@@ -87,3 +87,20 @@ enough to make the comparison, that part is here.
   run does not report those fields as applied.
 - Editing a field that *does* have a door still reaches the site with no
   warning — a guard that fires on an honest run is a bug.
+
+
+## Built, 2026-09-12
+
+**In this repository:** `journalProfile()` (`lib/journals.ts`) gains `media`,
+read-only, beside the `baseCurrency` that was already there for the same
+reason. `app/api/v1/[user]/config/route.ts` says why; `lib/api/openapi.ts`
+describes both read-only fields and, now, says out loud that `owner.email` is
+deliberately absent. `owner.email` is unchanged and stays unreadable.
+
+**In `fernscout-helper`:** `shared/journalFields.mjs` is the one list —
+`JOURNAL_UPDATE_DOORS` (eleven), `JOURNAL_NO_UPDATE_DOOR` (the three, with the
+sentence a person is told) and `JOURNAL_COMPARABLE_NO_DOOR` (the two that can
+be read back). `publish.mjs` prints the scope line on every run and the named
+warning only on a real difference, and sends the shared eleven keys instead of
+its hardcoded nine — which is B1569, fixed in the same edit because it is the
+same line.

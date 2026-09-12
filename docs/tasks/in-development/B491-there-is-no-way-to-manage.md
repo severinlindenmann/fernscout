@@ -139,3 +139,47 @@ of a push that would delete a trip says so before anything is written.
 - Zip only, or also a plain multipart push for an agent that cannot build an
   archive? B671 answered the same question with "several doors for the bytes",
   and that answer is probably reusable.
+
+
+## Built, 2026-09-12 — and two deliberate deviations from B1495's decisions
+
+The client is `fernscout-helper/.claude/skills/sync/` — `sync.mjs`, `SKILL.md`
+and `sync.test.mjs` — over `shared/syncManifest.mjs` (the walk, the hash, the
+base manifest, the three-way compare) and `shared/journalFields.mjs`. In this
+repository the change is four files and 66 lines: `GET .../config` reads back
+the journal's own `media` block.
+
+Both deviations are from decisions B1495 marked settled, so both are named
+here rather than made quietly. Either is a person's to overrule.
+
+**1. Deletions on the site are named and never performed** — B1495 decision 4
+says they propagate behind a confirmation. They cannot, and the reason is in
+the door rather than in caution. `DELETE /api/v1/<user>/trips/<trip>/days`
+(`lib/api/openapi.ts:2049`) refuses a **published** day outright, with no
+confirmation code that could ever satisfy it — B224 and B1118, destroying what
+people have already read is not a self-served round trip — and a draft needs a
+signed `confirm` handshake of its own. A day that has been on the site is the
+ordinary case in a journal worth syncing, so "deletions propagate" would have
+meant a run that confirms loudly and then fails on nearly every file it named.
+Taking a day off the site is `unpublish`, and that is editorial. Pruning the
+*local* folder is unaffected and works as decided, behind `--yes` and refused
+outright above half a side.
+
+**2. `sync up` calls `publish`, rather than `publish` becoming a wrapper over
+`sync`'s up leg** — decision 7 says the latter. The decision's own stated
+purpose is that no existing prompt breaks and there is one up leg rather than
+two, and delegation in this direction gives both: `publish.mjs` is still where
+every typed route and refusal lives, its flags and its exact stdout are
+untouched, and `publish.test.mjs` (which asserts on phrasing and request order)
+passes unmodified — 22 of 22. Inverting it would have meant moving 800 lines
+through a test that pins their output, to reach the same one-up-leg property.
+What sync adds is the thing publish never had: `--changed`, a list of paths
+that actually differ, so a fourteen-day trip is no longer re-`PATCH`ed to
+correct one day.
+
+**A third thing worth knowing.** The client needs its own copy of `inSync()`,
+because no door publishes the rule — and a copy of a rule disagrees with
+itself within a month. It is not left to trust: every `down` run compares its
+own walk against the manifest the server actually sent and says so when this
+side turns out to be the wider of the two. That check is why the copy is
+acceptable, and it is the same argument `content-model.snapshot.json` rests on.
