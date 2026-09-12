@@ -8,7 +8,7 @@
 //
 //   - V2 — echo-tolerant server-owned/immutable fields (`stripEchoedFields`)
 //   - T6 — decline retraction (`retractDeclines`)
-//   - D11 — `null` clears a scalar back to absent (`applyNullClears`)
+//   - D14 — `null` clears a scalar back to absent (`applyNullClears`)
 //
 // Plus T5: one writable-fields list per resource, shared by /api/web and
 // /api/v2, so the two doors cannot drift about what a caller may set.
@@ -515,7 +515,7 @@ export function checkCover(cover: string | undefined, mediaSrcs: ReadonlySet<str
 }
 
 /**
- * D11 (06-contract-deltas.md, the owner's decision of 2026-09-12) — a PATCH
+ * D14 (06-contract-deltas.md, the owner's decision of 2026-09-12) — a PATCH
  * may send `null` for `cover`, `accent`, `tagline` or `intro` to remove the
  * field outright, finishing RFC 7386 (JSON Merge Patch), which the contract
  * already names as v2's patch semantics and where `null` already means

@@ -892,17 +892,42 @@ describe("the eleventh field, translations", () => {
    * undefined" half does not, so this asserts what the route actually
    * returns rather than the v1 shape.
    */
-  test("an empty object clears the block and leaves no orphaned children", async () => {
+  /**
+   * This used to assert that `{}` cleared the block, which is v1's spelling
+   * and was only ever accepted because nothing checked coverage. B1619 closed
+   * that: this journal is read in `en` and `de`, so a map covering neither is
+   * not "no translations", it is an unanswered question — and v2 has exactly
+   * one way to say a section has none, which is to decline it.
+   *
+   * Asserted as the refusal AND the honest alternative in one test, because
+   * the pair is the point: the door does not merely say no, it says what to
+   * send instead.
+   */
+  test("an empty block is incomplete on a two-language journal, and declining is how to say there are none", async () => {
     const token = await tokenFor(OWNER_EMAIL);
     const tripId = "empty-translations-trip";
     await putTripV2(tripId, createTyped(tripId), token);
 
-    const saved = await patchTripV2(tripId, { translations: {} }, token);
-    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
-    expect(saved.body.translations).toEqual({});
+    const refused = await patchTripV2(tripId, { translations: {} }, token);
+    expect(refused.status, JSON.stringify(refused.body)).toBe(422);
+    expect(refused.body.error).toBe("incomplete");
+    const missing = (refused.body.details as { missing: { field: string }[] }).missing;
+    expect(missing.map((m) => m.field)).toContain("translations.de");
 
-    const read = await getTripV2(tripId, token);
-    expect(read.body.translations).toEqual({});
+    // Declining it instead is refused too, and that is B1632 rather than
+    // anything this test should paper over: the trip already HAS a
+    // translations block, so the merged document carries both the value and
+    // the decline, and `checkRequiredOrDeclined` refuses the pair. T6 says
+    // supplying a section retracts its decline; the symmetric rule —
+    // declining a section removes its value — was never built, so a section
+    // with a value cannot be declined at all.
+    const declined = await patchTripV2(
+      tripId,
+      { declined: { translations: "this trip is only ever read in English" } },
+      token,
+    );
+    expect(declined.status, JSON.stringify(declined.body)).toBe(400);
+    expect((declined.body.details as { field: string }[])[0].field).toBe("translations");
   });
 
   /**
@@ -923,15 +948,28 @@ describe("the eleventh field, translations", () => {
     expect(refused.body.error).toBe("invalid_request");
   });
 
-  test("the block replaces rather than merges, so a locale left out is gone", async () => {
+  /**
+   * Replace-not-merge still holds; what changed is how it can be shown. The
+   * old version demonstrated it by dropping a locale from the map, which
+   * B1619 now refuses as incomplete — and its setup carried `en`, the
+   * journal's own written language, which B1619 also refuses as a duplicate.
+   * Both refusals are the point of that ticket, so the property is shown
+   * WITHIN a locale instead: a second patch replaces `de` wholesale, and the
+   * `tagline` the first one wrote is gone rather than surviving underneath.
+   */
+  test("the block replaces rather than merges, so a field left out is gone", async () => {
     const token = await tokenFor(OWNER_EMAIL);
     const tripId = "replace-not-merge-trip";
     await putTripV2(tripId, fullTripV2(tripId), token);
-    await patchTripV2(tripId, { translations: { de: { title: "A" }, en: { title: "B" } } }, token);
+    await patchTripV2(
+      tripId,
+      { translations: { de: { title: "Erster", tagline: "Ein Untertitel" } } },
+      token,
+    );
 
-    const saved = await patchTripV2(tripId, { translations: { en: { title: "B" } } }, token);
+    const saved = await patchTripV2(tripId, { translations: { de: { title: "Zweiter" } } }, token);
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
-    expect(saved.body.translations).toEqual({ en: { title: "B" } });
+    expect(saved.body.translations).toEqual({ de: { title: "Zweiter" } });
   });
 
   test("an invalid block is refused and writes nothing", async () => {

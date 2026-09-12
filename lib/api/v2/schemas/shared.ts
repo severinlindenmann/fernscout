@@ -80,7 +80,7 @@ export function checkRequiredOrDeclined(
  * enforced in the write path — a patch that supplies what was previously
  * declined clears the stored decline.
  *
- * `null` is not "brought" (D11, 06-contract-deltas.md): on the four scalars
+ * `null` is not "brought" (D14, 06-contract-deltas.md): on the four scalars
  * the patch shape marks nullable, `null` means REMOVE the field, so pairing
  * it with a decline of the same name in one call — "take my chosen accent
  * away and decline the question instead" — is the ordinary way to swap from

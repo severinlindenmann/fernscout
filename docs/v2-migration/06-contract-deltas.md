@@ -188,7 +188,7 @@ mistakenly called the narrow shape "frozen".
 **Drift:** none. This restores what was already decided; the narrow shape
 that shipped was the drift.
 
-### D11 — `null` on a PATCH clears `cover`, `accent`, `tagline` or `intro` back to absent
+### D14 — `null` on a PATCH clears `cover`, `accent`, `tagline` or `intro` back to absent
 **What:** `.nullable()` added to these four fields, on the **patch shape
 only** (`tripPatch` in `schemas/trip.ts`). `tripCreate`, `tripDoc`, and every
 other field, are untouched. Sending `null` for one of the four removes the
