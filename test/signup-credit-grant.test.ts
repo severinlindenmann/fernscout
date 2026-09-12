@@ -125,6 +125,23 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(refused.status).toBe(400);
       expect(await balanceOf("admin")).toBe(0); // no journal, no row, no grant
     });
+
+    /**
+     * B1553. `test-` already skips phone proof (above) because it names
+     * content nobody lived, not a real signup — the same reason it must not
+     * walk away with real, operator-billed credits. The username is created
+     * (the exemption itself is unchanged), it simply starts and stays at
+     * zero.
+     */
+    test("a test- journal is created but gets no signup grant", async () => {
+      const token = await signupToken(OWNER);
+      const response = await create(token, { ...GOOD, username: "test-wanderer" });
+      expect(response.status).toBe(201);
+
+      expect(await balanceOf("test-wanderer")).toBe(0);
+      const ledger = await ledgerFor("test-wanderer");
+      expect(ledger.filter((row) => row.reason === "grant")).toHaveLength(0);
+    });
   });
 
   describe("the free grant, with credits off", () => {

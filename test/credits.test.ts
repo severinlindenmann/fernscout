@@ -335,6 +335,19 @@ describe("the grant path is not reachable over HTTP", () => {
     // before the model call, refunded on a throw, the same shape as every
     // route above.
     "app/api/v1/[user]/trips/[trip]/travellers/from-photo/route.ts",
+    // B1557. This walk covered `app` only, while the grant walk above covers
+    // `app` and `lib` since B1363 — every `lib/` refund caller sat outside it
+    // unnoticed. Each below refunds exactly what a matching charge took, on a
+    // provider failure or a partial send, the same shape as every route
+    // above: a photobook order and a transcription (B1557 named these two), a
+    // WhatsApp day digest, a photobook print reconciled against the printer's
+    // own status, and a postcard batch's undelivered cards.
+    "lib/photobook/print.ts",
+    "lib/helper/transcribeSpend.ts",
+    "lib/digest/dayWhatsapp.ts",
+    "lib/photobook/reconcile.ts",
+    "lib/postcard/send.ts",
+    "lib/whatsapp/dispatch.ts",
   ];
 
   test("only the sanctioned routes import refund from lib/credits", () => {
@@ -354,6 +367,7 @@ describe("the grant path is not reachable over HTTP", () => {
       }
     };
     walk(path.join(process.cwd(), "app"));
+    walk(path.join(process.cwd(), "lib"));
     expect(offenders).toEqual([]);
   });
 

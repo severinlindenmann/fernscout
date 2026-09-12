@@ -521,8 +521,12 @@ export async function POST(request: Request) {
    * nobody will ever read back. Best effort and after the journal already
    * exists, for the same reason the welcome mail is: a journal that exists is
    * a journal, not a failed creation, whatever a grant does.
+   *
+   * Never for `test-`. That prefix skips phone proof (above) precisely
+   * because it is content nobody lived, not because it should farm real
+   * provider spend for free — B1553.
    */
-  if (creditsEnabled()) {
+  if (creditsEnabled() && !created.username.startsWith("test-")) {
     try {
       await grant(created.username, SIGNUP_CREDIT_GRANT, "signup");
     } catch (err) {
