@@ -1009,7 +1009,7 @@ export function openApiDocument() {
             "card. `intro` is the trip's own prose, not a frontmatter line, and any text is " +
             "accepted including empty. `translations` replaces the whole block rather than " +
             "merging into it — send the trip's title and tagline in every language it should " +
-            "keep, and a locale you leave out is dropped; `null` or `{}` clears it " +
+            "keep, including an optional introduction, and a locale you leave out is dropped; `null` or `{}` clears it " +
             "altogether. A locale this journal does not declare is refused in the same words " +
             "`POST .../trips` refuses it in, because it is the same check.\n\n" +
             "**`visibility`, `listed`, `teaser`, `status` and `test` are not here.** The " +
@@ -1078,17 +1078,21 @@ export function openApiDocument() {
                     translations: {
                       type: "object",
                       description:
-                        "The trip's title and tagline in the journal's other languages, keyed " +
-                        'by locale: `{"de": {"title": "…", "tagline": "…"}}`. Replaces the ' +
+                        "The trip's title, tagline and introduction in the journal's other languages, keyed " +
+                        'by locale: `{"de": {"title": "…", "tagline": "…", "intro": "…"}}`. Replaces the ' +
                         "whole block — the same shape, and the same check, as on creation — " +
                         "so a locale left out is dropped. `null` or `{}` clears it. A locale " +
                         "this journal does not declare is refused, and an entry saying " +
-                        "neither a title nor a tagline is refused rather than written, since " +
+                        "neither a title, tagline nor intro is refused rather than written, since " +
                         "the reader drops an empty one and the write would only look like it " +
                         "took.",
                       additionalProperties: {
                         type: "object",
-                        properties: { title: { type: "string" }, tagline: { type: "string" } },
+                        properties: {
+                          title: { type: "string" },
+                          tagline: { type: "string" },
+                          intro: { type: "string" },
+                        },
                       },
                     },
                   },
@@ -1619,12 +1623,16 @@ export function openApiDocument() {
                     translations: {
                       type: "object",
                       description:
-                        "Title and tagline in the journal's other languages, keyed by locale: " +
-                        "`{\"de\": {\"title\": \"Japan\"}}`. A locale the journal does not " +
+                        "Title, tagline and introduction in the journal's other languages, keyed by locale: " +
+                        "`{\"de\": {\"title\": \"Japan\", \"intro\": \"…\"}}`. A locale the journal does not " +
                         "declare is refused rather than written, since nothing would render it.",
                       additionalProperties: {
                         type: "object",
-                        properties: { title: { type: "string" }, tagline: { type: "string" } },
+                        properties: {
+                          title: { type: "string" },
+                          tagline: { type: "string" },
+                          intro: { type: "string" },
+                        },
                       },
                     },
                   },

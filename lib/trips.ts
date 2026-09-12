@@ -537,13 +537,15 @@ function parseRatesFrom(raw: unknown): Record<string, string> {
  */
 export function parseTranslations(raw: unknown): TripTranslations | undefined {
   if (!raw || typeof raw !== "object") return undefined;
-  const src = raw as Record<string, { title?: string; tagline?: string } | undefined>;
+  const src = raw as Record<string, { title?: string; tagline?: string; intro?: string } | undefined>;
   const out: TripTranslations = {};
   // Every locale the file offers, not a fixed pair: a journal may be
   // written in a language this project ships no chrome for.
   for (const loc of Object.keys(src)) {
     const v = src[loc];
-    if (v && (v.title || v.tagline)) out[loc] = { title: v.title, tagline: v.tagline };
+    if (v && (v.title || v.tagline || v.intro)) {
+      out[loc] = { title: v.title, tagline: v.tagline, intro: v.intro };
+    }
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }

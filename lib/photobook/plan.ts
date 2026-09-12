@@ -1026,7 +1026,7 @@ function modeCount(mode: string, days: number, s: BookStrings): string {
 
 /** Consecutive days in the same country. A country revisited later in the trip
  * becomes a second chapter, which is what actually happened. */
-export function chaptersOf(days: BookDay[]): Chapter[] {
+export function chaptersOf(days: BookDay[], elsewhere = "Elsewhere"): Chapter[] {
   const chapters: Chapter[] = [];
   for (const day of days) {
     const last = chapters[chapters.length - 1];
@@ -1034,7 +1034,7 @@ export function chaptersOf(days: BookDay[]): Chapter[] {
       last.days.push(day);
       continue;
     }
-    chapters.push({ country: day.country || "Elsewhere", countryCode: day.countryCode, days: [day] });
+    chapters.push({ country: day.country || elsewhere, countryCode: day.countryCode, days: [day] });
   }
   return chapters;
 }
@@ -2316,8 +2316,8 @@ export function planBook(
   options: BookOptions = DEFAULT_OPTIONS,
 ): Photobook {
   // The book's own words — headings, labels, the names of the ways of
-  // travelling — in the language the owner chose. Not the trip's prose, which
-  // is printed as its author wrote it.
+  // travelling — in the language the owner chose. Saved translations of the
+  // trip and day prose were selected before the planner reached this module.
   const s = bookStrings(options.locale);
   const warnings: BookWarning[] = [...(source.notes ?? [])];
 
@@ -2341,7 +2341,7 @@ export function planBook(
     });
   }
 
-  const chapters = chaptersOf(printedDays);
+  const chapters = chaptersOf(printedDays, s.elsewhere);
   const front = draftsForFront(source, options, spec);
   const back = draftsForBack(source, options);
   const blocks = chapters.map((ch, i) => draftsForChapter(ch, i + 1, chapters.length, options, spec));

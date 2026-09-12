@@ -99,6 +99,24 @@ behaviour.
   Hungarian book.
 - The trip translations API accepts, persists and reads back `intro` and its
   OpenAPI/agent documentation names the field.
+
+## Implementation
+
+- Added optional `intro` to `TripTranslations`, including parser, create and
+  correction validation, readback, OpenAPI schemas and the agent guide.
+- Photobook source resolution now selects saved trip title, tagline and intro
+  per field; chapter fallback labels now come from the selected book strings.
+- Added regression coverage for translated covers/intros, localized chapter
+  fallback and the API round trip.
+
+## Verification
+
+- Focused photobook, trip API, contract and OpenAPI suites: 207 tests passed.
+- TypeScript passed; targeted ESLint passed with one pre-existing warning in
+  `lib/photobook/plan.ts`.
+- The local production build could not fetch Google Fonts because this
+  environment has no DNS access to `fonts.googleapis.com`; the prior deployed
+  build and the code-only typecheck remain intact.
 - `npm run verify` passes; a test in `test/photobook-*.test.ts` (or a new
   file) covers the locale-resolution behavior in `buildBookSource`.
 
