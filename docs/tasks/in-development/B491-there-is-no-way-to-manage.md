@@ -47,7 +47,63 @@ journal out and cannot put it in, short of one REST call per day.
   ask "would this be refused?" gets most of the value of this ticket without
   the destructive part.
 
-## Work
+## Revalidated 2026-09-12 — valid, and the Work section rewritten
+
+**The problem is still real.** `lib/exportZip.ts` still builds the tree and
+`app/[user]/export.zip/route.ts` still serves it; nothing takes a folder back.
+`fernscout-helper` still has `publish` and no `sync` skill, and `publish.mjs`
+does no hashing at all — a matched day is re-`PATCH`ed whether or not its bytes
+changed, and a photograph is compared by filename alone.
+
+**But the approach in Work was refuted before it was built, by B1495.** That
+ticket shipped the server half of sync on 2026-09-11 and carries owner
+decisions taken before any code was written, marked *settled; do not
+re-litigate*. Two of them delete this ticket's plan outright:
+
+- **There is no file `PUT` and no file `DELETE`, and there will not be a zip-in
+  route.** A raw byte door onto a day bypasses `lib/validate/entry.ts` and
+  `lib/api/entries.ts` entirely — required fields, `TRANSPORT_MODES`, currency
+  codes, the B294 every-locale rule, `EDITABLE_DAY_FIELDS` keeping `status` out
+  of a `PATCH`, and `checkWeather`, which refuses a caller supplying its own
+  reading. That last one decides it on its own: a zip-in route is a door
+  through which an agent writes a temperature nobody measured, by design rather
+  than by bug. So `POST /api/v1/<user>/content` is **not** built, and the merge
+  semantics this ticket calls its whole risk were answered instead as a
+  three-way diff in the client (B1495's table).
+- **The up leg goes through the typed routes that already exist.** B1495 walked
+  the tree kind by kind and found a door for everything except three
+  `config.json` fields (B1504) and a media file belonging to no day (B1503).
+
+**What is actually left is the client**, which B1495 states plainly under
+*Still to build* and which has no ticket of its own — so this is it. Its
+decisions are all written in B1495 and are not re-opened here.
+
+## Work — rewritten 2026-09-12
+
+In `fernscout-helper`, a new `sync` skill, per B1495's decisions:
+
+- `sync down` — read `GET /api/v1/<user>/sync/manifest`, three-way compare
+  against `.fernscout-sync.json` and the local tree, fetch only what differs
+  through `GET /api/v1/<user>/sync/file/<path>`, verifying each file's bytes on
+  arrival against what the manifest said.
+- `sync up` — the same diff, sent through the typed routes `publish` already
+  calls. Including B1504: the three `config.json` fields with no door are named
+  out loud rather than passed over.
+- Both sides changed the same file → print every conflicting path, write
+  nothing, exit non-zero. `--prefer-local` / `--prefer-remote` resolve per file.
+- Deletions propagate behind a named confirmation, and a run that would delete
+  more than half the files on a side is **refused**, not confirmed.
+- `publish` becomes a thin wrapper over the up leg, keeping its name, its flags
+  and its exact stdout — `publish.test.mjs` asserts on the phrasing.
+
+**In this repository**, one change only: `GET /api/v1/<user>/config` reads back
+the journal's own `media` block, so the up leg can tell whether a local edit to
+it differs. `owner.email` stays unreadable, deliberately (see B1504).
+
+**Not doing:** a daemon or watcher, file locking, multi-machine concurrency
+beyond the conflict stop, a guest scope, and `gps/` in any form.
+
+## Superseded Work — kept for the record
 
 What is left is the inbound route and its merge semantics, which is the whole
 of the risk:
