@@ -2030,6 +2030,7 @@
   "agent.noOneIsARecipientYet": "Egyelőre senki nem képeslap-címzett, bármit is mondtam az előbb. Kérdezz újra, és megnézem, ki áll közel, és mi hiányzik még.",
   "agent.noRecipientAddTool": "Nem tudok senkit képeslap-címzettként hozzáadni — erre nincs itt eszköz. Mondd meg, kit hívjak meg, és odateszek egy linket, amit elküldhetsz; hogy utána címzettként jelentkezik-e be, azt ő dönti el. Az embereket a(z) „Olvasók” oldalra is irányíthatod — „A te hozzáférésed” a menüben.",
   "agent.notRead": "Ebben a válaszban nem olvastam el azt a napot, így nem tudom megmondani, mi áll benne — a saját szavaidra pedig nem tippelek. Mondd el újra, megnyitom a napot, és idézem neked.",
+  "agent.noDescriptionsOrLocationYet": "Ezen a napon még nincsenek leírások és helyszín sem. Mesélj egy fotóról, és megírom hozzá a képaláírást — vagy szólj, hogy nézzem meg a helyszínt, ha nagyjából tudod, hol jártatok.",
   "agent.notCounted": "Inkább nem mondok olyan számot, amit nem számoltam ki rendesen — a saját pénzedről egy rossz szám rosszabb, mint semmi. Kérdezd meg újra, és előbb megnézem a költségeket.",
   "agent.theListIsAbove": "Nézd meg a már megadott lehetőségeket — válassz egyet.",
   "agent.stillHasAQuestion": "Azt hiszem, csak a kérdésed egyik felére válaszoltam — kérdezd meg még egyszer a másik részt, és most rendesen utánanézek.",

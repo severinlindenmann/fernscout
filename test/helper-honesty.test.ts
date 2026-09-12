@@ -12,6 +12,7 @@ import { forget, history, wrote } from "@/lib/helper/thread";
 import {
   claimsAccess,
   claimsWhatADaySays,
+  claimsDescriptionsOrLocationOnPage,
   claimsWhatIsNotThere,
   claimsAButton,
   asksForFields,
@@ -584,6 +585,37 @@ describe("a sentence about what a day contains", () => {
     expect(create).toHaveBeenCalledTimes(2);
     expect(String(answered.body.answer)).toContain("erwähnt bereits");
   });
+});
+
+/* --------------------------- descriptions and a location "on the page" --- */
+
+/**
+ * B1563 — live evidence, journal `severin`, 2026-09-12: asked to "beschreibe
+ * fotos ergänze text und hole standort raus", a turn that read the day and
+ * nothing else answered *"du findest die Beschreibungen und Standorte auf
+ * der Seite selbst"* — the day carried no captions, no coordinates and a
+ * body of `…`. No guard fired.
+ */
+describe("descriptions or a location, claimed to already be on the page", () => {
+  for (const said of [
+    "Du findest die Beschreibungen und Standorte auf der Seite selbst.",
+    "You'll find the descriptions and locations on the page itself.",
+    "A leírásokat és a helyszínt megtalálod az oldalon.",
+  ]) {
+    test(`is caught: ${said}`, () => {
+      expect(claimsDescriptionsOrLocationOnPage(said)).toBe(true);
+    });
+  }
+
+  test("a plain 'not yet' about it is not a claim", () => {
+    expect(claimsDescriptionsOrLocationOnPage("Da steht noch kein Standort auf der Seite.")).toBe(false);
+  });
+
+  // The turn-level behaviour (read_day's own hasCaptions/hasCoordinates
+  // checked against the claim) is exercised in its own file,
+  // test/helper-honesty-descriptions-on-page.test.ts — this file's own
+  // ask() calls already sit at LIMIT.max for the in-memory "helper-ask"
+  // rate limiter (see that file's header comment).
 });
 
 /* ------------------------------------------- the note and the person --- */
