@@ -157,8 +157,13 @@ describe("the helper routes", () => {
   // Forty-six: `invite-contact` (B1074's successor) — the deliberate press
   // behind `invite_contact`, the tool that replaces what a shared WhatsApp
   // contact card used to do automatically. Same cookie, same owner check.
-  test("there are forty-six of them, and each is guarded", () => {
-    expect(sources).toHaveLength(46);
+  // Forty-seven: `assemble-day` (SDD plan: inbox day-assembly Phase 3, Task
+  // 2) — the confirm-side door `assemble_day`'s two proposal shapes both
+  // point at: recording an answer to what a date folder was asked, and
+  // (Task 3) creating the real entry once nothing is left to ask. Same
+  // cookie, same owner check.
+  test("there are forty-seven of them, and each is guarded", () => {
+    expect(sources).toHaveLength(47);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

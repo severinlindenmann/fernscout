@@ -395,6 +395,61 @@ export function moveInboxFileToDay(
   return { entry };
 }
 
+/**
+ * The inverse of `moveInboxFileToDay` — a staged file that turned out not to
+ * belong to the entry the date folder became, moved back to the flat bucket
+ * rather than destroyed with the folder. `null` when the id is not presently
+ * staged for that date.
+ */
+export function moveInboxFileFromDay(
+  username: string,
+  date: string,
+  id: string,
+): { entry: InboxEntry } | null {
+  const found = findDayInboxFile(username, date, id);
+  if (!found) return null;
+  const { entry } = found;
+  const destDir = inboxDir(username, entry.kind);
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.renameSync(found.file, path.join(destDir, entry.id));
+  fs.renameSync(
+    daySidecarPath(username, date, entry.kind, entry.id),
+    sidecarPath(username, entry.kind, entry.id),
+  );
+  return { entry };
+}
+
+/**
+ * Merge new facts into one staged item's sidecar, wherever it currently
+ * sits — a date folder (pass `date`) or the flat bucket. Unlike
+ * `storeInboxFile`, this *is* meant to change what a sidecar already says: an
+ * answer (a caption typed after the fact, a caption question asked and
+ * declined) arriving once a file is already staged has nowhere else to land.
+ * `false` when the id is not found in the place named. */
+export function updateInboxMeta(
+  username: string,
+  id: string,
+  patch: InboxMeta,
+  date?: string,
+): boolean {
+  const safe = path.basename(id);
+  if (date) {
+    const found = findDayInboxFile(username, date, safe);
+    if (found) {
+      const at = daySidecarPath(username, date, found.entry.kind, found.entry.id);
+      fs.writeFileSync(at, `${JSON.stringify({ ...found.entry, ...patch }, null, 2)}\n`);
+      return true;
+    }
+  }
+  const found = findInboxFile(username, safe);
+  if (found) {
+    const at = sidecarPath(username, found.entry.kind, found.entry.id);
+    fs.writeFileSync(at, `${JSON.stringify({ ...found.entry, ...patch }, null, 2)}\n`);
+    return true;
+  }
+  return false;
+}
+
 /** Every byte the bucket holds — for the storage breakdown (B664). */
 export function inboxBytes(username: string): number {
   let total = 0;

@@ -141,9 +141,11 @@ function FileRow({
       {/* A dated row (a day folder's own content, Task 4) has no working ×:
        *  `findInboxFile` — under `discard_file` and the discard route alike —
        *  only ever searches the flat bucket, so a press here would either do
-       *  nothing or 404. Phase 3 owns wiring real discard for day-folder
-       *  content; until then the honest thing is to not offer a control this
-       *  branch cannot back. */}
+       *  nothing or 404. Phase 3 wires answering what a date folder is
+       *  missing (a caption, a cost, a coordinate, weather) through
+       *  `assemble_day`'s own flow, not a discard control for an arbitrary
+       *  dated row — that stays unbacked, so the honest thing is still to
+       *  not offer a control this branch cannot back. */}
       {!file.date && (
         <button
           type="button"
