@@ -54,6 +54,24 @@ before changing anything.
 - Whatever the fix is, the chevron holds one position in both states and the
   control does not change height when it opens.
 
+## Implementation
+
+The shared `base-select` rule now makes every ordinary select an inline flex
+row and keeps `::picker-icon` from shrinking, with an automatic start margin.
+The fallback branch is unchanged. In Chrome at 390px, the Traveller workbench's
+first picker remained 358 × 44 px before and after `showPicker()` opened it;
+the browser reported `:open` only for the latter state.
+
+## Verification
+
+`/private/tmp/b1409-browser/docs-branding-travellers-{1280,390}.png` and its
+JSON record show the real workbench at both target widths, with status 200 and
+no console errors or failed requests. `npx tsc --noEmit`, `npx eslint .`,
+`npx vitest run test/contrast.test.ts`, and `npm run unused` pass. `npm run
+verify` remains blocked before its typecheck by Turbopack failing to bind an
+internal process port; the same error persisted with the isolated dev server
+stopped, so this task remains in development pending a clean build.
+
 ## Acceptance
 
 Open any dropdown — the postcard sheet's language picker will do — and the
