@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: lib/validate/entry.ts, days, time
 found: "2026-09-12T10:12:11Z"
+started: "2026-09-12T10:25:41Z"
+session: 615a7d13-b735-48b0-a399-bf28e199b7bb
+claimed: "2026-09-12T10:25:41Z"
 ---
 
 # B1579 — A day's timezone accepts a fixed offset, which has no daylight saving, while the refusal says it will not

@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: lib/weather.ts, contract
 found: "2026-09-12T10:12:12Z"
+started: "2026-09-12T10:25:42Z"
+session: 615a7d13-b735-48b0-a399-bf28e199b7bb
+claimed: "2026-09-12T10:25:42Z"
 ---
 
 # B1580 — RESERVED_SOURCES is enforced but published only as prose, so a client has to hardcode it
