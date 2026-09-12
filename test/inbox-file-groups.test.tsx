@@ -98,4 +98,27 @@ describe("a document's row", () => {
     expect(el.textContent).toContain("3 KB");
     expect(el.textContent).toContain(new Date(NEW).toLocaleDateString());
   });
+
+  /**
+   * B1572 — a long, unbreakable filename used to push the whole row (and
+   * with it the "Dateien" tab) into horizontal scroll: `truncate` on the
+   * name span only clips when its flex-item ancestor can shrink, and a flex
+   * item's default `min-width: auto` refuses to shrink below the width of
+   * unbroken text. jsdom has no layout, so this asserts the class that makes
+   * the row shrinkable (`min-w-0` on the row's own flex item, the `<label>`)
+   * rather than a pixel width.
+   */
+  test("the row itself can shrink below its filename's own width", () => {
+    const el = render([
+      {
+        id: "inbox:a",
+        name: "a-genuinely-extremely-long-account-statement-filename-that-would-otherwise-refuse-to-shrink.csv",
+        kind: "document",
+        bytes: 1024,
+        at: NEW,
+      },
+    ]);
+    const label = el.querySelector("label[data-inbox-id='inbox:a']");
+    expect(label?.className).toMatch(/\bmin-w-0\b/);
+  });
 });
