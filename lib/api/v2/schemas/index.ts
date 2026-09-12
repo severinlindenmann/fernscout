@@ -3,7 +3,7 @@
 // /v2/openapi.json all come from here.
 export { dayDoc, dayWrite, DAY_DECLINABLES } from "./day";
 export { tripCreate, tripDoc, TRIP_DECLINABLES } from "./trip";
-export { journalDoc, journalPatch } from "./journal";
+export { journalDoc, journalWrite, journalPatch } from "./journal";
 export { mediaIntent, mediaItem, MEDIA_KINDS } from "./media";
 export { statusDoc } from "./status";
 export { errorEnvelope, incompleteDetails, declineReason } from "./shared";

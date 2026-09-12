@@ -13,12 +13,12 @@ export const statusDoc = z.strictObject({
   /** Drafts waiting for a person to read back and ask to publish. */
   drafts: z.array(z.strictObject({ trip: z.string(), slug: z.string() })),
   trips: z.array(z.strictObject({ id: z.string(), title: z.string() })),
-  /** Limits a caller can read before hitting them. */
+  /** Instance-level upload limits a caller reads before hitting them.
+   * Storage lives on the journal document — it is a fact about the journal,
+   * not about this agent's standing. */
   limits: z.strictObject({
     imageMaxEdge: z.number().int().positive(),
     uploadMaxBytes: z.number().int().positive(),
-    storageUsedBytes: z.number().int().nonnegative(),
-    storageCeilingBytes: z.number().int().positive(),
   }),
   /** What this token is: journal-wide or scoped to one trip. */
   token: z.strictObject({

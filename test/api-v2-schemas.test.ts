@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   dayWrite,
   journalDoc,
+  journalWrite,
   mediaIntent,
   tripCreate,
 } from "../lib/api/v2/schemas";
@@ -234,27 +235,40 @@ describe("journal", () => {
   };
 
   it("accepts a complete journal", () => {
-    expect(journalDoc.safeParse(fullJournal).success).toBe(true);
+    expect(journalWrite.safeParse(fullJournal).success).toBe(true);
   });
 
   it("carries no features block — instance-only since the 2026-09-12 decision", () => {
-    expect(journalDoc.safeParse({ ...fullJournal, features: { costs: { enabled: true } } }).success).toBe(false);
+    expect(journalWrite.safeParse({ ...fullJournal, features: { costs: { enabled: true } } }).success).toBe(false);
   });
 
   it("requires units, visibility and displayCurrencies including the base", () => {
     const bare = { ...fullJournal } as Record<string, unknown>;
     delete bare.units;
-    expect(journalDoc.safeParse(bare).success).toBe(false);
+    expect(journalWrite.safeParse(bare).success).toBe(false);
     expect(
-      journalDoc.safeParse({ ...fullJournal, displayCurrencies: ["EUR"] }).success,
+      journalWrite.safeParse({ ...fullJournal, displayCurrencies: ["EUR"] }).success,
     ).toBe(false);
   });
 
-  it("keeps storage as the one journal-level media limit", () => {
-    expect(journalDoc.safeParse({ ...fullJournal, storageBytes: 1_000_000_000 }).success).toBe(true);
-    // The old journal-level blocks are gone — strict shape refuses them.
-    expect(journalDoc.safeParse({ ...fullJournal, manualRates: { VND: 30500 } }).success).toBe(false);
-    expect(journalDoc.safeParse({ ...fullJournal, media: { perUserBytes: 1 } }).success).toBe(false);
+  it("refuses the retired journal-level blocks, and reads storage back read-only", () => {
+    // The old journal-level knobs are gone — strict shape refuses them.
+    expect(journalWrite.safeParse({ ...fullJournal, manualRates: { VND: 30500 } }).success).toBe(false);
+    expect(journalWrite.safeParse({ ...fullJournal, media: { perUserBytes: 1 } }).success).toBe(false);
+    expect(journalWrite.safeParse({ ...fullJournal, storageBytes: 1 }).success).toBe(false);
+    // The read shape carries the server-owned facts…
+    expect(
+      journalDoc.safeParse({
+        ...fullJournal,
+        username: "example",
+        storage: { usedBytes: 123, maxBytes: 5_000_000_000 },
+        trips: 2,
+      }).success,
+    ).toBe(true);
+    // …which the write shape refuses.
+    expect(
+      journalWrite.safeParse({ ...fullJournal, storage: { usedBytes: 0, maxBytes: null } }).success,
+    ).toBe(false);
   });
 
   it("takes manual rates per trip, inside rates", () => {
@@ -275,9 +289,9 @@ describe("journal", () => {
   it("asks the tagline question", () => {
     const noDecl = { ...fullJournal } as Record<string, unknown>;
     delete noDecl.declined;
-    expect(journalDoc.safeParse(noDecl).success).toBe(false);
+    expect(journalWrite.safeParse(noDecl).success).toBe(false);
     expect(
-      journalDoc.safeParse({ ...noDecl, tagline: "Two of us, mostly by rail" }).success,
+      journalWrite.safeParse({ ...noDecl, tagline: "Two of us, mostly by rail" }).success,
     ).toBe(true);
   });
 });

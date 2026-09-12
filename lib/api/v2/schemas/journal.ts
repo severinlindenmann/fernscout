@@ -38,15 +38,10 @@ const base = z.strictObject({
   visibility: z.enum(["public", "guest"]),
   tagline: z.string().optional(),
   declined: declinedMap(["tagline"]).optional(),
-  /** The one media limit that is the journal's own: total bytes it may hold,
-   * narrowing the instance quota, never widening it — the server clamps
-   * anything larger. Every other media limit (upload sizes, items per day,
-   * photobook retention) is instance-level and read from /status. Absent
-   * means the instance's number, the normal case. */
-  storageBytes: z.number().int().positive().optional(),
 });
 
-export const journalDoc = base.superRefine((doc, ctx) => {
+/** What the owner (or their agent) may edit. */
+export const journalWrite = base.superRefine((doc, ctx) => {
   checkRequiredOrDeclined(doc, JOURNAL_DECLINABLES, ctx);
   if (!doc.displayCurrencies.includes(doc.baseCurrency)) {
     ctx.addIssue({
@@ -59,5 +54,23 @@ export const journalDoc = base.superRefine((doc, ctx) => {
 
 /** PATCH is a merge: send only what changes. Owner only. */
 export const journalPatch = base.partial();
+
+/**
+ * What every GET answers: the editable document plus the server-owned facts
+ * about this journal. Storage is accounting, not an editorial choice — it is
+ * read here and written nowhere (the quota is the operator's; buying past it
+ * goes through credits). /status stays about the *agent's* standing (token,
+ * drafts, capabilities); this is about the journal.
+ */
+export const journalDoc = z.object({
+  ...base.def.shape,
+  // ── server-owned ──
+  username: z.string(),
+  storage: z.strictObject({
+    usedBytes: z.number().int().nonnegative(),
+    maxBytes: z.number().int().positive().nullable(),
+  }),
+  trips: z.number().int().nonnegative(),
+});
 
 export type JournalDoc = z.infer<typeof journalDoc>;
