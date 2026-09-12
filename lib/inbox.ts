@@ -297,6 +297,104 @@ export function removeInboxFile(username: string, id: string): boolean {
   return true;
 }
 
+/** `content/<user>/inbox/days/<date>/`, the same shape as the flat bucket
+ *  but scoped to one date — Phase 2's staging area. `date` is trusted to be
+ *  an ISO `YYYY-MM-DD` by every caller in this file; nothing here validates
+ *  it, because every caller already has it from a place that did (a
+ *  WhatsApp message's own timestamp, or a person answering "which day"). */
+export function dayInboxDir(username: string, date: string, kind?: InboxKind): string {
+  const root = path.join(userDir(username), "inbox", "days", date);
+  return kind ? path.join(root, kind) : root;
+}
+
+function daySidecarPath(username: string, date: string, kind: InboxKind, id: string): string {
+  return path.join(dayInboxDir(username, date, kind), `${id}.meta.json`);
+}
+
+/** Everything staged for one date, by kind. Mirrors `listInbox`, scoped to a
+ *  date folder rather than the flat bucket. An unknown date reads as every
+ *  kind empty, not as an error — a date nobody has staged anything for yet
+ *  is the ordinary case, not a failure. */
+export function listDayInbox(username: string, date: string): Record<InboxKind, InboxEntry[]> {
+  const out = {} as Record<InboxKind, InboxEntry[]>;
+  for (const kind of INBOX_KINDS) {
+    const dir = dayInboxDir(username, date, kind);
+    let names: string[];
+    try {
+      names = fs.readdirSync(dir);
+    } catch {
+      out[kind] = [];
+      continue;
+    }
+    out[kind] = names
+      .filter((n) => n.endsWith(".meta.json"))
+      .map((n) => readSidecar(path.join(dir, n), kind))
+      .filter((e): e is InboxEntry => e !== null && fs.existsSync(path.join(dir, e.id)))
+      .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt));
+  }
+  return out;
+}
+
+/** One staged file for one date, by id. Mirrors `findInboxFile`, scoped to a
+ *  date folder. `path.basename` on `id` is the same path-traversal guard
+ *  `findInboxFile` applies — an id reaches here from a request body. */
+export function findDayInboxFile(
+  username: string,
+  date: string,
+  id: string,
+): { entry: InboxEntry; file: string } | null {
+  const safe = path.basename(id);
+  for (const kind of INBOX_KINDS) {
+    const dir = dayInboxDir(username, date, kind);
+    const file = path.join(dir, safe);
+    const sidecar = daySidecarPath(username, date, kind, safe);
+    if (fs.existsSync(file) && fs.existsSync(sidecar)) {
+      const entry = readSidecar(sidecar, kind);
+      if (entry) return { entry, file };
+    }
+  }
+  return null;
+}
+
+/** Take a staged file out of a date folder, sidecar and all. `true` if it
+ *  was there. Mirrors `removeInboxFile`, scoped to a date folder — Phase 3
+ *  calls this once a file has been moved into a real entry's own media. */
+export function removeDayInboxFile(username: string, date: string, id: string): boolean {
+  const found = findDayInboxFile(username, date, id);
+  if (!found) return false;
+  fs.rmSync(found.file, { force: true });
+  fs.rmSync(daySidecarPath(username, date, found.entry.kind, found.entry.id), { force: true });
+  return true;
+}
+
+/**
+ * Tie a flat-bucket file to a date — moving its bytes and sidecar out of
+ * `inbox/<kind>/` and into `inbox/days/<date>/<kind>/`, keeping the same id.
+ *
+ * A **move**, not a copy or an index entry, per the spec: the flat bucket is
+ * for undated content, so a dated item has no business still answering to
+ * `listInbox`/`findInboxFile`/`attach_files`'s "everything waiting" query
+ * once it has a date. `null` when the id is not presently in the flat
+ * bucket — already moved, or never staged there at all.
+ */
+export function moveInboxFileToDay(
+  username: string,
+  id: string,
+  date: string,
+): { entry: InboxEntry } | null {
+  const found = findInboxFile(username, id);
+  if (!found) return null;
+  const { entry } = found;
+  const destDir = dayInboxDir(username, date, entry.kind);
+  fs.mkdirSync(destDir, { recursive: true });
+  fs.renameSync(found.file, path.join(destDir, entry.id));
+  fs.renameSync(
+    sidecarPath(username, entry.kind, entry.id),
+    daySidecarPath(username, date, entry.kind, entry.id),
+  );
+  return { entry };
+}
+
 /** Every byte the bucket holds — for the storage breakdown (B664). */
 export function inboxBytes(username: string): number {
   let total = 0;
