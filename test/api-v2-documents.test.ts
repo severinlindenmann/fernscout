@@ -1,20 +1,19 @@
-// B1596: the pure day/trip ⇄ markdown mapping. Since the owner allowed a
+// B1596/B1606: the pure day/trip ⇄ JSON mapping. Since the owner allowed a
 // breaking change to the on-disk format (only content/example/ needs
 // converting, and that is the replay migration's job, later), the rule
-// tested here is the plain one — a day's frontmatter IS `dayDoc` minus
-// `slug`/`content`, plus the server-derived media extras; a trip's three
-// files ARE its three wire sections. The one thing that has to be true is
-// that round-tripping is lossless, and that no v1 key ever reappears.
+// tested here is the plain one — a day's file IS `dayDoc` minus `slug`, plus
+// the server-derived media extras; a trip's one file IS its whole wire
+// document, `costs` and `plan` included. The one thing that has to be true
+// is that round-tripping is lossless, and that no v1 key ever reappears.
 import { describe, expect, it } from "vitest";
-import matter from "gray-matter";
 import {
-  dayFromMarkdown,
-  dayToMarkdown,
-  tripFromMarkdown,
-  tripToMarkdown,
+  dayFromJson,
+  dayToJson,
+  tripFromJson,
+  tripToJson,
   type DayFile,
   type TripFile,
-} from "../lib/api/v2/markdown";
+} from "../lib/api/v2/documents";
 
 const HOSTILE = 'a "quoted" title\nwith a newline: and a colon\n- and a leading dash\nünïcödé too';
 
@@ -90,39 +89,39 @@ const minimalDay: DayFile = {
   },
 };
 
-describe("dayToMarkdown / dayFromMarkdown", () => {
+describe("dayToJson / dayFromJson", () => {
   it("round-trips a maximal day losslessly", () => {
-    const raw = dayToMarkdown(maximalDay);
-    expect(dayFromMarkdown(maximalDay.slug, raw)).toEqual(maximalDay);
+    const raw = dayToJson(maximalDay);
+    expect(dayFromJson(maximalDay.slug, raw)).toEqual(maximalDay);
   });
 
   it("round-trips a minimal, fully-declined day losslessly", () => {
-    const raw = dayToMarkdown(minimalDay);
-    expect(dayFromMarkdown(minimalDay.slug, raw)).toEqual(minimalDay);
+    const raw = dayToJson(minimalDay);
+    expect(dayFromJson(minimalDay.slug, raw)).toEqual(minimalDay);
   });
 
   it("round-trips a published day's status", () => {
     const day: DayFile = { ...minimalDay, status: "published" };
-    expect(dayFromMarkdown(day.slug, dayToMarkdown(day)).status).toBe("published");
+    expect(dayFromJson(day.slug, dayToJson(day)).status).toBe("published");
   });
 
   it("round-trips a draft day's status", () => {
     const day: DayFile = { ...minimalDay, status: "draft" };
-    expect(dayFromMarkdown(day.slug, dayToMarkdown(day)).status).toBe("draft");
+    expect(dayFromJson(day.slug, dayToJson(day)).status).toBe("draft");
   });
 
   describe("weather, all four states", () => {
     it("absent: no weather key at all", () => {
-      const raw = dayToMarkdown(minimalDay);
-      expect(raw).not.toMatch(/^weather:/m);
-      expect(dayFromMarkdown(minimalDay.slug, raw).weather).toBeUndefined();
+      const raw = dayToJson(minimalDay);
+      expect(JSON.parse(raw)).not.toHaveProperty("weather");
+      expect(dayFromJson(minimalDay.slug, raw).weather).toBeUndefined();
     });
 
     it("asked, unanswered: weather: true", () => {
       const day: DayFile = { ...minimalDay, declined: undefined, weather: true };
-      const raw = dayToMarkdown(day);
-      expect(raw).toMatch(/^weather: true$/m);
-      expect(dayFromMarkdown(day.slug, raw).weather).toBe(true);
+      const raw = dayToJson(day);
+      expect(JSON.parse(raw).weather).toBe(true);
+      expect(dayFromJson(day.slug, raw).weather).toBe(true);
     });
 
     it("a caller's own reading", () => {
@@ -136,8 +135,8 @@ describe("dayToMarkdown / dayFromMarkdown", () => {
           recordedAt: "2026-09-13T06:00:00Z",
         },
       };
-      const raw = dayToMarkdown(day);
-      expect(dayFromMarkdown(day.slug, raw)).toEqual(day);
+      const raw = dayToJson(day);
+      expect(dayFromJson(day.slug, raw)).toEqual(day);
     });
 
     it("the server's own reading — a reading whose source is open-meteo, nothing else", () => {
@@ -154,39 +153,42 @@ describe("dayToMarkdown / dayFromMarkdown", () => {
           recordedAt: "2026-09-06T08:32:19.875Z",
         },
       };
-      const raw = dayToMarkdown(day);
+      const raw = dayToJson(day);
       expect(raw).toContain("open-meteo");
-      expect(raw).not.toMatch(/^weatherData:/m);
-      expect(dayFromMarkdown(day.slug, raw)).toEqual(day);
+      expect(JSON.parse(raw)).not.toHaveProperty("weatherData");
+      expect(dayFromJson(day.slug, raw)).toEqual(day);
     });
   });
 
   it("emission is deterministic", () => {
-    expect(dayToMarkdown(maximalDay)).toBe(dayToMarkdown(maximalDay));
+    expect(dayToJson(maximalDay)).toBe(dayToJson(maximalDay));
   });
 
-  it("is the wire's own key names — no v1 key ever emitted", () => {
-    const raw = dayToMarkdown(maximalDay);
-    expect(raw).not.toMatch(/^lat:/m);
-    expect(raw).not.toMatch(/^lng:/m);
-    expect(raw).not.toMatch(/^gallery:/m);
-    expect(raw).not.toMatch(/^draft:/m);
-    expect(raw).not.toMatch(/^weatherData:/m);
-    expect(raw).not.toMatch(/^transport:/m);
-    expect(raw).not.toMatch(/^without:/m);
-    expect(raw).not.toMatch(/^unrecorded:/m);
+  it("is the wire's own key names — no v1 key ever emitted, and no slug key at all", () => {
+    const raw = dayToJson(maximalDay);
+    const data = JSON.parse(raw);
+    expect(data).not.toHaveProperty("lat");
+    expect(data).not.toHaveProperty("lng");
+    expect(data).not.toHaveProperty("gallery");
+    expect(data).not.toHaveProperty("draft");
+    expect(data).not.toHaveProperty("weatherData");
+    expect(data).not.toHaveProperty("transport");
+    expect(data).not.toHaveProperty("without");
+    expect(data).not.toHaveProperty("unrecorded");
+    expect(data).not.toHaveProperty("slug");
   });
 
   it("ignores a pre-v2 file's retired decline keys rather than reviving them", () => {
-    const raw = matter.stringify("Nothing recorded.", {
+    const raw = JSON.stringify({
       title: "Old day",
       date: "2024-01-01",
+      content: "Nothing recorded.",
       without: ["costs"],
       unrecorded: ["costs"],
       costs: false,
       draft: true,
     });
-    const back = dayFromMarkdown("2024-01-01-old-day", raw);
+    const back = dayFromJson("2024-01-01-old-day", raw);
     expect(back.costs).toBeUndefined();
     expect("without" in back).toBe(false);
     expect("unrecorded" in back).toBe(false);
@@ -199,52 +201,75 @@ describe("dayToMarkdown / dayFromMarkdown", () => {
   });
 
   it("reads an unrecognised status as a draft rather than publishing it", () => {
-    const raw = matter.stringify("Half a day.", {
+    const raw = JSON.stringify({
       title: "Odd day",
       date: "2024-01-02",
+      content: "Half a day.",
       status: "publised",
     });
-    expect(dayFromMarkdown("2024-01-02-odd-day", raw).status).toBe("draft");
+    expect(dayFromJson("2024-01-02-odd-day", raw).status).toBe("draft");
   });
 
-  it("prunes an undefined property nested inside an object and inside an array element (B1601)", () => {
-    // rates.manual nested two levels deep, and a cost item's undefined
-    // `category` inside an array element — either used to make gray-matter's
-    // stringify throw "unacceptable kind of an object to dump".
+  it("a file that is not valid JSON fails loudly rather than becoming an empty document", () => {
+    expect(() => dayFromJson("2024-01-03-broken", "{ not json")).toThrow();
+  });
+
+  it("prunes an undefined property nested inside an object and inside an array element, without a manual pruner (B1601 no longer applies)", () => {
+    // JSON.stringify drops an undefined object property on its own — no
+    // recursive pruneUndefined() is needed the way matter.stringify needed
+    // one, because JSON.stringify was always built to handle this rather
+    // than throwing on it. An undefined array element is the one exception:
+    // JSON.stringify turns it into null rather than dropping the slot (the
+    // array still has that many slots, which is a different fact from an
+    // absent property), same choice the old pruner made for the same case.
     const day: DayFile = {
       ...minimalDay,
       declined: undefined,
       costs: [{ label: "Fuel", amount: 10, category: undefined }],
     };
-    expect(() => dayToMarkdown(day)).not.toThrow();
-    const back = dayFromMarkdown(day.slug, dayToMarkdown(day));
+    expect(() => dayToJson(day)).not.toThrow();
+    expect(JSON.parse(dayToJson(day))).not.toHaveProperty("declined");
+    const back = dayFromJson(day.slug, dayToJson(day));
     expect(back.costs).toEqual([{ label: "Fuel", amount: 10 }]);
   });
 
-  describe("a body that opens with a frontmatter-shaped line (B1601)", () => {
-    // gray-matter's stringify() re-parses the body for frontmatter of its
-    // own: any string starting "---" (unless the 4th character is a 4th
-    // dash) is read as a second opening delimiter, and everything up to the
-    // next "---" line is sliced out and merged into the data object instead
-    // of being written as content. Three dashes to start a day's prose — a
-    // horizontal rule, a dialogue separator — is ordinary travel writing.
+  describe("content that would have been hostile to YAML frontmatter — plain JSON strings now, kept anyway (B1601)", () => {
+    // These used to matter because gray-matter's stringify() re-parsed the
+    // body for a frontmatter delimiter of its own, or because YAML coerces
+    // bare scalars. Neither applies to a JSON string, which is quoted once
+    // and never re-parsed for structure — but the underlying worry (this
+    // content reaches a person, and must survive byte-for-byte) is still
+    // real, so the cases stay.
     it.each([
       ["exactly ---", "---"],
       ["--- then a line", "---\nthis looks like frontmatter\n---\nmore"],
-      ["four dashes (already safe, asserted here)", "----\nstill just text"],
-      ["--- in the middle only (already safe, asserted here)", "hello\n---\nmiddle\n---\nend"],
+      ["the bare word null", "null"],
+      ["digits that look numeric but must stay a string", "0123"],
     ])("day content: %s", (_label, content) => {
       const day: DayFile = { ...minimalDay, content };
-      expect(dayFromMarkdown(day.slug, dayToMarkdown(day)).content).toBe(content);
+      expect(dayFromJson(day.slug, dayToJson(day)).content).toBe(content);
     });
 
-    it.each([
-      ["exactly ---", "---"],
-      ["--- then a line", "---\nthis looks like frontmatter\n---\nmore"],
-      ["four dashes (already safe, asserted here)", "----\nstill just text"],
-    ])("trip intro: %s", (_label, intro) => {
-      const trip: TripFile = { ...minimalTrip, intro };
-      expect(tripFromMarkdown(tripToMarkdown(trip)).intro).toBe(intro);
+    it("a caption of digits that look numeric stays a string", () => {
+      const day: DayFile = {
+        ...minimalDay,
+        declined: undefined,
+        media: [{ src: "/media/x.jpg", type: "image", caption: "0123" }],
+      };
+      const back = dayFromJson(day.slug, dayToJson(day));
+      expect(back.media?.[0]?.caption).toBe("0123");
+    });
+
+    it("a hostile string in a title and in a decline reason survives intact", () => {
+      const day: DayFile = { ...maximalDay, declined: { tags: HOSTILE } };
+      const back = dayFromJson(day.slug, dayToJson(day));
+      expect(back.title).toBe(HOSTILE);
+      expect(back.declined?.tags).toBe(HOSTILE);
+    });
+
+    it("trip intro: content that would have looked like frontmatter", () => {
+      const trip: TripFile = { ...minimalTrip, intro: "---\nthis looks like frontmatter\n---\nmore" };
+      expect(tripFromJson(tripToJson(trip)).intro).toBe(trip.intro);
     });
   });
 });
@@ -306,61 +331,60 @@ const minimalTrip: TripFile = {
   },
 };
 
-describe("tripToMarkdown / tripFromMarkdown", () => {
-  it("round-trips a maximal trip losslessly, across all three files", () => {
-    const files = tripToMarkdown(maximalTrip);
-    expect(Object.keys(files).sort()).toEqual(["costs.md", "plan.md", "trip.md"]);
-    expect(tripFromMarkdown(files)).toEqual(maximalTrip);
+describe("tripToJson / tripFromJson", () => {
+  it("round-trips a maximal trip losslessly, as one file", () => {
+    const raw = tripToJson(maximalTrip);
+    expect(tripFromJson(raw)).toEqual(maximalTrip);
   });
 
-  it("round-trips a minimal, fully-declined trip — no costs.md, no plan.md", () => {
-    const files = tripToMarkdown(minimalTrip);
-    expect(files["costs.md"]).toBeUndefined();
-    expect(files["plan.md"]).toBeUndefined();
-    expect(tripFromMarkdown(files)).toEqual(minimalTrip);
+  it("round-trips a minimal, fully-declined trip — no costs key, no plan key", () => {
+    const raw = tripToJson(minimalTrip);
+    const data = JSON.parse(raw);
+    expect(data).not.toHaveProperty("costs");
+    expect(data).not.toHaveProperty("plan");
+    expect(tripFromJson(raw)).toEqual(minimalTrip);
   });
 
   it("emission is deterministic", () => {
-    expect(tripToMarkdown(maximalTrip)).toEqual(tripToMarkdown(maximalTrip));
+    expect(tripToJson(maximalTrip)).toBe(tripToJson(maximalTrip));
   });
 
-  it("trip.md carries none of v1's retired keys", () => {
-    const raw = tripToMarkdown(maximalTrip)["trip.md"];
-    expect(raw).not.toMatch(/^start:/m);
-    expect(raw).not.toMatch(/^end:/m);
-    expect(raw).not.toMatch(/^status:/m);
-    expect(raw).not.toMatch(/^tracks:/m);
-    expect(raw).not.toMatch(/^travellers:/m);
-    expect(raw).not.toMatch(/^costsVisibility:/m);
+  it("carries none of v1's retired keys", () => {
+    const data = JSON.parse(tripToJson(maximalTrip));
+    expect(data).not.toHaveProperty("start");
+    expect(data).not.toHaveProperty("end");
+    expect(data).not.toHaveProperty("status");
+    expect(data).not.toHaveProperty("tracks");
+    expect(data).not.toHaveProperty("travellers");
+    expect(data).not.toHaveProperty("costsVisibility");
   });
 
-  it("costs.visibility lives in costs.md, not on trip.md", () => {
-    const files = tripToMarkdown(maximalTrip);
-    expect(files["trip.md"]).not.toMatch(/^visibility: "?guests"?/m);
-    expect(files["costs.md"]).toMatch(/visibility: guests/);
+  it("costs.visibility lives inside costs, not on the trip itself", () => {
+    const data = JSON.parse(tripToJson(maximalTrip));
+    expect(data).not.toHaveProperty("visibility", "guests");
+    expect(data.costs.visibility).toBe("guests");
   });
 
   it("hostile strings survive intact (quotes, newlines, colons, a leading dash, unicode)", () => {
-    const files = tripToMarkdown(maximalTrip);
-    const back = tripFromMarkdown(files);
+    const back = tripFromJson(tripToJson(maximalTrip));
     expect(back.title).toBe(HOSTILE);
     expect(back.tagline).toBe(HOSTILE);
   });
 
-  it("parses with gray-matter's own matter()", () => {
-    const files = tripToMarkdown(maximalTrip);
-    const { data, content } = matter(files["trip.md"]);
+  it("a file that is not valid JSON fails loudly rather than becoming an empty document", () => {
+    expect(() => tripFromJson("{ not json")).toThrow();
+  });
+
+  it("parses with JSON.parse", () => {
+    const raw = tripToJson(maximalTrip);
+    const data = JSON.parse(raw);
     expect(data.id).toBe("alps-2026");
     expect(data.dates).toEqual({ from: "2026-09-20", to: "2026-09-27" });
     expect(data.rates).toEqual({ currencies: ["CHF", "EUR", "VND"], manual: { VND: 30500 } });
-    expect(content.trim()).toBe(maximalTrip.intro);
-
-    const costs = matter(files["costs.md"]!);
-    expect(costs.data.budget).toEqual(maximalTrip.costs!.budget);
-    expect(costs.content.trim()).toBe(maximalTrip.costs!.note);
-
-    const plan = matter(files["plan.md"]!);
-    expect(plan.data.route).toEqual(maximalTrip.plan!.route);
-    expect(plan.content.trim()).toBe(maximalTrip.plan!.body);
+    expect(data.intro).toBe(maximalTrip.intro);
+    expect(data.costs.budget).toEqual(maximalTrip.costs!.budget);
+    expect(data.costs.note).toBe(maximalTrip.costs!.note);
+    expect(data.plan.route).toEqual(maximalTrip.plan!.route);
+    expect(data.plan.body).toBe(maximalTrip.plan!.body);
   });
 });

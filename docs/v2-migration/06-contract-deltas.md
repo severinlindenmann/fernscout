@@ -134,3 +134,17 @@ write path, not a special case for this field.
   owner's decision of 2026-09-12 that breaking changes to storage are allowed
   because only `content/example` needs converting. `docs/v2-migration/05-status.md`
   carries the before/after table.
+- **Storage moved from markdown to JSON, same day, on a second owner
+  decision (2026-09-12) that overruled decision 4 in `00-decisions.md`**
+  ("storage stays markdown; JSON is wire-only"). `entries/YYYY-MM-DD-
+  slug.md` became `entries/YYYY-MM-DD-slug.json`; `trip.md` + `costs.md` +
+  `plan.md` collapsed into **one** `trip.json`, since the only reason they
+  were three files was a real prose body each and JSON has no
+  prose-vs-frontmatter split to preserve that argument — `costs` and `plan`
+  were already sections of one wire document, and are now sections of one
+  file too. Days stay one file each; they are separate documents with their
+  own slugs and their own route. **No schema changed** — `dayWrite`,
+  `tripCreate` and every other schema under `lib/api/v2/schemas/` are
+  untouched; only the serializer (`lib/api/v2/markdown.ts` →
+  `lib/api/v2/documents.ts`, `dayToJson`/`dayFromJson`/`tripToJson`/
+  `tripFromJson`) and the file layout changed.

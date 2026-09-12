@@ -75,10 +75,13 @@ export function etagFor(doc: unknown): string {
  * properties*, its value lives in an internal slot — so without this check
  * every `Date`, whatever instant it holds, stringified as `{}` and two
  * documents differing only in a date collided on one ETag (B1601, V11). Not
- * reachable through this module's own callers today (the markdown emitter
- * quotes date-shaped scalars before they reach here), but `dayFromMarkdown`
- * hands back a real `Date` the moment a file carries an unquoted
- * `date: 2026-09-12` — a hand edit or a future replay migrator away.
+ * reachable through this module's own callers today: `JSON.parse` never
+ * manufactures a `Date` on its own, so `dayFromJson`/`tripFromJson` cannot
+ * hand one back the way the old YAML-backed `dayFromMarkdown` could from an
+ * unquoted `date: 2026-09-12`. Kept anyway — a caller building a document
+ * in memory before it ever reaches disk (a route handler assembling a
+ * response, a test fixture) can still construct one, and the collision is
+ * silent when it happens.
  */
 function stableStringify(value: unknown): string {
   if (value instanceof Date) return JSON.stringify(value.toISOString());
