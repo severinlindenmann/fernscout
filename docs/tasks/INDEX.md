@@ -315,11 +315,12 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (5)
+## open (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1529](open/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low |
+| [B1560](open/B1560-on-mobile-the-chat-page-scrolls.md) | On mobile, the chat page scrolls the whole document and the tab bar stops sticking | ISSUE | high | low |
 | [B1520](open/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
 | [B1522](open/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low |
 | [B1525](open/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
