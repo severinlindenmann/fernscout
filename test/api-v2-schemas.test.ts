@@ -1,0 +1,139 @@
+// B1587 phase 0: the v2 schemas ARE the spec, and this file is their
+// self-check — the concept's own example documents parse, silent omission of
+// a declinable section fails with the missing shape, and a conflict (brought
+// AND declined) is refused.
+import { describe, expect, it } from "vitest";
+import {
+  dayWrite,
+  journalDoc,
+  mediaIntent,
+  tripCreate,
+} from "../lib/api/v2/schemas";
+
+const people = [{ name: "Example Owner", email: "owner@example.com" }];
+
+const fullTrip = {
+  id: "alps-2026",
+  title: "Alps by rail",
+  dates: { from: "2026-09-20", to: "2026-09-27" },
+  visibility: "guest",
+  people,
+  rates: { currencies: ["CHF", "EUR"] },
+  costs: { budget: { total: 1800, currency: "CHF" } },
+  plan: { route: [{ location: "Grindelwald", lat: 46.62, lng: 8.03 }] },
+  declined: { days: "trip has not started yet" },
+};
+
+const fullDay = {
+  slug: "2026-09-21-grindelwald",
+  title: "Up the valley",
+  date: "2026-09-21",
+  content: "We took the first train up.",
+  coordinates: { lat: 46.62, lng: 8.03 },
+  weather: true,
+  declined: {
+    media: "no photographs were taken this day",
+    costs: "nothing was spent — a walking day",
+  },
+};
+
+describe("required-or-declined", () => {
+  it("accepts the concept's example trip", () => {
+    expect(tripCreate.safeParse(fullTrip).success).toBe(true);
+  });
+
+  it("names every silently omitted section, not just the first", () => {
+    const r = tripCreate.safeParse({
+      id: "alps-2026",
+      title: "Alps by rail",
+      dates: { from: "2026-09-20", to: "2026-09-27" },
+      visibility: "guest",
+      people,
+    });
+    expect(r.success).toBe(false);
+    const missing = r.error!.issues.filter((i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing");
+    expect(missing.map((i) => i.path[0]).sort()).toEqual(["costs", "days", "plan", "rates"]);
+    // Each carries how to decline, so the refusal is the documentation.
+    for (const issue of missing) {
+      expect((issue as { params?: { toDecline?: string } }).params?.toDecline).toMatch(/^declined\./);
+    }
+  });
+
+  it("refuses a section both brought and declined", () => {
+    const r = tripCreate.safeParse({
+      ...fullTrip,
+      declined: { ...fullTrip.declined, rates: "single-currency trip" },
+    });
+    expect(r.success).toBe(false);
+    expect(r.error!.issues.some((i) => (i as { params?: { v2?: string } }).params?.v2 === "conflict")).toBe(true);
+  });
+
+  it('refuses a throwaway decline reason ("n/a")', () => {
+    const r = tripCreate.safeParse({ ...fullTrip, declined: { days: "n/a" } });
+    expect(r.success).toBe(false);
+  });
+
+  it("has no decline path for people — a trip nobody was on is not a trip", () => {
+    expect(tripCreate.safeParse({ ...fullTrip, people: [] }).success).toBe(false);
+  });
+});
+
+describe("day", () => {
+  it("accepts the concept's example day", () => {
+    expect(dayWrite.safeParse(fullDay).success).toBe(true);
+  });
+
+  it("rejects the server-owned status in a write", () => {
+    expect(dayWrite.safeParse({ ...fullDay, status: "published" }).success).toBe(false);
+  });
+
+  it("refuses weatherData claiming the server's own source", () => {
+    const r = dayWrite.safeParse({
+      ...fullDay,
+      weather: { tempMax: 21.5, source: "open-meteo", recordedAt: "2026-09-21T18:00:00Z" },
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it("accepts a real reading with a named source", () => {
+    const r = dayWrite.safeParse({
+      ...fullDay,
+      weather: { tempMax: 21.5, source: "garmin fenix on the trip", recordedAt: "2026-09-21T18:00:00Z" },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("refuses an implausible measurement", () => {
+    const r = dayWrite.safeParse({
+      ...fullDay,
+      weather: { tempMax: 900, source: "own thermometer", recordedAt: "2026-09-21T18:00:00Z" },
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe("media intent", () => {
+  it("requires a trip or a reason there is none", () => {
+    expect(mediaIntent.safeParse({ kind: "bank_export" }).success).toBe(false);
+    expect(
+      mediaIntent.safeParse({
+        kind: "bank_export",
+        declined: { trip: "statement covers the whole year, spans several trips" },
+      }).success,
+    ).toBe(true);
+    expect(mediaIntent.safeParse({ kind: "photo", trip: "alps-2026", day: "2026-09-21-grindelwald" }).success).toBe(true);
+  });
+});
+
+describe("journal", () => {
+  it("carries no features block — instance-only since the 2026-09-12 decision", () => {
+    const r = journalDoc.safeParse({
+      title: "An example journal",
+      owner: { name: "Example Owner", email: "owner@example.com" },
+      locales: ["en", "de"],
+      baseCurrency: "CHF",
+      features: { costs: { enabled: true } },
+    });
+    expect(r.success).toBe(false);
+  });
+});
