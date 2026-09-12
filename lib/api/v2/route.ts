@@ -8,16 +8,25 @@ import { ERROR_CODES } from "../errorCodes";
 import { formatV2RequestLine } from "../../requestLog";
 
 /**
- * ponytail: these two codes are not yet in `ERROR_CODES`
- * (lib/api/errorCodes.ts). `test/openapi-contract.test.ts` fails on a code
- * that is here and answered by no route, and no v2 route exists yet to
- * answer either one — adding them now would be a red test with nothing to
- * point at. Add both to `ERROR_CODES` in the build step that ships the
- * first route actually answering them (phase 2 step 3 of the migration).
- * Until then this list is the contract's IOU: it is what `fail()` below is
- * allowed to send, ahead of what the published vocabulary allows.
+ * ponytail: `incomplete` is not yet in `ERROR_CODES` (lib/api/errorCodes.ts).
+ * `test/openapi-contract.test.ts` fails on a code that is here and answered
+ * by no route; the figures resource (B1609, phase 2 step 3) has no
+ * declinable sections at all, so it is not the route to pay this one off —
+ * add it to `ERROR_CODES` in whichever step 3 route first has a real 422
+ * (day, trip or journal, all of which do). Until then this is the contract's
+ * IOU for that one code: what `fail()` below may still send ahead of what
+ * the published vocabulary allows.
+ *
+ * `stale_document` paid off its own IOU here, in this ticket:
+ * `lib/api/errorCodes.ts` now carries it for real, because
+ * `app/api/v2/{user}/figures/{id}/route.ts` is a genuine answerer — both for
+ * V11's `If-Match` mismatch, and for a PUT to a client-chosen id that
+ * already exists with no `If-Match` at all (S2's "retried create", which
+ * this reuses rather than inventing a second `*_exists` code for: both cases
+ * are "the write assumed something about the current state that does not
+ * hold, and here is what actually is").
  */
-export const V2_ONLY_CODES = ["incomplete", "stale_document"] as const;
+export const V2_ONLY_CODES = ["incomplete"] as const;
 
 export type V2ErrorCode = keyof typeof ERROR_CODES | (typeof V2_ONLY_CODES)[number];
 

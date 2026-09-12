@@ -286,7 +286,7 @@ export async function describePhotos(
 /**
  * Classifying a group photograph into a party — B1517.
  *
- * The nine-question interview (`GET .../travellers/presets`) is what an
+ * The nine-question interview (`GET .../figures/presets`) is what an
  * agent falls back to when there is nothing else to go on; when a photograph
  * of the party already exists, reading it is faster and no less honest than
  * asking, because every field this returns is still a plain classification

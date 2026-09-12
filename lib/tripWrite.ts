@@ -420,7 +420,7 @@ export function travellersBlock(raw: unknown): BlockResult {
       message:
         "travellers must be a list of figures, e.g. " +
         '[{"skin": "medium", "hair": "black", "hairStyle": "coils"}]. ' +
-        "GET /api/v1/<user>/travellers/presets lists every word this takes.",
+        "GET /api/v2/<user>/figures/presets lists every word this takes.",
     };
   }
   if (raw.length === 0) return NO_LINES;
@@ -453,7 +453,7 @@ export function travellersBlock(raw: unknown): BlockResult {
         error: "invalid_travellers",
         message: unknown.includes("preset")
           ? `${at}.preset is not written to disk. Resolve a starting point into its ` +
-            `attributes first — GET /api/v1/<user>/travellers/presets returns them — so the ` +
+            `attributes first — GET /api/v2/<user>/figures/presets returns them — so the ` +
             `file records a hair colour rather than a claim about somebody's background.`
           : `${at} has ${unknown.map((k) => JSON.stringify(k)).join(", ")}, which is not a ` +
             `figure field. Expected: ${[...FIGURE_FIELDS].join(", ")}.`,

@@ -1,6 +1,6 @@
 import "server-only";
 import { isAdminEmail } from "../admin";
-import { SESSION_SCOPE, resolveSession, type Session } from "../auth";
+import { isJournalWideScope, SESSION_SCOPE, resolveSession, type Session } from "../auth";
 import { isEnabled } from "../capabilities";
 import { tripWriteVerdict } from "../tripPeople";
 import { getUser } from "../users";
@@ -114,7 +114,7 @@ export function ownsUser(session: Session, username: string): boolean {
  */
 export function mayActAsOwner(session: Session, username: string): boolean {
   if (!ownsUser(session, username)) return false;
-  if (session.scope !== SESSION_SCOPE.agent) return false;
+  if (!isJournalWideScope(session.scope)) return false;
   if (isAdminEmail(session.email)) return true;
   const ownerEmail = getUser(username)?.owner.email;
   return Boolean(ownerEmail) && session.email === ownerEmail;

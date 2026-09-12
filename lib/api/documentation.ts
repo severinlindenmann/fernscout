@@ -613,7 +613,7 @@ export function userDocumentation(username: string): string | null {
     `- [Drafts](${base()}/api/v1/${username}/drafts): everything waiting for a person to approve`,
     `- Trips: POST to [the same URL](${base()}/api/v1/${username}/trips) to create one (owner only; defaults to this journal's own visibility)`,
     `- [Invites](${base()}/api/v1/${username}/invites): POST \`{"kind":"guest"}\` for a link that lets somebody read the journal's \`guest\` trips, or \`{"kind":"buddy","trip":"<trip-id>"}\` for one that leads to writing to a trip — owner only, see "Letting other people in" in the agent guide`,
-    `- [Travellers](${base()}/api/v1/${username}/travellers/presets): the vocabulary a traveller is drawn in, and twelve starting points; \`…/travellers/preview?figure={…}\` answers with the picture, so somebody can see themselves before it is written down`,
+    `- [Figures](${base()}/api/v2/${username}/figures/presets): the vocabulary a traveller is drawn in, and twelve starting points; \`…/figures/preview?figure={…}\` answers with the picture, so somebody can see themselves before it is written down`,
     `- Deleting: DELETE [a trip](${base()}/api/v1/${username}/trips/<trip-id>) or [the journal](${base()}/api/v1/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it, so a 202 means the mail was sent`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,
     `- [Feed](${root}/feed.xml): public entries as RSS`,
@@ -1423,7 +1423,7 @@ each call rewrites \`config.json\` whole and puts it back if it does not load.
 
 \`travellers\` is the journal's own default party — how a trip draws its
 walking figures when it carries none of its own — validated the same way
-\`.../trips/{trip}/travellers\` is: \`GET /api/v1/${example}/travellers/presets\`
+\`.../trips/{trip}/travellers\` is: \`GET /api/v2/${example}/figures/presets\`
 for the vocabulary, and \`GET /api/v1/${example}/travellers\` to read the
 default back. Send \`[]\` to go back to having no default.
 
@@ -1503,7 +1503,7 @@ block — on the trip, or in the journal's config as a default. Absent means one
 neutral figure.
 
 \`\`\`http
-GET ${site.url}/api/v1/${example}/travellers/presets
+GET ${site.url}/api/v2/${example}/figures/presets
 \`\`\`
 
 That is the whole vocabulary — skin tones, hair colours and styles, eyes,
@@ -1524,8 +1524,8 @@ cannot see, and reading \`skin: medium-deep, hairStyle: braids\` down a phone
 is not confirmation:
 
 \`\`\`http
-GET ${site.url}/api/v1/${example}/travellers/preview?figure={"skin":"deep","hairStyle":"coils"}
-GET ${site.url}/api/v1/${example}/travellers/preview?party=[{…},{…}]
+GET ${site.url}/api/v2/${example}/figures/preview?figure={"skin":"deep","hairStyle":"coils"}
+GET ${site.url}/api/v2/${example}/figures/preview?party=[{…},{…}]
 \`\`\`
 
 It answers with \`image/svg+xml\` and nothing else — no form, no controls.
@@ -1568,7 +1568,7 @@ That is five of the twelve fields. Map it, and leave the other seven alone:
 and hand over the URL:
 
 \`\`\`http
-GET ${site.url}/api/v1/${example}/travellers/preview?figure={"skin":"deep","hair":"black","hairStyle":"braids","outfit":"skirt","pants":"plum","shirt":"coral"}
+GET ${site.url}/api/v2/${example}/figures/preview?figure={"skin":"deep","hair":"black","hairStyle":"braids","outfit":"skirt","pants":"plum","shirt":"coral"}
 \`\`\`
 
 Then read back **both halves** — what they chose, and what they did not:

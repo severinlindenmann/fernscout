@@ -163,12 +163,16 @@ describe("the v2 import boundary", () => {
     ).toEqual([]);
   });
 
-  /** `app/api/v2` does not exist yet — B1596 builds the plumbing before any
-   * route lands under it. An empty directory walking to nothing is expected
-   * today, not a sign the walk is broken; the synthetic test above is what
-   * proves the machinery still works once a file does appear. */
-  test("app/api/v2 is empty today, and that is the expected state", () => {
+  /**
+   * `app/api/v2` was empty through B1596 (the plumbing, built before any
+   * route landed) and the first real routes arrived in phase 2 step 3
+   * (B1609: the figure library). The synthetic test above is what proves the
+   * boundary rule works even when this directory is empty — this one no
+   * longer asserts emptiness, since asserting it forever would make this
+   * suite fail the moment the very routes it protects are added.
+   */
+  test("the walk finds real files under app/api/v2 once routes exist", () => {
     const appV2Files = walk(path.join(ROOT, "app/api/v2"));
-    expect(appV2Files).toEqual([]);
+    expect(appV2Files.length).toBeGreaterThan(0);
   });
 });

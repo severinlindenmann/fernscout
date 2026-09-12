@@ -410,7 +410,19 @@ describe("every error code a route answers with is published", () => {
    * below: a code can reach a caller through a variable, and asking whether
    * the word appears at all is the honest question in that direction. */
   const spoken = new Set<string>();
-  for (const file of [...routeFiles("app/api/v1"), ...routeFiles("app/api/auth"), ...SPEAKS_TO_CALLERS]) {
+  // v2 routes share the one `ERROR_CODES` vocabulary (`errorEnvelope` in
+  // lib/api/v2/schemas/shared.ts enumerates the same keys) even though they
+  // are not in the *coverage* walk above — that one is scoped to /api/v1 and
+  // /api/auth on purpose (see its own comment). A v2-only code (B1609:
+  // `figure_referenced`, and `stale_document` once a v2 route answers it)
+  // would otherwise register as "documented and never returned", which is
+  // false — it is returned, just not from a v1 or /api/auth route.
+  for (const file of [
+    ...routeFiles("app/api/v1"),
+    ...routeFiles("app/api/auth"),
+    ...routeFiles("app/api/v2"),
+    ...SPEAKS_TO_CALLERS,
+  ]) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/error:\s*"([a-z_]+)"/g)) answered.add(match[1]);
     for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);

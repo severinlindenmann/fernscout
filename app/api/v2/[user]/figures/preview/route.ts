@@ -2,11 +2,14 @@ import { renderPartySvg } from "@/lib/travellers/render";
 import { MAX_FIGURES, type Figure } from "@/lib/travellers/vocabulary";
 import { parseTravellers } from "@/lib/travellers/parse";
 import { getUser } from "@/lib/users";
+import { fail } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
 /**
- * `GET /api/v1/<user>/travellers/preview?…` — see the figure before writing it.
+ * `GET /api/v2/<user>/figures/preview?…` — moved from
+ * `/api/v1/<user>/travellers/preview` (B1609). See that ticket's history for
+ * why this exists; unchanged in behaviour.
  *
  * **This is what makes the interview honest.** An agent asks "how would you
  * like to be drawn?", maps the answer onto attributes, and then has to hand
@@ -36,29 +39,22 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(
   request: Request,
-  { params }: RouteContext<"/api/v1/[user]/travellers/preview">,
+  { params }: RouteContext<"/api/v2/[user]/figures/preview">,
 ) {
   const { user } = await params;
   if (!getUser(user)) {
-    return Response.json(
-      { error: "no_such_journal", message: `No journal called "${user}".` },
-      { status: 404 },
-    );
+    return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
   }
 
   const url = new URL(request.url);
   const raw = url.searchParams.get("party") ?? url.searchParams.get("figure");
   if (!raw) {
-    return Response.json(
-      {
-        error: "nothing_to_draw",
-        message:
-          "Pass ?figure={…} for one traveller or ?party=[{…},{…}] for a group, both as JSON. " +
-          "GET /api/v1/" +
-          user +
-          "/travellers/presets lists every word they take.",
-      },
-      { status: 400 },
+    return fail(
+      "nothing_to_draw",
+      "Pass ?figure={…} for one traveller or ?party=[{…},{…}] for a group, both as JSON. " +
+        `GET /api/v2/${user}/figures/presets lists every word they take.`,
+      undefined,
+      400,
     );
   }
 
@@ -66,30 +62,28 @@ export async function GET(
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return Response.json(
-      {
-        error: "invalid_json",
-        message: "figure and party are JSON, and this did not parse. Remember to URL-encode it.",
-      },
-      { status: 400 },
+    return fail(
+      "invalid_json",
+      "figure and party are JSON, and this did not parse. Remember to URL-encode it.",
+      undefined,
+      400,
     );
   }
 
-  // The same reader the trip file goes through, so what the preview draws and
-  // what a written trip draws cannot disagree. It fails open, which is right
-  // here too: showing somebody a figure with one field defaulted, and saying
-  // so, beats refusing to show them anything.
+  // The same reader a figure's own write goes through, so what the preview
+  // draws and what a written figure draws cannot disagree. It fails open,
+  // which is right here too: showing somebody a figure with one field
+  // defaulted, and saying so, beats refusing to show them anything.
   const figures: Figure[] = parseTravellers(
     Array.isArray(parsed) ? parsed : [parsed],
     "the preview query",
   );
   if (figures.length === 0) {
-    return Response.json(
-      {
-        error: "nothing_to_draw",
-        message: `Expected an object, or a list of up to ${MAX_FIGURES} of them.`,
-      },
-      { status: 400 },
+    return fail(
+      "nothing_to_draw",
+      `Expected an object, or a list of up to ${MAX_FIGURES} of them.`,
+      undefined,
+      400,
     );
   }
 

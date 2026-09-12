@@ -49,6 +49,6 @@ export async function GET(
     note:
       "How this journal's own pages draw a party when a trip carries no travellers: block " +
       `of its own. PATCH /api/v1/${user}/config with {"travellers": [...]} to change it — ` +
-      `GET /api/v1/${user}/travellers/presets lists every word a figure takes.`,
+      `GET /api/v2/${user}/figures/presets lists every word a figure takes.`,
   });
 }
