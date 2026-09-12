@@ -221,6 +221,35 @@ export default function HelperRoom({
       document.body.style.overflow = prev;
     };
   }, []);
+  /**
+   * `h-dvh` only ever answers for the *layout* viewport, and a mobile
+   * keyboard never changes that — B1560, continued. It shrinks the
+   * *visual* viewport instead, and the browser's own reflex is to pan the
+   * page so the focused field stays above the keyboard; on iOS that pan is
+   * a `visualViewport` offset, not a document scroll, so it slips straight
+   * past the `overflow: hidden` lock just above. The room stays its full
+   * pre-keyboard height and size while the keyboard covers the bottom slice
+   * of it — header and tab bar included.
+   *
+   * `HelperAsk.tsx`'s own `pinBottom` (B1122) already reads
+   * `window.visualViewport` this way for one button; this is the same
+   * reading applied to the room itself, so there is nothing left for the
+   * browser to pan toward — the visible box already contains what it is
+   * trying to protect.
+   */
+  const [viewportBox, setViewportBox] = useState<{ height: number; top: number } | null>(null);
+  useEffect(() => {
+    const viewport = typeof window !== "undefined" ? window.visualViewport : undefined;
+    if (!viewport) return;
+    const update = () => setViewportBox({ height: viewport.height, top: viewport.offsetTop });
+    update();
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    return () => {
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+    };
+  }, []);
   const [scrollTick, setScrollTick] = useState(0);
   useEffect(() => {
     if (scrollTick > 0) previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -890,9 +919,10 @@ export default function HelperRoom({
     // Outer paints the ground edge to edge; inner caps the app at 1680px —
     // B1208 (D43): three panes floating in 2560px of ground looked lost.
     <div
-      className={`h-dvh bg-cream-50 ${textScale === "s" ? "fs-scale-s" : textScale === "l" ? "fs-scale-l" : ""} ${
+      className={`fixed inset-x-0 top-0 h-dvh bg-cream-50 ${textScale === "s" ? "fs-scale-s" : textScale === "l" ? "fs-scale-l" : ""} ${
         darkRoom ? "fs-room-dark" : ""
       }`}
+      style={viewportBox ? { top: viewportBox.top, height: viewportBox.height } : undefined}
     >
     <div className="mx-auto flex h-full max-w-[1680px] flex-col">
       {dropping && (

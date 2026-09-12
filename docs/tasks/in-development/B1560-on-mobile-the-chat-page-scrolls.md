@@ -139,3 +139,31 @@ never wired to it.
   tab bar stays immediately above the keyboard rather than off-screen, and
   nothing behind the room becomes visible.
 - `npm run verify` passes.
+
+## Evidence (round 2)
+
+Headless Chrome has no real software keyboard, so this was checked by
+monkey-patching `window.visualViewport.height`/`offsetTop` on the loaded room
+(via CDP `Runtime.evaluate`, dispatching the same `resize` event a real
+keyboard triggers) rather than an actual phone, and reading the resulting
+layout back with `getBoundingClientRect`.
+
+Before the patch (`keyboard-closed.png`): the full 844px room, header and tab
+bar each visible at the top and bottom of the phone-width screenshot, as
+before this ticket. With a simulated 320px keyboard (`visualViewport.height`
+dropped from 844 to 524, `offsetTop` held at 0 — `keyboard-open-simulated.png`):
+
+```
+roomRect: { height: 524, top: 0, bottom: 524 }
+headerRect: { top: 0, bottom: 61 }
+navRect:    { top: 467, bottom: 524 }
+window.scrollY: 0
+```
+
+The room's own box shrank to exactly the simulated visible height, the header
+stayed pinned at the true top, and the tab bar's bottom edge landed exactly on
+the room's new bottom — immediately above where the keyboard would begin —
+rather than at its old `bottom: 844`, which would have sat 320px below the
+visible area and matched exactly what was reported ("everything gets really
+funky"). `document.body`/`<html>` never scrolled (`scrollY` stayed `0`)
+throughout.
