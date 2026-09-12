@@ -230,10 +230,7 @@ describe("journal", () => {
     displayCurrencies: ["CHF", "EUR"],
     units: "metric",
     visibility: "public",
-    declined: {
-      tagline: "the title says it all already",
-      manualRates: "CHF and EUR are both ECB-published",
-    },
+    declined: { tagline: "the title says it all already" },
   };
 
   it("accepts a complete journal", () => {
@@ -253,26 +250,30 @@ describe("journal", () => {
     ).toBe(false);
   });
 
-  it("takes manual rates or a decline, and a narrowing media block", () => {
-    const decl = { tagline: fullJournal.declined.tagline };
+  it("keeps storage as the one journal-level media limit", () => {
+    expect(journalDoc.safeParse({ ...fullJournal, storageBytes: 1_000_000_000 }).success).toBe(true);
+    // The old journal-level blocks are gone — strict shape refuses them.
+    expect(journalDoc.safeParse({ ...fullJournal, manualRates: { VND: 30500 } }).success).toBe(false);
+    expect(journalDoc.safeParse({ ...fullJournal, media: { perUserBytes: 1 } }).success).toBe(false);
+  });
+
+  it("takes manual rates per trip, inside rates", () => {
     expect(
-      journalDoc.safeParse({
-        ...fullJournal,
-        declined: decl,
-        manualRates: { VND: 30500 },
-        media: { perUserBytes: 1_000_000_000 },
+      tripCreate.safeParse({
+        ...fullTrip,
+        rates: { currencies: ["CHF", "VND"], manual: { VND: 30500 } },
       }).success,
     ).toBe(true);
     expect(
-      journalDoc.safeParse({ ...fullJournal, declined: decl }).success,
-    ).toBe(false);
-    expect(
-      journalDoc.safeParse({ ...fullJournal, manualRates: { VND: -1 }, declined: decl }).success,
+      tripCreate.safeParse({
+        ...fullTrip,
+        rates: { currencies: ["CHF", "VND"], manual: { VND: -1 } },
+      }).success,
     ).toBe(false);
   });
 
   it("asks the tagline question", () => {
-    const noDecl = { ...fullJournal, manualRates: { VND: 30500 } } as Record<string, unknown>;
+    const noDecl = { ...fullJournal } as Record<string, unknown>;
     delete noDecl.declined;
     expect(journalDoc.safeParse(noDecl).success).toBe(false);
     expect(

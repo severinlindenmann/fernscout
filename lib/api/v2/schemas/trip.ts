@@ -30,6 +30,10 @@ const person = z.strictObject({
  * which currencies the trip's figures may name. */
 const rates = z.strictObject({
   currencies: z.array(z.string().length(3)).min(1),
+  /** Rates for any listed currency the ECB does not publish, and overrides
+   * for ones it does — per trip, not per journal (owner review). Same
+   * convention as the ECB table: units per 1 EUR, e.g. {"VND": 30500}. */
+  manual: z.record(z.string().length(3), z.number().positive()).optional(),
 });
 
 /** Budget + preparation costs — what costs.md carries today. Entries on days

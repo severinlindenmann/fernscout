@@ -16,11 +16,6 @@ const JOURNAL_DECLINABLES: readonly Declinable[] = [
     field: "tagline",
     whyRequired: "the line under the journal's title on its landing page, or a reason it has none",
   },
-  {
-    field: "manualRates",
-    whyRequired:
-      "rates for any currency the ECB does not publish (units per 1 EUR, e.g. {\"VND\": 30500}), or a decline (every currency this journal uses is ECB-published)",
-  },
 ] as const;
 
 const base = z.strictObject({
@@ -42,25 +37,13 @@ const base = z.strictObject({
    * is still the trip's own gate. Required and explicit in v2. */
   visibility: z.enum(["public", "guest"]),
   tagline: z.string().optional(),
-  /** Rates for anything the ECB does not publish, and overrides for anything
-   * it does. Same convention as the ECB table: units per 1 EUR. */
-  manualRates: z.record(z.string().length(3), z.number().positive()).optional(),
-  declined: declinedMap(["tagline", "manualRates"]).optional(),
-  /** This journal's own media allowance — narrows the instance ceiling,
-   * never widens it (the person paying for the disk decides its size; the
-   * server clamps anything larger). Plain optional: absent means the
-   * instance's numbers, which is the normal case. */
-  media: z
-    .strictObject({
-      imageBytes: z.number().int().positive().optional(),
-      imageEdge: z.number().int().positive().optional(),
-      videoBytes: z.number().int().positive().optional(),
-      videoSeconds: z.number().int().positive().optional(),
-      itemsPerDay: z.number().int().positive().optional(),
-      perUserBytes: z.number().int().positive().optional(),
-      photobookOrdersPerUser: z.number().int().positive().optional(),
-    })
-    .optional(),
+  declined: declinedMap(["tagline"]).optional(),
+  /** The one media limit that is the journal's own: total bytes it may hold,
+   * narrowing the instance quota, never widening it — the server clamps
+   * anything larger. Every other media limit (upload sizes, items per day,
+   * photobook retention) is instance-level and read from /status. Absent
+   * means the instance's number, the normal case. */
+  storageBytes: z.number().int().positive().optional(),
 });
 
 export const journalDoc = base.superRefine((doc, ctx) => {
