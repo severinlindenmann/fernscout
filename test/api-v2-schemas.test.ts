@@ -23,6 +23,8 @@ const fullTrip = {
   costs: { budget: { total: 1800, currency: "CHF" } },
   plan: { route: [{ location: "Grindelwald", lat: 46.62, lng: 8.03 }] },
   accent: "green",
+  tagline: "Six passes in seven days",
+  intro: "A week on the narrow-gauge lines.",
   declined: {
     days: "trip has not started yet",
     translations: "owner writes this journal in English only for now",
@@ -60,7 +62,7 @@ describe("required-or-declined", () => {
     expect(r.success).toBe(false);
     const missing = r.error!.issues.filter((i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing");
     expect(missing.map((i) => i.path[0]).sort()).toEqual([
-      "accent", "costs", "cover", "days", "plan", "rates", "translations",
+      "accent", "costs", "cover", "days", "intro", "plan", "rates", "tagline", "translations",
     ]);
     // Each carries how to decline, so the refusal is the documentation.
     for (const issue of missing) {
@@ -82,6 +84,29 @@ describe("required-or-declined", () => {
     expect(
       tripCreate.safeParse({ ...(noTeaser as object), visibility: "public", listed: true }).success,
     ).toBe(true);
+    expect(tripCreate.safeParse({ ...fullTrip, teaser: true }).success).toBe(true);
+  });
+
+  it("asks the listed question of public trips only", () => {
+    // A public trip must answer it (or decline it)…
+    const pub = { ...fullTrip, visibility: "public" } as Record<string, unknown>;
+    delete pub.teaser;
+    expect(tripCreate.safeParse(pub).success).toBe(false);
+    expect(tripCreate.safeParse({ ...pub, listed: true }).success).toBe(true);
+    expect(
+      tripCreate.safeParse({
+        ...pub,
+        declined: { ...fullTrip.declined, listed: "owner shares the link by hand" },
+      }).success,
+    ).toBe(true);
+    // …and a closed trip may not even mention it.
+    expect(tripCreate.safeParse({ ...fullTrip, listed: false }).success).toBe(false);
+    expect(
+      tripCreate.safeParse({
+        ...fullTrip,
+        declined: { ...fullTrip.declined, listed: "not applicable to this trip" },
+      }).success,
+    ).toBe(false);
   });
 
   it("refuses a section both brought and declined", () => {

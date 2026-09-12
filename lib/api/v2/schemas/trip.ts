@@ -102,9 +102,26 @@ export const TRIP_DECLINABLES: readonly Declinable[] = [
     whyRequired:
       "a trip names the photograph its card shows (a media src), or declines — a declined cover is auto-picked from the newest photograph, and the echo says which",
   },
+  {
+    field: "tagline",
+    whyRequired: "every trip card carries its one-line subtitle, or a reason it has none",
+  },
+  {
+    field: "intro",
+    whyRequired: "a trip page opens with a few lines of prose, or says why there are none",
+  },
 ] as const;
 
-const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover"] as const;
+/** Asked only of a public trip — a closed trip is never advertised, so the
+ * question does not exist there and both the field and its decline are
+ * refused. */
+const LISTED_DECLINABLE: Declinable = {
+  field: "listed",
+  whyRequired:
+    "a public trip states whether it is advertised (sitemap, feed, switcher): listed true or false, or declined",
+};
+
+const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "tagline", "intro", "listed"] as const;
 
 /**
  * Creating a trip: the whole document at once. Every declinable section is
@@ -146,22 +163,34 @@ export const tripCreate = z
     /** The media src the trip's card shows. Upload through the media door
      * first; set or change it here any time. */
     cover: z.string().optional(),
-    declined: declinedMap(DECLINABLE_KEYS).optional(),
-
-    // ── plain optional ──
     /** One line under the title on the trip card. */
     tagline: z.string().optional(),
     /** The trip page's opening prose — trip.md's body. */
     intro: z.string().optional(),
-    /** Advertised or not: false keeps a public trip out of the sitemap, the
-     * feed and the switcher (still reachable by URL, still readable). Only
-     * ever narrows; true on a closed trip is refused. B51. */
+    /** Public trips only: is the trip advertised (sitemap, feed, switcher)?
+     * false is "unlisted" — still readable at its URL. On a closed trip the
+     * question does not exist and the key is refused. B51. */
     listed: z.boolean().optional(),
+    declined: declinedMap(DECLINABLE_KEYS).optional(),
+
+    // ── plain optional ──
     /** Content nobody lived. */
     test: z.boolean().optional(),
   })
   .superRefine((doc, ctx) => {
-    checkRequiredOrDeclined(doc, TRIP_DECLINABLES, ctx);
+    const declinables =
+      doc.visibility === "public" ? [...TRIP_DECLINABLES, LISTED_DECLINABLE] : TRIP_DECLINABLES;
+    checkRequiredOrDeclined(doc, declinables, ctx);
+    // listed: a public trip's question only.
+    if (doc.visibility !== "public" && (doc.listed !== undefined || doc.declined?.listed !== undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["listed"],
+        message:
+          "a closed trip is never advertised, so there is nothing to list or to decline — remove listed",
+        params: { v2: "conflict" },
+      });
+    }
     // teaser: mandatory question on a closed trip, meaningless on an open one.
     if (doc.visibility === "public" && doc.teaser !== undefined) {
       ctx.addIssue({
