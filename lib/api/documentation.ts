@@ -858,7 +858,7 @@ create below succeeds — a \`403 phone_required\` on it says so, and does not
 spend the token. Ask the person for their number *with its country code*, then:
 
 \`\`\`http
-POST ${site.url}/api/auth/signup/phone/request
+POST ${site.url}/api/auth/signup/phone
 Authorization: Bearer fs_signup_…
 Content-Type: application/json
 
@@ -866,7 +866,7 @@ Content-Type: application/json
 \`\`\`
 
 \`\`\`http
-POST ${site.url}/api/auth/signup/phone/verify
+POST ${site.url}/api/auth/signup/phone/redeem
 Authorization: Bearer fs_signup_…
 Content-Type: application/json
 

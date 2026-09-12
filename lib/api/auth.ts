@@ -75,8 +75,8 @@ export function outOfScope(session: Session, username: string): Response {
           "`token` field — and it is the journal's own, good for seven days. Use that one."
         : `This token is for ${session.owner ? `"${session.owner}"` : "a different journal"}, ` +
           `and this call is about "${username}". A token belongs to one journal; ask for ` +
-          `one for this journal with POST /api/auth/request and /api/auth/verify, both ` +
-          `with "kind": "agent".`,
+          `one for this journal with POST /api/auth/codes and /api/auth/codes/redeem, both ` +
+          `with "for": "write".`,
     },
     { status: 403 },
   );
@@ -141,10 +141,10 @@ const EXPLANATIONS: Record<string, string> = {
     "capabilities are on and why the others are not.",
   missing_token: "Send the token as `Authorization: Bearer <token>`, and nowhere else.",
   invalid_token:
-    "The token is unknown, revoked or expired. Ask for a new code at POST /api/auth/request.",
+    "The token is unknown, revoked or expired. Ask for a new code at POST /api/auth/codes.",
   // Deliberately not the `invalid_token` wording above. That one says "ask for
   // a new code", which is exactly wrong here: they would ask, and
-  // /api/auth/request would refuse them for the same reason this did. Saying
+  // /api/auth/codes would refuse them for the same reason this did. Saying
   // so once is kinder than a loop.
   access_revoked:
     "Your access to this trip has been withdrawn by the journal's owner, so this token can no " +

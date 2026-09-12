@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   }
 
   const result = await confirmContact(username, email, code);
-  // One answer for every failure, exactly as `app/api/auth/verify` does: which
+  // One answer for every failure, exactly as `app/api/auth/codes/redeem` does: which
   // of "no code", "expired", "wrong" and "unknown address" applies is precisely
   // what an attacker would like to be told.
   if (!result.ok) return Response.json({ error: "invalid_code" }, { status: 401 });

@@ -9,7 +9,8 @@ import { serverSite } from "./site";
  * The one-time code that proves somebody can read an address, on its way to
  * making a journal — step one of signup, wherever signup is being done.
  *
- * Lifted out of `app/api/auth/signup/request/route.ts` by B1363, which gave
+ * Lifted out of the old `app/api/auth/signup/request/route.ts` (now
+ * `app/api/auth/codes/route.ts`'s `for: "signup"` branch) by B1363, which gave
  * the flow a second door: the WhatsApp onboarding
  * (`lib/whatsapp/onboarding.ts`) has to mail the identical code, in the
  * identical letter. Two copies of a code mail is two subjects, two TTLs and

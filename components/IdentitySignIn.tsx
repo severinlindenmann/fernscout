@@ -100,10 +100,10 @@ export default function IdentitySignIn({
         setFlying(true);
       }
     }
-    const response = await fetch("/api/auth/identity/request", {
+    const response = await fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: value }),
+      body: JSON.stringify({ for: "identity", email: value }),
     }).catch(() => null);
     setBusy(false);
 
@@ -136,10 +136,10 @@ export default function IdentitySignIn({
     setCode(value);
     setBusy(true);
     setWrong(false);
-    const response = await fetch("/api/auth/identity/verify", {
+    const response = await fetch("/api/auth/codes/redeem", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, code: value }),
+      body: JSON.stringify({ for: "identity", email, code: value }),
     }).catch(() => null);
 
     if (response?.ok) {

@@ -29,7 +29,7 @@
  */
 export const ERROR_CODES = {
   // ── who you are, and what you may touch ────────────────────────────────
-  missing_token: "No `Authorization: Bearer` header. Every /api/v1 call needs one; get a token from /api/auth/request and /api/auth/verify, both with `\"kind\": \"agent\"`.",
+  missing_token: "No `Authorization: Bearer` header. Every /api/v1 call needs one; get a token from /api/auth/codes and /api/auth/codes/redeem, both with `\"for\": \"write\"`.",
   invalid_token: "The token is not one this server issued, or it has expired. Tokens last seven days — ask for a new one the same way.",
   out_of_scope: "The token is valid, and it belongs to a different journal or a different trip than the one in the URL. Do not retry: ask for a token for this journal.",
   forbidden: "This call is the journal owner's, and the credential is not theirs. A trip-scoped token cannot do it either.",
@@ -38,7 +38,7 @@ export const ERROR_CODES = {
   no_session: "No session cookie, and this route takes nothing else.",
   invalid_handover: "The 20-minute handover credential is spent, expired or not for this journal. The owner makes a new one from their own page.",
   invalid_code: "The six-digit code is wrong, used, or more than 30 minutes old. Ask for a new one; the newest is the only live one.",
-  too_many_journals: "This address already owns as many journals as this server allows (the refusal names them). Do not sign up again: ask for a write token for the journal it owns, via /api/auth/request and /api/auth/verify with `\"kind\": \"agent\"`.",
+  too_many_journals: "This address already owns as many journals as this server allows (the refusal names them). Do not sign up again: ask for a write token for the journal it owns, via /api/auth/codes and /api/auth/codes/redeem with `\"for\": \"write\"`.",
   link_spent: "This single-use link has already been followed. It cannot be followed again — ask for a new one.",
 
   // ── what you asked about does not exist ────────────────────────────────
@@ -71,7 +71,6 @@ export const ERROR_CODES = {
   invalid_plan: "A stop on the route is not usable; `problems` lists each one.",
   invalid_media: "The upload is not usable — a file this server does not take, one too large, or a `day` that is not a day of this trip. /api/health carries the formats and the limits.",
   invalid_email: "That is not an address this server can send to.",
-  invalid_user: "`user` is missing from the body. It is the journal's own address segment — the one in its URLs.",
   invalid_listed: "`listed` must be true or false, and it cannot be true on a trip no visibility advertises. A string is refused rather than read as truthy: `\"false\"` would otherwise have advertised the trip.",
   invalid_teaser:
     "`teaser` must be true or false, and it cannot be true on a public trip — there is nothing to tease. It names a `guest` or `private` trip on the trips page without opening it.",
@@ -135,7 +134,7 @@ export const ERROR_CODES = {
   // ── this server cannot do that ─────────────────────────────────────────
   auth_disabled: "This server has authentication switched off entirely, so there are no tokens to hold. /api/health says what it can do.",
   signup_disabled: "This server does not take new journals.",
-  phone_required: "A journal needs a proven telephone number as well as a proven address. POST /api/auth/signup/phone/request with the signup token, then /api/auth/signup/phone/verify with the code, and retry.",
+  phone_required: "A journal needs a proven telephone number as well as a proven address. POST /api/auth/signup/phone with the signup token, then /api/auth/signup/phone/redeem with the code, and retry.",
   verification_failed: "The phone code could not be sent. Try again in a minute, or check the number.",
   contacts_disabled: "This server has contacts off, so invitations and approvals are unavailable.",
   postcards_disabled: "This server has postcards off.",

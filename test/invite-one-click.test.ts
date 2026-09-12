@@ -98,12 +98,12 @@ async function redeem(body: Record<string, unknown>): Promise<{ status?: string 
 }
 
 async function spendLink(token: string): Promise<{ status: number; next?: string }> {
-  const { POST } = await import("@/app/api/auth/link/route");
+  const { POST } = await import("@/app/api/auth/links/redeem/route");
   const response = await POST(
-    new Request("https://example.test/api/auth/link", {
+    new Request("https://example.test/api/auth/links/redeem", {
       method: "POST",
       headers: headers(),
-      body: JSON.stringify({ user: OWNER, token }),
+      body: JSON.stringify({ user: OWNER, token, for: "read" }),
     }),
   );
   const body = (await response.json()) as { next?: string };

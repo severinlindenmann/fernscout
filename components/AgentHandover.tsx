@@ -33,8 +33,8 @@ import { handoverPrompt } from "@/lib/api/agentCopy";
  * flow had been removed, so why not offer it — which left the page presenting
  * two ways to do the same job to a reader with no basis for choosing between
  * them. B301 removed the two lines. The code flow itself
- * (`POST /api/auth/request` / `/verify`) is unchanged and still documented at
- * `/agent.md`; this page just no longer offers it beside the button.
+ * (`POST /api/auth/codes` / `/codes/redeem`) is unchanged and still documented
+ * at `/agent.md`; this page just no longer offers it beside the button.
  *
  * ## Why the key is not printed until it is asked for
  *
@@ -67,7 +67,7 @@ export default function AgentHandover({
   async function mint() {
     setBusy(true);
     setFailed(false);
-    const response = await fetch(`/api/v1/${username}/handover`, {
+    const response = await fetch(`/api/auth/${username}/handover`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: "{}",

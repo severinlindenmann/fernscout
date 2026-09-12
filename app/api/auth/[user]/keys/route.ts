@@ -1,19 +1,25 @@
-import { listSessions, resolveSession, revokeSession } from "@/lib/auth";
+import { describeScope, listSessions, resolveSession, revokeSession, SESSION_SCOPE, type Session } from "@/lib/auth";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { isOwner } from "@/lib/contacts/session";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { fail, ok } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
 /**
- * The keys that can write to this journal, and how to kill one — B283.
+ * The keys that can write to this journal, and how to kill one — B283, moved
+ * to `/api/auth` from `/api/v1/{user}/keys` for v2 (`docs/plans/2026-09-12-api-v2/auth.md`
+ * §2.7). **Kept as one mixed door on purpose**: §2.7 itself argues for
+ * splitting an owner door from a `keys/mine` door, and calls that split its
+ * own weakest cut; `docs/v2-migration/00-decisions.md` Q1 answers it — the
+ * owner decided to keep the one door B323 already shipped rather than pay a
+ * second route for a shape that has never actually confused anyone.
  *
  * A credential a person cannot revoke is one they cannot hand out carefully.
  * The handover block makes handing an agent a write token a two-second act, so
  * taking it back has to be one too — otherwise the honest advice would be
  * "only do this if you are sure", which is advice nobody can act on.
- *
- * `listSessions` has existed since W06 and had no caller until now.
  *
  * ## What is listed, and what is not
  *
@@ -26,7 +32,28 @@ export const dynamic = "force-dynamic";
  *
  * Never the tokens themselves. Only hashes were stored, so there is nothing
  * here to leak; an id is what revoking needs and all it needs.
+ *
+ * ## The one shape change from v1
+ *
+ * v1 echoed `row.scope` raw on the wire — `"write:content"` or
+ * `"write:trip:alps-2026"`, the internal `SESSION_SCOPE`/`tripWriteScope`
+ * vocabulary. v2 answers `describeScope()`'s translation instead: a flat
+ * `scope: "owner" | "trip"` plus `trip` when it is one, the same shape
+ * `GET /api/v2/{user}/status` puts on `token.scope`/`token.trip`. One
+ * function does the translation now, so "what can this credential do" has one
+ * answer regardless of which door asked (auth.md §3). `kind` follows the
+ * same rename the rest of this area's wire vocabulary got (`CREDENTIAL_FOR`,
+ * `"guest"/"agent"` → `"read"/"write"`, §2.1): a live `agent` session is a
+ * `"write"` key on the wire. `"handover"` keeps its own name rather than
+ * becoming a third `for` value — it was never one; it is minted and
+ * exchanged by its own pair of routes and never redeemed from a code.
  */
+
+/** `SessionKind` → the wire word for `keys[].kind`. Only `agent` and
+ * `handover` ever reach here (`live()` below filters everything else). */
+function kindOnWire(kind: "agent" | "handover"): "write" | "handover" {
+  return kind === "agent" ? "write" : "handover";
+}
 
 /**
  * Either an owner — who sees and may revoke every row — or a caller who has
@@ -59,14 +86,11 @@ async function callerEmail(user: string, request: Request): Promise<string | nul
  * **Ownership before capability, on purpose — B340.** `isOwner` answers
  * false alike for a journal that does not exist and one that exists but is
  * not this caller's, which is the property that matters: everyone who is not
- * this journal's proven owner gets the same `403`, so the shape of the
+ * this journal's proven owner gets the same `forbidden`, so the shape of the
  * refusal cannot be used to learn whether a name is a real journal (B117's
  * rule, one level up). Only once ownership is proven — which by construction
  * means the journal is real — is the capability checked, and a caller who has
- * already shown they own it is told the real reason rather than `404`: they
- * are not a stranger an existence oracle could help, and `/api/health` cannot
- * answer this for them, since a per-journal narrowing needs an operator's
- * `HEALTH_TOKEN` to read back, not an owner's own agent token.
+ * already shown they own it is told the real reason rather than a 404.
  *
  * **A non-owner is not turned away — B323.** Somebody on a trip who has
  * proved their own address may see and revoke the keys issued *to that
@@ -79,25 +103,17 @@ async function guard(user: string, request: Request): Promise<Caller | Response>
   const owner = await isOwner(user, request);
   const email = owner ? null : await callerEmail(user, request);
   if (!owner && !email) {
-    return Response.json(
-      {
-        error: "forbidden",
-        message:
-          "Sign in, or hold a key for this journal, to see or revoke the keys issued to " +
-          "your own address.",
-      },
-      { status: 403 },
+    return fail(
+      "forbidden",
+      "Sign in, or hold a key for this journal, to see or revoke the keys issued to your own address.",
     );
   }
   if (!isEnabled("auth", user)) {
-    return Response.json(
-      {
-        error: "auth_disabled",
-        message:
-          "This journal does not have sign-in switched on, so there are no keys to list or " +
-          "revoke. /api/health says which capabilities are on.",
-      },
-      { status: 409 },
+    return fail(
+      "auth_disabled",
+      ERROR_CODES.auth_disabled,
+      undefined,
+      409,
     );
   }
   return owner ? { owner: true } : { owner: false, email: email! };
@@ -110,7 +126,20 @@ function live(row: { kind: string; revokedAt: string | null; expiresAt: string }
   return new Date(row.expiresAt).getTime() > Date.now();
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v1/[user]/keys">) {
+/** `describeScope` takes a full `Session`; `listSessions` only selects the
+ * two fields it actually reads (`scope`, `expiresAt`). The smallest adapter,
+ * rather than a second copy of the `write:trip:` prefix parsing. */
+function scopeOf(row: { scope: string | null; expiresAt: string }): { scope: "owner" | "trip"; trip?: string } {
+  // A null `scope` on disk is a row minted before sessions carried one.
+  // `lookUpSession` reads that as the kind's own default (`row.scope ??
+  // SESSION_SCOPE[expected]`), so this must read it the same way — a listing
+  // that described a key differently from the way the key actually behaves
+  // would be worse than no listing.
+  const described = describeScope({ scope: row.scope ?? SESSION_SCOPE.agent, expiresAt: row.expiresAt } as Session);
+  return described.trip !== undefined ? { scope: described.scope, trip: described.trip } : { scope: described.scope };
+}
+
+export async function GET(request: Request, { params }: RouteContext<"/api/auth/[user]/keys">) {
   const { user } = await params;
   const caller = await guard(user, request);
   if (caller instanceof Response) return caller;
@@ -122,22 +151,19 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
   // enumerate anybody else's keys, including the owner's.
   const visible = caller.owner ? rows : rows.filter((row) => row.email === caller.email);
 
-  return Response.json({
+  return ok({
     user,
     keys: visible.map((row) => ({
       id: row.id,
-      kind: row.kind,
+      kind: kindOnWire(row.kind as "agent" | "handover"),
       createdAt: row.createdAt,
       expiresAt: row.expiresAt,
       // When it was last used, which is the field that tells whoever is
       // looking whether a key they have forgotten about is one somebody is
       // still holding.
       lastSeenAt: row.lastSeenAt,
-      // What it may write, in `tripWriteScope`'s own vocabulary — B323. The
-      // owner previously had no way to tell a trip-scoped buddy key apart
-      // from their own journal-wide one; a non-owner's rows are always their
-      // own, but the scope still says which trip.
-      scope: row.scope,
+      // What it may write, translated — never the raw `write:trip:…` string.
+      ...scopeOf(row),
       // The address the row belongs to. Only the owner is shown this — a
       // non-owner's list is already filtered to their own address, so
       // repeating it back would say nothing a second row could not.
@@ -156,7 +182,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
  * "revoked" for somebody else's session would be a very quiet way to break
  * another journal.
  */
-export async function POST(request: Request, { params }: RouteContext<"/api/v1/[user]/keys">) {
+export async function POST(request: Request, { params }: RouteContext<"/api/auth/[user]/keys">) {
   const { user } = await params;
   const caller = await guard(user, request);
   if (caller instanceof Response) return caller;
@@ -164,10 +190,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const id = typeof body.revoke === "string" ? body.revoke : "";
   if (!id) {
-    return Response.json(
-      { error: "invalid_request", message: 'Send {"revoke": "<key id>"}.' },
-      { status: 400 },
-    );
+    return fail("invalid_request", 'Send {"revoke": "<key id>"}.', undefined, 400);
   }
 
   // Scoped to this journal's own rows, and — for a non-owner — to their own
@@ -177,9 +200,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v1/[
   // guessing its (unguessable, but unchecked is still unchecked) id.
   const row = (await listSessions(user)).find((candidate) => candidate.id === id);
   if (!row || (!caller.owner && row.email !== caller.email)) {
-    return Response.json({ error: "unknown_key" }, { status: 404 });
+    return fail("unknown_key", ERROR_CODES.unknown_key, undefined, 404);
   }
 
   await revokeSession(id);
-  return Response.json({ ok: true, revoked: id });
+  return ok({ ok: true, revoked: id });
 }

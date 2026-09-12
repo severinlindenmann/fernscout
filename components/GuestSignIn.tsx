@@ -42,7 +42,7 @@ export default function GuestSignIn({
    *
    * Only the link needs it. Typing the six digits never leaves this page —
    * see `submitCode` — so the code has nothing to carry the destination
-   * across, and giving `/api/auth/verify` a redirect target would add a
+   * across, and giving `/api/auth/codes/redeem` a redirect target would add a
    * second attacker-controlled one for no reader at all.
    */
   destination?: string;
@@ -77,10 +77,11 @@ export default function GuestSignIn({
     setChannel(via);
     setEmail(value);
     setBusy(true);
-    await fetch("/api/auth/request", {
+    await fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        for: "read",
         user: username,
         email: value,
         destination,
@@ -102,10 +103,10 @@ export default function GuestSignIn({
     setCode(value);
     setBusy(true);
     setWrong(false);
-    const response = await fetch("/api/auth/verify", {
+    const response = await fetch("/api/auth/codes/redeem", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, email, code: value }),
+      body: JSON.stringify({ for: "read", user: username, email, code: value }),
     }).catch(() => null);
 
     if (response?.ok) {

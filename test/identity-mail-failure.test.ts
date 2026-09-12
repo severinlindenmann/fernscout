@@ -59,12 +59,12 @@ afterEach(async () => {
 });
 
 test("a mail send failure answers 503, like its two sibling code routes", async () => {
-  const { POST } = await import("@/app/api/auth/identity/request/route");
+  const { POST } = await import("@/app/api/auth/codes/route");
   const response = await POST(
-    new Request("https://example.test/api/auth/identity/request", {
+    new Request("https://example.test/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.9" },
-      body: JSON.stringify({ email: "ana@example.test" }),
+      body: JSON.stringify({ email: "ana@example.test", for: "identity" }),
     }),
   );
   const body = (await response.json()) as { error?: string };

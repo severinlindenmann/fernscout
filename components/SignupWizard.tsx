@@ -62,12 +62,13 @@ type Step =
  *
  * Wraps the existing signup API rather than inventing a second one: every
  * step below is a `fetch` to a route `/agent.md` already documents —
- * `/api/auth/signup/request`, `/api/auth/signup/verify`, `/api/v1/journals`,
- * `/api/v1/<user>/trips` — called from the browser exactly as an external
- * agent would call them, with the tokens they hand back kept only in this
- * component's own state and never written to a cookie by this component
- * itself. The one exception is the last step: `POST /api/auth/link` spends
- * the same one-press relay link the welcome mail's button spends
+ * `POST /api/auth/codes` and `/codes/redeem` (both `for: "signup"`),
+ * `/api/v1/journals`, `/api/v1/<user>/trips` — called from the browser
+ * exactly as an external agent would call them, with the tokens they hand
+ * back kept only in this component's own state and never written to a cookie
+ * by this component itself. The one exception is the last step:
+ * `POST /api/auth/links/redeem` (`for: "read"`) spends the same one-press
+ * relay link the welcome mail's button spends
  * (`components/SignInButton.tsx`), which is what turns "a journal now exists"
  * into "and you are looking at it" without a second trip through email.
  *
@@ -253,10 +254,10 @@ export default function SignupWizard({
     setEmail(value);
     setBusy(true);
     setError(null);
-    await fetch("/api/auth/signup/request", {
+    await fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: value }),
+      body: JSON.stringify({ for: "signup", email: value }),
     }).catch(() => null);
     setBusy(false);
     setStep("code");
@@ -271,9 +272,12 @@ export default function SignupWizard({
     setCode(value);
     setBusy(true);
     setError(null);
-    const result = await post("/api/auth/signup/verify", { email, code: value }, undefined, [
-      "too_many_journals",
-    ]);
+    const result = await post(
+      "/api/auth/codes/redeem",
+      { for: "signup", email, code: value },
+      undefined,
+      ["too_many_journals"],
+    );
     setBusy(false);
     if (!result) return;
     // The address is proven and already owns a journal — B1568. Said here,
@@ -331,7 +335,7 @@ export default function SignupWizard({
     setBusy(true);
     setError(null);
     setWaExpired(false);
-    const result = await post("/api/auth/signup/phone/request", {}, signupToken);
+    const result = await post("/api/auth/signup/phone", {}, signupToken);
     setBusy(false);
     if (!result) return;
     setPhoneId(result.id as string);
@@ -350,7 +354,7 @@ export default function SignupWizard({
     if (step !== "phone-wa" || !phoneId || waExpired) return;
     let done = false;
     const tick = async () => {
-      const response = await fetch("/api/auth/signup/phone/verify", {
+      const response = await fetch("/api/auth/signup/phone/redeem", {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -381,7 +385,7 @@ export default function SignupWizard({
     setBusy(true);
     setError(null);
     const result = await post(
-      "/api/auth/signup/phone/request",
+      "/api/auth/signup/phone",
       // `channel: "sms"` only when the person chose the fallback — in every
       // code mode the server's configured backend decides the delivery.
       smsChannel ? { tel: `+${telCc} ${telNational}`, channel: "sms" } : { tel: `+${telCc} ${telNational}` },
@@ -399,7 +403,7 @@ export default function SignupWizard({
     setBusy(true);
     setError(null);
     const result = await post(
-      "/api/auth/signup/phone/verify",
+      "/api/auth/signup/phone/redeem",
       { id: phoneId, code: phoneCode },
       signupToken,
       ["invalid_code"],
@@ -446,9 +450,10 @@ export default function SignupWizard({
     // everything after the last "/s/".
     const linkToken = signInUrl.split("/s/").pop() ?? "";
     const signedIn = linkToken
-      ? await post("/api/auth/link", {
+      ? await post("/api/auth/links/redeem", {
           user: journalUsername,
           token: linkToken,
+          for: "read",
         })
       : null;
     setBusy(false);

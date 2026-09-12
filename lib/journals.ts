@@ -282,9 +282,9 @@ export function createJournal(input: NewJournal): CreateJournalResult {
        */
       next:
         `If "${username}" is theirs, they do not need a new journal — they need a write ` +
-        `token for this one. POST /api/auth/request with ` +
-        `{"user": "${username}", "email": "<their address>", "kind": "agent"}, then exchange ` +
-        `the code at /api/auth/verify.`,
+        `token for this one. POST /api/auth/codes with ` +
+        `{"user": "${username}", "email": "<their address>", "for": "write"}, then exchange ` +
+        `the code at /api/auth/codes/redeem.`,
     };
   }
 
@@ -330,8 +330,8 @@ export function createJournal(input: NewJournal): CreateJournalResult {
       // caller has already proved they can read this address, and the reply
       // names the journals it owns anyway.
       next:
-        `To write to one of them instead, POST /api/auth/request with ` +
-        `{"user": "${owned[0]}", "email": "<their address>", "kind": "agent"}.`,
+        `To write to one of them instead, POST /api/auth/codes with ` +
+        `{"user": "${owned[0]}", "email": "<their address>", "for": "write"}.`,
     };
   }
 

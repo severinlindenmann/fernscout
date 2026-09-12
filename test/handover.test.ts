@@ -103,9 +103,9 @@ type IssueBody = {
 };
 
 async function issue(auth?: string): Promise<{ status: number; body: IssueBody }> {
-  const { POST } = await import("@/app/api/v1/[user]/handover/route");
+  const { POST } = await import("@/app/api/auth/[user]/handover/route");
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/handover`, {
+    new Request(`https://example.test/api/auth/${OWNER}/handover`, {
       method: "POST",
       headers: headers(auth ? { authorization: `Bearer ${auth}` } : {}),
       body: "{}",
@@ -381,9 +381,9 @@ type KeysBody = {
 };
 
 async function keys(auth?: string): Promise<{ status: number; body: KeysBody }> {
-  const { GET } = await import("@/app/api/v1/[user]/keys/route");
+  const { GET } = await import("@/app/api/auth/[user]/keys/route");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${OWNER}/keys`, {
+    new Request(`https://example.test/api/auth/${OWNER}/keys`, {
       headers: headers(auth ? { authorization: `Bearer ${auth}` } : {}),
     }),
     { params: Promise.resolve({ user: OWNER }) },
@@ -392,9 +392,9 @@ async function keys(auth?: string): Promise<{ status: number; body: KeysBody }> 
 }
 
 async function revoke(auth: string | undefined, id: string): Promise<number> {
-  const { POST } = await import("@/app/api/v1/[user]/keys/route");
+  const { POST } = await import("@/app/api/auth/[user]/keys/route");
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/keys`, {
+    new Request(`https://example.test/api/auth/${OWNER}/keys`, {
       method: "POST",
       headers: headers(auth ? { authorization: `Bearer ${auth}` } : {}),
       body: JSON.stringify({ revoke: id }),
@@ -421,7 +421,7 @@ describe("the keys that can write, and revoking one", () => {
     expect(listed.status).toBe(200);
     const mine = listed.body.keys ?? [];
     expect(mine.length).toBeGreaterThan(0);
-    expect(mine.every((k) => k.kind === "agent" || k.kind === "handover")).toBe(true);
+    expect(mine.every((k) => k.kind === "write" || k.kind === "handover")).toBe(true);
     // Never the token itself: only hashes were ever stored, and an id is all
     // revoking needs.
     expect(JSON.stringify(listed.body)).not.toContain(exchanged.body.token!);
@@ -556,9 +556,9 @@ describe("the keys that can write, and revoking one", () => {
       // There is no `?email=` this route reads at all — the filter is the
       // session's own address, from the server, never the request. Passing
       // the owner's address as a query string changes nothing.
-      const { GET } = await import("@/app/api/v1/[user]/keys/route");
+      const { GET } = await import("@/app/api/auth/[user]/keys/route");
       const response = await GET(
-        new Request(`https://example.test/api/v1/${OWNER}/keys?email=${OWNER_EMAIL}`, {
+        new Request(`https://example.test/api/auth/${OWNER}/keys?email=${OWNER_EMAIL}`, {
           headers: headers({ authorization: `Bearer ${await tripAgentToken(ROBIN, "asia-2026")}` }),
         }),
         { params: Promise.resolve({ user: OWNER }) },
@@ -608,9 +608,9 @@ describe("the keys that can write, and revoking one", () => {
   });
 
   test("a request with no id at all is a bad request", async () => {
-    const { POST } = await import("@/app/api/v1/[user]/keys/route");
+    const { POST } = await import("@/app/api/auth/[user]/keys/route");
     const response = await POST(
-      new Request(`https://example.test/api/v1/${OWNER}/keys`, {
+      new Request(`https://example.test/api/auth/${OWNER}/keys`, {
         method: "POST",
         headers: headers({ authorization: `Bearer ${await ownerAgentToken()}` }),
         body: "{}",

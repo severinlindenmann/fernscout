@@ -9,6 +9,18 @@ export { instanceStatus, journalStatus } from "./status";
 export { figureDoc, journalFigures, tripFigures } from "./figures";
 export type { FigureDoc } from "./figures";
 export { errorEnvelope, incompleteDetails, declineReason } from "./shared";
+export {
+  CREDENTIAL_FOR,
+  CREDENTIAL_TO_SESSION_KIND,
+  codesRequest,
+  codesRequestResponse,
+  codesRedeemRequest,
+  codesRedeemCookieResponse,
+  codesRedeemTokenResponse,
+  linksRedeemRequest,
+  linksRedeemResponse,
+} from "./auth";
+export type { CredentialFor, CodesRequest, CodesRedeemRequest, LinksRedeemRequest } from "./auth";
 export type { DayWrite } from "./day";
 export type { TripCreate } from "./trip";
 export type { JournalDoc } from "./journal";

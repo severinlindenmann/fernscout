@@ -3,8 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { POST as journalsPOST } from "@/app/api/v1/journals/route";
-import { POST as phoneRequestPOST } from "@/app/api/auth/signup/phone/request/route";
-import { POST as phoneVerifyPOST } from "@/app/api/auth/signup/phone/verify/route";
+import { POST as phoneRequestPOST } from "@/app/api/auth/signup/phone/route";
+import { POST as phoneVerifyPOST } from "@/app/api/auth/signup/phone/redeem/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -59,7 +59,7 @@ async function signupToken(email: string): Promise<string> {
 
 function phoneRequest(token: string, tel: string) {
   return phoneRequestPOST(
-    new Request("https://example.test/api/auth/signup/phone/request", {
+    new Request("https://example.test/api/auth/signup/phone", {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: JSON.stringify({ tel }),
@@ -69,7 +69,7 @@ function phoneRequest(token: string, tel: string) {
 
 function phoneVerify(token: string, id: string, code: string) {
   return phoneVerifyPOST(
-    new Request("https://example.test/api/auth/signup/phone/verify", {
+    new Request("https://example.test/api/auth/signup/phone/redeem", {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: JSON.stringify({ id, code }),

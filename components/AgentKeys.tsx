@@ -21,7 +21,7 @@ import { useI18n } from "./LocaleProvider";
 
 type Key = {
   id: string;
-  kind: "agent" | "handover";
+  kind: "write" | "handover";
   createdAt: string;
   expiresAt: string;
   lastSeenAt: string | null;
@@ -51,7 +51,7 @@ export default function AgentKeys({
   /** Reads the list. Returns it rather than setting state, so the effect below
    * can drop an answer that arrived too late — see the comment there. */
   const fetchKeys = useCallback(async (): Promise<Key[]> => {
-    const response = await fetch(`/api/v1/${username}/keys`).catch(() => null);
+    const response = await fetch(`/api/auth/${username}/keys`).catch(() => null);
     // A journal with sign-in off answers 404 here, which is not an error to
     // report — it is a page with nothing to show.
     if (!response?.ok) return [];
@@ -78,7 +78,7 @@ export default function AgentKeys({
 
   async function revoke(id: string) {
     setBusy(id);
-    await fetch(`/api/v1/${username}/keys`, {
+    await fetch(`/api/auth/${username}/keys`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ revoke: id }),

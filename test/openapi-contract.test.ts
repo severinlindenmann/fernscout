@@ -100,7 +100,6 @@ const OUT_OF_SCOPE_PREFIXES = [
   // gate an agent passes through. Documenting them here would invite an agent
   // to call something it cannot authenticate with, and cannot use if it did.
   "/api/auth/identity",
-  "/api/auth/link",
   "/api/auth/logout",
   "/api/v1/me", // the reader's own devices and home, identity cookie only
 ];

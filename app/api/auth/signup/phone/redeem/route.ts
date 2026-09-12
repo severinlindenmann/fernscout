@@ -3,6 +3,8 @@ import { isEnabled } from "@/lib/capabilities";
 import { checkVerification } from "@/lib/phoneVerify";
 import { pollPhoneLink } from "@/lib/phoneVerify/inboundLink";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { fail, ok } from "@/lib/api/v2/route";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +13,14 @@ export const dynamic = "force-dynamic";
  * session — B1065. `POST /api/v1/journals` reads it off the session
  * (`phone`/`phoneProvenAt`) rather than trusting a number the create request
  * could simply assert.
+ *
+ * Renamed from `/api/auth/signup/phone/verify` for v2
+ * (`docs/plans/2026-09-12-api-v2/auth.md` §2.6), to match `codes/redeem`'s
+ * naming — behaviour unchanged.
  */
 export async function POST(request: Request) {
   if (!isEnabled("signup")) {
-    return Response.json({ error: "signup_disabled" }, { status: 404 });
+    return fail("signup_disabled", ERROR_CODES.signup_disabled, undefined, 404);
   }
 
   const limit = rateLimitFor("phone-verify-check", clientIp(request), {
@@ -22,27 +28,28 @@ export async function POST(request: Request) {
     windowMs: 15 * 60 * 1000,
   });
   if (!limit.ok) {
-    return Response.json(
-      { error: "too_many_requests", retryAfter: limit.retryAfter },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+    const response = fail(
+      "too_many_requests",
+      ERROR_CODES.too_many_requests,
+      { retryAfter: limit.retryAfter },
+      429,
     );
+    response.headers.set("Retry-After", String(limit.retryAfter));
+    return response;
   }
 
   const header = request.headers.get("authorization") ?? "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   const session = match ? await resolveSession(match[1].trim(), "signup") : null;
   if (!session || session.owner !== NO_JOURNAL) {
-    return Response.json({ error: "invalid_token" }, { status: 401 });
+    return fail("invalid_token", ERROR_CODES.invalid_token, undefined, 401);
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const id = typeof body.id === "string" ? body.id : "";
   const code = typeof body.code === "string" ? body.code : "";
   if (!id) {
-    return Response.json(
-      { error: "invalid_request", message: '"id" (from the request step) is required.' },
-      { status: 400 },
-    );
+    return fail("invalid_request", '"id" (from the request step) is required.', undefined, 400);
   }
 
   /**
@@ -53,9 +60,9 @@ export async function POST(request: Request) {
    */
   if (!code) {
     const poll = await pollPhoneLink(id, session.id);
-    if (poll.status !== "ok") return Response.json({ status: poll.status });
+    if (poll.status !== "ok") return ok({ status: poll.status });
     await markPhoneProven(session.id, poll.phone, "whatsapp-inbound");
-    return Response.json({
+    return ok({
       ok: true,
       tel: poll.phone,
       next: "POST /api/v1/journals — the proven number is attached to this token automatically.",
@@ -67,7 +74,7 @@ export async function POST(request: Request) {
     // One shape for every failure — the same discipline every code in this
     // codebase follows, so a caller cannot tell "wrong digits" from
     // "expired" from a burned id by probing.
-    return Response.json({ error: "invalid_code" }, { status: 401 });
+    return fail("invalid_code", ERROR_CODES.invalid_code, undefined, 401);
   }
 
   // "sms" is the word for every code backend (see owner.telProvenMethod in
@@ -75,7 +82,7 @@ export async function POST(request: Request) {
   // the code genuinely did arrive by SMS.
   await markPhoneProven(session.id, result.phone, "sms");
 
-  return Response.json({
+  return ok({
     ok: true,
     tel: result.phone,
     next: "POST /api/v1/journals — the proven number is attached to this token automatically.",
