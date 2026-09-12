@@ -470,6 +470,38 @@ describe("what a journal says about itself", () => {
     const body = (await response.json()) as { journal: Record<string, unknown> };
     expect(body.journal).toMatchObject({ title: "Ana", baseCurrency: "CHF", visibility: "public" });
   });
+
+  /**
+   * B1504 — the read that makes the refusal honest.
+   *
+   * `media` is refused by `PATCH` on purpose and that is not in question. What
+   * was missing is that a client syncing a local `config.json` up had no way
+   * to tell whether the block in the folder was the one the site is running
+   * under, so a person who edited it got a clean run and a line that never
+   * arrived. The assertion is on the journal's *own* narrowing rather than on
+   * the shipped defaults: the two are only distinguishable when the journal
+   * asked for something smaller, which is exactly the case a diff has to see.
+   */
+  test("GET reads back this journal's own media block, narrowed below the server's", async () => {
+    writeUserConfig({ media: { imageBytes: 1_000_000, itemsPerDay: 3 } });
+    const { GET } = await import("@/app/api/v1/[user]/config/route");
+    const response = await GET(
+      new Request(`${SITE}/api/v1/ana/config`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      { params: Promise.resolve({ user: "ana" }) },
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as {
+      journal: { media?: Record<string, number>; baseCurrency?: string };
+      owner: Record<string, unknown>;
+    };
+    expect(body.journal.media).toMatchObject({ imageBytes: 1_000_000, itemsPerDay: 3 });
+    // The address stays out — reading a journal's config is not permission to
+    // collect its owner's email, and the whole point of the scope line the
+    // client prints is that this one field can never be compared.
+    expect(body.owner).not.toHaveProperty("email");
+  });
 });
 
 /**

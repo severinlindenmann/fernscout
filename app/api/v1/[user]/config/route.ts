@@ -135,6 +135,13 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
      * `displayCurrencies` has to know the base currency it must contain, and
      * `baseCurrency` is not writable: without this the only way to learn it
      * would be to guess and be refused.
+     *
+     * `media` is here for the same reason and a different caller — B1504. A
+     * client syncing a local `content/<user>/config.json` up to the site
+     * cannot send that block, correctly, and until it could *read* it the
+     * person who edited it got a run reporting success and a line that never
+     * arrived. `/api/health` answers the server's ceiling, which is a
+     * different question from what this journal narrowed itself to.
      */
     journal: journalProfile(config),
     /**

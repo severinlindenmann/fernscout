@@ -4458,8 +4458,13 @@ export function openApiDocument() {
             "200": {
               description:
                 "One boolean per capability under `features`, and the writable half of " +
-                "config.json under `journal` — including the `baseCurrency` a " +
-                "`displayCurrencies` must contain",
+                "config.json under `journal` — plus the two read-only fields a caller " +
+                "needs and cannot otherwise learn: the `baseCurrency` a " +
+                "`displayCurrencies` must contain, and the `media` block this journal " +
+                "actually runs under, so a client syncing a folder up can tell whether " +
+                "its local copy differs (B1504). `owner.email` is deliberately not here: " +
+                "a token that reads a journal's config is not permission to collect its " +
+                "owner's address.",
             },
             "401": { description: "Missing or invalid token" },
             "403": { description: "The token belongs to a different journal" },
