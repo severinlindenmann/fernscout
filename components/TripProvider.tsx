@@ -45,6 +45,24 @@ type Ctx = {
    * at all rather than one to a reader who has not earned it.
    */
   reader: ReaderLevel;
+  /**
+   * Whether the journal is this reader's — B1585.
+   *
+   * The third piece of viewer state here, and it is here for the reason the
+   * two above are: the visibility controls hang off a day's heading, a
+   * photograph's corner and the hero, which is three more components that
+   * would otherwise be threaded a boolean they have no other use for.
+   *
+   * **Not `canPublish`, though they are the same value.** `GalleryGrid`'s own
+   * comment made this argument before this field existed: `canPublish` means
+   * "may you put a draft on the site", and borrowing it for "is this yours"
+   * is how one field ends up answering two questions and then has to stop.
+   * `readFor` returns both, from one `isOwner` call.
+   *
+   * Defaults to false, so a page that forgets it shows a reader's badges
+   * rather than an owner's controls.
+   */
+  owner: boolean;
 };
 
 const TripContext = createContext<Ctx | null>(null);
@@ -54,6 +72,7 @@ export default function TripProvider({
   isCurrent,
   canPublish = false,
   reader = "public",
+  owner = false,
   children,
 }: {
   trip: Trip;
@@ -62,6 +81,8 @@ export default function TripProvider({
   canPublish?: boolean;
   /** See `Ctx.reader`. Omitted on a page that shows no gallery. */
   reader?: ReaderLevel;
+  /** See `Ctx.owner`. Omitted on a page that draws no visibility control. */
+  owner?: boolean;
   children: React.ReactNode;
 }) {
   const value = useMemo<Ctx>(() => {
@@ -75,6 +96,7 @@ export default function TripProvider({
       isCurrent,
       canPublish,
       reader,
+      owner,
       base,
       userBase,
       // "/" is the story page, whose URL is the base itself — so it must not
@@ -83,7 +105,7 @@ export default function TripProvider({
       /** For pages that belong to the user rather than to one trip. */
       userHref: (path: string) => (path === "/" ? userBase : `${userBase}${path}`),
     };
-  }, [trip, isCurrent, canPublish, reader]);
+  }, [trip, isCurrent, canPublish, reader, owner]);
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;
 }

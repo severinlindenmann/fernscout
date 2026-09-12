@@ -6,10 +6,9 @@ import { Trash2 } from "lucide-react";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
 import { useI18n } from "./LocaleProvider";
-import { useTrip } from "./TripProvider";
 import FullPhoto from "./FullPhoto";
 import Lightbox from "./Lightbox";
-import PhotoVisibilityBadge from "./PhotoVisibilityBadge";
+import { PhotoBadge } from "./Visibility";
 import type { GalleryItem } from "@/lib/types";
 
 // Alternating tilt gives the polaroid grid a scattered, hand-placed feel
@@ -34,10 +33,6 @@ export default function Gallery({
   onRemove?: (src: string) => void;
 }) {
   const { t } = useI18n();
-  // Null outside a `TripProvider` (there is no such caller today), and the
-  // marker only ever shows to a reader `readFor` has already proved is on
-  // the trip or the owner — see `PhotoVisibilityBadge`.
-  const reader = useTrip()?.reader;
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const close = useCallback(() => setOpenIndex(null), []);
@@ -102,7 +97,7 @@ export default function Gallery({
                   ▶
                 </span>
               )}
-              <PhotoVisibilityBadge visibility={item.visibility} reader={reader} />
+              <PhotoBadge own={item.visibility} />
             </span>
             {item.caption && (
               <span

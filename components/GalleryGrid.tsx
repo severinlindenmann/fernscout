@@ -7,10 +7,9 @@ import { motion } from "motion/react";
 import type { MediaTile, PostcardEntry } from "@/lib/types";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
-import { useTrip } from "./TripProvider";
 import FullPhoto from "./FullPhoto";
 import Lightbox from "./Lightbox";
-import PhotoVisibilityBadge from "./PhotoVisibilityBadge";
+import { PhotoBadge } from "./Visibility";
 import PostcardSheet from "./PostcardSheet";
 import { Send } from "lucide-react";
 
@@ -33,7 +32,10 @@ const BATCH = 60;
  * It is a prop of its own rather than the `canPublish` already riding in
  * `TripProvider`. That one happens to equal `isOwner` today
  * (`lib/tripGate.ts:126`) and means something else — reusing it is how two
- * questions end up sharing one answer and then need to stop.
+ * questions end up sharing one answer and then need to stop. B1585 took that
+ * argument and added a third field, `owner`, rather than borrowing either;
+ * `postcard` is still not it, since a journal can own a trip and have
+ * postcards switched off.
  */
 export default function GalleryGrid({
   media,
@@ -49,9 +51,6 @@ export default function GalleryGrid({
   onPicked?: () => void;
 }) {
   const { t, formatShortDate } = useI18n();
-  // Null outside a `TripProvider` (there is no such caller today) — see the
-  // note on `PhotoVisibilityBadge`.
-  const reader = useTrip()?.reader;
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [composing, setComposing] = useState<MediaTile | null>(null);
   const [place, setPlace] = useState<string>("all");
@@ -174,7 +173,7 @@ export default function GalleryGrid({
                   ▶
                 </span>
               )}
-              <PhotoVisibilityBadge visibility={tile.visibility} reader={reader} />
+              <PhotoBadge own={tile.visibility} />
             </span>
             <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-900/80 to-transparent px-2.5 py-2 text-left">
               {/* `aria-hidden` because the image's alt already carries it — see
