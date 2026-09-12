@@ -328,18 +328,18 @@ describe("logV2Request", () => {
 
 describe("V2_ONLY_CODES", () => {
   /**
-   * The contract's IOU, asserted rather than only commented. These two codes
-   * are what v2's plumbing answers with and the published vocabulary does not
-   * yet carry, because `test/openapi-contract.test.ts` fails on a code no
-   * route answers and no v2 route exists yet. When the first route answering
-   * them ships (phase 2 step 3), they move into `ERROR_CODES` and this list
-   * empties — at which point this test is what says so out loud.
+   * The contract's IOU, paid — B1608, phase 2 step 3. `incomplete` and
+   * `stale_document` were the two codes v2's plumbing answered with ahead of
+   * the published vocabulary, because `test/openapi-contract.test.ts` fails
+   * on a code no route answers and no v2 route existed yet to answer either
+   * one. `app/api/v2/[user]/route.ts`'s `PATCH` is the first route that does,
+   * so both are in `ERROR_CODES` now and this list is empty — asserted
+   * rather than only left as a comment, so the next code that genuinely needs
+   * the same IOU treatment does not find this test still expecting the old
+   * two.
    */
-  it("names codes that are deliberately not in ERROR_CODES yet", () => {
-    expect(V2_ONLY_CODES.length).toBeGreaterThan(0);
-    for (const code of V2_ONLY_CODES) {
-      expect(code in ERROR_CODES).toBe(false);
-    }
+  it("is empty now that a route answers both codes it used to carry", () => {
+    expect(V2_ONLY_CODES.length).toBe(0);
   });
 
   it("every code the status map knows is either published or on the IOU", () => {

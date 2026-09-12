@@ -62,6 +62,20 @@ the codebase somewhere; if not leave it out"*. It is needed.
 **Drift:** a widening, and the narrowest one that makes the document
 writable.
 
+### D5 — `JOURNAL_DECLINABLES` exported from `journal.ts`
+**What:** `const JOURNAL_DECLINABLES` → `export const JOURNAL_DECLINABLES`. No
+change to its contents or to any accepted document.
+**Why:** phase 2 step 3 (B1608) builds the shared write path
+(`lib/api/v2/write.ts`) that owns T6 decline retraction — a write supplying a
+field named in the document's *stored* `declined` map clears that entry, which
+a stateless schema check cannot do because it only ever sees one call. That
+function needs the list of field names a journal's `declined` map may hold
+(`tagline`, `figures`), and a second, hand-typed `["tagline", "figures"]`
+beside this one is the same list-in-two-places failure D1 already fixed for
+`costItem` — the day and trip schemas already export their own
+(`DAY_DECLINABLES`, `TRIP_DECLINABLES`); this was the one left private.
+**Drift:** none. The wire is byte-identical before and after.
+
 ### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
 **What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
 any field, message or accepted document.

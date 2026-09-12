@@ -8,16 +8,15 @@ import { ERROR_CODES } from "../errorCodes";
 import { formatV2RequestLine } from "../../requestLog";
 
 /**
- * ponytail: these two codes are not yet in `ERROR_CODES`
- * (lib/api/errorCodes.ts). `test/openapi-contract.test.ts` fails on a code
- * that is here and answered by no route, and no v2 route exists yet to
- * answer either one — adding them now would be a red test with nothing to
- * point at. Add both to `ERROR_CODES` in the build step that ships the
- * first route actually answering them (phase 2 step 3 of the migration).
- * Until then this list is the contract's IOU: it is what `fail()` below is
- * allowed to send, ahead of what the published vocabulary allows.
+ * The IOU paid — B1608, phase 2 step 3. `incomplete` and `stale_document`
+ * were deliberately absent from `lib/api/errorCodes.ts` until a route
+ * existed to answer them (`test/openapi-contract.test.ts` fails on a code
+ * that is here and answered by no route); `app/api/v2/[user]/route.ts`'s
+ * `PATCH` is the first, so both are in `ERROR_CODES` now and this list is
+ * empty. `test/api-v2-route.test.ts`'s `V2_ONLY_CODES` suite asserts the
+ * emptiness rather than only leaving the comment to say so.
  */
-export const V2_ONLY_CODES = ["incomplete", "stale_document"] as const;
+export const V2_ONLY_CODES = [] as const;
 
 export type V2ErrorCode = keyof typeof ERROR_CODES | (typeof V2_ONLY_CODES)[number];
 

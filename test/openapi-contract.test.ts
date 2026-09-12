@@ -410,7 +410,16 @@ describe("every error code a route answers with is published", () => {
    * below: a code can reach a caller through a variable, and asking whether
    * the word appears at all is the honest question in that direction. */
   const spoken = new Set<string>();
-  for (const file of [...routeFiles("app/api/v1"), ...routeFiles("app/api/auth"), ...SPEAKS_TO_CALLERS]) {
+  for (const file of [
+    ...routeFiles("app/api/v1"),
+    ...routeFiles("app/api/auth"),
+    // B1608: v2 routes answer with `incomplete` and `stale_document`, which
+    // no v1 route or SPEAKS_TO_CALLERS module ever does — without this,
+    // "documented and never returned" would flag both as dead the moment
+    // they left `V2_ONLY_CODES` and joined `ERROR_CODES` for real.
+    ...routeFiles("app/api/v2"),
+    ...SPEAKS_TO_CALLERS,
+  ]) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/error:\s*"([a-z_]+)"/g)) answered.add(match[1]);
     for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);

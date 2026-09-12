@@ -161,4 +161,8 @@ export const ERROR_CODES = {
   model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
   address_lookup_disabled:
     "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
+
+  // ── v2 only ─────────────────────────────────────────────────────────────
+  incomplete: "The document is missing an answer to something this journal keeps track of. `details.missing` lists every open section at once — each with why it is asked, a schema excerpt of what to send, and how to decline it instead. Ask the person; never invent a value to get past this.",
+  stale_document: "The `If-Match` you sent does not cover the document as it stands now — somebody else wrote it since you last read it. `details` carries the current document; read it, decide what still applies, and send your change again against it.",
 } as const satisfies Record<string, string>;

@@ -12,7 +12,13 @@ import { z } from "zod";
 import { journalFigures } from "./figures";
 import { checkRequiredOrDeclined, declinedMap, type Declinable } from "./shared";
 
-const JOURNAL_DECLINABLES: readonly Declinable[] = [
+/** Exported for the shared write path (`lib/api/v2/write.ts`) — B1608, D5 in
+ * `docs/v2-migration/06-contract-deltas.md`. T6 decline retraction needs the
+ * list of field names a document's `declined` map may name, and a second,
+ * hand-typed copy of `["tagline", "figures"]` there is a list that
+ * disagrees with this one within a month, the same reasoning D1 already
+ * applied to `costItem`. */
+export const JOURNAL_DECLINABLES: readonly Declinable[] = [
   {
     field: "tagline",
     whyRequired: "the line under the journal's title on its landing page, or a reason it has none",
