@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (221)
+## backlog (220)
 
 ### security (4)
 
@@ -162,7 +162,7 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (9)
+### chore (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -174,7 +174,6 @@ Do not edit them by hand; run the script.
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
 | [B1453](backlog/chore/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
 | [B1473](backlog/chore/B1473-twenty-three-photobook-print-strings-lost.md) | Twenty-three photobook print strings lost their reader in B1428 and are still shipped in three languages | CHORE | low | low |
-| [B1546](backlog/chore/B1546-roadmap-page-shows-stale-data-and.md) | Roadmap page shows stale data and is hard to scan | CHORE | low | low |
 
 ### ops (14)
 
@@ -317,7 +316,7 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (9)
+## open (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -329,6 +328,7 @@ Do not edit them by hand; run the script.
 | [B1573](open/B1573-the-room-s-preview-and-verlauf.md) | The room's preview and Verlauf > Tage only ever show the newest trip | FEATURE | medium | medium |
 | [B1574](open/B1574-agent-and-handover-keys-are-listed.md) | Agent and handover keys are listed inside Guthaben, which is not about money | ISSUE | medium | low |
 | [B1576](open/B1576-tapping-a-choose-block-option-fills.md) | Tapping a choose-block option fills the field and raises the keyboard instead of sending | ISSUE | medium | low |
+| [B1546](open/B1546-roadmap-page-shows-stale-data-and.md) | Roadmap page shows stale data and is hard to scan | CHORE | low | low |
 | [B1575](open/B1575-the-dateien-tab-s-upload-control.md) | The Dateien tab's upload control sits below every file, out of reach on a long list | ISSUE | low | low |
 
 ## in-development (8)
