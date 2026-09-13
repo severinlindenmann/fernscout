@@ -6,7 +6,13 @@ import type { ZodType } from "zod";
 import { dayWrite, dayPatch, dayDoc, daySlug, DAY_DECLINABLES } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
-import { DAY_IMMUTABLE_FIELDS, checkTranslations, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
+import {
+  DAY_IMMUTABLE_FIELDS,
+  checkTranslations,
+  clearDeclinedSections,
+  retractDeclines,
+  stripEchoedFields,
+} from "@/lib/api/v2/write";
 import { resolveBearer, ownsUser, outOfScopeRefusal } from "@/lib/api/v2/auth";
 import { mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -260,6 +266,11 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   const merged: Record<string, unknown> = { ...storedWritable, ...patch };
   if (Object.keys(declinedMerged).length > 0) merged.declined = declinedMerged;
   else delete merged.declined;
+
+  // B1631 — T6's mirror: a section this patch DECLINES loses its stored
+  // value in the same call, so the merged document is never asked to hold
+  // both at once.
+  clearDeclinedSections(merged, patch.declined as Record<string, string> | undefined);
 
   const finalParsed = dayWrite.safeParse(merged);
   if (!finalParsed.success) {

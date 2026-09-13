@@ -49,13 +49,16 @@ async function payRoute(user: string, id: string, body: Record<string, unknown>)
 /** The token moved from a body field to a path segment — B1622 — so this
  *  takes it separately rather than inside `body`. */
 async function approveRoute(user: string, id: string, token: string) {
-  const { POST } = await import("@/app/api/web/[user]/purchases/[id]/approve/[token]/route");
+  const { POST } = await import("@/app/api/web/[user]/purchases/[id]/approve/route");
+  // The token is a body field, not a path segment — B1636. A URL reaches the
+  // access log and `Referer`; this one grants credits.
   const r = await POST(
-    new Request(`https://example.test/api/web/${user}/purchases/${id}/approve/${token}`, {
+    new Request(`https://example.test/api/web/${user}/purchases/${id}/approve`, {
       method: "POST",
-      headers: ip(),
+      headers: { ...ip(), "content-type": "application/json" },
+      body: JSON.stringify({ token }),
     }),
-    { params: Promise.resolve({ user, id, token }) },
+    { params: Promise.resolve({ user, id }) },
   );
   return { status: r.status, body: (await r.json()) as Record<string, unknown> };
 }

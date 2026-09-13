@@ -914,20 +914,26 @@ describe("the eleventh field, translations", () => {
     const missing = (refused.body.details as { missing: { field: string }[] }).missing;
     expect(missing.map((m) => m.field)).toContain("translations.de");
 
-    // Declining it instead is refused too, and that is B1632 rather than
-    // anything this test should paper over: the trip already HAS a
-    // translations block, so the merged document carries both the value and
-    // the decline, and `checkRequiredOrDeclined` refuses the pair. T6 says
-    // supplying a section retracts its decline; the symmetric rule —
-    // declining a section removes its value — was never built, so a section
-    // with a value cannot be declined at all.
+    // Declining it instead succeeds (B1631 — T6's mirror): the trip already
+    // HAS a translations block, but a patch that declines a section now
+    // removes that section's stored value in the same call, so the merged
+    // document never has to hold both.
     const declined = await patchTripV2(
       tripId,
       { declined: { translations: "this trip is only ever read in English" } },
       token,
     );
-    expect(declined.status, JSON.stringify(declined.body)).toBe(400);
-    expect((declined.body.details as { field: string }[])[0].field).toBe("translations");
+    expect(declined.status, JSON.stringify(declined.body)).toBe(200);
+    expect(declined.body.translations).toBeUndefined();
+    expect((declined.body.declined as Record<string, string>).translations).toBe(
+      "this trip is only ever read in English",
+    );
+
+    const read = await getTripV2(tripId, token);
+    expect(read.body.translations).toBeUndefined();
+    expect((read.body.declined as Record<string, string>).translations).toBe(
+      "this trip is only ever read in English",
+    );
   });
 
   /**

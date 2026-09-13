@@ -30,10 +30,13 @@ export default function ApproveButton({
 
   async function approve() {
     setState("busy");
-    const response = await fetch(
-      `/api/web/${username}/purchases/${paymentId}/approve/${token}`,
-      { method: "POST" },
-    ).catch(() => null);
+    // The token goes in the body, never the URL — B1636. A URL reaches the
+    // access log, the proxy log and `Referer`; this one grants credits.
+    const response = await fetch(`/api/web/${username}/purchases/${paymentId}/approve`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token }),
+    }).catch(() => null);
     setState(response?.ok ? "done" : "failed");
   }
 

@@ -33,6 +33,7 @@ import {
 } from "../../validate/media";
 import { listDrafts } from "../entries";
 import { writableTrips } from "../auth";
+import { v2Slug } from "./days";
 import { MEDIA_KINDS } from "./schemas/media";
 import type { InstanceStatus, JournalStatus } from "./schemas/status";
 
@@ -98,8 +99,17 @@ export function buildInstanceStatus(): InstanceStatus {
  */
 export async function buildJournalStatus(user: string, session: Session): Promise<JournalStatus> {
   const trips = await writableTrips(session, getTrips(user));
+  // B1633 — `listDrafts` (v1) hands back the bare slug; v2 addresses a day
+  // by its whole filename stem. `v2Slug` converts at this boundary so a
+  // slug taken straight out of the drafts list is one `GET .../days/{slug}`
+  // can actually find, rather than the obvious-and-wrong thing to send.
   const drafts = trips.flatMap((trip) =>
-    listDrafts(trip.ref).map((d) => ({ trip: trip.id, slug: d.slug, title: d.title, ...(d.test ? { test: d.test } : {}) })),
+    listDrafts(trip.ref).map((d) => ({
+      trip: trip.id,
+      slug: v2Slug(d.date, d.slug),
+      title: d.title,
+      ...(d.test ? { test: d.test } : {}),
+    })),
   );
   const storage = await storageFor(user);
   const inbox = listInbox(user);
