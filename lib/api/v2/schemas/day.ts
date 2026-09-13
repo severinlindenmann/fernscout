@@ -1,6 +1,8 @@
 // A day, as v2 speaks it — B1587, phase 0.
 //
-// Storage stays markdown; this is the wire shape only. Field vocabulary is
+// Storage moved to JSON alongside the wire shape (B1606); this schema is
+// still the wire contract, not the on-disk format, in case the two diverge
+// again. Field vocabulary is
 // v1's (lib/validate/entry.ts) — v2 changes how omission is handled, not what
 // a day is. v1's per-field decline encodings (`costs: false`, `"unknown"`,
 // `coordinates: false`, `photos: false` — B531/B560) are retired: the

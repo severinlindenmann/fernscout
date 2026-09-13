@@ -4,6 +4,7 @@ import { serverSite } from "../../site";
 import { getDefaultUsername, listedUsernames } from "../../users";
 import { ERROR_CODES } from "../errorCodes";
 import { V2_ONLY_CODES } from "./route";
+import { REMINDER_CHANNELS } from "../../tripWrite";
 import type { Declinable } from "./schemas/shared";
 import {
   dayDoc,
@@ -388,7 +389,7 @@ const dayPublished = z.strictObject({
   whatsapp: z.record(z.string(), z.unknown()).optional(),
   notify: z
     .strictObject({
-      channels: z.array(z.strictObject({ channel: z.enum(["mail", "whatsapp"]), url: z.string() })),
+      channels: z.array(z.strictObject({ channel: z.enum(REMINDER_CHANNELS), url: z.string() })),
       ask: z.string(),
     })
     .optional(),

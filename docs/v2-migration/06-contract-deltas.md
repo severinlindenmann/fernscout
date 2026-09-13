@@ -421,11 +421,13 @@ covers `lib/api/errorCodes.ts`.
   rather than annotated. The annotation widened `keyof typeof ERROR_CODES` to
   `string`, so `fail("invalid_reqest", …)` compiled and answered with a word
   no document defines. Keys only; no code added or removed.
-- `incomplete` and `stale_document` are answered by v2's plumbing and are
-  **not yet** in `ERROR_CODES`, because `test/openapi-contract.test.ts` fails
-  on a code no route answers. `V2_ONLY_CODES` in `lib/api/v2/route.ts` is the
-  IOU, and the step that ships the first route answering them adds them and
-  empties the list. A test asserts the invariant in both directions.
+- `incomplete` and `stale_document` were once answered by v2's plumbing while
+  still absent from `ERROR_CODES`, with `V2_ONLY_CODES` in `lib/api/v2/route.ts`
+  standing as the IOU until the first route answering them shipped and emptied
+  it. That has since happened: both codes are defined in `lib/api/errorCodes.ts`,
+  many routes answer them, and `V2_ONLY_CODES` is `[] as const` — the IOU is
+  paid, by the ledger's own stated rule. A test asserts the invariant in both
+  directions.
 - The **on-disk file format** is not the contract. It changed wholesale (a
   day's frontmatter is now `dayDoc` minus the filename and the body) under the
   owner's decision of 2026-09-12 that breaking changes to storage are allowed
@@ -545,20 +547,20 @@ read route and `deleteMediaV2` already use) — an `inbox:` src, one naming a
 different trip, or one that simply does not exist is refused with
 `not_this_trip` rather than written as a dangling reference.
 
-**A known gap this does not close.** `app/[user]/media/[...path]/route.ts`'s
-per-photograph visibility check (`labelOf`) reads a trip's photographs by
-scanning v1 markdown entries (`getAllEntries`/`getEntryBySlug`,
-`lib/entries.ts`) — it has no knowledge of a v2 JSON day's own `media` array
-at all yet. So a photograph attached through this door with
-`visibility: "private"` is stored faithfully and read back correctly by
-every v2 route, but the file-serving route does not yet enforce that label
-for a day that exists only as a v2 document — it falls through to "no label
-found" and is served to anyone who can already read the trip. This is not
-new: it is true of every v2 day's `media` today, predates this ticket, and
-is squarely inside the read-layer replay B1598 already tracks as its own
-piece of work (`lib/api/v2/store.ts`'s own header says as much). Flagged
-here rather than silently left implicit, and captured as its own backlog
-item (see the run's own report) rather than folded into this one.
+**A gap this section once flagged, closed since.** This originally read as an
+open gap: `app/[user]/media/[...path]/route.ts`'s per-photograph visibility
+check (`labelOf`) was said to read a trip's photographs by scanning v1
+markdown entries only, with no knowledge of a v2 JSON day's own `media`
+array — so a `visibility: "private"` photograph attached through this door
+would be stored correctly but served to anyone who could already read the
+trip. That was true when this entry was written, but B1598's read-layer
+replay landed since: `lib/entries.ts`'s `readAllEntries` now reads `.json`
+day files directly, and `labelOf` goes through that same function, so it
+enforces v2 media visibility correctly for a day that exists only as a v2
+document. `test/entry-visibility.test.ts` (47 passing) is the check; a prior
+reviewer's wont-do ticket B1662 found the same thing independently and closed
+it as no longer live. Left here, corrected, rather than deleted, so a later
+reader does not re-litigate a question two reviewers have already closed.
 
 ### D21 — `schemas/ownerTel.ts` (new file), and no direct write
 
