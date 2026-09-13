@@ -278,6 +278,103 @@ describe("the signup wizard", () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  /**
+   * B1674 — the trip step used to `POST /api/v1/<user>/trips`, a route the
+   * v2 migration deleted; this asserts the door it actually calls now
+   * (`PUT /api/v2/<user>/trips/<id>`) so a regression back to v1 fails a
+   * test rather than only a browser nobody opened. It also drives every
+   * section `TRIP_DECLINABLES` asks about (owner decision, B1674: "ask
+   * everything during signup") and checks that a genuine "no" is sent as a
+   * real, non-empty `declined` reason — never a silently omitted field.
+   */
+  test("the trip step PUTs a full v2 document, not a v1 create", async () => {
+    const responses: Array<{ ok: boolean; json: () => Promise<unknown> }> = [
+      { ok: true, json: async () => ({ status: "accepted" }) }, // codes
+      { ok: true, json: async () => ({ ok: true, token: "signup-token" }) }, // codes/redeem
+      {
+        ok: true,
+        json: async () => ({
+          ok: true,
+          token: "agent-token",
+          user: "robin",
+          signIn: "",
+          url: "https://example.test/robin",
+        }),
+      }, // POST /api/v2/journals
+      { ok: true, json: async () => ({ ok: true, id: "alps-2026" }) }, // PUT trip
+    ];
+    const fetchMock = vi.fn((_url: string, _init?: RequestInit) => Promise.resolve(responses.shift()!));
+    vi.stubGlobal("fetch", fetchMock);
+
+    root = createRoot(container!);
+    act(() => {
+      root!.render(
+        withLocale(<SignupWizard locale="en" codeMinutes="20" onSignedIn={() => {}} onAlreadyOwns={() => {}} />),
+      );
+    });
+
+    typeInto(input("signup-email"), "new@example.test");
+    await submit();
+    typeInto(input("signup-code"), "123456");
+    await submit();
+
+    for (const [id, value] of [
+      ["signup-title", "My Journal"],
+      ["signup-username", "robin"],
+      ["signup-owner-name", "Robin Traveller"],
+      ["signup-owner-nickname", "Robin"],
+      ["signup-currency", "EUR"],
+    ] as const) {
+      typeInto(input(id), value);
+    }
+    await submit();
+
+    // Now on the trip step.
+    typeInto(input("signup-trip-title"), "Alps");
+    typeInto(input("signup-trip-start"), "2026-07-01");
+    typeInto(input("signup-trip-end"), "2026-07-10");
+
+    function radio(name: string, value: string): HTMLInputElement {
+      return container!.querySelector(`input[name="${name}"][value="${value}"]`) as HTMLInputElement;
+    }
+    function click(name: string, value: string) {
+      return act(async () => {
+        radio(name, value).click();
+      });
+    }
+    await click("signup-trip-visibility", "public");
+    await click("signup-trip-listed", "true");
+    await click("signup-trip-companions", "solo");
+    await click("signup-trip-rates", "base");
+    await click("signup-trip-costs", "none");
+    await click("signup-trip-accent", "sky");
+    await click("signup-trip-figures", "off");
+    await click("signup-trip-tagline", "skip");
+    await click("signup-trip-intro", "skip");
+    // A single-language journal never shows the translations question at
+    // all (B1667) — nothing to click.
+
+    await submit();
+
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    const [url, init] = fetchMock.mock.calls[3] as [string, RequestInit];
+    expect(url).toBe("/api/v2/robin/trips/alps-2026");
+    expect(init.method).toBe("PUT");
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(body.visibility).toBe("public");
+    expect(body.listed).toBe(true);
+    expect(body.accent).toBe("sky");
+    expect(body.figures).toEqual({ mode: "off" });
+    // Genuinely declined, never silently omitted, and never a placeholder
+    // too short to be a real reason (`declineReason`'s own 10-char floor).
+    const declined = body.declined as Record<string, string>;
+    for (const key of ["buddies", "rates", "costs", "tagline", "intro", "days", "plan"]) {
+      expect(typeof declined[key]).toBe("string");
+      expect(declined[key].length).toBeGreaterThanOrEqual(10);
+    }
+    expect(declined.translations).toBeUndefined();
+  });
 });
 
 /**
