@@ -53,6 +53,13 @@ Current primary guidance points in the same direction:
   <https://nextjs.org/docs/13/pages/building-your-application/deploying/ci-build-caching>
   and <https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching>.
 
+Repository-specific research and timings are in
+`docs/plans/2026-09-13-b1665-agent-efficiency-research.md`. Its main correction
+to this first capture is that the installed Vitest 4.1.11 has no `doctor`
+command even though the current web guide describes one. It also finds that
+`AGENTS.md` exceeds Codex's supported 32 KiB default instruction limit, and
+that two test files account for 50.6% of summed per-file test time.
+
 ## Work
 
 Run this as a measured programme, not a broad rewrite. Commit the baseline and
@@ -93,11 +100,12 @@ choice.
 
 ### 3. Shorten the trustworthy feedback loop
 
-- Profile current Vitest phases and slow files, then run `vitest doctor` and
-  controlled repeated trials of threads versus forks, safe non-isolated
-  projects, `test.dir`, filesystem module cache and Node compile cache. Adopt a
-  setting only when repeated runs remain deterministic; tests that mutate
-  process state, filesystem state or a shared Postgres schema stay isolated.
+- Profile current Vitest phases and slow files, then run a checked-in benchmark
+  of threads versus forks, safe non-isolated projects, `test.dir`, filesystem
+  module cache and Node compile cache. (`vitest doctor` is not present in the
+  installed 4.1.11 CLI.) Adopt a setting only when repeated runs remain
+  deterministic; tests that mutate process state, filesystem state or a shared
+  Postgres schema stay isolated.
 - Add a safe changed-path/related-test command backed by the agent index and
   Vitest's dependency graph. It must explain which tests it selected and fall
   back to a broader group when the mapping is uncertain. It accelerates the
@@ -106,9 +114,11 @@ choice.
   stamp over route structure and generated types. Rebuild automatically when
   the route graph changed; otherwise reuse valid output and say why that is
   safe.
-- Measure worktree setup and repeated Next builds. Trial a documented worktree
-  bootstrap, persistent Vitest/Node caches and Next's `.next/cache` without
-  sharing writable build directories between concurrent agents.
+- Measure worktree setup and repeated Next builds. The existing skill already
+  clones `node_modules` copy-on-write on APFS, so automate and verify that
+  bootstrap rather than replacing it. Trial persistent Vitest/Node caches and
+  an isolated copy-on-write Next cache without sharing a writable build
+  directory between concurrent agents.
 - Trial the official Next.js runtime/MCP diagnostics as an optional local
   adapter. Keep a shell/browser fallback so no proprietary agent client becomes
   required to contribute.
@@ -147,9 +157,10 @@ and a plain shell-based agent must all retain the documented path.
 - A committed baseline report and command reproduce measurements across at
   least ten representative tasks and three known failure cases without storing
   private content or credentials.
-- The default root context is at least 30% smaller by bytes, while every
-  universal safety rule is still automatically in scope and the quality corpus
-  has no regression.
+- Root `AGENTS.md` is at most 28 KiB—below Codex's documented 32 KiB default
+  with headroom—while every universal safety rule is still automatically in
+  scope, linked detail is discoverable, and the quality corpus has no
+  regression.
 - The median changed-file-to-trustworthy-focused-test loop is at least 25%
   faster on the benchmark machine. The command lists why each test was chosen
   and safely broadens its selection for an unknown path.
