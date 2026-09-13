@@ -146,16 +146,14 @@ describe("known-key / never-in-file / never-over-api against /openapi.json", () 
   const body = (path: string, verb: string) =>
     resolve(openapi.paths?.[path]?.[verb]?.requestBody?.content?.["application/json"]?.schema, schemas);
 
-  test("entries/YYYY-MM-DD-slug.md: apiOnly keys are exactly POST …/days's own keys minus what the file also carries", () => {
-    const days = body("/api/v1/{user}/trips/{trip}/days", "post");
-    const apiKeys = Object.keys(days.properties ?? {});
-    const fileKeys = new Set(fileKnownKeys("entries/YYYY-MM-DD-slug.md"));
-    // Every key the API takes that the file never carries must be declared
-    // apiOnly — otherwise this document is silent about something the
-    // instance offers, exactly the `unrecorded: [costs]` incident.
-    const undeclared = apiKeys.filter((k) => !fileKeys.has(k) && !apiOnlyKeys("entries/YYYY-MM-DD-slug.md").includes(k));
-    expect(undeclared, "keys the API takes that this document does not mention at all").toEqual([]);
-  });
+  // POST /api/v1/{user}/trips/{trip}/days retired under B1612 (v2 migration):
+  // day creation is now PUT /api/v2/{user}/trips/{trip}/days/{slug}, a
+  // client-chosen-slug JSON document rather than a markdown-frontmatter
+  // file this content-model cross-check was built to describe. Re-pointing
+  // this whole file at the v2 shape (a JSON document has no
+  // frontmatter-vs-file split to cross-check) is core documentation
+  // infrastructure, not this parcel's to redo — see docs/v2-migration's own
+  // build order for where that lands.
 
   test("config.json: the union of POST /journals and PATCH …/config accounts for every key the API offers that the file does not carry", () => {
     const created = body("/api/v1/journals", "post");
@@ -175,32 +173,12 @@ describe("known-key / never-in-file / never-over-api against /openapi.json", () 
     expect(missing, "offered here but not accepted by either call — would be dropped on publish").toEqual([]);
   });
 
-  test("trip.md: every offered key is taken by POST …/trips", () => {
-    const created = body("/api/v1/{user}/trips", "post");
-    const apiKeys = new Set(Object.keys(created.properties ?? {}));
-    const offered = fileKnownKeys("trip.md").filter((k) => !fileOnlyKeys("trip.md").includes(k));
-    const missing = offered.filter((k) => !apiKeys.has(k));
-    expect(missing, "offered here but not accepted by POST …/trips — would be dropped on publish").toEqual([]);
-  });
-
-  // B1389: the direction above (docs→API) is the one this file had, and it
-  // could not have caught `teaser` — a key absent from *both* lists agrees
-  // with itself. The missing direction is API→docs: every key POST …/trips
-  // actually takes must be in trip.md's known keys, in apiOnlyKeys, or
-  // (B1389's own fix aside) this document is silently behind the route it
-  // claims to describe.
-  //
-  // PUT …/trips/{trip}/visibility is deliberately not fed into this check:
-  // it only amends `visibility`/`listed`/`teaser`/`status`/`costsVisibility`,
-  // keys POST …/trips already accepts, so today this crosscheck would find
-  // nothing there that the create route does not already cover.
-  test("trip.md: every key POST …/trips takes is known to this document", () => {
-    const created = body("/api/v1/{user}/trips", "post");
-    const apiKeys = Object.keys(created.properties ?? {});
-    const fileKeys = new Set(fileKnownKeys("trip.md"));
-    const undeclared = apiKeys.filter((k) => !fileKeys.has(k) && !apiOnlyKeys("trip.md").includes(k));
-    expect(undeclared, "keys POST …/trips takes that this document does not mention at all").toEqual([]);
-  });
+  // POST /api/v1/{user}/trips and PUT /api/v1/{user}/trips/{trip}/visibility
+  // retired under B1612 (v2 migration): trip creation is now
+  // PUT /api/v2/{user}/trips/{trip}, one JSON document (trip.json) rather
+  // than trip.md's frontmatter this cross-check was built to describe.
+  // Re-pointing this file at the v2 shape is core documentation
+  // infrastructure, not this parcel's to redo.
 });
 
 describe("trip.md's id/start/end pattern agrees with lib/tripWrite.ts", () => {

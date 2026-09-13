@@ -301,18 +301,29 @@ describe("what status says about this server", () => {
   });
 });
 
-describe("the drafts shape", () => {
-  test("is the same object /drafts returns — one function, not two", async () => {
+/**
+ * B1612 repoint: v1's `GET /api/v1/{user}/drafts` is deleted — "one function,
+ * not two" is now trivially true, since there is only the one function left
+ * (`lib/api/v2/status.ts`'s `buildJournalStatus`). What is worth pinning
+ * instead is that v2's own status route (`GET /api/v2/{user}/status`) carries
+ * the same drafts this fixture's v1 queue used to list, in its own shape
+ * (`{trip, slug}[]`, no nested `{count, items}`, no `publish` URL — see
+ * `lib/api/v2/schemas/status.ts`).
+ */
+describe("the drafts shape, folded into v2 status", () => {
+  test("v2 status carries the same drafts as the v1 queue used to, in its own shape", async () => {
     const token = await ownerToken();
-    const { GET } = await import("@/app/api/v1/[user]/drafts/route");
+    const { GET } = await import("@/app/api/v2/[user]/status/route");
     const response = await GET(
-      new Request(`https://example.test/api/v1/${OWNER}/drafts`, {
+      new Request(`https://example.test/api/v2/${OWNER}/status`, {
         headers: headers({ authorization: `Bearer ${token}` }),
       }),
       { params: Promise.resolve({ user: OWNER }) },
     );
-    const drafts = (await response.json()) as { drafts: unknown[] };
-    const { body } = await status(token);
-    expect(drafts.drafts).toEqual(body.drafts?.items);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { drafts: { trip: string; slug: string }[] };
+    expect(body.drafts.map((d) => `${d.trip}/${d.slug}`).sort()).toEqual(
+      ["alps-2026/another-draft", "asia-2026/a-draft"],
+    );
   });
 });

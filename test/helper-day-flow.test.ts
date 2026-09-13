@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
-import { POST as createTripRoute } from "@/app/api/v1/[user]/trips/route";
+import { createTrip } from "@/lib/tripWrite";
 
 /**
  * The whole wizard, driven the way the browser drives it — B682.
@@ -79,22 +79,8 @@ beforeEach(async () => {
   const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
   const verified = await verifyCode("alex", OWNER_EMAIL, code, "agent");
   if (!verified.ok) throw new Error("no token");
-  await createTripRoute(
-    new Request("https://t.test/api/v1/alex/trips", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${verified.token}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        id: "a-trip",
-        title: "A trip",
-        start: "2026-05-01",
-        end: "2026-05-31",
-      }),
-    }),
-    params,
-  );
+  const created = createTrip("alex", { id: "a-trip", title: "A trip", start: "2026-05-01", end: "2026-05-31" });
+  if (!created.ok) throw new Error(`trip fixture failed: ${created.message}`);
 });
 
 afterEach(async () => {

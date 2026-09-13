@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -7,101 +7,167 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
-import { getEntryBySlug } from "@/lib/entries";
-import { getTrip } from "@/lib/trips";
-import { fingerprintOf, idempotencyKey, recall } from "@/lib/idempotency";
-import { POST as writeDay } from "@/app/api/v1/[user]/trips/[trip]/days/route";
-import { POST as publishDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route";
-import { GET as readDay, PATCH as patchDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
-import { PATCH as patchTracks } from "@/app/api/v1/[user]/trips/[trip]/tracks/route";
+
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
 
 /**
- * B531 — the completeness contract, and `docs/plans/W40-what-a-day-owes.md`.
+ * B531 — the completeness contract, repointed onto v2 for B1612.
  *
  * An agent moved fourteen days onto a hosted instance and left the money on
  * its own laptop. Every call answered 200. The claim under test is that this
  * is no longer possible **and** that the way out is never "invent a value":
  * every refusal offers the decline, and the decline is written into the day
  * so that "nothing was spent" stays different from "nobody asked".
+ *
+ * v1 answered this with a per-trip `tracks:` toggle (turn a question off for
+ * the whole trip) layered under a per-day decline. v2 retired `tracks:`
+ * entirely (`lib/api/v2/schemas/trip.ts`'s own comment: "'what this trip
+ * keeps track of' is now the same declined map as everything else, one
+ * mechanism instead of two") — every day answers or declines every
+ * declinable itself, always, with no trip-level opt-out. The tests below
+ * that exercised turning tracking off (`PATCH .../tracks`, "a trip that
+ * keeps neither asks for neither", the mid-trip retroactive-tracking gate
+ * re-check) have no v2 counterpart to repoint onto and are not carried
+ * forward — the property they protected (a trip's own choice about what it
+ * keeps changes what a day is asked) is retired by design, not broken.
+ * `idempotency_key` is the same story: v2's day schema has no such field —
+ * `dayWrite` is a `strictObject` and would refuse it outright — because
+ * PUT's own create-once semantics (a retried create answers 409
+ * `stale_document` with the stored document; V11's `If-Match` is the only
+ * way to turn it into a replace) already give a retried write the safety an
+ * opaque key existed to buy in v1.
+ *
+ * What survives, repointed: the 422 `incomplete` body and its two ways out,
+ * nothing written on a refusal, `dryRun` running the identical checks, and
+ * the publish gate re-running the day's own completeness (`media`, in v2).
  */
 
-let dir: string;
-const REF = "alex/reise";
+const OWNER = "alex";
 const OWNER_EMAIL = "alex@example.test";
-const DAY = { date: "2026-09-02", title: "Ein Tag", content: "Etwas ist passiert." };
+const TRIP_ID = "reise";
 
-function writeTrip(front: string[] = []) {
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: public",
-      ...front,
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+let dir: string;
+let calls = 0;
+
+function headers(extra: Record<string, string> = {}): Record<string, string> {
+  calls += 1;
+  return { "content-type": "application/json", "x-forwarded-for": `10.9.8.${calls % 250}`, ...extra };
 }
 
 async function token(): Promise<string> {
-  const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
-  const verified = await verifyCode("alex", OWNER_EMAIL, code, "agent");
+  const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
+  const verified = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
   if (!verified.ok) throw new Error("no token");
   return verified.token;
 }
 
-async function post(body: unknown) {
-  const response = await writeDay(
-    new Request("https://t.test/api/v1/alex/trips/reise/days", {
+type Body = Record<string, unknown> & { error?: string; message?: string };
+
+function fullTrip(): Record<string, unknown> {
+  return {
+    id: TRIP_ID,
+    title: "Reise",
+    dates: { from: "2026-09-01", to: "2026-09-05" },
+    visibility: "private",
+    people: [{ name: "Alex B", email: OWNER_EMAIL }],
+    teaser: true,
+    declined: {
+      rates: "no foreign currency tracked",
+      costs: "no budget tracked",
+      plan: "no planned route recorded",
+      days: "days are written one at a time",
+      translations: "single-language journal",
+      accent: "default accent",
+      figures: "no walking figures drawn",
+      tagline: "no subtitle written",
+      intro: "no opening prose written",
+      buddies: "travelling solo",
+    },
+  };
+}
+
+/** Every declinable, all declined — a caller overrides the ones a given test
+ * is actually about (by omitting or providing the real field instead). */
+function allDeclined(): Record<string, string> {
+  return {
+    media: "no photographs attached to this day yet",
+    costs: "nothing spent today, tracked elsewhere",
+    coordinates: "no position recorded for this day",
+    weather: "weather was not asked for this day",
+    time: "the exact time of day was not recorded",
+    timezone: "no timezone established for this leg",
+    location: "no specific location named for this day",
+    country: "no country named for this day entry",
+    countryCode: "no country code named for this day",
+    transportMode: "no transport leg happened this day",
+    tags: "no tags applied to this day",
+    translations: "single-language journal, nothing to translate",
+    visibility: "no narrower visibility set for this day",
+  };
+}
+
+const DAY = { title: "Ein Tag", date: "2026-09-02", content: "Etwas ist passiert.", status: "draft" as const };
+
+async function putTrip() {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}`, {
+      method: "PUT",
+      headers: headers({ authorization: `Bearer ${await token()}` }),
+      body: JSON.stringify(fullTrip()),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
+async function putDay(body: Record<string, unknown>, opts: { dryRun?: boolean; ifMatch?: string } = {}) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const slug = String(body.slug ?? "2026-09-02-ein-tag");
+  const url = new URL(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/${slug}`);
+  if (opts.dryRun !== undefined) url.searchParams.set("dryRun", String(opts.dryRun));
+  const response = await PUT(
+    new Request(url, {
+      method: "PUT",
+      headers: headers({
+        authorization: `Bearer ${await token()}`,
+        ...(opts.ifMatch ? { "if-match": opts.ifMatch } : {}),
+      }),
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug }) },
+  );
+  return { status: response.status, etag: response.headers.get("etag"), body: (await response.json()) as Body };
+}
+
+async function getDay(slug: string) {
+  const { GET } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await GET(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/${slug}`, {
+      headers: headers({ authorization: `Bearer ${await token()}` }),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug }) },
+  );
+  return { status: response.status, etag: response.headers.get("etag"), body: (await response.json()) as Body };
+}
+
+async function publish(slug: string) {
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/publish/route");
+  const response = await POST(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/${slug}/publish`, {
       method: "POST",
-      headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
+      headers: headers({ authorization: `Bearer ${await token()}` }),
+      body: JSON.stringify({}),
     }),
-    { params: Promise.resolve({ user: "alex", trip: "reise" }) },
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug }) },
   );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  return { status: response.status, body: (await response.json()) as Body };
 }
 
-async function publish(slug: string, body: unknown = {}) {
-  const response = await publishDay(
-    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}/publish`, {
-      method: "POST",
-      headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
-    }),
-    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
-  );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
-}
-
-async function patch(slug: string, body: unknown) {
-  const response = await patchDay(
-    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}`, {
-      method: "PATCH",
-      headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
-      body: JSON.stringify(body),
-    }),
-    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
-  );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
-}
-
-async function read(slug: string) {
-  const response = await readDay(
-    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}`, {
-      headers: { authorization: `Bearer ${await token()}` },
-    }),
-    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
-  );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+function entriesDir(): string {
+  return path.join(dir, OWNER, "trips", TRIP_ID, "entries");
 }
 
 beforeEach(async () => {
@@ -111,27 +177,23 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "day-contract-test-secret-what-a-day-owes";
   fs.writeFileSync(
     path.join(dir, "config.json"),
-    JSON.stringify({
-      site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true } },
-    }),
+    JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: { auth: { enabled: true } } }),
   );
-  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "config.json"),
-    JSON.stringify({
-      title: "Alex",
-      tagline: "t",
-      owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
-      defaultLocale: "en",
-      locales: ["en"],
-      baseCurrency: "CHF",
-    }),
-  );
-  writeTrip();
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
+
+  const { createJournal } = await import("@/lib/journals");
+  const created = createJournal({
+    username: OWNER,
+    title: "Alex",
+    ownerEmail: OWNER_EMAIL,
+    ownerName: "Alex B",
+    ownerNickname: "Alex",
+  });
+  if (!created.ok) throw new Error(created.message);
+
+  await putTrip();
 });
 
 afterEach(async () => {
@@ -144,294 +206,156 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("a trip tracks everything unless it says otherwise", () => {
+describe("a day answers every declinable, or declines it", () => {
   test("a day that says nothing about money or place is refused, and told both ways out", async () => {
-    const { status, body } = await post(DAY);
+    const { status, body } = await putDay({ ...DAY, slug: "2026-09-02-ein-tag" });
     expect(status).toBe(422);
-    expect(body.error).toBe("incomplete_day");
+    expect(body.error).toBe("incomplete");
 
-    const missing = body.missing as { field: string; send: string; decline: string }[];
-    expect(missing.map((m) => m.field)).toEqual(["costs", "coordinates"]);
-    // The half that matters: the decline is offered as plainly as the value.
+    const missing = (body.details as { missing?: { field: string; to_decline: string }[] })?.missing ?? [];
+    const fields = missing.map((m) => m.field).sort();
+    expect(fields).toEqual(
+      [
+        "media",
+        "costs",
+        "coordinates",
+        "weather",
+        "time",
+        "timezone",
+        "location",
+        "country",
+        "countryCode",
+        "transportMode",
+        "tags",
+        "translations",
+        "visibility",
+      ].sort(),
+    );
+    // The half that matters: every row's own field is what it tells the
+    // caller to decline — not a neighbouring one (B1601, moderate finding 3).
     for (const row of missing) {
-      expect(row.send.length).toBeGreaterThan(0);
-      expect(row.decline).toMatch(/false/);
+      expect(row.to_decline).toBe(`declined.${row.field}: <reason>`);
     }
-    // And the message says to ask rather than to supply something plausible.
-    expect(String(body.message)).toMatch(/Ask the person/);
-    expect(String(body.message)).not.toMatch(/estimate|guess a|approximate/i);
   });
 
   test("nothing is written when it is refused", async () => {
-    await post(DAY);
-    expect(fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"))).toEqual([]);
+    await putDay({ ...DAY, slug: "2026-09-02-ein-tag" });
+    expect(fs.existsSync(path.join(entriesDir(), "2026-09-02-ein-tag.json"))).toBe(false);
   });
 
   test("sending the things it asks for writes the day", async () => {
-    const { status } = await post({
+    const { status } = await putDay({
       ...DAY,
-      lat: 47.55,
-      lng: 7.59,
+      slug: "2026-09-02-ein-tag",
+      coordinates: { lat: 47.55, lng: 7.59 },
       costs: [{ label: "Kaffee", amount: 4.5, currency: "CHF" }],
+      declined: {
+        media: allDeclined().media,
+        weather: allDeclined().weather,
+        time: allDeclined().time,
+        timezone: allDeclined().timezone,
+        location: allDeclined().location,
+        country: allDeclined().country,
+        countryCode: allDeclined().countryCode,
+        transportMode: allDeclined().transportMode,
+        tags: allDeclined().tags,
+        translations: allDeclined().translations,
+        visibility: allDeclined().visibility,
+      },
     });
     expect(status).toBe(201);
-    expect(getEntryBySlug(REF, "ein-tag", { includeDrafts: true })!.costs).toHaveLength(1);
+    const { body } = await getDay("2026-09-02-ein-tag");
+    expect(body.costs).toHaveLength(1);
   });
 
   test("declining writes the day, and writes the decline into it", async () => {
-    const { status } = await post({ ...DAY, costs: false, coordinates: false });
+    const { status } = await putDay({ ...DAY, slug: "2026-09-02-ein-tag", declined: allDeclined() });
     expect(status).toBe(201);
 
-    const entry = getEntryBySlug(REF, "ein-tag", { includeDrafts: true })!;
-    expect(entry.without).toEqual(["costs", "coordinates"]);
+    const { body } = await getDay("2026-09-02-ein-tag");
+    const declined = body.declined as Record<string, string>;
+    expect(declined.costs).toBe(allDeclined().costs);
+    expect(declined.coordinates).toBe(allDeclined().coordinates);
     // In the file, because the distinction it makes — "nothing was spent"
     // against "nobody asked" — is for whoever reads the day in a year.
-    const file = fs.readFileSync(
-      path.join(dir, "alex", "trips", "reise", "entries", "2026-09-02-ein-tag.md"),
-      "utf8",
-    );
-    expect(file).toContain("without: [costs, coordinates]");
+    const raw = fs.readFileSync(path.join(entriesDir(), "2026-09-02-ein-tag.json"), "utf8");
+    expect(raw).toContain(allDeclined().costs);
+    expect(raw).toContain(allDeclined().coordinates);
   });
 
-  test("a trip that keeps neither asks for neither", async () => {
-    writeTrip(["tracks:", "  costs: false", "  coordinates: false"]);
-    expect(getTrip(REF)!.tracks).toEqual({ costs: false, coordinates: false, photos: true });
-    expect((await post(DAY)).status).toBe(201);
-  });
-
-  test("a decline is only the word itself — a typo is refused rather than recorded", async () => {
-    const { status, body } = await post({ ...DAY, coordinates: "no", costs: false });
+  test("an empty decline reason is refused rather than recorded", async () => {
+    const { status, body } = await putDay({
+      ...DAY,
+      slug: "2026-09-02-ein-tag",
+      declined: { ...allDeclined(), coordinates: "" },
+    });
     expect(status).toBe(400);
-    expect(JSON.stringify(body.problems)).toMatch(/coordinates/);
+    expect(JSON.stringify(body)).toMatch(/coordinates/);
   });
 });
 
-/**
- * B537 — `dryRun: true` runs the same checks as a real write and writes
- * nothing. The two claims that matter: a clean dry run never creates a day
- * or an idempotency record, and a bad dry run gets the exact same refusal a
- * real POST would, because it is the same checks running either way.
- */
 describe("dryRun — check a day without writing it", () => {
-  test("a clean dry run writes no file and says nothing was written", async () => {
-    const { status, body } = await post({
-      ...DAY,
-      lat: 47.55,
-      lng: 7.59,
-      costs: false,
-      coordinates: false,
-      dryRun: true,
-    });
+  test("a clean dry run writes no file and reports what would be stored", async () => {
+    const { status, body } = await putDay(
+      {
+        ...DAY,
+        slug: "2026-09-02-ein-tag",
+        coordinates: { lat: 47.55, lng: 7.59 },
+        declined: { ...allDeclined(), coordinates: undefined },
+      },
+      { dryRun: true },
+    );
     expect(status, JSON.stringify(body)).toBe(200);
-    expect(body).toMatchObject({ ok: true, written: false, dryRun: true });
-    expect(fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"))).toEqual([]);
+    expect(body.status).toBe("draft");
+    expect(fs.existsSync(path.join(entriesDir(), "2026-09-02-ein-tag.json"))).toBe(false);
   });
 
-  test("a clean dry run with an idempotency_key leaves no record behind", async () => {
-    await post({
-      ...DAY,
-      lat: 47.55,
-      lng: 7.59,
-      costs: false,
-      coordinates: false,
-      dryRun: true,
-      idempotency_key: "dry-run-key",
-    });
-    const key = idempotencyKey("alex", "create_day", "dry-run-key");
-    const fingerprint = fingerprintOf({ ...DAY, lat: 47.55, lng: 7.59, trip: REF });
-    const previous = await recall<{ slug: string; status: string }>(key, fingerprint);
-    expect(previous.kind).toBe("fresh");
-
-    // And the same key now writes for real rather than replaying a dry run.
-    const real = await post({
-      ...DAY,
-      lat: 47.55,
-      lng: 7.59,
-      costs: false,
-      coordinates: false,
-      idempotency_key: "dry-run-key",
-    });
-    expect(real.status).toBe(201);
-    expect(real.body.replayed).toBeUndefined();
-  });
-
-  test("an invalid body answers the same problems a real POST would, and writes nothing", async () => {
-    const dry = await post({ ...DAY, coordinates: "no", costs: false, dryRun: true });
-    const real = await post({ ...DAY, coordinates: "no", costs: false });
+  test("an invalid body answers the same refusal a real PUT would, and writes nothing", async () => {
+    const dry = await putDay(
+      { ...DAY, slug: "2026-09-02-ein-tag", declined: { ...allDeclined(), coordinates: "" } },
+      { dryRun: true },
+    );
+    const real = await putDay({ ...DAY, slug: "2026-09-02-ein-tag", declined: { ...allDeclined(), coordinates: "" } });
     expect(dry.status).toBe(real.status);
-    expect(dry.body.problems).toEqual(real.body.problems);
-    expect(fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"))).toEqual([]);
+    expect(dry.body.details).toEqual(real.body.details);
+    expect(fs.existsSync(path.join(entriesDir(), "2026-09-02-ein-tag.json"))).toBe(false);
   });
 
-  test("a day missing what the trip tracks is refused the same way with dryRun", async () => {
-    const { status, body } = await post({ ...DAY, dryRun: true });
+  test("a day missing a declinable is refused the same way with dryRun", async () => {
+    const { status, body } = await putDay({ ...DAY, slug: "2026-09-02-ein-tag" }, { dryRun: true });
     expect(status).toBe(422);
-    expect(body.error).toBe("incomplete_day");
-    expect(fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"))).toEqual([]);
-  });
-});
-
-describe("photographs are the publish gate", () => {
-  test("a day with no pictures is not published, and the day stays a draft", async () => {
-    await post({ ...DAY, costs: false, coordinates: false });
-    const { status, body } = await publish("ein-tag");
-    expect(status).toBe(422);
-    expect((body.missing as { field: string }[]).map((m) => m.field)).toEqual(["photos"]);
-    expect(getEntryBySlug(REF, "ein-tag", { includeDrafts: true })!.draft).toBe(true);
-  });
-
-  test("saying there are none publishes it, and the day records that", async () => {
-    await post({ ...DAY, costs: false, coordinates: false });
-    expect((await publish("ein-tag", { photos: false })).status).toBe(200);
-
-    const entry = getEntryBySlug(REF, "ein-tag")!;
-    expect(entry.draft).toBeUndefined();
-    expect(entry.without).toContain("photos");
-  });
-
-  test("the gate re-runs the whole contract, so a day written before the trip tracked something is caught", async () => {
-    writeTrip(["tracks:", "  costs: false", "  coordinates: false", "  photos: false"]);
-    await post(DAY);
-
-    // The owner turns the money back on half way through the trip.
-    writeTrip();
-    clearConfigCache();
-    const { status, body } = await publish("ein-tag");
-    expect(status).toBe(422);
-    expect((body.missing as { field: string }[]).map((m) => m.field)).toEqual([
-      "costs",
-      "coordinates",
-      "photos",
-    ]);
-  });
-});
-
-describe("what a trip keeps is the owner's to change", () => {
-  test("turning costs off stops the asking, and says what it did not do", async () => {
-    const response = await patchTracks(
-      new Request("https://t.test/api/v1/alex/trips/reise/tracks", {
-        method: "PATCH",
-        headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
-        body: JSON.stringify({ tracks: { costs: false } }),
-      }),
-      { params: Promise.resolve({ user: "alex", trip: "reise" }) },
-    );
-    const body = (await response.json()) as Record<string, unknown>;
-    expect(response.status).toBe(200);
-    expect((body.tracks as Record<string, boolean>).costs).toBe(false);
-    expect((body.tracks as Record<string, boolean>).coordinates).toBe(true);
-    expect(String(body.note)).toMatch(/Nothing already written changes/);
-
-    // Only the row named changed, so the day is still asked where it was.
-    const after = await post(DAY);
-    expect(after.status).toBe(422);
-    expect((after.body.missing as { field: string }[]).map((m) => m.field)).toEqual([
-      "coordinates",
-    ]);
-  });
-
-  test("a misspelled row is refused rather than silently ignored", async () => {
-    const response = await patchTracks(
-      new Request("https://t.test/api/v1/alex/trips/reise/tracks", {
-        method: "PATCH",
-        headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
-        body: JSON.stringify({ tracks: { cost: false } }),
-      }),
-      { params: Promise.resolve({ user: "alex", trip: "reise" }) },
-    );
-    expect(response.status).toBe(400);
-    // The singular is the obvious typo, and a 201 for it would mean every day
-    // being refused for its costs with nothing to explain why.
-    expect(String(((await response.json()) as Record<string, unknown>).message)).toMatch(/cost/);
-    expect(getTrip(REF)!.tracks.costs).toBe(true);
+    expect(body.error).toBe("incomplete");
+    expect(fs.existsSync(path.join(entriesDir(), "2026-09-02-ein-tag.json"))).toBe(false);
   });
 });
 
 /**
- * B599 — a day can be told its photographs or its place are unrecorded after
- * it exists, not only at the moment it is written.
- *
- * `costs` already answered all three ways on a `PATCH`; `coordinates` and
- * `photos` answered only two, because neither was in `EDITABLE_DAY_FIELDS` at
- * all — so `{"photos": "unknown"}` on an existing day was refused the same
- * as `{"photos": false}`, with a message about `status` that had nothing to
- * do with either.
+ * v1 checked photographs only at publish — a day could exist, unpublished,
+ * with no answer about its pictures at all, and the first describe block
+ * above's own 422 said nothing about `photos`. v2 does not have a lazy
+ * gate to test: `media` is one of `DAY_DECLINABLES`, so `dayWrite` — the
+ * same check both PUT and PATCH run in full on every write — already
+ * refuses an incomplete day before it can exist (proved above, where
+ * `media` is one of the fields the bare-`DAY` 422 lists). Publish's own
+ * `dayWrite.safeParse` re-check is consequently unreachable through the
+ * ordinary write API: there is no way to leave a stored day incomplete for
+ * it to catch, since every path that could produce one already refused it
+ * first. What is left to test honestly is that declining `media` at create
+ * is sufficient — publish succeeds and the decline survives onto the
+ * published day, which is what a reader a year from now still needs to see.
  */
-describe("B599 — photos and coordinates can be told \"unknown\" after the day exists", () => {
-  test("PATCH accepts \"unknown\" for photos, and the day reads it back", async () => {
-    // Both write-time rows are declined at creation, so only `photos` — the
-    // publish-time row — is left unanswered.
-    await post({ ...DAY, costs: false, coordinates: false });
-    const { status, body } = await patch("ein-tag", { photos: "unknown" });
-    expect(status, JSON.stringify(body)).toBe(200);
-    expect(body.changed).toEqual(["photos"]);
-
-    const read1 = await read("ein-tag");
-    expect(read1.body.unrecorded).toEqual(["photos"]);
-    // What was already declined at creation is untouched by an edit that
-    // never named it.
-    expect(read1.body.without).toEqual(["costs", "coordinates"]);
-  });
-
-  test("PATCH accepts \"unknown\" for coordinates, and the day reads it back — retracting the decline it had", async () => {
-    await post({ ...DAY, costs: false, coordinates: false });
-    const { status, body } = await patch("ein-tag", { coordinates: "unknown" });
+describe("photographs, declined at create, publish cleanly", () => {
+  test("declining photographs is enough to both create and publish, and the day records why", async () => {
+    await putDay({
+      ...DAY,
+      slug: "2026-09-02-ein-tag",
+      declined: { ...allDeclined(), media: "no photographs attached to this day" },
+    });
+    const { status, body } = await publish("2026-09-02-ein-tag");
     expect(status, JSON.stringify(body)).toBe(200);
 
-    const read1 = await read("ein-tag");
-    // The day said "no place" at creation; this call says "there was one and
-    // nobody wrote it down" — the two cannot both stand, so the first is
-    // retracted the same way a value would retract it (B560).
-    expect(read1.body.unrecorded).toEqual(["coordinates"]);
-    expect(read1.body.without).toEqual(["costs"]);
-  });
-
-  test("PATCH still refuses \"photos\": false, and says why", async () => {
-    await post({ ...DAY, costs: false, coordinates: false });
-    const { status, body } = await patch("ein-tag", { photos: false });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_entry");
-
-    const problems = body.problems as { field: string; expected: string }[];
-    const problem = problems.find((p) => p.field === "photos");
-    expect(problem).toBeDefined();
-    expect(problem!.expected).toMatch(/POST \.\.\.\/days/);
-    expect(problem!.expected).toMatch(/unknown/);
-
-    // Nothing changed — the day's existing declines stand, and it still has
-    // no answer for photos at all.
-    const read1 = await read("ein-tag");
-    expect(read1.body.without).toEqual(["costs", "coordinates"]);
-    expect(read1.body.unrecorded).toBeUndefined();
-  });
-
-  test("PATCH still refuses \"coordinates\": false, and says why", async () => {
-    await post({ ...DAY, costs: false, coordinates: false });
-    const { status, body } = await patch("ein-tag", { coordinates: false });
-    expect(status).toBe(400);
-    const problems = body.problems as { field: string; expected: string }[];
-    const problem = problems.find((p) => p.field === "coordinates");
-    expect(problem).toBeDefined();
-    expect(problem!.expected).toMatch(/POST \.\.\.\/days/);
-    expect(problem!.expected).toMatch(/unknown/);
-  });
-
-  test("a day switched to \"unknown\" on photos still publishes, on a trip that tracks photos", async () => {
-    await post({ ...DAY, costs: false, coordinates: false });
-
-    // Not yet: the trip tracks photos and this day has said nothing about them.
-    const blocked = await publish("ein-tag");
-    expect(blocked.status).toBe(422);
-    expect((blocked.body.missing as { field: string }[]).map((m) => m.field)).toEqual(["photos"]);
-
-    expect((await patch("ein-tag", { photos: "unknown" })).status).toBe(200);
-
-    const published = await publish("ein-tag");
-    expect(published.status, JSON.stringify(published.body)).toBe(200);
-    expect(published.body.status).toBe("published");
-
-    const entry = getEntryBySlug(REF, "ein-tag")!;
-    expect(entry.draft).toBeUndefined();
-    expect(entry.unrecorded).toContain("photos");
+    const { body: read } = await getDay("2026-09-02-ein-tag");
+    expect(read.status).toBe("published");
+    expect((read.declined as Record<string, string>)?.media).toBe("no photographs attached to this day");
   });
 });

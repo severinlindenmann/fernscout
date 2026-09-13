@@ -44,8 +44,14 @@ export const journalStatus = z.strictObject({
   journal: z.string(),
   /** The journal's credit balance. Nothing an agent holds can raise it. */
   credits: z.number().int(),
-  /** Days waiting for a person to read back and ask to publish. */
-  drafts: z.array(z.strictObject({ trip: z.string(), slug: z.string() })),
+  /** Days waiting for a person to read back and ask to publish — `title` so
+   * an agent can say which one without a GET per row (00-decisions.md,
+   * "drafts+title+test"), `test` so it can tell content nobody lived from
+   * one worth asking to publish. Widened from `{trip, slug}` per Q14
+   * ("widen: yes") — see 06-contract-deltas.md. */
+  drafts: z.array(
+    z.strictObject({ trip: z.string(), slug: z.string(), title: z.string(), test: z.boolean().optional() }),
+  ),
   trips: z.array(z.strictObject({ id: z.string(), title: z.string() })),
   storage: z.strictObject({
     usedBytes: z.number().int().nonnegative(),

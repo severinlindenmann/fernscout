@@ -22,6 +22,19 @@ touching that folder must correspond to a row here.
 same four fields, which is a list that disagrees with itself within a month.
 **Drift:** none. The wire is byte-identical before and after.
 
+### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
+**What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
+any field, message or accepted document.
+**Why:** the 422 body keys each row by `issue.path[0]`, so the row came back
+as `{field: "people", to_decline: "declined.buddies: …"}`. A caller building
+`declined.<field>` from the row — which works for every other row — sends
+`declined.people`, which is not a decline key at all, and gets a fresh
+unrelated refusal instead of resolving the point. `to_provide` was wrong too:
+it showed the `people` array's schema, which says nothing about answering the
+buddies question.
+**Drift:** none. This is the 422 body telling the truth about itself; the set
+of accepted documents is unchanged.
+
 ### D2 — `trip.costs` gains `items` and `note`
 **What:** `costs: {budget, visibility?}` → `costs: {budget, items?, note?, visibility?}`,
 where `items` is `costItem[]` and `note` is a string.
@@ -76,7 +89,173 @@ beside this one is the same list-in-two-places failure D1 already fixed for
 (`DAY_DECLINABLES`, `TRIP_DECLINABLES`); this was the one left private.
 **Drift:** none. The wire is byte-identical before and after.
 
-### D6 — `lib/api/v2/schemas/money.ts` added
+### D6 — `daySlug` exported from `day.ts`
+**What:** the slug regex, previously inline in `dayBase`, becomes an exported
+const the schema itself uses. No change to the pattern.
+**Why:** the day route validates a URL's slug segment, and a second regex
+beside the first is a regex that drifts. A slug is also a **filename**, so
+this is a security boundary as much as a shape check — the two must be the
+same expression, not two copies of one.
+**Drift:** none. The accepted set is identical.
+
+### D7 — `daySummary` added to `day.ts`
+**What:** a new `{slug, title, date, status, test?}` object schema.
+**Why:** `GET .../trips/{trip}?days=summaries` is V12, already in the
+decisions; the projection was promised and had no shape. This gives it one
+rather than letting each route invent a row.
+**Authorised:** decided before the parcel was built, as the answer to "what
+does `?days=summaries` return" — which the step-3 reconnaissance had flagged
+as undefined and therefore un-buildable.
+**Drift:** additive, and it describes a **read** projection only. No write
+shape changes.
+
+### D8 — `publishRequest` and `sendRequest` (new file `schemas/publish.ts`)
+**What:** two small request schemas — `{declineTracked?, sendMail?,
+sendWhatsapp?}` and `{channels: ("mail"|"whatsapp")[]}`.
+**Why:** these are decisions *about a publish*, not fields of a day, so they
+are side-schemas rather than additions to `dayDoc`. They replace
+`readPublishFlags`'s hand-rolled `=== true` checks (`lib/api/publishFlags.ts`,
+retired). `sendRequest` is S1: one send door with `channels[]`, where v1 had
+`send-mail` and `send-whatsapp` as separate routes.
+**Drift:** none to any reviewed schema — new files for routes that had no
+schema at all.
+
+### D9 — `DECLINABLE_KEYS` exported from `trip.ts`
+**What:** `const` becomes `export const`. No change to the list.
+**Why:** T6's decline retraction, in the shared write path, must be able to
+clear a stored decline of `listed` or `buddies`. Both are declinable — the
+`declined` map accepts them — but neither is in `TRIP_DECLINABLES`, because
+each is asked by a bespoke `superRefine` rather than by
+`checkRequiredOrDeclined`. Without the full list, retracting those two would
+silently not work.
+**Drift:** none. The wire is byte-identical.
+
+### D10 — `DAY_DECLINABLE_KEYS` exported, and `declineTracked` becomes an enum
+**What:** the const becomes exported, and `publishRequest.declineTracked`
+changes from `z.array(z.string())` to `z.array(z.enum(DAY_DECLINABLE_KEYS))`.
+**Why:** a **correctness bug**, found by the typechecker rather than by a
+test. As free strings, `declineTracked: ["nonsense"]` was accepted and written
+straight into the day's `declined` map as a key nothing reads — a decline that
+looks recorded, satisfies nothing, and answers no question anybody asked. The
+publish route then indexed a typed record with an arbitrary string, which is
+what surfaced it.
+**Drift:** a **narrowing** of a schema written in this same step (D8), not of
+a reviewed one. It refuses input that was never meaningful.
+
+### D11 — `schemas/auth.ts` (new file)
+**What:** request/response shapes for the credential doors under `/api/auth`
+— `codesRequest`, `codesRedeemRequest`, `linksRedeemRequest` and their
+responses (B1600, phase 2 step 2).
+**Why:** these replace six v1 routes
+(`/api/auth/{request,verify,link,identity/request,identity/verify,
+identity/link,signup/request,signup/verify}` → `/api/auth/codes`,
+`/api/auth/codes/redeem`, `/api/auth/links/redeem`) and needed their own wire
+shapes. `00-decisions.md`'s field-level list covers day/trip/journal/figures/
+media/status; auth's own request bodies were never part of that review round,
+so this is new schema for new routes, the same shape as D8.
+**Drift:** none to any reviewed schema — a new file for routes that had no
+schema at all.
+
+### D12 — `schemas/geocode.ts` (new file)
+**What:** `geocodeRequest`/`geocodeResponse` for `POST /api/v2/geocode`
+(B1608, phase 2 step 3).
+**Why:** mirrors v1's `/api/v1/geocode` body and response. Like D11, this is
+new schema for a route the golden-contract review round never named, not a
+change to a reviewed one — added here for the same reason D8 and D11 are:
+this file is easier to trust as the complete list of `schemas/` files than as
+a list with an unstated exception for "the ones that are net-new". The file's
+own header comment previously argued a net-new schema needs no row here; that
+argument is sound about WHY there is no drift, but this ledger records rows
+for net-new surfaces anyway (see D8, D11), so the comment has been corrected
+rather than left to disagree with this file.
+**Drift:** none to any reviewed schema — a new file for a route that had no
+schema at all.
+
+### D13 — `journalStatus.drafts` widened to `{trip, slug, title, test?}`
+**What:** `drafts: z.array(z.strictObject({trip, slug}))` →
+`drafts: z.array(z.strictObject({trip, slug, title, test?}))`.
+**Why:** an agent reading the review queue (`GET /api/v2/{user}/status`) has
+to say WHICH day is waiting without a GET per row, and whether it is content
+nobody lived before offering to publish it. `listDrafts` (`lib/api/entries.ts`)
+already resolves both `title` and `test` (the latter inheriting from the
+trip, B116's fix) — the v2 schema was narrower than the domain read it is
+built on, for no reason tied to anything reviewed.
+**Authorised:** `00-decisions.md`'s own field-level list already names the
+wider shape — "credits, drafts+title+test, trips, storage, inbox, token
+scope" — so this is not a new decision, only the code catching up to Q14's
+answer ("widen: yes") on a comment (`lib/api/v2/status.ts`) that had
+mistakenly called the narrow shape "frozen".
+**Drift:** none. This restores what was already decided; the narrow shape
+that shipped was the drift.
+
+### D14 — `null` on a PATCH clears `cover`, `accent`, `tagline` or `intro` back to absent
+**What:** `.nullable()` added to these four fields, on the **patch shape
+only** (`tripPatch` in `schemas/trip.ts`). `tripCreate`, `tripDoc`, and every
+other field, are untouched. Sending `null` for one of the four removes the
+key from the stored document, returning it to the state before that field
+was ever set — the same effective result as never having answered it.
+**Why:** B1626 found the gap twice on the same shape: `cover: ""` was
+accepted as an ordinary string (stored verbatim, so `trip.cover ??
+pickCover(days)` never fell through to the auto-pick — `??` only treats
+`null`/`undefined` as absent), and an already-set `accent` could not be
+declined, because a patch supplying only `declined.accent` merges over a
+stored `accent` that survives untouched, and the merged document then has
+the field both present and declined at once. Both are the same missing
+convention: v2's merge-patch had **no spelling at all** for "remove this
+field" — omitting a key means "unchanged", which is what makes a patch a
+patch, but it left the opposite unsayable. The contract already names **RFC
+7386 JSON Merge Patch** as its patch semantics, and in RFC 7386 `null` means
+*remove the member*. This finishes the convention already cited rather than
+adding one. `""` was rejected as the spelling for the same reason R1
+rejected an absent translation title: an empty value and an absent value are
+different claims.
+**Where it acts:** once, in the shared write path (`lib/api/v2/write.ts`'s
+new `applyNullClears`), on the MERGED document a PATCH is about to
+revalidate — not in the schema (only `tripPatch` ever sees `null`) and not
+on the raw incoming patch (which still needs its `null` intact for
+`retractDeclines`/`checkPatchConflicts` to read as "this field is being
+answered," not silently omitted, before it is deleted for good). This is the
+one shared write path the doors sit on (T5), so a later `/api/web` cookie
+door inherits the behaviour rather than reimplementing it.
+**`accent` and `checkPatchConflicts`:** pairing `accent: null` with
+`declined.accent` in the same call — the only way to swap a chosen accent
+for a declined one — was itself refused before this ticket, because
+`checkPatchConflicts` (`schemas/shared.ts`) read *any* non-`undefined` value,
+`null` included, as "brought," and a field both brought and declined in one
+patch is exactly the contradiction that function exists to catch. Fixed by
+excluding `null` from "brought" there — not by touching
+`DECLINE_ANSWERED_BY` (`write.ts`), which is B1616's mechanism for a decline
+answered by a *different* field (`buddies`/`people`) and has nothing to say
+about a field clearing itself. T6's own `retractDeclines` needed no change:
+it already treats a field's presence in the incoming body — `null` included
+— as "this question has been answered," so a stray `declined.accent` left
+over from before the value was ever set is retracted the same way a real
+value retracts it.
+**Deliberately NOT in scope:**
+- **Declinable sections** (`costs`, `plan`, `rates`, `figures`, `media`,
+  `translations`, …) keep the `declined` map as their only "not answered"
+  spelling. `{"costs": null}` is refused — not by new code, but because
+  `costs` was never marked `.nullable()`, so Zod's own type check refuses it
+  before any write-path logic runs. A second spelling for one thing is
+  exactly the drift this row exists to avoid.
+- **Derived and conditional fields** (`listed`, `teaser`, `buddies`,
+  `status`, `track`) keep B1616's reconciliation
+  (`reconcileVisibility`, `DECLINE_ANSWERED_BY`) and gain no `null`
+  spelling. `{"listed": null}` is refused the same mechanical way as
+  `costs`.
+- **`PUT`.** A full replace already expresses absence by omission (decision
+  7). `tripCreate` — the schema a PUT validates against — never gained
+  `.nullable()` on any field, so `null` there is an ordinary type error.
+**Authorised:** the owner, 2026-09-12 — the widening described in B1626's
+own Work section, decided rather than built unilaterally because a merge-
+patch convention is a contract question.
+**Drift:** a **widening of the patch shape only**. No write shape changes
+beyond it (create/replace still refuse `null` on every field), no read shape
+changes (a GET never returns `null` for these four — the key is either
+present or absent), and nothing that validated before this row stops
+validating now.
+
+### D15 — `schemas/money.ts` (new file)
 **What:** a new schema module — `purchaseCreate`, `purchaseDoc`,
 `PURCHASE_STATUSES`, `ledgerRow`, `LEDGER_REASONS` — exported from
 `schemas/index.ts` alongside the rest.
@@ -94,19 +273,6 @@ of one — the same constraint every other schema file already respects by
 importing enums from *plain* modules only (`lib/costFormat.ts`,
 `lib/validate/entry.ts`). Keep these two lists matching their source unions
 by hand; there is no third copy to disagree with either of them.
-
-### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
-**What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
-any field, message or accepted document.
-**Why:** the 422 body keys each row by `issue.path[0]`, so the row came back
-as `{field: "people", to_decline: "declined.buddies: …"}`. A caller building
-`declined.<field>` from the row — which works for every other row — sends
-`declined.people`, which is not a decline key at all, and gets a fresh
-unrelated refusal instead of resolving the point. `to_provide` was wrong too:
-it showed the `people` array's schema, which says nothing about answering the
-buddies question.
-**Drift:** none. This is the 422 body telling the truth about itself; the set
-of accepted documents is unchanged.
 
 ---
 
