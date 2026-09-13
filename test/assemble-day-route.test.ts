@@ -46,6 +46,14 @@ let dir: string;
 
 const params = { params: Promise.resolve({ user: "alex" }) };
 
+/**
+ * B1650's own four rows — never pre-filled on `assemble_day`'s survey card
+ * (`CARD_PREFILL_TRACKS`, lib/tracks.ts), so a create press that wants a
+ * fresh entry answers them directly, exactly as a model would once it has
+ * actually asked and been told there is nothing to say.
+ */
+const NEW_ROW_DECLINES = { time: "none", transportMode: "none", tags: "none", visibility: "none" };
+
 function json(body: unknown) {
   return new Request("https://t.test/api/helper/alex/assemble-day", {
     method: "POST",
@@ -145,7 +153,7 @@ describe("assemble-day: the create press", () => {
       location: { lat: 46.5, lon: 8.5, source: "browser" },
     });
 
-    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    const made = await read(await POST(json({ trip: TRIP, date, ...NEW_ROW_DECLINES }), params));
     expect(made.status).toBe(201);
     const slug = String(made.body.slug);
     expect(made.body.attached).toBe(1);
@@ -157,7 +165,7 @@ describe("assemble-day: the create press", () => {
     // v2 stores every decline in one `declined` map and reads it back as
     // `unrecorded`, not v1's separate `without` — `lib/entries.ts`'s
     // `declinedTracks` (B1598).
-    expect(day?.unrecorded).toEqual(["costs"]);
+    expect(day?.unrecorded).toEqual(["costs", "time", "transportMode", "tags", "visibility"]);
     expect(day?.lat).toBe(46.5);
     expect(day?.lng).toBe(8.5);
     expect(day?.draft).toBe(true);
@@ -208,7 +216,7 @@ describe("assemble-day: final-review Fix 1 — captions", () => {
     expect(findDayInboxFile("alex", date, entry.id)?.entry.caption).toBe("The old harbour");
     expect(missingForDayFolder("alex", date, ALL_TRACKED).map((m) => m.field)).not.toContain("caption");
 
-    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    const made = await read(await POST(json({ trip: TRIP, date, ...NEW_ROW_DECLINES }), params));
     expect(made.status).toBe(201);
     const day = getEntryBySlug(`alex/${TRIP}`, String(made.body.slug), AS_AUTHOR);
     expect(day?.gallery[0]?.caption).toBe("The old harbour");
@@ -262,7 +270,7 @@ describe("assemble-day: final-review Fix 2 — weather look-up vs decline", () =
       }),
     } as unknown as Response);
 
-    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    const made = await read(await POST(json({ trip: TRIP, date, ...NEW_ROW_DECLINES }), params));
     expect(made.status).toBe(201);
 
     const day = getEntryBySlug(`alex/${TRIP}`, String(made.body.slug), AS_AUTHOR);
@@ -285,7 +293,7 @@ describe("assemble-day: final-review Fix 2 — weather look-up vs decline", () =
     expect(readiness.weatherLookup).toBeFalsy();
 
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    const made = await read(await POST(json({ trip: TRIP, date, ...NEW_ROW_DECLINES }), params));
     expect(made.status).toBe(201);
     expect(fetchSpy).not.toHaveBeenCalled();
 
@@ -337,7 +345,7 @@ describe("assemble-day: final-review Fix 4 — cleanup keeps unattached content"
       location: { lat: 1, lon: 2, source: "browser" },
     });
 
-    const made = await read(await POST(json({ trip: TRIP, date }), params));
+    const made = await read(await POST(json({ trip: TRIP, date, ...NEW_ROW_DECLINES }), params));
     expect(made.status).toBe(201);
 
     // The day folder is gone — its job was staging and a real entry now

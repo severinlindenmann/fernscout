@@ -266,6 +266,12 @@ const DECLINABLE_TRACK: Record<string, Track> = {
   costs: "costs",
   coordinates: "coordinates",
   media: "photos",
+  // B1650 (decision a) — the four rows added to `lib/tracks.ts`. Same field
+  // name on both sides, unlike `media`/`photos` above.
+  time: "time",
+  transportMode: "transportMode",
+  tags: "tags",
+  visibility: "visibility",
 };
 
 function declinedTracks(declined: DayFile["declined"]): Track[] {

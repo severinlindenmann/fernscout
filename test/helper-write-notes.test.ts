@@ -119,7 +119,19 @@ describe("a press with no client behind it", () => {
     expect(await notes()).toContain("am-see-2026");
 
     const started = await (
-      await startDay(post({ trip: made.id, date: "2026-05-01", costs: "unknown", coordinates: "unknown" }), params)
+      await startDay(
+        post({
+          trip: made.id,
+          date: "2026-05-01",
+          costs: "unknown",
+          coordinates: "unknown",
+          time: "none",
+          transportMode: "none",
+          tags: "none",
+          visibility: "none",
+        }),
+        params,
+      )
     ).json();
     expect(started.ok).toBe(true);
     expect(await notes()).toContain(`start_day`);

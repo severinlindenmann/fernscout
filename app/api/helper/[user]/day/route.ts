@@ -65,6 +65,25 @@ function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
 }
 
+/** `body.tags`, when it is a real list of words rather than a decline
+ *  (`declinesIn` reads the decline shape off the same key) — B1650. The
+ *  model sends these as a comma-separated string (a tool's own arguments are
+ *  strings only, `lib/helper/tools/types.ts`); another caller of this same
+ *  route (WhatsApp's dispatch, say) may already hold an array. Both read the
+ *  same way. */
+function tagsOf(value: unknown): string[] | undefined {
+  const words = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+  const tags = words
+    .filter((v): v is string => typeof v === "string")
+    .map((v) => v.trim())
+    .filter((v) => v !== "");
+  return tags.length ? tags : undefined;
+}
+
 /** The day — draft or published, since B816 — as a reader would see it, in
  *  one answer, so the wizard never has to guess what it just did. */
 function state(user: string, trip: string, slug: string): Response {
@@ -162,6 +181,17 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     // B325 — a request for a lookup, never an answer. The archive is asked
     // below, once the day is on disk.
     weather: true,
+    /**
+     * B1650 (decision a) — the four rows added to `lib/tracks.ts` this
+     * ticket. Never pre-filled on this card (`CARD_PREFILL_TRACKS`): a real
+     * value here is only ever what the model was actually told, from the
+     * conversation, and reaches this call the same way `time` above already
+     * does. `missingFrom` below refuses the write when one is silent, which
+     * is the reminder to go and ask rather than a default this route invents.
+     */
+    ...(tagsOf(body.tags) ? { tags: tagsOf(body.tags) } : {}),
+    ...(text(body.transportMode) ? { transportMode: text(body.transportMode) } : {}),
+    ...(parsePhotoVisibility(body.visibility) ? { visibility: parsePhotoVisibility(body.visibility) } : {}),
     ...declinesIn(body),
   };
 

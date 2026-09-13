@@ -53,7 +53,19 @@ async function read(response: Response) {
 async function publishedDay(date: string): Promise<string> {
   const made = await read(
     await POST(
-      json("POST", { trip: "a-trip", date, answers: { costs: "none", coordinates: "unknown" } }),
+      json("POST", {
+        trip: "a-trip",
+        date,
+        answers: {
+          costs: "none",
+          coordinates: "unknown",
+          // B1650's own four rows — never pre-filled on this card.
+          time: "none",
+          transportMode: "none",
+          tags: "none",
+          visibility: "none",
+        },
+      }),
       params,
     ),
   );
@@ -173,7 +185,14 @@ describe("taking a day off the site", () => {
         json("POST", {
           trip: "a-trip",
           date: "2026-05-05",
-          answers: { costs: "none", coordinates: "unknown" },
+          answers: {
+            costs: "none",
+            coordinates: "unknown",
+            time: "none",
+            transportMode: "none",
+            tags: "none",
+            visibility: "none",
+          },
         }),
         params,
       ),

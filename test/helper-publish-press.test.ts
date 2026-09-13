@@ -90,6 +90,15 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+/**
+ * B1650's own four rows, never pre-filled on `start_day`'s card
+ * (`CARD_PREFILL_TRACKS`, lib/tracks.ts) — every `writeDay` press below names
+ * them explicitly, exactly as a model would once it has actually asked and
+ * been told there is nothing to say. Harmless on a `publishDay` press too:
+ * neither route reads a key it was not asked about.
+ */
+const NEW_ROW_DECLINES = { time: "none", transportMode: "none", tags: "none", visibility: "none" };
+
 /** What the browser posts when somebody presses: the arguments, then the
  *  fields as they stand on the card. `components/HelperAsk.tsx`, `accept()`. */
 function pressed(proposal: {
@@ -153,7 +162,7 @@ function giveWords(text = "Ein Tag am See.") {
 describe("a day written and put on the site, by pressing what the conversation offered", () => {
   test("two proposals and two presses, and no other call", async () => {
     const started = await propose("start_day");
-    expect((await post(writeDay, "", pressed(started.proposal))).status).toBe(201);
+    expect((await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES })).status).toBe(201);
     giveWords();
 
     const publishing = await propose("publish_day");
@@ -178,7 +187,7 @@ describe("a day written and put on the site, by pressing what the conversation o
 
   test("the photographs question is on the confirmation, opening on “nobody has it”", async () => {
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
 
     const { proposal, blocks } = await propose("publish_day");
@@ -199,7 +208,7 @@ describe("a day written and put on the site, by pressing what the conversation o
 
   test("her own answer is what is written into the day", async () => {
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
 
     const { proposal } = await propose("publish_day");
@@ -229,7 +238,7 @@ describe("a day written and put on the site, by pressing what the conversation o
     clearUserCache();
 
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
     const { proposal } = await propose("publish_day");
     expect(proposal.fields.map((field) => field.name)).toEqual(["trip", "slug", "photos"]);
@@ -245,9 +254,16 @@ describe("a day written and put on the site, by pressing what the conversation o
  * Two tools post into a route that asks a day what its trip keeps, at two
  * different moments in its life, and each one has now shipped unable to answer
  * once. So the rule is asserted of the registry: **a write tool whose press
- * lands on a route that runs `missingFrom` must ask every row that route would
- * refuse it for.** A third tool posting there, or a fourth row in `TRACKS`,
- * fails here.
+ * lands on a route that runs `missingFrom` must ask every row of
+ * `CARD_PREFILL_TRACKS` that route would refuse it for.** A third tool
+ * posting there, or a fourth row added to that constant, fails here.
+ *
+ * B1650 (decision a) narrowed the claim on purpose: `start_day`'s own card
+ * deliberately does *not* ask about the four rows that ticket added
+ * (`time`/`transportMode`/`tags`/`visibility`) — a pre-filled default there
+ * is the auto-decline this ticket exists to stop. Pressing without them is
+ * meant to refuse, which is why the press below carries them explicitly
+ * rather than the card being expected to.
  */
 describe("no write tool posts into a question it cannot answer", () => {
   const MOMENTS: Record<string, "write" | "publish"> = {
@@ -266,7 +282,7 @@ describe("no write tool posts into a question it cannot answer", () => {
   test("each of them asks every row its route would refuse", async () => {
     // A day exists, so `publish_day` has something to propose about.
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
 
     for (const tool of TOOLS) {
@@ -281,7 +297,10 @@ describe("no write tool posts into a question it cannot answer", () => {
       // through, the questions were enough.
       const route = moment === "write" ? writeDay : publishDay;
       const where = moment === "write" ? "" : "/publish";
-      const answered = await post(route, where, pressed(proposal));
+      // `start_day`'s press also needs B1650's four rows, which its card
+      // never asks about (see the note above) — harmless to add on a
+      // `publish_day` press too, since that route reads only what it asks.
+      const answered = await post(route, where, { ...pressed(proposal), ...NEW_ROW_DECLINES });
       expect([201, 200], `${tool.name} asked ${[...asks].join(", ")}`).toContain(answered.status);
       // `start_day` (the "write" moment) makes a second, empty day — give it
       // words too, so a later `publish_day` iteration does not land on it and
@@ -306,7 +325,7 @@ describe("no write tool posts into a question it cannot answer", () => {
 describe("taking down a day that was never up", () => {
   test("is refused with its own sentence, and no button", async () => {
     const started = await propose("start_day");
-    expect((await post(writeDay, "", pressed(started.proposal))).status).toBe(201);
+    expect((await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES })).status).toBe(201);
 
     const ran = await runTool("alex", "unpublish_day", { trip: "reise" }, say, "2026-09-07");
     expect(ran.proposal).toBeUndefined();
@@ -315,7 +334,7 @@ describe("taking down a day that was never up", () => {
 
   test("and a day that is up still proposes", async () => {
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
     const publishing = await propose("publish_day");
     expect((await post(publishDay, "/publish", pressed(publishing.proposal))).status).toBe(200);
@@ -328,7 +347,7 @@ describe("taking down a day that was never up", () => {
 describe("publishing a day that is already up — B1305", () => {
   test("is refused with its own sentence, and no button", async () => {
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
     const publishing = await propose("publish_day");
     expect((await post(publishDay, "/publish", pressed(publishing.proposal))).status).toBe(200);
@@ -339,7 +358,7 @@ describe("publishing a day that is already up — B1305", () => {
   });
 
   test("and a day still a draft still proposes", async () => {
-    await propose("start_day").then(({ proposal }) => post(writeDay, "", pressed(proposal)));
+    await propose("start_day").then(({ proposal }) => post(writeDay, "", { ...pressed(proposal), ...NEW_ROW_DECLINES }));
     giveWords();
 
     const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
@@ -363,7 +382,7 @@ describe("publishing a day that is already up — B1305", () => {
 describe("what the publish card says about who can read it", () => {
   test("a private trip with nobody on it says only you, in words", async () => {
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
 
     const { proposal } = await propose("publish_day");
@@ -384,7 +403,7 @@ describe("what the publish card says about who can read it", () => {
     clearUserCache();
 
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
     const { proposal } = await propose("publish_day");
     expect(proposal.sentence).toContain("agent.tool.publishReadersPrivate");
@@ -401,7 +420,7 @@ describe("what the publish card says about who can read it", () => {
     clearUserCache();
 
     const started = await propose("start_day");
-    await post(writeDay, "", pressed(started.proposal));
+    await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });
     giveWords();
     const { proposal } = await propose("publish_day");
     expect(proposal.sentence).toContain("agent.tool.publishReadersPublic");
@@ -449,7 +468,7 @@ describe("a day described in the same breath as being asked for", () => {
 
   test("the day itself is still empty — this is a chain, not a shortcut", async () => {
     const started = await propose("start_day", { notes: "Wir sind mittags gelandet." });
-    expect((await post(writeDay, "", pressed(started.proposal))).status).toBe(201);
+    expect((await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES })).status).toBe(201);
     expect(dayFile()).not.toContain("mittags gelandet");
   });
 });
