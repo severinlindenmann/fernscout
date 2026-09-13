@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "cases": [
+    { "id": "B1578", "kind": "api-schema", "paths": ["lib/api/agentCopy.ts"], "requiredChecks": ["test/openapi-contract.test.ts", "test/depersonalised.test.ts"] },
+    { "id": "B420", "kind": "api-state", "failureCase": "A narrow delete test accepted a response that contradicted remaining day costs.", "paths": ["app/api/v1/[user]/trips/[trip]/costs/route.ts"], "requiredChecks": ["test/api-route-schemas.test.ts", "test/openapi-contract.test.ts", "test/no-browser-dialogs.test.ts"] },
+    { "id": "B422", "kind": "auth-docs", "failureCase": "An API token was repeatedly tried against a cookie-only owner page.", "paths": ["docs/agents/network-and-auth.md"], "requiredChecks": ["test/agent-instructions.test.ts"] },
+    { "id": "B1090", "kind": "existing-content-ui", "failureCase": "B42 passed on newly edited fixtures but was inert for existing days without timezone metadata.", "paths": ["lib/timezone.ts", "app/[user]/(trip)/day/[slug]/page.tsx"], "requiredChecks": ["test/brand.test.ts", "test/no-browser-dialogs.test.ts", "test/depersonalised.test.ts"] },
+    { "id": "B633", "kind": "ordinary-ui", "paths": ["components/DayNotify.tsx"], "requiredChecks": ["test/brand.test.ts", "test/no-browser-dialogs.test.ts", "test/depersonalised.test.ts"] },
+    { "id": "B900", "kind": "helper-model-guard", "paths": ["lib/helper/model.ts", "components/HelperAsk.tsx"], "requiredChecks": ["test/brand.test.ts", "test/no-browser-dialogs.test.ts", "test/depersonalised.test.ts"] },
+    { "id": "B1084", "kind": "database-and-provider", "paths": ["lib/db/client.ts", "scripts/rates-refresh.mts"], "requiredChecks": ["test/depersonalised.test.ts"] },
+    { "id": "B1464", "kind": "visual-browser", "paths": ["components/order/OrderDocket.tsx"], "requiredChecks": ["test/brand.test.ts", "test/no-browser-dialogs.test.ts", "test/depersonalised.test.ts"] },
+    { "id": "B1506", "kind": "documentation-skill", "paths": [".claude/skills/test-a-feature/SKILL.md"], "requiredChecks": ["test/skill-docs.test.ts"] },
+    { "id": "B1495", "kind": "sync-api-security", "paths": ["app/api/v1/[user]/sync/manifest/route.ts"], "requiredChecks": ["test/api-route-schemas.test.ts", "test/openapi-contract.test.ts", "test/no-browser-dialogs.test.ts"] }
+  ]
+}

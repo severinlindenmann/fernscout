@@ -62,6 +62,10 @@ task file and move on.
 `npm run tasks -- show B01` prints the current task in full without loading the
 whole task index.
 
+`npm run agent:context -- B01` adds the concise map of code, likely tests,
+scoped docs, skills and visible checks. Use `--detailed` only when the short
+map is insufficient; it guides discovery and does not replace revalidation.
+
 ### 2. Take it
 
 ```bash

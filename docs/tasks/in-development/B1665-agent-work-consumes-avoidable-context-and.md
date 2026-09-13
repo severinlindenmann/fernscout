@@ -232,6 +232,17 @@ On this worktree it correctly found `main`'s stale Zod 4.4.3 against the 4.6.2
 lock, took the fallback, completed in 10.8 seconds, and its second check passed
 without reinstalling. Eleven focused stamp/preflight tests pass.
 
+The quality corpus and measurement command are checked in under
+`docs/benchmarks/agent-efficiency/`. Its ten completed tasks cover API/schema,
+database/provider, helper/model, ordinary UI, visual/browser, sync/security
+and skill work; B420, B422 and B1090 are the three explicit historical failure
+cases. `npm run agent:benchmark` currently finds all 23 declared keeper checks
+(100% recall), with median task-context output of 1,289 bytes and check-plan
+output of 425 bytes. Structured model-run scoring records only aggregate
+timings/counts and correctness flags and refuses unknown fields such as raw
+conversation text. `npm run agent:context -- B1665` supplies the requested
+concise map from a task id, with detailed and JSON forms available.
+
 ## Acceptance
 
 - A committed baseline report and command reproduce measurements across at

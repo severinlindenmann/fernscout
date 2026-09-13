@@ -209,6 +209,7 @@ npm run tasks -- list --lane open          # one lane
 npm run tasks -- show B01                  # one complete task
 npm run tasks -- search "words"            # capped matching list
 npm run tasks -- list --all                # exhaustive, only when needed
+npm run agent:context -- B01               # concise code/test/doc/skill/check map
 npm run tasks -- new --type ISSUE --priority high --complexity low \
   --area "…" --title "Problem, not solution"
 npm run tasks -- move B01 in-development

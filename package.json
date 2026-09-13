@@ -26,6 +26,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check:changed": "node scripts/check-changed.mjs",
+    "agent:context": "node scripts/agent-context.mjs",
+    "agent:benchmark": "node scripts/agent-benchmark.mjs",
     "worktree:bootstrap": "node scripts/worktree-bootstrap.mjs",
     "verify": "node scripts/verify.mjs",
     "seed:example": "node scripts/seed-example-content.mjs",

@@ -58,6 +58,12 @@ files, and the build is under a minute; a full `npm run verify` is closer to
 five. A change is usually wrong in one file at a time, which is what makes the
 single-file run worth the habit.
 
+Starting from a ticket rather than a path, `npm run agent:context -- B01`
+returns a concise map of repository paths, likely tests, scoped docs, skills
+and visible checks. Add `--detailed` for every discovered path or `--json` for
+machine-readable output. It is discovery evidence, not a replacement for
+reading the task or the final gate.
+
 When ownership is unclear, `npm run check:changed -- path/to/file.ts` unions
 Vitest's dependency-related tests with declared static keepers, explains every
 selection and broadens when it has no evidence. It is an iteration aid, never
