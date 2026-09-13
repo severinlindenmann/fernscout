@@ -26,6 +26,12 @@ function journal(): string {
   return dir;
 }
 
+// Not on writeTripFixture (B1630): the journal here is deliberately "u", a
+// one-character username `isValidUsername` refuses; and every case writes
+// deliberately malformed trip.md bytes (a folder/id mismatch, a bad date,
+// unparseable frontmatter) to test the fail-closed reader — `createTrip`
+// would refuse to write any of it. Same resistance as
+// test/malformed-entries.test.ts and test/malformed-plan.test.ts.
 function writeTrip(dir: string, folder: string, body: string): void {
   fs.mkdirSync(path.join(dir, "u", "trips", folder), { recursive: true });
   fs.writeFileSync(path.join(dir, "u", "trips", folder, "trip.md"), body);

@@ -13,6 +13,7 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));
 import { markdownTwin } from "@/lib/api/markdownTwin";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * `.md` on the end of a day page's URL gives you its source.
@@ -32,39 +33,24 @@ import { markdownTwin } from "@/lib/api/markdownTwin";
 let dir: string;
 
 function writeTrip(id: string, status: string, visibility: string, slugs: string[]) {
-  const tripPath = path.join(dir, "alex", "trips", id);
-  fs.mkdirSync(path.join(tripPath, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tripPath, "trip.md"),
-    [
-      "---",
-      `id: ${id}`,
-      `title: "${id}"`,
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      `status: ${status}`,
-      `visibility: ${visibility}`,
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id,
+    title: id,
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: status as "upcoming" | "current" | "past",
+    visibility: visibility as "private" | "public" | "guest",
+    intro: "Body.",
+  });
   for (const slug of slugs) {
-    fs.writeFileSync(
-      path.join(tripPath, "entries", `2026-01-02-${slug}.md`),
-      [
-        "---",
-        `title: "${slug}"`,
-        'date: "2026-01-02"',
-        'location: "Somewhere"',
-        'country: "Nowhere"',
-        "---",
-        "",
-        `The prose of ${id}/${slug}.`,
-        "",
-      ].join("\n"),
-    );
+    writeDayFixture(dir, "alex", id, {
+      slug,
+      date: "2026-01-02",
+      title: slug,
+      location: "Somewhere",
+      country: "Nowhere",
+      content: `The prose of ${id}/${slug}.`,
+    });
   }
 }
 

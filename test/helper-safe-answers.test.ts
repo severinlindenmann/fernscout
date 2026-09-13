@@ -11,6 +11,7 @@ import { grant } from "@/lib/credits";
 import { refusalFor, type Say } from "@/lib/helper/intents";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { getTrips } from "@/lib/trips";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * Round 1 of `docs/plans/2026-09-07-helper-everything.md` — the four ways this
@@ -98,7 +99,7 @@ beforeEach(async () => {
   // the exact wrong neighbour B817 is about.
   answerInThread.mockImplementation(turnCalling("start_day"));
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex", "trips"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -138,10 +139,19 @@ afterEach(async () => {
 });
 
 function writeTrip() {
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "visibility: private", "---", "", "Intro."].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+    intro: "Intro.",
+  });
+  // Not on writeDayFixture (B1630): a later assertion in this file greps the
+  // day's own bytes for the unquoted literal `status: draft` — the fixture's
+  // writer quotes it (`status: "draft"`), which is a wording difference, not
+  // a behaviour one, but the rule is fix the repoint rather than the
+  // assertion. Kept hand-rolled for that one byte.
   const day = (date: string, slug: string, draft: boolean) =>
     fs.writeFileSync(
       path.join(dir, "alex", "trips", "reise", "entries", `${date}-${slug}.md`),

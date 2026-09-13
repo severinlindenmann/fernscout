@@ -21,6 +21,7 @@ vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
 }));
 import { markdownTwin } from "@/lib/api/markdownTwin";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * `test: true` — content nobody lived.
@@ -38,43 +39,28 @@ import { markdownTwin } from "@/lib/api/markdownTwin";
 
 let dir: string;
 
-function writeTrip(id: string, extra: string[], entries: { slug: string; extra?: string[] }[]) {
-  const tripPath = path.join(dir, "alex", "trips", id);
-  fs.mkdirSync(path.join(tripPath, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tripPath, "trip.md"),
-    [
-      "---",
-      `id: ${id}`,
-      `title: "${id}"`,
-      'start: "2026-01-01"',
-      'end: "2026-01-31"',
-      "status: past",
-      "visibility: public",
-      "listed: true",
-      ...extra,
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+function writeTrip(id: string, opts: { test?: boolean }, entries: { slug: string; test?: boolean }[]) {
+  writeTripFixture("alex", {
+    id,
+    title: id,
+    start: "2026-01-01",
+    end: "2026-01-31",
+    status: "past",
+    visibility: "public",
+    listed: true,
+    test: opts.test,
+    intro: "Body.",
+  });
   for (const entry of entries) {
-    fs.writeFileSync(
-      path.join(tripPath, "entries", `2026-01-05-${entry.slug}.md`),
-      [
-        "---",
-        `title: "${entry.slug}"`,
-        'date: "2026-01-05"',
-        'location: "Somewhere"',
-        'country: "Nowhere"',
-        ...(entry.extra ?? []),
-        "---",
-        "",
-        `MARKER-${entry.slug.toUpperCase()}`,
-        "",
-      ].join("\n"),
-    );
+    writeDayFixture(dir, "alex", id, {
+      slug: entry.slug,
+      date: "2026-01-05",
+      title: entry.slug,
+      location: "Somewhere",
+      country: "Nowhere",
+      test: entry.test,
+      content: `MARKER-${entry.slug.toUpperCase()}`,
+    });
   }
 }
 
@@ -227,8 +213,8 @@ beforeEach(async () => {
   clearConfigCache();
   clearUserCache();
 
-  writeTrip("real-2026", [], [{ slug: "realday" }, { slug: "fakeday", extra: ["test: true"] }]);
-  writeTrip("proving-2026", ["test: true"], [{ slug: "provingday" }]);
+  writeTrip("real-2026", {}, [{ slug: "realday" }, { slug: "fakeday", test: true }]);
+  writeTrip("proving-2026", { test: true }, [{ slug: "provingday" }]);
 
   await migrateToLatest(await getDatabase());
 });
@@ -441,22 +427,16 @@ describe("v2's day list — GET /api/v2/{user}/trips/{trip}/days (B1612 repoint)
  */
 describe("the review queue says which drafts nobody lived — repointed onto draftQueue directly, the v1 route is gone", () => {
   /** A draft in one of the fixture trips. */
-  function writeDraft(trip: string, slug: string, extra: string[] = []) {
-    fs.writeFileSync(
-      path.join(dir, "alex", "trips", trip, "entries", `2026-01-09-${slug}.md`),
-      [
-        "---",
-        `title: "${slug}"`,
-        'date: "2026-01-09"',
-        'location: "Somewhere"',
-        "status: draft",
-        ...extra,
-        "---",
-        "",
-        `MARKER-${slug.toUpperCase()}`,
-        "",
-      ].join("\n"),
-    );
+  function writeDraft(trip: string, slug: string, opts: { test?: boolean } = {}) {
+    writeDayFixture(dir, "alex", trip, {
+      slug,
+      date: "2026-01-09",
+      title: slug,
+      location: "Somewhere",
+      status: "draft",
+      test: opts.test,
+      content: `MARKER-${slug.toUpperCase()}`,
+    });
   }
 
   /**
@@ -488,7 +468,7 @@ describe("the review queue says which drafts nobody lived — repointed onto dra
   });
 
   test("a draft with its own flag is marked, and a real one beside it is not", async () => {
-    writeDraft("real-2026", "fakedraft", ["test: true"]);
+    writeDraft("real-2026", "fakedraft", { test: true });
     writeDraft("real-2026", "realdraft");
 
     const drafts = await draftsRoute(await agentToken());

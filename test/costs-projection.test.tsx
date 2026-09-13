@@ -26,6 +26,7 @@ import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import type { SiteSummary } from "@/lib/site";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B1521 — the budget panel projected a finished trip forward and charged the
@@ -76,12 +77,15 @@ function writeTrip(
   days: { date: string; frontmatter?: string; slug?: string }[],
 ): void {
   const tripDir = path.join(dir, "alex", "trips", id);
-  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    `---\nid: ${id}\ntitle: "T"\nstart: "${trip.start}"\nend: "${trip.end}"\n` +
-      `status: ${trip.status}\nvisibility: public\n---\n\nSomething.\n`,
-  );
+  writeTripFixture("alex", {
+    id,
+    title: "T",
+    start: trip.start,
+    end: trip.end,
+    status: trip.status as "upcoming" | "current" | "past",
+    visibility: "public",
+    intro: "Something.",
+  });
   fs.writeFileSync(path.join(tripDir, "costs.md"), costsFrontmatter);
   for (const day of days) {
     fs.writeFileSync(

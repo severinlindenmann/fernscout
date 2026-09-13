@@ -21,6 +21,11 @@ import { PRESET_NAMES } from "@/lib/travellers/presets";
 
 let dir: string;
 
+// Not on writeTripFixture (B1630): every case in this file writes a
+// deliberately malformed `people:` or `travellers:` block (a bad email, an
+// invalid hair colour) to test the fail-closed *reader* — `createTrip`
+// validates both blocks and would refuse to write them at all. Same
+// resistance as test/trip-people.test.ts and test/trip-reparse.test.ts.
 function writeTrip(id: string, extra: string[]) {
   const tripDir = path.join(dir, "alex", "trips", id);
   fs.mkdirSync(tripDir, { recursive: true });

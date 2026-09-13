@@ -48,6 +48,11 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
  * both copies have to carry the same list or the write gate this file is
  * about would be checked against a file the route never opens.
  */
+// Not on writeTripFixture (B1630): "stops the token that was issued while it
+// was there" (below) calls this twice for the same trip id, the second time
+// to simulate the owner hand-editing trip.md to drop a name from `people:`.
+// `createTrip` (the fixture's writer) refuses a trip id that already exists,
+// which is exactly the in-place rewrite this file needs to exercise.
 async function writeTrip(id: string, people: string[]) {
   const root = path.join(dir, OWNER, "trips", id);
   fs.mkdirSync(path.join(root, "entries"), { recursive: true });

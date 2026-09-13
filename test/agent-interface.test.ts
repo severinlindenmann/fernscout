@@ -29,27 +29,19 @@ import {
   asSentence,
   firstQuestions,
 } from "@/lib/api/agentCopy";
+import { writeTripFixture } from "./fixtures/content";
 
 let dir: string;
 
 function writeTrip(username: string, tripId: string) {
-  const tripPath = path.join(dir, username, "trips", tripId);
-  fs.mkdirSync(path.join(tripPath, "entries"), { recursive: true });
-  fs.writeFileSync(
-    tripPath + "/trip.md",
-    [
-      "---",
-      `id: ${tripId}`,
-      `title: "${tripId}"`,
-      'start: "2026-01-01"',
-      'end: "2026-01-31"',
-      "status: current",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(username, {
+    id: tripId,
+    title: tripId,
+    start: "2026-01-01",
+    end: "2026-01-31",
+    status: "current",
+    intro: "Body.",
+  });
 }
 
 beforeEach(() => {

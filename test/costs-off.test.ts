@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B165, the other half: what happens to the numbers that are *not* on a costs
@@ -60,27 +61,17 @@ function writeConfigs(serverCosts: boolean | undefined, userCosts: boolean | und
 }
 
 function writeTrip(username: string, id: string) {
-  const root = path.join(dir, username, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      'visibility: "public"',
-      // Public money on a public trip: nothing about `costsVisibility` should
-      // matter here, which is the point — this is the other axis.
-      'costsVisibility: "public"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(username, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "public",
+    // Public money on a public trip: nothing about `costsVisibility` should
+    // matter here, which is the point — this is the other axis.
+    costsVisibility: "public",
+  });
 }
 
 beforeEach(async () => {

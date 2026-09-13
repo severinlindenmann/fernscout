@@ -14,6 +14,7 @@ import { readPublishFlags } from "@/lib/api/publishFlags";
 import { maskNumber } from "@/lib/whatsapp";
 import { toE164 } from "@/lib/whatsapp/phone";
 import type { Locale } from "@/lib/types";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B365 — the WhatsApp a published day announces.
@@ -84,25 +85,15 @@ function writeUserConfig(owner: { tel?: string } = {}) {
 }
 
 function writeTrip(id: string, opts: { visibility?: string; test?: boolean } = {}) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "Utah"`,
-      'start: "2026-09-01"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      `visibility: "${opts.visibility ?? "public"}"`,
-      ...(opts.test ? ["test: true"] : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: "Utah",
+    start: "2026-09-01",
+    end: "2026-09-10",
+    status: "current",
+    visibility: (opts.visibility ?? "public") as "private" | "public" | "guest",
+    test: opts.test,
+  });
 }
 
 async function writePhoto(tripId: string) {
@@ -115,27 +106,17 @@ async function writePhoto(tripId: string) {
 
 function writeEntry(tripId: string, opts: { test?: boolean; draft?: boolean; photo?: boolean } = {}) {
   const slug = "red-country";
-  const entriesDir = path.join(dir, OWNER, "trips", tripId, "entries");
-  fs.mkdirSync(entriesDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(entriesDir, `2026-09-02-${slug}.md`),
-    [
-      "---",
-      'title: "Red Country"',
-      'date: "2026-09-02"',
-      'location: "Moab"',
-      'country: "USA"',
-      ...(opts.photo
-        ? ["gallery:", `  - src: "/media/${tripId}/photo.jpg"`, '    type: "image"']
-        : []),
-      ...(opts.test ? ["test: true"] : []),
-      ...(opts.draft ? ["status: draft"] : []),
-      "---",
-      "",
-      "Sandstone the colour of a struck match.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, tripId, {
+    slug,
+    date: "2026-09-02",
+    title: "Red Country",
+    location: "Moab",
+    country: "USA",
+    media: opts.photo ? [{ src: `/media/${tripId}/photo.jpg`, type: "image" }] : undefined,
+    test: opts.test,
+    status: opts.draft ? "draft" : undefined,
+    content: "Sandstone the colour of a struck match.",
+  });
   return slug;
 }
 
@@ -609,9 +590,13 @@ describe("the owner's own message — B614", () => {
   });
 
   test("a national number in owner.tel is a config problem, not a guess", async () => {
-    writeUserConfig({ tel: "076 555 00 99" });
+    // Trip written before the bad tel goes in: writeTripFixture's
+    // createTrip reads the journal through getUser, which refuses a
+    // journal whose owner.tel does not parse — exactly the state this
+    // case means to reach, so the trip has to already exist on disk.
     writeTrip("utah");
     const slug = writeEntry("utah");
+    writeUserConfig({ tel: "076 555 00 99" });
     const outcome = await sendDayWhatsapp(OWNER, `${OWNER}/utah`, slug);
     // Loud, like every other bad value in this file: `parseOwner` refuses the
     // number and the journal does not load, so there is nothing to send a day

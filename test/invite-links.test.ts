@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * The two links an owner can hand somebody — B33.
@@ -65,24 +66,14 @@ function writeJournal(username: string, email: string) {
 }
 
 function writeTrip(username: string, id: string, visibility: string) {
-  const root = path.join(dir, username, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${visibility}"`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(username, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: visibility as "private" | "public" | "guest",
+  });
 }
 
 /** An agent bearer token for the journal's owner. */
