@@ -104,7 +104,14 @@ async function startDay(): Promise<string> {
       body: JSON.stringify({
         trip: "a-trip",
         date: "2026-05-04",
-        answers: { costs: "none", coordinates: "unknown" },
+        answers: {
+          costs: "none",
+          coordinates: "unknown",
+          time: "none",
+          transportMode: "none",
+          tags: "none",
+          visibility: "none",
+        },
       }),
     }),
     params,

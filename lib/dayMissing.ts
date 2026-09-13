@@ -1,7 +1,7 @@
 import "server-only";
 import { listDayInbox } from "./inbox";
 import { readDayReadiness, readWords } from "./dayReadiness";
-import { missingFrom, type DayFacts, type Track, type Tracks } from "./tracks";
+import { CARD_PREFILL_TRACKS, TRACKS, missingFrom, type DayFacts, type Track, type Tracks } from "./tracks";
 import { isEnabled } from "./capabilities";
 
 export type DayFolderMissing =
@@ -30,10 +30,24 @@ export function missingForDayFolder(username: string, date: string, tripTracks: 
     costs: false, // a date folder never carries costs directly in this phase
     coordinates: readiness.location !== undefined,
     photos: staged.media.length > 0,
+    // The four rows B1650 added are never this card's to pre-fill (see the
+    // note on `CARD_PREFILL_TRACKS` in lib/tracks.ts) — restricting `tracks`
+    // below to that constant is what keeps them off this survey regardless
+    // of what these three placeholder values say.
+    time: false,
+    transportMode: false,
+    tags: false,
+    visibility: false,
     without: readiness.without,
     unrecorded: readiness.unrecorded,
   };
-  const registered = missingFrom(facts, tripTracks, "write");
+  // Only the rows this card may pre-fill a default for — B1650's own rows
+  // are asked for real once the create attempt itself refuses, never
+  // pre-filled here. See the note on `CARD_PREFILL_TRACKS`.
+  const cardTracks = Object.fromEntries(
+    TRACKS.map((row) => [row, tripTracks[row] && CARD_PREFILL_TRACKS.includes(row)]),
+  ) as Tracks;
+  const registered = missingFrom(facts, cardTracks, "write");
 
   const out: DayFolderMissing[] = [...registered];
 

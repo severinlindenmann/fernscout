@@ -132,7 +132,16 @@ function post(
 async function writeAndPublishADay(): Promise<{ trip: string; slug: string }> {
   const started = await runTool("alex", "start_day", { trip: "reise" }, say, "2026-09-07");
   if (!started.proposal) throw new Error("start_day proposed nothing");
-  await post(writeDay, "https://t.test/api/helper/alex/day", pressed(started.proposal));
+  // B1650's own four rows — never pre-filled on `start_day`'s card
+  // (`CARD_PREFILL_TRACKS`, lib/tracks.ts) — this fixture answers them
+  // directly, as a model would once it has actually asked.
+  await post(writeDay, "https://t.test/api/helper/alex/day", {
+    ...pressed(started.proposal),
+    time: "none",
+    transportMode: "none",
+    tags: "none",
+    visibility: "none",
+  });
 
   // `publish_day` refuses a day that is still `NO_PROSE` with no gallery
   // (B1561) — give it real words so this fixture publishes as before. Days
@@ -239,7 +248,13 @@ describe("revoke_invite", () => {
 describe("tell_readers", () => {
   test("a day still in draft is refused, not proposed", async () => {
     const started = await runTool("alex", "start_day", { trip: "reise" }, say, "2026-09-07");
-    await post(writeDay, "https://t.test/api/helper/alex/day", pressed(started.proposal!));
+    await post(writeDay, "https://t.test/api/helper/alex/day", {
+      ...pressed(started.proposal!),
+      time: "none",
+      transportMode: "none",
+      tags: "none",
+      visibility: "none",
+    });
 
     const ran = await runTool("alex", "tell_readers", { trip: "reise" }, say, "2026-09-07");
     expect(ran.proposal).toBeUndefined();

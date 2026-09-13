@@ -97,14 +97,28 @@ describe("writing a day from the wizard", () => {
     // a pair of buttons per row.
     const asked = await read(await POST(json("POST", { trip: "a-trip", date: "2026-05-04" }), params));
     expect(asked.status).toBe(422);
-    expect(asked.body.missing).toEqual(["costs", "coordinates"]);
+    expect(asked.body.missing).toEqual([
+      "costs",
+      "coordinates",
+      "time",
+      "transportMode",
+      "tags",
+      "visibility",
+    ]);
 
     const made = await read(
       await POST(
         json("POST", {
           trip: "a-trip",
           date: "2026-05-04",
-          answers: { costs: "none", coordinates: "unknown" },
+          answers: {
+            costs: "none",
+            coordinates: "unknown",
+            time: "none",
+            transportMode: "none",
+            tags: "none",
+            visibility: "none",
+          },
         }),
         params,
       ),
@@ -164,7 +178,14 @@ describe("writing a day from the wizard", () => {
         json("POST", {
           trip: "a-trip",
           date: "2026-05-05",
-          answers: { costs: "none", coordinates: "unknown" },
+          answers: {
+            costs: "none",
+            coordinates: "unknown",
+            time: "none",
+            transportMode: "none",
+            tags: "none",
+            visibility: "none",
+          },
         }),
         params,
       ),
@@ -227,7 +248,14 @@ describe("making a second trip from the wizard", () => {
         json("POST", {
           trip: created.body.id as string,
           date: "2026-06-02",
-          answers: { costs: "none", coordinates: "unknown" },
+          answers: {
+            costs: "none",
+            coordinates: "unknown",
+            time: "none",
+            transportMode: "none",
+            tags: "none",
+            visibility: "none",
+          },
         }),
         params,
       ),

@@ -329,7 +329,21 @@ describe("a newly-allowed ordinary write — B1235", () => {
     expect(trip).toBeDefined();
 
     answerInThread.mockImplementationOnce(
-      turnCalling("start_day", { trip: trip.id, date: "2027-03-01" }, "Starting the first day."),
+      turnCalling(
+        "start_day",
+        {
+          trip: trip.id,
+          date: "2027-03-01",
+          // B1650's own four rows, never pre-filled on start_day's card —
+          // simulating the model having already asked, in words, and been
+          // told there is nothing to say.
+          time: "none",
+          transportMode: "none",
+          tags: "none",
+          visibility: "none",
+        },
+        "Starting the first day.",
+      ),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press6.day", "start the first day"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press6.day-tap", "confirm:0:yes"));
@@ -370,7 +384,21 @@ describe("a newly-allowed ordinary write — B1235", () => {
     const trip = getTrips(username)[0];
 
     answerInThread.mockImplementationOnce(
-      turnCalling("start_day", { trip: trip.id, date: "2027-03-01" }, "Starting the first day."),
+      turnCalling(
+        "start_day",
+        {
+          trip: trip.id,
+          date: "2027-03-01",
+          // B1650's own four rows, never pre-filled on start_day's card —
+          // simulating the model having already asked, in words, and been
+          // told there is nothing to say.
+          time: "none",
+          transportMode: "none",
+          tags: "none",
+          visibility: "none",
+        },
+        "Starting the first day.",
+      ),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press7.day", "start the first day"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press7.day-tap", "confirm:0:yes"));
@@ -417,7 +445,21 @@ describe("the enrichment question after a day-writing press — B1264", () => {
     const trip = getTrips(username)[0];
 
     answerInThread.mockImplementationOnce(
-      turnCalling("start_day", { trip: trip.id, date: "2027-03-01" }, "Starting the first day."),
+      turnCalling(
+        "start_day",
+        {
+          trip: trip.id,
+          date: "2027-03-01",
+          // B1650's own four rows, never pre-filled on start_day's card —
+          // simulating the model having already asked, in words, and been
+          // told there is nothing to say.
+          time: "none",
+          transportMode: "none",
+          tags: "none",
+          visibility: "none",
+        },
+        "Starting the first day.",
+      ),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press9.day", "start the first day"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press9.day-tap", "confirm:0:yes"));

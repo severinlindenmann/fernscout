@@ -1,6 +1,6 @@
 import "server-only";
 import fs from "node:fs";
-import { createDraft, type DraftInput } from "@/lib/api/entries";
+import { createDraft, factsOfInput, type DraftInput } from "@/lib/api/entries";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { attachDayFolderMedia } from "@/lib/dayFolderAttach";
 import {
@@ -17,13 +17,43 @@ import { readDayReadiness, readWords, writeDayReadiness, type DayReadiness } fro
 import { NO_PROSE } from "@/lib/helper/draft";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
-import { declinesIn, UNKNOWN, type Track } from "@/lib/tracks";
+import { parsePhotoVisibility, type PhotoVisibility } from "@/lib/photos";
+import { ALL_TRACKED, CARD_PREFILL_TRACKS, declinesIn, missingFrom, UNKNOWN, type Track } from "@/lib/tracks";
 import { getTrip, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+/** A real value or a decline for one of B1650's four new rows, read straight
+ *  off the press body — `"none"`/`"unknown"` are the same two decline
+ *  spellings every other row already answers with, and anything else is
+ *  passed through as the value itself for `DraftInput` to carry. */
+function extraAnswer(value: unknown): string | false | typeof UNKNOWN | undefined {
+  if (value === "none") return false;
+  if (value === UNKNOWN) return UNKNOWN;
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+/** `tags`'s own shape: a real list, or the same two declines as every other
+ *  row. */
+function extraTags(value: unknown): string[] | false | typeof UNKNOWN | undefined {
+  if (value === "none") return false;
+  if (value === UNKNOWN) return UNKNOWN;
+  if (!Array.isArray(value)) return undefined;
+  const tags = value.filter((v): v is string => typeof v === "string" && v.trim() !== "");
+  return tags.length ? tags : undefined;
+}
+
+/** `visibility`'s own shape: the closed `guest`/`private` vocabulary, or the
+ *  same two declines. An unrecognised word is left unanswered rather than
+ *  guessed at, same as `parsePhotoVisibility` everywhere else this reads. */
+function extraVisibility(value: unknown): PhotoVisibility | false | typeof UNKNOWN | undefined {
+  if (value === "none") return false;
+  if (value === UNKNOWN) return UNKNOWN;
+  return parsePhotoVisibility(value);
 }
 
 /** The day folder's own answer to one of the trip's three rows, in the shape
@@ -126,7 +156,20 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const weatherAnswer = body.weather === "lookup" ? "lookup" : body.weather === "decline" ? "decline" : undefined;
   const captionPhoto = text(body.caption_photo);
 
-  if (Object.keys(answered).length > 0 || weatherAnswer !== undefined || captionPhoto !== "") {
+  /**
+   * Whether this press is "record an answer" or "create it" is decided by
+   * the survey's own rows only — B1650's four rows are never on that survey
+   * (`CARD_PREFILL_TRACKS`), so a press naming one of them alongside
+   * `trip`/`date` and nothing else legacy is still the create press, with
+   * those four read directly out of `body` below rather than persisted here.
+   * Persisting them would be exactly the buffering machinery this ticket was
+   * told not to build — the model resends them on the same press instead.
+   */
+  const answeredOnSurvey = Object.fromEntries(
+    Object.entries(answered).filter(([track]) => CARD_PREFILL_TRACKS.includes(track as Track)),
+  );
+
+  if (Object.keys(answeredOnSurvey).length > 0 || weatherAnswer !== undefined || captionPhoto !== "") {
     return recordAnswer(
       user,
       tripId,
@@ -161,12 +204,45 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     costs: trackAnswer(readiness, "costs"),
     coordinates: trackAnswer(readiness, "coordinates"),
     photos: trackAnswer(readiness, "photos"),
+    /**
+     * B1650 (decision a) — four more rows a day now answers before it exists.
+     * These are never pre-filled on a card (`CARD_PREFILL_TRACKS`,
+     * lib/tracks.ts), so nothing has recorded an answer to them the way
+     * `readiness` already holds one for `costs`/`coordinates`/`photos`. A
+     * real value or an actual decline reaches this write the one way B1650
+     * intends: the model puts it directly on this same press, from what the
+     * person said — `trackAnswer` still covers the case where an earlier
+     * turn already recorded a decline for one of these four (Track handling
+     * is generic; nothing stops that path), so whichever answered first
+     * wins.
+     */
+    time: trackAnswer(readiness, "time") ?? extraAnswer(body.time),
+    transportMode: trackAnswer(readiness, "transportMode") ?? extraAnswer(body.transportMode),
+    tags: trackAnswer(readiness, "tags") ?? extraTags(body.tags),
+    visibility: trackAnswer(readiness, "visibility") ?? extraVisibility(body.visibility),
     // A request, exactly as `POST .../day`'s own `weather: true` is one —
     // only when the folder's own readiness says "look it up" was the actual
     // answer, never merely "asked" (`weatherAsked` alone covers a decline
     // too, and a decline must fetch nothing).
     ...(readiness.weatherLookup ? { weather: true } : {}),
   };
+
+  /**
+   * The full gate, not the card's narrower one — B1650. `missingForDayFolder`
+   * above only ever asks about `CARD_PREFILL_TRACKS`; the four new rows are
+   * never on that survey, so this is the one place they are actually
+   * enforced: an `input` still silent on one of them is refused exactly like
+   * an old-style `incomplete_day`, naming the row, which is the reminder the
+   * model acts on — never a default this route invents on its own.
+   */
+  const fullMissing = missingFrom(factsOfInput(input), ALL_TRACKED, "write");
+  if (fullMissing.length > 0) {
+    refused(user, "assemble_day", "incomplete_day");
+    return Response.json(
+      { error: "incomplete_day", missing: fullMissing.map((m) => m.field) },
+      { status: 422 },
+    );
+  }
 
   const written = createDraft(ref, input);
   if (!written.ok) {

@@ -122,6 +122,15 @@ function entries() {
   return fs.readdirSync(path.join(dir, "alex", "trips", "reise", "entries"));
 }
 
+/**
+ * B1650's own four rows, never pre-filled on this card (`CARD_PREFILL_TRACKS`,
+ * lib/tracks.ts) — a press that does not name them is the honest case these
+ * tests are pinning elsewhere (`incomplete_day`), so every press here that
+ * expects a `201` names them explicitly, exactly as a model would once it
+ * has actually asked and been told there is nothing to say.
+ */
+const NEW_ROW_DECLINES = { time: "none", transportMode: "none", tags: "none", visibility: "none" };
+
 function patch(body: unknown) {
   return PATCH(
     new Request("https://t.test/api/helper/alex/day", {
@@ -136,7 +145,7 @@ function patch(body: unknown) {
 describe("pressing the proposal the conversation offered", () => {
   test("writes a day, with no other call and nothing invented", async () => {
     const proposal = await propose();
-    const answered = await post(pressed(proposal));
+    const answered = await post({ ...pressed(proposal), ...NEW_ROW_DECLINES });
     expect(answered.status).toBe(201);
 
     const written = entries();
@@ -174,7 +183,7 @@ describe("pressing the proposal the conversation offered", () => {
   test("a real answer on the card is what is written", async () => {
     const proposal = await propose();
     const body = pressed(proposal);
-    const answered = await post({ ...body, costs: "none" });
+    const answered = await post({ ...body, costs: "none", ...NEW_ROW_DECLINES });
     expect(answered.status).toBe(201);
     const day = fs.readFileSync(
       path.join(dir, "alex", "trips", "reise", "entries", entries()[0]),
@@ -190,12 +199,12 @@ describe("pressing the proposal the conversation offered", () => {
   test("pressing again for the same day answers a stable code, not the raw English sentence — B785", async () => {
     const proposal = await propose();
     const body = pressed(proposal);
-    expect((await post({ ...body, costs: "none" })).status).toBe(201);
+    expect((await post({ ...body, costs: "none", ...NEW_ROW_DECLINES })).status).toBe(201);
 
     // Same trip, same date, again — the second "Diesen Tag beginnen" press
     // B785 was filed against. 409, since B1567: a collision with a day that
     // already exists, the same status `already_published` answers with.
-    const second = await post({ ...body, costs: "none" });
+    const second = await post({ ...body, costs: "none", ...NEW_ROW_DECLINES });
     expect(second.status).toBe(409);
     const answer = (await second.json()) as { error: string };
     // Not `createDraft`'s own English sentence
@@ -207,7 +216,7 @@ describe("pressing the proposal the conversation offered", () => {
   test("pressing again after the day got its real title still answers a refusal, not a second entry — B1567", async () => {
     const proposal = await propose();
     const body = pressed(proposal);
-    const first = await post({ ...body, costs: "none" });
+    const first = await post({ ...body, costs: "none", ...NEW_ROW_DECLINES });
     expect(first.status).toBe(201);
     const firstJson = (await first.json()) as { trip: string; slug: string };
     expect(entries()).toHaveLength(1);
@@ -231,7 +240,7 @@ describe("pressing the proposal the conversation offered", () => {
     // placeholder path is free again, so a route that only compared file
     // paths would write a second, empty entry for a date that already has
     // one and call it `ok`, exactly the live bug B1567 was filed against.
-    const second = await post({ ...body, costs: "none" });
+    const second = await post({ ...body, costs: "none", ...NEW_ROW_DECLINES });
     expect(second.status).toBe(409);
     expect((await second.json()) as { error: string }).toEqual({ error: "day_exists" });
 
@@ -259,6 +268,6 @@ describe("pressing the proposal the conversation offered", () => {
     const proposal = await propose();
     expect(proposal.fields.map((f) => f.name)).toEqual(["trip", "date", "costs", "coordinates"]);
     expect(proposal.sentence).toContain("agent.tool.startDayUnknown");
-    expect((await post({ ...pressed(proposal), costs: "none", coordinates: "unknown" })).status).toBe(201);
+    expect((await post({ ...pressed(proposal), costs: "none", coordinates: "unknown", ...NEW_ROW_DECLINES })).status).toBe(201);
   });
 });

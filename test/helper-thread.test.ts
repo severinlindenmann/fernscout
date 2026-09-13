@@ -791,7 +791,21 @@ describe("what a turn costs", () => {
   // `start_day`, `attach_files` and `draft_words`: which of the four to reach
   // for is exactly the choice this ceiling exists to keep legible, so the
   // words stay rather than getting cut to make the number.
-  const CEILING = 8300;
+  //
+  // Raised to 8500 for B1650 (decision a). A day used to be created before
+  // `time`, `transportMode`, `tags` and `visibility` were ever asked about at
+  // all — nothing in the registry could even ask, so nothing was ever
+  // missing. Both `start_day` and `assemble_day` now declare all four as
+  // real arguments (never a card default the person merely presses past —
+  // see `CARD_PREFILL_TRACKS`, lib/tracks.ts), each already cut to the
+  // shortest wording that still tells the model the three things it needs:
+  // the shape of a real answer, the two decline spellings, and that a
+  // silent guess is worse than leaving the argument out. `assemble_day`'s
+  // own four point back at `start_day`'s rather than repeating it, which is
+  // the same "no sentence pays for the same rule twice" trade every earlier
+  // raise made. What is left to buy is the capability itself: four fields a
+  // day could never be asked about before this ticket.
+  const CEILING = 8500;
 
   /**
    * **What to do when this fails** — B930, and it is the half the number never

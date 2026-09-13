@@ -68,7 +68,13 @@ export type CostInput = {
 export type DraftInput = {
   title: string;
   date: string;
-  time?: string;
+  /**
+   * B1650 (decision a) widens this to a decline, matching `costs` above: a
+   * caller that has asked and been told there is no one moment for this day,
+   * or that nobody wrote the time down, says so on this same field rather
+   * than on one of its own.
+   */
+  time?: string | false | typeof UNKNOWN;
   /** The IANA name `time` is local to — B42. Validated by
    * `lib/validate/entry.ts`'s `checkTimezone`; absent means the feed and the
    * dual clock fall back to the journal's own zone rather than guessing. */
@@ -87,7 +93,10 @@ export type DraftInput = {
   lat?: number;
   lng?: number;
   content: string;
-  tags?: string[];
+  /** Widened for B1650 (decision a) the same way `time` above is — a caller
+   * that asked and was told this day earns no tags, or that nobody has
+   * sorted them out yet, says so here rather than on a field of its own. */
+  tags?: string[] | false | typeof UNKNOWN;
   /**
    * The day's title and content in the journal's other declared languages —
    * B294. Required, in the sense that `validateEntry` refuses a day missing
@@ -105,7 +114,11 @@ export type DraftInput = {
    * is one scalar on the entry itself, not a label matched against a `src`
    * that does not exist yet. See lib/photos.ts.
    */
-  visibility?: PhotoVisibility;
+  /** Widened for B1650 (decision a): `false` is the ordinary answer — shown
+   * to everyone the trip already lets in — and `"unknown"` is nobody having
+   * decided yet. Neither is a value `Entry.visibility` itself ever carries;
+   * both are declines recorded in `declined.visibility` instead. */
+  visibility?: PhotoVisibility | false | typeof UNKNOWN;
   /**
    * Spend logged against this day, each in the currency it was actually spent
    * in. Never converted at write time — see lib/costs.ts.
@@ -140,8 +153,8 @@ export type DraftInput = {
   coordinates?: false | typeof UNKNOWN;
   photos?: false | typeof UNKNOWN;
   /** How the day was travelled. Same story as `costs` — validated since W29,
-   * written since W38. */
-  transportMode?: string;
+   * written since W38, and widened to a decline for B1650 (decision a). */
+  transportMode?: string | false | typeof UNKNOWN;
   transportFrom?: string;
   transportTo?: string;
   /**
@@ -328,7 +341,8 @@ export function validateDraft(input: Partial<DraftInput>): string | null {
   if (typeof input.date !== "string" || !DATE_RE.test(input.date)) {
     return "date is required, as YYYY-MM-DD";
   }
-  if (input.time !== undefined && !TIME_RE.test(String(input.time))) {
+  const time = input.time;
+  if (time !== undefined && time !== false && time !== UNKNOWN && !TIME_RE.test(String(time))) {
     return "time must be HH:MM";
   }
   if (typeof input.content !== "string" || input.content.trim() === "") {
@@ -442,10 +456,19 @@ function unrecordedIn(input: Partial<DraftInput>): Track[] {
   return TRACKS.filter((key) => answerFor(input, key) === UNKNOWN);
 }
 
-/** The three rows are answered on three differently-typed fields; this is the
- * one place that knows which. */
+/** Every row is answered on its own differently-typed field of `DraftInput`
+ * (a decline is `false`/`"unknown"` on that same field, never a field of its
+ * own — see the doc comment on `coordinates`/`photos` above); this is the one
+ * place that knows which. */
 function answerFor(input: Partial<DraftInput>, key: Track): unknown {
-  return key === "costs" ? input.costs : input[key as "coordinates" | "photos"];
+  return key === "costs" ? input.costs : input[key];
+}
+
+/** The genuine value of a field that may instead carry a decline
+ * (`false`/`"unknown"`) — `undefined` for either decline, the value
+ * unchanged otherwise. */
+function realOf<T>(value: T | false | typeof UNKNOWN | undefined): T | undefined {
+  return value === false || value === UNKNOWN ? undefined : (value as T | undefined);
 }
 
 /**
@@ -463,6 +486,10 @@ export function factsOfInput(
     costs: Array.isArray(input.costs) && input.costs.length > 0,
     coordinates: typeof input.lat === "number" && typeof input.lng === "number",
     photos: false,
+    time: typeof input.time === "string" && input.time.trim() !== "",
+    transportMode: typeof input.transportMode === "string" && input.transportMode.trim() !== "",
+    tags: Array.isArray(input.tags) && input.tags.length > 0,
+    visibility: input.visibility === "guest" || input.visibility === "private",
     without: declined,
     unrecorded: unrecordedIn(input),
   };
@@ -474,6 +501,10 @@ export function factsOfEntry(entry: Entry): DayFacts {
     costs: entry.costs.length > 0,
     coordinates: entry.lat !== undefined && entry.lng !== undefined,
     photos: entry.gallery.length > 0,
+    time: typeof entry.time === "string" && entry.time.trim() !== "",
+    transportMode: entry.transport?.mode !== undefined,
+    tags: entry.tags.length > 0,
+    visibility: entry.visibility === "guest" || entry.visibility === "private",
     without: entry.without ?? [],
     unrecorded: entry.unrecorded ?? [],
   };
@@ -485,10 +516,14 @@ export function factsOfEntry(entry: Entry): DayFacts {
  * lines. `photos` is the track's own name; `media` is what the day itself
  * calls the section it is declining, matching `dayWrite`'s own field name.
  */
-const DECLINE_KEY: Record<Track, "costs" | "coordinates" | "media"> = {
+const DECLINE_KEY: Record<Track, "costs" | "coordinates" | "media" | "time" | "transportMode" | "tags" | "visibility"> = {
   costs: "costs",
   coordinates: "coordinates",
   photos: "media",
+  time: "time",
+  transportMode: "transportMode",
+  tags: "tags",
+  visibility: "visibility",
 };
 
 /**
@@ -503,6 +538,10 @@ function declineText(track: Track, why: "no" | "unknown"): string {
     costs: "what this day cost",
     coordinates: "where this day happened",
     photos: "photographs from this day",
+    time: "what time this day happened",
+    transportMode: "how this day travelled",
+    tags: "this day's tags",
+    visibility: "whether this day is held back from anyone the trip lets in",
   };
   return why === "no"
     ? `Nothing to record: ${about[track]}.`
@@ -536,7 +575,13 @@ function buildDayFile(
     content: input.content.trim(),
     status: "draft",
   };
-  if (input.time) day.time = input.time;
+  // `time`, `tags`, `transportMode` and `visibility` now carry a decline
+  // (`false`/`"unknown"`) as well as a real value (B1650, decision a) — the
+  // same field `costs`/`coordinates`/`photos` already used a decline for.
+  // `realOf` reads the genuine value back out, or `undefined` when this call
+  // is one of those two answers rather than a value to write.
+  const realTime = realOf(input.time);
+  if (realTime) day.time = realTime;
   if (timezone) day.timezone = timezone;
   if (input.location) day.location = input.location;
   if (input.country) day.country = input.country;
@@ -544,20 +589,23 @@ function buildDayFile(
   if (input.lat !== undefined && input.lng !== undefined) {
     day.coordinates = { lat: input.lat, lng: input.lng };
   }
-  if (input.tags?.length) day.tags = input.tags;
-  if (input.transportMode) {
+  const realTags = realOf(input.tags);
+  if (realTags?.length) day.tags = realTags;
+  const realTransportMode = realOf(input.transportMode);
+  if (realTransportMode) {
     // Cast, like `travelScene` below: both arrive as `string` on the input
     // type because that is what a caller sends, and both have already been
     // checked against their closed list by `lib/validate/entry.ts` before
     // anything reaches here (`transportMode` at its own check there). The
     // cast records that, rather than re-deciding it in a second place that
     // could disagree with the first.
-    day.transportMode = input.transportMode as DayFile["transportMode"];
+    day.transportMode = realTransportMode as DayFile["transportMode"];
     day.transportFrom = input.transportFrom ?? "";
     day.transportTo = input.transportTo ?? "";
   }
   if (input.travelScene) day.travelScene = input.travelScene as DayFile["travelScene"];
-  if (input.visibility) day.visibility = input.visibility;
+  const realVisibility = realOf(input.visibility);
+  if (realVisibility) day.visibility = realVisibility;
   // One field on disk (B1598): a real reading always wins over a bare
   // request, since a reading already answers the question the request asked.
   if (input.weatherData) day.weather = input.weatherData;
@@ -992,7 +1040,13 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
    * `visibility` has no falsy value to send for "go back to being seen by
    * everyone the trip lets in", so an edit needs the wider type to say so.
    */
-  visibility?: PhotoVisibility | null;
+  /** Widened for B1650 (decision a): `false`/`"unknown"` are the same two
+   * declines every other row answers with, read the same generic way by
+   * `declinesIn`/the declined-map loop below. Both behave exactly as `null`
+   * already did — cleared back to "shown to everyone the trip lets in" —
+   * since a day's visibility has no separate "unrecorded" state worth
+   * keeping apart from "no override" once it is already on disk. */
+  visibility?: PhotoVisibility | null | false | typeof UNKNOWN;
   /** Ask for a lookup on a day already written — B325. `false` removes the
    * request; it does not remove a reading already recorded. */
   weather?: boolean;
@@ -1052,7 +1106,8 @@ function applyEditToDay(day: DayFile, input: EditInput): DayFile {
   if (input.title !== undefined) next.title = input.title;
   if (input.date !== undefined) next.date = input.date;
   if (input.time !== undefined) {
-    if (input.time) next.time = input.time;
+    const real = realOf(input.time);
+    if (real) next.time = real;
     else delete next.time;
   }
   if (input.timezone !== undefined) {
@@ -1081,11 +1136,13 @@ function applyEditToDay(day: DayFile, input: EditInput): DayFile {
     if (lat !== undefined && lng !== undefined) next.coordinates = { lat, lng };
   }
   if (input.tags !== undefined) {
-    if (input.tags.length) next.tags = input.tags;
+    const real = realOf(input.tags);
+    if (real?.length) next.tags = real;
     else delete next.tags;
   }
   if (input.transportMode !== undefined) {
-    if (input.transportMode) next.transportMode = input.transportMode as DayFile["transportMode"];
+    const real = realOf(input.transportMode);
+    if (real) next.transportMode = real as DayFile["transportMode"];
     else delete next.transportMode;
   }
   if (input.transportFrom !== undefined) {
@@ -1100,9 +1157,14 @@ function applyEditToDay(day: DayFile, input: EditInput): DayFile {
     if (input.travelScene) next.travelScene = input.travelScene as DayFile["travelScene"];
     else delete next.travelScene;
   }
-  // B632. `null`/`""` clears the label, same as `photoVisibility`'s.
+  // B632. `null`, `false` and `"unknown"` all clear the label the same way —
+  // "unknown" is truthy as a string, so it needs the same explicit exclusion
+  // `realOf` gives the create path, just without `realOf` itself (this
+  // field's decline is `false | null`, not `DraftInput`'s `false | UNKNOWN`
+  // pairing alone, so the two are not quite the same shape).
   if (input.visibility !== undefined) {
-    if (input.visibility) next.visibility = input.visibility;
+    const real = input.visibility === UNKNOWN ? undefined : input.visibility;
+    if (real) next.visibility = real;
     else delete next.visibility;
   }
   if (input.test !== undefined) {
@@ -1140,7 +1202,7 @@ function applyEditToDay(day: DayFile, input: EditInput): DayFile {
   {
     const declined: Record<string, string> = { ...(day.declined ?? {}) };
     for (const track of TRACKS) {
-      const said = track === "costs" ? input.costs : input[track as "coordinates" | "photos"];
+      const said = track === "costs" ? input.costs : input[track];
       if (said === undefined) continue;
       const key = DECLINE_KEY[track];
       // Three answers, and each one retracts the other two: a day cannot

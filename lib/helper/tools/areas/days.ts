@@ -2,7 +2,7 @@ import "server-only";
 import type { Tool } from "../types";
 import type { ProposalField } from "../../blocks";
 import type { Say } from "../../intents";
-import { ALL_TRACKED, TRACKS, TRACK_ROWS, UNKNOWN, missingFrom } from "../../../tracks";
+import { ALL_TRACKED, CARD_PREFILL_TRACKS, TRACK_ROWS, UNKNOWN, missingFrom } from "../../../tracks";
 import { AS_AUTHOR, getAllEntries } from "../../../entries";
 import { DAY_ARGS, DAY_REF_ARGS, PREVIEW_CHARACTERS, TRIP_ARG } from "../args";
 import { draftsForWizard } from "../../server";
@@ -228,6 +228,18 @@ export const DAYS_TOOLS: readonly Tool[] = [
         description:
           "Anything they already said about the day, in their own words. Pass it through when they described the day while asking for it: it rides to the next card and is not written here. Never write it yourself.",
       },
+      /**
+       * B1650 (decision a) — real answers, from a real question, never a
+       * default this card invents. Each of these four is also a row in
+       * `lib/tracks.ts`, so a write silent on one of them is refused
+       * (`incomplete_day`, naming the row) — that refusal is what should
+       * send the model back to ask, in words, rather than this card
+       * pre-filling a value nobody was asked for.
+       */
+      time: { type: "string", description: 'HH:MM if said; "none"/"unknown" once asked.' },
+      transportMode: { type: "string", description: 'Mode if said; "none"=rest day, else ask first.' },
+      tags: { type: "string", description: 'Comma-separated if said; "none"/"unknown" once asked.' },
+      visibility: { type: "string", description: '"guest"/"private" if asked; else "none".' },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day`,
     propose: async (username, args, say, today) => {
@@ -247,8 +259,16 @@ export const DAYS_TOOLS: readonly Tool[] = [
        *
        * Only the `write` rows: `photos` is asked at publish, and there is no
        * photograph at creation for anybody to answer about.
+       *
+       * **Only `CARD_PREFILL_TRACKS`** — B1650 (decision a). The rows added by
+       * that ticket (`time`, `transportMode`, `tags`, `visibility`) are
+       * deliberately not pre-filled here: a default a person can merely press
+       * past is the auto-decline this ticket exists to stop. `POST .../day`
+       * still refuses a day silent on any of them, which is the reminder to
+       * go and ask, in words, before pressing again — never a card that has
+       * already answered for them.
        */
-      const asked = TRACKS.filter(
+      const asked = CARD_PREFILL_TRACKS.filter(
         (row) => TRACK_ROWS[row].when === "write" && (trip?.tracks ?? ALL_TRACKED)[row],
       );
       const sentence = say("agent.tool.startDay", {
@@ -291,6 +311,17 @@ export const DAYS_TOOLS: readonly Tool[] = [
               { value: "none", label: say("agent.answerNone") },
             ],
           })),
+          /**
+           * B1650 (decision a) — carried through exactly as the model filled
+           * them in, never shown with a pre-filled default: `fixed` means
+           * `HelperAsk` draws nothing for these, so there is no button to
+           * press past without having actually been asked. Absent when the
+           * model has not been told, which is what lets `POST .../day`'s own
+           * completeness check catch a day still silent on one of them.
+           */
+          ...(["time", "transportMode", "tags", "visibility"] as const)
+            .filter((name) => (args[name] ?? "").trim() !== "")
+            .map((name) => ({ name, value: args[name]!.trim(), fixed: true as const })),
         ],
       };
     },
@@ -544,6 +575,29 @@ export const DAYS_TOOLS: readonly Tool[] = [
     properties: {
       ...TRIP_ARG,
       date: { type: "string", description: "The date to assemble, as YYYY-MM-DD." },
+      /**
+       * B1650 (decision a) — the same four rows `start_day` now takes, real
+       * answers only. This survey never asks about them itself (they are
+       * absent from `CARD_PREFILL_TRACKS`); the create press refuses with
+       * `incomplete_day` naming whichever is still silent, and that refusal
+       * is what should send the model back to ask before calling this again.
+       */
+      time: {
+        type: "string",
+        description: "Same rule as start_day's own time.",
+      },
+      transportMode: {
+        type: "string",
+        description: "Same rule as start_day's own transportMode.",
+      },
+      tags: {
+        type: "string",
+        description: "Same rule as start_day's own tags.",
+      },
+      visibility: {
+        type: "string",
+        description: "Same rule as start_day's own visibility.",
+      },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/assemble-day`,
     propose: async (username, args, say, today) => {
@@ -620,6 +674,13 @@ export const DAYS_TOOLS: readonly Tool[] = [
         fields: [
           { name: "trip", value: trip?.id ?? "", fixed: true },
           { name: "date", value: chosenDate, fixed: true },
+          // B1650 — carried through exactly as the model filled them in, from
+          // an actual question asked in conversation; absent when it has not
+          // asked, which is what lets the route's own completeness check
+          // catch a day still silent on one of them.
+          ...(["time", "transportMode", "tags", "visibility"] as const)
+            .filter((name) => (args[name] ?? "").trim() !== "")
+            .map((name) => ({ name, value: args[name]!.trim(), fixed: true as const })),
         ],
       };
     },

@@ -36,8 +36,45 @@
  * `coordinates` rather than `location`: a day already has a `location`, and it
  * is the place's name. What this row is about is `lat`/`lng`.
  */
-export const TRACKS = ["costs", "coordinates", "photos"] as const;
+/**
+ * Four rows added for B1650 — the owner's decision (a): a day answers v2's
+ * full declinable set before it exists at all. `time`, `transportMode`,
+ * `tags` and `visibility` fit this registry's existing shape exactly (a day
+ * carries the thing, declines it, or says nobody knows), so they are rows
+ * here rather than a second mechanism.
+ *
+ * **The mechanism is the refusal, not a card.** The owner's own words: "the
+ * agent sends the api request and if data is missing he is reminded ... and
+ * just when the user actively declines then we set the declined setting."
+ * `missingFrom` below is what the write route already asks before it writes
+ * anything, and it now names these four rows too — a caller that has not
+ * been told about them yet gets `incomplete_day` naming them, which is the
+ * prompt to go and ask, exactly as it always has been for `costs` and
+ * `coordinates`. What must NOT happen is a card pre-filling `"unknown"` for
+ * these four the way `start_day`'s own card still does for the original
+ * three (`CARD_PREFILL_TRACKS` below) — a pre-filled default a person can
+ * merely press past is the auto-decline this ticket exists to stop, so the
+ * new rows are deliberately absent from that constant and only ever answered
+ * because a caller supplied a real value or an actual decline.
+ *
+ * Not everything v2 asks about a day is a row here. `location`/`country`/
+ * `countryCode`/`timezone` are answered by `coordinates` (the address
+ * lookup, or its absence, decides them — there is no separate question a
+ * person could usefully answer) and `translations` needs the journal's own
+ * locale count, which this module deliberately cannot read (see the module
+ * note: "no fs, no request, no journal"). Both are left for a follow-up
+ * ticket rather than bent to fit here.
+ */
+export const TRACKS = ["costs", "coordinates", "photos", "time", "transportMode", "tags", "visibility"] as const;
 export type Track = (typeof TRACKS)[number];
+
+/**
+ * The rows a proposal card is still allowed to pre-fill with a default
+ * before anybody has been asked — the pre-B1650 UX (B810/B820), left exactly
+ * as it was. Every row added by B1650 is deliberately absent: see the note
+ * above `TRACKS`.
+ */
+export const CARD_PREFILL_TRACKS: readonly Track[] = ["costs", "coordinates", "photos"];
 
 /**
  * The third answer, as it travels on the wire — B560.
@@ -54,7 +91,15 @@ export const UNKNOWN = "unknown";
 export type Tracks = Record<Track, boolean>;
 
 /** Absent means all of them — see the module note. */
-export const ALL_TRACKED: Tracks = { costs: true, coordinates: true, photos: true };
+export const ALL_TRACKED: Tracks = {
+  costs: true,
+  coordinates: true,
+  photos: true,
+  time: true,
+  transportMode: true,
+  tags: true,
+  visibility: true,
+};
 
 /**
  * What a day carries, as the contract needs to see it.
@@ -68,6 +113,10 @@ export type DayFacts = {
   costs: boolean;
   coordinates: boolean;
   photos: boolean;
+  time: boolean;
+  transportMode: boolean;
+  tags: boolean;
+  visibility: boolean;
   /** What this day says it deliberately does not have — `without:` in its
    *  frontmatter, which is what `"costs": false` writes. */
   without: readonly Track[];
@@ -184,6 +233,41 @@ export const TRACK_ROWS: Record<Track, Row> = {
     unknown:
       '"photos": "unknown" — there are pictures somewhere and nobody has them to hand. ' +
       "They can be added afterwards; the day does not have to wait.",
+  },
+  time: {
+    when: "write",
+    keeps: "what time each day happened",
+    send: 'time: "14:30" — HH:MM, local to the day',
+    decline: `"time": false — this day has no one moment to name. ${NOT_KNOWN}`,
+    unknown:
+      '"time": "unknown" — it happened at some time and nobody wrote it down. Better than a ' +
+      "guessed hour: an invented time is a lie the day's own clock tells confidently.",
+  },
+  transportMode: {
+    when: "write",
+    keeps: "how each day travelled",
+    send: 'transportMode: "train", "flight", "car" … one of TRANSPORT_MODES in lib/validate/entry.ts',
+    decline: `"transportMode": false — a rest day, with no leg to name. ${NOT_KNOWN}`,
+    unknown:
+      '"transportMode": "unknown" — there was a leg and nobody recorded how it went. It can ' +
+      "be added afterwards.",
+  },
+  tags: {
+    when: "write",
+    keeps: "tags on each day",
+    send: 'tags: ["hiking", "family"] — short, lowercase words',
+    decline: `"tags": false — nothing about this day is worth tagging. ${NOT_KNOWN}`,
+    unknown:
+      '"tags": "unknown" — nobody has sorted out this day\'s tags yet. It can be added later.',
+  },
+  visibility: {
+    when: "write",
+    keeps: "whether a day is held back from anyone the trip otherwise lets in",
+    send: 'visibility: "guest" or "private" — narrows the trip\'s own gate for this one day',
+    decline: `"visibility": false — shown to everyone the trip already lets in. ${NOT_KNOWN}`,
+    unknown:
+      '"visibility": "unknown" — nobody has decided yet whether to hold this day back. It ' +
+      "can be set later, and until then it is shown to everyone the trip lets in.",
   },
 };
 

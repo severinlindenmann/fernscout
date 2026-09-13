@@ -127,7 +127,11 @@ const SAID: Record<string, Record<string, string>> = {
   set_reminder: { trip: AS_SAID, enabled: "on" },
   trip_people: { trip: AS_SAID, person: "Mira", email: "mira@example.test" },
   trip_tracks: { trip: AS_SAID, costs: "off" },
-  start_day: { trip: AS_SAID },
+  // B1650's own four rows — `start_day`'s card never pre-fills them
+  // (`CARD_PREFILL_TRACKS`), so what the model is imagined to have already
+  // asked about and been told "none" for travels as an argument here, the
+  // same way `assemble_day` below relies on its own card for the other two.
+  start_day: { trip: AS_SAID, time: "none", transportMode: "none", tags: "none", visibility: "none" },
   draft_words: { trip: AS_SAID, slug: DRAFT, notes: "Regen, dann der Pass." },
   set_day_words: { trip: AS_SAID, slug: DRAFT, title: "Der Pass", content: "Ihre Worte." },
   /**
@@ -149,8 +153,17 @@ const SAID: Record<string, Record<string, string>> = {
   },
   // A date nothing has staged yet — the ask branch. Its trip tracks
   // everything by default, so `costs`/`coordinates` come back as questions,
-  // answered "unknown" the same way `start_day`'s own questions open.
-  assemble_day: { trip: AS_SAID, date: "2026-05-09" },
+  // answered "unknown" the same way `start_day`'s own questions open. The
+  // four B1650 rows are never on that survey card either, so they travel as
+  // arguments the same way `start_day`'s do above.
+  assemble_day: {
+    trip: AS_SAID,
+    date: "2026-05-09",
+    time: "none",
+    transportMode: "none",
+    tags: "none",
+    visibility: "none",
+  },
   publish_day: { trip: AS_SAID, slug: DRAFT },
   unpublish_day: { trip: AS_SAID, slug: PUBLISHED },
   attach_files: { trip: AS_SAID, slug: DRAFT },

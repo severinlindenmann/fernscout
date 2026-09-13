@@ -55,7 +55,20 @@ async function read(response: Response) {
 async function day(date: string): Promise<string> {
   const made = await read(
     await POST(
-      json({ trip: "a-trip", date, answers: { costs: "unknown", coordinates: "unknown" } }),
+      json({
+        trip: "a-trip",
+        date,
+        answers: {
+          costs: "unknown",
+          coordinates: "unknown",
+          // B1650's own four rows — never pre-filled on this card, so a
+          // fixture that wants a day actually created answers them here.
+          time: "none",
+          transportMode: "none",
+          tags: "none",
+          visibility: "none",
+        },
+      }),
       params,
     ),
   );
