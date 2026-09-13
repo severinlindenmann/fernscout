@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: UI / theming
 found: "2026-09-11T21:02:39Z"
+started: "2026-09-13T08:43:34Z"
 ---
 
 # B1541 — There is no dark mode; the whole app is cream and yellow at 2am
@@ -26,6 +27,15 @@ only. The current inventory is about 3,475 colour-utility occurrences across
 colour token is often used for different jobs that need different dark values.
 
 **Plan:** `docs/plans/2026-09-13-b1541-dark-mode.md`.
+
+## Revalidation
+
+**Valid — 2026-09-13.** `app/layout.tsx` still advertises
+`colorScheme: "light"`, `app/globals.css` still defines only the light root
+palette, and there is no site-wide theme preference. The one dark treatment is
+the room-scoped `.fs-room-dark` exception driven by `fs.agent.dark` in
+`components/HelperRoom.tsx`; it does not affect the landing page, journals,
+trips or days and is one of the conflicting controls this work replaces.
 
 ## Work
 
