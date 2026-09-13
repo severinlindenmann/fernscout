@@ -4,8 +4,10 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
 import { writeRouteTypesStamp } from "./route-types-stamp.mjs";
+import { assertRepositoryNode } from "./runtime-preflight.mjs";
 
 const root = process.cwd();
+assertRepositoryNode(root);
 const distDir = process.env.NEXT_DIST_DIR || ".next";
 const nextBin = path.join(root, "node_modules", "next", "dist", "bin", "next");
 const child = spawn(process.execPath, [nextBin, "build", ...process.argv.slice(2)], {

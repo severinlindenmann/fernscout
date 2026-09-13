@@ -222,6 +222,16 @@ Next build pass. A real build reached Next 16.3.3, but this restricted harness
 blocked its Google-font requests and then Turbopack's PostCSS subprocess port;
 the final gate still needs an unrestricted run.
 
+Worktree setup now has an executable preflight too. The repository pins Node
+24.20.0 in package metadata as well as `.nvmrc`; build and verify stop
+immediately with an actionable version error instead of reaching Next with
+Node 18. `npm run worktree:bootstrap` verifies the runtime and shared install,
+uses an APFS copy-on-write clone when valid, falls back to
+`npm ci --prefer-offline` when it is not, and stamps the lockfile provenance.
+On this worktree it correctly found `main`'s stale Zod 4.4.3 against the 4.6.2
+lock, took the fallback, completed in 10.8 seconds, and its second check passed
+without reinstalling. Eleven focused stamp/preflight tests pass.
+
 ## Acceptance
 
 - A committed baseline report and command reproduce measurements across at

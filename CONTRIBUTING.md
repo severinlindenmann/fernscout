@@ -19,6 +19,11 @@ that your machine accepts and CI rejects with `Missing: ... from lock file`.
 If you bump `.nvmrc`, bump `NODE_VERSION` in `.github/workflows/ci.yml` too and
 regenerate the lockfile with the matching npm.
 
+After creating a linked worktree, run `npm run worktree:bootstrap` inside it.
+On APFS this validates and copy-on-write clones the shared checkout's install;
+elsewhere it uses `npm ci --prefer-offline`. If its lockfile later changes,
+rerun it with `-- --refresh`.
+
 The repo ships with a demo journal at `/example`, committed under
 `content/example/`, so the app works end to end with no real trip data. Real configuration lives in
 `site/config.json`, read by `lib/config.ts` — don't put personal data or

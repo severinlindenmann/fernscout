@@ -29,8 +29,11 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { inspectRouteTypesStamp } from "./route-types-stamp.mjs";
+import { assertRepositoryNode } from "./runtime-preflight.mjs";
 
 const quick = process.argv.includes("--quick");
+
+assertRepositoryNode(process.cwd());
 
 /**
  * A worktree has no `node_modules` of its own. `npx tsc`, `eslint` and

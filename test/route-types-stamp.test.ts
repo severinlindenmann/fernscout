@@ -22,6 +22,7 @@ function fixture() {
   fs.writeFileSync(path.join(root, "components", "Card.tsx"), "export default 1\n");
   fs.writeFileSync(path.join(root, ".next", "types", "routes.d.ts"), "type Route = '/trips/[trip]'\n");
   fs.writeFileSync(path.join(root, "next.config.ts"), "export default { typedRoutes: true }\n");
+  fs.writeFileSync(path.join(root, ".nvmrc"), `${process.versions.node}\n`);
   fs.writeFileSync(path.join(root, "node_modules", "next", "package.json"), '{"version":"16.3.3"}\n');
   return root;
 }

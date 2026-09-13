@@ -147,18 +147,20 @@ and was nowhere written down:
 
 ```bash
 git worktree add .claude/worktrees/<branch> -b <branch>
-cp -Rc node_modules .claude/worktrees/<branch>/node_modules   # macOS, near-instant
+cd .claude/worktrees/<branch>
+npm run worktree:bootstrap                                    # APFS clone or npm ci fallback
 ```
 
-`cp -Rc` clones copy-on-write on APFS, so five copies cost almost no disk and
-no time; `npm ci` in each worktree is minutes each. Then hand the agent the
+The bootstrap validates the pinned Node version and source install, then uses
+a copy-on-write clone on APFS, so five copies cost almost no disk and no time;
+elsewhere it runs `npm ci --prefer-offline`. Then hand the agent the
 **absolute** worktree path in its prompt, along with the task file's contents
-and its acceptance criteria — a subagent has none of your context. Elsewhere,
-or if the clone fails, `npm ci --prefer-offline` in the worktree.
+and its acceptance criteria — a subagent has none of your context.
 
 That clone is a snapshot: merge `main` into an older worktree and a
 module-not-found for a package the change never mentions means the lockfile
-moved and the clone did not — re-run `cp -Rc`, not a bad-merge hunt. AGENTS.md
+moved and the clone did not — rerun bootstrap with `-- --refresh`, not a
+bad-merge hunt. AGENTS.md
 has the full symptom (B1141).
 
 `.claude/worktrees/` is gitignored and already holds worktrees from other

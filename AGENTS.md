@@ -167,15 +167,16 @@ git status --short
 ```
 
 Never work in or remove a worktree you did not create. A new worktree has no
-dependencies; on this APFS machine clone them copy-on-write:
+dependencies. From inside it run:
 
 ```bash
-cp -Rc node_modules .claude/worktrees/<branch>/node_modules
+npm run worktree:bootstrap
 ```
 
-Do not symlink `node_modules`. If `package-lock.json` moved after rebasing or
-merging main, refresh the clone. On a filesystem without copy-on-write, use
-`npm ci --prefer-offline`.
+It checks the exact `.nvmrc` version, clones `node_modules` copy-on-write from
+`main` on APFS (or runs `npm ci --prefer-offline` elsewhere), and stamps the
+lockfile it matches. Do not symlink `node_modules`. If the lockfile moved,
+rerun with `-- --refresh`; it replaces only that worktree's dependency clone.
 
 In a worktree-isolated harness, issue one git command per shell call. Complex
 chained commands may be refused because their working directory cannot be

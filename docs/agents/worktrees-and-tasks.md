@@ -13,7 +13,8 @@ and merged back:
 
 ```bash
 git worktree add .claude/worktrees/<branch> -b <branch>
-cp -Rc node_modules .claude/worktrees/<branch>/node_modules   # see below
+cd .claude/worktrees/<branch>
+npm run worktree:bootstrap                                    # see below
 # … build it there, verify it there …
 git merge --no-ff <branch>          # from the main checkout
 git worktree remove .claude/worktrees/<branch>
@@ -81,10 +82,12 @@ Four things that follow, and are easy to get wrong:
   `git log --oneline main..HEAD`, then run `git diff --stat`, and let the merge
   into the shared checkout be its own call from the shared checkout.
 - **A worktree has no `node_modules`.** `npx tsc`, `eslint` and `vitest`
-  resolve upward and appear to work; `npm run build` does not. Clone the main
-  checkout's with `cp -Rc` — copy-on-write on APFS, so it is about eight
-  seconds and no real disk — rather than `npm ci`, which is minutes and was run
-  sixty-five times in one week here. **Not a symlink**: `npm run build` then
+  resolve upward and appear to work; `npm run build` does not. Run
+  `npm run worktree:bootstrap` from the new worktree. It verifies the exact
+  `.nvmrc` runtime, validates `main`'s dependency source, clones it with
+  `cp -Rc` on APFS (about eight seconds and no real disk), and records the
+  package-lock hash; elsewhere it uses `npm ci --prefer-offline`. **Not a
+  symlink**: `npm run build` then
   dies in Turbopack with *"Symlink [project]/node_modules is invalid, it points
   out of the filesystem root"*, and `verify` fails at step one for a reason
   that has nothing to do with the change. On a filesystem without `cp -Rc`,
@@ -95,8 +98,8 @@ Four things that follow, and are easy to get wrong:
   like `Module not found: Can't resolve 'tz-lookup'` — in a file the change
   never touched, from a dependency the change has nothing to do with. That
   symptom, not a broken merge, is what it means: check
-  `git diff --stat <old>..HEAD -- package-lock.json`, and if it moved,
-  re-run `cp -Rc`. Three sessions read this as a broken merge on 2026-09-09
+  `git diff --stat <old>..HEAD -- package-lock.json`, and if it moved, run
+  `npm run worktree:bootstrap -- --refresh`. Three sessions read this as a broken merge on 2026-09-09
   before finding the real cause. B1141.
 - **Two sessions building the same checkout collide on `next`'s own build
   lock, not on each other's code.** `npm run verify` in the shared checkout
