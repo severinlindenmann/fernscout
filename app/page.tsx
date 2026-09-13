@@ -106,7 +106,7 @@ export default async function Root() {
         agentUrl={`${site.url}/skill/add-a-day.md`}
         // The advertised list, and nothing personal: this page is the same
         // document for everybody, so it stays cacheable. What one signed-in
-        // reader may open arrives separately from `/api/v1/me/home` — see
+        // reader may open arrives separately from `/api/v2/me/home` — see
         // `Landing`, and B412 for the cache that keeps the two apart.
         journals={publicJournals()}
         // No journal owns this page, so the choice is every language this build

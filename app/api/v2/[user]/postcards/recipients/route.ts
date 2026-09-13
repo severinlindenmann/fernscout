@@ -1,27 +1,22 @@
 // GET /api/v2/{user}/postcards/recipients — B1624, phase 2 step 4.
 // Unchanged in substance from v1: a name, a town and a country each, never a
 // street. See AGENTS.md's paragraph on postcards for why.
-import { isEnabled } from "@/lib/capabilities";
-import { fail, ok } from "@/lib/api/v2/route";
+import { ok } from "@/lib/api/v2/route";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { postcardsReady } from "@/lib/api/v2/postcards";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { postcardCandidates } from "@/lib/postcard/contacts";
-import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(
-  request: Request,
-  { params }: RouteContext<"/api/v2/[user]/postcards/recipients">,
-) {
-  const { user } = await params;
-  if (!getUser(user) || !isEnabled("postcards") || !isEnabled("contacts")) {
-    return fail("postcards_disabled", ERROR_CODES.postcards_disabled, undefined, 404);
-  }
-  const auth = await requireJournalOwner(request, user);
-  if (!auth.ok) return auth.response;
-
+/**
+ * The body, apart from who is asking — B1674. Called here after
+ * `requireJournalOwner` (bearer), and by `app/api/web/[user]/postcards/recipients/route.ts`
+ * after its own cookie-only `isOwner` check plus the same `postcardsReady`
+ * — a v2 route file cannot import a sibling's glue, so this is where the two
+ * doors share it.
+ */
+export async function postcardRecipientsDoc(user: string): Promise<Response> {
   const recipients = await postcardCandidates(user);
   return ok({
     creditsEach: POSTCARD_CREDITS,
@@ -34,4 +29,17 @@ export async function GET(
         }
       : {}),
   });
+}
+
+export async function GET(
+  request: Request,
+  { params }: RouteContext<"/api/v2/[user]/postcards/recipients">,
+) {
+  const { user } = await params;
+  const ready = postcardsReady(user);
+  if (!ready.ok) return ready.response;
+  const auth = await requireJournalOwner(request, user);
+  if (!auth.ok) return auth.response;
+
+  return postcardRecipientsDoc(user);
 }

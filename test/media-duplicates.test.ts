@@ -60,9 +60,9 @@ const source = (w: number, h: number, seed: number) =>
   sharp(pattern(w, h, seed), { raw: { width: w, height: h, channels: 3 } });
 
 async function duplicates(token: string) {
-  const { GET } = await import("@/app/api/v1/[user]/trips/[trip]/media/duplicates/route");
+  const { GET } = await import("@/app/api/v2/[user]/trips/[trip]/media/duplicates/route");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}/media/duplicates`, {
+    new Request(`https://example.test/api/v2/${OWNER}/trips/${TRIP}/media/duplicates`, {
       headers: { authorization: `Bearer ${token}` },
     }),
     { params: Promise.resolve({ user: OWNER, trip: TRIP }) },
@@ -154,7 +154,7 @@ afterEach(() => {
   }
 });
 
-describe("GET /api/v1/<user>/trips/<trip>/media/duplicates", () => {
+describe("GET /api/v2/<user>/trips/<trip>/media/duplicates", () => {
   test("groups a photograph with its smaller re-encoded copy, largest first", async () => {
     await day("lanterns", [
       { filename: "camera.jpg", bytes: await source(1200, 900, 1).jpeg({ quality: 92 }).toBuffer() },

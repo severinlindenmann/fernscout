@@ -6,12 +6,12 @@
 // door anywhere under /api/v2 or /api/v1: that is
 // app/api/web/[user]/postcards/orders/[id]/send/route.ts's job, cookie-only,
 // and nothing here imports the domain send function (lib/postcard/send.ts).
-import { isEnabled } from "@/lib/capabilities";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { postcardOrderDoc, postcardOrderWrite } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
+import { postcardsReady } from "@/lib/api/v2/postcards";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import {
   createOrder,
@@ -23,23 +23,8 @@ import {
   type PostcardOrder,
 } from "@/lib/postcard/orders";
 import { serverSite } from "@/lib/site";
-import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
-
-/** Instance-level, never per-journal (decision 5, B1617): a capability
- * answers "is the plumbing configured", the operator's fact — a journal's own
- * `features` block has no say in v2. */
-function capabilitiesOff(user: string): Response | null {
-  if (!getUser(user)) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
-  if (!isEnabled("postcards")) {
-    return fail("postcards_disabled", ERROR_CODES.postcards_disabled, undefined, 404);
-  }
-  if (!isEnabled("contacts")) {
-    return fail("contacts_disabled", ERROR_CODES.contacts_disabled, undefined, 404);
-  }
-  return null;
-}
 
 function docFor(user: string, order: PostcardOrder) {
   const expired = order.status === "draft" && isExpired(order);
@@ -85,8 +70,8 @@ export async function GET(
   { params }: RouteContext<"/api/v2/[user]/postcards/orders/[id]">,
 ) {
   const { user, id } = await params;
-  const off = capabilitiesOff(user);
-  if (off) return off;
+  const ready = postcardsReady(user);
+  if (!ready.ok) return ready.response;
 
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
@@ -100,22 +85,23 @@ export async function GET(
 }
 
 /**
+ * PUT's own logic, apart from who is asking — B1674, the same split
+ * `invitePutResponse` (app/api/v2/[user]/invites/[id]/route.ts) uses. Called
+ * here after `postcardsReady` + `requireJournalOwner` (bearer), and by
+ * `app/api/web/[user]/postcards/orders/route.ts` after its own cookie-only
+ * check plus the same `postcardsReady` — a v2 route file cannot import a
+ * sibling's glue, so this is where the two doors share it.
+ *
  * PUT is the create door (S2/V10) — client-chosen id. A retried create (no
  * `If-Match`, and an id that already exists) answers `stale_document` (409)
  * with the stored document, the same shape every other client-chosen-id
  * create in v2 uses.
  */
-export async function PUT(
+export async function postcardOrderPutResponse(
+  user: string,
+  id: string,
   request: Request,
-  { params }: RouteContext<"/api/v2/[user]/postcards/orders/[id]">,
-) {
-  const { user, id } = await params;
-  const off = capabilitiesOff(user);
-  if (off) return off;
-
-  const auth = await requireJournalOwner(request, user);
-  if (!auth.ok) return auth.response;
-
+): Promise<Response> {
   const existing = await getOrder(user, id);
   if (existing) {
     const doc = docFor(user, existing);
@@ -216,4 +202,18 @@ export async function PUT(
     },
     { status: 201, etag: etagFor(doc) },
   );
+}
+
+export async function PUT(
+  request: Request,
+  { params }: RouteContext<"/api/v2/[user]/postcards/orders/[id]">,
+) {
+  const { user, id } = await params;
+  const ready = postcardsReady(user);
+  if (!ready.ok) return ready.response;
+
+  const auth = await requireJournalOwner(request, user);
+  if (!auth.ok) return auth.response;
+
+  return postcardOrderPutResponse(user, id, request);
 }

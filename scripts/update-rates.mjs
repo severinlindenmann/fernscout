@@ -9,8 +9,9 @@
 // The ECB publishes one euro-quoted table a day, free, with no API key:
 // https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml
 // Every value is "units of this currency for one euro". Around 30 currencies
-// are covered; anything outside that list gets a manual rate in
-// site/config.json under site.manualRates.
+// are covered; anything outside that list has no journal-wide fallback any
+// more (decision 5, B1666) — a trip that needs one prices its own costs
+// through its own `rates.manual` instead (lib/tripWrite.ts).
 //
 // A second, read-only mode — B216 — looks up the cross-rate an author needs
 // to freeze into a trip's own `rates:` block, in *that* block's convention

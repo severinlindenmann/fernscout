@@ -2,13 +2,12 @@
 // 3, parcel B). B1606: `content/<user>/trips/<id>/trip.json`, one file, and
 // `content/<user>/trips/<id>/entries/YYYY-MM-DD-slug.json`, one per day.
 //
-// Deliberately NOT `lib/trips.ts`/`lib/entries.ts` — those read `trip.md` and
-// `entries/*.md` via gray-matter, a different on-disk encoding (B1598: they
-// cannot read a v2-canonical file, and making them able to is a separate,
-// tracked piece of work — the read layer that renders `app/[user]/...` pages
-// flips together with the phase-3 content replay, not with this ticket).
-// This module is the fs layer this parcel's routes need in the meantime: it
-// knows the JSON encoding (`./documents.ts`) and nothing else.
+// Not `lib/trips.ts`/`lib/entries.ts`, though those have since caught up:
+// B1598's phase-3 replay landed, and `readTrip` (`lib/trips.ts:641-646`) and
+// `readAllEntries` (`lib/entries.ts:294,306`) now read `trip.json` and
+// `entries/*.json` directly, the same encoding this module knows. This
+// module remains the fs layer the v2 write routes use — it knows the JSON
+// encoding (`./documents.ts`) and nothing else.
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";

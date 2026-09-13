@@ -42,7 +42,7 @@ export const dynamic = "force-dynamic";
  * ## Who may
  *
  * The journal's owner, cookie or bearer — `isOwner`, the same guard
- * `POST /api/v1/{user}/invites` uses and for the same reason: the control this
+ * `POST /api/contacts/admin` uses and for the same reason: the control this
  * exists for is on a page the owner is reading in a browser, and the cookie is
  * `SameSite=lax` so a cross-site POST does not carry it.
  *

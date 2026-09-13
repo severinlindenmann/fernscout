@@ -54,6 +54,22 @@ function writeConfig(features: Record<string, { enabled: boolean }>) {
       baseCurrency: "CHF",
       displayCurrencies: ["CHF"],
       units: "metric",
+    }),
+  );
+}
+
+/**
+ * Decision 5 (docs/v2-migration/00-decisions.md, B1666) made `auth` and
+ * `contacts` instance-only: no v2 door ever lets a journal set either, so
+ * the capability half of the tests below has to be switched off at the
+ * server, not the journal.
+ */
+function writeServerConfig(features: Record<string, { enabled: boolean }>) {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "R", url: "https://example.test", defaultUser: OWNER },
+      users: { reserved: [] },
       features,
     }),
   );
@@ -110,9 +126,9 @@ afterAll(async () => {
 type Body = { error?: string; message?: string };
 
 async function invites(user: string, token?: string): Promise<{ status: number; body: Body }> {
-  const { GET } = await import("@/app/api/v1/[user]/invites/route");
+  const { GET } = await import("@/app/api/v2/[user]/invites/route");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${user}/invites`, {
+    new Request(`https://example.test/api/v2/${user}/invites`, {
       headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
     }),
     { params: Promise.resolve({ user }) },
@@ -133,36 +149,41 @@ async function keys(user: string, token?: string): Promise<{ status: number; bod
 
 describe("invites: ownership is checked before the capability", () => {
   test("the owner, with contacts off, is told the real reason", async () => {
-    writeConfig({ auth: { enabled: true }, contacts: { enabled: false } });
+    writeServerConfig({ auth: { enabled: true }, contacts: { enabled: false } });
     await clearCaches();
     try {
       const result = await invites(OWNER, await ownerToken());
       expect(result.status).toBe(409);
       expect(result.body.error).toBe("contacts_disabled");
     } finally {
-      writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
+      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
       await clearCaches();
     }
   });
 
   test("a journal with contacts off answers a non-owner exactly as one that does not exist", async () => {
-    writeConfig({ auth: { enabled: true }, contacts: { enabled: false } });
+    writeServerConfig({ auth: { enabled: true }, contacts: { enabled: false } });
     await clearCaches();
     try {
+      // v2's bearer gate (`requireJournalOwner`) refuses a missing token
+      // before it ever asks whether the journal exists — a stricter version
+      // of the same "no second oracle" property v1's `isOwner`-first guard
+      // had, and the reason `noToken` and `fakeJournal` still have to match.
       const noToken = await invites(OWNER);
       const fakeJournal = await invites("no-such-journal");
-      expect(noToken.status).toBe(403);
+      expect(noToken.status).toBe(401);
+      expect(noToken.body.error).toBe("missing_token");
       expect(noToken).toEqual(fakeJournal);
     } finally {
-      writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
+      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
       await clearCaches();
     }
   });
 
-  test("a real journal with contacts on still answers a non-owner the same 403 as a fake one — no second oracle", async () => {
+  test("a real journal with contacts on still answers a missing token the same as a fake journal — no second oracle", async () => {
     const real = await invites(OWNER);
     const fake = await invites("no-such-journal");
-    expect(real.status).toBe(403);
+    expect(real.status).toBe(401);
     expect(real).toEqual(fake);
   });
 });
@@ -170,20 +191,20 @@ describe("invites: ownership is checked before the capability", () => {
 describe("keys: the same order", () => {
   test("the owner, with auth off, is told the real reason", async () => {
     const token = await ownerToken();
-    writeConfig({ auth: { enabled: false }, contacts: { enabled: true } });
+    writeServerConfig({ auth: { enabled: false }, contacts: { enabled: true } });
     await clearCaches();
     try {
       const result = await keys(OWNER, token);
       expect(result.status).toBe(409);
       expect(result.body.error).toBe("auth_disabled");
     } finally {
-      writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
+      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
       await clearCaches();
     }
   });
 
   test("a non-owner and a nonexistent journal answer identically, whatever the capability", async () => {
-    writeConfig({ auth: { enabled: false }, contacts: { enabled: true } });
+    writeServerConfig({ auth: { enabled: false }, contacts: { enabled: true } });
     await clearCaches();
     try {
       const noToken = await keys(OWNER);
@@ -191,7 +212,7 @@ describe("keys: the same order", () => {
       expect(noToken.status).toBe(403);
       expect(noToken).toEqual(fakeJournal);
     } finally {
-      writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
+      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
       await clearCaches();
     }
   });

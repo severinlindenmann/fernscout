@@ -31,6 +31,7 @@ import {
   journalWrite,
   tripCreate,
 } from "@/lib/api/v2/schemas";
+import { dayFromJson, dayToJson, tripFromJson, tripToJson } from "@/lib/api/v2/documents";
 import { buildTripDoc } from "@/lib/api/v2/trips";
 import { readTripFile } from "@/lib/api/v2/store";
 
@@ -145,14 +146,52 @@ describe("content/example is v2-canonical", () => {
     expect(stray).toEqual([]);
   });
 
-  it("the journal document validates (minus the one legacy key the code still needs)", () => {
+  /**
+   * B1684 — every `src` a day names points at bytes that are actually there.
+   *
+   * The Lisbon trip named four photographs and shipped none, so the demo had
+   * days claiming pictures nobody could load, and nothing anywhere said so.
+   * A dangling `src` is invisible to the schema (it is a well-formed string)
+   * and invisible to the round-trip check (it serialises perfectly). Only
+   * looking at the disk finds it.
+   *
+   * The narrow attach doors already resolve a `src` against stored bytes
+   * (`attachDayMedia`/`srcStoredInTrip`), but a whole-day PUT or PATCH does
+   * not — so content written that way, which is how the demo is written, has
+   * no such check. This is that check, for the one journal that ships in the
+   * repository.
+   */
+  it("every photograph a day names is actually on disk", () => {
+    const dangling: string[] = [];
+    for (const trip of fs.readdirSync(path.join(EXAMPLE, "trips"))) {
+      const entries = path.join(EXAMPLE, "trips", trip, "entries");
+      if (!fs.existsSync(entries)) continue;
+      for (const file of fs.readdirSync(entries)) {
+        const day = readJson(path.join(entries, file)) as {
+          media?: { src?: string }[];
+        };
+        for (const item of day.media ?? []) {
+          if (!item.src) continue;
+          // `/media/<trip>/…` is trip-relative; the username is added at read
+          // time (`mediaWithOwner`), so the file sits under the trip itself.
+          const rel = item.src.replace(/^\/media\/[^/]+\//, "");
+          if (!fs.existsSync(path.join(EXAMPLE, "trips", trip, "media", rel))) {
+            dangling.push(`${trip}/${file}: ${item.src}`);
+          }
+        }
+      }
+    }
+    expect(dangling).toEqual([]);
+  });
+
+  it("the journal document validates", () => {
+    // Decision 5 landed (B1666): `features` is instance-only now, and
+    // `content/example/config.json` no longer carries the legacy key this
+    // test used to strip before validating — the file is a plain v2 journal
+    // document, whole.
     const config = readJson(path.join(EXAMPLE, "config.json"));
-    // `features` is read by lib/capabilities.ts's own resolver, so the file
-    // keeps it until decision 5 ("features are instance-only") lands in the
-    // CODE. Content cannot lead that. Strip it here, and when the code stops
-    // reading it, this line and the key go in the same commit.
-    const { features: _legacyFeatures, ...v2 } = config;
-    expect(journalWrite.safeParse(v2)).toMatchObject({ success: true });
+    expect(config).not.toHaveProperty("features");
+    expect(journalWrite.safeParse(config)).toMatchObject({ success: true });
   });
 
   it("every figure in the library validates", () => {
@@ -296,5 +335,46 @@ describe("content/example demonstrates the whole contract", () => {
     const owed = [...DAY_DECLINABLE_KEYS, ...TRIP_DECLINABLE_KEYS].filter((k) => k !== "status");
     const missing = owed.filter((k) => !keys.has(k)).sort();
     expect(missing, `declinable sections never demonstrated as declined: ${missing.join(", ")}`).toEqual([]);
+  });
+  /**
+   * B1679. `lib/api/v2/documents.ts` states the invariant the whole format
+   * rests on: "Key order is fixed so that serialising the same document twice
+   * matches byte-for-byte: a diff in git is then always a change in content,
+   * never a change in this function's mood."
+   *
+   * Nine files in this journal did not hold it — `costs` written last instead
+   * of after `media`, `accent`/`cover` after `intro`, and one `31.0` that
+   * `JSON.stringify` emits as `31`. No data was lost in any of them, which is
+   * exactly why nothing caught it: every other check here parses the file and
+   * asks about the object. The cost is the next real edit through the API,
+   * which would have produced a whole-file reordering beside the one-line
+   * change — the diff the invariant exists to prevent.
+   *
+   * It walks the whole content root rather than this journal, because the
+   * property is about the serializers, not about the demo.
+   */
+  it("every day and trip file on disk round-trips through the serializers byte for byte", () => {
+    const drifted: string[] = [];
+    for (const user of fs.readdirSync(REPO_CONTENT)) {
+      const trips = path.join(REPO_CONTENT, user, "trips");
+      if (!fs.existsSync(trips)) continue;
+      for (const trip of fs.readdirSync(trips)) {
+        const tripFile = path.join(trips, trip, "trip.json");
+        if (fs.existsSync(tripFile)) {
+          const raw = fs.readFileSync(tripFile, "utf8");
+          if (tripToJson(tripFromJson(raw)) !== raw) drifted.push(path.relative(process.cwd(), tripFile));
+        }
+        const entries = path.join(trips, trip, "entries");
+        if (!fs.existsSync(entries)) continue;
+        for (const name of fs.readdirSync(entries)) {
+          if (!name.endsWith(".json")) continue;
+          const file = path.join(entries, name);
+          const raw = fs.readFileSync(file, "utf8");
+          const slug = name.replace(/\.json$/, "");
+          if (dayToJson(dayFromJson(slug, raw)) !== raw) drifted.push(path.relative(process.cwd(), file));
+        }
+      }
+    }
+    expect(drifted, `files whose bytes differ from what the serializer would write: ${drifted.join(", ")}`).toEqual([]);
   });
 });

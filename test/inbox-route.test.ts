@@ -18,7 +18,11 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 const OWNER = "ana";
 const OWNER_EMAIL = "ana@example.test";
 const TRIP = "asia-2026";
-const DAY = "lanterns-of-hoi-an";
+// B1685: the media door's `intent.day` now attaches into a real v2 day, so
+// it has to be the day's own addressable slug — the whole filename stem
+// (`YYYY-MM-DD-slug`, `lib/api/v2/days.ts`'s `v1Slug`/`v2Slug`), not merely
+// a directory name nobody checked before.
+const DAY = "2026-01-01-lanterns-of-hoi-an";
 
 let dir: string;
 let calls = 0;
@@ -188,7 +192,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const token = await ownerToken();
 
       // No day of that name exists yet — the media route would refuse this.
-      expect(fs.existsSync(path.join(tripPath(), "entries", `2026-01-01-${DAY}.json`))).toBe(false);
+      expect(fs.existsSync(path.join(tripPath(), "entries", `${DAY}.json`))).toBe(false);
 
       const staged = await stage(token, [
         { name: "DSC_0001.jpg", bytes: await jpeg(1200, 800), meta: { description: "the bridge" } },
@@ -202,11 +206,10 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(listed.body.counts.media).toBe(1);
       expect(listed.body.items.media[0].id).toBe(id);
 
-      // Now the day, and only now — though the v2 media door no longer needs
-      // it to exist: `day` only ever decides where on disk the bytes land,
-      // never whether an entry is there to attach into (that attachment is
-      // the day route's own job now, reading this response's `src` back).
-      writeDay(DAY, "2026-01-01");
+      // Now the day, and only now — B1685: since naming a day now attaches
+      // to it (`attachDayMedia`), the day has to actually exist before
+      // `fileIntoDay` names it, which is exactly the order this test drives.
+      writeDay("lanterns-of-hoi-an", "2026-01-01");
 
       const filed = await fileIntoDay(token, id);
       expect(filed.status).toBe(201);

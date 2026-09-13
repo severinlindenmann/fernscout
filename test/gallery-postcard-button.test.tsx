@@ -21,9 +21,9 @@ import type { MediaTile } from "@/lib/types";
  * other component test here works — there is no testing-library in this
  * repository, so nothing below clicks anything.
  *
- * The routes the sheet calls do not trust any of this: `POST …/postcards` and
- * `GET …/postcards/recipients` each ask `isOwner` themselves. This is about
- * what a reader is *shown*.
+ * The routes the sheet calls do not trust any of this: `POST /api/web/{user}/postcards/orders`
+ * and `GET /api/web/{user}/postcards/recipients` each ask `isOwner` themselves.
+ * This is about what a reader is *shown*.
  *
  * `PageHeader` is stubbed because it wants `SiteProvider` and `TripProvider`
  * around it, and standing a whole journal up to read one button would make the

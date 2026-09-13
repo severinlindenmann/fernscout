@@ -15,8 +15,9 @@
 // when the v1 reader they depend on cannot see a v2-native trip (B1598) — so
 // a send requested against a v2-only day reports `attempted:false` honestly
 // rather than crashing, until that read layer is rebuilt.
-import { dayDoc, dayWrite, publishRequest } from "@/lib/api/v2/schemas";
+import { dayDoc, dayWrite, publishRequest, DAY_DECLINABLE_KEYS } from "@/lib/api/v2/schemas";
 import { incompleteFrom, problemsFrom } from "@/lib/api/v2/incomplete";
+import { exemptSingleLocaleTranslations } from "@/lib/api/v2/write";
 import { fail, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser } from "@/lib/api/v2/auth";
 import { mayActAsOwner, mayWriteTrip, refuseWrite } from "@/lib/api/auth";
@@ -32,6 +33,7 @@ import { readTripFile, readDayFile, writeDayFile } from "@/lib/api/v2/store";
 import { mailSummary } from "@/lib/api/dayMail";
 import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { stripMediaEcho, v1Slug } from "@/lib/api/v2/days";
+import { claimChannel, releaseChannelClaim } from "@/lib/digest/dayNotify";
 import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@/lib/digest/dayWhatsapp";
 import type { Trip } from "@/lib/types";
@@ -95,9 +97,20 @@ export async function POST(
   // Completeness is `dayWrite`'s own check (the `superRefine` `dayDoc` does
   // not carry) — the media echo is stripped first, same as PATCH/PUT, since
   // this day came off disk with server-added fields `dayWrite` refuses.
-  const check = dayWrite.safeParse(stripMediaEcho({ ...merged }));
+  // B1667 — same door-level exemption the write routes apply: a
+  // single-locale journal has no honest answer for `translations` either
+  // way, so this completeness recheck must not re-demand it here either.
+  // Applied to the throwaway validation candidate only — `merged` itself
+  // (written to disk below) never carries the synthesised value.
+  const publishCandidate = stripMediaEcho({ ...merged });
+  exemptSingleLocaleTranslations(publishCandidate, getUser(user)?.locales ?? []);
+  const check = dayWrite.safeParse(publishCandidate);
   if (!check.success) {
-    const { missing } = incompleteFrom(check.error, dayDoc.shape as unknown as Record<string, import("zod").ZodType>);
+    const { missing } = incompleteFrom(
+      check.error,
+      dayDoc.shape as unknown as Record<string, import("zod").ZodType>,
+      DAY_DECLINABLE_KEYS,
+    );
     if (missing.length > 0) {
       return fail(
         "incomplete_day",
@@ -152,7 +165,26 @@ export async function POST(
   }
   let whatsapp: Record<string, unknown> | undefined;
   if (sendWhatsappRequested) {
-    whatsapp = whatsappSummary(await sendDayWhatsapp(user, ref, v1Slug(slug)));
+    /**
+     * The double-press guard, at the door that triggers automatically —
+     * B1663. `writeDayFile` above is what flips this day out of `draft`, and
+     * a genuinely concurrent publish call (a retried request the client
+     * sent not knowing the first had already landed) can read the old status
+     * before that write commits and reach here a second time. Claiming the
+     * channel first is `lib/digest/dayNotify.ts`'s own guard — the same one
+     * the owner's manual resend button already uses — so only the request
+     * that wins the claim ever calls `sendDayWhatsapp`; the loser sends
+     * nothing rather than reaching the whole readership twice. AGENTS.md is
+     * plain about which side of that trade is worse.
+     */
+    if (await claimChannel(user, tripId, v1Slug(slug), "whatsapp")) {
+      const outcome = await sendDayWhatsapp(user, ref, v1Slug(slug));
+      if (!outcome.ok) await releaseChannelClaim(user, tripId, v1Slug(slug), "whatsapp");
+      whatsapp = whatsappSummary(outcome);
+    }
+    // A lost claim reports nothing rather than inventing an outcome for a
+    // send this call never made — the same silence `notify/route.ts` gives
+    // for a channel already spoken for.
   }
 
   const test = isTestContent(tripLike(user, tripId, trip.people), day) || trip.test === true || day.test === true;

@@ -61,9 +61,9 @@ type ManifestBody = {
 };
 
 async function manifest(token?: string, user = OWNER): Promise<{ status: number; body: ManifestBody }> {
-  const { GET } = await import("@/app/api/v1/[user]/sync/manifest/route");
+  const { GET } = await import("@/app/api/v2/[user]/sync/manifest/route");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${user}/sync/manifest`, { headers: headers(token) }),
+    new Request(`https://example.test/api/v2/${user}/sync/manifest`, { headers: headers(token) }),
     { params: Promise.resolve({ user }) },
   );
   return { status: response.status, body: (await response.json()) as ManifestBody };
@@ -74,10 +74,10 @@ async function fetchFile(
   token?: string,
   user = OWNER,
 ): Promise<{ status: number; text: string; type: string | null }> {
-  const { GET } = await import("@/app/api/v1/[user]/sync/file/[...path]/route");
+  const { GET } = await import("@/app/api/v2/[user]/sync/file/[...path]/route");
   const segments = relative.split("/");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${user}/sync/file/${relative}`, {
+    new Request(`https://example.test/api/v2/${user}/sync/file/${relative}`, {
       headers: headers(token),
     }),
     { params: Promise.resolve({ user, path: segments }) },
@@ -377,9 +377,9 @@ describe("who is refused", () => {
     expect((await fetchFile(`trips/${TRIP}/trip.md`, other)).status).toBe(404);
   });
 
-  test("no token at all is refused", async () => {
-    expect((await manifest()).status).toBe(401);
-    expect((await fetchFile(`trips/${TRIP}/trip.md`)).status).toBe(401);
+  test("no token at all is refused, the same not_found as every other refusal here", async () => {
+    expect((await manifest()).status).toBe(404);
+    expect((await fetchFile(`trips/${TRIP}/trip.md`)).status).toBe(404);
   });
 
   test("an unknown journal answers the same 404 a refusal does", async () => {

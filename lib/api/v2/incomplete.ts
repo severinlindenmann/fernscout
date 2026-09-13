@@ -57,8 +57,23 @@ const ANSWERED_ELSEWHERE: Record<string, { method: string; path: string; body: R
  * shape rather than typed beside it, so it cannot drift from what the schema
  * actually accepts; a field the caller did not hand a shape for is omitted
  * rather than guessed at.
+ *
+ * `declinableKeys` — B1668 — is the schema's own closed enum of what
+ * `declined` actually accepts (`DECLINABLE_KEYS`/`DAY_DECLINABLE_KEYS`, or the
+ * journal's inline list). A "missing" issue that names no explicit
+ * `toDecline` param used to default, unconditionally, to
+ * `declined.<field>: <reason>` — which is only true when `<field>` is really
+ * in that enum. `teaser` is not (it is a plain required boolean on a closed
+ * trip, refused as an unrecognised key if a caller actually sends
+ * `declined.teaser`), so the guessed default was a refusal telling the
+ * caller to do the one thing guaranteed to fail. A field outside the enum
+ * gets a row that says so instead of a fabricated decline path.
  */
-export function incompleteFrom(error: ZodError, shape: Record<string, ZodType>): { missing: MissingRow[] } {
+export function incompleteFrom(
+  error: ZodError,
+  shape: Record<string, ZodType>,
+  declinableKeys: readonly string[],
+): { missing: MissingRow[] } {
   const missing: MissingRow[] = [];
   const seen = new Set<string>();
   for (const issue of error.issues) {
@@ -71,7 +86,11 @@ export function incompleteFrom(error: ZodError, shape: Record<string, ZodType>):
       field,
       why_required: issue.message,
       to_decline:
-        typeof params.toDecline === "string" ? params.toDecline : `declined.${field}: <reason>`,
+        typeof params.toDecline === "string"
+          ? params.toDecline
+          : declinableKeys.includes(field)
+            ? `declined.${field}: <reason>`
+            : `there is no decline for "${field}" — see why_required and to_provide`,
     };
     if (field in shape) {
       row.to_provide = z.toJSONSchema(shape[field], { io: "input", unrepresentable: "any" });
@@ -111,8 +130,9 @@ export function problemsFrom(error: ZodError): ProblemRow[] {
 export function splitIssues(
   error: ZodError,
   shape: Record<string, ZodType>,
+  declinableKeys: readonly string[],
 ): { incomplete: { missing: MissingRow[]; problems?: ProblemRow[] } | null; problems: ProblemRow[] } {
-  const { missing } = incompleteFrom(error, shape);
+  const { missing } = incompleteFrom(error, shape, declinableKeys);
   const problems = problemsFrom(error);
   if (missing.length === 0) return { incomplete: null, problems };
   return {

@@ -15,7 +15,7 @@
 // trip's own `figures: {mode, figures: [ids]}` rather than a raw `party`
 // embedded on the trip, so the `next` note below points at that door
 // instead of v1's now-gone `PATCH .../travellers`.
-import { mayWriteTrip } from "@/lib/api/auth";
+import { mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -49,15 +49,6 @@ function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function refuseTripGate() {
-  return fail(
-    "forbidden",
-    "This token's access to this trip has been revoked. Ask the owner for a new one.",
-    undefined,
-    403,
-  );
-}
-
 /**
  * Read a party off a group photograph instead of asking forty questions
  * about it — B1517. **Proposed, never written**: the response is a party in
@@ -85,7 +76,11 @@ export async function POST(
   const found = getTrip(ref);
   if (!found) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
   const gate = await mayWriteTrip(bearer.session, found);
-  if (!gate.ok) return refuseTripGate();
+  // See the media/duplicates route this pattern is shared with: a
+  // trip-scoped token naming a different trip must answer the same
+  // unknown_trip 404 as an unknown trip, not a 403 that confirms this trip
+  // exists.
+  if (!gate.ok) return refuseWrite(gate);
 
   if (!isEnabled("helper", user)) {
     return fail("helper_unavailable", ERROR_CODES.helper_unavailable, undefined, 404);

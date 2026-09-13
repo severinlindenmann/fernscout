@@ -66,6 +66,18 @@ export async function PUT(
     );
   }
 
+  if (request.headers.get("authorization")) {
+    return Response.json(
+      {
+        error: "not_for_agents",
+        message:
+          "Buying credits is done by the owner, from their own page. Nothing has been charged. " +
+          "Tell them the balance is low and let them decide.",
+      },
+      { status: 403 },
+    );
+  }
+
   if (!(await isOwner(user, request))) {
     return Response.json(
       {

@@ -100,14 +100,20 @@ describe("GET /api/push/subscribe", () => {
     expect(await res.json()).toEqual({ publicKey: null, enabled: false });
   });
 
-  test("this journal opted out: disabled, no key, even though the server allows it", async () => {
+  // Decision 5 (docs/v2-migration/00-decisions.md, B1666) made push
+  // instance-only: no v2 door ever lets a journal opt out of it, so "this
+  // journal opted out" is no longer a state the system has. What replaces it
+  // is the server-level switch above ("server-wide push off") — a journal's
+  // own `features.push` in config.json is simply not read any more, which
+  // this pins down rather than leaving as an assumption.
+  test("a journal's own push flag is ignored: the server's answer wins regardless", async () => {
     process.env.VAPID_PUBLIC_KEY = "pub";
     process.env.VAPID_PRIVATE_KEY = "priv";
     process.env.VAPID_SUBJECT = "mailto:x@example.test";
     writeServerConfig(true);
     writeUser("ana", false);
     const res = await get("ana");
-    expect(await res.json()).toEqual({ publicKey: null, enabled: false });
+    expect(await res.json()).toEqual({ publicKey: "pub", enabled: true });
   });
 
   test("push on, but no VAPID keys set: disabled, no key", async () => {

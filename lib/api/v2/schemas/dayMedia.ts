@@ -10,6 +10,7 @@
 // file exists under). Two copies of three fields is a smaller risk than the
 // edit this rule forbids.
 import { z } from "zod";
+import { PHOTO_VISIBILITIES } from "../../../photos";
 
 const dayMediaAttachItem = z.strictObject({
   /** The `src` an earlier `POST /api/v2/{user}/media` (or a trip's own day-
@@ -18,7 +19,7 @@ const dayMediaAttachItem = z.strictObject({
   src: z.string().min(1),
   caption: z.string().optional(),
   /** Narrows only, on top of the trip's own gate — no `public` (B596). */
-  visibility: z.enum(["guest", "private"]).optional(),
+  visibility: z.enum(PHOTO_VISIBILITIES).optional(),
 });
 
 export const dayMediaAttachRequest = z.strictObject({

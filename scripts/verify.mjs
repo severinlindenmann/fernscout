@@ -36,6 +36,55 @@ const quick = process.argv.includes("--quick");
 assertRepositoryNode(process.cwd());
 
 /**
+ * Six agents in one day read the instruction to pass `timeout: 900000`,
+ * reasoned — correctly, at every step — that a five-minute run exceeds their
+ * tool's two-minute default, and ran it in the background instead. Then each
+ * one ended its turn to "wait for the result". Nothing wakes a finished turn:
+ * the run completes into a file nobody reads, and the work sits
+ * finished-but-unreported until a person prods the session. Rewording the
+ * instruction cannot fix this — the next agent read the same sentence and did
+ * it anyway — so this is a guard instead.
+ *
+ * There is no way to ask the OS "was I backgrounded and abandoned": a process
+ * run in the foreground with a long timeout and a process backgrounded and
+ * never awaited are indistinguishable from inside — same pipes, same
+ * `isTTY`, same everything. What *is* visible is whether anyone is watching
+ * a real terminal at all. A human typing `npm run verify` at a prompt has
+ * `stdout.isTTY`; every other caller — including an agent's tool call, run
+ * either foreground or backgrounded — does not. So an unattended caller has
+ * to say, once and on purpose, that it is going to wait: set `VERIFY_WILL_WAIT=1`
+ * alongside a real timeout, in the same call. There is no way to trip that by
+ * reasoning about a two-minute default; it takes typing the name.
+ *
+ * `CI` is honoured too, in case this script is ever wired into a pipeline —
+ * it currently is not: `.github/workflows/ci.yml` runs build, tsc, eslint,
+ * vitest and knip as five separate steps rather than through this file, so
+ * nothing here can block a CI run today. If that changes, this refusal must
+ * not be what breaks it.
+ */
+if (!process.stdout.isTTY && !process.env.CI && !process.env.VERIFY_WILL_WAIT) {
+  console.error(
+    "Refused: no terminal is attached and nothing said it will wait.\n" +
+      "\n" +
+      "This is not a broken tree — it is a guard against the way this run gets\n" +
+      "lost. `npm run verify` takes about five minutes; a tool call whose default\n" +
+      "timeout is shorter than that will time out mid-suite unless you raise it.\n" +
+      "The fix is a longer timeout, not the background: pass `timeout: 900000`\n" +
+      "and run this in the foreground, waiting for it to finish in the same turn.\n" +
+      "\n" +
+      "Backgrounding this and ending your turn to 'wait for the result' means\n" +
+      "nothing can wake you — the run finishes into a file nobody reads, and the\n" +
+      "work sits done-but-unreported until a person notices. Six agents did this\n" +
+      "in a single day with the timeout instruction already in their brief.\n" +
+      "\n" +
+      "To run this unattended anyway, set VERIFY_WILL_WAIT=1 in the same call\n" +
+      "that sets the long timeout — it is not read for any other reason, and\n" +
+      "setting it is the only way past this message.\n",
+  );
+  process.exit(1);
+}
+
+/**
  * A worktree has no `node_modules` of its own. `npx tsc`, `eslint` and
  * `vitest` resolve upward to the main checkout's copy and appear to work;
  * `next build` does not, and fails in a way that reads like a broken tree

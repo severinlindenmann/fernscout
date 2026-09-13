@@ -10,7 +10,8 @@ import { writeTripFixture } from "./fixtures/content";
  * `case "create"` in `app/api/contacts/admin/route.ts` mailed a bare six-digit
  * code with nowhere to type it: `confirmedAt` stayed null forever and
  * `approveContact` refused (`not_confirmed`). It now mails the same
- * pre-approved guest invitation `POST /api/v1/{user}/invites` sends for
+ * pre-approved guest invitation `PUT /api/v2/{user}/invites/{id}` (and its
+ * cookie proxy, `POST /api/web/{user}/invites`) sends for
  * B319 — `createInvite` + `sendInviteMail` — so the row the owner just typed
  * in is confirmed and approved the moment the recipient opens the link and
  * proves their own address. `approveContact` stays the only thing that

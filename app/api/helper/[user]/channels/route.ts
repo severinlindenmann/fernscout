@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 /**
  * The `channels` press — B1051.
  *
- * The wizard's own door onto `POST /api/v1/<user>/channels`, calling the same
- * `setJournalFeatures` that route calls rather than proxying to it — the
+ * The wizard's own door onto `PATCH /api/v2/<user>/channels`, calling the
+ * same `setJournalFeatures` that route calls rather than proxying to it — the
  * pattern every route in this family follows (`./day/publish/route.ts`,
  * `./trip/route.ts`): the server is a ceiling a journal can never write past,
  * and there is exactly one function that writes `features` for either door to

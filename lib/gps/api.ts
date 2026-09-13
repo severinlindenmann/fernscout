@@ -68,7 +68,7 @@ export function isRefusal(result: ImportOutcome | ImportRefusal): result is Impo
   return "refusal" in result;
 }
 
-/** What `GET /api/v1/<user>/import` answers with, and what a caller needs
+/** What `GET /api/v2/<user>/import` answers with, and what a caller needs
  * before they can make the `POST`. */
 export function importFormats(): {
   kind: ImportKind;

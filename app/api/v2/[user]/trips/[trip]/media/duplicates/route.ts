@@ -1,7 +1,7 @@
 // GET /api/v2/{user}/trips/{trip}/media/duplicates — ports
 // app/api/v1/[user]/trips/[trip]/media/duplicates/route.ts onto the v2
 // plumbing. Domain logic (`findDuplicateMedia`) is unchanged.
-import { mayWriteTrip } from "@/lib/api/auth";
+import { mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -30,14 +30,12 @@ export async function GET(
   const found = getTrip(ref);
   if (!found) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
   const gate = await mayWriteTrip(bearer.session, found);
-  if (!gate.ok) {
-    return fail(
-      "forbidden",
-      "This token's access to this trip has been revoked. Ask the owner for a new one.",
-      undefined,
-      403,
-    );
-  }
+  // Not a hardcoded 403: a trip-scoped token naming a *different* trip must
+  // answer the same unknown_trip 404 the `!found` check above gives an
+  // unknown trip, so a probe cannot tell "wrong trip" from "no such trip"
+  // (B1103's own reasoning, carried over from the v1 route this replaces).
+  // Only an access-revoked token — which already names this trip — gets 403.
+  if (!gate.ok) return refuseWrite(gate);
 
   const groups = (await findDuplicateMedia(ref)).map((group) =>
     group.map((item) => ({ ...item, src: mediaWithOwner(item.src, user) })),

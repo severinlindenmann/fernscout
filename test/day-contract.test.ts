@@ -214,6 +214,8 @@ describe("a day answers every declinable, or declines it", () => {
 
     const missing = (body.details as { missing?: { field: string; to_decline: string }[] })?.missing ?? [];
     const fields = missing.map((m) => m.field).sort();
+    // NOT `translations` — this journal has one locale, so that question is
+    // exempt (B1667).
     expect(fields).toEqual(
       [
         "media",
@@ -227,7 +229,6 @@ describe("a day answers every declinable, or declines it", () => {
         "countryCode",
         "transportMode",
         "tags",
-        "translations",
         "visibility",
       ].sort(),
     );

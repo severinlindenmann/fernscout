@@ -112,9 +112,10 @@ function inviteView(invite: Invite & { url?: string | null }) {
     uses: invite.uses,
     // The one field here that is a credential — B280. It comes from
     // `listInvitesWithLinks` and reaches only this route and the owner's own
-    // page; `GET /api/v1/{user}/invites`, which an agent bearer token also
-    // reaches, deliberately does not carry it. `guard` below is owner-only,
-    // cookie or token, which is what makes that safe.
+    // page; `GET /api/v2/{user}/invites` (and its cookie proxy, `GET
+    // /api/web/{user}/invites`), which an agent bearer token also reaches,
+    // deliberately does not carry it. `guard` below is owner-only, cookie or
+    // token, which is what makes that safe.
     url: invite.url ?? null,
   };
 }
@@ -211,7 +212,8 @@ export async function POST(request: Request) {
     // this panel could make, while the two an owner actually hands out were
     // made on `/{user}/me` by a different component. B281 removed it rather
     // than growing a second copy of the validation: the panel now posts to
-    // `POST /api/v1/{user}/invites`, which already refuses a buddy link with
+    // `POST /api/web/{user}/invites`, the cookie proxy in front of `PUT
+    // /api/v2/{user}/invites/{id}`, which already refuses a buddy link with
     // no trip, a guest link *with* a trip, and a trip that does not exist, and
     // which always dates the link. Two routes that both create invites are two
     // sets of rules to keep in step. Redemption of existing `personal` links

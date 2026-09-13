@@ -265,8 +265,10 @@ describe("the grant path is not reachable over HTTP", () => {
     // B1622: moved from app/api/v1/[user]/payments/[id]/approve/route.ts —
     // same file, same behaviour, a cosmetic path change under the v2
     // four-prefix scheme (the single-use token is a path segment now
-    // instead of a body field). Still exactly one of the three sanctioned
-    // grant callers.
+    // instead of a body field). Still one of the four sanctioned grant
+    // callers — this comment said "three" for as long as the list held
+    // four, disagreeing with the comment two entries below it. Count the
+    // entries, never a sentence about them.
     "app/api/web/[user]/purchases/[id]/approve/route.ts",
     // B1624: the journals create moved to /api/v2 with the four-prefix
     // scheme. Same file, same one-off SIGNUP_CREDIT_GRANT, same authority —
@@ -342,9 +344,6 @@ describe("the grant path is not reachable over HTTP", () => {
     // B1517. One photograph classified into a proposed party — charged
     // before the model call, refunded on a throw, the same shape as every
     // route above.
-    "app/api/v1/[user]/trips/[trip]/travellers/from-photo/route.ts",
-    // The v2 door onto the same feature (B1517), same shape: charged before
-    // the model call, refunded on a throw.
     "app/api/v2/[user]/trips/[trip]/travellers/from-photo/route.ts",
     // B1557. This walk covered `app` only, while the grant walk above covers
     // `app` and `lib` since B1363 — every `lib/` refund caller sat outside it

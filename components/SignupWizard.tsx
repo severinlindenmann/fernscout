@@ -10,6 +10,18 @@ import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18
 import { LOCALE_COOKIE } from "@/lib/requestKeys";
 
 /**
+ * Mirrors `VISIBILITIES` and `ACCENTS` in `lib/tripWrite.ts` — not imported
+ * from there because that module is `"server-only"` (it touches `fs` and the
+ * database) and pulls `better-sqlite3`/`pg` into the browser bundle the
+ * moment a client component reaches for it. The server is still what
+ * actually decides (`tripCreate` in `lib/api/v2/schemas/trip.ts`); this is
+ * only the same fixed list, duplicated at the one boundary an import cannot
+ * cross, the same way `USERNAME_RE` above mirrors `lib/users.ts`'s regex.
+ */
+const TRIP_VISIBILITIES = ["private", "public", "guest"] as const;
+const TRIP_ACCENTS = ["sky", "yellow", "green", "coral", "navy"] as const;
+
+/**
  * Every refusal `post()` can actually get back from the signup routes, and
  * the sentence it gets — B1247/B1250, the same shape as `HelperAsk.tsx`'s
  * `NAMED_FAILURES`. The eight are every `createJournal()` refusal
@@ -46,6 +58,16 @@ function rememberLocale(code: string) {
  * is what actually decides; this never has to be the last word. */
 const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
+/** One label per `ACCENTS` entry (`lib/tripWrite.ts`) — the enum is
+ * imported, this map is only the words for it. */
+const ACCENT_LABEL_KEY: Record<string, TranslationKey> = {
+  sky: "agent.tripAccentSky",
+  yellow: "agent.tripAccentYellow",
+  green: "agent.tripAccentGreen",
+  coral: "agent.tripAccentCoral",
+  navy: "agent.tripAccentNavy",
+};
+
 type Step =
   | "email"
   | "code"
@@ -63,7 +85,7 @@ type Step =
  * Wraps the existing signup API rather than inventing a second one: every
  * step below is a `fetch` to a route `/agent.md` already documents —
  * `POST /api/auth/codes` and `/codes/redeem` (both `for: "signup"`),
- * `/api/v2/journals`, `/api/v1/<user>/trips` — called from the browser
+ * `/api/v2/journals`, `PUT /api/v2/<user>/trips/<id>` — called from the browser
  * exactly as an external agent would call them, with the tokens they hand
  * back kept only in this component's own state and never written to a cookie
  * by this component itself. The one exception is the last step:
@@ -95,7 +117,7 @@ type Step =
  *
  * Everything else `POST /api/v2/journals` accepts — `tagline`,
  * `startLocation`, `units`, `displayCurrencies` — is absent here on purpose:
- * each is correctable later at `PATCH /api/v1/<user>/config`, and a question
+ * each is correctable later at `PATCH /api/v2/<user>`, and a question
  * with a good default and a way back does not belong in front of somebody who
  * has not written a day yet.
  */
@@ -207,6 +229,44 @@ export default function SignupWizard({
   const [tripStart, setTripStart] = useState("");
   const [tripEnd, setTripEnd] = useState("");
 
+  /**
+   * The trip document asks a person to answer, or genuinely decline, nine
+   * more sections (`TRIP_DECLINABLES`, `lib/api/v2/schemas/trip.ts`) plus
+   * `teaser`/`listed`/`buddies` — B1674, "ask everything during signup"
+   * (owner decision, 2026-09-13). Every one of the state pairs below is a
+   * real, unset-by-default choice: `null`/`""` means "not yet answered",
+   * never a decline standing in for a person who has not looked at the
+   * question (B1650). Two of the nine — `days` and `plan` — have no honest
+   * "yes" available in this wizard (a brand-new trip has no days yet to
+   * show, and a real route needs picking actual places on a map, which this
+   * form does not do); those two are declined with a sentence that is
+   * simply true of every trip at this exact moment, said plainly in the
+   * text above the submit button rather than silently. */
+  const [tripVisibility, setTripVisibility] = useState<"" | (typeof TRIP_VISIBILITIES)[number]>("");
+  const [tripTeaser, setTripTeaser] = useState<boolean | null>(null);
+  const [tripListed, setTripListed] = useState<boolean | null>(null);
+
+  const [tripCompanions, setTripCompanions] = useState<"" | "solo" | "others">("");
+  const [buddies, setBuddies] = useState<{ name: string; email: string }[]>([]);
+
+  const [tripRates, setTripRates] = useState<"" | "base" | "other">("");
+  const [tripRatesOther, setTripRatesOther] = useState("");
+
+  const [tripCosts, setTripCosts] = useState<"" | "none" | "track">("");
+  const [tripBudget, setTripBudget] = useState("");
+
+  const [tripAccent, setTripAccent] = useState<"" | (typeof TRIP_ACCENTS)[number]>("");
+  const [tripFigures, setTripFigures] = useState<"" | "off" | "journal">("");
+
+  const [tripTagline, setTripTagline] = useState<"" | "set" | "skip">("");
+  const [tripTaglineText, setTripTaglineText] = useState("");
+  const [tripIntro, setTripIntro] = useState<"" | "set" | "skip">("");
+  const [tripIntroText, setTripIntroText] = useState("");
+
+  const [tripTranslations, setTripTranslations] = useState<"" | "set" | "skip">("");
+  const [translationTitles, setTranslationTitles] = useState<Record<string, string>>({});
+  const [translationTaglines, setTranslationTaglines] = useState<Record<string, string>>({});
+
   async function post(
     path: string,
     body: unknown,
@@ -214,9 +274,12 @@ export default function SignupWizard({
     /** Error codes the caller wants to branch on rather than show — the
      * result then carries `error` and the caller decides (B1222). */
     passthrough?: string[],
+    /** `PUT` for the v2 trip door (create-only, decision 7) — every other
+     * caller here is a `POST`. */
+    method: "POST" | "PUT" = "POST",
   ): Promise<Record<string, unknown> | null> {
     const response = await fetch(path, {
-      method: "POST",
+      method,
       headers: {
         "content-type": "application/json",
         ...(auth ? { authorization: `Bearer ${auth}` } : {}),
@@ -423,8 +486,33 @@ export default function SignupWizard({
     await createJournal();
   }
 
+  /** Whether every section the trip document asks about has a real answer
+   * or a real decline — the submit button stays disabled until this is
+   * true, so there is no path that sends a section nobody actually chose. */
+  function tripReady(): boolean {
+    if (!tripTitle || !tripStart || !tripEnd) return false;
+    if (!tripVisibility) return false;
+    if (tripVisibility === "public" ? tripListed === null : tripTeaser === null) return false;
+    if (!tripCompanions) return false;
+    if (tripCompanions === "others" && (buddies.length === 0 || buddies.some((b) => !b.name || !b.email)))
+      return false;
+    if (!tripRates) return false;
+    if (tripRates === "other" && !tripRatesOther.trim()) return false;
+    if (!tripCosts) return false;
+    if (tripCosts === "track" && !(Number(tripBudget) > 0)) return false;
+    if (!tripAccent) return false;
+    if (!tripFigures) return false;
+    if (!tripTagline) return false;
+    if (tripTagline === "set" && !tripTaglineText.trim()) return false;
+    if (!tripIntro) return false;
+    if (tripIntro === "set" && !tripIntroText.trim()) return false;
+    if (extraLocales.length > 0 && !tripTranslations) return false;
+    return true;
+  }
+
   async function createTripStep(event: React.FormEvent) {
     event.preventDefault();
+    if (!tripReady()) return;
     setBusy(true);
     setError(null);
     const tripId =
@@ -434,10 +522,76 @@ export default function SignupWizard({
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "")
         .slice(0, 60) || `trip-${tripStart.slice(0, 4)}`;
+
+    const declined: Record<string, string> = {
+      // These two have no honest "yes" in this wizard — see the note beside
+      // the state declarations above. Said in the UI too, not only here.
+      days: "This trip was just created and has no days yet — days are added afterward, one at a time, through their own page.",
+      plan: "No route was planned in advance for this trip in this wizard — a planned route can be added later from the trip's own page.",
+    };
+    if (tripCompanions === "solo") {
+      declined.buddies = `Travelling solo — only ${ownerNickname} is credited on this trip.`;
+    }
+    if (tripRates === "base") {
+      declined.rates = `Everything on this trip is counted in ${baseCurrency}.`;
+    }
+    if (tripCosts === "none") {
+      declined.costs = "Not tracking a budget for this trip.";
+    }
+    if (tripTagline === "skip") {
+      declined.tagline = "No subtitle for this trip yet.";
+    }
+    if (tripIntro === "skip") {
+      declined.intro = "No opening text for this trip yet.";
+    }
+    if (extraLocales.length > 0 && tripTranslations === "skip") {
+      declined.translations = "Not translated into the journal's other languages yet.";
+    }
+
+    const doc: Record<string, unknown> = {
+      id: tripId,
+      title: tripTitle,
+      dates: { from: tripStart, to: tripEnd },
+      visibility: tripVisibility,
+      people: [
+        { name: ownerName, nickname: ownerNickname, email },
+        ...(tripCompanions === "others" ? buddies : []),
+      ],
+      accent: tripAccent,
+      figures: { mode: tripFigures },
+      declined,
+    };
+    if (tripVisibility === "public") doc.listed = tripListed;
+    else doc.teaser = tripTeaser;
+    if (tripRates === "other") {
+      const codes = tripRatesOther
+        .split(",")
+        .map((c) => c.trim().toUpperCase())
+        .filter(Boolean);
+      doc.rates = { currencies: [...new Set([baseCurrency, ...codes])] };
+    }
+    if (tripCosts === "track") {
+      doc.costs = { budget: { total: Number(tripBudget), currency: baseCurrency } };
+    }
+    if (tripTagline === "set") doc.tagline = tripTaglineText.trim();
+    if (tripIntro === "set") doc.intro = tripIntroText.trim();
+    if (extraLocales.length > 0 && tripTranslations === "set") {
+      const translations: Record<string, { title?: string; tagline?: string }> = {};
+      for (const code of extraLocales) {
+        const entry: { title?: string; tagline?: string } = {};
+        if (translationTitles[code]?.trim()) entry.title = translationTitles[code].trim();
+        if (translationTaglines[code]?.trim()) entry.tagline = translationTaglines[code].trim();
+        translations[code] = entry;
+      }
+      doc.translations = translations;
+    }
+
     const result = await post(
-      `/api/v1/${encodeURIComponent(journalUsername)}/trips`,
-      { id: tripId, title: tripTitle, start: tripStart, end: tripEnd },
+      `/api/v2/${encodeURIComponent(journalUsername)}/trips/${encodeURIComponent(tripId)}`,
+      doc,
       agentToken,
+      undefined,
+      "PUT",
     );
     if (!result) {
       setBusy(false);
@@ -475,6 +629,8 @@ export default function SignupWizard({
     "focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500";
   const input =
     "block w-full border-0 bg-transparent p-0 text-base text-ink-strong focus:outline-none focus:ring-0";
+  const radio =
+    "flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong";
 
   return (
     <section className="rounded-2xl border border-line-quiet bg-surface-base p-5 sm:p-6">
@@ -993,10 +1149,437 @@ export default function SignupWizard({
               className={input}
             />
           </div>
+
+          {/* Who may read it — always asked, always explicit (B51: a typo
+              must not publish somebody's trip). */}
+          <p className={`${label} mt-6`}>{t("agent.tripVisibilityLabel")}</p>
+          <div className="mt-2 space-y-2">
+            {TRIP_VISIBILITIES.map((option) => (
+              <label key={option} className={radio}>
+                <input
+                  type="radio"
+                  name="signup-trip-visibility"
+                  value={option}
+                  checked={tripVisibility === option}
+                  onChange={() => setTripVisibility(option)}
+                />
+                {t(
+                  option === "public"
+                    ? "agent.tool.visibilityPublic"
+                    : option === "guest"
+                      ? "agent.tool.visibilityGuest"
+                      : "agent.tool.visibilityPrivate",
+                )}
+              </label>
+            ))}
+          </div>
+
+          {tripVisibility === "public" ? (
+            <>
+              <p className={`${label} mt-6`}>{t("agent.tripListedLabel")}</p>
+              <div className="mt-2 space-y-2">
+                <label className={radio}>
+                  <input
+                    type="radio"
+                    name="signup-trip-listed"
+                    value="true"
+                    checked={tripListed === true}
+                    onChange={() => setTripListed(true)}
+                  />
+                  {t("agent.tripListedYes")}
+                </label>
+                <label className={radio}>
+                  <input
+                    type="radio"
+                    name="signup-trip-listed"
+                    value="false"
+                    checked={tripListed === false}
+                    onChange={() => setTripListed(false)}
+                  />
+                  {t("agent.tripListedNo")}
+                </label>
+              </div>
+            </>
+          ) : tripVisibility !== "" ? (
+            <>
+              <p className={`${label} mt-6`}>{t("agent.tripTeaserLabel")}</p>
+              <div className="mt-2 space-y-2">
+                <label className={radio}>
+                  <input
+                    type="radio"
+                    name="signup-trip-teaser"
+                    value="true"
+                    checked={tripTeaser === true}
+                    onChange={() => setTripTeaser(true)}
+                  />
+                  {t("agent.tripTeaserYes")}
+                </label>
+                <label className={radio}>
+                  <input
+                    type="radio"
+                    name="signup-trip-teaser"
+                    value="false"
+                    checked={tripTeaser === false}
+                    onChange={() => setTripTeaser(false)}
+                  />
+                  {t("agent.tripTeaserNo")}
+                </label>
+              </div>
+            </>
+          ) : null}
+
+          {/* Who was on it. */}
+          <p className={`${label} mt-6`}>{t("agent.tripBuddiesLabel")}</p>
+          <div className="mt-2 space-y-2">
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-companions"
+                value="solo"
+                checked={tripCompanions === "solo"}
+                onChange={() => setTripCompanions("solo")}
+              />
+              {t("agent.tripBuddiesSolo")}
+            </label>
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-companions"
+                value="others"
+                checked={tripCompanions === "others"}
+                onChange={() => {
+                  setTripCompanions("others");
+                  setBuddies((prev) => (prev.length > 0 ? prev : [{ name: "", email: "" }]));
+                }}
+              />
+              {t("agent.tripBuddiesOthers")}
+            </label>
+          </div>
+          {tripCompanions === "others" && (
+            <div className="mt-3 space-y-3">
+              {buddies.map((buddy, i) => (
+                <div key={i} className="rounded-xl border border-line-quiet p-3">
+                  <div className={field}>
+                    <label className={label} htmlFor={`signup-buddy-name-${i}`}>
+                      {t("agent.tripBuddyNameLabel")}
+                    </label>
+                    <input
+                      id={`signup-buddy-name-${i}`}
+                      value={buddy.name}
+                      onChange={(e) =>
+                        setBuddies((prev) =>
+                          prev.map((b, j) => (j === i ? { ...b, name: e.target.value } : b)),
+                        )
+                      }
+                      className={input}
+                    />
+                  </div>
+                  <div className={`${field} mt-2`}>
+                    <label className={label} htmlFor={`signup-buddy-email-${i}`}>
+                      {t("agent.tripBuddyEmailLabel")}
+                    </label>
+                    <input
+                      id={`signup-buddy-email-${i}`}
+                      type="email"
+                      value={buddy.email}
+                      onChange={(e) =>
+                        setBuddies((prev) =>
+                          prev.map((b, j) => (j === i ? { ...b, email: e.target.value } : b)),
+                        )
+                      }
+                      className={input}
+                    />
+                  </div>
+                  {buddies.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setBuddies((prev) => prev.filter((_, j) => j !== i))}
+                      className="mt-2 min-h-11 text-sm text-ink-secondary underline underline-offset-4"
+                    >
+                      {t("agent.tripBuddyRemove")}
+                    </button>
+                  )}
+                </div>
+              ))}
+              {buddies.length < 9 && (
+                <button
+                  type="button"
+                  onClick={() => setBuddies((prev) => [...prev, { name: "", email: "" }])}
+                  className="min-h-11 text-sm text-ink-secondary underline underline-offset-4"
+                >
+                  {t("agent.tripBuddyAdd")}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Money — currencies, then a budget. */}
+          <p className={`${label} mt-6`}>{t("agent.tripRatesLabel")}</p>
+          <div className="mt-2 space-y-2">
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-rates"
+                value="base"
+                checked={tripRates === "base"}
+                onChange={() => setTripRates("base")}
+              />
+              {t("agent.tripRatesBaseOnly", { currency: baseCurrency })}
+            </label>
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-rates"
+                value="other"
+                checked={tripRates === "other"}
+                onChange={() => setTripRates("other")}
+              />
+              {t("agent.tripRatesOther")}
+            </label>
+          </div>
+          {tripRates === "other" && (
+            <div className={`${field} mt-2`}>
+              <label className={label} htmlFor="signup-trip-rates-other">
+                {t("agent.tripRatesOtherHint")}
+              </label>
+              <input
+                id="signup-trip-rates-other"
+                value={tripRatesOther}
+                onChange={(e) => setTripRatesOther(e.target.value)}
+                className={input}
+              />
+            </div>
+          )}
+
+          <p className={`${label} mt-6`}>{t("agent.tripCostsLabel")}</p>
+          <div className="mt-2 space-y-2">
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-costs"
+                value="none"
+                checked={tripCosts === "none"}
+                onChange={() => setTripCosts("none")}
+              />
+              {t("agent.tripCostsNone")}
+            </label>
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-costs"
+                value="track"
+                checked={tripCosts === "track"}
+                onChange={() => setTripCosts("track")}
+              />
+              {t("agent.tripCostsTrack")}
+            </label>
+          </div>
+          {tripCosts === "track" && (
+            <div className={`${field} mt-2`}>
+              <label className={label} htmlFor="signup-trip-budget">
+                {t("agent.tripBudgetLabel", { currency: baseCurrency })}
+              </label>
+              <input
+                id="signup-trip-budget"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={tripBudget}
+                onChange={(e) => setTripBudget(e.target.value)}
+                className={input}
+              />
+            </div>
+          )}
+
+          {/* How the trip's own card is drawn. */}
+          <p className={`${label} mt-6`}>{t("agent.tripAccentLabel")}</p>
+          <div className="mt-2 space-y-2">
+            {TRIP_ACCENTS.map((option) => (
+              <label key={option} className={radio}>
+                <input
+                  type="radio"
+                  name="signup-trip-accent"
+                  value={option}
+                  checked={tripAccent === option}
+                  onChange={() => setTripAccent(option)}
+                />
+                {t(ACCENT_LABEL_KEY[option])}
+              </label>
+            ))}
+          </div>
+
+          <p className={`${label} mt-6`}>{t("agent.tripFiguresLabel")}</p>
+          <div className="mt-2 space-y-2">
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-figures"
+                value="off"
+                checked={tripFigures === "off"}
+                onChange={() => setTripFigures("off")}
+              />
+              {t("agent.tripFiguresOff")}
+            </label>
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-figures"
+                value="journal"
+                checked={tripFigures === "journal"}
+                onChange={() => setTripFigures("journal")}
+              />
+              {t("agent.tripFiguresJournal")}
+            </label>
+          </div>
+
+          <p className={`${label} mt-6`}>{t("agent.tripTaglineLabel")}</p>
+          <div className="mt-2 space-y-2">
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-tagline"
+                value="set"
+                checked={tripTagline === "set"}
+                onChange={() => setTripTagline("set")}
+              />
+              {t("agent.tripTaglineSet")}
+            </label>
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-tagline"
+                value="skip"
+                checked={tripTagline === "skip"}
+                onChange={() => setTripTagline("skip")}
+              />
+              {t("agent.tripTaglineSkip")}
+            </label>
+          </div>
+          {tripTagline === "set" && (
+            <div className={`${field} mt-2`}>
+              <label className={label} htmlFor="signup-trip-tagline-text">
+                {t("agent.tripTaglineInputLabel")}
+              </label>
+              <input
+                id="signup-trip-tagline-text"
+                value={tripTaglineText}
+                onChange={(e) => setTripTaglineText(e.target.value)}
+                className={input}
+              />
+            </div>
+          )}
+
+          <p className={`${label} mt-6`}>{t("agent.tripIntroLabel")}</p>
+          <div className="mt-2 space-y-2">
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-intro"
+                value="set"
+                checked={tripIntro === "set"}
+                onChange={() => setTripIntro("set")}
+              />
+              {t("agent.tripIntroSet")}
+            </label>
+            <label className={radio}>
+              <input
+                type="radio"
+                name="signup-trip-intro"
+                value="skip"
+                checked={tripIntro === "skip"}
+                onChange={() => setTripIntro("skip")}
+              />
+              {t("agent.tripIntroSkip")}
+            </label>
+          </div>
+          {tripIntro === "set" && (
+            <div className={`${field} mt-2`}>
+              <label className={label} htmlFor="signup-trip-intro-text">
+                {t("agent.tripIntroInputLabel")}
+              </label>
+              <textarea
+                id="signup-trip-intro-text"
+                value={tripIntroText}
+                onChange={(e) => setTripIntroText(e.target.value)}
+                rows={3}
+                className={`${input} resize-y`}
+              />
+            </div>
+          )}
+
+          {/* Only asked when there is a second language to carry it in
+              (B1667) — the journal-create step's own reader-locales
+              question decides whether this appears. */}
+          {extraLocales.length > 0 && (
+            <>
+              <p className={`${label} mt-6`}>{t("agent.tripTranslationsLabel")}</p>
+              <div className="mt-2 space-y-2">
+                <label className={radio}>
+                  <input
+                    type="radio"
+                    name="signup-trip-translations"
+                    value="set"
+                    checked={tripTranslations === "set"}
+                    onChange={() => setTripTranslations("set")}
+                  />
+                  {t("agent.tripTranslationsSet")}
+                </label>
+                <label className={radio}>
+                  <input
+                    type="radio"
+                    name="signup-trip-translations"
+                    value="skip"
+                    checked={tripTranslations === "skip"}
+                    onChange={() => setTripTranslations("skip")}
+                  />
+                  {t("agent.tripTranslationsSkip")}
+                </label>
+              </div>
+              {tripTranslations === "set" &&
+                extraLocales.map((code) => (
+                  <div key={code} className="mt-3 rounded-xl border border-line-quiet p-3">
+                    <p className="text-sm font-semibold text-ink-strong">{LOCALE_LABEL[code] ?? code}</p>
+                    <div className={`${field} mt-2`}>
+                      <label className={label} htmlFor={`signup-trip-translation-title-${code}`}>
+                        {t("agent.tripTranslationsTitleLabel", { lang: LOCALE_LABEL[code] ?? code })}
+                      </label>
+                      <input
+                        id={`signup-trip-translation-title-${code}`}
+                        value={translationTitles[code] ?? ""}
+                        onChange={(e) =>
+                          setTranslationTitles((prev) => ({ ...prev, [code]: e.target.value }))
+                        }
+                        className={input}
+                      />
+                    </div>
+                    <div className={`${field} mt-2`}>
+                      <label className={label} htmlFor={`signup-trip-translation-tagline-${code}`}>
+                        {t("agent.tripTranslationsTaglineLabel", { lang: LOCALE_LABEL[code] ?? code })}
+                      </label>
+                      <input
+                        id={`signup-trip-translation-tagline-${code}`}
+                        value={translationTaglines[code] ?? ""}
+                        onChange={(e) =>
+                          setTranslationTaglines((prev) => ({ ...prev, [code]: e.target.value }))
+                        }
+                        className={input}
+                      />
+                    </div>
+                  </div>
+                ))}
+            </>
+          )}
+
+          {/* The two sections this wizard has no honest "yes" for — said
+              plainly, not only in the `declined` reasons the submit sends
+              (see `createTripStep`). */}
+          <p className="mt-6 text-sm leading-6 text-ink-secondary">{t("agent.tripDaysPlanNote")}</p>
+
           <BusyButton
             busy={busy}
             type="submit"
-            disabled={!tripTitle || !tripStart || !tripEnd}
+            disabled={!tripReady()}
             className={`mt-5 w-full ${PRIMARY_BUTTON} disabled:opacity-50`}
             busyLabel={t("agent.creatingTrip")}
           >

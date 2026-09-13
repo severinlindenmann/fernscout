@@ -39,6 +39,7 @@
       "currency": "THB"
     }
   ],
+  "transportMode": "ferry",
   "tags": [
     "thailand",
     "boats",
@@ -62,6 +63,5 @@
   "declined": {
     "visibility": "shown to everyone the trip already lets in"
   },
-  "status": "published",
-  "transportMode": "ferry"
+  "status": "published"
 }

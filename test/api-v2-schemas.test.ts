@@ -2,8 +2,10 @@
 // self-check — the concept's own example documents parse, silent omission of
 // a declinable section fails with the missing shape, and a conflict (brought
 // AND declined) is refused.
+import type { ZodType } from "zod";
 import { describe, expect, it } from "vitest";
 import {
+  dayDoc,
   dayPatch,
   dayWrite,
   figureDoc,
@@ -13,8 +15,12 @@ import {
   journalWrite,
   mediaIntent,
   tripCreate,
+  tripDoc,
   tripPatch,
+  TRIP_DECLINABLE_KEYS,
+  DAY_DECLINABLE_KEYS,
 } from "../lib/api/v2/schemas";
+import { incompleteFrom } from "../lib/api/v2/incomplete";
 
 function withoutDecline(doc: typeof fullTrip, key: string) {
   const declined = { ...doc.declined } as Record<string, string>;
@@ -205,6 +211,70 @@ describe("required-or-declined", () => {
 
   it("has no decline path for people — a trip nobody was on is not a trip", () => {
     expect(tripCreate.safeParse({ ...fullTrip, people: [] }).success).toBe(false);
+  });
+});
+
+describe("B1668 — a 422's to_decline never names a key the schema's own declined map refuses", () => {
+  it('teaser\'s missing issue does not tell a caller to send declined.teaser — the schema refuses that key', () => {
+    const closedNoTeaser = { ...fullTrip } as Record<string, unknown>;
+    delete closedNoTeaser.teaser; // fullTrip's visibility is "guest" (closed) — teaser is required here
+    const r = tripCreate.safeParse(closedNoTeaser);
+    expect(r.success).toBe(false);
+    const { missing } = incompleteFrom(r.error!, tripDoc.shape as unknown as Record<string, ZodType>, TRIP_DECLINABLE_KEYS);
+    const teaserRow = missing.find((m) => m.field === "teaser");
+    expect(teaserRow, JSON.stringify(missing)).toBeDefined();
+    expect(teaserRow!.to_decline).not.toMatch(/^declined\.teaser/);
+    // Sending declined.teaser, as the OLD to_decline text told a caller to,
+    // is refused as an unrecognised key — the exact dead end this ticket exists
+    // to close.
+    expect(
+      tripCreate.safeParse({ ...closedNoTeaser, declined: { ...(closedNoTeaser.declined as object), teaser: "no reason to tease" } })
+        .success,
+    ).toBe(false);
+    // The remedy the row actually points a caller towards — via why_required,
+    // since there is no decline — genuinely works.
+    expect(tripCreate.safeParse({ ...closedNoTeaser, teaser: true }).success).toBe(true);
+  });
+
+  it("every generated to_decline names a field TRIP_DECLINABLE_KEYS actually accepts", () => {
+    const bare = {
+      id: "alps-2026",
+      title: "Alps by rail",
+      dates: { from: "2026-09-20", to: "2026-09-27" },
+      visibility: "private",
+      people,
+      // teaser and every declinable section: all silently omitted.
+    };
+    const r = tripCreate.safeParse(bare);
+    expect(r.success).toBe(false);
+    const { missing } = incompleteFrom(r.error!, tripDoc.shape as unknown as Record<string, ZodType>, TRIP_DECLINABLE_KEYS);
+    expect(missing.length).toBeGreaterThan(0);
+    for (const row of missing) {
+      const declineField = row.to_decline.match(/^declined\.([a-zA-Z]+):/)?.[1];
+      if (declineField) {
+        expect((TRIP_DECLINABLE_KEYS as readonly string[]).includes(declineField), JSON.stringify(row)).toBe(true);
+      }
+    }
+  });
+
+  it("the same invariant holds for a day's missing sections", () => {
+    const bareDay = {
+      slug: "2026-09-21-grindelwald",
+      title: "Up the valley",
+      date: "2026-09-21",
+      content: "We took the first train up.",
+      // every declinable section silently omitted.
+    };
+    const r = dayWrite.safeParse(bareDay);
+    expect(r.success).toBe(false);
+    const { missing } = incompleteFrom(r.error!, dayDoc.shape as unknown as Record<string, ZodType>, DAY_DECLINABLE_KEYS);
+    expect(missing.length).toBeGreaterThan(0);
+    for (const row of missing) {
+      const declineField = row.to_decline.match(/^declined\.([a-zA-Z]+):/)?.[1];
+      if (declineField) {
+        expect((DAY_DECLINABLE_KEYS as readonly string[]).includes(declineField), JSON.stringify(row)).toBe(true);
+      }
+    }
   });
 });
 

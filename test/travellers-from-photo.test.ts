@@ -62,10 +62,10 @@ async function consent() {
 
 function trip(token: string, body: unknown, init: RequestInit = {}) {
   return (async () => {
-    const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/travellers/from-photo/route");
+    const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/travellers/from-photo/route");
     const isForm = body instanceof FormData;
     const response = await POST(
-      new Request(`https://example.test/api/v1/${OWNER}/trips/${TRIP}/travellers/from-photo`, {
+      new Request(`https://example.test/api/v2/${OWNER}/trips/${TRIP}/travellers/from-photo`, {
         method: "POST",
         headers: headers({
           authorization: `Bearer ${token}`,

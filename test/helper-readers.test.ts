@@ -197,18 +197,23 @@ describe("invites — never the token", () => {
   });
 
   test("with contacts switched off, there is nothing to show", async () => {
+    // Decision 5 (docs/v2-migration/00-decisions.md, B1666) made `contacts`
+    // instance-only: no v2 door ever lets a journal opt out of it any more,
+    // so the switch this test pulls is the server's own.
     fs.writeFileSync(
-      path.join(dir, "alex", "config.json"),
+      path.join(dir, "config.json"),
       JSON.stringify({
-        title: "Alex",
-        tagline: "t",
-        owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
-        defaultLocale: "en",
-        locales: ["en"],
-        baseCurrency: "CHF",
-        features: { contacts: { enabled: false }, mail: { enabled: true } },
+        site: { name: "T", url: "https://t.test" },
+        features: {
+          auth: { enabled: true },
+          helper: { enabled: true },
+          contacts: { enabled: false },
+          mail: { enabled: true },
+          credits: { enabled: true },
+        },
       }),
     );
+    clearConfigCache();
     clearUserCache();
     await createInvite("alex", { kind: "guest", tripId: null });
 

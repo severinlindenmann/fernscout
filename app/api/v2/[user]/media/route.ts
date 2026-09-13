@@ -71,6 +71,7 @@ async function gateIntent(session: Session, user: string, intent: MediaIntent) {
 
 function refuseWriteResult(result: Extract<MediaWriteResult, { ok: false }>) {
   if (result.error === "unknown_trip") return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
+  if (result.error === "unknown_day") return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
   if (result.error === "storage_full") return fail("storage_full", result.problem, undefined, 400);
   return fail("invalid_media", ERROR_CODES.invalid_media, result.problems, 400);
 }

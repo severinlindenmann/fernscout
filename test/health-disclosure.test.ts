@@ -59,8 +59,10 @@ function writeJournal(username: string, visibility: "public" | "private") {
       units: "metric",
       ...(visibility === "private" ? { visibility } : {}),
       // Narrowed, which is the only reason a journal appears in `journals`
-      // at all.
-      features: { reactions: { enabled: false } },
+      // at all. `mail` (unlike `reactions`) is still a real per-journal mute
+      // since decision 5 (docs/v2-migration/00-decisions.md, B1666) — see
+      // `USER_DEFAULT_FEATURES` in lib/config.ts.
+      features: { mail: { enabled: false } },
     }),
   );
 }
@@ -81,7 +83,7 @@ beforeAll(() => {
     JSON.stringify({
       site: { name: "R", url: "https://example.test", defaultUser: PUBLIC_JOURNAL },
       users: { reserved: [] },
-      features: { reactions: { enabled: true } },
+      features: { mail: { enabled: true, transport: "file" } },
     }),
   );
   writeJournal(PUBLIC_JOURNAL, "public");
@@ -174,7 +176,7 @@ describe("what a stranger is told", () => {
       JSON.stringify({
         site: { name: "R", url: "https://example.test", defaultUser: PUBLIC_JOURNAL },
         users: { reserved: [] },
-        features: { reactions: { enabled: true }, credits: { enabled: true } },
+        features: { mail: { enabled: true, transport: "file" }, credits: { enabled: true } },
       }),
     );
     // Credits needs a database to count as enabled at the server level; without
@@ -191,10 +193,10 @@ describe("what a stranger is told", () => {
     await migrateToLatest(await getDatabase());
     try {
       const body = await (await health(operator())).json();
-      // The public journal still appears (it narrowed `reactions`), but no
+      // The public journal still appears (it narrowed `mail`), but no
       // journal's block ever mentions credits — a whole-object check, because
       // the next field added is the one that reintroduces the leak.
-      expect(body.journals[PUBLIC_JOURNAL]?.reactions.enabled).toBe(false);
+      expect(body.journals[PUBLIC_JOURNAL]?.mail.enabled).toBe(false);
       expect(JSON.stringify(body.journals)).not.toContain("credits");
       expect(body.capabilities.credits.enabled).toBe(true);
     } finally {
@@ -206,7 +208,7 @@ describe("what a stranger is told", () => {
         JSON.stringify({
           site: { name: "R", url: "https://example.test", defaultUser: PUBLIC_JOURNAL },
           users: { reserved: [] },
-          features: { reactions: { enabled: true } },
+          features: { mail: { enabled: true, transport: "file" } },
         }),
       );
       clearConfigCache();
@@ -299,8 +301,8 @@ describe("what the operator is told", () => {
     process.env.HEALTH_TOKEN = TOKEN;
     const body = await (await health(operator())).json();
 
-    expect(body.journals[PRIVATE_JOURNAL]?.reactions.enabled).toBe(false);
-    expect(body.journals[PUBLIC_JOURNAL]?.reactions.enabled).toBe(false);
+    expect(body.journals[PRIVATE_JOURNAL]?.mail.enabled).toBe(false);
+    expect(body.journals[PUBLIC_JOURNAL]?.mail.enabled).toBe(false);
     // The whole roster or none of it — there is no filtered middle any more,
     // so nothing counts what was dropped.
     expect(body.journalsWithheld).toBeUndefined();

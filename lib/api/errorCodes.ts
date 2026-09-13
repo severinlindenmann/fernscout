@@ -95,7 +95,6 @@ export const ERROR_CODES = {
   no_frontmatter: "The file has no frontmatter block, so nothing can be read out of it. This is a fault on disk rather than in your call.",
   invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET /api/v2/{user}/figures/presets for the vocabulary.",
   unsupported_field: "A field name this call does not take. The `message` lists the ones it does — send only those, and note that publishing is never a field.",
-  mixed_change: "`features` cannot travel with a profile field. Send it in a call of its own, so switching a capability cannot also rename the journal.",
   expected_urls: "The JSON form of this upload needs `urls`. To send bytes instead, use multipart/form-data.",
   expected_src: "DELETE .../media needs `src` — one or more photographs, exactly as GET .../days/<slug> hands them back.",
   unknown_media: "One or more of `src` is not a photograph this day has. `problems` names each one; nothing was removed.",
@@ -128,7 +127,6 @@ export const ERROR_CODES = {
     "say that it has not been up.",
   not_published: "This day is still a draft. Publish it before sending it to anybody.",
   test_content: "This is content nobody lived — `test: true`. It cannot be sent to real people, which is the point of the flag.",
-  not_created: "The thing was not created. The `message` says why.",
 
   // ── this server cannot do that ─────────────────────────────────────────
   auth_disabled: "This server has authentication switched off entirely, so there are no tokens to hold. /api/health says what it can do.",

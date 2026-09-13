@@ -25,7 +25,3 @@ import fixes from "./fixes";
  * looser one.
  */
 export const GPS_IMPORTERS: GpsImporter[] = [googleTimeline, googleRecords, gpx, fixes];
-
-/** The ids, for the API's own listing and for `/openapi.json`'s enum — the
- * document imports this rather than restating it (AGENTS.md). */
-export const GPS_FORMATS = GPS_IMPORTERS.map((i) => i.id);

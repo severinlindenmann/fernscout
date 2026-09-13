@@ -150,7 +150,7 @@ export async function applyJournalPatch(
   const finalParsed = journalWrite.safeParse(merged);
   if (!finalParsed.success) {
     const shape = journalDoc.shape as unknown as Record<string, ZodType>;
-    const { incomplete, problems } = splitIssues(finalParsed.error, shape);
+    const { incomplete, problems } = splitIssues(finalParsed.error, shape, DECLINABLE_FIELDS);
     if (incomplete) return fail("incomplete", ERROR_CODES.incomplete, incomplete, 422);
     return fail("invalid_request", ERROR_CODES.invalid_request, problems, 400);
   }

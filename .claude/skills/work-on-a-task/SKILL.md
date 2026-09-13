@@ -258,6 +258,27 @@ where Next puts the typed-route definitions `PageProps`, `LayoutProps` and
 `tsc` on every route file for that reason alone — sixty errors in code you did
 not write. B100.
 
+**Run it in the foreground, with a real timeout.** Since B1667's guard landed,
+`verify` **refuses to start** when no terminal is attached: pass
+`VERIFY_WILL_WAIT=1` in the same call that sets `timeout: 900000`, and wait for
+it in that turn. The variable is read for nothing else, and setting it is the
+whole point — it makes "I will wait for this" something you state rather than
+something the harness guesses. It takes about five
+minutes, so a tool call left on a two-minute default kills it mid-suite and
+hands back something that reads as a failure and is not — pass
+`timeout: 900000`. The fix is the timeout, **never** backgrounding the run.
+
+Backgrounding a verify and then ending your turn is how a session is most
+often lost here: **five agents did it in a single day**, each stopping with
+some form of *"waiting for verify, will report back."* Nothing wakes you. The
+turn is over, the run finishes into a file nobody reads, and finished work
+sits unreported until somebody prods the session. Every one of those briefs
+had already said to pass a timeout — the backgrounding is the trap, not the
+missing flag.
+
+If you have nothing else to do while it runs, that is precisely when to run it
+in the foreground.
+
 `verify` refuses before it starts if the worktree has no `node_modules`, which
 is the other half of that trap: `tsc`, `eslint` and `vitest` resolve upward to
 the main checkout's copy and appear to work, and only the build fails.

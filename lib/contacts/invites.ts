@@ -379,8 +379,9 @@ export async function listInvites(owner: string): Promise<Invite[]> {
 
   // The token itself is deliberately not here. B280 made it recoverable, and
   // `listInvitesWithLinks` below is the only reader that recovers it: this one
-  // answers `GET /api/v1/<user>/invites`, which an agent token reaches, and an
-  // agent that can list invites has no need to be able to re-send them.
+  // answers `GET /api/v2/<user>/invites` (and its cookie proxy, `GET
+  // /api/web/<user>/invites`), which an agent token reaches, and an agent
+  // that can list invites has no need to be able to re-send them.
   return rows.map(toInvite);
 }
 

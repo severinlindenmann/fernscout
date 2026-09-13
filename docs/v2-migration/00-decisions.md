@@ -24,6 +24,13 @@ the owner with a recommended default.
    dropped; `units`/`visibility`/`displayCurrencies` required on the
    journal; `manualRates` lives per-trip inside `rates.manual`; storage is
    read-only accounting on the journal read doc -> moved to journalStatus.
+   **Implemented 2026-09-13 (B1666) — see `05-status.md`'s entry of that
+   date.** It was decided on 2026-09-12 and not built until then: nobody
+   could see what deployed journals carried in their own `features`/
+   `manualRates` blocks, and flipping the switch blind risked silently
+   turning a capability off (or back on) under a journal that depended on
+   the old behaviour. The live instance was wiped and reseeded from
+   `content/example` alone first, which is what made it safe to finish.
 6. Four prefixes: /api/v2 (bearer contract) · /api/web (cookie-only) ·
    /api/auth · /api/webhooks.
 7. One error envelope from lib/api/errorCodes.ts; client-chosen ids
@@ -32,6 +39,32 @@ the owner with a recommended default.
    logging (metadata only).
 8. Contract layer new, domain layer shared; import-boundary test; one
    writable-fields list per resource shared by /api/web and /api/v2 (T5).
+
+### Known exceptions to decision 3 (B1671)
+
+Decision 3 says a `declined` entry is only ever written when a person
+actually declines. The trip write path has exactly one departure from that,
+found and reviewed under B1671: `PUT .../trips/{trip}` (on a REPLACE of an
+existing trip) and `PATCH .../trips/{trip}` both auto-write
+`declined.days = "…"` whenever the merged document carries no `days` and no
+caller-supplied `declined.days` — no caller is ever asked, and no caller ever
+answers.
+
+**Why this one is authorised rather than a bug.** `days` is genuinely not
+askable once a trip exists: a day changes through its own
+`PUT .../days/{slug}`, not through the trip document, so there is no honest
+way to re-ask "does this trip have days?" on every replace/patch — the
+answer is always "yes, elsewhere" and re-declining it would be theatre, not a
+decision. `TRIP_DECLINABLES` still asks about `days` as a genuine question
+**only at create**, where a brand-new trip really might have none yet.
+
+**What keeps this from being silent drift**: the stored reason
+(`TRIP_DAYS_ANSWERED_ELSEWHERE_REASON`, `lib/api/v2/write.ts`) is written in
+the server's own voice — "(auto-recorded by the server, not a caller's
+decision) …" — specifically so a reader (owner or agent) who sees
+`declined.days` on a GET cannot mistake it for something a person typed. No
+other declinable on any resource is written this way; if one is ever added,
+it earns its own row here, not a silent precedent claimed from this one.
 
 ## Field-level decisions (schemas — already IN the code, listed for context)
 

@@ -48,7 +48,8 @@ import type { OrderRow } from "@/lib/orders";
  * The two capabilities that spend the balance this card is about, next to the
  * balance, for the person already signed in as the owner of it. Not a settings
  * page and deliberately not the shape of one: two named channels, and the
- * route behind it (`POST /api/v1/<user>/channels`) accepts no other key.
+ * route behind it (`PATCH /api/web/<user>/channels`, the cookie proxy in
+ * front of `PATCH /api/v2/<user>/channels`) accepts no other key.
  *
  * `router.refresh()` rather than local state, because the numbers beside it —
  * what a day costs now — are the server's and are exactly what changed.
@@ -73,10 +74,10 @@ function ChannelSwitch({
   async function toggle() {
     setBusy(true);
     setFailed(false);
-    const response = await fetch(`/api/v1/${username}/channels`, {
-      method: "POST",
+    const response = await fetch(`/api/web/${username}/channels`, {
+      method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ channel, enabled: !enabled }),
+      body: JSON.stringify({ [channel]: !enabled }),
     }).catch(() => null);
     setBusy(false);
     if (!response?.ok) {

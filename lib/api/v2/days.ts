@@ -19,7 +19,7 @@ import "server-only";
 import type { DayWrite } from "./schemas/day";
 import { isEnabled } from "@/lib/capabilities";
 import { isTestContent } from "@/lib/access";
-import { mediaKey } from "@/lib/photos";
+import { mediaKey, type PhotoVisibility } from "@/lib/photos";
 import { resolveMediaFile } from "@/lib/media";
 import type { Trip } from "@/lib/types";
 import type { DayFile, TripFile } from "./documents";
@@ -243,7 +243,7 @@ export function weatherLookupRefused(body: { weather?: unknown }): string | null
 
 /** ── attach/detach: the narrow media door — B1656 ───────────────────── */
 
-type WireItem = { src: string; caption?: string; visibility?: "guest" | "private" };
+type WireItem = { src: string; caption?: string; visibility?: PhotoVisibility };
 
 /**
  * Whether `src` names a photograph actually stored inside THIS trip's own

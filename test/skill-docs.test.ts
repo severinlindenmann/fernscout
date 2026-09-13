@@ -275,9 +275,11 @@ describe("the nine v2 task guides (B311, step 6 of the v2 migration)", () => {
   // that it still parses, so a change here cannot silently have reached it.
   // `/api/v1/{user}/invites` was the canary until B1632 retired that route
   // (and the v1 door it documented) along with several siblings; `import`
-  // has no v2 equivalent yet and stays, so it is the canary now.
+  // was the canary after that until its own v2 door arrived and it was
+  // retired in turn; `trips/{trip}/track` has no v2 equivalent yet, so it is
+  // the canary now.
   test("v1's own hand-written openapi document is unaffected", () => {
     const doc = openApiDocument() as unknown as { paths: Record<string, unknown> };
-    expect(doc.paths["/api/v1/{user}/import"]).toBeTruthy();
+    expect(doc.paths["/api/v1/{user}/trips/{trip}/track"]).toBeTruthy();
   });
 });

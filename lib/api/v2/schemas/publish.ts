@@ -4,6 +4,7 @@
 // publish or THIS send, never stored, so each is its own small schema rather
 // than living on `dayWrite`/`dayDoc`.
 import { z } from "zod";
+import { CHANNEL_NAMES } from "./social";
 import { DAY_DECLINABLE_KEYS } from "./day";
 
 /**
@@ -25,6 +26,6 @@ export type PublishRequest = z.infer<typeof publishRequest>;
  * `send-whatsapp` die into this.
  */
 export const sendRequest = z.strictObject({
-  channels: z.array(z.enum(["mail", "whatsapp"])).min(1),
+  channels: z.array(z.enum(CHANNEL_NAMES)).min(1),
 });
 export type SendRequest = z.infer<typeof sendRequest>;

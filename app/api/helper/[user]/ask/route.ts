@@ -9,6 +9,12 @@ import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/s
 import { recordTurn } from "@/lib/helper/sessions";
 import { forget, history, proposed, remember, sessionId } from "@/lib/helper/thread";
 import { speechProvider } from "@/lib/helper/transcribe";
+import {
+  fingerprintOf,
+  idempotencyKey,
+  recall,
+  remember as rememberTurnAnswer,
+} from "@/lib/idempotency";
 import { requestLocale } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
@@ -231,6 +237,30 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   /**
+   * Request-level dedup — B1663. A turn is real work (a model call, spent
+   * credits) and not a resource with a state to be idempotent about, so this
+   * follows `write-day`'s shape rather than `buy_room`'s: the *previous
+   * answer* is handed back verbatim for a repeat under the same key, and
+   * nothing runs twice. Optional — a caller that never supplies a key gets
+   * the old, unguarded behaviour, same as every other door on `lib/idempotency`.
+   */
+  const wantsStream = (request.headers.get("accept") ?? "").includes("application/x-ndjson");
+  const suppliedKey = typeof body.idempotency_key === "string" ? body.idempotency_key.trim() : "";
+  const idemKey = suppliedKey === "" ? null : idempotencyKey(user, "helper.ask", suppliedKey);
+  const idemFingerprint = fingerprintOf({ said, selected: body.selected ?? null, today: body.today ?? null });
+  const recalled = await recall<Record<string, unknown>>(idemKey, idemFingerprint);
+  if (recalled.kind === "replay") {
+    return wantsStream
+      ? new Response(`${JSON.stringify({ done: recalled.value })}\n`, {
+          headers: { "content-type": "application/x-ndjson" },
+        })
+      : Response.json(recalled.value);
+  }
+  if (recalled.kind === "conflict") {
+    return Response.json({ error: "idempotency_conflict" }, { status: 409 });
+  }
+
+  /**
    * The credit, after consent and before the model — B1091, the same gate
    * order `write-day` already uses. A ledger ref that is merely unique
    * rather than meaningful: unlike a day's write-up this turn names no trip
@@ -375,32 +405,35 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       proposed(user, proposal.tool, proposal.arguments);
     }
 
-    return {
-      status: 200,
-      body: {
-        ok: true,
-        kind: "read",
-        answer: thread.answer,
-        // What it actually ran, in order — so the claim its answer makes
-        // about what it looked at is checkable from outside.
-        looked: thread.looked,
-        /**
-         * What the turn draws — B898. The tools' own blocks in the order
-         * they ran, and then the model's sentence as a `say`. The model
-         * chose the tools and no part of it chose a shape.
-         */
-        blocks: [
-          ...thread.blocks,
-          ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }]),
-        ] satisfies Block[],
-        /**
-         * Proposals a write tool made — B900. **Nothing has been written**:
-         * each carries the helper route its press posts to, and the press
-         * is the person's.
-         */
-        proposals: thread.proposals,
-      },
+    const answered = {
+      ok: true,
+      kind: "read",
+      answer: thread.answer,
+      // What it actually ran, in order — so the claim its answer makes
+      // about what it looked at is checkable from outside.
+      looked: thread.looked,
+      /**
+       * What the turn draws — B898. The tools' own blocks in the order
+       * they ran, and then the model's sentence as a `say`. The model
+       * chose the tools and no part of it chose a shape.
+       */
+      blocks: [
+        ...thread.blocks,
+        ...(thread.answer === "" ? [] : [{ shape: "say" as const, text: thread.answer }]),
+      ] satisfies Block[],
+      /**
+       * Proposals a write tool made — B900. **Nothing has been written**:
+       * each carries the helper route its press posts to, and the press
+       * is the person's.
+       */
+      proposals: thread.proposals,
     };
+    // Only a genuine success is remembered — B1663, the same rule
+    // `lib/idempotency.ts` states: a retry of a rejected call must be free
+    // to run again, so a `model_failed` answer above returns before this and
+    // is never cached.
+    await rememberTurnAnswer(idemKey, idemFingerprint, answered);
+    return { status: 200, body: answered };
   }
 
   /**
@@ -411,7 +444,6 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    * deployed this yet reads a `content-type` it did not ask for and falls
    * back — `HelperAsk.tsx`'s `ask()` is what does that.
    */
-  const wantsStream = (request.headers.get("accept") ?? "").includes("application/x-ndjson");
   if (!wantsStream) {
     const { status, body: answered } = await runTurn();
     return Response.json(answered, status === 200 ? undefined : { status });

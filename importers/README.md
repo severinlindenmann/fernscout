@@ -19,7 +19,7 @@ importers/
     index.ts      revolut.ts
 ```
 
-Both are read by the same call, `POST /api/v1/<user>/import`, keyed by kind.
+Both are read by the same call, `POST /api/v2/<user>/import`, keyed by kind.
 
 **`<kind>/schema.ts` is the whole contract for that kind.** Read it, produce
 the row it names, call the check it exports, and add your file to that kind's
@@ -53,7 +53,7 @@ export default importer;
 ```
 
 Drop it in `gps/`, and add it to `GPS_IMPORTERS` in `gps/index.ts`.
-`GET /api/v1/<user>/import` will list it back to you.
+`GET /api/v2/<user>/import` will list it back to you.
 
 The line in `index.ts` is not ceremony: a bundler cannot trace a directory
 scan, so an importer that is only a file would be *missing* from a production
@@ -75,9 +75,9 @@ const problems = checkGpsImporter(importer, importer.parse(myExport));
 //    milliseconds since the epoch; seconds land in 1970"
 ```
 
-`POST /api/v1/<user>/import` with `"dryRun": true` runs exactly that function
-against your real export and writes nothing, so you never have to import the
-check yourself unless you want it in your own test.
+`POST /api/v2/<user>/import?dryRun=true` runs exactly that function against
+your real export and writes nothing, so you never have to import the check
+yourself unless you want it in your own test.
 
 That is the whole job. An importer has no network, no disk, no database and no
 idea what a journal or a trip is. Everything downstream — thinning, storage,
@@ -130,8 +130,8 @@ name it by id.
 ## Testing yours
 
 ```http
-GET  /api/v1/<user>/import                          is it listed?
-POST /api/v1/<user>/import  {"kind":"gps", "text": "…", "dryRun": true}
+GET  /api/v2/<user>/import                          is it listed?
+POST /api/v2/<user>/import?dryRun=true  {"kind":"gps", "text": "…"}
 ```
 
 The dry run parses, runs `checkGpsImporter`, says how many fixes came out and

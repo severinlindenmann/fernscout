@@ -184,6 +184,40 @@ describe("an ordinary message, once acknowledged", () => {
   });
 });
 
+/**
+ * B1663 — the webhook route (`app/api/webhooks/whatsapp/route.ts`) dedupes
+ * inbound wamids, but only *after* `handleInboundMessage` returns without
+ * throwing. A turn that spends the credit, gets its model answer and then
+ * fails for some unrelated reason further down leaves that outer key
+ * unremembered, so a genuine Meta retry reaches `handleInboundMessage` again
+ * with the very same message. This calls it directly with the same wamid
+ * twice — exactly what such a retry looks like from `answerOnWhatsapp`'s own
+ * side — and the fix is that the second call must neither reach the model
+ * again nor spend the credit again.
+ */
+describe("the same wamid handled twice", () => {
+  test("the model runs once and the credit is spent once", async () => {
+    await bindGreetAcknowledge("retrytest", "41760012121");
+    const balanceAfterBind = (await import("@/lib/credits").then((m) => m.balanceOf("retrytest"))) ?? 0;
+
+    create.mockResolvedValueOnce(says("You have one trip: Die Reise."));
+    const before = repliesTo("retrytest").length;
+
+    const inbound = textMessage("41760012121", "wamid.retry-1", "what trips do I have");
+    await handleInboundMessage(inbound);
+    // The exact same message object, the same wamid — a retry, not a second
+    // message. `create` has nothing queued for a second call, so a second
+    // model turn would throw and fail the test outright.
+    await handleInboundMessage(inbound);
+
+    const files = repliesTo("retrytest");
+    expect(files.length).toBe(before + 1);
+    expect(create).toHaveBeenCalledTimes(1);
+    const { balanceOf } = await import("@/lib/credits");
+    expect(await balanceOf("retrytest")).toBe(balanceAfterBind - 0.02);
+  });
+});
+
 function calls(name: string, input: Record<string, string> = {}) {
   return {
     content: [{ type: "tool_use", id: `t-${name}`, name, input }],
