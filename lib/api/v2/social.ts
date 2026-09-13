@@ -14,8 +14,6 @@ import { relationshipsFor } from "../../contacts/relationships";
 import { peopleOf, pendingTripRequestsFor } from "../../tripPeople";
 import { getTrips } from "../../trips";
 import { getUser } from "../../users";
-import type { DayLetterOutcome } from "../../digest/dayLetter";
-import type { DayWhatsappOutcome } from "../../digest/dayWhatsapp";
 import { maskNumber } from "../../whatsapp";
 
 /** Never carries `url` — only the create response does (a lost link is
@@ -83,44 +81,4 @@ export function contactToDoc(contact: ContactRecord, ctx: ContactDocContext): Co
   };
 }
 
-/**
- * How a `DayLetterOutcome`/`DayWhatsappOutcome` becomes the `results.mail` /
- * `results.whatsapp` shape in the `send` route's response — the same rule
- * v1's `lib/api/dayMail.ts`/`dayWhatsapp.ts` (route glue, not reused here:
- * the v2 import boundary refuses anything under `lib/api/` outside this
- * folder) always applied: a count, never an address; a failure is still
- * visible as its message.
- */
-export function mailSendSummary(outcome: DayLetterOutcome): Record<string, unknown> {
-  if (!outcome.ok) return { attempted: false, sent: 0, failed: 0, reason: outcome.reason };
-  return {
-    attempted: true,
-    resend: outcome.resend,
-    sent: outcome.sent.length,
-    failed: outcome.failed.length,
-    ...(outcome.failed.length > 0 ? { errors: outcome.failed.map((f) => f.error) } : {}),
-  };
-}
 
-/** The WhatsApp counterpart — masks any failed number to its last four
- * digits, same as v1's `whatsappSummary`. */
-export function whatsappSendSummary(outcome: DayWhatsappOutcome): Record<string, unknown> {
-  if (!outcome.ok) {
-    return {
-      attempted: false,
-      sent: 0,
-      failed: 0,
-      reason: outcome.reason,
-      ...(outcome.reason === "no_credits" ? { needed: outcome.needed, balance: outcome.balance } : {}),
-    };
-  }
-  return {
-    attempted: true,
-    resend: outcome.resend,
-    sent: outcome.sent.length,
-    failed: outcome.failed.length,
-    ...(outcome.failed.length > 0
-      ? { errors: outcome.failed.map((f) => ({ to: maskNumber(f.to), error: f.error })) }
-      : {}),
-  };
-}

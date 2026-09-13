@@ -131,3 +131,9 @@ export const channelsPatch = z.strictObject({
   whatsapp: z.boolean().optional(),
 });
 
+/** `null` where the server does not offer the channel at all, so a switch
+ * that cannot exist never reads back as a confident `false`. */
+export const channelsDoc = z.strictObject({
+  mail: z.boolean().nullable(),
+  whatsapp: z.boolean().nullable(),
+});

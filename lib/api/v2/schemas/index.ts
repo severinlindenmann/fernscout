@@ -44,6 +44,5 @@ export {
   CHANNEL_NAMES,
   channelsPatch,
   channelsDoc,
-  SEND_CHANNELS,
 } from "./social";
 export type { InviteDoc, ContactDoc } from "./social";
