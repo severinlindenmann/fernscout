@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: chore
 found: "2026-09-13T14:28:33Z"
+merged: "2026-09-13T14:39:23Z"
 ---
 
 # B1678 — lib/trips.ts.new is a committed editor scratch file

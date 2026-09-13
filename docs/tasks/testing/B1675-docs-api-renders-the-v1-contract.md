@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: docs
 found: "2026-09-13T14:28:31Z"
+merged: "2026-09-13T14:39:23Z"
 ---
 
 # B1675 — /docs/api renders the v1 contract, not v2

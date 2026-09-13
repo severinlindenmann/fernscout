@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: content
 found: "2026-09-13T14:28:34Z"
+merged: "2026-09-13T14:39:24Z"
 ---
 
 # B1679 — Nine content files do not round-trip byte-identically through the serializers
