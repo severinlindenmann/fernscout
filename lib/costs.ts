@@ -29,7 +29,7 @@ export * from "./costFormat";
  * and this trip's own frozen rates for getting there.
  *
  * Resolved per trip and never cached across trips — the whole reason rates
- * live in `trip.md` is that two trips may hold different rates for the same
+ * live in `trip.json` is that two trips may hold different rates for the same
  * currency, and a shared table would quietly erase that.
  *
  * Exported since B295: the costs API door needs the same base currency and
@@ -119,8 +119,8 @@ export function readCostsFile(
  * Whether this one trip has any costs at all — a `costs.md`, or a day
  * carrying a `costs:` block. Not just the file: B328 found a trip with
  * fifteen days of logged spend and no `costs.md`, whose page could not be
- * reached because this only ever asked about the file. `costs.md` is still
- * optional per trip (AGENTS.md), and `features.costs` being on says nothing
+ * reached because this only ever asked about the file. A trip's costs
+ * section is still optional (AGENTS.md), and `features.costs` being on says nothing
  * about whether anybody wrote one either way — it is on by default at
  * creation (lib/journals.ts). The costs pages ask this for the trip they are
  * about to render, so a journal with one trip costed and another not shows

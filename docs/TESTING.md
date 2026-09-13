@@ -54,7 +54,7 @@ The core. No configuration, no accounts.
 | **B13** | Try a URL that does not exist, e.g. `/example/day/nonsense` | A real "not found" page in the site's design, not a stack trace |
 | **B14** | Try `/nobody` | "There is no journal at this address" |
 | **B15** | Open **Japan, end to end** | A trip that has not happened: a days-away countdown, the planned route on a map, the planned budget — and "no days written yet". No story, no gallery |
-| **B16** | On that page, hover/tap a planned stop | Each carries a short `note:` from `plan.md` ("Fly home from here") |
+| **B16** | On that page, hover/tap a planned stop | Each carries a short `note` from the trip's `plan` section (`trip.json`, not the old `plan.md`) — "Fly home from here" |
 
 ---
 
@@ -113,15 +113,15 @@ The five trips deliberately spend in **CHF, EUR, THB, VND, USD and JPY**.
 
 This is where a mistake would be expensive, so test it properly.
 
-**A trip is closed by one word in its `trip.md`, and there is no password.**
+**A trip is closed by one field in its `trip.json`, and there is no password.**
 B39 removed the shared secret — one word, held by everybody it was ever
 forwarded to, revocable only by cutting off the whole family at once. What
 replaced it is a reader proving their own address and the owner deciding, so
 the two closed values differ in *who* they open to: `private` is the people in
-the trip's `people:` block, `guest` is everybody the owner has approved into
+the trip's `people` array, `guest` is everybody the owner has approved into
 the **journal**. Signing in is an identity claim and opens nothing by itself.
 
-Editing a `trip.md` on a running server is enough — the caches carry a
+Editing a `trip.json` on a running server is enough — the caches carry a
 fingerprint of the files they were built from, so a visibility change takes
 effect on the next request with no restart and no rebuild.
 
@@ -135,20 +135,20 @@ is B252.)
 
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
-| **F1** | In `content/example/trips/alps-2024/trip.md` set `visibility: private`. Reload `/example/trips/alps-2024` | The **gate**, not the trip |
+| **F1** | In `content/example/trips/alps-2024/trip.json` set `"visibility": "private"`. Reload `/example/trips/alps-2024` | The **gate**, not the trip |
 | **F2** | Read the gate | It carries the **journal's** name — "Fernscout Demo" — and says nothing about the Alps: not in the heading, not in the tagline, nowhere. B117 |
 | **F3** | `curl -s localhost:3000/example/trips/alps-2024 \| grep -i '<title>'` | The journal's name again, and a `noindex`. Trip ids are guessable by hand, so a closed trip must not name itself in the tab either |
 | **F4** | 🔑 Sign in at the gate with an address that is **not** in that trip's `people:` (the code is in the `.eml` under `<DATA_DIR>/mail/example/`) | Signed in, and **still refused** — a different sentence, and a link to `/example/me`. Being able to prove an address is not access |
-| **F5** | Add that address to the trip's `people:` block (`- name:` / `email:`), reload | The trip opens, and stays open across its other pages |
-| **F6** | Set `visibility: guest` and take your address back out of `people:`. Reload | Refused again, in the same words as F4: a `guest` trip opens for guests of the **journal**, and signing in is not being approved into one. The other half — an approved guest opening it — needs a contact to approve, which is **H2–H5**; come back to this URL after those and it opens, along with every other `guest` trip in the journal, because a guest is never a guest of one trip |
-| **F6a** | As owner, issue a **buddy** link for this trip — `curl -X POST localhost:3000/api/v1/example/invites -H "authorization: Bearer <owner token>" -H 'content-type: application/json' -d '{"kind":"buddy","trip":"alps-2024"}'` — and open its `/example/invite/buddy/<token>` link with an address that is on no trip. Approve it at `/example/contacts` | That address can now get an `fs_agent_` token scoped to `alps-2024` and `POST`/`PATCH` days on it (the trip's `people:` plus this row decide write access, B33) — **and** it can read every `guest` trip in the journal too: approving a buddy does both at once, which is why a buddy link is never the safe one to forward casually |
+| **F5** | Add that address to the trip's `people` array (`{"name": …, "email": …}`), reload | The trip opens, and stays open across its other pages |
+| **F6** | Set `"visibility": "guest"` and take your address back out of `people`. Reload | Refused again, in the same words as F4: a `guest` trip opens for guests of the **journal**, and signing in is not being approved into one. The other half — an approved guest opening it — needs a contact to approve, which is **H2–H5**; come back to this URL after those and it opens, along with every other `guest` trip in the journal, because a guest is never a guest of one trip |
+| **F6a** | As owner, issue a **buddy** link for this trip — `curl -X PUT localhost:3000/api/v2/example/invites/alps-buddy-1 -H "authorization: Bearer <owner token>" -H 'content-type: application/json' -d '{"id":"alps-buddy-1","kind":"buddy","trip":"alps-2024"}'` — and open its `/example/invite/buddy/<token>` link with an address that is on no trip. Approve it at `/example/contacts` | That address can now get an `fs_agent_` token scoped to `alps-2024` and `PUT`/`PATCH` days on it (the trip's `people` plus this row decide write access, B33) — **and** it can read every `guest` trip in the journal too: approving a buddy does both at once, which is why a buddy link is never the safe one to forward casually |
 | **F7** | In a **private window**, open one of that trip's photos directly, e.g. `/example/media/alps-2024/over-the-susten/01.jpg` | **404.** A private trip's photos must not be fetchable by URL |
-| **F7a** | On a day in a `public` trip, add `visibility: guest` to one photo's own entry in the day's `gallery:` block (not the trip's own `visibility`). Reload the day signed out | That one photo is missing from the grid; every other photo on the same day still shows. Its own URL, e.g. `/example/media/<trip>/<day>/<the-photo>.jpg`, also answers 404 — a picture held back from the gallery but still fetchable would not be held back at all. B596: the label only ever narrows, never widens past what the trip already allows |
+| **F7a** | On a day in a `public` trip, add `"visibility": "guest"` to one photo's own entry in the day's `media` array (not the trip's own `visibility`). Reload the day signed out | That one photo is missing from the grid; every other photo on the same day still shows. Its own URL, e.g. `/example/media/<trip>/<day>/<the-photo>.jpg`, also answers 404 — a picture held back from the gallery but still fetchable would not be held back at all. B596: the label only ever narrows, never widens past what the trip already allows |
 | **F8** | In that private window, check `/sitemap.xml` and `/example/feed.xml` | The Alps trip appears in **neither** |
 | **F9** | `/example` and `/example/trips` in the private window | Still work. **A private trip must not hide the rest of the journal** |
 | **F10** | Put the trip back to `visibility: public` and add `listed: false`. Reload | Reachable by link, but absent from the sitemap, from `/example/feed.xml` and from the trip switcher. W27 split the old `unlisted` into these two fields: `visibility` is who may read it, `listed` is whether it is advertised |
 | **F11** | Now set `visibility: guest` **and** `listed: true`. Reload, and watch the server's console | Refused and logged — `[trips] … says listed: true, but visibility "guest" does not advertise the trip — ignoring it`. `listed:` can only ever narrow, so a mistake here cannot advertise a closed trip. B51 |
-| **F12** | Set `costsVisibility: guests` on a public trip | The costs page hides the numbers |
+| **F12** | Set `"visibility": "guests"` inside the trip's `costs` section (`costsVisibility` in the old `trip.md`; nested under `costs` in `trip.json` since B1598) on a public trip | The costs page hides the numbers |
 | **F13** | Undo F1–F12 (and F6a/F7a) before continuing | — |
 
 ---
@@ -171,18 +171,18 @@ and in `site/config.json` set `features.auth.enabled` and
 | **G1** | Open `/documentation.txt` | A readable document naming the journal and how to write to it |
 | **G2** | Open `/skill/add-a-day.md` | One task's own guide: fields, a worked example, editing, publishing (B311) |
 | **G3** | Open `/openapi.json` | A machine-readable API description, not a 404 |
-| **G4** | Open `/example/day/denver-and-a-truck.md` | The **markdown source** of that day, not the rendered page |
-| **G5** | `curl -X POST localhost:3000/api/auth/request -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","kind":"agent"}'` | `202`, and an `.eml` file appears in `<DATA_DIR>/mail/example/` |
-| **G6** | `curl -X POST localhost:3000/api/auth/verify -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","kind":"agent"}'` | A token starting `fs_agent_` |
+| **G4** | Open `/example/day/denver-and-a-truck.md` | The **markdown twin** of that day, not the rendered page |
+| **G5** | `curl -X POST localhost:3000/api/auth/codes -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","for":"write"}'` | `202`, and an `.eml` file appears in `<DATA_DIR>/mail/example/` |
+| **G6** | `curl -X POST localhost:3000/api/auth/codes/redeem -H 'content-type: application/json' -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","for":"write"}'` | A token starting `fs_agent_` |
 | **G7** | Same request with a **different** email | `202` but **no** mail written — only the owner can get a write token |
-| **G8** | `curl localhost:3000/api/v1/example/trips -H "authorization: Bearer <token>"` | All four trips as JSON |
-| **G9** | POST a new day (the exact call is in `/skill/add-a-day.md`) | `201`, and it says **draft** |
+| **G8** | `curl localhost:3000/api/v2/example/trips -H "authorization: Bearer <token>"` | All four trips as JSON |
+| **G9** | `PUT` a new day at a client-chosen slug (the exact call is in `/skill/add-a-day.md`) | `201`, and it says **draft** |
 | **G10** | Look for that day on the site | **Not there.** Drafts are invisible until published |
-| **G11** | `curl localhost:3000/api/v1/example/drafts -H "authorization: Bearer <token>"` | Your draft, waiting |
-| **G12** | `curl -X POST localhost:3000/api/v1/example/trips/<trip>/days/<slug>/publish -H "authorization: Bearer <token>" -H 'content-type: application/json' -d '{}'` | `200` with the day's public URL, **in one call** — no confirmation round trip (B224) |
+| **G11** | `curl "localhost:3000/api/v2/example/trips/<trip>/days" -H "authorization: Bearer <token>"` | Every day in that trip, including your draft — there is no separate drafts endpoint; `GET /api/v2/example/status` gives only the count |
+| **G12** | `curl -X POST localhost:3000/api/v2/example/trips/<trip>/days/<slug>/publish -H "authorization: Bearer <token>" -H 'content-type: application/json' -d '{}'` | `200` with the day's public URL, **in one call** — no confirmation round trip (B224) |
 | **G12a** | Reload that day's page | It is on the site, and the draft banner is gone |
 | **G12b** | Repeat G12 | Refused — a day already up must not be reported as freshly published |
-| **G12c** | Delete the `status: draft` line from a *different* draft by hand, rebuild | Also appears. The file is still the content model; the endpoint is the route for somebody with no folder |
+| **G12c** | Change `"status": "draft"` to `"status": "published"` in a *different* draft's JSON file by hand, rebuild | Also appears. The file is still the content model; the endpoint is the route for somebody with no folder |
 | **G13** | Repeat G9 with the same title and date | `409` — a retry must never overwrite the first attempt |
 | **G14** | **The real test:** give a fresh Claude/ChatGPT the URL `http://localhost:3000/documentation.txt` and your email, and ask it to write up a day | It should manage without further help |
 
@@ -231,7 +231,7 @@ Both stop before anything is actually ordered.
 | # | Do this | ✅ Expect |
 | --- | --- | --- |
 | **J1** | `/example/feed.xml` | Valid RSS of the public days |
-| **J2** | `/example/export.zip` | A zip of markdown and photos that could rebuild the journal |
+| **J2** | `/example/export.zip` | A zip of JSON content and photos that could rebuild the journal |
 | **J3** | `npm run export -- example` | The same, from the command line |
 | **J4** | `/api/health` | Every feature listed with on/off and **why** |
 | **J5** | `npm run ingest -- --user example --trip usa-2026 <a folder of photos>` | Reads EXIF, resizes, writes a dated entry |

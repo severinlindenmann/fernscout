@@ -1,7 +1,7 @@
 # Flow: owner-established-weather-lookup
 
 **Persona:** `owner-established` (docs/testing/personas/owner-established.md)
-**Interface:** agent (`/api/v1`), plus the `npm run weather:update` batch
+**Interface:** agent (`/api/v2`), plus the `npm run weather:update` batch
 route
 **Capabilities exercised:** `weather`
 **Device/locale:** run once at the requested viewport for the published
@@ -13,7 +13,7 @@ only ask for the server's own lookup, never supply an answer itself.
 ## Setup
 
 1. Local dev server running with `features.weather` on — Open-Meteo needs no
-   key and nothing is stored anywhere but the day's own frontmatter
+   key and nothing is stored anywhere but the day's own JSON document
    (`lib/capabilities.ts`'s own comment).
 2. An owner-scoped agent token, an existing trip, and one existing day with
    coordinates already recorded (this trip's own location, not invented for
@@ -34,7 +34,7 @@ only ask for the server's own lookup, never supply an answer itself.
    server's own archive for words nobody asked the server to fetch.
 3. With `features.weather` off, repeat step 1. Confirm `weather: true` is
    refused with `400 weather_disabled` and nothing is written (B778's own
-   rule, `lib/api/openapi.ts`'s documented refusal).
+   rule, generated into `/api/v2/openapi.json` from `lib/api/v2/openapi.ts`).
 4. Run `npm run weather:update` against the same journal. Confirm it fills
    any day that asked (`weather: true`) and has no reading yet, and leaves
    alone both a day that already has one and a day the archive cannot answer

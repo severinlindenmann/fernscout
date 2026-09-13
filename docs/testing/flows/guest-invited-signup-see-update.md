@@ -16,7 +16,8 @@ row actually exists after the owner approves).
    (`CONTACTS_ENCRYPTION_KEY`, `SESSION_SECRET` set to any test values).
 2. A `test-guest-invited` journal with an owner-established persona's
    session, and one `guest` trip.
-3. An owner-issued guest-invite link (`POST /api/v1/test-guest-invited/invites`).
+3. An owner-issued guest-invite link (`PUT /api/v2/test-guest-invited/invites/{id}`,
+   client-chosen id).
 
 ## Steps
 
@@ -36,5 +37,5 @@ row actually exists after the owner approves).
 - The pending state and the approved state both render correctly at the
   requested viewport, in every locale checked (graphical check).
 - After approval, exactly the trips marked `guest` are visible and nothing
-  else (technical check, cross-referenced against the trip files' own
-  `visibility` frontmatter).
+  else (technical check, cross-referenced against each trip's own
+  `visibility` field in its JSON document).

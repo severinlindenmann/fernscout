@@ -14,22 +14,32 @@ Three layers, and they do not overlap.
 ever. Nothing converts at write time, so nothing is lost when a rate is later
 corrected.
 
-**2. Each trip carries its own historical rates**, in the `rates:` block of its
-`trip.md`:
+**2. Each trip carries its own currencies and rate overrides**, in the `rates`
+section of its `trip.json`:
 
-```yaml
-# content/<username>/trips/<id>/trip.md
-rates:
-  THB: 0.0245     # 1 THB = 0.0245 CHF, on this trip
-  VND: 0.000034
+```jsonc
+// content/<username>/trips/<id>/trip.json
+"rates": {
+  "currencies": ["THB", "VND"],
+  "manual": { "VND": 30500 }   // 1 EUR = 30 500 VND
+}
 ```
 
-The value is *how much one unit was worth in `site.baseCurrency`*. They live in
-`trip.md` rather than a separate `rates.json` so a trip stays one metadata
-file, and they live **per trip** because that is the whole point: a 2029 trip
-to the same country carries its own table and cannot restate what 2026 cost.
-A cost with no `currency:` is read as the base currency, so entries written
-before any of this existed read exactly as they did.
+`currencies` names which foreign currencies the trip's costs may use; `manual`
+supplies a rate for one the server's own ECB table does not carry, or
+overrides one it does. **Since B1606 `manual`'s convention changed**: it is
+units of the keyed currency per **1 EUR** — the ECB table's own direction —
+which is the opposite of the old (pre-B1606) `rates:` block's "units of the
+base currency per one unit of the keyed currency". `lib/trips.ts`'s
+`resolveTripRates` is what merges `manual` with the cached ECB history and
+cross-divides the result back into the base-currency-per-unit table the rest
+of the site computes with (see below).
+
+They live in `trip.json` rather than a separate file so a trip stays one
+document, and they live **per trip** because that is the whole point: a 2029
+trip to the same country carries its own table and cannot restate what 2026
+cost. A cost with no `currency` is read as the base currency, so entries
+written before any of this existed read exactly as they did.
 
 **3. The reader picks a display currency** from `site.displayCurrencies`,
 through the chip in the header. The choice persists in `localStorage`, and
@@ -72,57 +82,71 @@ at all. Anything the ECB does not publish gets a rate in `config.json` under
 A display currency with no rate from either source is dropped from the switcher
 rather than offered and then quietly wrong.
 
-### Two tables called "rates", pointing opposite ways
+### Two tables, and — since B1606 — one convention
 
-Layer 2 and layer 3 both keep a `{ CODE: number }` map, both are called rates,
-and **their conventions are inverses of each other.** Getting them the wrong
-way round produces a page of numbers that are wrong by orders of magnitude,
-with no error anywhere — every value converts, and every total is nonsense.
+Layer 2 and layer 3 both keep a `{ CODE: number }` map, and since B1606 both
+are stored the same way round: units of the **keyed currency** per **1 EUR**.
 
 | | Where | The number means | Example |
 | --- | --- | --- | --- |
-| a trip's `rates:` | `trip.md` frontmatter | units of the **base currency** per **1 unit of the keyed currency** | `THB: 0.0245` — 1 THB = 0.0245 CHF |
+| a trip's `rates.manual` | `trip.json` | units of the **keyed currency** per **1 EUR** | `VND: 30500` — 1 EUR = 30 500 VND |
 | the ECB table | `<DATA_DIR>/rates/ecb.json`, and `site.manualRates` | units of the **keyed currency** per **1 EUR** | `CHF: 0.9364` — 1 EUR = 0.9364 CHF |
 
-The rule of thumb: a trip rate for a currency worth less than your base
-currency is a **small** number, because one unit of it buys very little.
-`THB: 0.0245` is right; `THB: 40.8` is the ECB's direction, written into the
-wrong file. `lib/currency.ts` states both conventions on `RateTable`, and it
-is the only place in the code that does.
+Before B1606 these pointed opposite ways — a trip's own `rates:` block stored
+units of the *base* currency per one unit of the keyed currency, the ECB
+table's inverse — and getting that wrong produced a page of numbers wrong by
+orders of magnitude with no error anywhere. A `trip.json` migrated from the
+old shape needs its `manual` numbers re-derived, not copied straight across.
+
+What the site actually multiplies a cost by is a **third**, *derived* table:
+`resolveTripRates` (`lib/trips.ts`) merges the ECB history with `manual`,
+still in the EUR convention, then cross-divides the result into *units of the
+base currency per one unit of the keyed currency* — `lib/currency.ts`'s
+`RateTable`, unchanged by B1606 and stated on the type itself. That derived
+table, not the stored `manual` block, is what every reading page uses.
 
 ### Where a trip's number comes from
 
-Since B543, one route produces it without anybody inventing anything: for
-each currency the trip's costs use that `rates:` does not cover, `POST
-.../days` and `PATCH .../days/<slug>` quietly ask `fillTripRates`
-(`lib/api/tripRates.ts`) for a *measurement* — the ECB's own 90-day history,
-cross-divided into the trip convention, frozen at the date the currency first
+Since B543, `fillTripRates` (`lib/api/tripRates.ts`) can produce it without
+anybody inventing anything: for each currency the trip's costs use that
+`rates.manual` does not cover, it asks the ECB's own 90-day history for a
+*measurement*, cross-divided into the ECB's own units-per-EUR convention
+before it is written into `manual`, frozen at the date the currency first
 appears on (the nearest earlier publication day when the ECB did not publish
-on that exact date). `npm run rates:fill` is the same lookup run as a sweep,
-for a currency the archive's window has since moved past. Neither ever
-touches a rate already in `trip.md`, hand-typed or filled — a currency stays
-unrated rather than being guessed once one of those refuses: the capability
-is off, the date is outside the 90-day window, or the ECB does not publish
-that currency at all. What was used is written back as `ratesFrom:`, beside
-`rates:`, and shown as a footnote on the costs page.
+on that exact date). `npm run rates:fill` runs the same lookup as a sweep, for
+a currency the archive's window has since moved past; the `/agent` helper's
+own rates tool (`app/api/helper/<user>/trip/rates/route.ts`) calls it too.
+Neither ever touches a rate already in `manual`, hand-typed or filled — a
+currency stays unrated rather than being guessed once the lookup refuses: the
+capability is off, the date is outside the 90-day window, or the ECB does not
+publish that currency at all. **v2 has no home for a per-rate citation** —
+`ratesFrom:` was retired with the rest of v1's shape — so `lib/trips.ts`'s
+reader synthesises an equivalent label instead, from whether a code is in
+`manual` at all ("the trip's own rate") or came from the ECB's daily table
+("European Central Bank, <date>").
 
 A currency older than 90 days, or one the ECB never publishes, still has to be
-typed by hand — and what the author wants is **a rate from around the middle
-of the trip, from the source they actually paid at**. In order of how
-defensible it is a year later:
+typed by hand into `rates.manual` — **in the EUR convention**, units of the
+keyed currency per 1 EUR, not the base-currency figure a statement hands you
+directly. What the author wants is **a rate from around the middle of the
+trip, from the source they actually paid at**. In order of how defensible it
+is a year later:
 
 1. What the money actually cost: a card statement or a withdrawal receipt —
-   the amount debited in your base currency divided by the amount you got.
-   This is the only number that includes the spread you really paid.
+   the amount debited in your base currency divided by the amount you got is
+   the *base*-per-unit figure, the only one that includes the spread you
+   really paid; still convert it to `manual`'s EUR convention before writing
+   it (divide the ECB's own base-per-EUR figure for that date by this
+   number).
 2. The ECB reference rate for a date in the middle of the trip, from
-   [the ECB's own history](https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip),
-   cross-divided if your base currency is not the euro:
-   `base per 1 XYZ = (base per EUR) ÷ (XYZ per EUR)`.
-3. Any rate you can write down where it came from.
+   [the ECB's own history](https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip)
+   — already in `manual`'s own convention, so no cross-division is needed
+   when your base currency is the euro.
+3. Any rate you can write down where it came from, converted the same way.
 
-Round to enough digits that the conversion survives: `VND: 0.000034` needs its
-leading zeros. Then leave it alone — a trip's table is frozen on purpose, and
-correcting it later restates what the trip cost.
+Round to enough digits that the conversion survives. Then leave it alone — a
+trip's table is frozen on purpose, and correcting it later restates what the
+trip cost.
 
 A cost in a currency the trip has no rate for is a supported state, not an
 error, so nothing fails the build over it. `test/example-content.test.ts`
@@ -143,13 +167,18 @@ a plausible wrong one cannot.
 
 ## Budget
 
-`content/<username>/trips/<id>/costs.md` takes a `budget:` block alongside its `costs:`:
+The trip document's `costs` section (`content/<username>/trips/<id>/trip.json`,
+written with `PATCH /api/v2/<user>/trips/<trip>`) takes a `budget` object
+alongside its `items` and `note`:
 
-```yaml
-budget:
-  total: 32000     # whole trip, both of us, everything in
-  days: 165        # how long it was drawn up for
-  currency: CHF    # optional; without it, the site's baseCurrency
+```jsonc
+"costs": {
+  "budget": {
+    "total": 32000,     // whole trip, both of us, everything in
+    "days": 165,        // how long it was drawn up for
+    "currency": "CHF"   // optional; without it, the site's baseCurrency
+  }
+}
 ```
 
 `/costs` then shows spend against it: how far off plan the trip is *at this

@@ -73,7 +73,7 @@ Two ways in, and they are the same content behind two doors:
 | You are | Use |
 | --- | --- |
 | Working **in this repository**, with the files on disk | the skills in `.claude/skills/`, and this file |
-| Working **against a running site**, over the network | `/documentation.txt`, the `/skill/<task>.md` guides (B311), and `/api/v1/…` (REST) |
+| Working **against a running site**, over the network | `/documentation.txt`, the `/skill/<task>.md` guides (B311), and `/api/v2/…` (REST, generated at `/api/v2/openapi.json`) |
 
 ## The one rule
 
@@ -85,17 +85,18 @@ directly the way a CMS would. So if no agent, human-driven or the helper's
 own, will do a thing on the owner's behalf, the thing cannot be done at all —
 which is why the rule is stated as a capability and not as a restraint.
 
-**What an agent writes arrives as a draft.** `status: draft` in the
-frontmatter, and every reading path filters it out in `lib/entries.ts`. It is
+**What an agent writes arrives as a draft.** A day is one JSON document
+(`lib/api/v2/documents.ts`) and its `status` field accepts only `"draft"` on
+write, and every reading path filters a draft out in `lib/entries.ts`. It is
 the default so that a person can read a day back before it is on the site — a
-courtesy to them, not a gate against you. `POST .../days` has no `status`
-argument and no publish-on-create, for exactly that reason: writing and
-publishing are two calls so there is a moment in between. The web helper at
-`/agent` writes through this same call and arrives at the same draft; it has
-no shortcut around it.
+courtesy to them, not a gate against you. `PUT /api/v2/<user>/trips/<trip>/days/<slug>`
+creates it, has no way to set any other status and no publish-on-create, for
+exactly that reason: writing and publishing are two calls so there is a moment
+in between. The web helper at `/agent` writes through this same call and
+arrives at the same draft; it has no shortcut around it.
 
 **Publishing is the second call, and it is yours to make when asked:**
-`POST /api/v1/<user>/trips/<trip>/days/<slug>/publish`. Owner only — a
+`POST /api/v2/<user>/trips/<trip>/days/<slug>/publish`. Owner only — a
 trip-scoped token writes days into its trip and cannot put them on the site,
 because being on the bus is not the same as deciding what the
 journal says. B28 is why it exists: the person deciding is often somebody who
@@ -349,20 +350,25 @@ cannot trace a directory scan and an unlisted importer is missing from a
 production build; a test walks the folder and names the line to add.
 `importers/README.md` is the guide.
 
-**The door is `POST /api/v1/<user>/import`, and there is no other one** — B671
+**`gps` and `contacts` still go through `POST /api/v1/<user>/import`** — B671
 deleted the CLI B665 shipped with. A hosted journal's owner has no shell on the
 server and an agent never has one, so a capability reachable only by `npm run`
 was unreachable by both. The route takes a `kind` and an optional `format`,
-and reads bytes from the inbox, from multipart or from `text`.
+and reads bytes from the inbox, from multipart or from `text`. `gps` is
+stored as it is read — a coordinate is a measurement, and there is nothing
+about it to decide; `POST /api/v1/<user>/trips/<trip>/track` is the separate
+decision that draws one trip's line, and neither call ever returns a
+position.
 
-**The two kinds end differently, and the difference is the rule this project
-is built on.** `gps` is stored as it is read — a coordinate is a measurement,
-and there is nothing about it to decide; `POST /api/v1/<user>/trips/<trip>/track`
-is the separate decision that draws one trip's line, and neither call ever
-returns a position. `costs` writes **nothing**: a statement covers the trip and
-the fortnight either side of it, and what each line was *for* is an editorial
-decision. It reports, a person agrees the categories merchant by merchant, and
-`POST /api/v1/<user>/trips/<trip>/costs/import` writes the agreed rows onto the
+**`costs` moved to `/api/v2` in B1624, and the difference is the rule this
+project is built on.** A statement covers the trip and the fortnight either
+side of it, and what each line was *for* is an editorial decision, so the
+route writes **nothing** by itself: stage the export through
+`POST /api/v2/<user>/media` (`intent.kind: "bank_export"`), read it back as a
+report — merchants, payments, the rate each foreign currency actually cost —
+with `GET /api/v2/<user>/statements/{src}`, agree the categories with the
+person merchant by merchant, and only then does
+`POST /api/v2/<user>/trips/<trip>/costs/apply` write the agreed rows onto the
 days. An agent that picked the categories itself would be deciding what
 happened.
 
@@ -594,9 +600,13 @@ and the code drops is worse, because the caller is told it worked.
 
 So, whenever you touch anything under `app/api/`:
 
-- **A new route, or a new verb on one, goes into `lib/api/openapi.ts`.** Every
-  `/api/v1/**` and `/api/auth/**` operation must be there, with at least one
-  refusal documented beside the success.
+- **A `/api/v2/**` route's contract comes from its Zod schema, in
+  `lib/api/v2/schemas/`** — `/api/v2/openapi.json` is generated from those
+  schemas (`lib/api/v2/openapi.ts`), so a new route or field is a schema
+  change, not a second document to keep in step. A surviving
+  `/api/v1/**` or `/api/auth/**` route is still hand-maintained: every such
+  operation goes into `lib/api/openapi.ts`, with at least one refusal
+  documented beside the success.
 - **A new field on a request body goes into its schema**, with the type and,
   if it has one, the `enum`.
 - **An enum is imported, never typed out.** `TRANSPORT_MODES`,
@@ -1017,20 +1027,20 @@ the record and never corrected, so do not update one to match what shipped.
 | `GET /skill/<task>.md` | one task's own guide — `new-account`, `add-journal`, `add-a-trip`, `add-a-day`, `ingest-photos`, `invite-someone`, `costs`, `send-postcards`, `make-a-photobook` (B311) |
 | `GET /agent.md` | retired (B311): a 301 to `/documentation.txt`, kept so an old link or a pasted prompt still lands somewhere true |
 | `GET /<user>/day/<slug>.md` | a day's markdown source |
-| `GET /api/v1/<user>/travellers/presets` | the vocabulary the walking figures are described in, and twelve starting points |
-| `GET /api/v1/<user>/travellers/preview` | that description as a picture, so a person can see themselves before it is written |
-| `POST /api/auth/request` + `/verify` | a six-digit code → a 7-day agent token |
-| `POST /api/auth/identity/request` + `/verify` | a six-digit code → a year-long **identity** cookie: proves an address to the whole instance and authorises nothing |
-| `POST /api/v1/<user>/handover` | owner only: a 20-minute credential to paste into an agent |
+| `GET /api/v2/<user>/figures/presets` | the vocabulary the walking figures are described in, and twelve starting points |
+| `GET /api/v2/<user>/figures/preview` | that description as a picture, so a person can see themselves before it is written |
+| `POST /api/auth/codes` with `for: "read"` or `"write"`, then `POST /api/auth/codes/redeem` | a six-digit code → a 7-day agent token. One door, parameterised by `for`, replacing the old `/api/auth/request` + `/verify` (B1600) |
+| `POST /api/auth/codes` with `for: "identity"`, then `POST /api/auth/codes/redeem` | a six-digit code → a year-long **identity** cookie: proves an address to the whole instance and authorises nothing |
+| `POST /api/auth/<user>/handover` | owner only: a 20-minute credential to paste into an agent |
 | `POST /api/auth/handover` | an agent spends that credential for its own 7-day token |
-| `GET /api/v1/<user>/status` | where an agent stands: drafts waiting, trips, capabilities |
-| `/api/v1/<user>/…` | REST: trips, days, drafts |
-| `/api/v1/<user>/invites` | issue, list and revoke the two invite links — see below |
-| `/api/v1/<user>/postcards` | propose printed postcards — see below |
+| `GET /api/v2/<user>/status` | where an agent stands: drafts waiting, trips, capabilities |
+| `/api/v2/<user>/…` | REST: trips, days, drafts |
+| `/api/v2/<user>/invites` | issue, list and revoke the two invite links — see below |
+| `/api/v2/<user>/postcards/orders/{id}` | propose printed postcards — see below |
 | `/<user>/postcards/<id>` | where a person looks at them and sends them |
 | `/<user>/invite/guest/<token>` | where a guest link lands |
 | `/<user>/invite/buddy/<token>` | where a buddy link lands |
-| `DELETE /api/v1/<user>` and `…/trips/<trip>` | ask to delete — see below |
+| `DELETE /api/v2/<user>` and `…/trips/<trip>` | ask to delete — see below |
 | `/admin` | what the instance costs to run — operator only, see below |
 
 **One address can sit above all of this, and it is not in any config file.**
@@ -1064,10 +1074,11 @@ can reach over HTTP raises a balance — so the button files a zero-franc
 transaction and mails the operator the single-use approval link an ordinary
 purchase mints. Report it as a mail waiting, never as credits added.
 
-**Buying credits is Stripe, and the key is the only switch** — B792. `POST
-/api/v1/<user>/credits/purchase` (owner only, and an owner's agent token counts)
-files a pending transaction and answers with an absolute `paymentUrl`; the
-person opens it, and `.../payments/<id>/pay` sends them to a hosted checkout
+**Buying credits is Stripe, and the key is the only switch** — B792. `PUT
+/api/v2/<user>/purchases/<id>` (owner only, and an owner's agent token counts,
+client-chosen id so a retry never mints a second row) files a pending
+transaction and answers with an absolute `paymentUrl`; the person opens it,
+and `/api/web/<user>/purchases/<id>/pay` sends them to a hosted checkout
 page for TWINT, a wallet or a card. Nothing an agent holds can pay, and nothing
 it holds can grant: `POST /api/webhooks/stripe` is what grants, from Stripe's
 own signature over the raw body and a once-only claim on the row
@@ -1131,7 +1142,8 @@ cookie — not the token — would have been the ceiling, and a week-long
 credential would have sat in a clipboard, a screenshot and a scrollback.
 
 **Two links let other people in, and only one of them is safe to forward.**
-`POST /api/v1/<user>/invites` (owner only) makes either a **guest** link — leads to reading the journal's `guest` trips — or a
+`PUT /api/v2/<user>/invites/<id>` (owner only, client-chosen id — an invite
+has no update once created) makes either a **guest** link — leads to reading the journal's `guest` trips — or a
 **buddy** link, which names a trip and leads to **write access** to it. Say
 which you are handing over: a guest link belongs in a family group chat and a
 buddy link does not. Neither grants anything on its own. Whoever opens one
@@ -1145,8 +1157,8 @@ a lost link again; without that key it is hash-only and a lost link can only
 be reissued. `lib/contacts/invites.ts`.
 
 **Posting a real postcard is the other thing an agent cannot finish** — B434,
-and the same shape as deleting, for a different reason. `POST
-/api/v1/<user>/postcards` writes a proposal and answers with a URL; it charges
+and the same shape as deleting, for a different reason. `PUT
+/api/v2/<user>/postcards/orders/<id>` writes a proposal and answers with a URL; it charges
 nothing and prints nothing. The owner opens that page, sees the photograph, the
 message on the back, who each card is going to, the cost and their balance, and
 presses one button. That button is the only thing in the codebase that spends
@@ -1155,7 +1167,7 @@ credits at a printer.
 Addresses never reach an agent. `GET …/postcards/recipients` answers with a
 name, a town and a country, and cards are addressed by `contactId` — so a card
 can only ever go to somebody who asked this journal for one, and never to an
-address that arrived in a conversation. The send route is outside `/api/v1/`,
+address that arrived in a conversation. The send route is outside `/api/v2/`,
 takes the owner's cookie only, and refuses a bearer token outright;
 `test/postcard-orders.test.ts` fails if anything under `app/api` ever imports
 `sendOrder`. **Hand over the URL and say a preview is waiting. Do not say the

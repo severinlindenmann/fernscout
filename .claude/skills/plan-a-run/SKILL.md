@@ -318,7 +318,7 @@ decided.
       "before": {
         "captured": false,
         "kind": "none",
-        "notes": "Nothing to screenshot — the field does not exist yet. Reproduced instead: POST .../photobooks with an address field is silently dropped, confirmed against app/api/v1/[user]/photobooks/route.ts:41."
+        "notes": "Nothing to screenshot — the field does not exist yet. Reproduced instead: PUT .../photobooks/orders/{id} with an address field is silently dropped, confirmed against app/api/v2/[user]/photobooks/orders/[id]/route.ts:41."
       },
       "options": [],
       "optionsNote": "Only one defensible shape — the address fields photobook.md already documents for a trip; nothing else in the schema suggests an alternative.",
@@ -332,7 +332,7 @@ decided.
       "group": null,
       "validity": {
         "verdict": "valid",
-        "evidence": "app/api/auth/request/route.ts:22 shares one per-IP bucket with everything else touching POST /api/auth/request"
+        "evidence": "app/api/auth/codes/route.ts:22 shares one per-IP bucket with everything else touching POST /api/auth/codes"
       },
       "shape": {
         "kind": "engagement",
@@ -340,10 +340,10 @@ decided.
         "concurrencySafe": false,
         "needs": [
           "a provisioned test journal",
-          "the remaining POST /api/auth/request rate-limit allowance for this IP"
+          "the remaining POST /api/auth/codes rate-limit allowance for this IP"
         ],
         "mustNot": [
-          "run at the same time as any other ticket touching auth/request or auth/verify"
+          "run at the same time as any other ticket touching auth/codes or auth/codes/redeem"
         ]
       },
       "chosen": null,

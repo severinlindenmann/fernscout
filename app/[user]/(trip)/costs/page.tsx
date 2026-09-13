@@ -74,7 +74,7 @@ export async function generateMetadata({
   // renders under this description. The planned wording is the one that claims
   // less, which is what the map page settled on for the same state.
   //
-  // A current trip that has no `costs.md` is the other state nothing should
+  // A current trip that has no costs section is the other state nothing should
   // describe: the page below 404s for it (B267), so no description belongs
   // to it either — the same "not there" AGENTS.md asks for a disabled
   // capability, reached here by way of missing data rather than a switch.
@@ -121,7 +121,7 @@ export default async function CostsPage({ params }: PageProps<"/[user]/costs">) 
   /**
    * `costs` is on by default at trip creation (lib/journals.ts), so the
    * capability being on says nothing about whether this trip ever got a
-   * `costs.md`. Without this, a trip that never did rendered the panel
+   * costs section. Without this, a trip that never did rendered the panel
    * anyway, with every figure zero — the same "absent rather than broken"
    * failure the capability check above exists to prevent, reached by way of
    * missing data instead of a switched-off feature. B267.

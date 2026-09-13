@@ -126,8 +126,8 @@ readers leave. This is one file in `entries/`, rendered.
 
 ![The trip map: eighteen stops joined by the route travelled](docs/screenshots/trip-map.jpg)
 
-Every stop on one map, drawn from the `lat` and `lng` in each entry's
-frontmatter. The base map is baked into the build — no tile server, no API key.
+Every stop on one map, drawn from the `coordinates` each entry carries. The
+base map is baked into the build — no tile server, no API key.
 
 ![The gallery: every photograph from the trip in a grid, filterable by place](docs/screenshots/gallery.jpg)
 

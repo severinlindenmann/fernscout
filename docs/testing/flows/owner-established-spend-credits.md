@@ -24,28 +24,29 @@ balance shown to the owner before and after).
 
 ## Steps
 
-1. As the agent, `POST /api/v1/test-owner-established/credits/purchase`
-   with a `credits` amount in range. Confirm the response is a pending
-   transaction and an absolute `paymentUrl` — **no balance change yet**
-   (AGENTS.md: "nothing an agent holds can pay, and nothing it holds can
-   grant").
-2. As the owner, open `paymentUrl`, then `.../payments/<id>/pay`, and
-   complete Stripe's hosted test checkout with one of Stripe's published test
-   card numbers.
+1. As the agent, `PUT /api/v2/test-owner-established/purchases/<id>`
+   (client-chosen id) with a `credits` amount in range. Confirm the response
+   is a pending transaction and an absolute `paymentUrl` — **no balance
+   change yet** (AGENTS.md: "nothing an agent holds can pay, and nothing it
+   holds can grant").
+2. As the owner, open `paymentUrl`, then
+   `/api/web/test-owner-established/purchases/<id>/pay`, and complete
+   Stripe's hosted test checkout with one of Stripe's published test card
+   numbers.
 3. `npx tsx scripts/simulate-webhook.ts stripe checkout-completed --base-url
    http://localhost:3013` (or let Stripe's own test-mode webhook fire) against
    `POST /api/webhooks/stripe`. Confirm the balance now reflects the
    purchased credits, granted exactly once (`claimProviderPayment`'s
    once-only claim on the row).
-4. Trigger a send that costs credits (e.g. publish a day with
-   `whatsapp`/`sms` announcements on, or any billed action this build has
-   wired). Confirm the ledger debits the right amount and, with the balance
-   too low, the send is refused with `402` and `needed`/`balance` in the
-   body rather than silently sent unpaid.
+4. Trigger a send that costs credits (e.g. publish a day with `sendMail`/
+   `sendWhatsapp` on, or any billed action this build has wired). Confirm the
+   ledger debits the right amount and, with the balance too low, the send is
+   refused with `402` and `needed`/`balance` in the body rather than silently
+   sent unpaid.
 
 ## Done when
 
-- `POST .../credits/purchase` never changes the balance by itself (technical
+- `PUT .../purchases/<id>` never changes the balance by itself (technical
   check — replay the request and confirm the balance is still unchanged
   before the webhook fires).
 - The balance changes by exactly the purchased amount, exactly once, only

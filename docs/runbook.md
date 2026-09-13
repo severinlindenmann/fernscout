@@ -188,7 +188,7 @@ sudo -u fernscout cp -a /srv/fernscout/site/config.json /var/lib/fernscout/confi
 
 The journal then lives outside the repository, which matters for two reasons
 that only show up later. `scripts/deploy.sh` runs `git pull --ff-only`, and an
-agent writing a draft over `/api/v1` writes into that same working tree — the
+agent writing a draft over `/api/v2` writes into that same working tree — the
 next deploy fails on local modifications. And the config
 that switches on `mail` and `auth` belongs to *this* machine, where the
 credentials are; committed to the repository it would fail the boot check

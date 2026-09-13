@@ -5,9 +5,12 @@ handful of decisions that explain the shape of everything else.
 
 ## The two halves
 
-**Content is files.** `content/<username>/trips/<trip-id>/` holds `trip.md`,
-`entries/*.md`, optional `costs.md` and `plan.md`, and `media/`. That is the
-source of truth; nothing is authoritative in the database.
+**Content is files.** `content/<username>/trips/<trip-id>/` holds `trip.json`
+(one document carrying the trip's metadata, intro prose, and its `costs`,
+`plan`, `rates` and `translations` sections — `costs.md` and `plan.md` no
+longer exist as separate files, since B1598/B1606), `entries/*.json` and
+`media/`. That is the source of truth; nothing is authoritative in the
+database.
 
 **The database is an index and a session store** — accounts, contacts, guest
 grants, push subscriptions, reactions, jobs. SQLite locally, Postgres in
@@ -36,19 +39,20 @@ serves any trip at the explicit one. Both render the same components.
 | `/<user>/feed.xml` · `/search-index.json` · `/story.json` · `/export.zip` | generated |
 | `/<user>/media/<path>` | media, resized on demand and cached |
 | `/<user>/postcards/<id>` | a proposed printed postcard, for the owner to look at and send |
-| `/agent` | a guided web helper — a face on an agent, not a second way in: it writes through the same `/api/v1/…` calls the `/skill/*.md` guides describe, for somebody with no agent of their own (B681/B682) |
+| `/agent` | a guided web helper — a face on an agent, not a second way in: it writes through the same `/api/v2/…` calls the `/skill/*.md` guides describe, for somebody with no agent of their own (B681/B682) |
 | `/admin` | what the instance costs to run. Owner-of-the-instance only, gated on `FERNSCOUT_ADMIN_EMAIL`, cookie session only — see "Three credentials", below |
 
 ## Server-side modules
 
 | | |
 | --- | --- |
-| `lib/entries.ts` | parses entry markdown, groups into days and places, computes stats. **Every reading path filters `status: draft` here.** |
+| `lib/entries.ts` | reads entry documents, groups into days and places, computes stats. **Every reading path filters `status: draft` here.** |
 | `lib/trips.ts` · `lib/users.ts` · `lib/config.ts` | the content tree: who exists, what they have, what they configured |
 | `lib/access.ts` · `lib/viewer.ts` · `lib/tripGate.ts` | who may see a trip, and what a given viewer is allowed |
 | `lib/auth/` | email OTP, sessions, and agent tokens — two classes that are never interchangeable |
 | `lib/db/` · `lib/repos/` | the dialect split, migrations, and one repo per stored thing |
-| `lib/api/` | the REST surface under `/api/v1` |
+| `lib/api/v2/` | the REST surface under `/api/v2` — trips, days, media, statements and the rest, generated into `/api/v2/openapi.json` from the Zod schemas in `lib/api/v2/schemas/` |
+| `lib/api/` (outside `v2/`) | the surviving `/api/v1` routes — `gps`/`contacts` import and drawing a trip's GPS track — and `/api/auth` |
 | `lib/validate/` | what an agent may write, and why a rejection says what it says |
 | `lib/media.ts` · `lib/mediaSizes.ts` · `lib/mediaLimits.ts` | derivatives, quotas and upload ceilings |
 | `lib/ingest/` | a folder of camera files → EXIF, clustering, resizing, entry markdown |
