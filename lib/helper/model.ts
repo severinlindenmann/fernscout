@@ -1197,11 +1197,27 @@ export function claimsAWrite(text: string): boolean {
  * condition. In any session where anything had been written — every session
  * past its second minute — *"press the button"* with no proposal stopped being
  * caught, which is the whole of B928 undone by the fix for its neighbour.
+ *
+ * **The `ON_SCREEN` half checks `DENIED` against the whole answer, not the
+ * one sentence — B1448.** *"Noch ist nichts gespeichert. Sag mir, was genau
+ * ich festhalten soll — dann lege ich dir einen Vorschlag mit dem passenden
+ * Knopf vor."* denies in its first sentence and names a *future* button in
+ * its second; sentence-scoped `DENIED` never sees the two together, so the
+ * honest turn was refused. The structural difference from a real B928 claim
+ * is not a word to add to a list — tense is what a list is always missing
+ * the next entry for — it is that a denial anywhere in an answer already
+ * says the turn wrote nothing, and "the button" a sentence later can only be
+ * a description of what comes next, never a claim that one is on this
+ * screen now. `RELOAD` keeps the narrower, sentence-scoped check: B928 chose
+ * that deliberately, because "nothing was saved, but try reloading" is a
+ * false instruction regardless of what an earlier sentence denied.
  */
 export function claimsAButton(text: string): boolean {
-  return withoutMarkers(text)
+  const clean = withoutMarkers(text);
+  const deniedInAnswer = DENIED.test(clean);
+  return clean
     .split(/(?<=[.!?\n])\s+/)
-    .some((sentence) => RELOAD.test(sentence) || (ON_SCREEN.test(sentence) && !DENIED.test(sentence)));
+    .some((sentence) => RELOAD.test(sentence) || (ON_SCREEN.test(sentence) && !deniedInAnswer));
 }
 
 export function claimsWhatIsNotThere(text: string): boolean {

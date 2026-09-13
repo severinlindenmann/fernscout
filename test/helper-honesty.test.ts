@@ -302,6 +302,40 @@ describe("pointing at something on the screen", () => {
   }
 });
 
+/**
+ * A denial in one sentence, a promise about a later turn in the next — B1448.
+ *
+ * "Der Knopf" said with no proposal on this turn is false regardless of what
+ * came before it, which is why `claimsAButton` still catches it below when no
+ * sentence in the whole answer denies anything. The fix is only that a denial
+ * *anywhere* in the answer now covers the button word that follows it, so an
+ * honest "nothing yet — here's what happens next" survives.
+ */
+describe("a denial that covers a promise about the next turn", () => {
+  for (const said of [
+    // The real case must stay caught: no denial anywhere in the answer.
+    "Alles klar. Der Knopf ist direkt darunter.",
+    "Sure. The button is below.",
+    "Rendben. Nyomd meg a gombot alatta.",
+  ]) {
+    test(`with no denial, still a button: ${said}`, () => {
+      expect(claimsAButton(said)).toBe(true);
+    });
+  }
+
+  for (const said of [
+    // B1448's own example — a denial, then a description of what comes next.
+    "Noch ist nichts gespeichert. Sag mir, was genau ich festhalten soll — dann lege ich dir einen Vorschlag mit dem passenden Knopf vor.",
+    "Nothing is saved yet. Tell me exactly what to record — then I'll put a proposal in front of you with the right button.",
+    "Még semmi nincs elmentve. Mondd meg pontosan, mit rögzítsek — utána elébed teszek egy javaslatot a megfelelő gombbal.",
+  ]) {
+    test(`is not a button claim: ${said}`, () => {
+      expect(claimsAButton(said)).toBe(false);
+      expect(claimsWhatIsNotThere(said)).toBe(false);
+    });
+  }
+});
+
 /* ----------------------------------------- the claim without the act --- */
 
 describe("a turn that claims a write it did not make", () => {

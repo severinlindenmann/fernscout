@@ -90,3 +90,20 @@ next secret rotated may not be revoked as promptly.
 
 Nothing else is blocked by this. The key being possibly-exposed does not stop
 any other work.
+
+## Refiled from an invented `waiting/` lane — 2026-09-13
+
+Found while widening the dangling-reference id pattern for B1472 (which now
+catches the four-digit ids every task since B1000 carries): this file had been
+moved to `docs/tasks/waiting/`, a lane no tool here knows about —
+`scripts/tasks.mjs`'s `LANES` and `test/task-ids.test.ts`'s copy of it are
+both `["backlog", "open", "in-development", "testing", "completed"]`, and
+`npm run tasks -- show B1446` answered "No item with id B1446" while the file
+sat there. AGENTS.md's own words are "the folder it sits in is its status" —
+there is no sixth folder for "blocked on the owner", and inventing one made
+this task invisible to the duplicate-id check, the filename check and the
+category check, not only the dangling-reference sweep that happened to notice.
+
+Refiled to `backlog/security/`, matching its `type: SECURITY` and the folder
+`categoryFor()` already derives for it. The "waiting on the owner" state is
+still on the record above; it just is not a lane.
