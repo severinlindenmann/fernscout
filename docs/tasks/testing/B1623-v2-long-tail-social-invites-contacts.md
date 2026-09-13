@@ -6,6 +6,7 @@ priority: high
 complexity: high
 area: API v2
 found: "2026-09-12T20:43:43Z"
+merged: "2026-09-13T00:52:05Z"
 ---
 
 # B1623 — v2 long tail: social — invites, contacts, channels

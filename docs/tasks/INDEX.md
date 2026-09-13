@@ -177,11 +177,11 @@ Do not edit them by hand; run the script.
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
-| [B1623](backlog/chore/B1623-v2-long-tail-social-invites-contacts.md) | v2 long tail: social — invites, contacts, channels | CHORE | high | high |
 | [B1624](backlog/chore/B1624-v2-long-tail-print-and-inbox.md) | v2 long tail: print and inbox — postcards, photobooks, statements, inbox, journals | CHORE | high | high |
 | [B1630](backlog/chore/B1630-fifty-test-files-hand-write-the.md) | Fifty test files hand-write the storage format; there is no shared content fixture | CHORE | high | high |
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
+| [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1413](backlog/chore/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low |
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
@@ -353,7 +353,7 @@ _Nothing here._
 | [B1445](in-development/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (33)
+## testing (34)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -379,6 +379,7 @@ _Nothing here._
 | [B1618](testing/B1618-v2-publish-send-routes-call-senddayletter.md) | v2 publish/send routes call sendDayLetter/sendDayWhatsapp with the wrong slug shape, so a requested send always answers unknown_day | ISSUE | high | medium | — |
 | [B1621](testing/B1621-v2-creates-stopped-telling-an-agent.md) | v2 creates stopped telling an agent what comes next — B311's chain was broken by the migration | ISSUE | high | low | — |
 | [B1622](testing/B1622-v2-long-tail-money-purchases-ledger.md) | v2 long tail: money — purchases, ledger, storage | CHORE | high | high | — |
+| [B1623](testing/B1623-v2-long-tail-social-invites-contacts.md) | v2 long tail: social — invites, contacts, channels | CHORE | high | high | — |
 | [B1625](testing/B1625-a-trip-or-day-accepts-translations.md) | A trip or day accepts translations in a locale the journal does not declare — the schema says the route refuses it and no route does | ISSUE | high | low | — |
 | [B1628](testing/B1628-day-translations-accept-a-duplicated-written.md) | Day translations accept a duplicated written language and a partial locale set | ISSUE | high | medium | — |
 | [B1629](testing/B1629-b560-s-zero-spend-day-reads.md) | B560's zero-spend day reads as unrecorded, overstating the costs average | ISSUE | high | low | — |
