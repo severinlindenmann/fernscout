@@ -7,8 +7,7 @@ complexity: low
 area: helper, content
 found: "2026-09-12T07:31:45Z"
 started: "2026-09-12T07:36:46Z"
-session: 47912984-b51b-4d11-b25e-5b026ba593de
-claimed: "2026-09-12T07:36:46Z"
+merged: "2026-09-13T19:10:37Z"
 ---
 
 # B1564 — attach_files leaves photos listed as unrecorded after filling the gallery

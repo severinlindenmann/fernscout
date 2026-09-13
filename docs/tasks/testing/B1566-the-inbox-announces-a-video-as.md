@@ -7,8 +7,7 @@ complexity: low
 area: inbox, helper
 found: "2026-09-12T07:31:55Z"
 started: "2026-09-12T07:36:46Z"
-session: 47912984-b51b-4d11-b25e-5b026ba593de
-claimed: "2026-09-12T07:36:46Z"
+merged: "2026-09-13T19:10:37Z"
 ---
 
 # B1566 — The inbox announces a video as a photograph
