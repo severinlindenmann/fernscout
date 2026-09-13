@@ -55,6 +55,11 @@ function writeJournal(username: string) {
   );
 }
 
+// Not on writeTripFixture (B1630): `reminder:`/`reminderChannel:` are this
+// file's whole subject and `createTrip` (lib/tripWrite.ts) has no fields for
+// either — there is no writer to route through yet, only the reader this
+// file pins. writeEntry below stays hand-rolled alongside it for the same
+// trip's sake rather than splitting one small fixture in two shapes.
 /** A trip, opted into a reminder or not, running the dates given. */
 function writeTrip(
   username: string,

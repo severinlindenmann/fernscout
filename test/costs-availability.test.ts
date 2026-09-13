@@ -8,6 +8,7 @@ import { costsAvailable, hasCostsData } from "@/lib/costs";
 import { siteSummaryFor } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { tripRef } from "@/lib/trips";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B267 — a journal with no `costs.md` anywhere had the capability on by
@@ -51,22 +52,14 @@ function writeUser(username: string) {
 
 function writeTrip(username: string, tripId: string, withCosts: boolean) {
   const tripPath = path.join(dir, username, "trips", tripId);
-  fs.mkdirSync(path.join(tripPath, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tripPath, "trip.md"),
-    [
-      "---",
-      `id: ${tripId}`,
-      `title: "${tripId}"`,
-      'start: "2026-01-01"',
-      'end: "2026-01-31"',
-      "status: past",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(username, {
+    id: tripId,
+    title: tripId,
+    start: "2026-01-01",
+    end: "2026-01-31",
+    status: "past",
+    intro: "Body.",
+  });
   if (withCosts) {
     fs.writeFileSync(
       path.join(tripPath, "costs.md"),

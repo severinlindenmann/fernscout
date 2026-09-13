@@ -163,6 +163,39 @@ export function retractDeclines(
 }
 
 /**
+ * T6's mirror — B1631. Where `retractDeclines` clears a stale DECLINE when a
+ * value shows up, this clears a stale VALUE when a decline shows up: a
+ * write that declines a section removes that section's stored value in the
+ * same call, so `checkRequiredOrDeclined`/`checkPatchConflicts` never see a
+ * document holding both.
+ *
+ * `patchDeclined` is the RAW incoming patch's own `declined` map, not the
+ * merged one — a key here is guaranteed absent from that same patch's own
+ * fields, because `checkPatchConflicts` already refuses a patch that both
+ * supplies and declines one field in the one call (schemas/shared.ts). So
+ * there is nothing here that could delete a value the caller just sent;
+ * only a value that merely SURVIVED from the stored document, now answered
+ * by a fresh decline, is removed. A key `merged` never carried at all (a
+ * decline like `buddies`, which names no field of its own — see
+ * `DECLINE_ANSWERED_BY` below) is simply not present to delete, so this
+ * needs no special case for those.
+ *
+ * D14 is unaffected: `{accent: null, declined: {accent: "…"}}` already
+ * deletes `merged.accent` via `applyNullClears`, and running this first (or
+ * after — the route calls it before) only deletes the same already-`null`
+ * key a second, harmless time. Nothing here reads or writes `null` itself.
+ */
+export function clearDeclinedSections(
+  merged: Record<string, unknown>,
+  patchDeclined: Record<string, string> | undefined,
+): void {
+  if (!patchDeclined) return;
+  for (const key of Object.keys(patchDeclined)) {
+    delete merged[key];
+  }
+}
+
+/**
  * B1616 — a decline answered by a DIFFERENT field, not by a field of the
  * same name.
  *

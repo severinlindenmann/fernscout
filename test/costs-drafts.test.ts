@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B328 — the trap the fix has to avoid, not just the bug it has to fix.
@@ -46,27 +47,21 @@ function writeUser(username: string) {
 }
 
 function writeTrip(username: string, tripId: string) {
-  const tripPath = path.join(dir, username, "trips", tripId);
-  fs.mkdirSync(path.join(tripPath, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tripPath, "trip.md"),
-    [
-      "---",
-      `id: ${tripId}`,
-      `title: "${tripId}"`,
-      'start: "2026-01-01"',
-      'end: "2026-01-31"',
-      "status: current",
-      "visibility: public",
-      "costsVisibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(username, {
+    id: tripId,
+    title: tripId,
+    start: "2026-01-01",
+    end: "2026-01-31",
+    status: "current",
+    visibility: "public",
+    costsVisibility: "public",
+    intro: "Body.",
+  });
 }
 
+// Not on writeDayFixture (B1630): a `costs:` frontmatter block is not a
+// field the fixture writes — no caller so far has needed one on a day (as
+// opposed to a trip's costs.md) — so this stays hand-rolled.
 /** The only day this trip has, and its costs are logged on a day that was
  * never published — the trip has no `costs.md` at all. */
 function writeDraftCostDay(username: string, tripId: string) {

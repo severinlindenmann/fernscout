@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B635 — search finds nothing on a trip the reader is allowed to read.
@@ -81,63 +82,40 @@ function writeConfigs(dir: string) {
 }
 
 function writeTrip(dir: string, spec: (typeof TRIPS)[number]) {
-  const root = path.join(dir, OWNER, "trips", spec.id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
   const marker = spec.id.toUpperCase().replace(/[^A-Z]/g, "") + "MARKER";
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${spec.id}"`,
-      `title: "${spec.id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${spec.visibility}"`,
-      ...(spec.listed === undefined ? [] : [`listed: ${spec.listed}`]),
-      ...(spec.test ? ["test: true"] : []),
-      ...(spec.people && spec.people.length > 0
-        ? ["people:", ...spec.people.map((e) => `  - { name: "Person", email: "${e}" }`)]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(root, "entries", "2026-08-25-day.md"),
-    [
-      "---",
-      `title: "${spec.id} day"`,
-      'date: "2026-08-25"',
-      'location: "Bellinzona"',
-      'country: "Switzerland"',
-      "---",
-      "",
-      `Update. Marker: ${marker}.`,
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: spec.id,
+    title: spec.id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: spec.visibility as "private" | "public" | "guest",
+    listed: spec.listed,
+    test: spec.test,
+    people: spec.people?.map((e) => ({ name: "Person", email: e })),
+  });
+
+  writeDayFixture(dir, OWNER, spec.id, {
+    slug: "day",
+    date: "2026-08-25",
+    title: `${spec.id} day`,
+    location: "Bellinzona",
+    country: "Switzerland",
+    content: `Update. Marker: ${marker}.`,
+  });
 
   // `open-2026` alone also carries a `guest`-labelled update, for the B632
   // grain check.
   if (spec.id === "open-2026") {
-    fs.writeFileSync(
-      path.join(root, "entries", "2026-08-25-day-guest-note.md"),
-      [
-        "---",
-        'title: "open-2026 guest note"',
-        'date: "2026-08-25"',
-        'location: "Bellinzona"',
-        'country: "Switzerland"',
-        'visibility: "guest"',
-        "---",
-        "",
-        "Update. Marker: OPENGUESTLABELMARKER.",
-        "",
-      ].join("\n"),
-    );
+    writeDayFixture(dir, OWNER, spec.id, {
+      slug: "day-guest-note",
+      date: "2026-08-25",
+      title: "open-2026 guest note",
+      location: "Bellinzona",
+      country: "Switzerland",
+      visibility: "guest",
+      content: "Update. Marker: OPENGUESTLABELMARKER.",
+    });
   }
 }
 

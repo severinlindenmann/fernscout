@@ -12,6 +12,7 @@ import { getDays, AS_AUTHOR } from "@/lib/entries";
 import { tripRef } from "@/lib/trips";
 import type { InboundMessage } from "@/lib/whatsapp/inbound";
 import { handleInboundMessage } from "@/lib/whatsapp/dispatch";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B1074 — a location pin becomes a draft day (or a named refusal), and a
@@ -47,12 +48,7 @@ function repliesTo(username: string): Record<string, unknown>[] {
 }
 
 function writeTrip(username: string, id: string, start: string, end: string, title = "A trip"): void {
-  const tripDir = path.join(dir, username, "trips", id);
-  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    ["---", `id: ${id}`, `title: ${title}`, `start: "${start}"`, `end: "${end}"`, "visibility: private", "---", "", "Intro."].join("\n"),
-  );
+  writeTripFixture(username, { id, title, start, end, visibility: "private" });
 }
 
 async function bindGreetAcknowledge(username: string, tel: string): Promise<void> {

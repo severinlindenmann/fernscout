@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B411 — what one address may open, across every journal on the instance.
@@ -53,28 +54,16 @@ function writeTrip(
   visibility: "public" | "guest" | "private",
   people: string[] = [],
 ) {
-  const root = path.join(dir, username, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${visibility}"`,
-      ...(visibility === "public" ? [] : ["listed: false"]),
-      ...(people.length > 0
-        ? ["people:", ...people.map((e) => `  - { name: "P", email: "${e}" }`)]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(username, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility,
+    listed: visibility === "public" ? undefined : false,
+    people: people.length > 0 ? people.map((e) => ({ name: "P", email: e })) : undefined,
+  });
 }
 
 async function journalsFor(email: string, options?: { evenIfEmpty?: boolean }) {

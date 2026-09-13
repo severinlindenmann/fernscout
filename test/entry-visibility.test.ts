@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import type { Trip } from "@/lib/types";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B632 — a whole update held back from readers a trip otherwise lets in.
@@ -84,25 +85,15 @@ function writeConfigs() {
 
 function writeTrip(spec: (typeof TRIPS)[number]) {
   const root = path.join(dir, OWNER, "trips", spec.id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${spec.id}"`,
-      `title: "${spec.id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${spec.visibility}"`,
-      "people:",
-      `  - { name: "Robin", email: "${ROBIN}" }`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: spec.id,
+    title: spec.id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: spec.visibility as "private" | "public" | "guest",
+    people: [{ name: "Robin", email: ROBIN }],
+  });
 
   for (const [i, entry] of ENTRIES.entries()) {
     // One photograph per update, carrying **no label of its own** — which is
@@ -118,26 +109,17 @@ function writeTrip(spec: (typeof TRIPS)[number]) {
       );
     }
 
-    fs.writeFileSync(
-      path.join(root, "entries", `2026-08-25-${entry.slug}.md`),
-      [
-        "---",
-        `title: "${entry.slug}"`,
-        'date: "2026-08-25"',
-        `time: "${String(9 + i).padStart(2, "0")}:00"`,
-        'location: "Bellinzona"',
-        'country: "Switzerland"',
-        ...(entry.label ? [`visibility: "${entry.label}"`] : []),
-        "gallery:",
-        `  - src: "/media/${spec.id}/${entry.slug}/01.jpg"`,
-        '    type: "image"',
-        "tags: [\"day\"]",
-        "---",
-        "",
-        `Update ${i}.`,
-        "",
-      ].join("\n"),
-    );
+    writeDayFixture(dir, OWNER, spec.id, {
+      slug: entry.slug,
+      date: "2026-08-25",
+      title: entry.slug,
+      time: `${String(9 + i).padStart(2, "0")}:00`,
+      location: "Bellinzona",
+      country: "Switzerland",
+      visibility: entry.label ?? undefined,
+      media: [{ src: `/media/${spec.id}/${entry.slug}/01.jpg`, type: "image" }],
+      content: `Update ${i}.`,
+    });
   }
 }
 

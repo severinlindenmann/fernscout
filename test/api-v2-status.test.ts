@@ -154,8 +154,12 @@ describe("GET /api/v2/{user}/status", () => {
     expect(body.journal).toBe(OWNER);
     const trips = (body.trips as { id: string }[]).map((t) => t.id).sort();
     expect(trips).toEqual(["owner-only-trip", "shared-trip"]);
+    // B1633 — the slug is the addressable v2 form (the whole filename
+    // stem), not v1's bare `entrySlugFromFile` output: `listDrafts` hands
+    // back "arrival" and `v2Slug` turns that into "2026-08-25-arrival",
+    // which is what `GET .../days/{slug}` actually matches on.
     const drafts = body.drafts as { trip: string; slug: string }[];
-    expect(drafts).toEqual([{ trip: "shared-trip", slug: "arrival", title: "arrival" }]);
+    expect(drafts).toEqual([{ trip: "shared-trip", slug: "2026-08-25-arrival", title: "arrival" }]);
     expect((body.token as { scope: string }).scope).toBe("owner");
   });
 
@@ -166,7 +170,7 @@ describe("GET /api/v2/{user}/status", () => {
     const trips = (body.trips as { id: string }[]).map((t) => t.id);
     expect(trips).toEqual(["shared-trip"]);
     const drafts = body.drafts as { trip: string; slug: string }[];
-    expect(drafts).toEqual([{ trip: "shared-trip", slug: "arrival", title: "arrival" }]);
+    expect(drafts).toEqual([{ trip: "shared-trip", slug: "2026-08-25-arrival", title: "arrival" }]);
     expect((body.token as { scope: string; trip?: string }).scope).toBe("trip");
     expect((body.token as { scope: string; trip?: string }).trip).toBe("shared-trip");
   });
@@ -175,5 +179,107 @@ describe("GET /api/v2/{user}/status", () => {
     const { status, body } = await journalStatus("not-a-real-token");
     expect(status).toBe(401);
     expect(body.error).toBe("invalid_token");
+  });
+
+  /**
+   * B1633, end to end rather than by shape: a slug taken straight out of
+   * `/status`'s `drafts` has to be one `GET .../days/{slug}` can actually
+   * find. `listDrafts` (v1) is what feeds `buildJournalStatus`, so the day
+   * this reads back has to exist on BOTH sides of the v1/v2 split still
+   * live in this codebase (B1598) — the v1 markdown `writeDraft` already
+   * writes (so `listDrafts` sees it) and the v2 JSON store `PUT` writes (so
+   * the day route can find it) — same trip id, same date, same bare slug,
+   * two files in the same `entries/` folder that never collide because
+   * they differ by extension.
+   */
+  test("a slug out of the drafts list is a slug the v2 day route accepts", async () => {
+    const tripId = "status-e2e-trip";
+    writeTrip(tripId);
+    writeDraft(tripId, "matsumoto-detour");
+
+    const token = await ownerToken();
+
+    const { PUT: putTrip } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+    const tripBody = {
+      id: tripId,
+      title: `Trip ${tripId}`,
+      dates: { from: "2026-08-25", to: "2026-08-26" },
+      visibility: "private",
+      people: [{ name: "Cleo Traveller", email: OWNER_EMAIL }],
+      teaser: true,
+      declined: {
+        rates: "no foreign currency tracked on this trip at all",
+        costs: "no budget tracked for this trip currently",
+        plan: "no planned route recorded for this trip",
+        days: "no days written for this trip at create time",
+        translations: "single-language journal, nothing to translate",
+        accent: "default accent left as the renderer's choice",
+        figures: "no walking figures drawn for this trip",
+        tagline: "no one-line subtitle written for this trip",
+        intro: "no opening prose written for this trip yet",
+        buddies: "travelling solo, nobody else was on this trip",
+      },
+    };
+    const tripCreated = await putTrip(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/${tripId}`, {
+        method: "PUT",
+        headers: headers({ authorization: `Bearer ${token}` }),
+        body: JSON.stringify(tripBody),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: tripId }) },
+    );
+    expect(tripCreated.status, JSON.stringify(await tripCreated.clone().json())).toBe(201);
+
+    const { PUT: putDay } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const daySlug = "2026-08-25-matsumoto-detour";
+    const dayBody = {
+      slug: daySlug,
+      title: "The Matsumoto detour",
+      date: "2026-08-25",
+      content: "We took the long way round.",
+      status: "draft",
+      declined: {
+        media: "no photographs attached to this day yet",
+        costs: "nothing spent today, tracked elsewhere",
+        coordinates: "no position recorded for this day",
+        weather: "weather was not asked for this day",
+        time: "the exact time of day was not recorded",
+        timezone: "no timezone established for this leg",
+        location: "no specific location named for this day",
+        country: "no country named for this day entry",
+        countryCode: "no country code named for this day",
+        transportMode: "no transport leg happened this day",
+        tags: "no tags applied to this day",
+        translations: "single-language journal, nothing to translate",
+        visibility: "no narrower visibility set for this day",
+      },
+    };
+    const dayCreated = await putDay(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/${tripId}/days/${daySlug}`, {
+        method: "PUT",
+        headers: headers({ authorization: `Bearer ${token}` }),
+        body: JSON.stringify(dayBody),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: tripId, slug: daySlug }) },
+    );
+    expect(dayCreated.status, JSON.stringify(await dayCreated.clone().json())).toBe(201);
+
+    const { status, body } = await journalStatus(token);
+    expect(status, JSON.stringify(body)).toBe(200);
+    const drafts = body.drafts as { trip: string; slug: string; title: string }[];
+    const draft = drafts.find((d) => d.trip === tripId);
+    expect(draft).toBeTruthy();
+    expect(draft!.slug).toBe(daySlug);
+
+    const { GET: getDay } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const found = await getDay(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/${tripId}/days/${draft!.slug}`, {
+        headers: headers({ authorization: `Bearer ${token}` }),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: tripId, slug: draft!.slug }) },
+    );
+    expect(found.status).toBe(200);
+    const foundBody = (await found.json()) as StatusBody;
+    expect(foundBody.title).toBe("The Matsumoto detour");
   });
 });

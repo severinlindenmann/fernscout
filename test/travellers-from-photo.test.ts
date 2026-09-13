@@ -11,6 +11,7 @@ import { clearIdempotencyStore } from "@/lib/idempotency";
 import { tripMediaDir } from "@/lib/media";
 import { storeInboxFile } from "@/lib/inbox";
 import { paintJpeg } from "./support/pictures";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * A group photograph → a proposed party, written nowhere — B1517.
@@ -89,13 +90,13 @@ function writeConfig(features: Record<string, unknown>) {
 }
 
 function writeTrip() {
-  fs.mkdirSync(path.join(dir, OWNER, "trips", TRIP, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", TRIP, "trip.md"),
-    ["---", `id: ${TRIP}`, 'title: "A trip"', 'start: "2026-01-01"', 'end: "2026-01-05"', "visibility: private", "---", "", "Intro.", ""].join(
-      "\n",
-    ),
-  );
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: "A trip",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    visibility: "private",
+  });
 }
 
 function tripMdText(): string {

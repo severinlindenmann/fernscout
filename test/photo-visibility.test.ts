@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { PHOTO_VISIBILITIES, maySeePhoto, mediaKey, parsePhotoVisibility } from "@/lib/photos";
 import type { Trip } from "@/lib/types";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * One photograph held back from readers the trip lets in — B596.
@@ -112,25 +113,15 @@ function writeConfigs() {
 
 function writeTrip(spec: (typeof TRIPS)[number]) {
   const root = path.join(dir, OWNER, "trips", spec.id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${spec.id}"`,
-      `title: "${spec.id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${spec.visibility}"`,
-      "people:",
-      `  - { name: "Robin", email: "${ROBIN}" }`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: spec.id,
+    title: spec.id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: spec.visibility as "private" | "public" | "guest",
+    people: [{ name: "Robin", email: ROBIN }],
+  });
 
   const slug = "bangkok";
   fs.mkdirSync(path.join(root, "media", slug), { recursive: true });
@@ -142,26 +133,19 @@ function writeTrip(spec: (typeof TRIPS)[number]) {
     );
   }
 
-  fs.writeFileSync(
-    path.join(root, "entries", `2026-08-25-${slug}.md`),
-    [
-      "---",
-      'title: "Arrival"',
-      'date: "2026-08-25"',
-      'location: "Bangkok"',
-      'country: "Thailand"',
-      "gallery:",
-      ...PHOTOS.flatMap((photo) => [
-        `  - src: "/media/${spec.id}/${slug}/${photo.file}"`,
-        '    type: "image"',
-        ...(photo.label ? [`    visibility: "${photo.label}"`] : []),
-      ]),
-      "---",
-      "",
-      "Arrival.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, spec.id, {
+    slug,
+    date: "2026-08-25",
+    title: "Arrival",
+    location: "Bangkok",
+    country: "Thailand",
+    media: PHOTOS.map((photo) => ({
+      src: `/media/${spec.id}/${slug}/${photo.file}`,
+      type: "image",
+      visibility: photo.label ?? undefined,
+    })),
+    content: "Arrival.",
+  });
 }
 
 async function signIn(email: string): Promise<string> {

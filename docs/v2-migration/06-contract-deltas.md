@@ -12,6 +12,17 @@ is genuinely no easy way — and then stop and ask.*
 Read this beside `git log --oneline -- lib/api/v2/schemas/`. Every commit
 touching that folder must correspond to a row here.
 
+**Two mechanical checks before adding one**, both learned the hard way on
+2026-09-13, when three lanes ran at once:
+
+- `grep '^### D' 06-contract-deltas.md` and take the next free number. Two
+  branches independently claimed D11 and a third claimed an already-taken D6;
+  a duplicate merges cleanly and reads as two happy rows, exactly like a
+  duplicate task id.
+- Every file under `lib/api/v2/schemas/` earns a row, including a net-new one
+  that changes nothing reviewed. That is why `social.ts` has D16 — so that
+  "no row" always means *a mistake*, never *possibly fine*.
+
 ---
 
 ## Changed
@@ -21,19 +32,6 @@ touching that folder must correspond to a row here.
 **Why:** `trip.ts` needs it for D2. The alternative was a second copy of the
 same four fields, which is a list that disagrees with itself within a month.
 **Drift:** none. The wire is byte-identical before and after.
-
-### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
-**What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
-any field, message or accepted document.
-**Why:** the 422 body keys each row by `issue.path[0]`, so the row came back
-as `{field: "people", to_decline: "declined.buddies: …"}`. A caller building
-`declined.<field>` from the row — which works for every other row — sends
-`declined.people`, which is not a decline key at all, and gets a fresh
-unrelated refusal instead of resolving the point. `to_provide` was wrong too:
-it showed the `people` array's schema, which says nothing about answering the
-buddies question.
-**Drift:** none. This is the 422 body telling the truth about itself; the set
-of accepted documents is unchanged.
 
 ### D2 — `trip.costs` gains `items` and `note`
 **What:** `costs: {budget, visibility?}` → `costs: {budget, items?, note?, visibility?}`,
@@ -53,6 +51,19 @@ could not have carried them.
 fact that had none; it does not restore a v1 spelling. `category:
 "preparation"` was already in `COST_CATEGORIES`, so the vocabulary for these
 lines existed before the field to put them in did.
+
+### D3 — the solo-trip buddies issue moves from `path: ["people"]` to `path: ["buddies"]`
+**What:** the `ctx.addIssue` path in `tripCreate`'s superRefine. No change to
+any field, message or accepted document.
+**Why:** the 422 body keys each row by `issue.path[0]`, so the row came back
+as `{field: "people", to_decline: "declined.buddies: …"}`. A caller building
+`declined.<field>` from the row — which works for every other row — sends
+`declined.people`, which is not a decline key at all, and gets a fresh
+unrelated refusal instead of resolving the point. `to_provide` was wrong too:
+it showed the `people` array's schema, which says nothing about answering the
+buddies question.
+**Drift:** none. This is the 422 body telling the truth about itself; the set
+of accepted documents is unchanged.
 
 ### D4 — `nickname` on `journal.owner` (required) and on a trip's `person` (optional)
 **What:** `owner: {name, email}` → `{name, nickname, email}` in `journal.ts`;
@@ -273,6 +284,26 @@ of one — the same constraint every other schema file already respects by
 importing enums from *plain* modules only (`lib/costFormat.ts`,
 `lib/validate/entry.ts`). Keep these two lists matching their source unions
 by hand; there is no third copy to disagree with either of them.
+
+### D16 — `schemas/social.ts` (new file)
+**What:** a new schema module — `inviteWrite`/`inviteDoc`,
+`contactCreate`/`contactPatch`/`contactDoc`, `channelsPatch`/`channelsDoc` —
+exported from `schemas/index.ts` alongside the rest.
+**Why:** not a change to a frozen schema. The golden-contract review covered
+day/trip/journal/figures/media/status; the social area
+(`docs/plans/2026-09-12-api-v2/social.md`) had no schemas at all until its
+routes were built. Recorded because this ledger's practice is that every file
+under `lib/api/v2/schemas/` earns a row, so that "no row" always means "a
+mistake" rather than "possibly fine" (D8, D11, D12, D15 are the same shape).
+**One deliberate narrowing worth naming:** `contactDoc` carries **no** email
+and no postal address, and social.md's own field table lists both. A contact's
+address and its explicit postcard/digest consent are the most sensitive rows
+in the database, and the bearer door is the one an agent holds — so the door
+answers a name, a town and a country, and `hasPostalAddress` as a boolean.
+The owner's own cookie-only page still shows them everything. If that is the
+wrong trade it should be reversed deliberately, not discovered.
+**Drift:** none to any reviewed schema — a new file for routes that had none.
+
 
 ---
 

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * What a trip-scoped agent token may reach, and what it may not — B230, B231.
@@ -59,27 +60,15 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
  * being called actually reads.
  */
 async function writeTrip(id: string, visibility: string, people: string[]) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${visibility}"`,
-      ...(people.length
-        ? ["people:", ...people.flatMap((email) => [`  - name: "R"`, `    email: "${email}"`])]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: visibility as "private" | "public" | "guest",
+    people: people.length ? people.map((email) => ({ name: "R", email })) : undefined,
+  });
 
   const { writeTripFile } = await import("@/lib/api/v2/store");
   writeTripFile(OWNER, id, {

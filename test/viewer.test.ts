@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import type { Trip } from "@/lib/types";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * What the access panel is allowed to say.
@@ -171,28 +172,16 @@ describe("resolveViewer, against a database", { shuffle: false }, () => {
   }
 
   function writeTrip(id: string, visibility: "public" | "guest" | "private", people: string[] = []) {
-    const root = path.join(dir, OWNER, "trips", id);
-    fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-    fs.writeFileSync(
-      path.join(root, "trip.md"),
-      [
-        "---",
-        `id: "${id}"`,
-        `title: "${id}"`,
-        'start: "2026-08-25"',
-        'end: "2026-08-26"',
-        'status: "past"',
-        `visibility: "${visibility}"`,
-        ...(visibility === "public" ? [] : ["listed: false"]),
-        ...(people.length > 0
-          ? ["people:", ...people.map((e) => `  - { name: "Ana", email: "${e}" }`)]
-          : []),
-        "---",
-        "",
-        "Intro.",
-        "",
-      ].join("\n"),
-    );
+    writeTripFixture(OWNER, {
+      id,
+      title: id,
+      start: "2026-08-25",
+      end: "2026-08-26",
+      status: "past",
+      visibility,
+      listed: visibility === "public" ? undefined : false,
+      people: people.length > 0 ? people.map((e) => ({ name: "Ana", email: e })) : undefined,
+    });
   }
 
   /** What the panel would show for the guest-only trip, if anything. */

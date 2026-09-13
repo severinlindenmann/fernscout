@@ -10,6 +10,7 @@ import { issueCode, verifyCode } from "@/lib/auth";
 import { tripWriteScope } from "@/lib/tripPeople";
 import { getTrip } from "@/lib/trips";
 import { PATCH as patchTravellers } from "@/app/api/v1/[user]/trips/[trip]/travellers/route";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B524 — `people:` and `travellers:` could be written when a trip was created
@@ -55,25 +56,16 @@ function tripFile(): string {
   return path.join(dir, "alex", "trips", "reise", "trip.md");
 }
 
-function writeTrip(front: string[] = []) {
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    tripFile(),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: private",
-      ...front,
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+function writeTrip() {
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Reise",
+    start: "2026-09-01",
+    end: "2026-09-05",
+    status: "current",
+    visibility: "private",
+    intro: "Body.",
+  });
 }
 
 async function ownerToken(): Promise<string> {

@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { requestContact, confirmContact, approveContact } from "@/lib/contacts";
 import { issueCode } from "@/lib/auth";
 import { balanceOf } from "@/lib/credits";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B633 — the button on a day itself.
@@ -67,46 +68,29 @@ function writeUserConfig() {
 }
 
 function writeTrip(opts: { test?: boolean } = {}) {
-  const root = path.join(dir, OWNER, "trips", TRIP);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${TRIP}"`,
-      `title: "${TRIP}"`,
-      'start: "2026-09-01"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      'visibility: "public"',
-      ...(opts.test ? ["test: true"] : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: TRIP,
+    start: "2026-09-01",
+    end: "2026-09-10",
+    status: "current",
+    visibility: "public",
+    test: opts.test,
+    intro: "Intro.",
+  });
 }
 
 function writeEntry(opts: { slug: string; draft?: boolean; test?: boolean }): void {
-  const entriesDir = path.join(dir, OWNER, "trips", TRIP, "entries");
-  fs.mkdirSync(entriesDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(entriesDir, `2026-09-02-${opts.slug}.md`),
-    [
-      "---",
-      'title: "A day"',
-      'date: "2026-09-02"',
-      'location: "Somewhere"',
-      'country: "Nowhere"',
-      ...(opts.test ? ["test: true"] : []),
-      ...(opts.draft ? ["status: draft"] : []),
-      "---",
-      "",
-      "Something happened.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, TRIP, {
+    slug: opts.slug,
+    date: "2026-09-02",
+    title: "A day",
+    location: "Somewhere",
+    country: "Nowhere",
+    test: opts.test,
+    status: opts.draft ? "draft" : undefined,
+    content: "Something happened.",
+  });
 }
 
 async function addReader(): Promise<void> {

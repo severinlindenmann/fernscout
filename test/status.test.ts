@@ -304,7 +304,10 @@ describe("the drafts shape, folded into v2 status", () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as { drafts: { trip: string; slug: string }[] };
     expect(body.drafts.map((d) => `${d.trip}/${d.slug}`).sort()).toEqual(
-      ["alps-2026/another-draft", "asia-2026/a-draft"],
+      // The full filename stem, not the bare slug — B1633. This is the slug
+      // an agent can hand straight back to the day route; the bare form it
+      // used to carry answered 404 there.
+      ["alps-2026/2026-08-25-another-draft", "asia-2026/2026-08-25-a-draft"],
     );
   });
 });
