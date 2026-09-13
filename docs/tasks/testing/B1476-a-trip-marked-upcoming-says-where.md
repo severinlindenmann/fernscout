@@ -7,6 +7,7 @@ complexity: low
 area: map, trips
 found: "2026-09-11T15:41:38Z"
 started: "2026-09-13T07:02:32Z"
+merged: "2026-09-13T07:05:31Z"
 ---
 
 # B1476 — A trip marked upcoming says Where we have been, because one day names a place
