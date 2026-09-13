@@ -8,6 +8,7 @@ import { getDays } from "@/lib/entries";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { getCurrentTrip } from "@/lib/trips";
+import { getUser } from "@/lib/users";
 import { hasWeather, summariseWeather, weatherDays } from "@/lib/weatherStats";
 
 export async function generateMetadata({
@@ -59,7 +60,7 @@ export default async function WeatherPage({ params }: PageProps<"/[user]/weather
   if (!(await mayReadTrip(trip))) return null;
 
   return (
-    <TripProvider trip={trip} isCurrent>
+    <TripProvider trip={trip} isCurrent units={getUser(user)?.units}>
       <WeatherPageContent summary={summariseWeather(days)} />
     </TripProvider>
   );

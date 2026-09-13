@@ -3,10 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { buffer as streamToBuffer } from "node:stream/consumers";
 import { ZipArchive } from "archiver";
-import { isDraft } from "./entries";
+import { isDraft, getAllEntries, AS_AUTHOR } from "./entries";
 import { isOpenToLink } from "./access";
 import { userConfigPath } from "./config";
-import { getTrips } from "./trips";
+import { mediaOriginalsRoot, tripOriginalsDir } from "./media";
+import { getTrips, tripRef } from "./trips";
 import { userDir } from "./users";
 import type { Trip } from "./types";
 
@@ -101,8 +102,7 @@ function isDraftEntry(file: string): boolean {
  * left one, `.fingerprints/`, `.ingest.json` at a trip's root. Internal
  * bookkeeping nobody asked to export, in every scope and every export — a
  * real zip pulled from a scratch journal turned up `.DS_Store` at the trip
- * root *and* under `media/`, so this checks every segment rather than only
- * the first the way the `originals/` check below does (B1387).
+ * root *and* under `media/`, so this checks every segment (B1387).
  */
 function isDotfilePath(relativeToTripRoot: string): boolean {
   return relativeToTripRoot.split(path.sep).some((segment) => segment.startsWith("."));
@@ -152,19 +152,77 @@ function appendUserContent(
 
   for (const trip of tripsForScope(username, scope, tripId)) {
     const tripRoot = path.join(root, "trips", trip.id);
+    // Photographs the trip itself lets in but a day or an item holds back —
+    // B596/B632. This scope means, in this file's own words above, what an
+    // anonymous visitor could already see, and such a visitor cannot see
+    // these: visible() strips them from every reading path and the media
+    // route refuses the file. An export carrying them would be the second
+    // half of that pair failing, which AGENTS.md calls worse than having no
+    // protection at all.
+    //
+    // Exactly the mistake this function already made once about drafts, one
+    // filter over. The trip-level check is not enough, because a narrowing
+    // can sit on a single day or a single photograph inside a trip anybody
+    // may read.
+    const heldBack = scope === "open-to-link" ? narrowedMedia(username, trip.id) : null;
     for (const file of walkFiles(tripRoot)) {
       const relative = path.relative(tripRoot, file);
-      // Never the originals, in either scope. They are what the photobook
-      // prints from, an order of magnitude larger than what the site serves,
-      // and an export people actually download has to stay downloadable —
-      // back them up with the filesystem, not through a browser.
-      if (relative.split(path.sep)[0] === "originals") continue;
+      // B1603: originals used to be skipped here — "back them up with the
+      // filesystem, not through a browser" — which is not an option for a
+      // hosted owner, who has no filesystem access at all. `originals/` is
+      // the print master an upload keeps losslessly (B1533) precisely so it
+      // is not lost; an export is one of the two ways this content ever
+      // leaves the server, and dropping it there loses it for good. Kept
+      // in, at the same cost every other export already accepts.
       if (isDotfilePath(relative)) continue;
       if (scope === "open-to-link" && isDraftEntry(file)) continue;
+      if (heldBack?.has(relative.split(path.sep).join("/"))) continue;
       const name = path.relative(root, file).split(path.sep).join("/");
       archive.file(file, { name });
     }
+
+    // `MEDIA_ORIGINALS_DIR` moves originals off `tripRoot` entirely (see
+    // `lib/media.ts`), so the walk above never finds them there — they would
+    // otherwise vanish from the export exactly the way B1603 was filed
+    // against, just for a different reason (a different disk, not a skip).
+    if (mediaOriginalsRoot()) {
+      const originalsDir = tripOriginalsDir(tripRef(username, trip.id));
+      for (const file of walkFiles(originalsDir)) {
+        const relative = path.relative(originalsDir, file);
+        if (isDotfilePath(relative)) continue;
+        const name = [...path.relative(root, tripRoot).split(path.sep), "originals", ...relative.split(path.sep)].join(
+          "/",
+        );
+        archive.file(file, { name });
+      }
+    }
   }
+}
+
+/**
+ * Trip-relative paths of every photograph a day or an item holds back.
+ *
+ * Read at AS_AUTHOR deliberately: the question is not what this caller may
+ * see, but what the content itself is marked as. A reader-level read would
+ * hide the very items being collected — the closed default would return
+ * nothing, the filter would be empty, and everything would pass. That is
+ * B1647's shape, and getting it backwards here fails open.
+ */
+function narrowedMedia(username: string, tripId: string): Set<string> {
+  const held = new Set<string>();
+  for (const entry of getAllEntries(tripRef(username, tripId), AS_AUTHOR)) {
+    for (const item of entry.gallery) {
+      if (!entry.visibility && !item.visibility) continue;
+      for (const src of [item.src, item.poster]) {
+        if (!src) continue;
+        const at = src.indexOf("/media/");
+        if (at === -1) continue;
+        const rest = src.slice(at + "/media/".length).split("/").slice(1).join("/");
+        if (rest) held.add("media/" + rest);
+      }
+    }
+  }
+  return held;
 }
 
 /** A fresh, unfinalized archive with one user's content already queued onto

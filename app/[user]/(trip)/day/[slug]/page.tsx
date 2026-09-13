@@ -109,7 +109,7 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
   if (!userConfig) notFound();
 
   return (
-    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader} owner={owner}>
+    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
       <DayStructuredData
         entry={entry}
         site={site}

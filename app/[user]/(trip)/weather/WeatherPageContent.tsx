@@ -3,9 +3,11 @@
 import PageHeader from "@/components/PageHeader";
 import { BarList, DailyColumns } from "@/components/charts/Charts";
 import { useI18n } from "@/components/LocaleProvider";
+import { useTrip } from "@/components/TripProvider";
 import { SOURCE_CREDIT } from "@/lib/weather";
 import type { WeatherSummary, WeatherExtreme } from "@/lib/weatherStats";
 import type { TranslationKey } from "@/lib/i18n";
+import { celsiusToFahrenheit, kmhToMph, mmToInches, type Units } from "@/lib/units";
 
 /**
  * A trip's weather, added up — B557.
@@ -29,13 +31,22 @@ const RAIN = "var(--color-sky-500)";
 const WARM = "var(--color-coral-400)";
 const COOL = "var(--color-sky-300)";
 
-/** `−4°C`, with U+2212 rather than a hyphen — the same call DayWeather makes. */
-function deg(n: number): string {
-  return `${String(Math.round(n)).replace("-", "−")}°C`;
+/** `−4°C`, with U+2212 rather than a hyphen — the same call DayWeather makes.
+ * `°F` for an imperial journal; every reading is still stored in °C. */
+function deg(n: number, units: Units): string {
+  const value = units === "imperial" ? celsiusToFahrenheit(n) : n;
+  const unit = units === "imperial" ? "F" : "C";
+  return `${String(Math.round(value)).replace("-", "−")}°${unit}`;
+}
+
+/** `18 mm`, or `0.7 in` for an imperial journal — B1592. */
+function precip(mm: number, units: Units): string {
+  return units === "imperial" ? `${(Math.round(mmToInches(mm) * 10) / 10).toString()} in` : `${mm} mm`;
 }
 
 export default function WeatherPageContent({ summary }: { summary: WeatherSummary }) {
   const { t, tn, formatShortDate } = useI18n();
+  const units: Units = useTrip()?.units ?? "metric";
 
   const days = summary.measured + summary.missing;
 
@@ -82,22 +93,22 @@ export default function WeatherPageContent({ summary }: { summary: WeatherSummar
 
         <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {summary.avgHigh !== undefined && (
-            <Stat label={t("weatherPage.avgHigh")} value={deg(summary.avgHigh)} hero />
+            <Stat label={t("weatherPage.avgHigh")} value={deg(summary.avgHigh, units)} hero />
           )}
           {summary.avgLow !== undefined && (
-            <Stat label={t("weatherPage.avgLow")} value={deg(summary.avgLow)} />
+            <Stat label={t("weatherPage.avgLow")} value={deg(summary.avgLow, units)} />
           )}
           {summary.warmest && (
             <Stat
               label={t("weatherPage.warmest")}
-              value={deg(summary.warmest.value)}
+              value={deg(summary.warmest.value, units)}
               sub={where(summary.warmest, formatShortDate)}
             />
           )}
           {summary.coldest && (
             <Stat
               label={t("weatherPage.coldest")}
-              value={deg(summary.coldest.value)}
+              value={deg(summary.coldest.value, units)}
               sub={where(summary.coldest, formatShortDate)}
             />
           )}
@@ -107,7 +118,7 @@ export default function WeatherPageContent({ summary }: { summary: WeatherSummar
           <dl className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat
               label={t("weatherPage.precipitation")}
-              value={`${summary.precipitation} mm`}
+              value={precip(summary.precipitation, units)}
               sub={tn("weatherPage.overDays", summary.precipitationDays, {
                 days: String(summary.precipitationDays),
               })}
@@ -122,14 +133,14 @@ export default function WeatherPageContent({ summary }: { summary: WeatherSummar
             {summary.wettest && summary.wettest.value > 0 && (
               <Stat
                 label={t("weatherPage.wettest")}
-                value={`${summary.wettest.value} mm`}
+                value={precip(summary.wettest.value, units)}
                 sub={where(summary.wettest, formatShortDate)}
               />
             )}
             {summary.windiest && (
               <Stat
                 label={t("weatherPage.windiest")}
-                value={`${Math.round(summary.windiest.value)} km/h`}
+                value={units === "imperial" ? `${Math.round(kmhToMph(summary.windiest.value))} mph` : `${Math.round(summary.windiest.value)} km/h`}
                 sub={where(summary.windiest, formatShortDate)}
               />
             )}
@@ -184,7 +195,7 @@ export default function WeatherPageContent({ summary }: { summary: WeatherSummar
                     </span>
                     {/* Also the accessible reading of the bar beside it. */}
                     <span className="w-24 shrink-0 text-right tabular-nums text-ink-strong">
-                      {lo === hi ? deg(hi) : `${deg(lo)} – ${deg(hi)}`}
+                      {lo === hi ? deg(hi, units) : `${deg(lo, units)} – ${deg(hi, units)}`}
                     </span>
                   </li>
                 );
@@ -198,7 +209,7 @@ export default function WeatherPageContent({ summary }: { summary: WeatherSummar
             <DailyColumns
               data={rain}
               average={summary.precipitation / rain.length}
-              format={(n) => `${Math.round(n * 10) / 10} mm`}
+              format={(n) => precip(n, units)}
               formatDate={formatShortDate}
               accent={RAIN}
             />

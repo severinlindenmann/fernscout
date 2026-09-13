@@ -314,6 +314,7 @@ export function DayCard({
             <DayWeather
               weather={lead.weather}
               labels={weatherLabels(lead.weather, t, formatLongDate)}
+              units={trip?.units}
             />
           )}
           {cost > 0 && (

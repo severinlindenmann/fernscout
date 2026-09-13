@@ -166,6 +166,45 @@ fi
 
 cd "$APP_DIR"
 
+# ---------------------------------------------------------------------------
+# B1313: two deploys against the same checkout at once is not hypothetical —
+# several agent sessions can ship at once here — and it is the sharpest fault
+# this file had: one replaced node_modules while the other built against it,
+# both died, and the site was left 502 with a poisoned build.
+#
+# A directory as the lock, not a lock file a process is trusted to clean up
+# after itself: `mkdir` is atomic on every filesystem this runs on (unlike
+# `flock`, which is Linux-only and not on this checkout's own dev machine —
+# a portable lock beats a lighter one that cannot be exercised or shipped
+# everywhere this script runs). It holds the PID that made it, so a *live*
+# holder refuses the second deploy outright — a second deploy usually means a
+# second session about to report success it never achieved — while a *dead*
+# one, the exact trap the ticket warned a naive lock falls into, is detected
+# with `kill -0` and reclaimed right here, logged, with nothing for an
+# operator to find or delete by hand, ever.
+# ---------------------------------------------------------------------------
+LOCK_DIR="${LOCK_DIR:-$APP_DIR/.deploy.lock}"
+acquire_lock() {
+  if mkdir "$LOCK_DIR" 2>/dev/null; then
+    echo $$ > "$LOCK_DIR/pid"
+    return 0
+  fi
+  local held
+  held="$(cat "$LOCK_DIR/pid" 2>/dev/null || true)"
+  if [ -n "$held" ] && kill -0 "$held" 2>/dev/null; then
+    echo "ERROR: another deploy (pid $held) is already running against $APP_DIR." >&2
+    echo "       Wait for it to finish. Nothing to clear by hand: a crashed deploy's" >&2
+    echo "       lock is detected and reclaimed automatically the next time this runs." >&2
+    exit 1
+  fi
+  log "clearing a stale lock left by pid ${held:-unknown} (no longer running)"
+  rm -rf "$LOCK_DIR"
+  mkdir "$LOCK_DIR"
+  echo $$ > "$LOCK_DIR/pid"
+}
+acquire_lock
+trap 'rm -rf "$LOCK_DIR"' EXIT
+
 # What is actually serving right now (B559) — asked of the running process
 # itself, not trusted from $STATE_FILE. The file used to be the only record
 # of "the last commit this script brought up healthy", and it advanced on
@@ -199,6 +238,20 @@ elif [ -f "$STATE_FILE" ]; then
     log "$STATE_FILE names no commit this repository has — deploying in full"
     DEPLOYED=""
   fi
+fi
+
+# B1313: a checkout left on a detached HEAD — the state a hand-build recovery
+# leaves it in — fails `git pull --ff-only` with git's own "you are not
+# currently on a branch", which says nothing about deploy.sh or what to do
+# about it. Say both, and stop before anything else runs.
+if ! as_service git symbolic-ref -q HEAD >/dev/null; then
+  DETACHED_AT="$(as_service git rev-parse --short HEAD 2>/dev/null || echo '?')"
+  echo "ERROR: $APP_DIR is not on a branch (detached HEAD at ${DETACHED_AT})." >&2
+  echo "       Reattach it, but only if it has not diverged from the branch you deploy:" >&2
+  echo "         git merge-base --is-ancestor main HEAD && git checkout main" >&2
+  echo "       If that check fails, the branch has diverged — that is a person's decision," >&2
+  echo "       not this script's." >&2
+  exit 1
 fi
 
 log "pulling"
@@ -250,8 +303,44 @@ fi
 # Build before restarting, never after: a failed build must leave the running
 # site untouched rather than take it down and then fail.
 if [ "$do_build" = 1 ]; then
+  # B1311: a config.json the service user cannot read is invisible until a
+  # build touches it — `app/opengraph-image.tsx` reads it at module scope, so
+  # `next build` fails deep into page collection, and by then it has already
+  # cleared .next. Checking first means a build that cannot possibly succeed
+  # never gets the chance to delete the build that is serving.
+  CONFIG_PATH="${FERNSCOUT_CONFIG:-}"
+  if [ -n "$CONFIG_PATH" ] && [ -f "$CONFIG_PATH" ] \
+    && ! as_service head -c1 "$CONFIG_PATH" >/dev/null 2>&1; then
+    echo "ERROR: $CONFIG_PATH is not readable by $RUN_AS — the build would fail on it," >&2
+    echo "       taking .next down with it. Fix ownership first:" >&2
+    echo "         chown $RUN_AS:$RUN_AS $CONFIG_PATH" >&2
+    exit 1
+  fi
+
   log "building"
-  as_service npm run build
+  BUILD_LOG="$(mktemp)"
+  BUILD_OK=1
+  as_service npm run build 2>&1 | tee "$BUILD_LOG" || BUILD_OK=0
+  if [ "$BUILD_OK" = 0 ]; then
+    # B1312/B1313: a poisoned Turbopack persistent cache panics on whichever
+    # page happens to collect first, which reads like a fault in that page and
+    # is not — the incidents here were cleared only by `rm -rf .next
+    # node_modules/.cache .turbo`. Safe to remove even though the old build is
+    # still serving: the failed build was already writing into `.next` in
+    # place, Linux keeps the running process's already-open files valid after
+    # they are unlinked, and nothing below restarts until a build actually
+    # succeeds.
+    if grep -qiE 'turbo-persistence|panicked at|chunk_path requires an asset' "$BUILD_LOG"; then
+      log "build panicked inside Turbopack — clearing the persistent cache and retrying once"
+      rm -f "$BUILD_LOG"
+      as_service rm -rf .next node_modules/.cache .turbo
+      as_service npm run build
+    else
+      rm -f "$BUILD_LOG"
+      exit 1
+    fi
+  fi
+  rm -f "$BUILD_LOG"
 
   # And then: is what it wrote complete? — B1429.
   #

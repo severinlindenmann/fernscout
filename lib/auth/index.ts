@@ -116,6 +116,9 @@ export const SESSION_TTL_MS: Record<SessionKind, number> = {
   handover: 20 * 60 * 1000,
 };
 
+/** The handover TTL in minutes, for the sentences that tell somebody about it — B1413. */
+export const HANDOVER_TTL_MINUTES = String(SESSION_TTL_MS.handover / 60_000);
+
 export const SESSION_SCOPE: Record<SessionKind, string> = {
   agent: "write:content",
   guest: "read",
@@ -722,6 +725,9 @@ export async function issueStandingLink(owner: string, email: string): Promise<s
  * another standing link.
  */
 export const RELAY_LINK_TTL_MS = 15 * 60 * 1000;
+
+/** The relay-link TTL in minutes, for the sentences that tell somebody about it — B1413. */
+export const RELAY_LINK_TTL_MINUTES = String(RELAY_LINK_TTL_MS / 60_000);
 
 /**
  * A sign-in link for an agent to pass to the person whose journal it is.

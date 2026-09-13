@@ -10,19 +10,17 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { createTrip } from "@/lib/tripWrite";
 
 /**
- * The two-phase upload, from the server's side — B683.
+ * This route's day-scoped upload — B683's storage half.
  *
- * The browser half (the downscale, the IndexedDB queue, the backoff) lived in
- * `components/uploadQueue.ts`, checked by driving a phone at 390px — the only
- * check that ever meant anything for it. That component was the retired
- * step-wizard's own and was deleted with it (B1239; see B1435 for whether
- * anything still drives this route's original-replaces-web-copy path from a
- * browser at all). What is asserted here is the server half regardless: that
- * a web copy comes back with a `src`, that the original sent afterwards lands
- * in `originals/` under the same stem and *replaces* the web copy rather than
- * sitting beside it — one photograph, one original, one lot of bytes against
- * the ceiling — and that a file which is not media is kept in the inbox
- * rather than refused.
+ * The two-phase original upload B683 also built here (`phase=original`,
+ * `attachOriginal`) is gone: B1435 found no caller left for it once the
+ * step wizard that needed it retired (B1239 deleted the browser half,
+ * `components/uploadQueue.ts`), and the inbox-first redesign
+ * (`components/HelperRoom.tsx`'s `UploadPanel`) sends a photograph's
+ * untouched bytes in one request instead, so the phone-original problem it
+ * solved is already solved a different way. What remains asserted here: a
+ * photograph lands through `storeUploads` with a `src`, and a file which is
+ * not media is kept in the inbox rather than refused.
  */
 
 const OWNER_EMAIL = "alex@example.test";
@@ -122,71 +120,31 @@ async function startDay(): Promise<string> {
 
 const originals = (slug: string) => path.join(dir, "alex", "trips", "a-trip", "originals", slug);
 
-describe("the wizard's two-phase upload", () => {
-  test("the web copy lands, and the original replaces it under the same stem", async () => {
+describe("this route's day-scoped upload", () => {
+  test("a photograph lands through storeUploads, with a src the caller can use", async () => {
     const slug = await startDay();
 
-    // Phase one: the 2000px copy the browser made. The response has to carry
-    // the item's `src`, because that is the only thing phase two can aim at.
     const web = await upload(
-      { trip: "a-trip", day: slug, phase: "web" },
+      { trip: "a-trip", day: slug },
       "IMG_0001.jpg",
       await image(2000, 1333, "jpeg"),
     );
     expect(web.status).toBe(201);
     expect(web.body.stored).toBe(1);
-    const src = String(web.body.src);
-    expect(src).toBe(`/media/a-trip/${slug}/01.jpg`);
-    // `storeUploads` kept the copy as the original, because it has no way to
-    // know a bigger one is on its way.
+    expect(String(web.body.src)).toBe(`/media/a-trip/${slug}/01.jpg`);
+    // `storeUploads` keeps the upload as the original too — this route sends
+    // no separate one.
     expect(fs.readdirSync(originals(slug))).toEqual(["01.jpg"]);
 
-    // Phase two: the untouched file, against that item.
-    const full = await image(3600, 2400, "png");
-    const attached = await upload(
-      { trip: "a-trip", phase: "original", src },
-      "IMG_0001.png",
-      full,
-    );
-    expect(attached.status).toBe(201);
-    expect(attached.body.original).toBe("01.png");
-
-    // One photograph, one original: the web copy is gone rather than lying
-    // beside it, so the journal is not charged twice and the photobook has
-    // exactly one thing to print from.
-    expect(fs.readdirSync(originals(slug))).toEqual(["01.png"]);
-    expect(fs.statSync(path.join(originals(slug), "01.png")).size).toBe(full.byteLength);
-
-    // The day itself is unchanged by phase two — it still holds one item, and
-    // it still points at the derivative a browser reads.
     const { getEntryBySlug } = await import("@/lib/entries");
     const entry = getEntryBySlug("alex/a-trip", slug, { includeDrafts: true });
     expect(entry?.gallery.map((item) => item.src)).toEqual([`/alex/media/a-trip/${slug}/01.jpg`]);
   });
 
-  test("an original aimed at nothing is refused rather than written", async () => {
-    const slug = await startDay();
-    await upload({ trip: "a-trip", day: slug, phase: "web" }, "a.jpg", await image(800, 600, "jpeg"));
-
-    for (const src of [
-      `/media/a-trip/${slug}/99.jpg`, // No such photograph.
-      `/media/other-trip/${slug}/01.jpg`, // Another trip's.
-      `/media/a-trip/../../../etc/01.jpg`, // Out of the tree entirely.
-    ]) {
-      const refused = await upload(
-        { trip: "a-trip", phase: "original", src },
-        "a.png",
-        await image(400, 300, "png"),
-      );
-      expect(refused.status).toBe(400);
-    }
-    expect(fs.readdirSync(originals(slug))).toEqual(["01.jpg"]);
-  });
-
   test("a file that is not media goes to the inbox instead of being refused", async () => {
     const slug = await startDay();
     const csv = Buffer.from("date,amount\n2026-05-04,12.50\n");
-    const stored = await upload({ trip: "a-trip", day: slug, phase: "web" }, "bank.csv", csv);
+    const stored = await upload({ trip: "a-trip", day: slug }, "bank.csv", csv);
     expect(stored.status).toBe(201);
     expect(stored.body.existed).toBe(false);
     const id = String(stored.body.inbox);
@@ -194,7 +152,7 @@ describe("the wizard's two-phase upload", () => {
 
     // The same bytes again are the same row, not a second copy — which is
     // what makes a resumed queue safe to re-send from.
-    const again = await upload({ trip: "a-trip", day: slug, phase: "web" }, "bank.csv", csv);
+    const again = await upload({ trip: "a-trip", day: slug }, "bank.csv", csv);
     expect(again.body.inbox).toBe(id);
     expect(again.body.existed).toBe(true);
 
@@ -220,7 +178,7 @@ describe("the wizard's two-phase upload", () => {
     clearConfigCache();
 
     const csv = Buffer.from("date,amount\n2026-05-04,12.50\n");
-    const refused = await upload({ trip: "a-trip", day: slug, phase: "web" }, "bank.csv", csv);
+    const refused = await upload({ trip: "a-trip", day: slug }, "bank.csv", csv);
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("storage_full");
     expect(fs.existsSync(path.join(dir, "alex", "inbox", "files"))).toBe(false);

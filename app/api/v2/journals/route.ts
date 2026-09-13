@@ -10,7 +10,16 @@ import { fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
-import { NO_JOURNAL, SESSION_SCOPE, issueRelayLink, openAgentSession, resolveSession, revokeSession, signInUrl } from "@/lib/auth";
+import {
+  NO_JOURNAL,
+  RELAY_LINK_TTL_MINUTES,
+  SESSION_SCOPE,
+  issueRelayLink,
+  openAgentSession,
+  resolveSession,
+  revokeSession,
+  signInUrl,
+} from "@/lib/auth";
 import { normalizeJournalVisibility } from "@/lib/config";
 import { normalizeCurrency } from "@/lib/currency";
 import { creditsEnabled, grant, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
@@ -220,7 +229,7 @@ export async function POST(request: Request) {
             signInNote:
               "Give this to the person, once, in your reply, and give it to them now. It signs " +
               "them in so they can see their drafts and private trips. It works once and expires " +
-              "in 15 minutes; do not store it or repeat it later. Their welcome mail carries a " +
+              `in ${RELAY_LINK_TTL_MINUTES} minutes; do not store it or repeat it later. Their welcome mail carries a ` +
               "second, standing link to the same place.",
           }
         : {}),
