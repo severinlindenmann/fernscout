@@ -175,6 +175,23 @@ export function v1Slug(slug: string): string {
   return slug.replace(/^\d{4}-\d{2}-\d{2}-/, "");
 }
 
+/**
+ * The mirror of `v1Slug` — B1633. A v1 reader (`listDrafts`) hands back the
+ * bare slug; a v2 document is addressed by the whole filename stem
+ * (`YYYY-MM-DD-slug`), the id `GET .../days/{slug}` actually matches on. A
+ * caller handed the bare form off `/status` and passing it straight to that
+ * route the obvious way gets a 404 — the same convention split as `v1Slug`,
+ * crossed the other direction.
+ *
+ * Needs the day's own `date`, which every v1 reader already carries
+ * alongside the bare slug (`listDrafts`'s own return shape) — there is
+ * nothing to derive this from otherwise, since the date prefix `v1Slug`
+ * strips is gone once it has been stripped.
+ */
+export function v2Slug(date: string, bareSlug: string): string {
+  return `${date}-${bareSlug}`;
+}
+
 
 /**
  * Whether a day's `weather: true` must be refused outright — B1617.
