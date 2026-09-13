@@ -7,6 +7,7 @@ complexity: low
 area: landing, agent docs
 found: "2026-09-11T12:34:26Z"
 started: "2026-09-13T06:26:59Z"
+merged: "2026-09-13T06:31:03Z"
 ---
 
 # B1456 — The landing page still pastes people at the full guide, which is now a redirect to an index
