@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * The inbox, driven the way an agent drives it — B663.
@@ -136,7 +137,7 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -148,27 +149,19 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(tripPath(), "trip.md"),
-    [
-      "---",
-      `id: "${TRIP}"`,
-      'title: "Asia"',
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      'status: "past"',
-      'visibility: "private"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
   clearConfigCache();
   clearUserCache();
+
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: "Asia",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "private",
+  });
 
   const { migrateToLatest } = await import("@/lib/db/migrate");
   const { getDatabase } = await import("@/lib/db");
@@ -186,12 +179,7 @@ afterAll(async () => {
 /** The day the photograph will end up on. Written *after* it is staged, which
  * is the order this whole feature exists to allow. */
 function writeDay(slug: string, date: string) {
-  fs.writeFileSync(
-    path.join(tripPath(), "entries", `${date}-${slug}.md`),
-    ["---", `title: "${slug}"`, `date: "${date}"`, "status: draft", "---", "", "Words.", ""].join(
-      "\n",
-    ),
-  );
+  writeDayFixture(dir, OWNER, TRIP, { slug, date, title: slug, status: "draft", content: "Words." });
 }
 
 describe("the whole file, kept in written order", { shuffle: false }, () => {
@@ -200,7 +188,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const token = await ownerToken();
 
       // No day of that name exists yet — the media route would refuse this.
-      expect(fs.existsSync(path.join(tripPath(), "entries", `2026-01-01-${DAY}.md`))).toBe(false);
+      expect(fs.existsSync(path.join(tripPath(), "entries", `2026-01-01-${DAY}.json`))).toBe(false);
 
       const staged = await stage(token, [
         { name: "DSC_0001.jpg", bytes: await jpeg(1200, 800), meta: { description: "the bridge" } },

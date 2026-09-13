@@ -1,0 +1,32 @@
+{
+  "id": "gap-2026",
+  "title": "A trip with a hole in its rate table",
+  "dates": {
+    "from": "2026-06-01",
+    "to": "2026-06-01"
+  },
+  "accent": "coral",
+  "rates": {
+    "currencies": ["EUR"],
+    "manual": {
+      "CHF": 0.94
+    }
+  },
+  "intro": "No THB rate, though THB was spent.",
+  "costs": {
+    "budget": {
+      "total": 500,
+      "days": 5,
+      "currency": "CHF"
+    },
+    "items": [
+      {
+        "label": "Visa",
+        "amount": 60,
+        "currency": "EUR",
+        "category": "preparation"
+      }
+    ],
+    "note": "Before we left."
+  }
+}

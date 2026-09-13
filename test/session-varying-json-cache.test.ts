@@ -13,6 +13,7 @@ vi.mock("next/headers", () => ({
 
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B330 — `story.json` (and `search-index.json`, which shares the same shape)
@@ -33,31 +34,23 @@ let dir: string;
 function journal(): void {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "session-varying-json-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
-  fs.mkdirSync(path.join(dir, "alex", "trips", "asia-2023", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(path.join(dir, "alex", "config.json"), USER_CFG);
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "asia-2023", "trip.md"),
-    [
-      "---",
-      "id: asia-2023",
-      'title: "Asia"',
-      'start: "2026-01-01"',
-      'end: "2026-01-09"',
-      "status: current",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "asia-2023", "entries", "2026-01-01-a-day.md"),
-    ["---", 'title: "A day"', 'date: "2026-01-01"', "status: published", "---", "", "x", ""].join(
-      "\n",
-    ),
-  );
   process.env.CONTENT_DIR = dir;
+  writeTripFixture("alex", {
+    id: "asia-2023",
+    title: "Asia",
+    start: "2026-01-01",
+    end: "2026-01-09",
+    status: "current",
+    visibility: "public",
+  });
+  writeDayFixture(dir, "alex", "asia-2023", {
+    slug: "a-day",
+    date: "2026-01-01",
+    title: "A day",
+    content: "x",
+  });
   clearConfigCache();
   clearUserCache();
 }

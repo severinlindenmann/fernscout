@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B904 — the agent search, and the one property that makes it safe to show a
@@ -85,7 +86,7 @@ beforeEach(() => {
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test", defaultUser: "alex" } }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "open-2026", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -96,35 +97,23 @@ beforeEach(() => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "open-2026", "trip.md"),
-    [
-      "---",
-      "id: open-2026",
-      'title: "An Open Trip"',
-      'start: "2026-08-24"',
-      'end: "2026-08-26"',
-      "status: past",
-      "visibility: public",
-      "---",
-      "",
-      "An open trip.",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "open-2026", "entries", "2026-08-25-day.md"),
-    [
-      "---",
-      'title: "A day"',
-      'date: "2026-08-25"',
-      'location: "Bellinzona"',
-      'country: "Switzerland"',
-      "status: published",
-      "---",
-      "",
-      "Something happened.",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "open-2026",
+    title: "An Open Trip",
+    start: "2026-08-24",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "public",
+    intro: "An open trip.",
+  });
+  writeDayFixture(dir, "alex", "open-2026", {
+    slug: "day",
+    date: "2026-08-25",
+    title: "A day",
+    location: "Bellinzona",
+    country: "Switzerland",
+    content: "Something happened.",
+  });
 });
 
 afterEach(() => {

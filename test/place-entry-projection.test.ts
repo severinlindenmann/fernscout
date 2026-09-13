@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { getPlaces } from "@/lib/entries";
+import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * B309 — `Place.entries` used to be `Entry[]`, prose and every language's
@@ -23,7 +24,7 @@ let dir: string;
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-place-entry-"));
   process.env.CONTENT_DIR = dir;
-  fs.mkdirSync(path.join(dir, "u", "trips", "t", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "u"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "u", "config.json"),
     JSON.stringify({
@@ -34,32 +35,42 @@ beforeEach(() => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "u", "trips", "t", "trip.md"),
-    ['---', 'id: t', 'title: "Test trip"', 'start: "2026-09-01"', 'end: "2026-09-01"', 'status: past', '---', '', 'Intro.', ''].join(
-      "\n",
-    ),
-  );
-  fs.writeFileSync(
-    path.join(dir, "u", "trips", "t", "entries", "2026-09-01-faro.md"),
-    [
-      "---",
-      'title: "Faro"',
-      'date: "2026-09-01"',
-      'location: "Faro"',
-      'country: "Portugal"',
-      "lat: 37.0179",
-      "lng: -7.9308",
-      "translations:",
-      "  de:",
-      '    title: "Faro (de)"',
-      '    content: "Marker-DE said the sailor. Nobody needs the rest of this prose sent twice."',
-      "---",
-      "",
+  // Not on writeTripFixture (B1630): the journal here is "u", a one-character
+  // username `isValidUsername` refuses — `createTrip` (the fixture's writer)
+  // fails with `no_such_journal` before it ever gets to write anything.
+  const trip: TripFile = {
+    id: "t",
+    title: "Test trip",
+    dates: { from: "2026-09-01", to: "2026-09-01" },
+    visibility: "private",
+    people: [],
+    intro: "Intro.",
+  };
+  fs.mkdirSync(path.join(dir, "u", "trips", "t"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "u", "trips", "t", "trip.json"), tripToJson(trip));
+  // Not on writeDayFixture (B1630): `translations` is a real day field
+  // (lib/api/v2/documents.ts's `DayFile`), not a frontmatter detail, but the
+  // shared fixture does not expose it yet. Written through the production
+  // serialiser so it cannot drift from what the reader parses.
+  const day: DayFile = {
+    slug: "faro",
+    title: "Faro",
+    date: "2026-09-01",
+    location: "Faro",
+    country: "Portugal",
+    coordinates: { lat: 37.0179, lng: -7.9308 },
+    content:
       "Marker-EN said the sailor. There is a great deal more prose after this sentence that nobody browsing the gallery has asked to read.",
-      "",
-    ].join("\n"),
-  );
+    status: "published",
+    translations: {
+      de: {
+        title: "Faro (de)",
+        content: "Marker-DE said the sailor. Nobody needs the rest of this prose sent twice.",
+      },
+    },
+  };
+  fs.mkdirSync(path.join(dir, "u", "trips", "t", "entries"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "u", "trips", "t", "entries", "2026-09-01-faro.json"), dayToJson(day));
 });
 
 afterEach(() => {

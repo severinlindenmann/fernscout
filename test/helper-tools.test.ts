@@ -5,6 +5,7 @@ import path from "node:path";
 import { SHAPES, type Shape } from "@/lib/helper/blocks";
 import { TOOLS, runTool, toolList, toolSchemas, writeTool } from "@/lib/helper/tools";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B906 — the catalogue and the model behind `find_day` are mocked the same
@@ -333,7 +334,7 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
     const before = process.env.CONTENT_DIR;
     process.env.CONTENT_DIR = dir;
     try {
-      fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+      fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
       fs.writeFileSync(
         path.join(dir, "alex", "config.json"),
         JSON.stringify({
@@ -345,24 +346,24 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
           baseCurrency: "CHF",
         }),
       );
-      fs.writeFileSync(
-        path.join(dir, "alex", "trips", "reise", "trip.md"),
-        ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join("\n"),
-      );
-      fs.writeFileSync(
-        path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.md"),
-        ["---", "title: Der erste Tag", 'date: "2026-05-01"', "status: draft", "---", "", "Worte."].join("\n"),
-      );
+      writeTripFixture("alex", { id: "reise", title: "Die Reise", start: "2026-05-01", end: "2026-05-10" });
+      writeDayFixture(dir, "alex", "reise", {
+        slug: "one",
+        date: "2026-05-01",
+        title: "Der erste Tag",
+        status: "draft",
+        content: "Worte.",
+      });
       const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
       expect(ran.blocks.map((block) => block.shape)).toEqual(["preview", "confirm"]);
       expect((ran.blocks[0] as { lines: string[] }).lines).toContain("Der erste Tag");
       // And it is still a draft: proposing is not publishing.
       expect(
         fs.readFileSync(
-          path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.md"),
+          path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.json"),
           "utf8",
         ),
-      ).toContain("status: draft");
+      ).toContain('"status": "draft"');
     } finally {
       if (before === undefined) delete process.env.CONTENT_DIR;
       else process.env.CONTENT_DIR = before;
@@ -377,9 +378,9 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
    * leaves a day nobody has written yet.
    */
   describe("publish_day refuses a day with nothing on it", () => {
-    function setUp(content: string, gallery: string) {
+    function setUp(content: string, media?: { src: string }[]) {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-publish-empty-"));
-      fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+      fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
       fs.writeFileSync(
         path.join(dir, "alex", "config.json"),
         JSON.stringify({
@@ -391,23 +392,22 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
           baseCurrency: "CHF",
         }),
       );
-      fs.writeFileSync(
-        path.join(dir, "alex", "trips", "reise", "trip.md"),
-        ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join("\n"),
-      );
-      fs.writeFileSync(
-        path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.md"),
-        ["---", "title: 2026-05-01", 'date: "2026-05-01"', "status: draft", gallery, "---", "", content].join(
-          "\n",
-        ),
-      );
+      process.env.CONTENT_DIR = dir;
+      writeTripFixture("alex", { id: "reise", title: "Die Reise", start: "2026-05-01", end: "2026-05-10" });
+      writeDayFixture(dir, "alex", "reise", {
+        slug: "one",
+        date: "2026-05-01",
+        title: "2026-05-01",
+        status: "draft",
+        content,
+        ...(media ? { media } : {}),
+      });
       return dir;
     }
 
     test("empty content and no gallery: refuse, no button", async () => {
-      const dir = setUp("…", "");
       const before = process.env.CONTENT_DIR;
-      process.env.CONTENT_DIR = dir;
+      const dir = setUp("…");
       try {
         const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
         expect(ran.refused).toBe(true);
@@ -421,12 +421,8 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
     });
 
     test("photos but no words: a button, with a warning in the sentence", async () => {
-      const dir = setUp(
-        "…",
-        ["gallery:", '  - src: "/alex/media/reise/one/photo.jpg"'].join("\n"),
-      );
       const before = process.env.CONTENT_DIR;
-      process.env.CONTENT_DIR = dir;
+      const dir = setUp("…", [{ src: "/alex/media/reise/one/photo.jpg" }]);
       try {
         const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
         expect(ran.refused).toBeFalsy();
@@ -440,9 +436,8 @@ describe("a proposal can only be pressed into the helper's own routes", () => {
     });
 
     test("words on the day: untouched, no warning added", async () => {
-      const dir = setUp("Ein schöner Tag am See.", "");
       const before = process.env.CONTENT_DIR;
-      process.env.CONTENT_DIR = dir;
+      const dir = setUp("Ein schöner Tag am See.");
       try {
         const ran = await runTool("alex", "publish_day", { trip: "reise" }, say, "2026-09-07");
         expect(ran.refused).toBeFalsy();

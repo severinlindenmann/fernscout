@@ -77,6 +77,7 @@ import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import type { SiteSummary } from "@/lib/site";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 const LOCALES = ["en", "de", "hu"] as const;
 
@@ -115,23 +116,30 @@ function journal(opts: {
 }): void {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "map-tense-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
-  const trip = path.join(dir, "alex", "trips", "ridge-2026");
-  fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(path.join(dir, "alex", "config.json"), userCfg(opts.locale, opts.offers));
-  fs.writeFileSync(
-    path.join(trip, "trip.md"),
-    '---\nid: ridge-2026\ntitle: "Along the ridge"\nstart: "2026-05-01"\nend: "2026-05-10"\n' +
-      "status: past\nvisibility: public\n---\n\nSomething.\n",
-  );
-  if (opts.withDay) {
-    const coords = opts.dayHasCoords === false ? "" : 'lat: 46.8508\nlng: 9.5320\n';
-    fs.writeFileSync(
-      path.join(trip, "entries", "2026-05-02-first.md"),
-      '---\ntitle: "First"\ndate: "2026-05-02"\nlocation: "Chur"\ncountry: "Switzerland"\n' +
-        `countryCode: "CH"\n${coords}---\n\nA day.\n`,
-    );
-  }
   process.env.CONTENT_DIR = dir;
+  writeTripFixture("alex", {
+    id: "ridge-2026",
+    title: "Along the ridge",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    status: "past",
+    visibility: "public",
+    intro: "Something.",
+  });
+  if (opts.withDay) {
+    writeDayFixture(dir, "alex", "ridge-2026", {
+      slug: "first",
+      date: "2026-05-02",
+      title: "First",
+      location: "Chur",
+      country: "Switzerland",
+      countryCode: "CH",
+      ...(opts.dayHasCoords === false ? {} : { coordinates: { lat: 46.8508, lng: 9.532 } }),
+      content: "A day.",
+    });
+  }
   clearConfigCache();
   clearUserCache();
   clearLocaleCache();

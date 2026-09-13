@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { runTool } from "@/lib/helper/tools";
 import { sessionStats } from "@/lib/helper/sessions";
 import type { Say } from "@/lib/helper/intents";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * `set_rate` and `set_budget` — B1042's two new money tools.
@@ -52,7 +53,7 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "helper-money-secret-b1042";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -71,41 +72,32 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      "title: Die Reise",
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: private",
-      "---",
-      "",
-      "Intro.",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-02-day-two.md"),
-    [
-      "---",
-      'title: "Day two"',
-      'date: "2026-05-02"',
-      "status: draft",
-      "costs:",
-      '  - { label: "Dinner", amount: 20, category: "food", currency: "CHF" }',
-      '  - { label: "Market", amount: 400, category: "other", currency: "THB" }',
-      "---",
-      "",
-      "Some words.",
-    ].join("\n"),
-  );
-  // `patchCosts` amends an existing costs.md and refuses to create one — the
-  // instruction behind `set_budget` is "PATCH, never PUT" (see the tool's own
-  // comment). A blank one here stands in for the file an owner already has,
-  // from the API or from `add-a-trip`; a trip with no costs.md at all is not
-  // something this tool can start on its own, which the report notes.
-  fs.writeFileSync(path.join(dir, "alex", "trips", "reise", "costs.md"), "---\n---\n");
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+    // A costs section has to already exist for `patchCosts` to amend it
+    // (PATCH, never PUT — see lib/api/costs.ts); "guests" is a real,
+    // narrower value rather than a fixture-only placeholder. This shape — a
+    // costs section with `visibility` and no `budget` yet, exactly what
+    // `createTrip`'s v1 door writes for `costsVisibility: "guests"` — used to
+    // crash `readCostsFile` on `section.budget.days`; that guard now lives in
+    // lib/costs.ts (see test/malformed-costs.test.ts).
+    costsVisibility: "guests",
+  });
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "day-two",
+    title: "Day two",
+    date: "2026-05-02",
+    content: "Some words.",
+    status: "draft",
+    costs: [
+      { label: "Dinner", amount: 20, category: "food", currency: "CHF" },
+      { label: "Market", amount: 400, category: "other", currency: "THB" },
+    ],
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -211,11 +203,11 @@ describe("set_budget", () => {
     expect((await answered.json()).changed).toEqual(["budget"]);
 
     const costsFile = fs.readFileSync(
-      path.join(dir, "alex", "trips", "reise", "costs.md"),
+      path.join(dir, "alex", "trips", "reise", "trip.json"),
       "utf8",
     );
-    expect(costsFile).toContain("total: 1000");
-    expect(costsFile).toContain("days: 10");
+    expect(costsFile).toContain('"total": 1000');
+    expect(costsFile).toContain('"days": 10');
   });
 
   test("a preparation cost is appended, not replacing what is already there", async () => {
@@ -236,7 +228,7 @@ describe("set_budget", () => {
     expect(answered.status).toBe(200);
 
     const costsFile = fs.readFileSync(
-      path.join(dir, "alex", "trips", "reise", "costs.md"),
+      path.join(dir, "alex", "trips", "reise", "trip.json"),
       "utf8",
     );
     expect(costsFile).toContain("Visa");

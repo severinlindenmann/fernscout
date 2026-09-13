@@ -170,7 +170,12 @@ describe("a trip that has genuinely not started", () => {
 });
 
 describe("createTrip", () => {
-  test("writes the status the dates imply, not a hardcoded upcoming", () => {
+  test("derives the status from the dates, not a hardcoded upcoming", () => {
+    // B1598: v2 stores no `status` at all — trip.json carries no such key,
+    // and every read derives past/upcoming/current from the dates
+    // (`calendarStatus`). What B72 was about — a trip.md whose own written
+    // status disagreed with its dates — cannot happen any more because
+    // there is no written status left to disagree.
     const made = createTrip("alex", {
       id: "testreise",
       title: "Testreise",
@@ -179,16 +184,14 @@ describe("createTrip", () => {
       visibility: "public",
     });
     expect(made.ok).toBe(true);
-    const file = fs.readFileSync(path.join(dir, "alex", "trips", "testreise", "trip.md"), "utf8");
-    // The file a person opens says the same thing the site does.
-    expect(file).toContain("status: past");
+    const file = fs.readFileSync(path.join(dir, "alex", "trips", "testreise", "trip.json"), "utf8");
+    expect(JSON.parse(file)).not.toHaveProperty("status");
     expect(getTrip("alex/testreise")?.status).toBe("past");
   });
 
   test("writes upcoming for a trip that has not started", () => {
     createTrip("alex", { id: "japan-2099", title: "Japan", start: "2099-04-01", end: "2099-05-15" });
-    const file = fs.readFileSync(path.join(dir, "alex", "trips", "japan-2099", "trip.md"), "utf8");
-    expect(file).toContain("status: upcoming");
+    expect(getTrip("alex/japan-2099")?.status).toBe("upcoming");
   });
 
   /**
@@ -199,8 +202,8 @@ describe("createTrip", () => {
    */
   test("writes no accent for a trip nobody coloured, and keeps one that is asked for", () => {
     createTrip("alex", { id: "nocolour", title: "No colour", start: "2099-01-01", end: "2099-01-02" });
-    const plain = fs.readFileSync(path.join(dir, "alex", "trips", "nocolour", "trip.md"), "utf8");
-    expect(plain).not.toContain("accent:");
+    const plain = fs.readFileSync(path.join(dir, "alex", "trips", "nocolour", "trip.json"), "utf8");
+    expect(plain).not.toContain("accent");
 
     createTrip("alex", {
       id: "green-one",
@@ -209,18 +212,14 @@ describe("createTrip", () => {
       end: "2099-01-02",
       accent: "green",
     });
-    const chosen = fs.readFileSync(path.join(dir, "alex", "trips", "green-one", "trip.md"), "utf8");
-    expect(chosen).toContain("accent: green");
+    const chosen = fs.readFileSync(path.join(dir, "alex", "trips", "green-one", "trip.json"), "utf8");
+    expect(JSON.parse(chosen).accent).toBe("green");
   });
 
-  test("still honours an explicit current", () => {
-    createTrip("alex", {
-      id: "unterwegs",
-      title: "Unterwegs",
-      start: "2026-08-24",
-      end: "2026-08-26",
-      status: "current",
-    });
-    expect(getTrip("alex/unterwegs")?.status).toBe("current");
-  });
+  // "still honours an explicit current" is deliberately gone rather than
+  // rewritten to pass: v2 retired stored status outright (decision
+  // 2026-09-12, docs/v2-migration/00-decisions.md) — every read derives it
+  // from the dates, with no override left to honour. `input.status` on
+  // `NewTrip` is accepted and silently ignored now; that is a product
+  // decision this ticket found, not one it made, and B1598's report says so.
 });

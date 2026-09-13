@@ -482,30 +482,25 @@ describe("DELETE /api/v2/{user}/trips/{trip}", () => {
   });
 
   /**
-   * NOT the acceptance line's "answers 202 and removes nothing" — that is
-   * not what this route currently does for a v2-native trip, and the honest
-   * test says so rather than being bent to match. `DELETE` calls
+   * B1634/B1598: this used to 404 for a v2-native trip. `DELETE` calls
    * `requestDeletion` (lib/deletions.ts), which builds its mail summary
-   * through `summarise()` -> `getTrip()` (lib/trips.ts) -> `loadTrips()`,
-   * which reads `trip.md` via gray-matter. A v2 trip has no `trip.md` — its
-   * facts live in `trip.json` (lib/api/v2/store.ts) — so `getTrip` returns
-   * `undefined`, `summarise` returns `null`, and `requestDeletion` answers
-   * `unknown_trip` even though the trip plainly exists on disk and the
-   * owner's own token can read and write it a line above. This is the same
-   * v1/v2 read-layer gap the day routes already work around (`lib/digest/
-   * dayLetter.ts` degrading to `{ok:false, reason:"unknown_trip"}`, per
-   * B1598) — DELETE never got that same accommodation, so it 404s instead
-   * of asking. Filed for the phase-3 read-layer work rather than patched
-   * here: fixing it means teaching `lib/deletions.ts` (shared with v1) to
-   * read a v2 trip, which is a bigger change than this ticket's tests.
+   * through `summarise()` -> `getTrip()` (lib/trips.ts) -> `loadTrips()` —
+   * and before B1598, that read `trip.md` via gray-matter, so a v2 trip
+   * (facts in `trip.json`, `lib/api/v2/store.ts`) was invisible to it:
+   * `getTrip` returned `undefined`, `summarise` returned `null`, and
+   * `requestDeletion` answered `unknown_trip` even though the trip plainly
+   * existed on disk and the owner's own token could read and write it a
+   * line above. B1598 flips `getTrip()` onto the same `trip.json` both v1
+   * and v2 write, so `DELETE` now asks — 202, nothing removed, a mail
+   * queued — the same as it always has for a v1 trip.
    */
-  test("owner token, v2-native trip: currently 404s rather than asking (known gap, B1598-shaped)", async () => {
+  test("owner token, v2-native trip: asks, and removes nothing", async () => {
     const token = await ownerToken();
     await putTrip(OWNER, "delete-me-trip", fullTrip("delete-me-trip"), token);
 
     const { status, body } = await deleteTrip(OWNER, "delete-me-trip", token);
-    expect(status, JSON.stringify(body)).toBe(404);
-    expect(body.error).toBe("unknown_trip");
+    expect(status, JSON.stringify(body)).toBe(202);
+    expect(body.note).toContain("NOTHING HAS BEEN DELETED");
 
     const { readTripFile } = await import("@/lib/api/v2/store");
     expect(readTripFile(OWNER, "delete-me-trip")).toBeTruthy();

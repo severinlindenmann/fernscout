@@ -184,18 +184,13 @@ describe("GET /api/v2/{user}/status", () => {
   /**
    * B1633, end to end rather than by shape: a slug taken straight out of
    * `/status`'s `drafts` has to be one `GET .../days/{slug}` can actually
-   * find. `listDrafts` (v1) is what feeds `buildJournalStatus`, so the day
-   * this reads back has to exist on BOTH sides of the v1/v2 split still
-   * live in this codebase (B1598) — the v1 markdown `writeDraft` already
-   * writes (so `listDrafts` sees it) and the v2 JSON store `PUT` writes (so
-   * the day route can find it) — same trip id, same date, same bare slug,
-   * two files in the same `entries/` folder that never collide because
-   * they differ by extension.
+   * find. `listDrafts` (v1) is what feeds `buildJournalStatus`, and since
+   * B1598 both it and the v2 day route read the same on-disk JSON, so a
+   * trip and day created fresh through the v2 `PUT` routes below are all
+   * this needs — no separate v1-shaped fixture to collide with them.
    */
   test("a slug out of the drafts list is a slug the v2 day route accepts", async () => {
     const tripId = "status-e2e-trip";
-    writeTrip(tripId);
-    writeDraft(tripId, "matsumoto-detour");
 
     const token = await ownerToken();
 

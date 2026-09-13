@@ -17,6 +17,8 @@ import GalleryPage from "@/app/[user]/(trip)/gallery/page";
 import MapPage from "@/app/[user]/(trip)/map/page";
 import CostsPage from "@/app/[user]/(trip)/costs/page";
 import TripsPage from "@/app/[user]/trips/page";
+import { writeTripFixture } from "./fixtures/content";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
 
 /**
  * B73 — the four pages `SiteNav` offers when the journal has no current trip.
@@ -37,25 +39,32 @@ const USER_CFG =
 function journal(trips: { id: string; status: string; start: string; end: string }[]): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "current-trip-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
-  fs.mkdirSync(path.join(dir, "alex", "trips"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(path.join(dir, "alex", "config.json"), USER_CFG);
-  for (const t of trips) {
-    fs.mkdirSync(path.join(dir, "alex", "trips", t.id), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, "alex", "trips", t.id, "trip.md"),
-      `---\nid: ${t.id}\ntitle: "${t.id}"\nstart: "${t.start}"\nend: "${t.end}"\n` +
-        `status: ${t.status}\nvisibility: public\n---\n\nSomething.\n`,
-    );
-    // A `costs.md` per trip: this file is about B73's redirect logic, not
-    // about B267's "no budget anywhere" 404, and the two must not tangle —
-    // every trip here has a budget so the costs page's own emptiness never
-    // enters into what these assertions are checking.
-    fs.writeFileSync(
-      path.join(dir, "alex", "trips", t.id, "costs.md"),
-      "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
-    );
-  }
   process.env.CONTENT_DIR = dir;
+  clearConfigCache();
+  clearUserCache();
+  for (const t of trips) {
+    writeTripFixture("alex", {
+      id: t.id,
+      title: t.id,
+      start: t.start,
+      end: t.end,
+      visibility: "public",
+      intro: "Something.",
+    });
+    // A budget per trip: this file is about B73's redirect logic, not about
+    // B267's "no budget anywhere" 404, and the two must not tangle — every
+    // trip here has a budget so the costs page's own emptiness never enters
+    // into what these assertions are checking. Not on writeTripFixture
+    // (B1630): `createTrip` has no way to write a trip's `costs` budget at
+    // all — see the note in test/costs-title.test.tsx.
+    const written = readTripFile("alex", t.id);
+    writeTripFile("alex", t.id, {
+      ...written!,
+      costs: { budget: { total: 100, days: 10 }, note: "Before we left." },
+    });
+  }
   clearConfigCache();
   clearUserCache();
   return dir;

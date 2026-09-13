@@ -28,17 +28,20 @@ function journal(): string {
 
 // Not on writeTripFixture (B1630): the journal here is deliberately "u", a
 // one-character username `isValidUsername` refuses; and every case writes
-// deliberately malformed trip.md bytes (a folder/id mismatch, a bad date,
-// unparseable frontmatter) to test the fail-closed reader — `createTrip`
-// would refuse to write any of it. Same resistance as
-// test/malformed-entries.test.ts and test/malformed-plan.test.ts.
+// deliberately malformed trip.json bytes (a folder/id mismatch, a bad date,
+// unparseable JSON) to test the fail-closed reader — `createTrip` would
+// refuse to write any of it. Same resistance as
+// test/malformed-entries.test.ts and test/malformed-plan.test.ts. Trips are
+// v2 JSON now, so "malformed" means malformed JSON rather than malformed
+// frontmatter — `writeTrip`'s `body` is raw bytes written straight to
+// trip.json, same as before.
 function writeTrip(dir: string, folder: string, body: string): void {
   fs.mkdirSync(path.join(dir, "u", "trips", folder), { recursive: true });
-  fs.writeFileSync(path.join(dir, "u", "trips", folder, "trip.md"), body);
+  fs.writeFileSync(path.join(dir, "u", "trips", folder, "trip.json"), body);
 }
 
 const GOOD = (id: string) =>
-  `---\nid: ${id}\ntitle: "A Trip"\nstart: "2024-01-01"\nend: "2024-01-09"\nstatus: past\n---\n\nx\n`;
+  JSON.stringify({ id, title: "A Trip", dates: { from: "2024-01-01", to: "2024-01-09" } });
 
 /** Silences the `[trips]` warnings these fixtures deliberately provoke. */
 let warn: ReturnType<typeof vi.spyOn>;
@@ -65,21 +68,25 @@ describe("getMalformedTrips", () => {
 
   test("a missing id names the folder to add", () => {
     const dir = journal();
-    writeTrip(dir, "asia-2023", `---\ntitle: "x"\nstart: "2024-01-01"\nend: "2024-01-02"\n---\n\nx\n`);
-    expect(getMalformedTrips("u")[0].problem).toContain("id: asia-2023");
+    writeTrip(dir, "asia-2023", JSON.stringify({ title: "x", dates: { from: "2024-01-01", to: "2024-01-02" } }));
+    expect(getMalformedTrips("u")[0].problem).toContain('"id": "asia-2023"');
   });
 
   test("a start that is not a date is reported", () => {
     const dir = journal();
-    writeTrip(dir, "asia-2023", `---\nid: asia-2023\ntitle: "x"\nstart: "soon"\nend: "2024-01-02"\n---\n\nx\n`);
+    writeTrip(
+      dir,
+      "asia-2023",
+      JSON.stringify({ id: "asia-2023", title: "x", dates: { from: "soon", to: "2024-01-02" } }),
+    );
     const bad = getMalformedTrips("u");
     expect(bad).toHaveLength(1);
     expect(bad[0].problem).toContain("date");
   });
 
-  test("unparseable frontmatter is reported rather than thrown", () => {
+  test("unparseable JSON is reported rather than thrown", () => {
     const dir = journal();
-    writeTrip(dir, "asia-2023", `---\nid: [unterminated\n---\n\nx\n`);
+    writeTrip(dir, "asia-2023", `{"id": [unterminated`);
     const bad = getMalformedTrips("u");
     expect(bad).toHaveLength(1);
     expect(bad[0].problem).toContain("parse");
@@ -112,7 +119,7 @@ describe("getMalformedTrips", () => {
    * The cost of the silence is an agent that cannot tell its work from thin
    * air.
    */
-  test("a folder with no trip.md at all is reported too", () => {
+  test("a folder with no trip.json at all is reported too", () => {
     const dir = journal();
     fs.mkdirSync(path.join(dir, "u", "trips", "half-made"), { recursive: true });
 
@@ -130,13 +137,17 @@ describe("getMalformedTrips", () => {
 describe("every refusal names which one it is", () => {
   const cases: [string, string, string][] = [
     ["no-file", "half-made", ""],
-    ["unparseable", "asia-2023", `---\nid: [unterminated\n---\n`],
-    ["missing-id", "asia-2023", `---\ntitle: "x"\nstart: "2024-01-01"\nend: "2024-01-02"\n---\n`],
+    ["unparseable", "asia-2023", `{"id": [unterminated`],
+    [
+      "missing-id",
+      "asia-2023",
+      JSON.stringify({ title: "x", dates: { from: "2024-01-01", to: "2024-01-02" } }),
+    ],
     ["id-mismatch", "asia-2023", GOOD("not-asia")],
     [
       "missing-fields",
       "asia-2023",
-      `---\nid: asia-2023\ntitle: "x"\nstart: "soon"\nend: "2024-01-02"\n---\n`,
+      JSON.stringify({ id: "asia-2023", title: "x", dates: { from: "soon", to: "2024-01-02" } }),
     ],
   ];
 
@@ -163,7 +174,7 @@ describe("every refusal names which one it is", () => {
    * should not have to resubmit to discover the next fault. */
   test("a missing title and both dates are named together", () => {
     const dir = journal();
-    writeTrip(dir, "asia-2023", `---\nid: asia-2023\n---\n\nx\n`);
+    writeTrip(dir, "asia-2023", JSON.stringify({ id: "asia-2023" }));
     const [bad] = getMalformedTrips("u");
     expect(bad.problem).toContain("title, start, end");
   });

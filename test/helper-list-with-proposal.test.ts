@@ -11,6 +11,7 @@ import { forget } from "@/lib/helper/thread";
 import { honestyCounts } from "@/lib/helper/model";
 import { storeInboxFile } from "@/lib/inbox";
 import { paintJpeg } from "./support/pictures";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B1565 — live evidence, journal `severin`, 2026-09-12: the owner typed
@@ -106,7 +107,7 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -118,14 +119,14 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-eins.md"),
-    ["---", "title: Eins", 'date: "2026-05-01"', "status: draft", "---", "", "Worte."].join("\n"),
-  );
+  writeTripFixture("alex", { id: "reise", title: "Die Reise", start: "2026-05-01", end: "2026-05-10" });
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "eins",
+    date: "2026-05-01",
+    title: "Eins",
+    status: "draft",
+    content: "Worte.",
+  });
 
   // Three photographs waiting in the inbox — enough for `inbox` to draw a
   // `files` block of three, which is where `alreadyListed` starts to count

@@ -6,6 +6,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { attachGallery, detachGallery } from "@/lib/api/entries";
 import { storeUploads, deleteMediaFiles } from "@/lib/api/media";
 import { getEntryBySlug, AS_AUTHOR } from "@/lib/entries";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B605 — a photograph could be added to a day and never taken away, so the
@@ -52,7 +53,7 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -68,27 +69,19 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(tripPath(), "trip.md"),
-    [
-      "---",
-      `id: "${TRIP}"`,
-      'title: "A trip"',
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      'status: "past"',
-      'visibility: "private"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
   clearConfigCache();
   clearUserCache();
+
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: "A trip",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "private",
+  });
 
   const { migrateToLatest } = await import("@/lib/db/migrate");
   const { getDatabase } = await import("@/lib/db");
@@ -106,21 +99,15 @@ afterAll(async () => {
  * test that needs one — so a failure in one test cannot leave the next with
  * stray media on disk or a gallery item it did not expect. */
 async function freshDayWithPhoto(slug: string) {
-  fs.writeFileSync(
-    path.join(tripPath(), "entries", `2026-01-01-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      'date: "2026-01-01"',
-      'location: "Hoi An"',
-      'country: "Vietnam"',
-      "status: draft",
-      "---",
-      "",
-      "Words.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, TRIP, {
+    slug,
+    date: "2026-01-01",
+    title: slug,
+    location: "Hoi An",
+    country: "Vietnam",
+    status: "draft",
+    content: "Words.",
+  });
   const uploaded = await storeUploads(REF, slug, [
     { filename: "a.jpg", bytes: await jpeg(400, 300) },
   ]);
@@ -144,24 +131,20 @@ describe("detachGallery: the library function directly", () => {
     // derivative is always a JPEG — the two file names disagree on purpose,
     // which is exactly the case deleteMediaFiles has to handle by stem, not
     // by name.
-    fs.writeFileSync(
-      path.join(tripPath(), "entries", "2026-01-03-day-three.md"),
-      ["---", 'title: "day-three"', 'date: "2026-01-03"', "status: draft", "---", "", "Words.", ""].join("\n"),
-    );
+    writeDayFixture(dir, OWNER, TRIP, {
+      slug: "day-three",
+      date: "2026-01-03",
+      title: "day-three",
+      status: "draft",
+      content: "Words.",
+      media: [{ src: `/media/${TRIP}/day-three/01.jpg`, type: "image" }],
+    });
     const mediaDir = path.join(tripPath(), "media", "day-three");
     const originalsDir = path.join(tripPath(), "originals", "day-three");
     fs.mkdirSync(mediaDir, { recursive: true });
     fs.mkdirSync(originalsDir, { recursive: true });
     fs.writeFileSync(path.join(mediaDir, "01.jpg"), await jpeg(100, 100));
     fs.writeFileSync(path.join(originalsDir, "01.heic"), Buffer.from("not really a heic"));
-    const entryFile = path.join(tripPath(), "entries", "2026-01-03-day-three.md");
-    fs.writeFileSync(
-      entryFile,
-      fs.readFileSync(entryFile, "utf8").replace(
-        "status: draft\n",
-        `status: draft\ngallery:\n  - src: "/media/${TRIP}/day-three/01.jpg"\n    type: "image"\n    width: 100\n    height: 100\n`,
-      ),
-    );
 
     const result = detachGallery(REF, "day-three", [`/media/${TRIP}/day-three/01.jpg`]);
     expect(result.ok).toBe(true);
@@ -170,23 +153,34 @@ describe("detachGallery: the library function directly", () => {
     expect(getEntryBySlug(REF, "day-three", AS_AUTHOR)?.gallery).toHaveLength(0);
   });
 
-  test("the prose and unrelated frontmatter survive the removal", async () => {
+  test("the prose and the day's other fields survive the removal", async () => {
     const item = await freshDayWithPhoto(DAY);
-    const entryFile = path.join(tripPath(), "entries", `2026-01-01-${DAY}.md`);
-    const before = fs.readFileSync(entryFile, "utf8").replace(
-      'location: "Hoi An"',
-      'location: "Hoi An"\n# a note nobody else should touch',
-    );
-    fs.writeFileSync(entryFile, before);
+    const entryFile = path.join(tripPath(), "entries", `2026-01-01-${DAY}.json`);
+    // The "unrelated frontmatter" half of this test's original premise is
+    // gone on purpose. A day is a closed shape now and `dayFromJson`
+    // (lib/api/v2/documents.ts) carries forward only the fields it names, so
+    // a key the parser has never heard of does not survive a round trip —
+    // which is the decision in `03-build-order.md` ("no unknown-key
+    // preservation"), not an oversight. An unknown key is therefore asserted
+    // to be DROPPED below rather than kept, so that if somebody ever adds
+    // pass-through preservation this test says so.
+    //
+    // What the test was really protecting is untouched: removing a
+    // photograph must not take the day's prose or its other fields with it.
+    const before = JSON.parse(fs.readFileSync(entryFile, "utf8"));
+    before.note = "a key the v2 day shape does not define";
+    fs.writeFileSync(entryFile, JSON.stringify(before, null, 2) + "\n");
 
     const result = detachGallery(REF, DAY, [item.src]);
     expect(result.ok).toBe(true);
 
     const after = fs.readFileSync(entryFile, "utf8");
-    expect(after).toContain("# a note nobody else should touch");
-    expect(after).toContain('location: "Hoi An"');
-    expect(after).not.toContain("gallery:");
-    expect(after.trimEnd().endsWith("Words.")).toBe(true);
+    expect(after).not.toContain("a key the v2 day shape does not define");
+    expect(after).toContain('"location": "Hoi An"');
+    expect(JSON.parse(after).title).toBe("lanterns-of-hoi-an");
+    expect(JSON.parse(after).country).toBe("Vietnam");
+    expect(after).not.toContain('"media"');
+    expect(JSON.parse(after).content).toBe("Words.");
   });
 
   test("deleteMediaFiles never resolves a src claiming a different trip's directory", () => {

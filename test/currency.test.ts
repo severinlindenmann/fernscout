@@ -215,13 +215,26 @@ describe("two trips, the same currency, different rates", () => {
 
 describe("budget against actual, with mixed currencies", () => {
   test("the plan and the spend are compared in the same currency", () => {
-    // Read as of the second day: the fixture's own `status: current` and an
-    // `end` past both logged days keep this a trip still under way (B1521 —
-    // `isOver` drops `pace` once a trip is finished, which a bare
-    // `getCostSummary("u/thai-2026")` now would be, its dates being real
-    // history by the time this suite runs).
+    // Read as of the second day. v1 could hold a trip "current" by author
+    // declaration (`status: current`) no matter what the calendar said; v2
+    // retired that field (decision "status/tracks retired") and derives
+    // status purely from `dates` against the real clock (`deriveStatus`,
+    // lib/trips.ts) — so as real time moves past 2026-03-05 this fixture
+    // trip reads as `past` on its own, and `getCostSummary`'s own `now`
+    // argument (which only controls the pace math, not trip status) cannot
+    // hold it "current" any more the way it used to. The system clock is
+    // pinned here so `isOver` sees the same "still under way" moment the
+    // pace assertions below are about (B1521 — `isOver` drops `pace` once a
+    // trip is finished).
+    vi.useFakeTimers();
     const now = new Date("2026-03-02T12:00:00Z");
-    const summary = getCostSummary("u/thai-2026", now);
+    vi.setSystemTime(now);
+    let summary;
+    try {
+      summary = getCostSummary("u/thai-2026", now);
+    } finally {
+      vi.useRealTimers();
+    }
     const budget = summary.budget!;
 
     expect(summary.isOver).toBe(false);
@@ -296,25 +309,51 @@ describe("the shipped example content", () => {
     clearRatesCache();
   });
 
+  // B1636: a trip's own `rates.manual` now holds only what the ECB does not
+  // publish (alps-2024 and usa-2026 carry none at all — EUR and USD are
+  // both ECB currencies). Converting them therefore needs the *second hop*
+  // table too, the one a deployed instance keeps fresh in `<DATA_DIR>/rates`
+  // (see lib/rates.ts) — these two tests are the ones that actually cross a
+  // non-base currency, so they point `DATA_DIR` at the same ECB fixture
+  // `currency.test.ts` already uses elsewhere, standing in for that nightly
+  // refresh. The third test in this block relies on there being *no* such
+  // cache, so it does not set this and DATA_DIR is cleared afterwards.
   test("every trip converts, in every currency it was spent in", () => {
-    // Three trips between them spend in CHF, EUR, THB, VND and USD. If any
-    // rate is missing the amount is reported as unconverted rather than
-    // silently summed, so this asserting empty is the whole guarantee.
-    for (const ref of ["example/alps-2024", "example/asia-2023", "example/usa-2026"]) {
-      const summary = getCostSummary(ref);
-      expect(summary.unconverted, `${ref} has amounts it could not convert`).toEqual([]);
-      expect(summary.total).toBeGreaterThan(0);
-      expect(summary.budget?.total).toBeGreaterThan(0);
+    process.env.DATA_DIR = FIXTURES;
+    clearRatesCache();
+    try {
+      // Three trips between them spend in CHF, EUR, THB, VND and USD. If any
+      // rate is missing the amount is reported as unconverted rather than
+      // silently summed, so this asserting empty is the whole guarantee.
+      for (const ref of ["example/alps-2024", "example/asia-2023", "example/usa-2026"]) {
+        const summary = getCostSummary(ref);
+        expect(summary.unconverted, `${ref} has amounts it could not convert`).toEqual([]);
+        expect(summary.total).toBeGreaterThan(0);
+        expect(summary.budget?.total).toBeGreaterThan(0);
+      }
+    } finally {
+      delete process.env.DATA_DIR;
+      clearRatesCache();
     }
   });
 
   test("a foreign-currency cost is converted at that trip's own rate", () => {
-    // The Alps trip declares EUR at 0.94; its Italian day spends 11 + 34 EUR.
-    const alps = getCostSummary("example/alps-2024");
-    const eur = alps.items.filter((i) => i.currency === "EUR");
-    expect(eur.length).toBeGreaterThan(0);
-    for (const item of eur) {
-      expect(item.base).toBeCloseTo(item.amount * 0.94, 9);
+    process.env.DATA_DIR = FIXTURES;
+    clearRatesCache();
+    try {
+      // The Alps trip has no manual EUR rate any more (B1636) — it converts
+      // through the cached ECB table, at whatever rate that table gives.
+      const eurRate = getTrip("example/alps-2024")!.rates.EUR;
+      expect(eurRate).toBeDefined();
+      const alps = getCostSummary("example/alps-2024");
+      const eur = alps.items.filter((i) => i.currency === "EUR");
+      expect(eur.length).toBeGreaterThan(0);
+      for (const item of eur) {
+        expect(item.base).toBeCloseTo(item.amount * eurRate!, 9);
+      }
+    } finally {
+      delete process.env.DATA_DIR;
+      clearRatesCache();
     }
   });
 

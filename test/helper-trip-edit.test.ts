@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * The four trip settings a conversation could read (`who_can_read`,
@@ -49,7 +50,7 @@ beforeEach(async () => {
   process.env.ANTHROPIC_API_KEY = "not-a-real-key";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -68,20 +69,13 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      "title: Die Reise",
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: private",
-      "---",
-      "",
-      "Intro.",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -135,7 +129,7 @@ async function pressRows() {
 }
 
 function tripFile() {
-  return fs.readFileSync(path.join(dir, "alex", "trips", "reise", "trip.md"), "utf8");
+  return fs.readFileSync(path.join(dir, "alex", "trips", "reise", "trip.json"), "utf8");
 }
 
 describe("edit_trip", () => {
@@ -168,7 +162,9 @@ describe("set_visibility", () => {
       pressed(proposal),
     );
     expect(res.status).toBe(200);
-    expect(tripFile()).toContain("visibility: guest");
+    // Trips are v2 JSON now (B1598) — the written field reads as a quoted
+    // JSON string, not a YAML-shaped `key: value` line.
+    expect(tripFile()).toContain('"visibility": "guest"');
   });
 });
 
@@ -192,9 +188,21 @@ describe("trip_tracks", () => {
     const proposal = await propose("trip_tracks", { costs: "off" });
     const costs = proposal.fields.find((one) => one.name === "costs");
     expect(costs?.value).toBe("false");
+    const before = tripFile();
     const res = await patch(tripTracks, "https://t.test/api/helper/alex/trip/tracks", pressed(proposal));
     expect(res.status).toBe(200);
-    expect(tripFile()).toContain("costs: false");
+    // v2 retired trip-level tracks (lib/api/tripTracks.ts, B1598): every day
+    // answers every declinable for itself now (DAY_DECLINABLES), so there is
+    // nothing left at the trip level for a row to turn off. The door still
+    // validates the request and answers success, honestly reporting that
+    // everything stayed tracked — and writes nothing to trip.json, which the
+    // capability retiring rather than the fixture being wrong is why no
+    // written line can be asserted here any more.
+    expect(await res.json()).toMatchObject({
+      ok: true,
+      tracks: { costs: true, coordinates: true, photos: true },
+    });
+    expect(tripFile()).toBe(before);
   });
 });
 

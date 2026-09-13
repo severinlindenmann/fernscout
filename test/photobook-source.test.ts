@@ -11,6 +11,8 @@ import { planFor } from "@/lib/photobook/build";
 import { DEFAULT_OPTIONS } from "@/lib/photobook/options";
 import { planBook } from "@/lib/photobook/plan";
 import { defaultSpec, BOOK_SIZES } from "@/lib/photobook/spec";
+import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * Which copy of a photograph a book is built from, and how the plan says so.
@@ -41,47 +43,53 @@ function write(file: string, contents: string | Buffer) {
   fs.writeFileSync(file, contents);
 }
 
-/** One day, one photograph per `names` entry, numbered as ingest numbers them. */
+// Not on writeDayFixture (B1630): every case here needs per-photograph
+// `width`/`height` — the derivative's own, deliberately wrong, numbers a book
+// must not believe — and some need `translations`. Neither is a frontmatter
+// or file-extension detail (both are real fields `DayFile` carries — see
+// lib/api/v2/documents.ts), just ones the shared fixture does not expose yet.
+// Written through the production serialiser (`dayToJson`) rather than a
+// second hand-rolled JSON shape, so this cannot drift from what the reader
+// actually parses.
 function writeDay(
   slug: string,
   date: string,
   images: { width: number; height: number }[],
-  translation?: { locale: string; title?: string; content?: string },
+  // Both halves required, not optional — R1 in the deltas ledger kept a day
+  // translation as title *and* content, on the ground that a translated day
+  // with a title and no prose (or the reverse) is a half-translated page a
+  // reader meets in two languages at once. The fixture states the same rule
+  // so it cannot set up a day the server would refuse.
+  translation?: { locale: string; title: string; content: string },
 ) {
-  write(
-    path.join(tripPath(), "entries", `${date}-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      `date: "${date}"`,
-      'location: "Hoi An"',
-      'country: "Vietnam"',
-      'countryCode: "VN"',
-      "lat: 15.88",
-      "lng: 108.33",
-      "gallery:",
-      ...images.flatMap((image, i) => [
-        `  - src: "/media/asia-2026/${slug}/${String(i + 1).padStart(2, "0")}.jpg"`,
-        '    type: "image"',
-        // Deliberately the *derivative's* numbers, which is what both writers
-        // record. A book built from the original must not believe them.
-        `    width: ${image.width}`,
-        `    height: ${image.height}`,
-      ]),
-      ...(translation
-        ? [
-            "translations:",
-            `  ${translation.locale}:`,
-            ...(translation.title ? [`    title: ${JSON.stringify(translation.title)}`] : []),
-            ...(translation.content ? [`    content: ${JSON.stringify(translation.content)}`] : []),
-          ]
-        : []),
-      "---",
-      "",
-      "Words about the day.",
-      "",
-    ].join("\n"),
-  );
+  const day: DayFile = {
+    slug,
+    title: slug,
+    date,
+    location: "Hoi An",
+    country: "Vietnam",
+    countryCode: "VN",
+    coordinates: { lat: 15.88, lng: 108.33 },
+    content: "Words about the day.",
+    status: "published",
+    media: images.map((image, i) => ({
+      src: `/media/asia-2026/${slug}/${String(i + 1).padStart(2, "0")}.jpg`,
+      type: "image",
+      width: image.width,
+      height: image.height,
+    })),
+    ...(translation
+      ? {
+          // Both halves, always — the conditional spreads this replaced could
+          // build a title-only translation, which R1 decided a day may not
+          // have.
+          translations: {
+            [translation.locale]: { title: translation.title, content: translation.content },
+          },
+        }
+      : {}),
+  };
+  write(path.join(tripPath(), "entries", `${date}-${slug}.json`), dayToJson(day));
 }
 
 beforeEach(() => {
@@ -111,22 +119,14 @@ beforeEach(() => {
       features: {},
     }),
   );
-  write(
-    path.join(tripPath(), "trip.md"),
-    [
-      "---",
-      "id: asia-2026",
-      'title: "Asia"',
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      "status: past",
-      "visibility: public",
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "asia-2026",
+    title: "Asia",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "public",
+  });
   clearConfigCache();
   clearUserCache();
 });
@@ -206,26 +206,16 @@ describe("which copy of a photograph gets printed", () => {
    * the same way an unusable original is.
    */
   test("a photograph nothing can size is dropped with a warning, not silently", async () => {
-    write(
-      path.join(tripPath(), "entries", "2026-01-01-day-one.md"),
-      [
-        "---",
-        'title: "day-one"',
-        'date: "2026-01-01"',
-        'location: "Hoi An"',
-        'country: "Vietnam"',
-        'countryCode: "VN"',
-        "lat: 15.88",
-        "lng: 108.33",
-        "gallery:",
-        '  - src: "/media/asia-2026/day-one/01.jpg"',
-        '    type: "image"',
-        "---",
-        "",
-        "Words about the day.",
-        "",
-      ].join("\n"),
-    );
+    writeDayFixture(dir, "alex", "asia-2026", {
+      slug: "day-one",
+      date: "2026-01-01",
+      title: "day-one",
+      location: "Hoi An",
+      country: "Vietnam",
+      countryCode: "VN",
+      coordinates: { lat: 15.88, lng: 108.33 },
+      media: [{ src: "/media/asia-2026/day-one/01.jpg" }],
+    });
     // Not a JPEG at all — readJpeg fails, frontmatter carries no width/height.
     write(path.join(tripPath(), "media", "day-one", "01.jpg"), Buffer.from("not an image"));
 
@@ -416,29 +406,25 @@ describe("originals kept outside the content root", () => {
   });
 });
 
+// Not on writeTripFixture (B1630): `translations` is a real trip field
+// (lib/api/v2/documents.ts's `TripFile`), not a frontmatter detail, but the
+// shared fixture does not expose it yet. Overwrites the trip.json the
+// beforeEach's writeTripFixture already wrote — a raw file write, not a
+// second createTrip call — through the production serialiser so it cannot
+// drift from what the reader parses.
 describe("entry language", () => {
   test("uses saved trip translations on the title, intro and back cover source", () => {
-    write(
-      path.join(tripPath(), "trip.md"),
-      [
-        "---",
-        "id: asia-2026",
-        'title: "Asia"',
-        'tagline: "Five days"',
-        'start: "2026-01-01"',
-        'end: "2026-01-05"',
-        "status: past",
-        "visibility: public",
-        "translations:",
-        "  hu:",
-        '    title: "Ázsia"',
-        '    intro: "A magyar bevezető."',
-        "---",
-        "",
-        "Intro.",
-        "",
-      ].join("\n"),
-    );
+    const trip: TripFile = {
+      id: "asia-2026",
+      title: "Asia",
+      tagline: "Five days",
+      dates: { from: "2026-01-01", to: "2026-01-05" },
+      visibility: "public",
+      people: [],
+      intro: "Intro.",
+      translations: { hu: { title: "Ázsia", intro: "A magyar bevezető." } },
+    };
+    write(path.join(tripPath(), "trip.json"), tripToJson(trip));
 
     const source = buildBookSource(REF, { locale: "hu" });
     expect(source.trip).toMatchObject({

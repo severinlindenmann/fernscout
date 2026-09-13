@@ -11,6 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { dayToJson, tripToJson } from "../lib/api/v2/documents.ts";
 
 const PLACES = [
   ["Bangkok", "Thailand", "TH", 13.7563, 100.5018],
@@ -85,20 +86,21 @@ export function makeScaleFixture(out, dayCount) {
     ),
   );
 
+  // Content is JSON now (B1598) — write through the one serializer rather
+  // than hand-rolling frontmatter, so this fixture cannot drift from the
+  // shape `lib/trips.ts`/`lib/entries.ts` actually read.
   fs.writeFileSync(
-    path.join(out, "traveller", "trips", "scale", "trip.md"),
-    `---
-id: scale
-title: "A long trip"
-tagline: "Long enough to measure"
-start: "${scaleDate(0)}"
-end: "${scaleDate(dayCount - 1)}"
-status: current
-accent: sky
----
-
-A trip generated to measure how the story page grows.
-`,
+    path.join(out, "traveller", "trips", "scale", "trip.json"),
+    tripToJson({
+      id: "scale",
+      title: "A long trip",
+      tagline: "Long enough to measure",
+      dates: { from: scaleDate(0), to: scaleDate(dayCount - 1) },
+      visibility: "public",
+      accent: "sky",
+      people: [{ name: "A Traveller", email: "traveller@example.test" }],
+      intro: "A trip generated to measure how the story page grows.",
+    }),
   );
 
   for (let i = 0; i < dayCount; i++) {
@@ -107,54 +109,48 @@ A trip generated to measure how the story page grows.
     const mode = MODES[i % MODES.length];
     const prev = PLACES[(i - 1 + PLACES.length) % PLACES.length][0];
     fs.writeFileSync(
-      path.join(entries, `${date}-day-${i + 1}.md`),
-      `---
-title: "Day ${i + 1} in ${location}"
-date: "${date}"
-time: "0${(i % 9) + 1}:15"
-location: "${location}"
-country: "${country}"
-countryCode: "${code}"
-lat: ${lat}
-lng: ${lng}
-transportMode: "${mode}"
-transportFrom: "${prev}"
-transportTo: "${location}"
-gallery:
-  - src: "/media/scale/${i}/01.jpg"
-    type: "image"
-    width: 1200
-    height: 800
-    caption: "Something worth stopping for on day ${i + 1}"
-  - src: "/media/scale/${i}/02.jpg"
-    type: "image"
-    width: 800
-    height: 1200
-    caption: "The other thing worth stopping for on day ${i + 1}"
-tags: ["${mode}", "${country.toLowerCase()}"]
-costs:
-  - label: "Beds for the night"
-    amount: ${20 + (i % 40)}
-    category: "accommodation"
-  - label: "Food, all of it"
-    amount: ${10 + (i % 25)}
-    category: "food"
-  - label: "Getting there by ${mode}"
-    amount: ${5 + (i % 60)}
-    category: "transport"
-translations:
-  de:
-    title: "Tag ${i + 1} in ${location}"
-    content: |
-      ${SCALE_PROSE}
-  hu:
-    title: "${i + 1}. nap ${location}"
-    content: |
-      ${SCALE_PROSE}
----
-
-${SCALE_PROSE}
-`,
+      path.join(entries, `${date}-day-${i + 1}.json`),
+      dayToJson({
+        slug: `day-${i + 1}`,
+        title: `Day ${i + 1} in ${location}`,
+        date,
+        time: `0${(i % 9) + 1}:15`,
+        location,
+        country,
+        countryCode: code,
+        coordinates: { lat, lng },
+        transportMode: mode,
+        transportFrom: prev,
+        transportTo: location,
+        media: [
+          {
+            src: `/media/scale/${i}/01.jpg`,
+            type: "image",
+            width: 1200,
+            height: 800,
+            caption: `Something worth stopping for on day ${i + 1}`,
+          },
+          {
+            src: `/media/scale/${i}/02.jpg`,
+            type: "image",
+            width: 800,
+            height: 1200,
+            caption: `The other thing worth stopping for on day ${i + 1}`,
+          },
+        ],
+        tags: [mode, country.toLowerCase()],
+        costs: [
+          { label: "Beds for the night", amount: 20 + (i % 40), category: "accommodation" },
+          { label: "Food, all of it", amount: 10 + (i % 25), category: "food" },
+          { label: `Getting there by ${mode}`, amount: 5 + (i % 60), category: "transport" },
+        ],
+        translations: {
+          de: { title: `Tag ${i + 1} in ${location}`, content: SCALE_PROSE },
+          hu: { title: `${i + 1}. nap ${location}`, content: SCALE_PROSE },
+        },
+        content: SCALE_PROSE,
+        status: "published",
+      }),
     );
   }
   return out;

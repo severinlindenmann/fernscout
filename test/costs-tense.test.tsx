@@ -19,16 +19,18 @@ import { renderToStaticMarkup } from "react-dom/server";
  * which is the cheap half and disagrees with the page for an `upcoming` trip
  * that already has a day written.
  *
- * **What this route can and cannot be in.** `getCurrentTrip` returns a trip
- * declaring `status: current` or else the most recent `past` one, and
- * `hasBegun` is true for both — `current` is the author's own word and is
- * honoured as written (see lib/tripTime.ts), so a trip declared current with a
- * start still ahead of it reads as begun here exactly as it does on the page.
- * The planned wording at `/<user>/costs` therefore belongs to one state only:
- * no current trip at all, where the page redirects to the trip list. The
- * assertions below are about the pairing rather than about a mismatch that can
- * be observed on this route, and that is the honest reading — the ticket's
- * Why placed the defect here, and the state it describes cannot be built.
+ * **What this route can and cannot be in.** `getCurrentTrip` returns whichever
+ * trip `today` falls inside, or else the most recent `past` one, and
+ * `hasBegun` is true for both. v1 had a `status: current` an author could
+ * declare against a start still ahead of it (B72); v2 retired the field
+ * outright (decision "status/tracks retired", lib/trips.ts's `deriveStatus`)
+ * — `current` is now purely a calendar fact, so that particular edge case no
+ * longer exists to build. The planned wording at `/<user>/costs` still
+ * belongs to one state only: no current trip at all, where the page redirects
+ * to the trip list. The assertions below are about the pairing rather than
+ * about a mismatch that can be observed on this route, and that is the honest
+ * reading — the ticket's Why placed the defect here, and the state it
+ * describes cannot be built.
  */
 
 const request = vi.hoisted(() => ({ cookieLocale: undefined as string | undefined }));
@@ -65,6 +67,8 @@ import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import type { CostSummary } from "@/lib/costFormat";
 import type { SiteSummary } from "@/lib/site";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
 
 const LOCALES = ["en", "de", "hu"] as const;
 
@@ -77,6 +81,7 @@ const SERVER_CFG =
  */
 function journal(opts: { locale: string; withTrip: boolean }): void {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "costs-tense-"));
+  process.env.CONTENT_DIR = dir;
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
   fs.mkdirSync(path.join(dir, "alex", "trips"), { recursive: true });
   fs.writeFileSync(
@@ -94,24 +99,38 @@ function journal(opts: { locale: string; withTrip: boolean }): void {
       features: {},
     }),
   );
+  clearConfigCache();
+  clearUserCache();
   if (opts.withTrip) {
-    const trip = path.join(dir, "alex", "trips", "ridge-2025");
-    fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
-    fs.writeFileSync(
-      path.join(trip, "trip.md"),
-      '---\nid: ridge-2025\ntitle: "Along the ridge"\nstart: "2025-05-01"\nend: "2025-05-10"\n' +
-        "status: current\nvisibility: public\n---\n\nSomething.\n",
-    );
-    fs.writeFileSync(
-      path.join(trip, "entries", "2025-05-02-first.md"),
-      '---\ntitle: "First"\ndate: "2025-05-02"\nlocation: "Chur"\n---\n\nA day.\n',
-    );
-    // Without this the page 404s on its own missing budget (B267) before
-    // this file's tense assertions ever get to run.
-    fs.writeFileSync(
-      path.join(trip, "costs.md"),
-      "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
-    );
+    writeTripFixture("alex", {
+      id: "ridge-2025",
+      title: "Along the ridge",
+      start: "2025-05-01",
+      end: "2025-05-10",
+      status: "current",
+      visibility: "public",
+      intro: "Something.",
+    });
+    writeDayFixture(dir, "alex", "ridge-2025", {
+      slug: "first",
+      date: "2025-05-02",
+      title: "First",
+      location: "Chur",
+      content: "A day.",
+    });
+    // Not on writeTripFixture (B1630): `createTrip` has no way to write a
+    // trip's `costs` budget at all — `costs.md` is dead once a trip is
+    // written as v2 `trip.json` (`hasCostsData`/`readCostsFile` read
+    // `trip.costsSection`, never the file). Merge it onto the trip document
+    // directly, the same door `writeTripFile` is for
+    // `test/api-v2-figures.test.ts`'s figure reference. Without this the
+    // page 404s on its own missing budget (B267) before this file's tense
+    // assertions ever run.
+    const written = readTripFile("alex", "ridge-2025");
+    writeTripFile("alex", "ridge-2025", {
+      ...written!,
+      costs: { budget: { total: 100, days: 10 }, note: "Before we left." },
+    });
   }
   process.env.CONTENT_DIR = dir;
   clearConfigCache();
@@ -232,11 +251,27 @@ describe.each(LOCALES)("a journal reading in %s", (locale) => {
  * takes it away.
  */
 describe("the flag the description and the page share", () => {
-  test("a current trip with a future start reads as begun on both sides", async () => {
+  // v1's `status: current` was an author's own declared word and stood even
+  // against a `start` still ahead of it (B72's own fix) — this test used to
+  // pin exactly that: a trip declared current, dated into the future,
+  // reading as begun anyway. v2 retired the field outright (decision
+  // "status/tracks retired", lib/trips.ts's `deriveStatus`): `current` is
+  // now purely `today` falling within `[start, end]`, so a future-dated
+  // trip cannot be made to read as current at all any more — there is no
+  // state left to build that pins the old edge case. What is left of the
+  // property is the pairing itself: whatever `deriveStatus` calls current,
+  // `getCostSummary` (the page) and `hasBegun` (the metadata) must agree is
+  // begun. The system clock is pinned, same reason as
+  // `test/currency.test.ts`'s "the plan and the spend are compared in the
+  // same currency" — `deriveStatus` reads the real clock, so a trip's dates
+  // alone cannot stay "current" as real time moves past them.
+  test("a current trip reads as begun on both sides", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2099-05-05T12:00:00Z"));
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "costs-tense-ahead-"));
+    process.env.CONTENT_DIR = dir;
     fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
-    const trip = path.join(dir, "alex", "trips", "ridge-2099");
-    fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
     fs.writeFileSync(
       path.join(dir, "alex", "config.json"),
       JSON.stringify({
@@ -252,25 +287,36 @@ describe("the flag the description and the page share", () => {
         features: {},
       }),
     );
-    fs.writeFileSync(
-      path.join(trip, "trip.md"),
-      '---\nid: ridge-2099\ntitle: "Ahead"\nstart: "2099-05-01"\nend: "2099-05-10"\n' +
-        "status: current\nvisibility: public\n---\n\nSomething.\n",
-    );
-    fs.writeFileSync(
-      path.join(trip, "costs.md"),
-      "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
-    );
+    clearConfigCache();
+    clearUserCache();
+    writeTripFixture("alex", {
+      id: "ridge-2099",
+      title: "Ahead",
+      start: "2099-05-01",
+      end: "2099-05-10",
+      visibility: "public",
+      intro: "Something.",
+    });
+    // Not on writeTripFixture (B1630) — see the note above.
+    const written2099 = readTripFile("alex", "ridge-2099");
+    writeTripFile("alex", "ridge-2099", {
+      ...written2099!,
+      costs: { budget: { total: 100, days: 10 }, note: "Before we left." },
+    });
     process.env.CONTENT_DIR = dir;
     clearConfigCache();
     clearUserCache();
     clearLocaleCache();
 
-    const current = getCurrentTrip("alex");
-    if (!current) throw new Error("the fixture has no current trip");
-    expect(getCostSummary(current.ref).hasBegun).toBe(true);
-    expect(await descriptionOf()).toBe(
-      dictionaryFor("en")["cost.subtitle"].replace("{currency}", "CHF"),
-    );
+    try {
+      const current = getCurrentTrip("alex");
+      if (!current) throw new Error("the fixture has no current trip");
+      expect(getCostSummary(current.ref).hasBegun).toBe(true);
+      expect(await descriptionOf()).toBe(
+        dictionaryFor("en")["cost.subtitle"].replace("{currency}", "CHF"),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -8,6 +8,8 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import type { Say } from "@/lib/helper/intents";
 import { runTool } from "@/lib/helper/tools";
+import { createTrip } from "@/lib/tripWrite";
+import { writeDayFixture } from "./fixtures/content";
 
 /**
  * **A currency nobody said is a guess, and the guess is shown** — B973.
@@ -39,7 +41,7 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "helper-cost-currency-b973";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -58,28 +60,29 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      "title: Die Reise",
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: private",
-      "rates:",
-      "  EUR: 0.95",
-      "---",
-      "",
-      "Intro.",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-first.md"),
-    ["---", 'title: "first"', 'date: "2026-05-01"', "status: draft", "---", "", "Worte.", ""].join(
-      "\n",
-    ),
-  );
+  clearConfigCache();
+  clearUserCache();
+  // `rates` is not on writeTripFixture (B1630) — it is one of `createTrip`'s
+  // raw block fields, but the shared fixture only ever passes the common
+  // ones through. Calling the real writer directly here rather than
+  // widening the fixture for what is, in this whole batch, the one caller
+  // that needs a trip's own conversion rate.
+  createTrip("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+    rates: { EUR: 0.95 },
+    intro: "Intro.",
+  });
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "first",
+    date: "2026-05-01",
+    title: "first",
+    status: "draft",
+    content: "Worte.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

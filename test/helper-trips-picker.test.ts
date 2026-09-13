@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
 import { forget } from "@/lib/helper/thread";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B1261, ctxloss finding 1 — `lib/helper/tools/areas/trips.ts`'s `trips`
@@ -117,7 +118,7 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -129,10 +130,7 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join("\n"),
-  );
+  writeTripFixture("alex", { id: "reise", title: "Die Reise", start: "2026-05-01", end: "2026-05-10" });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

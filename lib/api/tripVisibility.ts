@@ -1,24 +1,24 @@
 import "server-only";
-import fs from "node:fs";
-import path from "node:path";
-import matter from "gray-matter";
-import { getTrip, tripDir, type TripRef } from "../trips";
+import { fileUnchangedSince } from "../entries";
+import { getTrip, type TripRef } from "../trips";
 import type { TripVisibility } from "../types";
 import { VISIBILITIES } from "../tripWrite";
-import { spliceScalar } from "../frontmatterScalar";
+import { readTripJson, writeTripJson } from "./tripFile";
 
 /**
  * Amending a trip's `visibility:` (and `listed:`, and `teaser:`) after it has
  * been created — B396, B587.
  *
- * `createTrip` (lib/tripWrite.ts) could only ever write `visibility:` once, at
- * the moment the folder is made, because nothing edited `trip.md` afterwards
- * (B207). The contacts page then told an owner with no `guest` trip to "set a
- * trip's visibility to guest" — advice with nowhere to go on a hosted
- * instance, where nobody has a shell. This is the door that instruction was
- * missing, built the way B352 built `.../rates`: a textual splice of the
- * frontmatter, validated with the same list `createTrip` validates against,
- * `matter()`-parsed before writing so a corrupting edit writes nothing.
+ * `createTrip` (lib/tripWrite.ts) could only ever write these once, at the
+ * moment the folder is made, because nothing edited the trip's own file
+ * afterwards (B207). The contacts page then told an owner with no `guest`
+ * trip to "set a trip's visibility to guest" — advice with nowhere to go on a
+ * hosted instance, where nobody has a shell. This is the door that
+ * instruction was missing, built the way B352 built `.../rates`: a
+ * read-modify-write of `trip.json` (B1598 — a textual splice of `trip.md`'s
+ * frontmatter before that), validated with the same list `createTrip`
+ * validates against, and guarded by `fileUnchangedSince` (B643) so a second
+ * writer's change is never silently erased.
  *
  * Owner only, like `.../rates` — a trip-scoped token can write days into its
  * trip but cannot decide who else may read the whole journey. That check
@@ -137,44 +137,36 @@ export function patchTripVisibility(
 
   const widened = REACH[visibility] > REACH[trip.visibility];
 
-  const file = path.join(tripDir(ref), "trip.md");
-  const text = fs.readFileSync(file, "utf8");
-  let spliced: string | null = spliceScalar(text, "visibility", `visibility: ${visibility}`);
-  if (spliced === null) {
+  const read = readTripJson(ref);
+  if (!read) {
     return {
       ok: false,
       error: "no_frontmatter",
-      message: "trip.md has no frontmatter block to edit. Edit the file by hand.",
+      message: "trip.json could not be read. Edit the file by hand.",
     };
   }
-  // Written only when it narrows a public trip, exactly as `createTrip`
-  // writes it — a `listed:` line is otherwise a key that never says anything.
-  spliced = spliceScalar(spliced, "listed", visibility === "public" && !listed ? "listed: false" : null);
-  // And `teaser:`, written only when it is true and therefore only on a
-  // closed trip — the same "a line that never says anything" rule.
-  if (spliced !== null) {
-    spliced = spliceScalar(spliced, "teaser", teaser ? "teaser: true" : null);
-  }
-  if (spliced === null) {
+  const next = {
+    ...read.trip,
+    visibility,
+    // Written only when it narrows a public trip, exactly as `createTrip`
+    // writes it — a `listed:` key is otherwise one that never says anything.
+    ...(visibility === "public" && !listed ? { listed: false as const } : { listed: undefined }),
+    ...(teaser ? { teaser: true as const } : { teaser: undefined }),
+  };
+
+  // B643 — see `fileUnchangedSince`. `read.raw` was read moments ago; if the
+  // file has moved since, writing `next` now would silently erase whatever
+  // wrote it.
+  if (!fileUnchangedSince(read.file, read.raw)) {
     return {
       ok: false,
-      error: "no_frontmatter",
-      message: "trip.md has no frontmatter block to edit. Edit the file by hand.",
+      error: "conflict",
+      message:
+        "trip.json changed while this was being written — something else wrote to this trip at " +
+        "the same time. Nothing was written; read the trip back and send this change again.",
     };
   }
-
-  try {
-    matter(spliced);
-  } catch (err) {
-    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return {
-      ok: false,
-      bug: true,
-      error: `The edit would leave trip.md unparseable (${said}), so nothing was written. This is a bug; please report it.`,
-    };
-  }
-
-  fs.writeFileSync(file, spliced);
+  writeTripJson(read.file, next);
 
   const after = readTripVisibility(ref);
   if (
@@ -186,7 +178,7 @@ export function patchTripVisibility(
     return {
       ok: false,
       bug: true,
-      error: "trip.md was written but does not read back what was asked. This is a bug; please report it.",
+      error: "trip.json was written but does not read back what was asked. This is a bug; please report it.",
     };
   }
   return {

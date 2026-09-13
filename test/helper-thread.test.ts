@@ -10,6 +10,7 @@ import { grant, spend } from "@/lib/credits";
 import { forget, history, remember } from "@/lib/helper/thread";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { threadSystemPrompt } from "@/lib/helper/model";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * The thread — B889, round 1 of `docs/plans/2026-09-07-helper-as-an-agent.md`.
@@ -154,7 +155,7 @@ beforeEach(async () => {
   sent.length = 0;
   forget("alex");
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -173,28 +174,26 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      "title: Die Reise",
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: private",
-      "---",
-      "",
-      "Intro.",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-eins.md"),
-    ["---", "title: Eins", 'date: "2026-05-01"', "---", "", "Worte."].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-02-zwei.md"),
-    ["---", "title: Zwei", 'date: "2026-05-02"', "status: draft", "---", "", "Worte."].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+  });
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "eins",
+    date: "2026-05-01",
+    title: "Eins",
+    content: "Worte.",
+  });
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "zwei",
+    date: "2026-05-02",
+    title: "Zwei",
+    status: "draft",
+    content: "Worte.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

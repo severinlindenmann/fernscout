@@ -21,12 +21,25 @@ const SERVER_CFG =
 const USER_CFG =
   '{"title":"F","tagline":"t","owner":{"name":"A B","nickname":"A"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{}}';
 
-const GOOD_TRIP =
-  '---\nid: asia-2023\ntitle: "A Trip"\nstart: "2024-01-01"\nend: "2024-01-09"\nstatus: past\n---\n\nx\n';
+const TRIP_BASE = {
+  id: "asia-2023",
+  title: "A Trip",
+  dates: { from: "2024-01-01", to: "2024-01-09" },
+};
 
-const BROKEN_COSTS = `---\nbudget: [unterminated\n---\n\nx\n`;
+// B1606 folded `costs.md` into `trip.json`'s own `costs` section, so there is
+// no longer a *separate* file to malform while the trip itself reads fine.
+// The nearest equivalent is a `costs` section present with the wrong shape —
+// no `budget`, which the write schema requires but `tripFromJson` casts
+// through unchecked on read — and `readCostsFile` (lib/costs.ts) now guards
+// against exactly that, degrading to `null` with a warning rather than
+// throwing out of `section.budget.days`.
+const BROKEN_TRIP = JSON.stringify({ ...TRIP_BASE, costs: {} });
 
-const GOOD_COSTS = '---\nbudget:\n  total: 1000\n  currency: CHF\n---\n\nx\n';
+const GOOD_TRIP = JSON.stringify({
+  ...TRIP_BASE,
+  costs: { budget: { total: 1000, currency: "CHF" } },
+});
 
 function journal(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "malformed-costs-"));
@@ -41,13 +54,9 @@ function journal(): string {
 // one-character username `isValidUsername` refuses, so `createTrip`'s
 // `getUser` call fails with `no_such_journal` before it can write anything.
 // Same resistance as test/malformed-entries.test.ts and test/malformed-plan.test.ts.
-function writeTrip(dir: string): void {
+function writeTrip(dir: string, body: string): void {
   fs.mkdirSync(path.join(dir, "u", "trips", "asia-2023"), { recursive: true });
-  fs.writeFileSync(path.join(dir, "u", "trips", "asia-2023", "trip.md"), GOOD_TRIP);
-}
-
-function writeCosts(dir: string, body: string): void {
-  fs.writeFileSync(path.join(dir, "u", "trips", "asia-2023", "costs.md"), body);
+  fs.writeFileSync(path.join(dir, "u", "trips", "asia-2023", "trip.json"), body);
 }
 
 /** Silences the `[costs]` warning this fixture deliberately provokes. */
@@ -63,31 +72,27 @@ afterEach(() => {
 });
 
 describe("readCostsFile", () => {
-  test("a costs.md whose frontmatter will not parse reads as null, not thrown", () => {
+  test("a costs section with no usable budget reads as null, not thrown", () => {
     const dir = journal();
-    writeTrip(dir);
-    writeCosts(dir, BROKEN_COSTS);
+    writeTrip(dir, BROKEN_TRIP);
 
     expect(() => readCostsFile("u/asia-2023")).not.toThrow();
     expect(readCostsFile("u/asia-2023")).toBeNull();
     expect(warn).toHaveBeenCalled();
-    expect(String(warn.mock.calls[0][0])).toContain("costs.md");
   });
 
   test("callers built on it degrade rather than throw", () => {
     const dir = journal();
-    writeTrip(dir);
-    writeCosts(dir, BROKEN_COSTS);
+    writeTrip(dir, BROKEN_TRIP);
 
     expect(() => hasCostsData("u/asia-2023")).not.toThrow();
     expect(hasCostsData("u/asia-2023")).toBe(false);
     expect(() => costsAvailable("u")).not.toThrow();
   });
 
-  test("a good costs.md is unaffected by the guard", () => {
+  test("a good costs section is unaffected by the guard", () => {
     const dir = journal();
-    writeTrip(dir);
-    writeCosts(dir, GOOD_COSTS);
+    writeTrip(dir, GOOD_TRIP);
 
     expect(readCostsFile("u/asia-2023")).not.toBeNull();
     expect(warn).not.toHaveBeenCalled();
@@ -95,11 +100,10 @@ describe("readCostsFile", () => {
 
   test("clears when the file is fixed, without a restart", () => {
     const dir = journal();
-    writeTrip(dir);
-    writeCosts(dir, BROKEN_COSTS);
+    writeTrip(dir, BROKEN_TRIP);
     expect(readCostsFile("u/asia-2023")).toBeNull();
 
-    writeCosts(dir, GOOD_COSTS);
+    writeTrip(dir, GOOD_TRIP);
     expect(readCostsFile("u/asia-2023")).not.toBeNull();
   });
 });

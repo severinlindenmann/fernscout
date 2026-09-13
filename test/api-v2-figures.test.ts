@@ -5,6 +5,7 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B1609, phase 2 step 3, parcel D — the figure library.
@@ -323,30 +324,28 @@ describe("delete", () => {
       ctx("anna"),
     );
 
-    fs.mkdirSync(path.join(dir, OWNER, "trips", "alps-2026", "entries"), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, OWNER, "trips", "alps-2026", "trip.md"),
-      [
-        "---",
-        'id: "alps-2026"',
-        'title: "Alps"',
-        'start: "2026-08-25"',
-        'end: "2026-08-26"',
-        'status: "past"',
-        'visibility: "private"',
-        "people:",
-        '  - name: "Robin"',
-        `    email: "${OWNER_EMAIL}"`,
-        "figures:",
-        '  mode: "custom"',
-        "  figures:",
-        '    - "anna"',
-        "---",
-        "",
-        "Intro.",
-        "",
-      ].join("\n"),
-    );
+    writeTripFixture(OWNER, {
+      id: "alps-2026",
+      title: "Alps",
+      start: "2026-08-25",
+      end: "2026-08-26",
+      status: "past",
+      visibility: "private",
+      people: [{ name: "Robin", email: OWNER_EMAIL }],
+    });
+    // `createTrip` has no way to reference an existing figure by id — its
+    // `travellers` field only ever *creates* new ones. Write the v2 trip file
+    // directly (the same door `writeTripFile` is), pointing `figures` at the
+    // one `anna` this test already created above.
+    const { writeTripFile } = await import("@/lib/api/v2/store");
+    writeTripFile(OWNER, "alps-2026", {
+      id: "alps-2026",
+      title: "Alps",
+      dates: { from: "2026-08-25", to: "2026-08-26" },
+      visibility: "private",
+      people: [],
+      figures: { mode: "custom", figures: ["anna"] },
+    });
 
     const refused = await DELETE(req(`https://example.test/api/v2/${OWNER}/figures/anna`, { method: "DELETE", token }), ctx("anna"));
     expect(refused.status).toBe(409);

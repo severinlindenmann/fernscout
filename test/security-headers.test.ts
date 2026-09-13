@@ -5,6 +5,7 @@ import path from "node:path";
 import nextConfig from "@/next.config";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B02 — what every response carries.
@@ -135,8 +136,7 @@ describe("an SVG served out of somebody's content folder", () => {
         features: {},
       }),
     );
-    fs.mkdirSync(path.join(dir, "alex", "trips", "asia-2023", "entries"), { recursive: true });
-    fs.mkdirSync(path.join(dir, "alex", "trips", "asia-2023", "media", "day"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
     fs.writeFileSync(
       path.join(dir, "alex", "config.json"),
       JSON.stringify({
@@ -152,24 +152,17 @@ describe("an SVG served out of somebody's content folder", () => {
         features: {},
       }),
     );
-    fs.writeFileSync(
-      path.join(dir, "alex", "trips", "asia-2023", "trip.md"),
-      [
-        "---",
-        "id: asia-2023",
-        'title: "Asia"',
-        'start: "2026-01-01"',
-        'end: "2026-01-09"',
-        "status: past",
-        "visibility: public",
-        "---",
-        "",
-        "Body.",
-        "",
-      ].join("\n"),
-    );
+    writeTripFixture("alex", {
+      id: "asia-2023",
+      title: "Asia",
+      start: "2026-01-01",
+      end: "2026-01-09",
+      status: "past",
+      visibility: "public",
+    });
     // The thing itself: an SVG that would run script if a browser ever treated
     // it as a document.
+    fs.mkdirSync(path.join(dir, "alex", "trips", "asia-2023", "media", "day"), { recursive: true });
     fs.writeFileSync(
       path.join(dir, "alex", "trips", "asia-2023", "media", "day", "placeholder.svg"),
       `<svg xmlns="http://www.w3.org/2000/svg"><script>fetch("/api/v1/alex")</script></svg>`,

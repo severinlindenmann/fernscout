@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B1301 — an already-`active` reader's buddy link must still ask the owner.
@@ -125,9 +126,7 @@ beforeAll(async () => {
       features: { auth: { enabled: true }, contacts: { enabled: true }, mail: { enabled: true, transport: "file" } },
     }),
   );
-  for (const tripId of [GUEST_TRIP_ID, BUDDY_TRIP_ID]) {
-    fs.mkdirSync(path.join(dir, OWNER, "trips", tripId, "entries"), { recursive: true });
-  }
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -143,38 +142,24 @@ beforeAll(async () => {
       features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", GUEST_TRIP_ID, "trip.md"),
-    [
-      "---",
-      `id: "${GUEST_TRIP_ID}"`,
-      'title: "A Guest Trip"',
-      'start: "2026-08-01"',
-      'end: "2026-08-02"',
-      'status: "past"',
-      'visibility: "guest"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", BUDDY_TRIP_ID, "trip.md"),
-    [
-      "---",
-      `id: "${BUDDY_TRIP_ID}"`,
-      `title: "${BUDDY_TRIP_TITLE}"`,
-      'start: "2026-09-01"',
-      'end: "2026-09-02"',
-      'status: "past"',
-      'visibility: "private"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: GUEST_TRIP_ID,
+    title: "A Guest Trip",
+    start: "2026-08-01",
+    end: "2026-08-02",
+    status: "past",
+    visibility: "guest",
+    intro: "Intro.",
+  });
+  writeTripFixture(OWNER, {
+    id: BUDDY_TRIP_ID,
+    title: BUDDY_TRIP_TITLE,
+    start: "2026-09-01",
+    end: "2026-09-02",
+    status: "past",
+    visibility: "private",
+    intro: "Intro.",
+  });
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");

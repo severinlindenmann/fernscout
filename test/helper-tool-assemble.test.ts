@@ -8,6 +8,7 @@ import { runTool } from "@/lib/helper/tools";
 import { writeDayReadiness } from "@/lib/dayReadiness";
 import { storeInboxFile } from "@/lib/inbox";
 import type { Say } from "@/lib/helper/intents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * `assemble_day` — Phase 3's own front door onto a date already staged in its
@@ -30,7 +31,7 @@ function journal(features: Record<string, boolean> = {}): string {
       features: featureBlock,
     }),
   );
-  fs.mkdirSync(path.join(dir, USERNAME, "trips", TRIP, "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, USERNAME), { recursive: true });
   fs.writeFileSync(
     path.join(dir, USERNAME, "config.json"),
     JSON.stringify({
@@ -43,15 +44,10 @@ function journal(features: Record<string, boolean> = {}): string {
       features: featureBlock,
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, USERNAME, "trips", TRIP, "trip.md"),
-    ["---", `id: ${TRIP}`, 'title: "Die Reise"', 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro.", ""].join(
-      "\n",
-    ),
-  );
   process.env.CONTENT_DIR = dir;
   clearConfigCache();
   clearUserCache();
+  writeTripFixture(USERNAME, { id: TRIP, title: "Die Reise", start: "2026-05-01", end: "2026-05-10" });
   return dir;
 }
 

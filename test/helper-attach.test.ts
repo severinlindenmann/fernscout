@@ -11,6 +11,7 @@ import { describeSelection } from "@/lib/helper/server";
 import { listInbox, storeInboxFile } from "@/lib/inbox";
 import { runTool } from "@/lib/helper/tools";
 import { paintJpeg } from "./support/pictures";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B915 — a photograph in the inbox, put on a day from a browser.
@@ -67,7 +68,7 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -79,14 +80,21 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", TRIP, "trip.md"),
-    ["---", `id: ${TRIP}`, 'title: "Over the pass"', 'start: "2026-05-01"', 'end: "2026-05-31"', "visibility: public", "---", "", "Trip.", ""].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", TRIP, "entries", `2026-05-04-${SLUG}.md`),
-    ["---", 'title: "The pass"', 'date: "2026-05-04"', "status: draft", "---", "", "Words.", ""].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: TRIP,
+    title: "Over the pass",
+    start: "2026-05-01",
+    end: "2026-05-31",
+    visibility: "public",
+    intro: "Trip.",
+  });
+  writeDayFixture(dir, "alex", TRIP, {
+    slug: SLUG,
+    date: "2026-05-04",
+    title: "The pass",
+    status: "draft",
+    content: "Words.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

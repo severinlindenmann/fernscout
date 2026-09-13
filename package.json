@@ -24,7 +24,6 @@
     "test:watch": "vitest",
     "verify": "node scripts/verify.mjs",
     "seed:example": "node scripts/seed-example-content.mjs",
-    "demo:build": "node scripts/build-demo-content.mjs",
     "postcard": "tsx --conditions=react-server scripts/postcard.ts",
     "photobook": "tsx --conditions=react-server scripts/photobook.mts",
     "photobook:reconcile": "tsx --conditions=react-server scripts/photobook-reconcile.mts",

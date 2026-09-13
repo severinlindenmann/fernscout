@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * Redeeming a link on a server that cannot send mail — B205.
@@ -116,7 +117,7 @@ beforeAll(async () => {
   delete process.env.AUTH_DEV_CODE;
 
   writeServerConfig(false);
-  fs.mkdirSync(path.join(dir, OWNER, "trips", "invited-2026", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -132,11 +133,14 @@ beforeAll(async () => {
       features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", "invited-2026", "trip.md"),
-    ["---", 'id: "invited-2026"', 'title: "Invited"', 'start: "2026-08-25"', 'end: "2026-08-26"',
-     'status: "past"', 'visibility: "guest"', "---", "", "Intro.", ""].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: "invited-2026",
+    title: "Invited",
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "guest",
+  });
 
   await reloadConfig();
   const { migrateToLatest } = await import("@/lib/db/migrate");

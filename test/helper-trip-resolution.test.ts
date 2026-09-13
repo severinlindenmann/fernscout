@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * The trip she does not have — B940.
@@ -30,11 +31,7 @@ const say: Say = ((key: string, vars?: Record<string, string>) =>
   vars ? `${key} ${Object.values(vars).join(" ")}` : key) as Say;
 
 function trip(id: string, title: string, start: string, end: string) {
-  fs.mkdirSync(path.join(dir, "alex", "trips", id, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", id, "trip.md"),
-    ["---", `id: ${id}`, `title: ${title}`, `start: "${start}"`, `end: "${end}"`, "visibility: private", "---", "", "Intro."].join("\n"),
-  );
+  writeTripFixture("alex", { id, title, start, end, visibility: "private" });
 }
 
 beforeEach(() => {

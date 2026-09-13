@@ -5,6 +5,7 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { getAllEntries, getAllMedia, getDays, getEntryBySlug, getTripStats } from "@/lib/entries";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * Drafts, and who they are for.
@@ -19,27 +20,18 @@ import { getAllEntries, getAllMedia, getDays, getEntryBySlug, getTripStats } fro
 let dir: string;
 const REF = "alex/asia-2023";
 
-function entry(name: string, body: string, draft: boolean) {
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "asia-2023", "entries", name),
-    [
-      "---",
-      `title: "${body}"`,
-      `date: "2026-01-0${name[9]}"`,
-      'location: "Bangkok"',
-      'country: "Thailand"',
-      "lat: 13.7",
-      "lng: 100.5",
-      "gallery:",
-      '  - src: "/media/asia-2023/x/01.jpg"',
-      "    type: image",
-      ...(draft ? ["status: draft"] : []),
-      "---",
-      "",
-      body,
-      "",
-    ].join("\n"),
-  );
+function entry(date: string, slug: string, body: string, draft: boolean) {
+  writeDayFixture(dir, "alex", "asia-2023", {
+    slug,
+    date,
+    title: body,
+    location: "Bangkok",
+    country: "Thailand",
+    coordinates: { lat: 13.7, lng: 100.5 },
+    media: [{ src: "/media/asia-2023/x/01.jpg", type: "image" }],
+    status: draft ? "draft" : undefined,
+    content: body,
+  });
 }
 
 beforeEach(() => {
@@ -53,7 +45,7 @@ beforeEach(() => {
       features: {},
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "asia-2023", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -62,13 +54,17 @@ beforeEach(() => {
       baseCurrency: "CHF", displayCurrencies: ["CHF"], units: "metric", features: {},
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "asia-2023", "trip.md"),
-    ["---", "id: asia-2023", 'title: "Asia"', 'start: "2026-01-01"', 'end: "2026-01-09"',
-     "status: past", "visibility: public", "---", "", "Body.", ""].join("\n"),
-  );
-  entry("2026-01-01-published.md", "Published", false);
-  entry("2026-01-02-unpublished.md", "Unpublished", true);
+  writeTripFixture("alex", {
+    id: "asia-2023",
+    title: "Asia",
+    start: "2026-01-01",
+    end: "2026-01-09",
+    status: "past",
+    visibility: "public",
+    intro: "Body.",
+  });
+  entry("2026-01-01", "published", "Published", false);
+  entry("2026-01-02", "unpublished", "Unpublished", true);
   clearConfigCache();
   clearUserCache();
 });

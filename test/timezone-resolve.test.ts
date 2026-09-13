@@ -8,6 +8,8 @@ import { clearMatterCache, forgetEntries, getEntryBySlug } from "@/lib/entries";
 import { createDraft, editEntry } from "@/lib/api/entries";
 import { fillDayTimezone } from "@/lib/api/timezoneBackfill";
 import { timezoneForCoordinates } from "@/lib/timezone";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B1090 — a day's zone worked out from where it happened, not left inert.
@@ -33,7 +35,7 @@ function writeInstance() {
 }
 
 function writeJournal() {
-  fs.mkdirSync(path.join(dir, "ana", "trips", "alps", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "ana"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "ana", "config.json"),
     JSON.stringify({
@@ -49,22 +51,14 @@ function writeJournal() {
       features: {},
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "ana", "trips", "alps", "trip.md"),
-    [
-      "---",
-      'id: "alps"',
-      'title: "Alps"',
-      'start: "2026-08-20"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      'visibility: "public"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("ana", {
+    id: "alps",
+    title: "Alps",
+    start: "2026-08-20",
+    end: "2026-09-10",
+    status: "current",
+    visibility: "public",
+  });
   clearConfigCache();
   clearUserCache();
   clearMatterCache();
@@ -134,13 +128,15 @@ describe("write time — createDraft", () => {
 
 describe("write time — editEntry", () => {
   function writeBareDay() {
-    const file = path.join(dir, "ana", "trips", "alps", "entries", "2026-08-26-hoi-an.md");
-    fs.writeFileSync(
-      file,
-      ["---", 'title: "Hoi An"', 'date: "2026-08-26"', "status: draft", "---", "", "The prose.", ""].join(
-        "\n",
-      ),
-    );
+    const file = path.join(dir, "ana", "trips", "alps", "entries", "2026-08-26-hoi-an.json");
+    const day: DayFile = {
+      slug: "hoi-an",
+      title: "Hoi An",
+      date: "2026-08-26",
+      content: "The prose.",
+      status: "draft",
+    };
+    fs.writeFileSync(file, dayToJson(day));
     clearMatterCache();
     forgetEntries(ref);
   }
@@ -168,47 +164,46 @@ describe("write time — editEntry", () => {
 });
 
 describe("the backfill sweep", () => {
-  function writeDay(frontmatter: string[], slug = "hoi-an") {
-    const file = path.join(dir, "ana", "trips", "alps", "entries", `2026-08-26-${slug}.md`);
-    fs.writeFileSync(file, ["---", ...frontmatter, "---", "", "The prose.", ""].join("\n"));
+  function writeDay(
+    opts: { coordinates?: { lat: number; lng: number }; timezone?: string },
+    slug = "hoi-an",
+  ) {
+    const file = path.join(dir, "ana", "trips", "alps", "entries", `2026-08-26-${slug}.json`);
+    const day: DayFile = {
+      slug,
+      title: "Hoi An",
+      date: "2026-08-26",
+      content: "The prose.",
+      status: "draft",
+      ...(opts.coordinates ? { coordinates: opts.coordinates } : {}),
+      ...(opts.timezone ? { timezone: opts.timezone as DayFile["timezone"] } : {}),
+    };
+    fs.writeFileSync(file, dayToJson(day));
     clearMatterCache();
     forgetEntries(ref);
     return file;
   }
 
   test("fills a day with coordinates and no zone", () => {
-    writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "lat: 13.7563", "lng: 100.5018", "status: draft"]);
+    writeDay({ coordinates: { lat: 13.7563, lng: 100.5018 } });
     expect(fillDayTimezone(ref, "hoi-an")).toBe("filled");
     expect(getEntryBySlug(ref, "hoi-an", { includeDrafts: true })?.timezone).toBe("Asia/Bangkok");
   });
 
   test("never overwrites a day that already names a zone", () => {
-    writeDay([
-      'title: "Hoi An"',
-      'date: "2026-08-26"',
-      "lat: 13.7563",
-      "lng: 100.5018",
-      'timezone: "Europe/Zurich"',
-      "status: draft",
-    ]);
+    writeDay({ coordinates: { lat: 13.7563, lng: 100.5018 }, timezone: "Europe/Zurich" });
     expect(fillDayTimezone(ref, "hoi-an")).toBe("already_recorded");
     expect(getEntryBySlug(ref, "hoi-an", { includeDrafts: true })?.timezone).toBe("Europe/Zurich");
   });
 
   test("leaves a day with no coordinates alone", () => {
-    writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "status: draft"]);
+    writeDay({});
     expect(fillDayTimezone(ref, "hoi-an")).toBe("no_coordinates");
     expect(getEntryBySlug(ref, "hoi-an", { includeDrafts: true })?.timezone).toBeUndefined();
   });
 
   test("running the sweep twice changes nothing the second time", () => {
-    const file = writeDay([
-      'title: "Hoi An"',
-      'date: "2026-08-26"',
-      "lat: 13.7563",
-      "lng: 100.5018",
-      "status: draft",
-    ]);
+    const file = writeDay({ coordinates: { lat: 13.7563, lng: 100.5018 } });
     expect(fillDayTimezone(ref, "hoi-an")).toBe("filled");
     const after = fs.readFileSync(file, "utf8");
     expect(fillDayTimezone(ref, "hoi-an")).toBe("already_recorded");

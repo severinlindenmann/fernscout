@@ -12,6 +12,7 @@ import { runTool } from "@/lib/helper/tools";
 import { history } from "@/lib/helper/thread";
 import { storeInboxFile } from "@/lib/inbox";
 import { getTrips } from "@/lib/trips";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * The one door a sentence goes through — B685, B889, and B900.
@@ -387,16 +388,21 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
      * a chain needs something to be chained to.
      */
     beforeEach(() => {
-      const entries = path.join(dir, "alex", "trips", "reise", "entries");
-      fs.mkdirSync(entries, { recursive: true });
-      fs.writeFileSync(
-        path.join(dir, "alex", "trips", "reise", "trip.md"),
-        ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "visibility: private", "---", "", "Intro."].join("\n"),
-      );
-      fs.writeFileSync(
-        path.join(entries, "2026-05-01-one.md"),
-        ["---", 'date: "2026-05-01"', "slug: one", "title: Der erste Tag", "status: draft", "---", "", "Worte."].join("\n"),
-      );
+      writeTripFixture("alex", {
+        id: "reise",
+        title: "Die Reise",
+        start: "2026-05-01",
+        end: "2026-05-10",
+        visibility: "private",
+        intro: "Intro.",
+      });
+      writeDayFixture(dir, "alex", "reise", {
+        slug: "one",
+        date: "2026-05-01",
+        title: "Der erste Tag",
+        status: "draft",
+        content: "Worte.",
+      });
       clearUserCache();
     });
 

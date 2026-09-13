@@ -11,7 +11,7 @@ import { grant } from "@/lib/credits";
 import { refusalFor, type Say } from "@/lib/helper/intents";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { getTrips } from "@/lib/trips";
-import { writeTripFixture } from "./fixtures/content";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
 
 /**
  * Round 1 of `docs/plans/2026-09-07-helper-everything.md` — the four ways this
@@ -147,16 +147,17 @@ function writeTrip() {
     visibility: "private",
     intro: "Intro.",
   });
-  // Not on writeDayFixture (B1630): a later assertion in this file greps the
-  // day's own bytes for the unquoted literal `status: draft` — the fixture's
-  // writer quotes it (`status: "draft"`), which is a wording difference, not
-  // a behaviour one, but the rule is fix the repoint rather than the
-  // assertion. Kept hand-rolled for that one byte.
+  // Days are v2 JSON now (B1598) — `lib/entries.ts` reads `entries/*.json`
+  // only, so a `.md` fixture here is invisible to every tool this file
+  // drives, not merely a wording mismatch on the later assertions.
   const day = (date: string, slug: string, draft: boolean) =>
-    fs.writeFileSync(
-      path.join(dir, "alex", "trips", "reise", "entries", `${date}-${slug}.md`),
-      ["---", `title: ${slug}`, `date: "${date}"`, ...(draft ? ["status: draft"] : []), "---", "", "Words."].join("\n"),
-    );
+    writeDayFixture(dir, "alex", "reise", {
+      date,
+      slug,
+      title: slug,
+      content: "Words.",
+      ...(draft ? { status: "draft" as const } : {}),
+    });
   day("2026-05-01", "one", false);
   day("2026-05-02", "two", false);
   day("2026-05-03", "three", true);
@@ -245,10 +246,10 @@ describe("taking a day down is not destroying it — B816, B900", () => {
     expect(proposals[0].endpoint).toBe("/api/helper/alex/day/unpublish");
     // Still published: a proposal is not a takedown.
     const day = fs.readFileSync(
-      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.md"),
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.json"),
       "utf8",
     );
-    expect(day).not.toContain("status: draft");
+    expect(day).not.toContain('"status": "draft"');
   });
 });
 
@@ -266,10 +267,10 @@ describe("a named refusal instead of silence — B783", () => {
     expect(blocks[1].shape).toBe("confirm");
     // And it is still a draft, because nobody has pressed anything.
     const day = fs.readFileSync(
-      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-03-three.md"),
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-03-three.json"),
       "utf8",
     );
-    expect(day).toContain("status: draft");
+    expect(day).toContain('"status": "draft"');
   });
 
   /**

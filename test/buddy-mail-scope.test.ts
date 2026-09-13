@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B347, B348, B349 — the three mails a buddy touches all called them a
@@ -161,7 +162,7 @@ beforeAll(async () => {
       features: { auth: { enabled: true }, contacts: { enabled: true }, mail: { enabled: true, transport: "file" } },
     }),
   );
-  fs.mkdirSync(path.join(dir, OWNER, "trips", TRIP_ID, "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -177,22 +178,15 @@ beforeAll(async () => {
       features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", TRIP_ID, "trip.md"),
-    [
-      "---",
-      `id: "${TRIP_ID}"`,
-      `title: "${TRIP_TITLE}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      'visibility: "private"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: TRIP_ID,
+    title: TRIP_TITLE,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "private",
+    intro: "Intro.",
+  });
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");

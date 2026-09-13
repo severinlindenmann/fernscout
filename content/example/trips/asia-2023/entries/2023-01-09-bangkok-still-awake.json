@@ -1,0 +1,43 @@
+{
+  "title": "Still awake, still hot",
+  "date": "2023-01-09",
+  "time": "22:50",
+  "timezone": "Asia/Bangkok",
+  "location": "Bangkok",
+  "country": "Thailand",
+  "countryCode": "TH",
+  "coordinates": {
+    "lat": 13.7563,
+    "lng": 100.5018
+  },
+  "content": "The street outside the guesthouse does its best trade at eleven at night, and we have stopped pretending we are going to sleep through it.\n\nSecond dinner, eaten standing up. No photographs: the phone was flat by nine and neither of us went back for the charger.",
+  "costs": [
+    {
+      "label": "Second dinner, standing up",
+      "amount": 95,
+      "category": "food",
+      "currency": "THB"
+    }
+  ],
+  "tags": [
+    "thailand",
+    "food",
+    "nights"
+  ],
+  "translations": {
+    "hu": {
+      "title": "Still awake, still hot",
+      "content": "A vendégház előtti utca este tizenegykor megy a legjobban, és feladtuk, hogy majd átalusszuk.\n\nMásodik vacsora, állva megevett. Fotó nincs: a telefon kilencre lemerült, és egyikünk sem ment vissza a töltőért."
+    }
+  },
+  "weather": {
+    "tempMin": 23.2,
+    "tempMax": 31.9,
+    "code": 3,
+    "precipitation": 0,
+    "windMax": 20.6,
+    "source": "open-meteo",
+    "recordedAt": "2026-09-06T08:32:20.296Z"
+  },
+  "status": "published"
+}

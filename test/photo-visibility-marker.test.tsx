@@ -9,6 +9,7 @@ import GalleryGrid from "@/components/GalleryGrid";
 import { getAllMedia } from "@/lib/entries";
 import { dictionaryFor } from "@/lib/locales";
 import type { Trip } from "@/lib/types";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B631 — the owner's own view showed no difference between a held-back
@@ -35,7 +36,7 @@ beforeAll(() => {
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: {} }),
   );
-  fs.mkdirSync(path.join(dir, OWNER, "trips", "reise-2026", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -46,42 +47,26 @@ beforeAll(() => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", "reise-2026", "trip.md"),
-    [
-      "---",
-      'id: "reise-2026"',
-      'title: "Reise"',
-      'start: "2026-08-01"',
-      'end: "2026-08-02"',
-      'status: "past"',
-      'visibility: "public"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", "reise-2026", "entries", "2026-08-01-bellinzona.md"),
-    [
-      "---",
-      'title: "Ankunft"',
-      'date: "2026-08-01"',
-      'location: "Bellinzona"',
-      'country: "Switzerland"',
-      "gallery:",
-      '  - src: "/media/reise-2026/bellinzona/01.jpg"',
-      '    type: "image"',
-      '  - src: "/media/reise-2026/bellinzona/02.jpg"',
-      '    type: "image"',
-      '    visibility: "private"',
-      "---",
-      "",
-      "Ankunft.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: "reise-2026",
+    title: "Reise",
+    start: "2026-08-01",
+    end: "2026-08-02",
+    status: "past",
+    visibility: "public",
+  });
+  writeDayFixture(dir, OWNER, "reise-2026", {
+    slug: "bellinzona",
+    date: "2026-08-01",
+    title: "Ankunft",
+    location: "Bellinzona",
+    country: "Switzerland",
+    content: "Ankunft.",
+    media: [
+      { src: "/media/reise-2026/bellinzona/01.jpg" },
+      { src: "/media/reise-2026/bellinzona/02.jpg", visibility: "private" },
+    ],
+  });
 });
 
 afterAll(() => {

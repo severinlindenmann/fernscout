@@ -8,6 +8,7 @@ import { clearConfigCache } from "@/lib/config";
 import { getAllEntries } from "@/lib/entries";
 import { getTrips, tripRef } from "@/lib/trips";
 import { clearUserCache } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * M6 — "download my whole trip as a zip of markdown + photos", proven by
@@ -26,6 +27,7 @@ function write(file: string, contents: string) {
 }
 
 function seedSource() {
+  process.env.CONTENT_DIR = srcDir;
   write(
     path.join(srcDir, "config.json"),
     JSON.stringify({ site: { name: "R", url: "https://example.test" }, users: {}, features: {} }),
@@ -46,58 +48,35 @@ function seedSource() {
     }),
   );
 
-  write(
-    path.join(srcDir, "traveller", "trips", "open-2026", "trip.md"),
-    [
-      "---",
-      "id: open-2026",
-      'title: "Open Trip"',
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      "status: past",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
-  write(
-    path.join(srcDir, "traveller", "trips", "open-2026", "entries", "2026-01-03-unpublished.md"),
-    [
-      "---",
-      'title: "Unpublished"',
-      'date: "2026-01-03"',
-      'location: "Beta"',
-      'country: "Testland"',
-      "lat: 1.0",
-      "lng: 2.0",
-      "status: draft",
-      "---",
-      "",
-      "Entry content, marker DRAFT-MARKER.",
-      "",
-    ].join("\n"),
-  );
-  write(
-    path.join(srcDir, "traveller", "trips", "open-2026", "entries", "2026-01-02-alpha.md"),
-    [
-      "---",
-      'title: "Alpha"',
-      'date: "2026-01-02"',
-      'location: "Alpha"',
-      'country: "Testland"',
-      "lat: 1.0",
-      "lng: 2.0",
-      "gallery:",
-      '  - src: "/media/open-2026/alpha/photo.jpg"',
-      "    type: image",
-      "---",
-      "",
-      "Entry content, marker OPEN-MARKER.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("traveller", {
+    id: "open-2026",
+    title: "Open Trip",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "public",
+    intro: "Body.",
+  });
+  writeDayFixture(srcDir, "traveller", "open-2026", {
+    slug: "unpublished",
+    date: "2026-01-03",
+    title: "Unpublished",
+    location: "Beta",
+    country: "Testland",
+    coordinates: { lat: 1.0, lng: 2.0 },
+    status: "draft",
+    content: "Entry content, marker DRAFT-MARKER.",
+  });
+  writeDayFixture(srcDir, "traveller", "open-2026", {
+    slug: "alpha",
+    date: "2026-01-02",
+    title: "Alpha",
+    location: "Alpha",
+    country: "Testland",
+    coordinates: { lat: 1.0, lng: 2.0 },
+    media: [{ src: "/media/open-2026/alpha/photo.jpg", type: "image" }],
+    content: "Entry content, marker OPEN-MARKER.",
+  });
   write(
     path.join(srcDir, "traveller", "trips", "open-2026", "media", "alpha", "photo.jpg"),
     "not really a jpeg, just bytes to round-trip",
@@ -114,38 +93,24 @@ function seedSource() {
     "{}",
   );
 
-  write(
-    path.join(srcDir, "traveller", "trips", "secret-2026", "trip.md"),
-    [
-      "---",
-      "id: secret-2026",
-      'title: "Secret Trip"',
-      'start: "2026-02-01"',
-      'end: "2026-02-05"',
-      "status: past",
-      "visibility: guest",
-      "---",
-      "",
-      "Secret body.",
-      "",
-    ].join("\n"),
-  );
-  write(
-    path.join(srcDir, "traveller", "trips", "secret-2026", "entries", "2026-02-02-hidden.md"),
-    [
-      "---",
-      'title: "Hidden"',
-      'date: "2026-02-02"',
-      'location: "Hidden"',
-      'country: "Testland"',
-      "lat: 3.0",
-      "lng: 4.0",
-      "---",
-      "",
-      "Entry content, marker SECRET-MARKER.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("traveller", {
+    id: "secret-2026",
+    title: "Secret Trip",
+    start: "2026-02-01",
+    end: "2026-02-05",
+    status: "past",
+    visibility: "guest",
+    intro: "Secret body.",
+  });
+  writeDayFixture(srcDir, "traveller", "secret-2026", {
+    slug: "hidden",
+    date: "2026-02-02",
+    title: "Hidden",
+    location: "Hidden",
+    country: "Testland",
+    coordinates: { lat: 3.0, lng: 4.0 },
+    content: "Entry content, marker SECRET-MARKER.",
+  });
 
   write(
     path.join(srcDir, "traveller", "helper-consent.json"),
@@ -187,7 +152,7 @@ describe("buildUserExportZipBuffer — scope 'all'", () => {
     const extracted = unzipInto(buffer, "all-drafts");
     expect(
       fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries")),
-    ).toContain("2026-01-03-unpublished.md");
+    ).toContain("2026-01-03-unpublished.json");
   });
 
   /**
@@ -250,10 +215,10 @@ describe("buildUserExportZipBuffer — scope 'all'", () => {
 
     // Frontmatter survives verbatim — this is the owner's own full backup.
     const secretTripMd = fs.readFileSync(
-      path.join(restoredUserDir, "trips", "secret-2026", "trip.md"),
+      path.join(restoredUserDir, "trips", "secret-2026", "trip.json"),
       "utf8",
     );
-    expect(secretTripMd).toContain("visibility: guest");
+    expect(secretTripMd).toContain('"visibility": "guest"');
 
     // Media round-trips too.
     const photo = fs.readFileSync(
@@ -278,8 +243,8 @@ describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
     const extracted = unzipInto(buffer, "drafts");
     const entries = fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries"));
 
-    expect(entries).toContain("2026-01-02-alpha.md");
-    expect(entries).not.toContain("2026-01-03-unpublished.md");
+    expect(entries).toContain("2026-01-02-alpha.json");
+    expect(entries).not.toContain("2026-01-03-unpublished.json");
   });
 
   /** The anonymous, open-to-link archive is a packaging of content an
@@ -340,7 +305,7 @@ describe("buildUserExportZipBuffer — narrowed to one trip", () => {
     expect(listing).toEqual(["open-2026"]);
     expect(
       fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries")),
-    ).toContain("2026-01-03-unpublished.md");
+    ).toContain("2026-01-03-unpublished.json");
   });
 
   test("does not carry config.json — the owner's name, email and phone", async () => {

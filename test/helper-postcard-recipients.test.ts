@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { runTool } from "@/lib/helper/tools";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B1284 — `propose_postcards` and `postcardCandidates` agree on what a
@@ -42,7 +43,7 @@ async function withContent(fn: (dir: string) => Promise<void>) {
   const before = process.env.CONTENT_DIR;
   process.env.CONTENT_DIR = dir;
   try {
-    fs.mkdirSync(path.join(dir, "bea", "trips", "bern-weekend-2026", "entries"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "bea"), { recursive: true });
     fs.writeFileSync(
       path.join(dir, "bea", "config.json"),
       JSON.stringify({
@@ -54,26 +55,20 @@ async function withContent(fn: (dir: string) => Promise<void>) {
         baseCurrency: "CHF",
       }),
     );
-    fs.writeFileSync(
-      path.join(dir, "bea", "trips", "bern-weekend-2026", "trip.md"),
-      ["---", "id: bern-weekend-2026", "title: Bern Weekend", 'start: "2026-09-05"', 'end: "2026-09-06"', "---", "", "Intro."].join(
-        "\n",
-      ),
-    );
-    fs.writeFileSync(
-      path.join(dir, "bea", "trips", "bern-weekend-2026", "entries", "2026-09-05-day.md"),
-      [
-        "---",
-        "title: Ein Tag in Bern",
-        'date: "2026-09-05"',
-        "status: draft",
-        "gallery:",
-        "  - src: 01.jpg",
-        "---",
-        "",
-        "Worte.",
-      ].join("\n"),
-    );
+    writeTripFixture("bea", {
+      id: "bern-weekend-2026",
+      title: "Bern Weekend",
+      start: "2026-09-05",
+      end: "2026-09-06",
+    });
+    writeDayFixture(dir, "bea", "bern-weekend-2026", {
+      slug: "day",
+      date: "2026-09-05",
+      title: "Ein Tag in Bern",
+      status: "draft",
+      content: "Worte.",
+      media: [{ src: "01.jpg" }],
+    });
     await fn(dir);
   } finally {
     if (before === undefined) delete process.env.CONTENT_DIR;

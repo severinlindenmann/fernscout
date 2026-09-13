@@ -94,14 +94,24 @@ describe("getCurrentTrip", () => {
     fs.writeFileSync(path.join(dir, "u", "config.json"), USER_CFG);
     fs.mkdirSync(path.join(dir, "u", "trips", "only-2020"), { recursive: true });
     fs.writeFileSync(
-      path.join(dir, "u", "trips", "only-2020", "trip.md"),
-      '---\nid: only-2020\ntitle: "Only"\nstart: "2020-01-01"\nend: "2020-01-09"\nstatus: past\n---\n\nDone.\n',
+      path.join(dir, "u", "trips", "only-2020", "trip.json"),
+      JSON.stringify({
+        id: "only-2020",
+        title: "Only",
+        dates: { from: "2020-01-01", to: "2020-01-09" },
+        intro: "Done.",
+      }),
     );
     process.env.CONTENT_DIR = dir;
     expect(getCurrentTrip("u")?.id).toBe("only-2020");
   });
 
   test("when several claim current, the latest start wins and the rest read as past", () => {
+    // v2 stores no `status` at all (B1598) — "claiming current" is no longer
+    // a declared word to write, it is two date ranges that both happen to
+    // span today. Both spans below straddle "now" (whenever the suite runs,
+    // comfortably), so both derive as current before the tie-break in
+    // `loadTrips` picks the later start and recalculates the other.
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trips-"));
     fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
     fs.mkdirSync(path.join(dir, "u"), { recursive: true });
@@ -109,8 +119,8 @@ describe("getCurrentTrip", () => {
     for (const [id, start] of [["one-2024", "2024-01-01"], ["two-2025", "2025-01-01"]]) {
       fs.mkdirSync(path.join(dir, "u", "trips", id), { recursive: true });
       fs.writeFileSync(
-        path.join(dir, "u", "trips", id, "trip.md"),
-        `---\nid: ${id}\ntitle: "${id}"\nstart: "${start}"\nend: "${start}"\nstatus: current\n---\n\nx\n`,
+        path.join(dir, "u", "trips", id, "trip.json"),
+        JSON.stringify({ id, title: id, dates: { from: start, to: "2099-12-31" } }),
       );
     }
     process.env.CONTENT_DIR = dir;

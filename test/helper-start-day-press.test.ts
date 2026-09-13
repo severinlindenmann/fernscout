@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * The press that failed every time — B917.
@@ -50,7 +51,7 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "helper-start-day-secret-b917";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -69,20 +70,13 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      "title: Die Reise",
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: private",
-      "---",
-      "",
-      "Intro.",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -151,10 +145,16 @@ describe("pressing the proposal the conversation offered", () => {
       path.join(dir, "alex", "trips", "reise", "entries", written[0]),
       "utf8",
     );
-    // Nobody has been asked, and the day says exactly that — never a decline,
-    // which would put "nothing was spent" into somebody's journal as fact.
-    expect(day).toContain("unrecorded: [costs, coordinates]");
-    expect(day).not.toContain("without:");
+    // Nobody has been asked, and the day says exactly that — never a decline
+    // that claims "nothing was spent", only one that says the question is
+    // still open. v2 writes one `declined` map (`lib/api/v2/documents.ts`'s
+    // `dayToJson`) rather than v1's flat `unrecorded:`/`without:` arrays —
+    // "unrecorded" (not yet answered) is `declineText(track, "unknown")`
+    // (`lib/api/entries.ts`), never the "nothing to record" wording an
+    // actual "none" answer gets.
+    const parsed = JSON.parse(day) as { declined?: Record<string, string> };
+    expect(parsed.declined?.costs).toBe("Not recorded: what this day cost is unknown.");
+    expect(parsed.declined?.coordinates).toBe("Not recorded: where this day happened is unknown.");
   });
 
   test("the trip's questions are on the card, and open on “nobody has it”", async () => {
@@ -180,8 +180,11 @@ describe("pressing the proposal the conversation offered", () => {
       path.join(dir, "alex", "trips", "reise", "entries", entries()[0]),
       "utf8",
     );
-    expect(day).toContain("without: [costs]");
-    expect(day).toContain("unrecorded: [coordinates]");
+    // `declined` map, not flat arrays — "none" answers as the "nothing to
+    // record" wording, "unknown" (never asked here) as "not recorded".
+    const parsed = JSON.parse(day) as { declined?: Record<string, string> };
+    expect(parsed.declined?.costs).toBe("Nothing to record: what this day cost.");
+    expect(parsed.declined?.coordinates).toBe("Not recorded: where this day happened is unknown.");
   });
 
   test("pressing again for the same day answers a stable code, not the raw English sentence — B785", async () => {
@@ -240,18 +243,22 @@ describe("pressing the proposal the conversation offered", () => {
     ).toEqual(bytesBeforeSecondPress);
   });
 
-  test("a trip that keeps track of nothing is asked nothing", async () => {
-    const file = path.join(dir, "alex", "trips", "reise", "trip.md");
-    fs.writeFileSync(
-      file,
-      fs
-        .readFileSync(file, "utf8")
-        .replace("visibility: private", "visibility: private\ntracks:\n  costs: false\n  coordinates: false"),
-    );
+  // v1's trip-level `tracks:` block, which let a whole trip opt out of ever
+  // being asked about costs or coordinates, has no v2 home any more
+  // (`lib/api/tripTracks.ts`'s `patchTripTracks`: "every day answers every
+  // declinable directly now (DAY_DECLINABLES), so there is no trip-level
+  // 'what to ask for' left to persist"). There is therefore no longer a way
+  // to write this test's original premise (a trip that keeps track of
+  // nothing) — a day is always asked, on every trip, which is what this now
+  // pins instead: a trip whose file carries no track-like state at all still
+  // gets the full ask.
+  test("a trip's own trip.json carries no track opt-out any more — a day is always asked", async () => {
+    const file = path.join(dir, "alex", "trips", "reise", "trip.json");
+    void JSON.parse(fs.readFileSync(file, "utf8"));
     clearUserCache();
     const proposal = await propose();
-    expect(proposal.fields.map((f) => f.name)).toEqual(["trip", "date"]);
-    expect(proposal.sentence).not.toContain("agent.tool.startDayUnknown");
-    expect((await post(pressed(proposal))).status).toBe(201);
+    expect(proposal.fields.map((f) => f.name)).toEqual(["trip", "date", "costs", "coordinates"]);
+    expect(proposal.sentence).toContain("agent.tool.startDayUnknown");
+    expect((await post({ ...pressed(proposal), costs: "none", coordinates: "unknown" })).status).toBe(201);
   });
 });

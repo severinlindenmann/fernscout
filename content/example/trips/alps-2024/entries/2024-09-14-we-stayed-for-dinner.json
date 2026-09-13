@@ -1,0 +1,49 @@
+{
+  "title": "We stayed for dinner",
+  "date": "2024-09-14",
+  "time": "21:30",
+  "timezone": "Europe/Rome",
+  "location": "Domodossola",
+  "country": "Italy",
+  "countryCode": "IT",
+  "coordinates": {
+    "lat": 46.1161,
+    "lng": 8.2939
+  },
+  "content": "Decided in the car park not to drive back over the pass tonight. There was a room above the restaurant and the restaurant had a menu with four things on it.\n\nWe ate all four between the two of us and went to bed in Italy, which was not the plan we left with.",
+  "costs": [
+    {
+      "label": "Room above the restaurant",
+      "amount": 85,
+      "category": "accommodation",
+      "currency": "EUR"
+    },
+    {
+      "label": "Dinner, all four things",
+      "amount": 48,
+      "category": "food",
+      "currency": "EUR"
+    }
+  ],
+  "tags": [
+    "italy",
+    "food",
+    "unplanned"
+  ],
+  "translations": {
+    "de": {
+      "title": "Wir sind zum Abendessen geblieben",
+      "content": "Auf dem Parkplatz entschieden, heute nicht mehr über den Pass zurückzufahren. Über dem Restaurant gab es ein Zimmer, und auf der Karte standen vier Gerichte.\n\nWir haben zu zweit alle vier gegessen und sind in Italien ins Bett gegangen, was so nicht geplant war."
+    }
+  },
+  "weather": {
+    "tempMin": 10.6,
+    "tempMax": 18.3,
+    "code": 3,
+    "precipitation": 0,
+    "windMax": 12,
+    "source": "open-meteo",
+    "recordedAt": "2026-09-06T08:32:20.031Z"
+  },
+  "status": "published"
+}

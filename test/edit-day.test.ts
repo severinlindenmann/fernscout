@@ -57,8 +57,10 @@ async function agentToken(): Promise<string> {
  * these two drive `app/api/v2/.../days/[slug]/route.ts`, which is the v2
  * repoint of the deleted `app/api/v1/.../days/[slug]/route.ts` this file used
  * to import directly. The sections above (`editEntry`) are lib-level and
- * untouched by this: they write and read v1 markdown through
- * `lib/api/entries.ts` directly, never through a route at all.
+ * untouched by this: they call `lib/api/entries.ts` directly, never through a
+ * route at all — but since B1598 that writes and reads the same on-disk JSON
+ * (`dayFromJson`/`dayToJson`) the v2 routes below use, so `writeTrip()`'s
+ * fixture is the only trip either half needs.
  */
 async function patchDay(token: string, slug: string, body: unknown, ifMatch?: string) {
   const { PATCH } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
@@ -88,43 +90,6 @@ async function getDay(token: string, slug: string) {
   );
   const parsed = (await response.json()) as Record<string, unknown>;
   return { status: response.status, etag: response.headers.get("etag"), body: parsed };
-}
-
-/** A v2-native trip, alongside the `trip.md` `writeTrip()` writes above: the
- * lib-level sections read that file directly; section 3 onward drives the v2
- * routes, which need a `trip.json` to gate on instead. */
-async function putV2Trip() {
-  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/route");
-  const response = await PUT(
-    new Request("https://t.test/api/v2/alex/trips/reise", {
-      method: "PUT",
-      headers: { authorization: `Bearer ${await agentToken()}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        id: "reise",
-        title: "Reise",
-        dates: { from: "2026-09-01", to: "2026-09-05" },
-        visibility: "public",
-        people: [{ name: "Alex B", email: OWNER_EMAIL }],
-        declined: {
-          rates: "no foreign currency tracked",
-          costs: "no budget tracked",
-          plan: "no planned route recorded",
-          days: "days are written one at a time",
-          translations: "single-language journal",
-          accent: "default accent",
-          figures: "no walking figures drawn",
-          tagline: "no subtitle written",
-          intro: "no opening prose written",
-          listed: "not advertised for this fixture",
-          buddies: "travelling solo",
-        },
-      }),
-    }),
-    { params: Promise.resolve({ user: "alex", trip: "reise" }) },
-  );
-  if (response.status !== 201) {
-    throw new Error(`v2 trip not created: ${JSON.stringify(await response.json())}`);
-  }
 }
 
 function v2DayBody(overrides: Record<string, unknown> = {}): Record<string, unknown> & { declined: Record<string, unknown> } {
@@ -206,7 +171,6 @@ beforeEach(async () => {
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
-  await putV2Trip();
 });
 
 afterEach(async () => {
@@ -264,32 +228,38 @@ describe("editEntry: state survives an edit, in both directions", () => {
 });
 
 describe("editEntry: everything else about the file survives", () => {
-  test("a comment, an unrelated field and the file's key order are untouched", () => {
+  // Under v1's YAML frontmatter, `editEntry` textually spliced the changed
+  // lines into an existing file, which is what let a hand-written `#`
+  // comment and an arbitrary key order ride through an edit untouched. Under
+  // v2 (B1598) a day is JSON — a format with no comment syntax at all — and
+  // `editEntry` reads the whole document, applies the edit to the object,
+  // and writes it back with `dayToJson`'s fixed key order (documented there:
+  // "a diff in git is then always a change in content, never a change in
+  // this function's mood"). A hand-written annotation cannot survive that,
+  // by design; what the old test's own name was really asserting — that a
+  // field the edit did not touch keeps its value, and the file the edit
+  // produces is always in the one canonical shape — still holds, and is
+  // what the test below checks instead.
+  test("an unrelated field keeps its value, and the file is in dayToJson's canonical key order", () => {
     const made = createDraft(REF, { ...DRAFT, tags: ["tessin", "hiking"] });
     if (!made.ok) throw new Error("expected the draft to be written");
 
-    // Hand-edit in a comment and reorder nothing — this is the shape a person
-    // touching the file themselves would leave behind.
-    const before = fs.readFileSync(made.file, "utf8").replace(
-      'country: "Switzerland"',
-      'country: "Switzerland"\n# ask them for the exact trailhead name',
-    );
-    fs.writeFileSync(made.file, before);
-
     editEntry(REF, "erster-tag", { lat: 46.19, lng: 9.02 });
     const after = fs.readFileSync(made.file, "utf8");
+    const day = JSON.parse(after) as Record<string, unknown>;
 
-    expect(after).toContain("# ask them for the exact trailhead name");
-    expect(after).toContain('title: "Erster Tag"');
-    expect(after).toContain('location: "Bellinzona"');
-    expect(after).toContain('tags: ["tessin", "hiking"]');
-    expect(after).toContain("Ankunft am Morgen.");
-    // The new lines land at the end of the frontmatter, not scattered through
-    // the middle of what was already there. `timezone` lands ahead of
-    // `lat`/`lng` because supplying coordinates with no zone of their own
-    // resolves one (B1090), and `spliceEntryFields` writes fields in the
-    // order it considers them, timezone before lat/lng.
-    expect(after).toContain('status: draft\ntimezone: "Europe/Zurich"\nlat: 46.19\nlng: 9.02');
+    expect(day.title).toBe("Erster Tag");
+    expect(day.location).toBe("Bellinzona");
+    expect(day.tags).toEqual(["tessin", "hiking"]);
+    expect(day.content).toBe("Ankunft am Morgen.");
+    expect(day.coordinates).toEqual({ lat: 46.19, lng: 9.02 });
+    // `timezone` is resolved from the coordinates an edit with no zone of its
+    // own supplied (B1090), and lands ahead of `coordinates` because that is
+    // where `dayToJson` puts it — the file's key order is a function of the
+    // document's shape, never of the order fields were edited in.
+    expect(Object.keys(day)).toEqual([
+      "title", "date", "timezone", "location", "country", "coordinates", "content", "tags", "status",
+    ]);
   });
 
   test("travelScene can be set, then cleared back to the default", () => {
@@ -297,28 +267,28 @@ describe("editEntry: everything else about the file survives", () => {
     if (!made.ok) throw new Error("expected the draft to be written");
 
     editEntry(REF, "erster-tag", { travelScene: "skip" });
-    expect(fs.readFileSync(made.file, "utf8")).toContain('travelScene: "skip"');
+    expect(fs.readFileSync(made.file, "utf8")).toContain('"travelScene": "skip"');
     expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.travelScene).toBe("skip");
 
-    // An empty string clears the line, the same as transportMode does —
+    // An empty string clears the key, the same as transportMode does —
     // absent means the default scene again.
     editEntry(REF, "erster-tag", { travelScene: "" });
     expect(fs.readFileSync(made.file, "utf8")).not.toContain("travelScene");
     expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.travelScene).toBeUndefined();
   });
 
-  test("editing content leaves the frontmatter alone", () => {
+  test("editing content leaves the rest of the document alone", () => {
     const made = createDraft(REF, DRAFT);
     if (!made.ok) throw new Error("expected the draft to be written");
     editEntry(REF, "erster-tag", { content: "Ein neuer Absatz." });
     const after = fs.readFileSync(made.file, "utf8");
-    expect(after).toContain('title: "Erster Tag"');
-    expect(after).toContain("status: draft");
+    expect(after).toContain('"title": "Erster Tag"');
+    expect(after).toContain('"status": "draft"');
     expect(after).toContain("Ein neuer Absatz.");
     expect(after).not.toContain("Ankunft am Morgen.");
   });
 
-  test("`status: draft` in the prose is not the frontmatter's", () => {
+  test("`status: draft` in the prose is not the document's own status key", () => {
     const made = createDraft(REF, {
       ...DRAFT,
       content: "We debated whether status: draft was still the right default.",
@@ -327,7 +297,7 @@ describe("editEntry: everything else about the file survives", () => {
     editEntry(REF, "erster-tag", { lat: 46.19, lng: 9.02 });
     const after = fs.readFileSync(made.file, "utf8");
     expect(after).toContain("whether status: draft was still the right default");
-    expect(after.match(/^status:\s*draft\s*$/m)?.length).toBe(1);
+    expect(after.match(/^\s*"status":\s*"draft"/m)?.length).toBe(1);
   });
 });
 

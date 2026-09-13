@@ -7,6 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { createDraft, publishDraft } from "@/lib/api/entries";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { confirmationMatches, issueConfirmation } from "@/lib/agentConfirm";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * Publishing, and what survives of the draft rule around it.
@@ -37,27 +38,19 @@ beforeEach(() => {
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: {} }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({ title: "Alex", owner: { name: "A B", nickname: "A" } }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Reise",
+    start: "2026-09-01",
+    end: "2026-09-05",
+    status: "current",
+    visibility: "public",
+  });
   clearConfigCache();
   clearUserCache();
 });
@@ -89,7 +82,12 @@ describe("publishing a draft", () => {
     expect(getEntryBySlug(REF, "erster-tag")?.draft).toBeUndefined();
   });
 
-  test("removes the status line and nothing else", () => {
+  // v2 stores a day as JSON (dayToJson, B1598) and `publishDraft` rewrites
+  // the whole file from `{ ...day, status: "published" }` rather than
+  // deleting a YAML `status: draft` line, so "one line gone" no longer holds.
+  // The property survives in JSON's own shape instead: same line count, and
+  // the one line that differs is the `status` value.
+  test("changes only the status line, and nothing else", () => {
     const made = createDraft(REF, { ...DRAFT, tags: ["tessin"] });
     if (!made.ok) throw new Error("expected the draft to be written");
     const before = fs.readFileSync(made.file, "utf8");
@@ -97,10 +95,17 @@ describe("publishing a draft", () => {
     publishDraft(REF, "erster-tag");
     const after = fs.readFileSync(made.file, "utf8");
 
-    // Exactly one line gone, and it is the one.
-    expect(before.split("\n").length - after.split("\n").length).toBe(1);
-    expect(after).not.toMatch(/^status:\s*draft$/m);
-    for (const kept of ['title: "Erster Tag"', 'location: "Bellinzona"', "Ankunft am Morgen."]) {
+    const beforeLines = before.split("\n");
+    const afterLines = after.split("\n");
+    expect(afterLines.length).toBe(beforeLines.length);
+    const changed = beforeLines
+      .map((line, i) => (line !== afterLines[i] ? i : -1))
+      .filter((i) => i !== -1);
+    expect(changed).toHaveLength(1);
+    expect(beforeLines[changed[0]]).toMatch(/"status":\s*"draft"/);
+    expect(afterLines[changed[0]]).toMatch(/"status":\s*"published"/);
+
+    for (const kept of ['"title": "Erster Tag"', '"location": "Bellinzona"', "Ankunft am Morgen."]) {
       expect(after).toContain(kept);
     }
   });

@@ -10,6 +10,7 @@ import { issueCode } from "@/lib/auth";
 import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * Printed things, from the conversation's side — B434 and the photobook
@@ -82,9 +83,7 @@ beforeEach(async () => {
   process.env.CONTACTS_ENCRYPTION_KEY = "55".repeat(32);
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "media"), { recursive: true });
-  fs.writeFileSync(path.join(dir, "alex", "trips", "reise", "media", "hafen.jpg"), "x");
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -112,28 +111,24 @@ beforeEach(async () => {
       },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "visibility: private", "---", "", "Intro."].join(
-      "\n",
-    ),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-04-pass.md"),
-    [
-      "---",
-      "title: Der Pass",
-      'date: "2026-05-04"',
-      "status: draft",
-      "gallery:",
-      '  - src: "/media/reise/hafen.jpg"',
-      "    type: image",
-      "---",
-      "",
-      "Der Regen hörte am Nachmittag auf.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+  });
+  const media = path.join(dir, "alex", "trips", "reise", "media");
+  fs.mkdirSync(media, { recursive: true });
+  fs.writeFileSync(path.join(media, "hafen.jpg"), "x");
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "pass",
+    date: "2026-05-04",
+    title: "Der Pass",
+    status: "draft",
+    content: "Der Regen hörte am Nachmittag auf.",
+    media: [{ src: "/media/reise/hafen.jpg" }],
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
 import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
@@ -55,12 +57,17 @@ function writeJournal(username: string) {
   );
 }
 
-// Not on writeTripFixture (B1630): `reminder:`/`reminderChannel:` are this
-// file's whole subject and `createTrip` (lib/tripWrite.ts) has no fields for
-// either — there is no writer to route through yet, only the reader this
-// file pins. writeEntry below stays hand-rolled alongside it for the same
-// trip's sake rather than splitting one small fixture in two shapes.
-/** A trip, opted into a reminder or not, running the dates given. */
+/**
+ * A trip, opted into a reminder or not, running the dates given.
+ *
+ * Goes through the shared fixture and then merges `reminder` onto the written
+ * document — D18 gave the setting a home on the trip (`reminder: {channel}`,
+ * where presence is the switch), but `createTrip` still has no argument for
+ * it, so this is the same door `test/costs-projection.test.tsx` uses for a
+ * trip's budget. What it must not do is hand-roll the file: this file's whole
+ * subject is a setting that was, until D18, written into a `trip.md` nothing
+ * read, and a fixture writing its own bytes is exactly how that went unnoticed.
+ */
 function writeTrip(
   username: string,
   id: string,
@@ -68,30 +75,29 @@ function writeTrip(
   end: string,
   reminder?: "mail" | "whatsapp",
 ) {
+  writeTripFixture(username, {
+    id,
+    title: id,
+    start,
+    end,
+    visibility: "private",
+    intro: "Intro.",
+  });
+  if (reminder) {
+    const stored = readTripFile(username, id);
+    writeTripFile(username, id, { ...stored!, reminder: { channel: reminder } });
+  }
   fs.mkdirSync(path.join(dir, username, "trips", id, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, username, "trips", id, "trip.md"),
-    [
-      "---",
-      `id: ${id}`,
-      `title: "${id}"`,
-      `start: "${start}"`,
-      `end: "${end}"`,
-      "visibility: private",
-      ...(reminder ? ["reminder: true", `reminderChannel: ${reminder}`] : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
 }
 
 function writeEntry(username: string, tripId: string, date: string, status: "draft" | "published") {
-  fs.writeFileSync(
-    path.join(dir, username, "trips", tripId, "entries", `${date}-day.md`),
-    ["---", `title: "A day"`, `date: "${date}"`, `status: ${status}`, "---", "", "Words.", ""].join("\n"),
-  );
+  writeDayFixture(dir, username, tripId, {
+    slug: "day",
+    date,
+    title: "A day",
+    content: "Words.",
+    ...(status === "draft" ? { status: "draft" as const } : {}),
+  });
 }
 
 beforeEach(() => {
@@ -128,9 +134,13 @@ describe("the on/off switch (lib/api/tripReminder.ts)", () => {
     const result = patchTripReminder("ana/spain", { enabled: false });
     expect(result).toMatchObject({ ok: true, enabled: false, channel: null });
     expect(readTripReminder("ana/spain")).toEqual({ enabled: false, channel: null });
-    const file = fs.readFileSync(path.join(dir, "ana", "trips", "spain", "trip.md"), "utf8");
-    expect(file).not.toContain("reminder:");
-    expect(file).not.toContain("reminderChannel:");
+    expect(readTripFile("ana", "spain")?.reminder).toBeUndefined();
+    // Turning it off leaves nothing behind on disk either. v1 cleared two
+    // scalars and could strand one; D18's single field cannot be half-cleared,
+    // and this reads the written bytes rather than the parsed document so a
+    // stranded key would still be caught.
+    const onDisk = fs.readFileSync(path.join(dir, "ana", "trips", "spain", "trip.json"), "utf8");
+    expect(onDisk).not.toContain("reminder");
   });
 
   test("refuses whatsapp on an instance with no reminder template configured", () => {

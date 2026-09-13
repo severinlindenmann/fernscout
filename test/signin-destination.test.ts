@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B69, end to end: the button in the mail, and where the browser is sent.
@@ -50,24 +51,14 @@ function writeJournal(username: string, tripIds: string[]) {
     }),
   );
   for (const id of tripIds) {
-    const root = path.join(dir, username, "trips", id);
-    fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-    fs.writeFileSync(
-      path.join(root, "trip.md"),
-      [
-        "---",
-        `id: "${id}"`,
-        `title: "${id}"`,
-        'start: "2026-08-25"',
-        'end: "2026-08-26"',
-        'status: "past"',
-        'visibility: "private"',
-        "---",
-        "",
-        "Intro.",
-        "",
-      ].join("\n"),
-    );
+    writeTripFixture(username, {
+      id,
+      title: id,
+      start: "2026-08-25",
+      end: "2026-08-26",
+      status: "past",
+      visibility: "private",
+    });
   }
 }
 

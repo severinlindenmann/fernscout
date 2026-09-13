@@ -346,11 +346,11 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
   if (!ID_PATTERN.test(tripId)) throw new IngestError(`"${tripId}" is not a valid trip id.`);
 
   const trip = tripDir(username, tripId);
-  if (!fs.existsSync(path.join(trip, "trip.md"))) {
+  if (!fs.existsSync(path.join(trip, "trip.json"))) {
     throw new IngestError(
       `No trip at ${trip}.\n` +
         `  Ingest fills an existing trip; it does not invent one. Create\n` +
-        `  ${path.join(trip, "trip.md")} with id/title/start/end first.`,
+        `  ${path.join(trip, "trip.json")} with id/title/dates first.`,
     );
   }
   if (!fs.existsSync(options.source) || !fs.statSync(options.source).isDirectory()) {
@@ -480,7 +480,7 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
   const datesOnDisk = new Map<string, Set<string | null>>();
   if (fs.existsSync(entriesOut)) {
     for (const file of fs.readdirSync(entriesOut)) {
-      if (!file.endsWith(".md")) continue;
+      if (!file.endsWith(".json")) continue;
       const held = entrySlugFromFile(file);
       const dates = datesOnDisk.get(held) ?? new Set<string | null>();
       dates.add(entryDateFromFile(file));
@@ -621,10 +621,10 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
     if (!options.dryRun) {
       fs.mkdirSync(entriesOut, { recursive: true });
       if (exists) {
-        const merged = appendGallery(fs.readFileSync(entryFile, "utf8"), gallery);
+        const merged = appendGallery(fs.readFileSync(entryFile, "utf8"), gallery, slug);
         if (merged === null) {
           warnings.push(
-            `${path.basename(entryFile)} has no frontmatter block, so the new photos were not ` +
+            `${path.basename(entryFile)} could not be read as a day, so the new photos were not ` +
               `added to it. They are on disk under media/${slug}/.`,
           );
         } else {

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B980 round 3 — the other half of "correct or take down", from the day.
@@ -28,8 +29,8 @@ let isOwnerMock: ReturnType<typeof vi.fn>;
 vi.mock("@/lib/contacts/session", () => ({ isOwner: vi.fn() }));
 
 const entryFile = () =>
-  path.join(dir, OWNER, "trips", TRIP, "entries", `2026-09-02-${SLUG}.md`);
-const tripFile = () => path.join(dir, OWNER, "trips", TRIP, "trip.md");
+  path.join(dir, OWNER, "trips", TRIP, "entries", `2026-09-02-${SLUG}.json`);
+const tripFile = () => path.join(dir, OWNER, "trips", TRIP, "trip.json");
 
 function writeJournal() {
   fs.writeFileSync(
@@ -59,38 +60,22 @@ function writeJournal() {
     }),
   );
 
-  const root = path.join(dir, OWNER, "trips", TRIP);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    tripFile(),
-    [
-      "---",
-      `id: "${TRIP}"`,
-      `title: "${TRIP}"`,
-      'start: "2026-09-01"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      'visibility: "private"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    entryFile(),
-    [
-      "---",
-      'title: "A day"',
-      'date: "2026-09-02"',
-      'location: "Somewhere"',
-      'country: "Nowhere"',
-      "---",
-      "",
-      "Something happened.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: TRIP,
+    start: "2026-09-01",
+    end: "2026-09-10",
+    status: "current",
+    visibility: "private",
+  });
+  writeDayFixture(dir, OWNER, TRIP, {
+    slug: SLUG,
+    date: "2026-09-02",
+    title: "A day",
+    location: "Somewhere",
+    country: "Nowhere",
+    content: "Something happened.",
+  });
 }
 
 async function unpublishRoute() {
@@ -164,7 +149,7 @@ describe("the owner's own take-down door", { shuffle: false }, () => {
     expect(response.status).toBe(200);
     const body = (await response.json()) as { ok: boolean; status: string };
     expect(body.status).toBe("draft");
-    expect(fs.readFileSync(entryFile(), "utf8")).toContain("status: draft");
+    expect(JSON.parse(fs.readFileSync(entryFile(), "utf8")).status).toBe("draft");
   });
 
   test("taking it down twice is refused rather than shrugged off", async () => {
@@ -192,7 +177,7 @@ describe("the owner's own trip-visibility door", { shuffle: false }, () => {
     );
     expect(response.status).toBe(403);
     expect(isOwnerMock).not.toHaveBeenCalled();
-    expect(fs.readFileSync(tripFile(), "utf8")).toContain('visibility: "private"');
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).visibility).toBe("private");
   });
 
   test("somebody who is not the owner writes nothing", async () => {
@@ -200,7 +185,7 @@ describe("the owner's own trip-visibility door", { shuffle: false }, () => {
     const { PATCH } = await visibilityRoute();
     const response = await PATCH(visibilityReq({ visibility: "guest" }), tripParams);
     expect(response.status).toBe(403);
-    expect(fs.readFileSync(tripFile(), "utf8")).toContain('visibility: "private"');
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).visibility).toBe("private");
   });
 
   test("writes visibility and listed to trip.md", async () => {
@@ -211,14 +196,15 @@ describe("the owner's own trip-visibility door", { shuffle: false }, () => {
     );
     expect(response.status).toBe(200);
     const written = fs.readFileSync(tripFile(), "utf8");
-    expect(written).toContain("visibility: public");
-    expect(written).not.toContain("listed: false");
+    const parsed = JSON.parse(written);
+    expect(parsed.visibility).toBe("public");
+    expect(parsed.listed).not.toBe(false);
   });
 
   test("listed: true on a trip that is not public is refused, same as over the API", async () => {
     const { PATCH } = await visibilityRoute();
     const response = await PATCH(visibilityReq({ listed: true }), tripParams);
     expect(response.status).toBe(400);
-    expect(fs.readFileSync(tripFile(), "utf8")).toContain('visibility: "private"');
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).visibility).toBe("private");
   });
 });

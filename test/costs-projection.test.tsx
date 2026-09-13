@@ -27,6 +27,8 @@ import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import type { SiteSummary } from "@/lib/site";
 import { writeTripFixture } from "./fixtures/content";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
 
 /**
  * B1521 — the budget panel projected a finished trip forward and charged the
@@ -86,14 +88,78 @@ function writeTrip(
     visibility: "public",
     intro: "Something.",
   });
-  fs.writeFileSync(path.join(tripDir, "costs.md"), costsFrontmatter);
+  // Not on writeTripFixture (B1630): `createTrip` has no way to write a
+  // trip's `costs` budget at all — `costs.md` is dead once a trip is
+  // written as v2 `trip.json` (`hasCostsData`/`readCostsFile` read
+  // `trip.costsSection`, never the file). Merge it onto the trip document
+  // directly, the same door `writeTripFile` is for
+  // `test/api-v2-figures.test.ts`'s figure reference. Every caller here
+  // passes the same simple `budget: {total, days}` shape, pulled back out of
+  // the frontmatter string rather than widening this function's own
+  // signature for one field.
+  const budgetTotal = Number(costsFrontmatter.match(/total: (\d+)/)?.[1]);
+  const budgetDays = Number(costsFrontmatter.match(/days: (\d+)/)?.[1]);
+  const written = readTripFile("alex", id);
+  writeTripFile("alex", id, {
+    ...written!,
+    costs: { budget: { total: budgetTotal, days: budgetDays }, note: "Before we left." },
+  });
+  // Not on writeDayFixture (B1630): a day's `costs:` list and its
+  // `unrecorded:`/`without:` decline markers are not concepts the fixture
+  // exposes, and the reader only ever looks at `.json` entries now
+  // (`getAllEntries`, lib/entries.ts) — a `.md` file here is invisible to
+  // it, not merely in the old frontmatter shape. Built with the real
+  // production serialiser (`dayToJson`) rather than a hand-rolled string,
+  // parsing the same handful of fragments every call site here already
+  // passes rather than widening the shared fixture for what is, in v2, one
+  // collapsed mechanism: `declined.costs` is free text, read as "figures
+  // lost" no matter what it says (`declinedTracks`, lib/entries.ts, and its
+  // own docblock on why: a decline's *wording* is for a person, never for
+  // this reader to trust as "definitely zero"). v1's `without: [costs]`
+  // ("nothing spent — a real, countable zero") has no equivalent *decline*
+  // in v2 and needs none, but it is **not** the same thing as absence:
+  // `costs: []` is the author saying nothing was spent, and no `costs` key
+  // at all is nobody having said anything. Both read as a real zero here
+  // (`unrecorded` in lib/costs.ts is only ever true when a decline is
+  // actually present), so the distinction costs this reader nothing — but
+  // excluding the key is right for *unknown* and wrong for *zero*, and a
+  // fixture that spells an authored zero as silence teaches the replay the
+  // wrong mapping. So `without: [costs]` maps to an empty `costs` array;
+  // only `unrecorded: [costs]` becomes a real `declined.costs`.
+  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
   for (const day of days) {
+    const costsMatch = day.frontmatter?.match(/costs:\n((?:.|\n)*)/);
+    const costItems = costsMatch
+      ? [...costsMatch[1].matchAll(/label: (\w+)\n\s*amount: (\d+)\n\s*category: (\w+)/g)].map((m) => ({
+          label: m[1],
+          amount: Number(m[2]),
+          currency: "CHF",
+          category: m[3],
+        }))
+      : undefined;
+    const declined = /unrecorded: \[costs\]/.test(day.frontmatter ?? "")
+      ? { costs: "declined for this fixture" }
+      : undefined;
+    // The authored zero, kept as a statement rather than as silence.
+    const spendFree = /without: \[costs\]/.test(day.frontmatter ?? "");
     fs.writeFileSync(
       // `slug` lets two entries share one date — several updates in a day
       // is normal (lib/types.ts's `Day`), and `d` stays the default so
       // every existing call site is unaffected.
-      path.join(tripDir, "entries", `${day.date}-${day.slug ?? "d"}.md`),
-      `---\ntitle: "D"\ndate: "${day.date}"\n${day.frontmatter ?? ""}---\n\nA day.\n`,
+      path.join(tripDir, "entries", `${day.date}-${day.slug ?? "d"}.json`),
+      dayToJson({
+        slug: day.slug ?? "d",
+        title: "D",
+        date: day.date,
+        content: "A day.",
+        status: "published",
+        ...(costItems
+          ? { costs: costItems as NonNullable<DayFile["costs"]> }
+          : spendFree
+            ? { costs: [] }
+            : {}),
+        ...(declined ? { declined } : {}),
+      }),
     );
   }
 }

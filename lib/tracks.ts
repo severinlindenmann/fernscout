@@ -219,18 +219,6 @@ export function tracksLines(tracks: Tracks): string[] {
   return ["tracks:", ...off.map((key) => `  ${key}: false`)];
 }
 
-/** `without: [costs]` for an entry, or none. */
-export function withoutLine(without: readonly Track[]): string[] {
-  const named = TRACKS.filter((key) => without.includes(key));
-  return named.length === 0 ? [] : [`without: [${named.join(", ")}]`];
-}
-
-/** `unrecorded: [costs]` for an entry, or none — B560. */
-export function unrecordedLine(unrecorded: readonly Track[]): string[] {
-  const named = TRACKS.filter((key) => unrecorded.includes(key));
-  return named.length === 0 ? [] : [`unrecorded: [${named.join(", ")}]`];
-}
-
 /** Read `unrecorded:` off an entry's frontmatter. Same rules as `without`. */
 export function parseUnrecorded(raw: unknown): Track[] {
   return parseWithout(raw);

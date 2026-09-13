@@ -6,6 +6,7 @@ import { isIndexable } from "@/lib/access";
 import { clearConfigCache } from "@/lib/config";
 import { getTrip } from "@/lib/trips";
 import { clearUserCache } from "@/lib/users";
+import { tripToJson, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * `teaser:` — a closed trip saying that it exists. B587.
@@ -19,14 +20,26 @@ import { clearUserCache } from "@/lib/users";
 
 let dir: string;
 
-function write(id: string, lines: string[]) {
+// Not on writeTripFixture (B1630): the journal here is "u", a one-character
+// username `isValidUsername` refuses — `createTrip` (the fixture's writer)
+// fails with `no_such_journal` before it ever gets to write anything.
+function write(
+  id: string,
+  opts: { visibility?: "private" | "guest" | "public"; listed?: boolean; teaser?: boolean } = {},
+) {
   const folder = path.join(dir, "u", "trips", id);
-  fs.mkdirSync(path.join(folder, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(folder, "trip.md"),
-    ["---", `id: ${id}`, 'title: "T"', 'start: "2026-01-01"', 'end: "2026-01-05"', "status: past",
-      ...lines, "---", "", "Intro.", ""].join("\n"),
-  );
+  fs.mkdirSync(folder, { recursive: true });
+  const trip: TripFile = {
+    id,
+    title: "T",
+    dates: { from: "2026-01-01", to: "2026-01-05" },
+    visibility: opts.visibility ?? "public",
+    people: [],
+    intro: "Intro.",
+    ...(opts.listed !== undefined ? { listed: opts.listed } : {}),
+    ...(opts.teaser ? { teaser: true } : {}),
+  };
+  fs.writeFileSync(path.join(folder, "trip.json"), tripToJson(trip));
 }
 
 beforeEach(() => {
@@ -39,13 +52,13 @@ beforeEach(() => {
   fs.mkdirSync(path.join(dir, "u"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "u", "config.json"),
-    JSON.stringify({ title: "U", owner: { name: "A B", email: "a@t.test" } }),
+    JSON.stringify({ title: "U", owner: { name: "A B", nickname: "A", email: "a@t.test" } }),
   );
-  write("closed-2026", ["visibility: private", "teaser: true"]);
-  write("invited-2026", ["visibility: guest", "teaser: true"]);
-  write("open-2026", ["visibility: public", "teaser: true"]);
-  write("quiet-2026", ["visibility: public", "listed: false", "teaser: true"]);
-  write("plain-2026", ["visibility: private"]);
+  write("closed-2026", { visibility: "private", teaser: true });
+  write("invited-2026", { visibility: "guest", teaser: true });
+  write("open-2026", { visibility: "public", teaser: true });
+  write("quiet-2026", { visibility: "public", listed: false, teaser: true });
+  write("plain-2026", { visibility: "private" });
   clearConfigCache();
   clearUserCache();
 });

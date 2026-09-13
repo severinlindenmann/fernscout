@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { appendFixes, gpsDir, readRange, thin, MIN_METRES, MIN_SECONDS } from "@/lib/gps/store";
 import type { Fix } from "@/importers/gps/schema";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B665 — the private half.
@@ -171,7 +172,7 @@ describe("the rules that keep it private", () => {
 
   test("a manifest of a journal with a position history names neither the folder nor a fix", async () => {
     const trip = path.join(dir, USER, "trips", "algarve");
-    fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+    fs.mkdirSync(path.join(dir, USER), { recursive: true });
     fs.writeFileSync(
       path.join(dir, USER, "config.json"),
       JSON.stringify({
@@ -179,11 +180,14 @@ describe("the rules that keep it private", () => {
         locales: ["en"], baseCurrency: "CHF", displayCurrencies: ["CHF"], units: "metric",
       }),
     );
-    fs.writeFileSync(
-      path.join(trip, "trip.md"),
-      ['---', 'id: algarve', 'title: "A"', 'start: "2026-06-22"', 'end: "2026-06-24"',
-        "status: past", "visibility: public", "---", ""].join("\n"),
-    );
+    writeTripFixture(USER, {
+      id: "algarve",
+      title: "A",
+      start: "2026-06-22",
+      end: "2026-06-24",
+      status: "past",
+      visibility: "public",
+    });
     // The derived line is what a laptop copy gets; the history it came from
     // is what it must never get.
     fs.writeFileSync(path.join(trip, "track.json"), JSON.stringify({ segments: [] }));
@@ -198,7 +202,7 @@ describe("the rules that keep it private", () => {
 
     // It found the journal at all — otherwise the assertions below pass on an
     // empty manifest and prove nothing.
-    expect(manifest.files.map((f) => f.path)).toContain("trips/algarve/trip.md");
+    expect(manifest.files.map((f) => f.path)).toContain("trips/algarve/trip.json");
     expect(serialised).not.toContain("gps/");
     expect(serialised).not.toContain("2026-06.jsonl");
     // The coordinate itself, in case a path ever changes shape.
@@ -257,7 +261,7 @@ describe("the rules that keep it private", () => {
       // for the open-to-link scope, so "the walk cannot reach it" is a claim
       // worth proving against actual archive entries.
       const trip = path.join(dir, USER, "trips", "algarve");
-      fs.mkdirSync(trip, { recursive: true });
+      fs.mkdirSync(path.join(dir, USER), { recursive: true });
       fs.writeFileSync(
         path.join(dir, USER, "config.json"),
         JSON.stringify({
@@ -265,11 +269,14 @@ describe("the rules that keep it private", () => {
           locales: ["en"], baseCurrency: "CHF", displayCurrencies: ["CHF"], units: "metric",
         }),
       );
-      fs.writeFileSync(
-        path.join(trip, "trip.md"),
-        ['---', 'id: algarve', 'title: "A"', 'start: "2026-06-22"', 'end: "2026-06-24"',
-          "status: past", "visibility: public", "---", ""].join("\n"),
-      );
+      writeTripFixture(USER, {
+        id: "algarve",
+        title: "A",
+        start: "2026-06-22",
+        end: "2026-06-24",
+        status: "past",
+        visibility: "public",
+      });
       fs.writeFileSync(path.join(trip, "track.json"), JSON.stringify({ segments: [] }));
       appendFixes(USER, [{ t: Date.parse("2026-06-22T09:00:00Z"), lat: 47.38564, lon: 8.21819 }]);
 

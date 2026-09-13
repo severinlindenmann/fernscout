@@ -100,7 +100,7 @@ function writeTrip() {
 }
 
 function tripMdText(): string {
-  return fs.readFileSync(path.join(dir, OWNER, "trips", TRIP, "trip.md"), "utf8");
+  return fs.readFileSync(path.join(dir, OWNER, "trips", TRIP, "trip.json"), "utf8");
 }
 
 /** A real photograph on this trip's own media, as `POST .../media` would

@@ -6,6 +6,8 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { clearConfigCache } from "@/lib/config";
 import { SEARCH_QUERY, type SearchDoc } from "@/lib/searchOptions";
 import { clearUserCache } from "@/lib/users";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B974 — what the top result is, for the words people actually type.
@@ -49,7 +51,7 @@ beforeAll(async () => {
     JSON.stringify({ site: { name: "T", url: "https://t.test", defaultUser: USER } }),
   );
   const trip = path.join(dir, USER, "trips", "alpen-2026");
-  fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, USER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, USER, "config.json"),
     JSON.stringify({
@@ -60,40 +62,32 @@ beforeAll(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(trip, "trip.md"),
-    [
-      "---",
-      "id: alpen-2026",
-      'title: "Vier Tage in den Alpen"',
-      'start: "2026-08-24"',
-      'end: "2026-08-27"',
-      "status: past",
-      "visibility: public",
-      "---",
-      "",
-      "Eine Runde durch die Alpen.",
-    ].join("\n"),
-  );
-  // Enough to make the costs page real — `hasCostsData` reads this file.
-  fs.writeFileSync(
-    path.join(trip, "costs.md"),
-    ["---", "budget: 1000", "---", "", "Was die Reise gekostet hat."].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(trip, "entries", "2026-08-25-tag.md"),
-    [
-      "---",
-      'title: "Ein Tag"',
-      'date: "2026-08-25"',
-      'location: "Bellinzona"',
-      'country: "Schweiz"',
-      "status: published",
-      "---",
-      "",
-      "Es ist etwas passiert.",
-    ].join("\n"),
-  );
+  writeTripFixture(USER, {
+    id: "alpen-2026",
+    title: "Vier Tage in den Alpen",
+    start: "2026-08-24",
+    end: "2026-08-27",
+    status: "past",
+    visibility: "public",
+    intro: "Eine Runde durch die Alpen.",
+  });
+  // Not on writeDayFixture (B1630): `costs` is a real day field
+  // (lib/api/v2/documents.ts's `DayFile`) needed to make the costs page real
+  // — `hasCostsData` reads it — but the shared fixture does not expose it
+  // yet. Written through the production serialiser so it cannot drift from
+  // what the reader parses.
+  const day: DayFile = {
+    slug: "tag",
+    title: "Ein Tag",
+    date: "2026-08-25",
+    location: "Bellinzona",
+    country: "Schweiz",
+    content: "Es ist etwas passiert.",
+    status: "published",
+    costs: [{ label: "Was die Reise gekostet hat", amount: 1000 }],
+  };
+  fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+  fs.writeFileSync(path.join(trip, "entries", "2026-08-25-tag.json"), dayToJson(day));
 
   const { buildSearchIndex } = await import("@/lib/search");
   index = buildSearchIndex(USER)!;

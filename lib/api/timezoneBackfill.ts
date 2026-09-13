@@ -1,13 +1,12 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
 import {
-  clearMatterCache,
   entrySlugFromFile,
   fileUnchangedSince,
   forgetEntries,
 } from "../entries";
+import { dayFromJson } from "./v2/documents";
 import { tripDir } from "../trips";
 import { spliceEntryFields } from "./entries";
 import { timezoneForCoordinates } from "../timezone";
@@ -43,7 +42,7 @@ export function fillDayTimezone(
   const dir = path.join(tripDir(ref), "entries");
   let files: string[] = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
   } catch {
     return "unwritable";
   }
@@ -52,12 +51,11 @@ export function fillDayTimezone(
 
   const file = path.join(dir, match);
   let raw: string;
-  let data: Record<string, unknown>;
+  let data: ReturnType<typeof dayFromJson>;
   try {
     raw = fs.readFileSync(file, "utf8");
-    data = matter(raw).data;
+    data = dayFromJson(slug, raw);
   } catch {
-    clearMatterCache();
     return "unwritable";
   }
 
@@ -65,8 +63,8 @@ export function fillDayTimezone(
     return "already_recorded";
   }
 
-  const lat = typeof data.lat === "number" ? data.lat : undefined;
-  const lng = typeof data.lng === "number" ? data.lng : undefined;
+  const lat = data.coordinates?.lat;
+  const lng = data.coordinates?.lng;
   if (lat === undefined || lng === undefined) return "no_coordinates";
 
   const zone = timezoneForCoordinates(lat, lng);
@@ -77,10 +75,7 @@ export function fillDayTimezone(
   try {
     const spliced = spliceEntryFields(raw, { timezone: zone });
     if (spliced === null) return "unwritable";
-    if (matter(spliced).data.timezone !== zone) {
-      clearMatterCache();
-      return "unwritable";
-    }
+    if (dayFromJson(slug, spliced).timezone !== zone) return "unwritable";
     // B643, same guard `writeWeather` uses: refuse rather than clobber a
     // second writer that touched this file since the read above.
     if (!fileUnchangedSince(file, raw)) return "unwritable";
@@ -88,7 +83,6 @@ export function fillDayTimezone(
     forgetEntries(ref);
     return "filled";
   } catch {
-    clearMatterCache();
     return "unwritable";
   }
 }

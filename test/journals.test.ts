@@ -794,9 +794,9 @@ describe("creating a trip", () => {
     test("says nothing about listing when the caller did not", () => {
       createTrip("wanderer", { ...DATES, id: "plain", title: "P", visibility: "public" });
       const file = fs.readFileSync(
-        path.join(dir, "wanderer", "trips", "plain", "trip.md"), "utf8",
+        path.join(dir, "wanderer", "trips", "plain", "trip.json"), "utf8",
       );
-      expect(file).not.toContain("listed:");
+      expect(file).not.toContain('"listed":');
       // Derived, and the same answer the key would have given.
       expect(getTrip("wanderer/plain")?.listed).toBe(true);
     });
@@ -821,9 +821,9 @@ describe("creating a trip", () => {
     test("says nothing about costs when the caller did not, and that reads as public", () => {
       createTrip("wanderer", { ...DATES, id: "open-money", title: "O" });
       const file = fs.readFileSync(
-        path.join(dir, "wanderer", "trips", "open-money", "trip.md"), "utf8",
+        path.join(dir, "wanderer", "trips", "open-money", "trip.json"), "utf8",
       );
-      expect(file).not.toContain("costsVisibility:");
+      expect(file).not.toContain('"costs"');
       expect(getTrip("wanderer/open-money")?.costsVisibility).toBe("public");
     });
 
@@ -1124,11 +1124,22 @@ describe("the trip fields that had no writer", () => {
     test("an empty list writes no key at all", () => {
       createTrip("wanderer", { ...DATES, id: "solo", title: "Solo", people: [] });
       const file = fs.readFileSync(
-        path.join(dir, "wanderer", "trips", "solo", "trip.md"),
+        path.join(dir, "wanderer", "trips", "solo", "trip.json"),
         "utf8",
       );
-      expect(file).not.toContain("people:");
-      expect(getTrip("wanderer/solo")?.people).toEqual([]);
+      // v1 omitted `people:` when nobody was named, and let `peopleOf()` merge
+      // the owner in at read time. v2 states it on the document —
+      // `tripDoc.people` is `.min(1)`, because a trip nobody was on is not a
+      // trip — so the writer names the owner rather than writing an empty
+      // array the reader refuses. It did write `[]` for a while, and
+      // `buildTripDoc` threw a raw ZodError on every such trip: an uncaught
+      // 500 rather than a refusal.
+      expect(file).toContain('"people"');
+      // The journal's own owner, whoever the fixture made them.
+      const owner = getUser("wanderer")!.owner;
+      expect(getTrip("wanderer/solo")?.people).toEqual([
+        { name: owner.name, nickname: owner.nickname, email: owner.email },
+      ]);
     });
   });
 
@@ -1142,6 +1153,13 @@ describe("the trip fields that had no writer", () => {
         rates: { THB: 0.0245, VND: 0.000034 },
       });
       expect(result.ok).toBe(true);
+      // FINDING (B1630, not a fixture problem): v2 stores rates as
+      // `{currencies, manual}` (inverted, per-EUR) rather than a flat
+      // currency→CHF map — see the "everything" trip's own dump a few tests
+      // down, which shows `rates: {currencies: ["THB"], manual: {THB: ...}}`
+      // for a single-currency call. `getTrip().rates` no longer round-trips
+      // this v1-shaped call the way this assertion expects. Reported
+      // alongside this repoint.
       expect(getTrip("wanderer/vietnam")?.rates).toEqual({ THB: 0.0245, VND: 0.000034 });
     });
 
@@ -1276,8 +1294,8 @@ describe("the trip fields that had no writer", () => {
       ...({ cover: "/media/covered/hero.jpg" } as Record<string, unknown>),
     });
     expect(result.ok).toBe(true);
-    const file = fs.readFileSync(path.join(dir, "wanderer", "trips", "covered", "trip.md"), "utf8");
-    expect(file).not.toContain("cover:");
+    const file = fs.readFileSync(path.join(dir, "wanderer", "trips", "covered", "trip.json"), "utf8");
+    expect(file).not.toContain('"cover"');
     expect(getTrip("wanderer/covered")?.cover).toBeUndefined();
   });
 
@@ -1287,25 +1305,31 @@ describe("the trip fields that had no writer", () => {
      * in `KNOWN_TRIP_FIELDS` is left undecided. Written by `createTrip`, or
      * named here with the reason it is not.
      */
+    // B1598 repoint: `KNOWN_TRIP_FIELDS` (lib/trips.ts) is v2's own
+    // vocabulary now, not v1's — "start"/"end" are one "dates" object,
+    // "status" is derived rather than written (lib/tripTime.ts) and is no
+    // longer a known field at all, "costsVisibility" nests under "costs",
+    // "travellers" arrives on disk as "figures" (a reference into the figure
+    // library, B1609), and "tracks" has no v2 home (every day answers every
+    // declinable directly — see `lib/trips.ts`'s own note on `tracks`).
+    // Read off `createTrip` itself (lib/tripWrite.ts) rather than guessed:
+    // that function's own `TripFile` object literal is the list of keys it
+    // can ever write.
     const written = [
       "id",
       "title",
       "tagline",
-      "start",
-      "end",
-      "status",
+      "dates",
       "accent",
       "visibility",
       "listed",
-      "costsVisibility",
-      "test",
       "people",
       "rates",
+      "costs",
       "translations",
-      "travellers",
-      // B531 — what the trip keeps track of, and therefore what every day
-      // written into it is asked for.
-      "tracks",
+      "intro",
+      "figures",
+      "test",
       // B587 — a closed trip saying that it exists. Which is why the trip
       // below is `guest` rather than public: the key is refused on a trip
       // anybody may read.
@@ -1313,16 +1337,15 @@ describe("the trip fields that had no writer", () => {
     ];
     const decidedAgainst = {
       cover: "no media exists when a trip is created — B245",
-      // `ratesFrom:` cites a lookup, and a trip has none of those yet at the
-      // moment it is created — only `fillTripRates` (B543) ever writes it,
-      // beside a `rates:` entry it filled itself.
-      ratesFrom: "no rate has been looked up yet — B543",
-      // B1219 — an evening reminder is opted into from the room, conversing
-      // about a trip that already exists; only `patchTripReminder`
-      // (`lib/api/tripReminder.ts`) ever writes these two, the same way
-      // `patchTripVisibility` is the only writer of an *amended* visibility.
-      reminder: "opted into after the trip exists, through the room — B1219",
-      reminderChannel: "opted into after the trip exists, through the room — B1219",
+      // A planned route is drawn from `plan.route`, and `NewTrip` has no
+      // field for it at all — an upcoming trip's plan is written some other
+      // way (or by hand) until that gets a call of its own.
+      plan: "createTrip has no field for a planned route yet",
+      // The one decline mechanism (B1598 decision 4) records what a trip
+      // consciously has none of and why — a judgement call `createTrip`
+      // has no field to receive, the same way it never invented a decline
+      // for anything else.
+      declined: "createTrip has no field for a decline yet",
     };
 
     const trip = createTrip("wanderer", {
@@ -1330,32 +1353,29 @@ describe("the trip fields that had no writer", () => {
       id: "everything",
       title: "Everything",
       tagline: "one line",
-      status: "upcoming",
       accent: "coral",
       visibility: "guest",
       listed: false,
       teaser: true,
       costsVisibility: "guests",
       test: true,
+      intro: "Every field at once.",
       people: [{ name: "Ana", email: "ana@example.test" }],
       rates: { THB: 0.0245 },
       translations: { en: { title: "Everything" } },
       travellers: [{ skin: "deep", hairStyle: "coils" }],
-      // Only a row turned *off* is written — a file full of `costs: true` says
-      // nothing the default has not already said.
-      tracks: { costs: false },
     });
     expect(trip.ok).toBe(true);
 
     const file = fs.readFileSync(
-      path.join(dir, "wanderer", "trips", "everything", "trip.md"),
+      path.join(dir, "wanderer", "trips", "everything", "trip.json"),
       "utf8",
     );
     for (const field of written) {
-      expect(file, `${field} should be written by createTrip`).toContain(`${field}:`);
+      expect(file, `${field} should be written by createTrip`).toContain(`"${field}"`);
     }
     for (const field of Object.keys(decidedAgainst)) {
-      expect(file, `${field} is decided against`).not.toContain(`${field}:`);
+      expect(file, `${field} is decided against`).not.toContain(`"${field}"`);
     }
     expect([...written, ...Object.keys(decidedAgainst)].sort()).toEqual(
       [...KNOWN_TRIP_FIELDS].sort(),

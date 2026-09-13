@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
 import sharp from "sharp";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B869 — a decoder that answers with the wrong picture is not a success.
@@ -64,7 +65,7 @@ test("the upload is refused, nothing is written, and the reason travels", async 
   process.env.CONTENT_DIR = content;
   delete process.env.MEDIA_ORIGINALS_DIR;
   const trip = path.join(content, "alex", "trips", "asia-2026");
-  fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+  fs.mkdirSync(path.join(content, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(content, "config.json"),
     JSON.stringify({
@@ -88,19 +89,19 @@ test("the upload is refused, nothing is written, and the reason travels", async 
       features: {},
     }),
   );
-  fs.writeFileSync(
-    path.join(trip, "trip.md"),
-    ['---', 'id: asia-2026', 'title: "Asia"', 'start: "2026-01-01"', 'end: "2026-02-01"', 'status: current', '---', '', 'Body.', ''].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(trip, "entries", "2026-01-02-lanterns.md"),
-    ['---', 'title: "Lanterns"', 'date: "2026-01-02"', 'location: "Hoi An"', 'country: "Vietnam"', '---', '', 'Words.', ''].join("\n"),
-  );
-
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
   clearConfigCache();
   clearUserCache();
+  writeTripFixture("alex", { id: "asia-2026", title: "Asia", start: "2026-01-01", end: "2026-02-01" });
+  writeDayFixture(content, "alex", "asia-2026", {
+    slug: "lanterns",
+    date: "2026-01-02",
+    title: "Lanterns",
+    location: "Hoi An",
+    country: "Vietnam",
+    content: "Words.",
+  });
   const { storeUploads } = await import("@/lib/api/media");
 
   const result = await storeUploads("alex/asia-2026", "lanterns", [
@@ -118,8 +119,8 @@ test("the upload is refused, nothing is written, and the reason travels", async 
   // original, no gallery line.
   expect(fs.existsSync(path.join(trip, "media", "lanterns"))).toBe(false);
   expect(fs.existsSync(path.join(trip, "originals", "lanterns"))).toBe(false);
-  expect(fs.readFileSync(path.join(trip, "entries", "2026-01-02-lanterns.md"), "utf8")).not.toMatch(
-    /gallery/,
+  expect(fs.readFileSync(path.join(trip, "entries", "2026-01-02-lanterns.json"), "utf8")).not.toMatch(
+    /gallery|"media"/,
   );
 
   fs.rmSync(content, { recursive: true, force: true });

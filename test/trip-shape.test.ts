@@ -137,7 +137,7 @@ describe("the published trip example", () => {
     expect(trip.travellers).toHaveLength(1);
     expect(trip.rates.JPY).toBe(0.0058);
     expect(trip.translations?.de?.tagline).toBe("sechs Wochen mit dem Zug");
-    expect(fs.readFileSync(path.join(dir, "alex", "trips", "japan-2027", "trip.md"), "utf8")).toContain(
+    expect(fs.readFileSync(path.join(dir, "alex", "trips", "japan-2027", "trip.json"), "utf8")).toContain(
       "Six weeks from Kyushu to Hokkaido",
     );
   });

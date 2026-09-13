@@ -96,8 +96,10 @@ describe("createTrip refuses a non-boolean listed/test rather than coercing it",
       test: true,
     });
     expect(made.ok, JSON.stringify(made)).toBe(true);
-    const file = fs.readFileSync(path.join(dir, "alex", "trips", "reise3", "trip.md"), "utf8");
-    expect(file).toContain("listed: false");
-    expect(file).toContain("test: true");
+    const written = JSON.parse(
+      fs.readFileSync(path.join(dir, "alex", "trips", "reise3", "trip.json"), "utf8"),
+    );
+    expect(written.listed).toBe(false);
+    expect(written.test).toBe(true);
   });
 });

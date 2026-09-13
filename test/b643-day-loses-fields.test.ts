@@ -7,6 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { clearMatterCache, forgetEntries, getEntryBySlug } from "@/lib/entries";
 import { attachGallery, createDraft } from "@/lib/api/entries";
 import { fillDayWeather } from "@/lib/api/weather";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B643 — photographs, costs and weather disappeared from a published day,
@@ -39,12 +40,12 @@ let dir: string;
 const REF = "alex/algarve-2026";
 
 const tripPath = () => path.join(dir, "alex", "trips", "algarve-2026");
-const entryFile = () => path.join(tripPath(), "entries", "2026-06-02-windy-day.md");
+const entryFile = () => path.join(tripPath(), "entries", "2026-06-02-windy-day.json");
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-b643-"));
   process.env.CONTENT_DIR = dir;
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -68,22 +69,15 @@ beforeEach(() => {
       features: { weather: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(tripPath(), "trip.md"),
-    [
-      "---",
-      'id: "algarve-2026"',
-      'title: "Algarve"',
-      'start: "2026-06-01"',
-      'end: "2026-06-14"',
-      'status: "current"',
-      'visibility: "public"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "algarve-2026",
+    title: "Algarve",
+    start: "2026-06-01",
+    end: "2026-06-14",
+    status: "current",
+    visibility: "public",
+    intro: "Intro.",
+  });
   clearConfigCache();
   clearUserCache();
   clearMatterCache();
@@ -169,8 +163,8 @@ describe("a second writer racing the upload — the lost-update B643 describes",
     // translations (`writeSettledDay` wrote them), and not yet its weather
     // reading or any photograph.
     const staleRaw = fs.readFileSync(file, "utf8");
-    expect(staleRaw).toContain("costs:");
-    expect(staleRaw).not.toContain("weatherData:");
+    expect(staleRaw).toContain('"costs":');
+    expect(staleRaw).not.toContain('"weatherData":');
 
     // T1 — the real weather lookup lands, and writes its reading back.
     vi.spyOn(globalThis, "fetch").mockResolvedValue({

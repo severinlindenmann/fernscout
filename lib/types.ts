@@ -3,6 +3,7 @@ import type { Figure } from "./travellers/vocabulary";
 import type { DayWeather } from "./weather";
 import type { Track, Tracks } from "./tracks";
 import type { PhotoVisibility } from "./photos";
+import type { TripFile } from "./api/v2/documents";
 
 export type TransportMode =
   | "flight"
@@ -617,4 +618,17 @@ export type Trip = {
    * nothing has been written yet, never what should have been.
    */
   reminder?: { channel: ReminderChannel };
+  /**
+   * The `costs` and `plan` sections of `trip.json`, passed through whole —
+   * B1606 folded `costs.md` and `plan.md` into the trip document, and this
+   * render vocabulary has no field-by-field breakdown of either (a budget, a
+   * preparation cost list, a note; a route of stops and its own prose) the
+   * way it does for everything else on a trip. Rather than inventing that
+   * breakdown twice — once here and once in `lib/costs.ts`/`lib/plan.ts`,
+   * which would be the second parser AGENTS.md warns against — those two
+   * modules read straight off these sections. `undefined` means the trip
+   * declined the section (or predates it); never synthesised.
+   */
+  costsSection?: TripFile["costs"];
+  planSection?: TripFile["plan"];
 };

@@ -6,6 +6,7 @@ import zlib from "node:zlib";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { paintJpeg } from "./support/pictures";
+import { writeDayFixture } from "./fixtures/content";
 
 /**
  * B1554 — the API upload path never populated `longestEdge`, so the
@@ -33,7 +34,7 @@ beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-pixel-limit-"));
   process.env.CONTENT_DIR = dir;
   delete process.env.MEDIA_ORIGINALS_DIR;
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "F", url: "https://e.test", defaultUser: "alex" }, users: {}, features: {} }),
@@ -52,20 +53,14 @@ beforeEach(() => {
   );
   clearConfigCache();
   clearUserCache();
-  fs.writeFileSync(
-    path.join(tripPath(), "entries", "2026-01-01-day-one.md"),
-    [
-      "---",
-      'title: "day-one"',
-      'date: "2026-01-01"',
-      'location: "Hoi An"',
-      'country: "Vietnam"',
-      "---",
-      "",
-      "Words.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, "alex", "asia-2026", {
+    slug: "day-one",
+    date: "2026-01-01",
+    title: "day-one",
+    location: "Hoi An",
+    country: "Vietnam",
+    content: "Words.",
+  });
   vi.mocked(decodeSource).mockClear();
 });
 

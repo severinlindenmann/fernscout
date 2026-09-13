@@ -1,0 +1,21 @@
+{
+  "id": "eta-2023",
+  "title": "Public but quiet",
+  "dates": {
+    "from": "2023-06-01",
+    "to": "2023-06-05"
+  },
+  "visibility": "public",
+  "listed": false,
+  "people": [
+    {
+      "name": "Test Person",
+      "nickname": "Test"
+    }
+  ],
+  "intro": "Readable by anybody holding the link, advertised nowhere.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

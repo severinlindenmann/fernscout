@@ -14,6 +14,7 @@ import { sendWelcome } from "@/lib/journals";
 import { sendCodeMail } from "@/lib/contacts/mail";
 import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { requestDeletion } from "@/lib/deletions";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 import { POST as authRequest } from "@/app/api/auth/codes/route";
 import { GET as health } from "@/app/api/health/route";
 
@@ -118,28 +119,20 @@ function writeBareJournal(username: string) {
  * would pass the assertions below for entirely the wrong reason. B387.
  */
 function publishADay(username: string): void {
-  const root = path.join(dir, username, "trips", "trip");
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      'id: "trip"',
-      'title: "A trip"',
-      'start: "2026-09-01"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      'visibility: "public"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(root, "entries", "2026-09-02-a-day.md"),
-    ["---", 'title: "A day"', 'date: "2026-09-02"', "---", "", "It happened.", ""].join("\n"),
-  );
+  writeTripFixture(username, {
+    id: "trip",
+    title: "A trip",
+    start: "2026-09-01",
+    end: "2026-09-10",
+    status: "current",
+    visibility: "public",
+  });
+  writeDayFixture(dir, username, "trip", {
+    slug: "a-day",
+    date: "2026-09-02",
+    title: "A day",
+    content: "It happened.",
+  });
   clearUserCache();
 }
 

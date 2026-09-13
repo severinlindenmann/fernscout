@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * `npm run status` — the body of the nightly success mail (B464).
@@ -44,18 +45,34 @@ function writeJournal(username: string, opts: { listed?: boolean; trips?: number
   for (let t = 0; t < (opts.trips ?? 1); t++) {
     const trip = path.join(dir, "trips", `trip-${t}`);
     fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
-    fs.writeFileSync(
-      path.join(trip, "trip.md"),
-      `---\nid: trip-${t}\ntitle: "Trip ${t}"\nstart: "2026-06-01"\nend: "2026-06-10"\nstatus: past\nvisibility: public\n---\n\nIntro.\n`,
-    );
-    fs.writeFileSync(
-      path.join(trip, "entries", "2026-06-01-one.md"),
-      "---\ndate: 2026-06-01\ntitle: One\n---\n\nA published day.\n",
-    );
+    const tripFile: TripFile = {
+      id: `trip-${t}`,
+      title: `Trip ${t}`,
+      dates: { from: "2026-06-01", to: "2026-06-10" },
+      visibility: "public",
+      people: [],
+      intro: "Intro.",
+    };
+    fs.writeFileSync(path.join(trip, "trip.json"), tripToJson(tripFile));
+    const oneDay: DayFile = {
+      slug: "one",
+      title: "One",
+      date: "2026-06-01",
+      content: "A published day.",
+      status: "published",
+    };
+    fs.writeFileSync(path.join(trip, "entries", "2026-06-01-one.json"), dayToJson(oneDay));
     for (let d = 0; d < (opts.drafts ?? 0); d++) {
+      const draftDay: DayFile = {
+        slug: "draft",
+        title: "Draft",
+        date: `2026-06-0${d + 2}`,
+        content: "Not published.",
+        status: "draft",
+      };
       fs.writeFileSync(
-        path.join(trip, "entries", `2026-06-0${d + 2}-draft.md`),
-        `---\ndate: 2026-06-0${d + 2}\ntitle: Draft\nstatus: draft\n---\n\nNot published.\n`,
+        path.join(trip, "entries", `2026-06-0${d + 2}-draft.json`),
+        dayToJson(draftDay),
       );
     }
   }

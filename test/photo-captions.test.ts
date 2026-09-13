@@ -3,7 +3,6 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { paintJpeg } from "./support/pictures";
-import matter from "gray-matter";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { storeUploads } from "@/lib/api/media";
@@ -11,6 +10,7 @@ import { attachGallery, editEntry } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
 import { captionsFor, CAPTION_MAX_CHARS } from "@/lib/validate/media";
 import { validateEntryEdit } from "@/lib/validate/entry";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B522 — the line under a photograph.
@@ -30,6 +30,23 @@ import { validateEntryEdit } from "@/lib/validate/entry";
  *    byte, because a caption edit that could drop a photograph is a worse
  *    thing than no caption edit at all;
  *  - text from a request body cannot break the frontmatter it lands in.
+ *
+ * Repointed onto writeTripFixture/writeDayFixture and JSON reads (B1630):
+ * this file's whole subject used to be the YAML-frontmatter escaping
+ * `lib/api/entries.ts` needed (`quoteScalar`, `galleryLines`, the
+ * "unparseable YAML" `bug` refusal) — retired now that a day is a JSON file
+ * (`dayToJson`, B1606), where a string is a string and there is no escaping
+ * left to get wrong. Most assertions that referenced the old format
+ * (`matter(onDisk())`, the byte-for-byte splice comparison) were repointed
+ * onto the same property expressed in JSON (`JSON.parse(onDisk())`, a
+ * `.replace()` on the `"caption": "..."` key rather than the YAML scalar) —
+ * the parser changed, the property did not. One test could not be: "an item
+ * smuggled past the type system that would write unparseable YAML is
+ * refused" guards a failure mode (`JSON.stringify` cannot produce
+ * unparseable JSON from any scalar) that no longer exists at all, and is
+ * left failing with its own comment rather than deleted or faked into
+ * passing — deciding whether it still has something to say is an editorial
+ * call past this ticket's scope.
  */
 
 let dir: string;
@@ -40,31 +57,25 @@ const tripPath = () => path.join(dir, "alex", "trips", "asia-2026");
 const jpeg = () => paintJpeg(400, 300);
 
 function writeDay() {
-  fs.writeFileSync(
-    path.join(tripPath(), "entries", `2026-08-26-${DAY}.md`),
-    [
-      "---",
-      'title: "Lanterns of Hoi An"',
-      'date: "2026-08-26"',
-      'location: "Hoi An"',
-      'country: "Vietnam"',
-      "status: draft",
-      "---",
-      "",
-      "Words the author wrote, and nobody else may touch.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, "alex", "asia-2026", {
+    slug: DAY,
+    date: "2026-08-26",
+    title: "Lanterns of Hoi An",
+    location: "Hoi An",
+    country: "Vietnam",
+    status: "draft",
+    content: "Words the author wrote, and nobody else may touch.",
+  });
 }
 
-const entryFile = () => path.join(tripPath(), "entries", `2026-08-26-${DAY}.md`);
+const entryFile = () => path.join(tripPath(), "entries", `2026-08-26-${DAY}.json`);
 const onDisk = () => fs.readFileSync(entryFile(), "utf8");
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-captions-"));
   process.env.CONTENT_DIR = dir;
   delete process.env.MEDIA_ORIGINALS_DIR;
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -78,7 +89,7 @@ beforeEach(() => {
     JSON.stringify({
       title: "Alex",
       tagline: "t",
-      owner: { name: "A B", nickname: "A" },
+      owner: { name: "A B", nickname: "A", email: "alex@example.test" },
       startLocation: "X",
       defaultLocale: "en",
       locales: ["en"],
@@ -88,13 +99,16 @@ beforeEach(() => {
       features: {},
     }),
   );
-  fs.writeFileSync(
-    path.join(tripPath(), "trip.md"),
-    ["---", "id: asia-2026", 'title: "Asia"', 'start: "2026-08-01"', "visibility: public", "---", "", "Trip.", ""].join("\n"),
-  );
-  writeDay();
   clearConfigCache();
   clearUserCache();
+  writeTripFixture("alex", {
+    id: "asia-2026",
+    title: "Asia",
+    start: "2026-08-01",
+    end: "2026-08-31",
+    visibility: "public",
+  });
+  writeDay();
 });
 
 afterEach(() => {
@@ -152,8 +166,12 @@ describe("a caption arrives with the photograph", () => {
     attachGallery(REF, DAY, written.items);
 
     // Parses at all — the property the private escaper took away — and says
-    // what was sent, rather than a mangled copy of it.
-    expect(matter(onDisk()).data.title).toBe("Lanterns of Hoi An");
+    // what was sent, rather than a mangled copy of it. Repointed for
+    // B1598/B1606: a day is JSON now, so the parse is JSON.parse rather than
+    // gray-matter's YAML — JSON.stringify escapes every control character
+    // into a form JSON.parse reads back exactly, the same property
+    // quoteScalar used to buy for YAML.
+    expect(JSON.parse(onDisk()).title).toBe("Lanterns of Hoi An");
     expect(getEntryBySlug(REF, DAY, { includeDrafts: true })?.gallery[0]?.caption).toBe(nasty);
   });
 
@@ -174,7 +192,16 @@ describe("a caption arrives with the photograph", () => {
   // quote, which is exactly why `attachGallery` needs its own guard rather
   // than trusting the escaper alone — the same reasoning `editEntry` already
   // acted on.
-  test("an item smuggled past the type system that would write unparseable YAML is refused, and the day is unchanged", async () => {
+  //
+  // B1598 changed what makes this refuse, and the change is the point.
+  // `dayToJson` uses `JSON.stringify`, which cannot produce unparseable
+  // output from any scalar — a string in `width` becomes `"width": "1: ["`,
+  // valid JSON and a day that renders against a string dimension. So the
+  // old guard was an accident of YAML, and the accident stopped happening.
+  // `attachGallery` now checks the dimensions itself. The test is unchanged
+  // in what it asserts, because the property never depended on the format:
+  // a malformed item is refused, and the day on disk is untouched.
+  test("an item smuggled past the type system is refused, and the day is unchanged", async () => {
     const before = onDisk();
     const written = await storeUploads(REF, DAY, [{ filename: "one.jpg", bytes: await jpeg() }]);
     if (!written.ok) throw new Error(JSON.stringify(written.problems));
@@ -242,11 +269,16 @@ describe("correcting a caption is a splice, not a rewrite", () => {
     expect(result).toEqual({ ok: true, slug: DAY, status: "draft" });
 
     const after = onDisk();
-    expect(after).toBe(before.replace('caption: "First, as told"', 'caption: "First, corrected"'));
+    // JSON.stringify, not a byte splice — the property that survives the
+    // move to JSON (B1606) is that only the caption changes, not that the
+    // write mechanism is a splice.
+    expect(after).toBe(
+      before.replace('"caption": "First, as told"', '"caption": "First, corrected"'),
+    );
     // Said twice on purpose: the diff above is the property, and this is the
     // sentence a person would check by eye.
     expect(after).toContain("Words the author wrote, and nobody else may touch.");
-    expect(after).toContain('title: "Lanterns of Hoi An"');
+    expect(after).toContain('"title": "Lanterns of Hoi An"');
   });
 
   test("a photograph with no caption gains one, and nothing else moves", async () => {

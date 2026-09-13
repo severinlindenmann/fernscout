@@ -1,0 +1,23 @@
+{
+  "title": "Hakodate, before Sapporo",
+  "date": "2027-04-30",
+  "timezone": "Asia/Tokyo",
+  "location": "Hakodate",
+  "country": "Japan",
+  "countryCode": "JP",
+  "coordinates": {
+    "lat": 41.7688,
+    "lng": 140.7288
+  },
+  "content": "The tunnel under the strait comes out here, and getting off rather than staying on costs us nothing but a night.\n\nMorning market, then the last leg north.",
+  "transportMode": "train",
+  "transportFrom": "Sendai",
+  "transportTo": "Hakodate",
+  "tags": [
+    "japan",
+    "trains",
+    "coast"
+  ],
+  "weather": true,
+  "status": "draft"
+}

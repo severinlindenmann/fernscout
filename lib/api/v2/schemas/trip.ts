@@ -4,7 +4,7 @@
 // (/rates, /people, /visibility, /costs, /plan …) is sections of this one
 // schema, each always-required, required-or-declined, or server-owned.
 import { z } from "zod";
-import { ACCENTS, COSTS_VISIBILITIES, STATUSES, VISIBILITIES } from "../../../tripWrite";
+import { ACCENTS, COSTS_VISIBILITIES, REMINDER_CHANNELS, STATUSES, VISIBILITIES } from "../../../tripWrite";
 import { MAX_TRIP_PEOPLE } from "../../../trips";
 import { costItem, dayDoc, dayWrite } from "./day";
 import { tripFigures } from "./figures";
@@ -54,13 +54,35 @@ const rates = z.strictObject({
  * the day's own `costItem` shape (imported, not retyped) because a
  * preparation cost and a day's cost are the same kind of fact. */
 const costs = z.strictObject({
-  budget: z.strictObject({
-    total: z.number().positive(),
-    /** Absent means the trip's own day count. */
-    days: z.number().int().positive().optional(),
-    /** Absent means the journal's base currency. */
-    currency: z.string().length(3).optional(),
-  }),
+  /**
+   * Optional, D19 — and the reason is worth reading before anyone tightens
+   * it back.
+   *
+   * `createTrip` writes `costs: {visibility: "guests"}` the moment somebody
+   * chooses who sees the money, which is at trip creation, long before there
+   * is a budget to state. `lib/costs.ts` reads exactly that and treats a
+   * section as malformed only when it holds *nothing* usable. So a required
+   * `budget` here made the contract disagree with both the writer and the
+   * reader, and the writer won every time: the section was written anyway
+   * and simply failed to typecheck.
+   *
+   * What it costs, stated plainly: `costs` is a declinable whose promise is
+   * "every trip carries a budget, or says why costs are not tracked here",
+   * and an optional budget means a trip can satisfy that declinable with a
+   * section that states no budget at all. The promise weakens to "the owner
+   * engaged with costs". That is the honest trade for letting visibility and
+   * preparation spend exist before a budget does — both of which are real
+   * states a trip passes through, not edge cases.
+   */
+  budget: z
+    .strictObject({
+      total: z.number().positive(),
+      /** Absent means the trip's own day count. */
+      days: z.number().int().positive().optional(),
+      /** Absent means the journal's base currency. */
+      currency: z.string().length(3).optional(),
+    })
+    .optional(),
   /** Preparation spend — before there are any days to carry it. */
   items: z.array(costItem).optional(),
   /** `costs.md`'s own prose body. */
@@ -226,6 +248,27 @@ const tripBase = z
      * false is "unlisted" — still readable at its URL. On a closed trip the
      * question does not exist and the key is refused. B51. */
     listed: z.boolean().optional(),
+    /**
+     * An opt-in evening nudge while the trip is running — B1219, D46, D18.
+     *
+     * **Presence is the switch.** Absent means off; present carries the
+     * channel it goes out on. v1 split this across two frontmatter scalars,
+     * `reminder: true` and `reminderChannel:`, which could disagree — and did
+     * often enough that `lib/trips.ts` carries a warning for the case. One
+     * field makes the disagreement unrepresentable, which is this contract's
+     * own "one fact, one address" rule.
+     *
+     * Owner only, like `visibility`: a trip-scoped token writes days into its
+     * trip, but whether the journal nudges somebody in the evening is the
+     * owner's question, not that of whoever is holding the pen this week.
+     * That check lives in the route.
+     *
+     * Not a declinable. A reminder is a setting rather than something the
+     * journal says about the trip, so there is nothing here for a reader to
+     * be owed an answer about — the same reason `listed` and `teaser` are
+     * plain optionals above.
+     */
+    reminder: z.strictObject({ channel: z.enum(REMINDER_CHANNELS) }).optional(),
     declined: declinedMap(DECLINABLE_KEYS).optional(),
 
     // ── plain optional ──

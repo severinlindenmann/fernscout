@@ -12,6 +12,7 @@ import { appendWords, readDayReadiness, writeDayReadiness } from "@/lib/dayReadi
 import { ALL_TRACKED } from "@/lib/tracks";
 import { dayInboxDir, findDayInboxFile, findInboxFile, inboxDir, moveInboxFileToDay, storeInboxFile } from "@/lib/inbox";
 import { paintJpeg } from "./support/pictures";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * `POST /api/helper/<user>/assemble-day` — its "create it" press, Task 3 of
@@ -70,7 +71,7 @@ beforeEach(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -82,12 +83,13 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", TRIP, "trip.md"),
-    ["---", `id: ${TRIP}`, 'title: "Die Reise"', 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro.", ""].join(
-      "\n",
-    ),
-  );
+  writeTripFixture("alex", {
+    id: TRIP,
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    intro: "Intro.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -152,7 +154,10 @@ describe("assemble-day: the create press", () => {
     expect(day).not.toBeNull();
     expect(day?.content).toContain("We climbed over the pass and it was cold.");
     expect(day?.gallery).toHaveLength(1);
-    expect(day?.without).toEqual(["costs"]);
+    // v2 stores every decline in one `declined` map and reads it back as
+    // `unrecorded`, not v1's separate `without` — `lib/entries.ts`'s
+    // `declinedTracks` (B1598).
+    expect(day?.unrecorded).toEqual(["costs"]);
     expect(day?.lat).toBe(46.5);
     expect(day?.lng).toBe(8.5);
     expect(day?.draft).toBe(true);

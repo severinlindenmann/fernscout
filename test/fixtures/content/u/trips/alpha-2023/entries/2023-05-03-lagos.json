@@ -1,0 +1,23 @@
+{
+  "title": "Lagos",
+  "date": "2023-05-03",
+  "location": "Lagos",
+  "country": "Portugal",
+  "countryCode": "PT",
+  "coordinates": {
+    "lat": 37.1028,
+    "lng": -8.6742
+  },
+  "content": "West along the coast.",
+  "costs": [
+    {
+      "label": "Bus",
+      "amount": 12,
+      "category": "transport"
+    }
+  ],
+  "transportMode": "bus",
+  "transportFrom": "Faro",
+  "transportTo": "Lagos",
+  "status": "published"
+}

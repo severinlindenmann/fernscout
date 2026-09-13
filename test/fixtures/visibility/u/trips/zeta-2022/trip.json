@@ -1,0 +1,24 @@
+{
+  "id": "zeta-2022",
+  "title": "Typo one",
+  "dates": {
+    "from": "2022-01-01",
+    "to": "2022-01-05"
+  },
+  "visibility": "pubic",
+  "listed": true,
+  "people": [
+    {
+      "name": "Test Person",
+      "nickname": "Test"
+    }
+  ],
+  "intro": "A typo in the visibility field.",
+  "costs": {
+    "visibility": "guests"
+  },
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

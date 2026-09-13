@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
 import { createTrip } from "@/lib/tripWrite";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
+import { TRANSPORT_MODES } from "@/lib/validate/entry";
+import { COST_CATEGORIES } from "@/lib/costFormat";
 
 /**
  * The one place that knows how a trip and a day are stored on disk — B1630.
@@ -43,6 +47,14 @@ export type TripFixture = {
   test?: boolean;
   people?: Array<{ name: string; email: string; nickname?: string }>;
   intro?: string;
+  /** Widened with the day's, and for the same reason — B1630. */
+  accent?: string;
+  tagline?: string;
+  translations?: Record<string, { title?: string; tagline?: string; intro?: string }>;
+  plan?: { route: Array<Record<string, unknown>>; body?: string };
+  costs?: { budget: { total: number; days?: number; currency?: string }; items?: Array<Record<string, unknown>>; note?: string; visibility?: "public" | "guests" };
+  rates?: { currencies: string[]; manual?: Record<string, number> };
+  declined?: Record<string, string>;
 };
 
 /**
@@ -73,6 +85,27 @@ export function writeTripFixture(username: string, trip: TripFixture): { ref: st
   if (!result.ok) {
     throw new Error(`writeTripFixture(${username}/${trip.id}) failed: ${result.error}`);
   }
+
+  // The sections `createTrip` does not take, applied to the document it just
+  // wrote — B1630. Still through the real store, so the bytes are what the
+  // production writer produces; `createTrip` simply has no argument for a
+  // trip's plan, costs, rates or translations, and a fixture that needs one
+  // was otherwise forced to bypass this helper and hand-roll the whole
+  // document, which is the duplication this exists to remove.
+  const extras: Record<string, unknown> = {};
+  if (trip.accent !== undefined) extras.accent = trip.accent;
+  if (trip.tagline !== undefined) extras.tagline = trip.tagline;
+  if (trip.translations !== undefined) extras.translations = trip.translations;
+  if (trip.plan !== undefined) extras.plan = trip.plan;
+  if (trip.costs !== undefined) extras.costs = trip.costs;
+  if (trip.rates !== undefined) extras.rates = trip.rates;
+  if (trip.declined !== undefined) extras.declined = trip.declined;
+  if (Object.keys(extras).length > 0) {
+    const stored = readTripFile(username, trip.id);
+    if (!stored) throw new Error(`writeTripFixture(${username}/${trip.id}): written but unreadable`);
+    writeTripFile(username, trip.id, { ...stored, ...extras } as typeof stored);
+  }
+
   return { ref: result.ref };
 }
 
@@ -102,17 +135,34 @@ export type DayFixture = {
   visibility?: "guest" | "private";
   test?: boolean;
   content?: string;
+  /** Widened after the first repointing pass — B1630. Nine files had to
+   * bypass the helper for one of these and reach for `dayToJson` directly,
+   * which is exactly the duplication this exists to remove. Each is a real
+   * thing a day has, not a frontmatter detail. */
+  costs?: Array<{ label: string; amount: number; category?: (typeof COST_CATEGORIES)[number]; currency?: string }>;
+  translations?: Record<string, { title: string; content: string }>;
+  /** `true` asks the server to look it up; an object IS a reading, whose own
+   * `source` says whose it is (open-meteo means this server fetched it).
+   * Typed off `DayFile` rather than loosely, so the compiler enforces what
+   * the contract enforces: a reading names where it came from and when. A
+   * fixture able to write a sourceless reading could set up a test the
+   * server would refuse. */
+  weather?: DayFile["weather"];
+  tags?: string[];
+  transportMode?: (typeof TRANSPORT_MODES)[number];
+  travelScene?: DayFile["travelScene"];
+  /** What this day consciously has none of, and why — the one decline
+   * mechanism, replacing v1's `without:`/`unrecorded:`/`costs: false`. */
+  declined?: Record<string, string>;
 };
 
-const quote = (s: string): string => JSON.stringify(s);
-
 /**
- * Write a day's markdown directly.
+ * Write a day's JSON directly (B1598).
  *
- * Not routed through `createDraft` — see the module comment for why. This
- * writes exactly the v1 frontmatter `lib/entries.ts` reads today; when
- * B1598 flips the reader, this function's body is the one thing that needs
- * to change.
+ * Not routed through `createDraft` — see the module comment for why. Writes
+ * exactly the v2 shape `lib/entries.ts` reads (`dayToJson`, the production
+ * serialiser) so a fixture cannot drift from what it emits, even though the
+ * object is assembled here rather than passed through the write API.
  */
 export function writeDayFixture(
   root: string,
@@ -122,38 +172,41 @@ export function writeDayFixture(
 ): { file: string } {
   const entriesDir = path.join(root, username, "trips", tripId, "entries");
   fs.mkdirSync(entriesDir, { recursive: true });
-  const file = path.join(entriesDir, `${day.date}-${day.slug}.md`);
+  const file = path.join(entriesDir, `${day.date}-${day.slug}.json`);
 
-  const lines = [
-    "---",
-    `title: ${quote(day.title ?? day.slug)}`,
-    `date: ${quote(day.date)}`,
-    ...(day.time ? [`time: ${quote(day.time)}`] : []),
-    ...(day.timezone ? [`timezone: ${quote(day.timezone)}`] : []),
-    ...(day.location ? [`location: ${quote(day.location)}`] : []),
-    ...(day.country ? [`country: ${quote(day.country)}`] : []),
-    ...(day.countryCode ? [`countryCode: ${quote(day.countryCode)}`] : []),
-    ...(day.coordinates ? [`lat: ${day.coordinates.lat}`, `lng: ${day.coordinates.lng}`] : []),
+  const doc: DayFile = {
+    slug: day.slug,
+    title: day.title ?? day.slug,
+    date: day.date,
+    content: day.content ?? "Something happened.",
+    status: day.status === "draft" ? "draft" : "published",
+    ...(day.time ? { time: day.time } : {}),
+    ...(day.timezone ? { timezone: day.timezone } : {}),
+    ...(day.location ? { location: day.location } : {}),
+    ...(day.country ? { country: day.country } : {}),
+    ...(day.countryCode ? { countryCode: day.countryCode } : {}),
+    ...(day.coordinates ? { coordinates: day.coordinates } : {}),
     ...(day.media?.length
-      ? [
-          "gallery:",
-          ...day.media.flatMap((m) => [
-            `  - src: ${quote(m.src)}`,
-            `    type: ${quote(m.type ?? "image")}`,
-            ...(m.caption ? [`    caption: ${quote(m.caption)}`] : []),
-            ...(m.visibility ? [`    visibility: ${quote(m.visibility)}`] : []),
-          ]),
-        ]
-      : []),
-    ...(day.visibility ? [`visibility: ${quote(day.visibility)}`] : []),
-    ...(day.test ? ["test: true"] : []),
-    ...(day.status === "draft" ? ['status: "draft"'] : []),
-    "---",
-    "",
-    day.content ?? "Something happened.",
-    "",
-  ];
+      ? {
+          media: day.media.map((m) => ({
+            src: m.src,
+            type: m.type ?? "image",
+            ...(m.caption ? { caption: m.caption } : {}),
+            ...(m.visibility ? { visibility: m.visibility } : {}),
+          })),
+        }
+      : {}),
+    ...(day.visibility ? { visibility: day.visibility } : {}),
+    ...(day.costs ? { costs: day.costs } : {}),
+    ...(day.translations ? { translations: day.translations } : {}),
+    ...(day.weather !== undefined ? { weather: day.weather } : {}),
+    ...(day.tags ? { tags: day.tags } : {}),
+    ...(day.transportMode ? { transportMode: day.transportMode } : {}),
+    ...(day.travelScene ? { travelScene: day.travelScene } : {}),
+    ...(day.declined ? { declined: day.declined } : {}),
+    ...(day.test ? { test: true } : {}),
+  };
 
-  fs.writeFileSync(file, lines.join("\n"));
+  fs.writeFileSync(file, dayToJson(doc));
   return { file };
 }

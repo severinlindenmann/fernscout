@@ -1,0 +1,23 @@
+{
+  "title": "The slow bus to the border",
+  "date": "2023-02-20",
+  "timezone": "Asia/Vientiane",
+  "location": "Huay Xai",
+  "country": "Laos",
+  "countryCode": "LA",
+  "coordinates": {
+    "lat": 20.2806,
+    "lng": 100.4128
+  },
+  "content": "A fixture day, and the one that puts the trip on the right bank for the boat two weeks later.\n\nThe bus is the same road as the car and a different vehicle on it — which is the whole thing this day is here to show.",
+  "transportMode": "bus",
+  "transportFrom": "Chiang Rai",
+  "transportTo": "Huay Xai",
+  "tags": [
+    "laos",
+    "borders",
+    "buses"
+  ],
+  "test": true,
+  "status": "published"
+}

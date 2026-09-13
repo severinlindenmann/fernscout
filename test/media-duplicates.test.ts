@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 import { attachGallery } from "@/lib/api/entries";
 import { storeUploads } from "@/lib/api/media";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B1103 — a trip could hold the same photograph twice and nothing could say
@@ -78,10 +79,7 @@ async function ownerToken(): Promise<string> {
 }
 
 async function day(slug: string, uploads: { filename: string; bytes: Buffer }[]) {
-  fs.writeFileSync(
-    path.join(tripPath(), "entries", `2026-01-01-${slug}.md`),
-    ["---", `title: "${slug}"`, 'date: "2026-01-01"', "status: draft", "---", "", "Words.", ""].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, TRIP, { slug, date: "2026-01-01", title: slug, status: "draft", content: "Words." });
   const uploaded = await storeUploads(REF, slug, uploads);
   if (!uploaded.ok) throw new Error("expected the upload to land");
   const attached = attachGallery(REF, slug, uploaded.items);
@@ -103,8 +101,7 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
-  fs.mkdirSync(path.join(dir, OWNER, "trips", "elsewhere", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -120,26 +117,15 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  for (const [id, where] of [
-    [TRIP, tripPath()],
-    ["elsewhere", path.join(dir, OWNER, "trips", "elsewhere")],
-  ] as const) {
-    fs.writeFileSync(
-      path.join(where, "trip.md"),
-      [
-        "---",
-        `id: "${id}"`,
-        'title: "A trip"',
-        'start: "2026-01-01"',
-        'end: "2026-01-05"',
-        'status: "past"',
-        'visibility: "private"',
-        "---",
-        "",
-        "Intro.",
-        "",
-      ].join("\n"),
-    );
+  for (const id of [TRIP, "elsewhere"]) {
+    writeTripFixture(OWNER, {
+      id,
+      title: "A trip",
+      start: "2026-01-01",
+      end: "2026-01-05",
+      status: "past",
+      visibility: "private",
+    });
   }
 
   const { clearConfigCache } = await import("@/lib/config");

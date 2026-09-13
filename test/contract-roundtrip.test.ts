@@ -58,6 +58,9 @@ const TRIP_SAMPLES: Record<string, unknown> = {
   dates: { from: "2026-09-01", to: "2026-09-05" },
   visibility: "public",
   listed: false,
+  /** D18. Presence is the switch, so there is no `enabled: true` beside it —
+   * a sample carrying both would be describing a shape the schema refuses. */
+  reminder: { channel: "mail" },
   people: [{ name: "Alex Beispiel", email: "alex@example.test" }],
   rates: { currencies: ["EUR"], manual: { VND: 30500 } },
   costs: {

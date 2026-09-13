@@ -488,13 +488,27 @@ export const CHECK_BEFORE_SENDING =
   "exist on disk, or a photograph the wrong size, is still yours to catch by reading the " +
   "file and the folder yourself; `dryRun` never opens a photograph.";
 
+/**
+ * Fixed literal dates go stale: v2 derives a trip's status purely from
+ * `start`/`end` against the real clock (`deriveStatus`, lib/trips.ts), so a
+ * hardcoded "2027-04-01" reads as `upcoming` today and `past` a year from
+ * now — either way not the `current` the surrounding prose demonstrates.
+ * Anchored on today instead, the worked example stays true on the day it is
+ * read rather than only on the day it was written.
+ */
+function isoDaysFromToday(offset: number): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
 export const PERFECT_TRIP_EXAMPLE = [
   "{",
   '  "id": "japan-2027",',
   '  "title": "Japan",',
   '  "tagline": "six weeks by train",',
-  '  "start": "2027-04-01",',
-  '  "end": "2027-05-15",',
+  `  "start": "${isoDaysFromToday(-15)}",`,
+  `  "end": "${isoDaysFromToday(15)}",`,
   '  "status": "current",',
   '  "visibility": "public",',
   '  "listed": false,',
@@ -559,9 +573,9 @@ export const TRIP_FIELDS: {
     key: "status",
     required: false,
     what:
-      "`upcoming`, `current` or `past` — and normally **leave it out**, because the dates " +
-      "decide it. Send `current` only to make this the trip the bare `/<user>` URLs serve, " +
-      "which moves those URLs off whichever trip has them now.",
+      "`upcoming`, `current` or `past` — accepted and quietly ignored. The dates decide it, " +
+      "always: whichever trip's `start`/`end` covers today is the one the bare `/<user>` URLs " +
+      "serve, and sending `status` cannot move that.",
   },
   {
     key: "visibility",

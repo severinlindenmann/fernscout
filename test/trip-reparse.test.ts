@@ -5,22 +5,23 @@ import os from "node:os";
 import { getMalformedTrips, getTrips } from "@/lib/trips";
 
 /**
- * `matter()` memoizes a parse *by raw content*, in a module-level object, for
- * the life of the process — and it writes that cache entry *before* it
- * parses, not after. A call that throws leaves a half-built, non-throwing
- * result sitting under the failing text's key, so the next call with
- * byte-identical content gets that stale object back — an empty `data` and
- * the whole raw file folded into `content` — instead of the same parse
- * failure repeating. B236 fixed this for `lib/entries.ts` and
- * `lib/api/entries.ts`; this is the same fix, for `readTrip` in `lib/trips.ts`.
+ * `JSON.parse` throwing on a broken `trip.json` (B1598 — used to be
+ * `matter()`, which memoized a parse *by raw content* in a module-level
+ * object and wrote that cache entry *before* it parsed, not after: a call
+ * that threw left a half-built, non-throwing result sitting under the
+ * failing text's key, so the next call with byte-identical content got that
+ * stale object back — an empty `data` and the whole raw file folded into
+ * `content` — instead of the same parse failure repeating. `JSON.parse` has
+ * no such cache, so this file's own property — a broken trip.json stays
+ * reported as broken across a forced re-parse of the whole journal — holds
+ * for a different, simpler reason now: there is nothing left to go stale).
  *
  * `tripsSignature` is a fingerprint across *every* trip folder in the
- * journal, so editing any trip's `trip.md` invalidates the whole cache and
- * forces every trip — including a still-broken one — to be re-parsed. If the
- * broken file's bytes are unchanged since its first (correctly-caught)
- * failure, that re-parse must hit gray-matter's own cache rather than
- * throwing again, and the fix is what makes it throw again instead of
- * silently reading as a trip with empty frontmatter.
+ * journal, so editing any trip's `trip.json` invalidates the whole cache and
+ * forces every trip — including a still-broken one — to be re-parsed. Kept
+ * as a regression pin: the property that mattered before B1598 (no stale
+ * gray-matter cache entry survives a re-parse) still has to hold for
+ * whatever `readTrip` does with a broken file.
  */
 
 const SERVER_CFG =
@@ -29,9 +30,16 @@ const USER_CFG =
   '{"title":"F","tagline":"t","owner":{"name":"A B","nickname":"A"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{}}';
 
 const GOOD = (id: string) =>
-  `---\nid: ${id}\ntitle: "A Trip"\nstart: "2024-01-01"\nend: "2024-01-09"\nstatus: past\n---\n\nx\n`;
+  JSON.stringify({
+    id,
+    title: "A Trip",
+    dates: { from: "2024-01-01", to: "2024-01-09" },
+    visibility: "public",
+  });
 
-const BROKEN = `---\nid: [unterminated\n---\n\nx\n`;
+// Malformed JSON rather than malformed markdown (B1630): `getTrip` reads
+// `trip.json` exclusively now (lib/trips.ts).
+const BROKEN = "{ this is not json";
 
 function journal(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trip-reparse-"));
@@ -44,7 +52,7 @@ function journal(): string {
 
 function writeTrip(dir: string, folder: string, body: string): void {
   fs.mkdirSync(path.join(dir, "u", "trips", folder), { recursive: true });
-  fs.writeFileSync(path.join(dir, "u", "trips", folder, "trip.md"), body);
+  fs.writeFileSync(path.join(dir, "u", "trips", folder, "trip.json"), body);
 }
 
 /** Silences the `[trips]` warnings these fixtures deliberately provoke. */
@@ -74,11 +82,21 @@ describe("getMalformedTrips across a forced re-parse", () => {
     expect(bad[0].reason).toBe("unparseable");
     expect(getTrips("u").map((t) => t.id)).toEqual(["asia-2023"]);
 
-    // Change a *different* trip's trip.md — its size changes, so
+    // Change a *different* trip's trip.json — its size changes, so
     // `tripsSignature` changes and the whole journal, including the still
     // -broken trip whose bytes never moved, is forced through `readTrip`
     // again.
-    writeTrip(dir, "asia-2023", GOOD("asia-2023") + "\nmore content\n");
+    writeTrip(
+      dir,
+      "asia-2023",
+      JSON.stringify({
+        id: "asia-2023",
+        title: "A Trip",
+        dates: { from: "2024-01-01", to: "2024-01-09" },
+        visibility: "public",
+        intro: "more content",
+      }),
+    );
 
     // The broken trip's bytes are unchanged. Without clearing gray-matter's
     // cache in the catch branch, this second parse hits the stale cache entry

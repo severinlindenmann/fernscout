@@ -11,6 +11,7 @@ import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { createOrder } from "@/lib/postcard/orders";
 import { postcardSuggestion } from "@/lib/postcard/suggest";
 import { GET as statusRoute } from "@/app/api/v1/[user]/status/route";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B436 — the one moment worth catching, and the one function that answers it
@@ -70,45 +71,27 @@ function journalConfig(overrides: Record<string, unknown> = {}) {
  *  carrying one image. `test` marks it as content nobody lived — B436 must
  *  never suggest a card from one of these. */
 function writeDay(test = false) {
+  writeTripFixture(OWNER, {
+    id: "alps-2026",
+    title: "Alps 2026",
+    start: "2026-08-01",
+    end: "2026-08-31",
+    status: "past",
+    visibility: "public",
+  });
   const root = path.join(dir, OWNER, "trips", "alps-2026");
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      'id: "alps-2026"',
-      'title: "Alps 2026"',
-      'start: "2026-08-01"',
-      'end: "2026-08-31"',
-      "status: past",
-      "visibility: public",
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
   fs.mkdirSync(path.join(root, "media"), { recursive: true });
   fs.writeFileSync(path.join(root, "media", "pass.jpg"), Buffer.from([0xff, 0xd8, 0xff, 0xdb]));
-  fs.writeFileSync(
-    path.join(root, "entries", `${today()}-${DAY}.md`),
-    [
-      "---",
-      'title: "Over the pass"',
-      `date: "${today()}"`,
-      'location: "Zermatt"',
-      'country: "Switzerland"',
-      ...(test ? ["test: true"] : []),
-      "gallery:",
-      '  - src: "/media/alps-2026/pass.jpg"',
-      '    type: "image"',
-      "tags: []",
-      "---",
-      "",
-      "Over the pass in the rain.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, "alps-2026", {
+    slug: DAY,
+    date: today(),
+    title: "Over the pass",
+    location: "Zermatt",
+    country: "Switzerland",
+    content: "Over the pass in the rain.",
+    test,
+    media: [{ src: "/media/alps-2026/pass.jpg" }],
+  });
 }
 
 async function addRecipient(): Promise<string> {

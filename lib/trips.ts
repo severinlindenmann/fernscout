@@ -1,13 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
-import { clearMatterCache } from "./matterCache";
 import { contentRoot } from "./contentRoot";
-import { calendarStatus, earliestTodayISO, effectiveStatus } from "./tripTime";
+import { calendarStatus, earliestTodayISO } from "./tripTime";
 import { getUsernames } from "./users";
-import { parseRateTable, type RateTable } from "./currency";
-import { parseTravellers } from "./travellers/parse";
+import { loadUserConfig } from "./config";
+import { crossRate, normalizeCurrency, type RateTable } from "./currency";
+import { loadEcbRates } from "./rates";
 import { parseTracks } from "./tracks";
+import { tripFromJson, type TripFile } from "./api/v2/documents";
+import type { FigureDoc } from "./api/v2/schemas/figures";
+import { parseFigure } from "./travellers/parse";
+import type { Figure } from "./travellers/vocabulary";
 import type { CostsVisibility, Trip, TripAccent, TripPerson, TripStatus, TripTranslations, TripVisibility } from "./types";
 
 const ACCENTS: readonly TripAccent[] = ["sky", "yellow", "green", "coral", "navy"];
@@ -146,7 +149,7 @@ import { isEmail } from "./auth";
 function parsePeople(raw: unknown, folder: string): TripPerson[] {
   if (raw === undefined || raw === null) return [];
   if (!Array.isArray(raw)) {
-    console.warn(`[trips] ${folder}/trip.md has a people: block that is not a list — ignoring it.`);
+    console.warn(`[trips] ${folder}/trip.json has a people: block that is not a list — ignoring it.`);
     return [];
   }
   if (raw.length > MAX_TRIP_PEOPLE) {
@@ -161,7 +164,7 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
   const seen = new Set<string>();
   for (const item of raw) {
     if (!item || typeof item !== "object") {
-      console.warn(`[trips] ${folder}/trip.md has a people: entry that is not a mapping.`);
+      console.warn(`[trips] ${folder}/trip.json has a people: entry that is not a mapping.`);
       return [];
     }
     const entry = item as Record<string, unknown>;
@@ -169,20 +172,20 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
     const email = String(entry.email ?? "").trim().toLowerCase();
     if (!name || !isEmail(email)) {
       console.warn(
-        `[trips] ${folder}/trip.md has a people: entry needing a name and a valid email ` +
+        `[trips] ${folder}/trip.json has a people: entry needing a name and a valid email ` +
           `(got name "${name}", email "${email}") — ignoring the whole list.`,
       );
       return [];
     }
     if (seen.has(email)) {
-      console.warn(`[trips] ${folder}/trip.md lists ${email} twice — ignoring the whole list.`);
+      console.warn(`[trips] ${folder}/trip.json lists ${email} twice — ignoring the whole list.`);
       return [];
     }
     seen.add(email);
     const rawNickname = entry.nickname;
     if (rawNickname !== undefined && typeof rawNickname !== "string") {
       console.warn(
-        `[trips] ${folder}/trip.md has a people: entry whose nickname is not text — ` +
+        `[trips] ${folder}/trip.json has a people: entry whose nickname is not text — ` +
           `ignoring the whole list.`,
       );
       return [];
@@ -194,16 +197,20 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
 }
 
 /**
- * The word the file declares, before the calendar has its say.
- *
- * Only `current` survives `effectiveStatus` unchanged, so this is really
- * asking one question — is this trip the one the bare `/<user>` URLs serve? —
- * and everything else, including a missing field and a typo, is "no". See
- * `readTrip` for where the other two words come from.
+ * A trip's status, purely from its own dates — v2 retired the manual
+ * `status: current` override (`docs/v2-migration/00-decisions.md`, decision
+ * "status/tracks retired"): `trip.json` carries no status at all any more,
+ * so there is no declared word for the calendar to defer to. `current` is
+ * therefore a calendar fact now, not an editorial one — today falling
+ * within `[start, end]` — where it used to be the one thing an author chose
+ * outright. `loadTrips` below still resolves two trips that both land on
+ * `current` down to one, the same way it always did.
  */
-function parseStatus(raw: unknown): TripStatus {
-  const v = String(raw ?? "past").toLowerCase();
-  return v === "current" || v === "upcoming" ? v : "past";
+function deriveStatus(start: string, end: string, now: Date = new Date()): TripStatus {
+  const today = earliestTodayISO(now);
+  if (today < start) return "upcoming";
+  if (today > end) return "past";
+  return "current";
 }
 
 /**
@@ -299,7 +306,7 @@ function deriveVisibility(
       return { visibility: "guest", listed: false };
     default:
       console.warn(
-        `[trips] ${folder}/trip.md has visibility "${raw}", which is not one of ` +
+        `[trips] ${folder}/trip.json has visibility "${raw}", which is not one of ` +
           `private/public/guest — treating it as private.`,
       );
       return { visibility: "private", listed: false };
@@ -346,7 +353,7 @@ function parseListed(
   // author was trying to hide.
   if (typeof raw !== "boolean") {
     console.warn(
-      `[trips] ${folder}/trip.md has listed "${raw}", which is not true or false — ` +
+      `[trips] ${folder}/trip.json has listed "${raw}", which is not true or false — ` +
         `ignoring it and reading the trip as ${derived ? "advertised" : "not advertised"}.`,
     );
     return derived;
@@ -355,7 +362,7 @@ function parseListed(
   if (raw && !derived) {
     const word = visibility === undefined || visibility === null ? "public" : String(visibility);
     console.warn(
-      `[trips] ${folder}/trip.md says listed: true, but visibility "${word}" does not ` +
+      `[trips] ${folder}/trip.json says listed: true, but visibility "${word}" does not ` +
         `advertise the trip — ignoring it. listed: can only narrow; write ` +
         `visibility: public to advertise a trip.`,
     );
@@ -380,14 +387,14 @@ function parseTeaser(raw: unknown, visibility: TripVisibility, folder: string): 
 
   if (typeof raw !== "boolean") {
     console.warn(
-      `[trips] ${folder}/trip.md has teaser "${raw}", which is not true or false — ignoring it.`,
+      `[trips] ${folder}/trip.json has teaser "${raw}", which is not true or false — ignoring it.`,
     );
     return false;
   }
 
   if (raw && visibility === "public") {
     console.warn(
-      `[trips] ${folder}/trip.md says teaser: true, but the trip is public — there is ` +
+      `[trips] ${folder}/trip.json says teaser: true, but the trip is public — there is ` +
         `nothing to tease. teaser: advertises a guest or private trip as a locked card; ` +
         `use listed: to decide whether a public trip is advertised.`,
     );
@@ -410,42 +417,38 @@ function parseVisibility(
 }
 
 /**
- * The frontmatter keys `parseTrip` above consumes. Anything else in a trip.md
- * is reported on the trip as `unknownFields` — see the note on that field.
+ * The top-level keys `readTrip` below consumes. Anything else in a
+ * `trip.json` is reported on the trip as `unknownFields` — see the note on
+ * that field.
  *
  * A typo is the common case and is harmless here; a key the project has
  * *withdrawn* is not, and the boot check is what catches those.
- */
-/**
- * The whole vocabulary of a `trip.md`, and the list B207 was about.
  *
- * Exported so a test can hold `createTrip` to it: every field here is either
- * written by a door or decided against in writing, and a fifteenth added
- * without that decision fails rather than joining the three that were read,
- * rendered and unreachable for a year.
+ * v2's own vocabulary (`lib/api/v2/schemas/trip.ts`'s `tripBase`), not v1's
+ * — `start`/`end` are `dates`, `costsVisibility` is inside `costs`,
+ * `travellers` is `figures`, and `tracks`/`reminder`/`reminderChannel` have
+ * no v2 home at all (retired outright — see `deriveStatus` above for
+ * `status`, dropped the same way).
  */
 export const KNOWN_TRIP_FIELDS = new Set([
   "id",
   "title",
   "tagline",
-  "start",
-  "end",
-  "status",
-  "cover",
-  "accent",
-  "rates",
-  "ratesFrom",
-  "translations",
-  "people",
-  "travellers",
-  "test",
+  "dates",
   "visibility",
   "listed",
   "teaser",
-  "costsVisibility",
-  "tracks",
-  "reminder",
-  "reminderChannel",
+  "people",
+  "rates",
+  "costs",
+  "plan",
+  "translations",
+  "accent",
+  "cover",
+  "figures",
+  "intro",
+  "test",
+  "declined",
 ]);
 
 function unknownFields(data: Record<string, unknown>): string[] | undefined {
@@ -453,81 +456,129 @@ function unknownFields(data: Record<string, unknown>): string[] | undefined {
   return extra.length > 0 ? extra : undefined;
 }
 
-/**
- * `reminder:` / `reminderChannel:` — the evening nudge, B1219.
- *
- * Fails open like every reader here: an unrecognised channel or a
- * `reminder: true` with no channel reads as no reminder at all, rather than
- * guessing which one was meant. The writer, `lib/api/tripReminder.ts`, is
- * the one place a bad value is refused instead of dropped.
- */
-function parseReminder(
-  raw: unknown,
-  rawChannel: unknown,
-  folder: string,
-): { channel: "mail" | "whatsapp" } | undefined {
-  if (raw !== true) return undefined;
-  if (rawChannel === "mail" || rawChannel === "whatsapp") return { channel: rawChannel };
-  console.warn(
-    `[trips] ${folder}/trip.md says reminder: true but reminderChannel is ${JSON.stringify(
-      rawChannel ?? null,
-    )}, which is not "mail" or "whatsapp" — treating the reminder as off.`,
-  );
-  return undefined;
-}
-
 function parseCostsVisibility(raw: unknown, folder: string): CostsVisibility {
   if (raw === undefined || raw === null) return "public";
   const v = String(raw).toLowerCase();
   if (v === "public" || v === "guests") return v;
   console.warn(
-    `[trips] ${folder}/trip.md has costsVisibility "${raw}" — treating it as guests-only.`,
+    `[trips] ${folder}/trip.json has costs.visibility "${raw}" — treating it as guests-only.`,
   );
   return "guests";
 }
 
 /**
- * The `rates:` block — this trip's frozen local→base rates.
+ * This trip's frozen local→base rates, resolved from `rates:` — B1606/V2.
  *
- * ```yaml
- * rates:
- *   THB: 0.0245   # 1 THB = 0.0245 CHF, as it was on this trip
- *   VND: 0.000034
- * ```
- *
- * Kept in `trip.md` rather than a sibling `rates.json` so that a trip stays
- * one metadata file: the "clone it and edit markdown" story gets worse with
- * every extra file a trip needs, and rates are trip metadata in exactly the
- * way `start` and `accent` are. A bad entry is dropped and logged rather than
- * throwing, matching how every other field here behaves — the amounts it
- * would have converted then show up as explicitly unconverted (lib/costs.ts)
- * instead of being counted at face value.
+ * The wire no longer states the rate itself for every currency the way v1's
+ * flat `rates: {EUR: 0.94}` did: `rates.currencies` only *names* which
+ * currencies the trip may use, and `rates.manual` carries a number only for
+ * the ones the ECB does not publish or that the owner wants to override —
+ * both in the ECB's own convention (units of the currency per one euro, the
+ * same as `loadEcbRates()`'s table). So getting to "units of base currency
+ * per one unit of THB" is two hops now rather than one stored number:
+ * `manual` (or the cached ECB snapshot) for THB→EUR, then `crossRate` for
+ * EUR→base. Nothing here fetches anything — `loadEcbRates` only ever reads
+ * the cached file `npm run rates:update` (or the nightly refresh) already
+ * wrote, so a currency the cache does not cover, or a fresh checkout with no
+ * cache at all, drops out of the table exactly the way an unconvertible
+ * currency always has: reported as unconverted rather than counted at face
+ * value (`lib/costs.ts`).
  */
-function parseRates(raw: unknown, folder: string): RateTable {
-  return parseRateTable(raw, (message) =>
-    console.warn(`[trips] ${folder}/trip.md rates: ${message}`),
-  );
+function resolveTripRates(
+  raw: TripFile["rates"],
+  base: string,
+): { rates: RateTable; ratesFrom: Record<string, string> } {
+  if (!raw) return { rates: {}, ratesFrom: {} };
+  const ecb = loadEcbRates();
+  const eurRates: Record<string, number> = { ...(ecb?.rates ?? {}), ...(raw.manual ?? {}) };
+  // The base currency's own EUR rate has to be *somewhere* in this table for
+  // `crossRate` to convert anything at all — it divides every other currency
+  // through it (lib/currency.ts). When the ECB archive does not track this
+  // journal's base currency and nobody wrote a `manual` entry for it either
+  // (an instance with no fetched rates table yet, or a base the archive has
+  // never priced), the table has a hole at exactly the entry every
+  // conversion needs, and every currency the trip names vanishes from
+  // `rates` at once — not just the untracked one. `eurManualRates`
+  // (lib/tripWrite.ts) already accepts this same approximation on the write
+  // side for the same reason; ponytail: 1 rather than a refusal, so a trip
+  // still converts *something* until an owner corrects the base or the
+  // archive learns it. Upgrade path: refuse instead, once this is worth an
+  // owner's attention rather than a silently empty rates block.
+  if (base !== "EUR" && !(typeof eurRates[base] === "number" && Number.isFinite(eurRates[base]) && eurRates[base] > 0)) {
+    eurRates[base] = 1;
+  }
+  const rates: Record<string, number> = {};
+  const ratesFrom: Record<string, string> = {};
+  for (const rawCode of raw.currencies) {
+    const code = normalizeCurrency(rawCode);
+    if (!code) continue;
+    const rate = crossRate(code, base, eurRates);
+    if (rate === undefined) continue;
+    rates[code] = rate;
+    ratesFrom[code] =
+      raw.manual?.[code] !== undefined
+        ? "the trip's own rate"
+        : ecb?.date
+          ? `European Central Bank, ${ecb.date}`
+          : "European Central Bank";
+  }
+  return { rates, ratesFrom };
 }
 
 /**
- * `ratesFrom:` — where each looked-up `rates:` entry came from, written by
- * `fillTripRates` (lib/api/tripRates.ts, B543) beside the rate itself. A
- * hand-typed rate carries no entry here, which is exactly right: this is
- * provenance for a measurement, not a place to explain a judgement call.
+ * `figures:` resolved into the render layer's own `Figure[]` — B1609. The
+ * wire names a *mode* and, for `custom`, a list of figure-library ids
+ * (`content/<user>/figures/<id>.json`); this trip's own vocabulary only
+ * knows how to draw a party, not how to look one up by id, so this is the
+ * one place that translation happens.
  *
- * Fails open per entry, like `rates:` above — one bad line here must not cost
- * the page every citation it does have.
+ * ponytail: `{mode: "off"}` and `{mode: "journal"}` both read as `[]` here,
+ * same as an absent `figures:` — `partyFor` (lib/travellers/parse.ts) then
+ * falls back to the journal's own default party for all three, which is
+ * correct for "journal" but means "off" cannot yet ask for *no one drawn at
+ * all*. `Trip.travellers` has no third state to say that in. Upgrade path:
+ * give it one, the day an owner actually wants a party-less trip.
  */
-function parseRatesFrom(raw: unknown): Record<string, string> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    const code = key.trim().toUpperCase();
-    if (/^[A-Z]{3}$/.test(code) && typeof value === "string" && value.trim()) {
-      out[code] = value.trim();
-    }
+function resolveTripFigures(raw: TripFile["figures"], username: string): Figure[] {
+  if (!raw || raw.mode !== "custom") return [];
+  return raw.figures
+    .map((id) => readFigureDoc(username, id))
+    .filter((doc): doc is FigureDoc => doc !== null)
+    .map(figureDocToFigure);
+}
+
+/**
+ * `content/<user>/figures/<id>.json`, read directly rather than through
+ * `lib/figures.ts`'s own `getFigureDoc` — that module imports `tripDir`
+ * from this one (for `figureReferences`), so importing it back here would
+ * be a cycle. Both are a plain `JSON.parse` of one small file; duplicating
+ * that is cheaper than restructuring either module to share it.
+ */
+function readFigureDoc(username: string, id: string): FigureDoc | null {
+  const file = path.join(contentRoot(), username, "figures", `${path.basename(id)}.json`);
+  if (!fs.existsSync(file)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8")) as FigureDoc;
+  } catch {
+    return null;
   }
-  return out;
+}
+
+/**
+ * Routed through `parseFigure` — the same enum filter an inline
+ * `travellers:` block always ran through (`lib/travellers/parse.ts`) —
+ * rather than copying every field straight off the document. `travellersBlock`
+ * already refuses a bad `hairStyle`/`outfit`/`build`/`age`/`accessories` at
+ * write time, but a figure file is not only ever produced by that path: it
+ * can be hand-edited, carried over from an older vocabulary, or written by
+ * something else entirely, and `figureFromJson` does no shape-checking of
+ * its own. Skipping the filter here would hand the renderer a value from
+ * outside its fixed set of SVG paths with nothing left to catch it — the
+ * same failure `parseFigure`'s docblock describes for hand-edited
+ * frontmatter, one layer further out.
+ */
+function figureDocToFigure(doc: FigureDoc): Figure {
+  return parseFigure({ ...doc, for: doc.person }) ?? {};
 }
 
 /**
@@ -535,7 +586,7 @@ function parseRatesFrom(raw: unknown): Record<string, string> {
  * about to write will read back as, using the reader itself rather than a
  * second normaliser that would disagree about a trimmed or emptied entry.
  */
-export function parseTranslations(raw: unknown): TripTranslations | undefined {
+function parseTranslations(raw: unknown): TripTranslations | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const src = raw as Record<string, { title?: string; tagline?: string; intro?: string } | undefined>;
   const out: TripTranslations = {};
@@ -557,7 +608,7 @@ function refuse(folder: string, reason: MalformedTripReason, problem: string): M
 }
 
 /**
- * One trip.md → a Trip, or a MalformedTrip saying why not.
+ * One `trip.json` → a Trip, or a MalformedTrip saying why not.
  *
  * - `Trip` — it parsed and is trustworthy.
  * - `MalformedTrip` — the folder would silently vanish, and this is what to
@@ -566,44 +617,56 @@ function refuse(folder: string, reason: MalformedTripReason, problem: string): M
  *   and returned rather than dropped so the reason reaches the owner and the
  *   agent that wrote the file, not just the server log (B83).
  *
- * A folder with **no `trip.md` at all** is one of those, not a null. It was
+ * A folder with **no `trip.json` at all** is one of those, not a null. It was
  * first read as "a folder that never claimed to be a trip is nothing to
  * report" — but nothing else lives directly under `trips/`, so the only way to
  * make one is to be halfway through creating a trip. That is exactly the agent
  * this task is about: it made the directory, its write of the file failed, and
  * every read afterwards is indistinguishable from never having tried.
  *
+ * `dayFromJson`/`tripFromJson` (`lib/api/v2/documents.ts`) are the one place
+ * that turns a document's bytes into typed fields — this function's own job
+ * is everything downstream of that: validity of `id`/`title`/`dates`, and the
+ * mapping from the wire's `TripFile` onto this render layer's own `Trip`
+ * (B1598). That mapping is deliberate rather than 1:1 — `figures` resolves
+ * against the figure library, `rates` resolves against the cached ECB
+ * table, `costs`/`plan` pass through whole for `lib/costs.ts`/`lib/plan.ts`
+ * to read (see the note on `Trip.costsSection`) — and it happens here, once,
+ * rather than once per reader.
+ *
  * The `[trips]` warnings stay. The server log is still the right place for an
  * operator tailing stdout; it was only ever wrong as the *sole* place.
  */
 function readTrip(username: string, dir: string, folder: string): Trip | MalformedTrip {
-  const file = path.join(dir, "trip.md");
+  const file = path.join(dir, "trip.json");
   if (!fs.existsSync(file)) {
-    return refuse(folder, "no-file", "there is no trip.md in it");
+    return refuse(folder, "no-file", "there is no trip.json in it");
   }
 
+  const raw = fs.readFileSync(file, "utf8");
   let data: Record<string, unknown>;
-  let content: string;
+  let tripFile: TripFile;
   try {
-    const parsed = matter(fs.readFileSync(file, "utf8"));
-    data = parsed.data as Record<string, unknown>;
-    content = parsed.content;
+    // Parsed twice — once by `tripFromJson` for the typed fields, once here
+    // for `unknownFields` — because `tripFromJson` only ever returns the
+    // keys it knows about, and a key it does not know about is exactly what
+    // `unknownFields` exists to notice. Both are one cheap `JSON.parse` of a
+    // small file; a second field-by-field parser would be the thing AGENTS.md
+    // warns against, this is not that.
+    data = JSON.parse(raw) as Record<string, unknown>;
+    tripFile = tripFromJson(raw);
   } catch (err) {
-    // See `clearMatterCache` in lib/matterCache.ts for why this call is here too.
-    clearMatterCache();
-    // First line only: gray-matter quotes the offending source at length, and
-    // a web page is not a terminal.
     const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return refuse(folder, "unparseable", `its frontmatter could not be parsed: ${why}`);
+    return refuse(folder, "unparseable", `it could not be parsed: ${why}`);
   }
 
-  const id = String(data.id ?? "").trim();
-  const title = String(data.title ?? "").trim();
-  const start = String(data.start ?? "").trim();
-  const end = String(data.end ?? "").trim();
+  const id = String(tripFile.id ?? "").trim();
+  const title = String(tripFile.title ?? "").trim();
+  const start = String(tripFile.dates?.from ?? "").trim();
+  const end = String(tripFile.dates?.to ?? "").trim();
 
   if (!id) {
-    return refuse(folder, "missing-id", `it has no id (add \`id: ${folder}\`, matching the folder)`);
+    return refuse(folder, "missing-id", `it has no id (add \`"id": "${folder}"\`, matching the folder)`);
   }
   if (id !== folder) {
     return refuse(
@@ -632,52 +695,54 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     return refuse(
       folder,
       "missing-fields",
-      `it needs a title and ISO start and end dates (YYYY-MM-DD); ` +
+      `it needs a title and ISO dates.from and dates.to (YYYY-MM-DD); ` +
         `${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} missing or malformed`,
     );
   }
 
   // Read before the object below because `teaser:` is only meaningful against
   // the visibility this file ended up with — not against the word it wrote.
-  const visibility = parseVisibility(data.visibility, data.listed, folder);
+  const visibility = parseVisibility(tripFile.visibility, tripFile.listed, folder);
+  const configured = loadUserConfig(username).baseCurrency;
+  const base = normalizeCurrency(configured, configured.toUpperCase());
 
   return {
     id,
     username,
     ref: tripRef(username, id),
     title,
-    tagline: data.tagline ? String(data.tagline) : undefined,
+    tagline: tripFile.tagline ? String(tripFile.tagline) : undefined,
     start,
     end,
-    // Declared or derived, and which is which matters: `current` is the
-    // author's choice and is honoured as written; `past` and `upcoming` are
-    // facts about `start` and today, so they are read off the calendar rather
-    // than off a field nobody has edited since the trip was created. B72.
-    status: effectiveStatus({ start, status: parseStatus(data.status) }),
-    cover: data.cover ? mediaWithOwner(String(data.cover), username) : undefined,
-    accent: parseAccent(data.accent),
-    rates: parseRates(data.rates, folder),
-    ratesFrom: parseRatesFrom(data.ratesFrom),
-    intro: content.trim(),
-    translations: parseTranslations(data.translations),
-    people: parsePeople(data.people, folder),
-    // Its own parser, and it fails open where `parsePeople` fails closed.
-    // See `Trip["travellers"]` in lib/types.ts for why that asymmetry is
-    // the point rather than an inconsistency.
-    travellers: parseTravellers(data.travellers, `${folder}/trip.md`),
+    status: deriveStatus(start, end),
+    cover: tripFile.cover ? mediaWithOwner(String(tripFile.cover), username) : undefined,
+    accent: parseAccent(tripFile.accent),
+    ...resolveTripRates(tripFile.rates, base),
+    intro: (tripFile.intro ?? "").trim(),
+    translations: parseTranslations(tripFile.translations),
+    people: parsePeople(tripFile.people, folder),
+    travellers: resolveTripFigures(tripFile.figures, username),
     // `true` and nothing else. Absent is the overwhelming case, and a flag
     // that quietly accepted "no" or "false" as truthy would put a banner on
     // somebody's actual holiday.
-    test: data.test === true || undefined,
+    test: tripFile.test === true || undefined,
     ...visibility,
-    teaser: parseTeaser(data.teaser, visibility.visibility, folder) || undefined,
-    costsVisibility: parseCostsVisibility(data.costsVisibility, folder),
-    // Absent is "all of them", so a trip written before B531 asks for
-    // everything — which is the default an owner should not have to find, and
-    // the only default that would have caught the run this came from.
-    tracks: parseTracks(data.tracks),
-    reminder: parseReminder(data.reminder, data.reminderChannel, folder),
+    teaser: parseTeaser(tripFile.teaser, visibility.visibility, folder) || undefined,
+    costsVisibility: parseCostsVisibility(tripFile.costs?.visibility, folder),
+    // v2 retired `tracks:` — every day answers every declinable directly now
+    // (`DAY_DECLINABLES`), so there is no trip-level "what to ask for" any
+    // more. `parseTracks(undefined)` is "all of it", which nothing under
+    // `lib/` still enforces against but nothing reads for rendering either.
+    tracks: parseTracks(undefined),
+    /**
+     * The evening nudge, D18. Presence is the switch, so there is no second
+     * scalar to disagree with this one — which is why this reads the field
+     * straight through rather than reconciling two the way v1 had to.
+     */
+    reminder: tripFile.reminder ? { channel: tripFile.reminder.channel } : undefined,
     unknownFields: unknownFields(data),
+    costsSection: tripFile.costs,
+    planSection: tripFile.plan,
   };
 }
 
@@ -702,7 +767,7 @@ function tripsSignature(root: string, folders: string[]): string {
   return folders
     .map((folder) => {
       try {
-        const { mtimeMs, size } = fs.statSync(path.join(root, folder, "trip.md"));
+        const { mtimeMs, size } = fs.statSync(path.join(root, folder, "trip.json"));
         return `${folder}:${mtimeMs}:${size}`;
       } catch {
         return `${folder}:-`;

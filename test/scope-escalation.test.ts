@@ -547,8 +547,8 @@ describe("B231/B1086 — export.zip is owner-only and hands nothing to anyone el
     expect(await realScope(session.body.token)).toBe("write:content");
 
     const archive = await exportZip(session.body.token);
-    expect(archive.names).toContain("trips/honeymoon-2026/trip.md");
-    expect(archive.names).toContain("trips/alps-2026/trip.md");
+    expect(archive.names).toContain("trips/honeymoon-2026/trip.json");
+    expect(archive.names).toContain("trips/alps-2026/trip.json");
     expect(archive.names).toContain("2026-08-25-the-quiet-week.md");
   });
 

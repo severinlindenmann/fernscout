@@ -9,7 +9,9 @@ import { createDraft } from "@/lib/api/entries";
 import { fillDayWeather } from "@/lib/api/weather";
 import { validateEntry, validateEntryEdit } from "@/lib/validate/entry";
 import { fetchDayWeather } from "@/lib/weatherFetch";
-import { parseWeather, weatherGroup, weatherLine } from "@/lib/weather";
+import { parseWeather, weatherGroup } from "@/lib/weather";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B325 — what the weather actually was.
@@ -40,7 +42,7 @@ function writeInstance() {
 }
 
 function writeJournal(weatherOn: boolean) {
-  fs.mkdirSync(path.join(dir, "ana", "trips", "alps", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "ana"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "ana", "config.json"),
     JSON.stringify({
@@ -56,31 +58,47 @@ function writeJournal(weatherOn: boolean) {
       features: { weather: { enabled: weatherOn } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "ana", "trips", "alps", "trip.md"),
-    [
-      "---",
-      'id: "alps"',
-      'title: "Alps"',
-      'start: "2026-08-20"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      'visibility: "public"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  // Idempotent: a test may flip the capability with a second call, and
+  // createTrip refuses an id that already exists.
+  if (!fs.existsSync(path.join(dir, "ana", "trips", "alps", "trip.json"))) {
+    writeTripFixture("ana", {
+      id: "alps",
+      title: "Alps",
+      start: "2026-08-20",
+      end: "2026-09-10",
+      status: "current",
+      visibility: "public",
+    });
+  }
   clearConfigCache();
   clearUserCache();
   clearMatterCache();
   forgetEntries(ref);
 }
 
-function writeDay(frontmatter: string[]) {
-  const file = path.join(dir, "ana", "trips", "alps", "entries", "2026-08-26-hoi-an.md");
-  fs.writeFileSync(file, ["---", ...frontmatter, "---", "", "The prose.", ""].join("\n"));
+// Not on writeDayFixture (B1630): `weather` (either `true`, the request, or a
+// reading) is a real day field (lib/api/v2/documents.ts's `DayFile`), not a
+// frontmatter detail, but the shared fixture does not expose it yet. Written
+// through the production serialiser so it cannot drift from what the reader
+// parses; a caller after a deliberately malformed reading (no `source`, say)
+// passes it straight through, since this file's whole subject is what the
+// *reader* does with one, not what a writer would have refused.
+function writeDay(opts: {
+  weather?: true | Record<string, unknown>;
+  coordinates?: { lat: number; lng: number };
+} = {}) {
+  const file = path.join(dir, "ana", "trips", "alps", "entries", "2026-08-26-hoi-an.json");
+  const day: DayFile = {
+    slug: "hoi-an",
+    title: "Hoi An",
+    date: "2026-08-26",
+    content: "The prose.",
+    status: "published",
+    ...(opts.coordinates ? { coordinates: opts.coordinates } : {}),
+    ...(opts.weather !== undefined ? { weather: opts.weather as DayFile["weather"] } : {}),
+  };
+  fs.mkdirSync(path.join(dir, "ana", "trips", "alps", "entries"), { recursive: true });
+  fs.writeFileSync(file, dayToJson(day));
   clearMatterCache();
   forgetEntries(ref);
   return file;
@@ -193,24 +211,24 @@ describe("the line this rests on: a caller cannot assert weather", () => {
 describe("the capability is off", () => {
   test("no request is made to anybody, and nothing is written", async () => {
     writeJournal(false);
-    const file = writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "weather: true", "lat: 15.88", "lng: 108.34"]);
+    const file = writeDay({ weather: true, coordinates: { lat: 15.88, lng: 108.34 } });
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     expect(await fillDayWeather(ref, "hoi-an")).toBe("capability_off");
     expect(fetchSpy).not.toHaveBeenCalled();
-    expect(fs.readFileSync(file, "utf8")).not.toContain("weatherData");
+    expect(JSON.parse(fs.readFileSync(file, "utf8")).weather).toBe(true);
   });
 
   test("and nothing is rendered — the day carries no reading at all", () => {
     writeJournal(false);
-    writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "weather: true", "lat: 15.88", "lng: 108.34"]);
+    writeDay({ weather: true, coordinates: { lat: 15.88, lng: 108.34 } });
     expect(getAllEntries(ref)[0].weather).toBeUndefined();
   });
 });
 
 describe("filling a day in", () => {
   test("a day that asked, with coordinates, gets a reading naming its source", async () => {
-    const file = writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "weather: true", "lat: 15.88", "lng: 108.34"]);
+    const file = writeDay({ weather: true, coordinates: { lat: 15.88, lng: 108.34 } });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       providerAnswer({
         weather_code: [53],
@@ -223,11 +241,11 @@ describe("filling a day in", () => {
 
     expect(await fillDayWeather(ref, "hoi-an")).toBe("filled");
 
-    const written = fs.readFileSync(file, "utf8");
-    expect(written).toContain('source: "open-meteo"');
+    const written = JSON.parse(fs.readFileSync(file, "utf8"));
+    expect(written.weather.source).toBe("open-meteo");
     // The prose and the fields the author wrote survive a lookup untouched.
-    expect(written).toContain("The prose.");
-    expect(written).toContain('title: "Hoi An"');
+    expect(written.content).toBe("The prose.");
+    expect(written.title).toBe("Hoi An");
 
     const entry = getAllEntries(ref, { includeDrafts: true })[0];
     expect(entry.weather?.tempMax).toBe(39.4);
@@ -236,28 +254,28 @@ describe("filling a day in", () => {
   });
 
   test("a day with no coordinates gets nothing — not a guess from anywhere", async () => {
-    writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "weather: true"]);
+    writeDay({ weather: true });
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     expect(await fillDayWeather(ref, "hoi-an")).toBe("no_coordinates");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   test("a day that never asked is left alone", async () => {
-    writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "lat: 15.88", "lng: 108.34"]);
+    writeDay({ coordinates: { lat: 15.88, lng: 108.34 } });
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     expect(await fillDayWeather(ref, "hoi-an")).toBe("not_asked");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   test("a reading the author recorded is never overwritten by a lookup", async () => {
-    const file = writeDay([
-      'title: "Hoi An"',
-      'date: "2026-08-26"',
-      "weather: true",
-      "lat: 15.88",
-      "lng: 108.34",
-      'weatherData: { tempMax: 24, source: "the balcony thermometer", recordedAt: "2026-08-26T17:00:00Z" }',
-    ]);
+    const file = writeDay({
+      weather: {
+        tempMax: 24,
+        source: "the balcony thermometer",
+        recordedAt: "2026-08-26T17:00:00Z",
+      },
+      coordinates: { lat: 15.88, lng: 108.34 },
+    });
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     expect(await fillDayWeather(ref, "hoi-an")).toBe("already_recorded");
@@ -266,23 +284,23 @@ describe("filling a day in", () => {
   });
 
   test("a dry run stops before the network and reports what it would do", async () => {
-    writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "weather: true", "lat: 15.88", "lng: 108.34"]);
+    writeDay({ weather: true, coordinates: { lat: 15.88, lng: 108.34 } });
     const fetchSpy = vi.spyOn(globalThis, "fetch");
     expect(await fillDayWeather(ref, "hoi-an", { dryRun: true })).toBe("would_fetch");
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   test("a provider that answers with nothing leaves the day for next time", async () => {
-    const file = writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "weather: true", "lat: 15.88", "lng: 108.34"]);
+    const file = writeDay({ weather: true, coordinates: { lat: 15.88, lng: 108.34 } });
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       providerAnswer({ weather_code: [null], temperature_2m_max: [null], temperature_2m_min: [null] }),
     );
     expect(await fillDayWeather(ref, "hoi-an")).toBe("no_answer");
-    expect(fs.readFileSync(file, "utf8")).not.toContain("weatherData");
+    expect(JSON.parse(fs.readFileSync(file, "utf8")).weather).toBe(true);
   });
 
   test("a refusal from the provider is not an error anybody hears about", async () => {
-    writeDay(['title: "Hoi An"', 'date: "2026-08-26"', "weather: true", "lat: 15.88", "lng: 108.34"]);
+    writeDay({ weather: true, coordinates: { lat: 15.88, lng: 108.34 } });
     vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("ECONNREFUSED"));
     await expect(fillDayWeather(ref, "hoi-an")).resolves.toBe("no_answer");
   });
@@ -297,12 +315,14 @@ describe("filling a day in", () => {
       weather: true,
     });
     expect(result.ok).toBe(true);
-    const written = fs.readFileSync(
-      path.join(dir, "ana", "trips", "alps", "entries", "2026-08-27-da-lat.md"),
-      "utf8",
+    const written = JSON.parse(
+      fs.readFileSync(
+        path.join(dir, "ana", "trips", "alps", "entries", "2026-08-27-da-lat.json"),
+        "utf8",
+      ),
     );
-    expect(written).toContain("weather: true");
-    expect(written).toContain("status: draft");
+    expect(written.weather).toBe(true);
+    expect(written.status).toBe("draft");
   });
 });
 
@@ -350,11 +370,7 @@ describe("reading one back", () => {
   });
 
   test("a hand-edited file the API would have refused does not render", () => {
-    writeDay([
-      'title: "Hoi An"',
-      'date: "2026-08-26"',
-      "weatherData: { tempMax: 24 }",
-    ]);
+    writeDay({ weather: { tempMax: 24 } });
     expect(getAllEntries(ref, { includeDrafts: true })[0].weather).toBeUndefined();
   });
 
@@ -369,8 +385,8 @@ describe("reading one back", () => {
       recordedAt: "2026-09-06T09:14:00.000Z",
     };
     // Round-tripped through the file, not through a string compare: what
-    // matters is that gray-matter parses back exactly what was written.
-    writeDay(['title: "Hoi An"', 'date: "2026-08-26"', weatherLine(reading)]);
+    // matters is that the reader parses back exactly what was written.
+    writeDay({ weather: reading });
     expect(getAllEntries(ref, { includeDrafts: true })[0].weather).toEqual(reading);
   });
 

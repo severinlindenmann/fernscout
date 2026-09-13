@@ -1,0 +1,22 @@
+{
+  "id": "private-2026",
+  "title": "A Private Trip",
+  "tagline": "nobody but an invited guest should read this",
+  "dates": {
+    "from": "2026-02-01",
+    "to": "2026-02-10"
+  },
+  "visibility": "guest",
+  "listed": true,
+  "people": [
+    {
+      "name": "Cre Ator",
+      "nickname": "Cre"
+    }
+  ],
+  "intro": "The private trip. Its title, its entries, and this intro must never appear\nin the feed.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

@@ -258,10 +258,32 @@ describe("the rates section, created without one, then answered by a PATCH", () 
  * If it does not pass then, that is a finding about B1598, not a reason to
  * delete this.
  */
-describe.skip("PATCH-then-convert — unskip with B1598 (the render layer reads v2 JSON)", () => {
-  test("fills in a missing rate, and the costs page converts with it afterwards", () => {
-    // The body of this test went with the v1 route it drove. Rebuild it
-    // against `PATCH /api/v2/{user}/trips/{trip}`'s `rates` section and
-    // `getCostSummary` once that function reads a v2 trip.
+describe("PATCH-then-convert — unskipped with B1598 (the render layer reads v2 JSON)", () => {
+  test("the v1 rates door writes into the same trip.json a v2-created trip lives in, and getTrip converts with it", async () => {
+    // v1's `patchTripRates` (lib/api/tripRates.ts) and v2's `PUT`/`PATCH
+    // .../trips` both read and write the one `trip.json` now — there is no
+    // longer a `trip.md` for one to see and the other not to. This is the
+    // integration the file banner said was missing: a trip made through the
+    // v2 door, rated through the v1 one, read back by `getTrip()` (what
+    // `getCostSummary` itself calls) with a real converted rate.
+    const token = await ownerToken();
+    await putV2Trip(
+      "rates-trip",
+      fullTrip("rates-trip", {
+        declined: {
+          ...(fullTrip("rates-trip").declined as Record<string, string>),
+          rates: "no foreign currency tracked on this trip at all",
+        },
+      }),
+      token,
+    );
+
+    const { patchTripRates } = await import("@/lib/api/tripRates");
+    const result = patchTripRates("alex/rates-trip", { EUR: 0.94 });
+    expect(result.ok, JSON.stringify(result)).toBe(true);
+
+    const { getTrip } = await import("@/lib/trips");
+    const trip = getTrip("alex/rates-trip");
+    expect(trip?.rates.EUR).toBeDefined();
   });
 });

@@ -19,10 +19,12 @@ const ROOT = process.cwd();
 const CODE_DIRS = ["lib", "app", "components", "scripts", "public"];
 
 /**
- * The demo-content generator names the demo trips, which is its job. Every
- * other file in `scripts/` is still checked.
+ * Nothing in `scripts/` is exempt any more — the one file that named the
+ * demo trips on purpose, `build-demo-content.mjs`, was retired (B1598: the
+ * demo journal is committed JSON under `content/example/` now, not
+ * regenerated from a script that wrote markdown).
  */
-const EXEMPT = new Set(["scripts/build-demo-content.mjs"]);
+const EXEMPT = new Set<string>([]);
 
 /**
  * Names, places and identifiers belonging to this instance rather than to the

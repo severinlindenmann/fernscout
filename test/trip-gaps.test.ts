@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { forgetEntries } from "@/lib/entries";
 import { tripGaps } from "@/lib/api/tripGaps";
+import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * B532 — a trip with a budget and no day-level spending read as complete.
@@ -20,23 +21,23 @@ import { tripGaps } from "@/lib/api/tripGaps";
 let dir: string;
 const REF = "alex/reise";
 
+// Not on writeDayFixture (B1630): `costs` is a real day field
+// (lib/api/v2/documents.ts's `DayFile`), not a frontmatter detail, but the
+// shared fixture does not expose it yet. Written through the production
+// serialiser so it cannot drift from what the reader parses.
 function writeDay(date: string, slug: string, costs = false) {
   fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", `${date}-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      `date: "${date}"`,
-      'location: "Basel"',
-      'country: "Schweiz"',
-      ...(costs ? ["costs:", '  - { label: "Kaffee", amount: 4.5, category: "food" }'] : []),
-      "---",
-      "",
-      "Etwas.",
-      "",
-    ].join("\n"),
-  );
+  const day: DayFile = {
+    slug,
+    title: slug,
+    date,
+    location: "Basel",
+    country: "Schweiz",
+    content: "Etwas.",
+    status: "published",
+    ...(costs ? { costs: [{ label: "Kaffee", amount: 4.5, category: "food" }] } : {}),
+  };
+  fs.writeFileSync(path.join(dir, "alex", "trips", "reise", "entries", `${date}-${slug}.json`), dayToJson(day));
   forgetEntries(REF);
 }
 
@@ -47,7 +48,7 @@ beforeEach(() => {
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test", defaultUser: "alex" }, features: {} }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -59,22 +60,16 @@ beforeEach(() => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-06-26"',
-      'end: "2026-06-30"',
-      "status: past",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  const trip: TripFile = {
+    id: "reise",
+    title: "Reise",
+    dates: { from: "2026-06-26", to: "2026-06-30" },
+    visibility: "public",
+    people: [],
+    intro: "Body.",
+  };
+  fs.mkdirSync(path.join(dir, "alex", "trips", "reise"), { recursive: true });
+  fs.writeFileSync(path.join(dir, "alex", "trips", "reise", "trip.json"), tripToJson(trip));
   clearConfigCache();
   clearUserCache();
 });
@@ -126,12 +121,10 @@ describe("what a trip is visibly missing", () => {
   });
 
   test("the named dates are capped, and the true number is still reported", () => {
-    fs.writeFileSync(
-      path.join(dir, "alex", "trips", "reise", "trip.md"),
-      fs
-        .readFileSync(path.join(dir, "alex", "trips", "reise", "trip.md"), "utf8")
-        .replace('end: "2026-06-30"', 'end: "2026-08-30"'),
-    );
+    const tripFile = path.join(dir, "alex", "trips", "reise", "trip.json");
+    const trip = JSON.parse(fs.readFileSync(tripFile, "utf8"));
+    trip.dates.to = "2026-08-30";
+    fs.writeFileSync(tripFile, JSON.stringify(trip));
     clearConfigCache();
     writeDay("2026-06-26", "eins");
     const gaps = tripGaps(REF, false)!;

@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { setJournalFeatures } from "@/lib/journals";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B182 — a journal's capabilities after the day it was created.
@@ -633,22 +634,13 @@ describe("one kind of change per call", () => {
   });
 
   test("a trip-scoped token cannot change what the journal says about itself", async () => {
-    fs.mkdirSync(path.join(dir, "ana", "trips", "japan-2027"), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, "ana", "trips", "japan-2027", "trip.md"),
-      [
-        "---",
-        "id: japan-2027",
-        'title: "Japan"',
-        'start: "2027-04-01"',
-        'end: "2027-04-10"',
-        "people:",
-        '  - name: "Bea"',
-        '    email: "bea@example.test"',
-        "---",
-        "",
-      ].join("\n"),
-    );
+    writeTripFixture("ana", {
+      id: "japan-2027",
+      title: "Japan",
+      start: "2027-04-01",
+      end: "2027-04-10",
+      people: [{ name: "Bea", email: "bea@example.test" }],
+    });
     clearUserCache();
 
     const { tripWriteScope } = await import("@/lib/auth");

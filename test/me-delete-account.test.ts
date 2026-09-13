@@ -159,7 +159,7 @@ describe("the delete-account door on /me", () => {
     expect(body.mailedTo).toBe(OWNER_EMAIL);
     // The whole point: the journal is still there after a successful call.
     expect(fs.existsSync(path.join(dir, OWNER, "config.json"))).toBe(true);
-    expect(fs.existsSync(path.join(dir, OWNER, "trips", "japan-2027", "trip.md"))).toBe(true);
+    expect(fs.existsSync(path.join(dir, OWNER, "trips", "japan-2027", "trip.json"))).toBe(true);
     expect(mails().length).toBe(before + 1);
   });
 });

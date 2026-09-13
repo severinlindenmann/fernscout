@@ -11,12 +11,8 @@ import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import { requestContact, confirmContact, approveContact } from "@/lib/contacts";
 import { mailWouldReach, sendDayLetter } from "@/lib/digest/dayLetter";
 import { getEntryBySlug } from "@/lib/entries";
-import { publishDraft, unpublishEntry } from "@/lib/api/entries";
-import { writeTripFile, writeDayFile } from "@/lib/api/v2/store";
-import { toStoredMedia } from "@/lib/api/v2/days";
-import { tripCreate, dayWrite } from "@/lib/api/v2/schemas";
 import type { Locale } from "@/lib/types";
-import { writeTripFixture } from "./fixtures/content";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
 
 /**
  * B345 — the letter one published day sends.
@@ -89,86 +85,16 @@ type TripOptions = {
 };
 
 /**
- * A v2-native mirror of the v1 `trip.md`/`entries/*.md` fixtures below —
- * B1598's read-layer gap made concrete: `sendDayLetter`/`mailWouldReach`
- * read the v1 markdown this file has always written, but the v2
- * publish/send routes this ticket repoints onto (below) gate on
- * `lib/api/v2/store.ts`'s own `trip.json`/`entries/*.json`, which nothing in
- * this file otherwise writes. Both are written for every trip and entry so
- * the v2 route can find its document; the mail behaviour under test still
- * comes entirely from the v1 reader, unchanged.
+ * `writeTripFixture` already writes through `createTrip` (`lib/tripWrite.ts`),
+ * the real production writer — which is `trip.json` now (B1598: `lib/trips.ts`
+ * reads that file directly, not a `.md` twin), so there is nothing left for a
+ * second, hand-rolled write to mirror. There used to be one here, kept in
+ * step with the v1 markdown this file otherwise wrote; that read-layer gap
+ * has closed (`lib/trips.ts`/`lib/entries.ts` both read v2 JSON), and the
+ * mirror had drifted into a bug rather than a workaround — it overwrote the
+ * `trip.json` `writeTripFixture` had just written, silently dropping
+ * `costsVisibility` (B1630's "costs are asked per recipient" case).
  */
-function mirrorTripV2(id: string, opts: TripOptions = {}) {
-  const visibility = opts.visibility ?? "public";
-  const people = opts.people?.length ? opts.people : [{ name: "Alex B", email: OWNER_EMAIL }];
-  const solo = people.length <= 1;
-  const declined: Record<string, string> = {
-    rates: "no foreign currency tracked",
-    costs: "no budget tracked",
-    plan: "no planned route recorded",
-    days: "days are written one at a time",
-    translations: "single-language journal",
-    accent: "default accent",
-    figures: "no walking figures drawn",
-    tagline: "no subtitle written",
-    intro: "no opening prose written",
-    ...(solo ? { buddies: "travelling solo" } : {}),
-    ...(visibility === "public" ? { listed: "not advertised for this fixture" } : {}),
-  };
-  const parsed = tripCreate.parse({
-    id,
-    title: id,
-    dates: { from: "2026-09-01", to: "2026-09-20" },
-    visibility,
-    people,
-    ...(visibility === "public" ? {} : { teaser: true }),
-    ...(opts.test ? { test: true } : {}),
-    declined,
-  });
-  const { days: _ignored, ...fields } = parsed;
-  writeTripFile(OWNER, id, fields);
-}
-
-function mirrorDayV2(
-  tripId: string,
-  slug: string,
-  title: string,
-  date: string,
-  opts: { test?: boolean; published?: boolean } = {},
-) {
-  const parsed = dayWrite.parse({
-    slug,
-    title,
-    date,
-    content: "Mirrored for the v2 route's own gating — see mirrorTripV2 above.",
-    status: "draft",
-    ...(opts.test ? { test: true } : {}),
-    declined: {
-      media: "n/a for this fixture",
-      costs: "n/a for this fixture",
-      coordinates: "n/a for this fixture",
-      weather: "n/a for this fixture",
-      time: "n/a for this fixture",
-      timezone: "n/a for this fixture",
-      location: "n/a for this fixture",
-      country: "n/a for this fixture",
-      countryCode: "n/a for this fixture",
-      transportMode: "n/a for this fixture",
-      tags: "n/a for this fixture",
-      translations: "n/a for this fixture",
-      visibility: "n/a for this fixture",
-    },
-  });
-  // `toStoredMedia` rather than the parsed wire items: a stored day's media
-  // carries `type`/`width`/`height`, derived at upload and absent from the
-  // wire shape, so `DayFile` is not satisfied by what `dayWrite` returns.
-  writeDayFile(OWNER, tripId, slug, {
-    ...parsed,
-    media: toStoredMedia(parsed.media, undefined),
-    status: opts.published ? "published" : "draft",
-  });
-}
-
 function writeTrip(id: string, opts: TripOptions = {}) {
   writeTripFixture(OWNER, {
     id,
@@ -181,7 +107,6 @@ function writeTrip(id: string, opts: TripOptions = {}) {
     test: opts.test,
     people: opts.people?.length ? opts.people : undefined,
   });
-  mirrorTripV2(id, opts);
 }
 
 async function writePhoto(tripId: string) {
@@ -204,56 +129,70 @@ type EntryOptions = {
   noCoordinates?: boolean;
 };
 
-// Not on writeDayFixture (B1630): needs a `costs:` line, a `translations:`
-// block and a captioned gallery item with a coordinate toggle — none of
-// which the shared day fixture writes (also true of test/costs-drafts.test.ts's
-// day, a separate hand-rolled case for the same reason).
+/** The day's own prose — shared so a later assertion can size a letter's
+ * excerpt against it without re-reading the file (there is no `.md` twin of
+ * it any more to read). */
+const ENTRY_CONTENT =
+  "The old town hangs with lanterns, and the canal carries a hundred candlelit " +
+  "boats past well after dark. We ate on the water and walked home slowly.";
+
+// Not on writeDayFixture directly (B1630): needs a `costs:` line, a
+// `translations:` block, a captioned gallery item and a coordinate toggle —
+// composed here from the fields writeDayFixture already understands, plus
+// the `declined` map completeness demands for whatever is left out (a draft
+// this file later publishes through the real API goes through the same
+// asked-or-declined check `dayWrite` runs — see lib/api/v2/schemas/day.ts).
 function writeEntry(tripId: string, opts: EntryOptions = {}): { slug: string; file: string } {
   const title = opts.title ?? "Lanterns of Hoi An";
   const date = opts.date ?? "2026-09-02";
   const slug = opts.slug ?? "lanterns-of-hoi-an";
-  const entriesDir = path.join(dir, OWNER, "trips", tripId, "entries");
-  fs.mkdirSync(entriesDir, { recursive: true });
-  const file = path.join(entriesDir, `${date}-${slug}.md`);
-  fs.writeFileSync(
-    file,
-    [
-      "---",
-      `title: "${title}"`,
-      `date: "${date}"`,
-      'location: "Hoi An"',
-      'country: "Vietnam"',
-      ...(opts.noCoordinates ? [] : ["lat: 15.8801", "lng: 108.338"]),
-      ...(opts.photo
-        ? ["gallery:", `  - src: "/media/${tripId}/photo.jpg"`, `    type: "image"`, `    caption: "Lanterns at dusk"`]
-        : []),
-      ...(opts.costs
-        ? ["costs:", `  - { label: "Dinner", amount: 42, category: "food", currency: "CHF" }`]
-        : []),
-      ...(opts.translations
-        ? [
-            "translations:",
-            "  de:",
-            '    title: "Laternen von Hoi An"',
-            "    content: |-",
-            "      Die Altstadt hängt voller Laternen, lange nach Einbruch der Dunkelheit.",
-            "",
-          ]
-        : []),
-      ...(opts.test ? ["test: true"] : []),
-      ...(opts.draft ? ["status: draft"] : []),
-      "---",
-      "",
-      "The old town hangs with lanterns, and the canal carries a hundred candlelit " +
-        "boats past well after dark. We ate on the water and walked home slowly.",
-      "",
-    ].join("\n"),
-  );
-  // The v2 slug is the whole filename stem (YYYY-MM-DD-slug), not the bare
-  // `slug` var above — see api-v2-days.test.ts's own fixtures. `published`
-  // mirrors the v1 file's own default: no explicit `draft: true` means this
-  // entry already reads as published (lib/entries.ts's `isDraft`).
-  mirrorDayV2(tripId, `${date}-${slug}`, title, date, { test: opts.test, published: !opts.draft });
+
+  const provided: Record<string, boolean> = {
+    media: !!opts.photo,
+    costs: !!opts.costs,
+    coordinates: !opts.noCoordinates,
+    weather: false,
+    time: false,
+    timezone: false,
+    location: true,
+    country: true,
+    countryCode: false,
+    transportMode: false,
+    tags: false,
+    translations: !!opts.translations,
+    visibility: false,
+  };
+  const declined: Record<string, string> = {};
+  for (const [field, has] of Object.entries(provided)) {
+    if (!has) declined[field] = "n/a for this fixture";
+  }
+
+  const { file } = writeDayFixture(dir, OWNER, tripId, {
+    slug,
+    date,
+    title,
+    content: ENTRY_CONTENT,
+    location: "Hoi An",
+    country: "Vietnam",
+    ...(opts.noCoordinates ? {} : { coordinates: { lat: 15.8801, lng: 108.338 } }),
+    ...(opts.photo
+      ? { media: [{ src: `/media/${tripId}/photo.jpg`, type: "image", caption: "Lanterns at dusk" }] }
+      : {}),
+    ...(opts.costs ? { costs: [{ label: "Dinner", amount: 42, category: "food", currency: "CHF" }] } : {}),
+    ...(opts.translations
+      ? {
+          translations: {
+            de: {
+              title: "Laternen von Hoi An",
+              content: "Die Altstadt hängt voller Laternen, lange nach Einbruch der Dunkelheit.",
+            },
+          },
+        }
+      : {}),
+    ...(opts.test ? { test: true } : {}),
+    ...(opts.draft ? { status: "draft" as const } : {}),
+    declined,
+  });
   return { slug, file };
 }
 
@@ -299,7 +238,7 @@ async function scopedToken(email: string, trip: string): Promise<string> {
 
 /** `slug` here is the bare v1-style slug every call site already uses
  * (`"unannounced-day"`); the v2 route addresses a day by the whole
- * `YYYY-MM-DD-slug` filename stem, which `mirrorDayV2` wrote — resolved from
+ * `YYYY-MM-DD-slug` filename stem, which `writeEntry` wrote — resolved from
  * disk rather than changing every call site's slug. */
 function v2SlugFor(tripId: string, slug: string): string {
   const entriesDir = path.join(dir, OWNER, "trips", tripId, "entries");
@@ -312,8 +251,17 @@ function v2SlugFor(tripId: string, slug: string): string {
  * `body` here is old v1 vocabulary (`send_mail`, `costs`/`coordinates`/
  * `photos` declines) — kept as every call site already writes it, and
  * translated to v2's `publishRequest` shape (`sendMail`/`sendWhatsapp`;
- * completeness is answered by `mirrorDayV2`'s full declines instead of a
+ * completeness is answered by `writeEntry`'s own declines instead of a
  * per-call decline list, so those three v1 keys need no v2 counterpart).
+ *
+ * No draft/publish flip of the file needed here any more: the v2 route
+ * itself writes the day `published` (`lib/api/v2/store.ts`'s `writeDayFile`)
+ * before it calls `sendDayLetter`/`sendDayWhatsapp`, and those read the same
+ * `entries/*.json` back through `lib/entries.ts`, whose cache keys off each
+ * file's own mtime/size — so the write this route just made is what a send
+ * in the same call sees. There used to be a real v1/v2 split here (markdown
+ * on one side, JSON on the other); B1598 closed it by moving `lib/entries.ts`
+ * onto the same JSON `lib/api/v2/store.ts` writes.
  */
 async function publish(
   token: string,
@@ -327,25 +275,6 @@ async function publish(
   if ("send_mail" in body) v2Body.sendMail = body.send_mail;
   if ("send_whatsapp" in body) v2Body.sendWhatsapp = body.send_whatsapp;
 
-  // Bridges the known v1/v2 read-layer gap (B1598, documented in
-  // app/api/v2/.../publish/route.ts and in api-v2-trips.test.ts's own
-  // "known gap" case) from the OTHER side of the call than the day route
-  // parcel needed: the v2 publish route calls `sendDayLetter` *synchronously*
-  // when a send is requested, and that function reads the v1 markdown's own
-  // draft flag — which the v2 route never touches — so a send requested in
-  // the same call as the publish would otherwise find the day still a draft
-  // and refuse `not_published`. Flip the .md file before the call, the same
-  // edit `publishDraft` makes for a real v1 publish; if the v2 call refuses
-  // for any reason, put it back exactly as it found it (`unpublishEntry`) —
-  // a refusal must never leave the day published on one side and not the
-  // other.
-  const ref = `${OWNER}/${tripId}`;
-  const wasDraft = getEntryBySlug(ref, slug, { includeDrafts: true })?.draft === true;
-  if (wasDraft) {
-    const flipped = publishDraft(ref, slug);
-    if (!flipped.ok) throw new Error(flipped.error);
-  }
-
   const response = await POST(
     new Request(`https://t.test/api/v2/${OWNER}/trips/${tripId}/days/${v2Slug}/publish`, {
       method: "POST",
@@ -356,11 +285,6 @@ async function publish(
   );
   const status = response.status;
   const responseBody = (await response.json()) as Record<string, unknown>;
-
-  if (wasDraft && status !== 200) {
-    const reverted = unpublishEntry(ref, slug);
-    if (!reverted.ok) throw new Error(reverted.error);
-  }
   return { status, body: responseBody };
 }
 
@@ -639,27 +563,10 @@ describe("the photograph and the letter's shape", () => {
     expect(de).toContain("Laternen von Hoi An");
     // An invitation, not the whole page: the letter carries the opening, not
     // every word — a link is where the rest is.
-    expect(en.length).toBeLessThan(fs.readFileSync(path.join(dir, OWNER, "trips", "multilang", "entries", `2026-09-07-lantern-day.md`), "utf8").length + 4000);
+    expect(en.length).toBeLessThan(ENTRY_CONTENT.length + 4000);
   });
 });
 
-/**
- * KNOWN GAP (B1598-shaped, found by this repoint): the v2 publish/send
- * routes call `sendDayLetter`/`sendDayWhatsapp`/`whatsappWouldCost` with the
- * URL's own slug — the whole `YYYY-MM-DD-slug` filename stem — but those v1
- * functions address an entry by the BARE slug (`entrySlugFromFile` in
- * `lib/entries.ts` strips the date prefix before matching). Every send
- * requested through these routes therefore reads back `unknown_day`/
- * `unknown_trip` no matter how complete the v1 fixture is, and a credits
- * pre-flight that depends on the same lookup silently falls back to its
- * `.catch(() => 1)` default instead of the real recipient count. The tests
- * below that request an actual send (four of them, and one credits
- * pre-flight) are left failing rather than bent to match — the property they
- * assert is real and still true of `sendDayLetter` itself (proven directly,
- * with no route involved, in the earlier describe blocks in this file); it
- * is only unreachable through these two routes until they pass the right
- * slug through.
- */
 describe("the two triggers, and what only the owner may pull", () => {
   test("publishing without send_mail sends nothing", async () => {
     writeTrip("quiet", { visibility: "public" });

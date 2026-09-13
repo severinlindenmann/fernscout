@@ -9,6 +9,7 @@ import { issueCode, verifyCode } from "@/lib/auth";
 import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { getOrder } from "@/lib/postcard/orders";
 import { makeJpeg } from "./support/exif-jpeg";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B1624, phase 2 step 4 — print, inbox, statements, journals.
@@ -69,32 +70,24 @@ beforeEach(async () => {
     }),
   );
 
-  const tripDir = path.join(dir, OWNER, "trips", TRIP_ID);
-  const media = path.join(tripDir, "media");
-  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
+  writeTripFixture(OWNER, {
+    id: TRIP_ID,
+    title: "Alps",
+    start: "2026-07-01",
+    end: "2026-07-03",
+    status: "past",
+    visibility: "private",
+    intro: "Intro.",
+  });
+  writeDayFixture(dir, OWNER, TRIP_ID, {
+    slug: DAY,
+    date: "2026-07-01",
+    title: "Over the pass",
+    status: "draft",
+    content: "Words.",
+  });
+  const media = path.join(dir, OWNER, "trips", TRIP_ID, "media");
   fs.mkdirSync(media, { recursive: true });
-  fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    [
-      "---",
-      `id: "${TRIP_ID}"`,
-      'title: "Alps"',
-      'start: "2026-07-01"',
-      'end: "2026-07-03"',
-      'status: "past"',
-      'visibility: "private"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(tripDir, "entries", `2026-07-01-${DAY}.md`),
-    ["---", 'title: "Over the pass"', 'date: "2026-07-01"', "status: draft", "---", "", "Words.", ""].join(
-      "\n",
-    ),
-  );
   fs.writeFileSync(path.join(media, "pass.jpg"), await makeJpeg(1, 640, 480));
 
   clearConfigCache();
@@ -295,7 +288,7 @@ describe("statements and costs/apply", () => {
     }
 
     const dayBefore = fs.readFileSync(
-      path.join(dir, OWNER, "trips", TRIP_ID, "entries", `2026-07-01-${DAY}.md`),
+      path.join(dir, OWNER, "trips", TRIP_ID, "entries", `2026-07-01-${DAY}.json`),
       "utf8",
     );
     expect(dayBefore).not.toContain("costs:");
@@ -317,7 +310,7 @@ describe("statements and costs/apply", () => {
     const appliedBody = await applied.json();
     expect(appliedBody.total).toBe(1);
     const dayAfter = fs.readFileSync(
-      path.join(dir, OWNER, "trips", TRIP_ID, "entries", `2026-07-01-${DAY}.md`),
+      path.join(dir, OWNER, "trips", TRIP_ID, "entries", `2026-07-01-${DAY}.json`),
       "utf8",
     );
     expect(dayAfter).toContain("Mountain Hut");

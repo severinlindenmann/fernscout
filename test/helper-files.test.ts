@@ -11,6 +11,8 @@ import { tripMediaDir } from "@/lib/media";
 import { listInbox, storeInboxFile } from "@/lib/inbox";
 import { runTool } from "@/lib/helper/tools";
 import { paintJpeg } from "./support/pictures";
+import { writeTripFixture } from "./fixtures/content";
+import { dayToJson } from "@/lib/api/v2/documents";
 
 /**
  * Three capabilities added to the files area — `inbox` (read), `remove_photo`
@@ -56,27 +58,44 @@ async function rows() {
   return db.selectFrom("helper_sessions").selectAll().where("kind", "=", "press").execute();
 }
 
-/** Two photographs, real files on disk, exactly as an upload leaves them —
- *  the same fixture `test/helper-photo-removal.test.ts` builds. */
+/**
+ * Two photographs, real files on disk, exactly as an upload leaves them —
+ * the same fixture `test/helper-photo-removal.test.ts` builds.
+ *
+ * Not on writeTripFixture/writeDayFixture (B1630): `width`/`height` on a
+ * gallery item are not fields the fixture's `media` entries expose, so the
+ * day is built with the real production serialiser (`dayToJson`) instead —
+ * same as `test/helper-describe-photos.test.ts`. The trip is created first:
+ * `createTrip` refuses a directory that already exists, and
+ * `mkdirSync(media, {recursive: true})` below would otherwise have created
+ * `trips/<id>/` itself as a side effect of creating `media/` under it.
+ */
 async function writeDay() {
+  writeTripFixture("alex", {
+    id: TRIP,
+    title: "Over the pass",
+    start: "2026-05-01",
+    end: "2026-05-31",
+    visibility: "public",
+    intro: "Trip.",
+  });
   const media = tripMediaDir(REF);
   fs.mkdirSync(path.join(media, SLUG), { recursive: true });
-  const gallery: string[] = [];
+  const gallery = [];
   for (const name of ["01.jpg", "02.jpg"]) {
     fs.writeFileSync(path.join(media, SLUG, name), await paintJpeg(400, 300, 1));
-    gallery.push(
-      `  - src: "/media/${TRIP}/${SLUG}/${name}"\n    type: image\n    width: 400\n    height: 300`,
-    );
+    gallery.push({ src: `/media/${TRIP}/${SLUG}/${name}`, type: "image" as const, width: 400, height: 300 });
   }
-  const tripDir = path.join(dir, "alex", "trips", TRIP);
-  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
   fs.writeFileSync(
-    path.join(tripDir, "entries", `2026-05-04-${SLUG}.md`),
-    ["---", 'title: "The pass"', 'date: "2026-05-04"', "status: draft", "gallery:", ...gallery, "---", "", "Words.", ""].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    ["---", `id: ${TRIP}`, 'title: "Over the pass"', 'start: "2026-05-01"', 'end: "2026-05-31"', "visibility: public", "---", "", "Trip.", ""].join("\n"),
+    path.join(dir, "alex", "trips", TRIP, "entries", `2026-05-04-${SLUG}.json`),
+    dayToJson({
+      slug: SLUG,
+      title: "The pass",
+      date: "2026-05-04",
+      status: "draft",
+      content: "Words.",
+      media: gallery,
+    }),
   );
 }
 

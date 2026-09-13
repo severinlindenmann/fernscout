@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B384 — a guest the owner adds by hand used to be a dead end.
@@ -152,23 +153,7 @@ beforeAll(async () => {
       },
     }),
   );
-  fs.mkdirSync(path.join(dir, OWNER, "trips", "welcome-trip", "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", "welcome-trip", "trip.md"),
-    [
-      "---",
-      'id: "welcome-trip"',
-      'title: "Welcome Trip"',
-      'start: "2026-01-01"',
-      'end: "2026-01-02"',
-      'status: "past"',
-      'visibility: "guest"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -184,6 +169,15 @@ beforeAll(async () => {
       features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
+  writeTripFixture(OWNER, {
+    id: "welcome-trip",
+    title: "Welcome Trip",
+    start: "2026-01-01",
+    end: "2026-01-02",
+    status: "past",
+    visibility: "guest",
+    intro: "Intro.",
+  });
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");

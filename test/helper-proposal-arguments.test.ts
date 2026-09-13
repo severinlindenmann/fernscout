@@ -13,6 +13,7 @@ import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import type { Say } from "@/lib/helper/intents";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import { paintJpeg } from "./support/pictures";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * **A proposal's `arguments` alone are a body its endpoint accepts** — B935
@@ -194,25 +195,24 @@ let dir: string;
 let CONTACT_ID = "";
 const params = { params: Promise.resolve({ user: "alex" }) };
 
-/** `gallery` is only ever set for the draft day, which is what
+/** `media` is only ever set for the draft day, which is what
  *  `propose_postcards` is pressed against below — a real file has to exist,
  *  since the route resolves it through `resolveMediaFile` before writing an
  *  order. */
-function day(slug: string, date: string, status: "draft" | "published", gallery?: string[]) {
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", TRIP, "entries", `${date}-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      `date: "${date}"`,
-      `status: ${status}`,
-      ...(gallery ? ["gallery:", ...gallery] : []),
-      "---",
-      "",
-      "Worte.",
-      "",
-    ].join("\n"),
-  );
+function day(
+  slug: string,
+  date: string,
+  status: "draft" | "published",
+  media?: { src: string }[],
+) {
+  writeDayFixture(dir, "alex", TRIP, {
+    slug,
+    date,
+    title: slug,
+    status: status === "draft" ? "draft" : undefined,
+    content: "Worte.",
+    ...(media ? { media } : {}),
+  });
 }
 
 beforeEach(async () => {
@@ -241,7 +241,6 @@ beforeEach(async () => {
       },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "entries"), { recursive: true });
   // A postcard sheet already on disk, so `cleanup` has something to report —
   // otherwise `cleanupPlan` answers zero bytes and the tool declines itself
   // before there is anything to press (B951's rule, correctly applied).
@@ -269,27 +268,19 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", TRIP, "trip.md"),
-    [
-      "---",
-      `id: ${TRIP}`,
-      `title: "${AS_SAID}"`,
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: private",
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: TRIP,
+    title: AS_SAID,
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+  });
   // Two photographs on the one draft day, because two tools want different
   // things of it: propose_postcards needs a picture that is really on disk,
   // and remove_photo needs one it can name and take off again.
   day(DRAFT, "2026-05-04", "draft", [
-    `  - src: "/media/${TRIP}/hafen.jpg"\n    type: image`,
-    `  - src: "/media/${TRIP}/${DRAFT}/01.jpg"\n    type: image\n    width: 40\n    height: 30`,
+    { src: `/media/${TRIP}/hafen.jpg` },
+    { src: `/media/${TRIP}/${DRAFT}/01.jpg` },
   ]);
   day(PUBLISHED, "2026-05-05", "published");
   fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "media"), { recursive: true });
