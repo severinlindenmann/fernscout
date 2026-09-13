@@ -730,7 +730,12 @@ function buildPaths(): Record<string, PathItem> {
       summary: "Ask to delete the journal — mails the owner a single-use confirmation link. Deletes nothing itself.",
       responses: {
         ...jsonResponse(202, deletionRequestedDoc("journal"), "a mail is on its way; nothing has been deleted"),
-        ...refusalResponses([...ownerRefusals, ref("gone", 410, "already deleted"), ref("mail_disabled", 409)]),
+        ...refusalResponses([
+          ...ownerRefusals,
+          ref("gone", 410, "already deleted"),
+          ref("mail_disabled", 409),
+          ref("too_many_requests", 429, "too many deletion mails to this address recently"),
+        ]),
       },
     },
   };
@@ -939,7 +944,11 @@ function buildPaths(): Record<string, PathItem> {
       summary: "Ask to delete a trip — mails the owner a single-use confirmation link. Deletes nothing itself.",
       responses: {
         ...jsonResponse(202, deletionRequestedDoc("trip"), "a mail is on its way; nothing has been deleted"),
-        ...refusalResponses([...ownerRefusals, ref("gone", 410)]),
+        ...refusalResponses([
+          ...ownerRefusals,
+          ref("gone", 410),
+          ref("too_many_requests", 429, "too many deletion mails to this address recently"),
+        ]),
       },
     },
   };

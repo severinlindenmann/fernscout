@@ -31,6 +31,8 @@
   "approve.accept": "Approve and add the credits",
   "approve.done": "Approved — {credits} credits added to {user}.",
   "approve.failed": "That did not go through. The link may already have been used.",
+  "approve.invalid": "This link is not valid. It may have expired, already been used, or been opened without its full address.",
+  "approve.loading": "Checking the link…",
   "approve.prompt": "Approve {credits} {unit} ({amount}) for {user}? Accepting adds the credits to their balance.",
   "approve.title": "Approve a credit purchase",
   "approve.working": "Approving…",

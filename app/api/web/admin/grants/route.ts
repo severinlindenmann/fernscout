@@ -2,7 +2,7 @@ import { loadServerConfig } from "@/lib/config";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { sendTransactional } from "@/lib/mail";
 import { renderMail } from "@/lib/mail/template";
-import { createAdminGrant } from "@/lib/payments";
+import { approveMailUrl, createAdminGrant } from "@/lib/payments";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -66,7 +66,10 @@ export async function POST(request: Request) {
   const created = await createAdminGrant(username, credits);
   if (!created) return Response.json({ error: "unavailable" }, { status: 503 });
 
-  const approveUrl = `${serverSite().url}/${username}/payment/${created.payment.id}/approve/${created.token}`;
+  // `approveMailUrl` puts the token in the fragment, not the path — B1635.
+  // `ApprovePreview` (components/ApprovePreview.tsx) is what reads it back
+  // out of `location.hash`.
+  const approveUrl = approveMailUrl(serverSite().url, username, created.payment.id, created.token);
   const mail = renderMail(
     operator,
     `Approve credit grant — ${username} — ${credits} credits`,

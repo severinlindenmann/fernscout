@@ -659,6 +659,17 @@ export async function listPurchasesPage(
  * carry (money.md §3), so it reads as absent here rather than as a value
  * `PURCHASE_METHODS` does not even list.
  */
+/**
+ * The operator's approve link — one place, so a test can assert its shape
+ * without driving the whole admin-cookie flow. B1635: the token rides in the
+ * URL *fragment*, never the path — a fragment is never sent to a server, so
+ * it never reaches an access log, a proxy log, or the `Referer` header of
+ * anything the approval page goes on to load.
+ */
+export function approveMailUrl(baseUrl: string, username: string, paymentId: string, token: string): string {
+  return `${baseUrl}/${username}/payment/${paymentId}/approve#token=${encodeURIComponent(token)}`;
+}
+
 export function toPurchaseDoc(payment: Payment, mailedTo: string, baseUrl: string) {
   const open = payment.status === "pending" || payment.status === "requested";
   return {

@@ -31,6 +31,8 @@
   "approve.accept": "Jóváhagyás és kreditek hozzáadása",
   "approve.done": "Jóváhagyva — {credits} kredit hozzáadva ehhez: {user}.",
   "approve.failed": "Ez nem sikerült. Lehet, hogy a linket már felhasználták.",
+  "approve.invalid": "Ez a link nem érvényes. Lehet, hogy lejárt, már felhasználták, vagy a teljes cím nélkül nyílt meg.",
+  "approve.loading": "A link ellenőrzése…",
   "approve.prompt": "Jóváhagyod {credits} {unit} ({amount}) összeget {user} részére? Az elfogadás hozzáadja a krediteket az egyenlegéhez.",
   "approve.title": "Kredit vásárlás jóváhagyása",
   "approve.working": "Jóváhagyás…",

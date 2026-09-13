@@ -12,6 +12,7 @@ import type { TranslationKey } from "./i18n";
 import { translateIn } from "./locales";
 import { sendTransactional } from "./mail";
 import { renderMail, type MailBlock } from "./mail/template";
+import { rateLimitFor } from "./rateLimit";
 import { release } from "./registry";
 import { serverSite } from "./site";
 import { writeTombstone } from "./tombstones";
@@ -264,6 +265,23 @@ export async function requestDeletion(
         `"${target.username}" has no owner.email in its config.json, so there is nobody to ` +
         `send the confirmation to — and this server will not delete a journal on a token's ` +
         `say-so alone. A person has to add the address to the file first.`,
+    };
+  }
+
+  // All three callers (journal DELETE, trip DELETE, /me/delete) route through
+  // here, so the limit lives once, keyed on the address it protects — B1491.
+  // Unlimited asks cannot delete anything (the mail is single-use and the
+  // button is the only thing that does), but they can fill that inbox with
+  // "are you sure?" letters fast enough to bury a real one, from a server the
+  // owner trusts. 3/hour matches `contact-resend` and `export-request`, the
+  // nearest analogous "ask, don't act" mail.
+  const limit = rateLimitFor("deletion-request", email, { max: 3, windowMs: 60 * 60 * 1000 });
+  if (!limit.ok) {
+    return {
+      ok: false,
+      status: 429,
+      error: "too_many_requests",
+      message: `Too many deletion requests for "${target.username}" recently. Try again in ${limit.retryAfter} seconds.`,
     };
   }
 

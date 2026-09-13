@@ -937,6 +937,8 @@ export type TranslationKey =
   | "approve.accept"
   | "approve.done"
   | "approve.failed"
+  | "approve.invalid"
+  | "approve.loading"
   | "approve.prompt"
   | "approve.title"
   | "approve.working"

@@ -63,6 +63,21 @@ async function approveRoute(user: string, id: string, token: string) {
   return { status: r.status, body: (await r.json()) as Record<string, unknown> };
 }
 
+/** B1635 — the preview call the approval page's own JS makes with a token
+ *  read out of `location.hash`, never out of a URL the server saw. */
+async function previewRoute(user: string, id: string, token: string) {
+  const { POST } = await import("@/app/api/web/[user]/purchases/[id]/approve/preview/route");
+  const r = await POST(
+    new Request(`https://example.test/api/web/${user}/purchases/${id}/approve/preview`, {
+      method: "POST",
+      headers: { ...ip(), "content-type": "application/json" },
+      body: JSON.stringify({ token }),
+    }),
+    { params: Promise.resolve({ user, id }) },
+  );
+  return { status: r.status, body: (await r.json()) as Record<string, unknown> };
+}
+
 function writeServerConfig(operatorEmail: string | undefined) {
   fs.writeFileSync(
     path.join(dir, "config.json"),
@@ -271,3 +286,53 @@ describe("approving grants the credits, exactly once", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("the operator's approve link carries the token in the fragment (B1635)", () => {
+  test("approveMailUrl puts the token after #, never in the path a server sees", async () => {
+    const { approveMailUrl } = await import("@/lib/payments");
+    const url = approveMailUrl("https://example.test", "ana", "pay_123", "s3cr3t-token");
+
+    expect(url).toBe("https://example.test/ana/payment/pay_123/approve#token=s3cr3t-token");
+    // The part before the fragment — what a browser actually sends to a
+    // server, and what ends up in an access log or a `Referer` header — has
+    // no token in it at all.
+    const [beforeHash] = url.split("#");
+    expect(beforeHash).not.toContain("token");
+    expect(beforeHash).not.toContain("s3cr3t-token");
+  });
+
+  test("a token with characters a URL cares about survives round-tripping", async () => {
+    const { approveMailUrl } = await import("@/lib/payments");
+    const raw = "abc+DEF/123=";
+    const url = approveMailUrl("https://example.test", "ana", "pay_1", raw);
+    const fragment = new URL(url.replace("#", "?")).searchParams.get("token");
+    expect(fragment).toBe(raw);
+  });
+});
+
+describe("the approval page's own preview grants nothing (B1635)", () => {
+  test("a good token reports what pressing the button would grant, and grants nothing itself", async () => {
+    await reset(OPERATOR_EMAIL);
+    const { balanceOf } = await import("@/lib/credits");
+    const before = (await balanceOf(OWNER)) ?? 0;
+    const { id, token } = await requestWithToken(OWNER);
+
+    const res = await previewRoute(OWNER, id, token);
+    expect(res.status).toBe(200);
+    expect(res.body.credits).toBe(TEST_CREDITS);
+    expect(await balanceOf(OWNER)).toBe(before);
+
+    // Nothing was spent — the same token still approves for real afterwards.
+    const approved = await approveRoute(OWNER, id, token);
+    expect(approved.status).toBe(200);
+    expect(await balanceOf(OWNER)).toBe(before + TEST_CREDITS);
+  });
+
+  test("a wrong token is refused, not previewed", async () => {
+    await reset(OPERATOR_EMAIL);
+    const { id } = await requestWithToken(OWNER);
+    const res = await previewRoute(OWNER, id, "not-the-real-token");
+    expect(res.status).toBe(404);
+  });
+});
+
