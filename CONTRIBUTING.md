@@ -70,6 +70,8 @@ The build goes first because Next writes the typed-route definitions in
 `.next/types` while it builds, and `PageProps`, `LayoutProps` and
 `RouteContext` resolve against them. Run `tsc` on a checkout that has never
 been built and it reports errors in every route file, none of which are yours.
+`npm run verify -- --quick` skips that build only when a checked stamp proves
+the route inputs and generated types still match its last successful build.
 
 A PR that fails any of these won't be merged as-is. If a check is failing
 for a reason unrelated to your change, say so in the PR description rather

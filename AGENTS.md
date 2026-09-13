@@ -117,10 +117,10 @@ npm run check:changed -- path/to/changed-file.ts
 keepers, prints why each check was selected, and broadens to the full suite
 when neither source has evidence.
 
-Use `npm run verify -- --quick` only after this worktree has built and no route
-was added, moved or deleted since. Next generates route types during the build;
-stale `.next/types` produces unrelated TypeScript errors. When uncertain, run
-the full gate.
+`npm run verify -- --quick` reuses the last build only when its stamp proves
+the route graph, Next config/version and generated `.next/types` are unchanged.
+When they are stale or missing it explains why and builds automatically before
+typechecking.
 
 A visible change is not verified by the suite. Drive a real browser against
 content that existed before the branch at desktop and phone width, inspect the

@@ -213,6 +213,15 @@ prints every reason, and runs the full suite when neither the graph nor the
 registry finds evidence. The `lib/theme.ts` trial selected five dependency
 files plus three otherwise invisible source-scan keepers; 92 tests passed.
 
+The quick verification path is deterministic now. `npm run build` writes a
+stamp over route-defining paths, the installed Next version, Next config and
+the generated `.next/types` contents. `verify --quick` skips the build only
+when both input and output hashes still match; otherwise it names the stale
+condition and builds automatically. Six stamp cases plus a fake successful
+Next build pass. A real build reached Next 16.3.3, but this restricted harness
+blocked its Google-font requests and then Turbopack's PostCSS subprocess port;
+the final gate still needs an unrestricted run.
+
 ## Acceptance
 
 - A committed baseline report and command reproduce measurements across at

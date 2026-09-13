@@ -32,7 +32,7 @@
 
 ```bash
 npm run verify         # build → tsc → eslint → vitest → knip, stopping at the first failure
-npm run verify -- --quick   # the same without the build; see below for when that is honest
+npm run verify -- --quick   # reuses a proven-current build; rebuilds stale route types
 ```
 
 **One command, and it is the whole gate.** It was four typed by hand, in an
@@ -73,12 +73,12 @@ to you are "the merge is broken" or "the documentation is wrong". Neither is
 true; the types have not been generated yet. `.github/workflows/ci.yml` builds
 before it typechecks for the same reason. B100.
 
-**`--quick` skips the build, and is honest in exactly one situation:** you have
-already built in this checkout and have not added, moved or deleted a route
-since. Editing a component's body does not invalidate `.next/types`; adding
-`app/foo/page.tsx` does. It refuses outright when nothing has been built here,
-rather than handing you the confusing failure above. When in doubt leave it
-off — seventy seconds is cheaper than an afternoon spent misreading `tsc`.
+**`--quick` reuses the build only when that is provably safe.** A successful
+build stamps the route graph, Next version/config and generated `.next/types`.
+Quick mode compares both sides and builds automatically when either changed or
+is missing. Editing a component's body does not invalidate `.next/types`;
+adding `app/foo/page.tsx` does. Older unstamped output is rebuilt rather than
+handing you the confusing failure above.
 
 **`npm run unused` (knip) is the last step, and used to be nobody's.** It
 answers the question the other four do not — *is anything here for nothing* —

@@ -2,7 +2,7 @@
 // The five checks every change passes, in the one order that works.
 //
 //   npm run verify              build → tsc → eslint → vitest → knip
-//   npm run verify -- --quick   the same, without the build
+//   npm run verify -- --quick   reuse a proven-current build, or rebuild
 //
 // Why a script rather than five commands in a document: the order is not
 // cosmetic and it was getting typed by hand a hundred and forty times a week.
@@ -20,15 +20,15 @@
 // run that carries on after the build broke spends two more minutes proving
 // that a tree which does not compile also does not pass its tests.
 //
-// `--quick` skips the build, and is honest in one situation: you have already
-// built in this checkout and have not added, moved or deleted a route since.
-// Editing the body of a component does not invalidate `.next/types`; adding
-// `app/foo/page.tsx` does. When in doubt, leave it off — a build is seventy
-// seconds and a wrong answer from `tsc` costs longer than that to understand.
+// `--quick` skips the build only when a stamp from the last successful build
+// proves both its route inputs and generated output are unchanged. Editing the
+// body of an ordinary component does not invalidate `.next/types`; adding
+// `app/foo/page.tsx` does, so quick mode rebuilds before typechecking.
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { inspectRouteTypesStamp } from "./route-types-stamp.mjs";
 
 const quick = process.argv.includes("--quick");
 
@@ -48,6 +48,17 @@ if (!fs.existsSync(path.join(process.cwd(), "node_modules", "next"))) {
   process.exit(1);
 }
 
+let skipBuild = false;
+if (quick) {
+  const routeTypes = inspectRouteTypesStamp(process.cwd(), process.env.NEXT_DIST_DIR || ".next");
+  skipBuild = routeTypes.valid;
+  console.log(
+    routeTypes.valid
+      ? `--quick: build reuse is safe because ${routeTypes.reason}.`
+      : `--quick: running the build because ${routeTypes.reason}.`,
+  );
+}
+
 const steps = [
   ["build", ["npm", ["run", "build"]], "the build, which also writes .next/types"],
   ["types", ["npx", ["tsc", "--noEmit"]], "the typecheck"],
@@ -59,16 +70,7 @@ const steps = [
   // is the shape that kept slipping through. Running it every time, last, is
   // cheap: knip does not touch the network and takes under two seconds.
   ["unused", ["npm", ["run", "unused"]], "knip"],
-].filter(([name]) => !(quick && name === "build"));
-
-if (quick && !fs.existsSync(path.join(process.cwd(), ".next", "types"))) {
-  console.error(
-    "--quick, but .next/types does not exist: nothing has been built in this\n" +
-      "checkout, so the typecheck has no route definitions to resolve against and\n" +
-      "will report errors in files you never opened. Run without --quick.",
-  );
-  process.exit(1);
-}
+].filter(([name]) => !(skipBuild && name === "build"));
 
 /**
  * Runs a step, echoing its output live (as `stdio: "inherit"` did) while also
@@ -135,5 +137,5 @@ for (const [name, [command, args], what] of steps) {
 
 console.log(
   `\n─── all ${steps.length} passed in ${Math.round((Date.now() - started) / 1000)}s.` +
-    (quick ? "  (build skipped — --quick)\n" : "\n"),
+    (skipBuild ? "  (build safely reused — --quick)\n" : "\n"),
 );

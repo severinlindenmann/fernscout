@@ -259,7 +259,8 @@ the main checkout's copy and appear to work, and only the build fails.
 **While you are iterating, run the one test file** and keep `verify` for the
 end — `npx vitest run test/thing.test.ts`. The full gate is two minutes and a
 change is usually wrong in one file at a time. `npm run verify -- --quick`
-skips the build once you have built here and touched no route since.
+reuses a prior build only when its stamp proves the route inputs and generated
+types are unchanged; otherwise it builds automatically.
 
 If the owning tests are unclear, run `npm run check:changed -- <changed-path>`.
 It adds dependency-related tests and static keepers, says why each was chosen,
