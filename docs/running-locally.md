@@ -362,7 +362,7 @@ them:
   POSTGRES_TEST_URL=postgres://fernscout:fernscout@localhost:5432/fernscout_test npx vitest run
   ```
 
-- **The restore drill.** `test/backup-script.test.ts` needs `restic` on PATH
+- **The restore drill.** `test/backup-script-*.test.ts` needs `restic` on PATH
   (`brew install restic`) or it skips entirely — every test of the thing that
   would get your photographs back. Its last test additionally needs the
   Postgres above *and* `pg_dump`/`pg_restore` at or above the server's major,

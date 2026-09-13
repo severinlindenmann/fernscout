@@ -7,7 +7,7 @@ description: Read a lane of docs/tasks in full and hand back one artifact — ev
 
 The backlog is the part of this repository nobody can hold in their head. A
 hundred and twenty files, one level down in category folders, each one a page
-of prose. `npm run tasks` lists them; it cannot tell you which are worth doing,
+of prose. `npm run tasks -- list --lane backlog` lists them; it cannot tell you which are worth doing,
 which are blocked, or which would change something a person looks at.
 
 This skill turns one lane into **one page a person reads in five minutes and

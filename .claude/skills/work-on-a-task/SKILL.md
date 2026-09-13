@@ -59,10 +59,17 @@ verdict for this ticket, read that verdict rather than redoing the work —
 `plan-a-run` already read the code for the same question. Write it into the
 task file and move on.
 
+`npm run tasks -- show B01` prints the current task in full without loading the
+whole task index.
+
+`npm run agent:context -- B01` adds the concise map of code, likely tests,
+scoped docs, skills and visible checks. Use `--detailed` only when the short
+map is insufficient; it guides discovery and does not replace revalidation.
+
 ### 2. Take it
 
 ```bash
-npm run tasks                       # what is in open/
+npm run tasks -- list --lane open   # what is in open/
 ```
 
 Given an id, use it. Asked to pick, take the highest-priority task in `open/`;
@@ -144,18 +151,20 @@ and was nowhere written down:
 
 ```bash
 git worktree add .claude/worktrees/<branch> -b <branch>
-cp -Rc node_modules .claude/worktrees/<branch>/node_modules   # macOS, near-instant
+cd .claude/worktrees/<branch>
+npm run worktree:bootstrap                                    # APFS clone or npm ci fallback
 ```
 
-`cp -Rc` clones copy-on-write on APFS, so five copies cost almost no disk and
-no time; `npm ci` in each worktree is minutes each. Then hand the agent the
+The bootstrap validates the pinned Node version and source install, then uses
+a copy-on-write clone on APFS, so five copies cost almost no disk and no time;
+elsewhere it runs `npm ci --prefer-offline`. Then hand the agent the
 **absolute** worktree path in its prompt, along with the task file's contents
-and its acceptance criteria — a subagent has none of your context. Elsewhere,
-or if the clone fails, `npm ci --prefer-offline` in the worktree.
+and its acceptance criteria — a subagent has none of your context.
 
 That clone is a snapshot: merge `main` into an older worktree and a
 module-not-found for a package the change never mentions means the lockfile
-moved and the clone did not — re-run `cp -Rc`, not a bad-merge hunt. AGENTS.md
+moved and the clone did not — rerun bootstrap with `-- --refresh`, not a
+bad-merge hunt. AGENTS.md
 has the full symptom (B1141).
 
 `.claude/worktrees/` is gitignored and already holds worktrees from other
@@ -277,7 +286,12 @@ the main checkout's copy and appear to work, and only the build fails.
 **While you are iterating, run the one test file** and keep `verify` for the
 end — `npx vitest run test/thing.test.ts`. The full gate is two minutes and a
 change is usually wrong in one file at a time. `npm run verify -- --quick`
-skips the build once you have built here and touched no route since.
+reuses a prior build only when its stamp proves the route inputs and generated
+types are unchanged; otherwise it builds automatically.
+
+If the owning tests are unclear, run `npm run check:changed -- <changed-path>`.
+It adds dependency-related tests and static keepers, says why each was chosen,
+and broadens rather than returning an empty green run.
 
 Then the task's **Acceptance** section, line by line. Each line either has
 evidence — a command and its output, a test that failed before and passes now

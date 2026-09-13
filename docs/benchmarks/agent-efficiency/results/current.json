@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "measuredAt": "2026-09-13T18:21:43.697Z",
+  "commit": "e48309b4bcac22f84693fb8706285da41dafa8ac",
+  "corpusCases": 10,
+  "knownFailureCases": 3,
+  "rootInstructionBytes": 12169,
+  "selectionRecall": 1,
+  "requiredChecks": 23,
+  "selectedRequiredChecks": 23,
+  "medianContextBytes": 1289,
+  "medianCheckPlanBytes": 425,
+  "medianDiscoveryMs": 124.5,
+  "cases": [
+    {
+      "id": "B1578",
+      "kind": "api-schema",
+      "knownFailureCase": false,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 877,
+      "checkPlanBytes": 432,
+      "discoveryMs": 150
+    },
+    {
+      "id": "B420",
+      "kind": "api-state",
+      "knownFailureCase": true,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 1124,
+      "checkPlanBytes": 608,
+      "discoveryMs": 126
+    },
+    {
+      "id": "B422",
+      "kind": "auth-docs",
+      "knownFailureCase": true,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 1612,
+      "checkPlanBytes": 269,
+      "discoveryMs": 124
+    },
+    {
+      "id": "B1090",
+      "kind": "existing-content-ui",
+      "knownFailureCase": true,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 1411,
+      "checkPlanBytes": 441,
+      "discoveryMs": 125
+    },
+    {
+      "id": "B633",
+      "kind": "ordinary-ui",
+      "knownFailureCase": false,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 2180,
+      "checkPlanBytes": 410,
+      "discoveryMs": 124
+    },
+    {
+      "id": "B900",
+      "kind": "helper-model-guard",
+      "knownFailureCase": false,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 1606,
+      "checkPlanBytes": 432,
+      "discoveryMs": 129
+    },
+    {
+      "id": "B1084",
+      "kind": "database-and-provider",
+      "knownFailureCase": false,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 2632,
+      "checkPlanBytes": 279,
+      "discoveryMs": 127
+    },
+    {
+      "id": "B1464",
+      "kind": "visual-browser",
+      "knownFailureCase": false,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 834,
+      "checkPlanBytes": 418,
+      "discoveryMs": 123
+    },
+    {
+      "id": "B1506",
+      "kind": "documentation-skill",
+      "knownFailureCase": false,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 852,
+      "checkPlanBytes": 258,
+      "discoveryMs": 120
+    },
+    {
+      "id": "B1495",
+      "kind": "sync-api-security",
+      "knownFailureCase": false,
+      "selectedAllRequiredChecks": true,
+      "missingChecks": [],
+      "contextBytes": 1167,
+      "checkPlanBytes": 603,
+      "discoveryMs": 123
+    }
+  ]
+}

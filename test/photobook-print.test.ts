@@ -94,6 +94,20 @@ async function activeContact(owner: string, email: string) {
   return contactId!;
 }
 
+/**
+ * The production path deliberately gives Gelato 20 seconds to settle. Tests
+ * keep that polling behaviour, including the number of checks, while Vitest
+ * advances the clock instead of making every non-terminal case wait 16 real
+ * seconds. B1665.
+ */
+async function submitWithoutWallClock() {
+  vi.useFakeTimers();
+  const { submitBuiltBook } = await import("@/lib/photobook/print");
+  const submitted = submitBuiltBook(OWNER, ID);
+  await vi.runAllTimersAsync();
+  return submitted;
+}
+
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-photobook-print-"));
   process.env.CONTENT_DIR = dir;
@@ -157,6 +171,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   await closeDatabase();
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;
@@ -179,11 +194,10 @@ afterEach(async () => {
  */
 describe("submitBuiltBook", () => {
   test("returns the whole purchase when the printer refuses, not just the print half", async () => {
-    const { submitBuiltBook } = await import("@/lib/photobook/print");
     vi.mocked(submitBookPrint).mockResolvedValue({ error: "refused" });
     const before = (await balanceOf(OWNER)) ?? 0;
 
-    const result = await submitBuiltBook(OWNER, ID);
+    const result = await submitWithoutWallClock();
 
     expect(result).toEqual({ ok: false, reason: "refused" });
     // `PAYLOAD.credits` is what the owner pressed — build and print together.
@@ -193,10 +207,9 @@ describe("submitBuiltBook", () => {
   });
 
   test("spends nothing of its own when the printer accepts", async () => {
-    const { submitBuiltBook } = await import("@/lib/photobook/print");
     const before = (await balanceOf(OWNER)) ?? 0;
 
-    const result = await submitBuiltBook(OWNER, ID);
+    const result = await submitWithoutWallClock();
 
     expect(result).toMatchObject({ ok: true, providerRef: "gel-1" });
     // The purchase was charged by `order/route.ts` before this ran.
@@ -205,35 +218,33 @@ describe("submitBuiltBook", () => {
   });
 
   test("gives everything back when the printer accepts and then refuses", async () => {
-    const { submitBuiltBook } = await import("@/lib/photobook/print");
     // B1333. Gelato answers the create with a reference and decides seconds
     // later. An order with no payment method behind it came back `failed`
     // while the owner was still reading "your book is being printed".
     vi.mocked(fetchOrderStatus).mockResolvedValue("failed");
     const before = (await balanceOf(OWNER)) ?? 0;
 
-    const result = await submitBuiltBook(OWNER, ID);
+    const result = await submitWithoutWallClock();
 
     expect(result).toEqual({ ok: false, reason: "refused" });
     expect((await balanceOf(OWNER)) ?? 0).toBe(before + PAYLOAD.credits);
   });
 
   test("a status that is not a terminal failure is left alone", async () => {
-    const { submitBuiltBook } = await import("@/lib/photobook/print");
     // Everything that is not "never going to print" must not trigger a
     // refund — including a word Gelato adds tomorrow.
     vi.mocked(fetchOrderStatus).mockResolvedValue("in_production");
     const before = (await balanceOf(OWNER)) ?? 0;
 
-    const result = await submitBuiltBook(OWNER, ID);
+    const result = await submitWithoutWallClock();
 
     expect(result).toMatchObject({ ok: true, providerRef: "gel-1" });
     expect((await balanceOf(OWNER)) ?? 0).toBe(before);
+    expect(fetchOrderStatus).toHaveBeenCalledTimes(5);
   });
 
   test("does not quote — the price was agreed before the book was built", async () => {
-    const { submitBuiltBook } = await import("@/lib/photobook/print");
-    await submitBuiltBook(OWNER, ID);
+    await submitWithoutWallClock();
     // A second quote here would be a second price for a purchase already
     // made, and a mismatched one would strand a paid-for book.
     expect(quoteBook).not.toHaveBeenCalled();
@@ -249,9 +260,8 @@ describe("submitBuiltBook", () => {
 describe("the address Gelato is handed", () => {
   test("is never the journal owner's, or any contact's — with an admin address set", async () => {
     process.env.FERNSCOUT_ADMIN_EMAIL = "agent@fernscout.ch";
-    const { submitBuiltBook } = await import("@/lib/photobook/print");
 
-    await submitBuiltBook(OWNER, ID);
+    await submitWithoutWallClock();
 
     const order = vi.mocked(submitBookPrint).mock.calls[0][0];
     expect(order.to.email).toBe("agent@fernscout.ch");
@@ -262,9 +272,8 @@ describe("the address Gelato is handed", () => {
 
   test("falls back to nothing, never to the owner's address, when no admin address is set", async () => {
     delete process.env.FERNSCOUT_ADMIN_EMAIL;
-    const { submitBuiltBook } = await import("@/lib/photobook/print");
 
-    await submitBuiltBook(OWNER, ID);
+    await submitWithoutWallClock();
 
     const order = vi.mocked(submitBookPrint).mock.calls[0][0];
     expect(order.to.email).toBe("");
@@ -282,7 +291,6 @@ describe("the address Gelato is handed", () => {
  */
 describe("submitBuiltBook racing the webhook for the same order", () => {
   test("settlement-poll refusal racing settleRefusedPrint refunds exactly once", async () => {
-    const { submitBuiltBook } = await import("@/lib/photobook/print");
     const { settleRefusedPrint } = await import("@/lib/photobook/reconcile");
     const before = (await balanceOf(OWNER)) ?? 0;
 
@@ -297,7 +305,7 @@ describe("submitBuiltBook racing the webhook for the same order", () => {
       return "failed";
     });
 
-    const result = await submitBuiltBook(OWNER, ID);
+    const result = await submitWithoutWallClock();
     const wonByWebhook = await webhookSettled;
 
     expect(result).toEqual({ ok: false, reason: "refused" });

@@ -12,7 +12,11 @@
 // decision — see the skill. The script will not do it for you by accident:
 // `new` always writes to backlog/.
 //
-//   npm run tasks                          what is in each lane
+//   npm run tasks                          concise active-work summary
+//   npm run tasks -- list --lane open      one lane
+//   npm run tasks -- list --all            every task, grouped as before
+//   npm run tasks -- show B01              one task, in full
+//   npm run tasks -- search "forwarded for" find matching tasks
 //   npm run tasks -- new --type ISSUE --priority high \
 //       --complexity low --title "…" [--area "…"]
 //   npm run tasks -- move B01 in-development
@@ -1111,25 +1115,99 @@ function holdNotes(item) {
   return notes;
 }
 
-function list() {
-  for (const lane of LANES) {
-    const items = itemsIn(lane);
-    console.log(`\n${lane} (${items.length})`);
-    const line = (i) => {
-      const holder = i.session ? `  ← ${shortSession(i.session)}, ${heldFor(i.claimed)}` : "";
-      console.log(`    ${i.id.padEnd(5)} ${i.priority.padEnd(6)} ${i.title}${holder}`);
-      for (const note of holdNotes(i)) console.log(`      note: ${note}`);
-    };
-    if (!CATEGORISED.has(lane)) {
-      for (const i of items) line(i);
-      continue;
-    }
-    for (const category of CATEGORIES) {
-      const inCategory = items.filter((i) => i.category === category);
-      if (inCategory.length === 0) continue;
-      console.log(`  ${category} (${inCategory.length})`);
-      for (const i of inCategory) line(i);
-    }
+function printLane(lane, items = itemsIn(lane)) {
+  console.log(`\n${lane} (${items.length})`);
+  const line = (i) => {
+    const holder = i.session ? `  ← ${shortSession(i.session)}, ${heldFor(i.claimed)}` : "";
+    console.log(`    ${i.id.padEnd(5)} ${i.priority.padEnd(6)} ${i.title}${holder}`);
+    for (const note of holdNotes(i)) console.log(`      note: ${note}`);
+  };
+  if (!CATEGORISED.has(lane)) {
+    for (const i of items) line(i);
+    return;
+  }
+  for (const category of CATEGORIES) {
+    const inCategory = items.filter((i) => i.category === category);
+    if (inCategory.length === 0) continue;
+    console.log(`  ${category} (${inCategory.length})`);
+    for (const i of inCategory) line(i);
+  }
+}
+
+/**
+ * Show active work by default. The old exhaustive view is still available,
+ * but making it the first command every agent runs emitted roughly 160 KB on
+ * this repository — almost five times Codex's whole default project-document
+ * budget — mostly completed work nobody was choosing from. B1665.
+ */
+function list(argv = []) {
+  const requestedLane = flag(argv, "lane");
+  const requestedCategory = flag(argv, "category");
+  if (argv.includes("--lane") && !requestedLane) die("--lane needs a lane after it.");
+  if (requestedLane && !LANES.includes(requestedLane)) {
+    die(`--lane must be one of ${LANES.join(", ")}.`);
+  }
+  if (argv.includes("--category") && !requestedCategory) {
+    die("--category needs a category after it.");
+  }
+  if (requestedCategory && !CATEGORIES.includes(requestedCategory)) {
+    die(`--category must be one of ${CATEGORIES.join(", ")}.`);
+  }
+
+  if (requestedLane) {
+    const items = itemsIn(requestedLane).filter(
+      (item) => !requestedCategory || categoryOf(item) === requestedCategory,
+    );
+    printLane(requestedLane, items);
+    console.log("");
+    return;
+  }
+
+  if (argv.includes("--all")) {
+    for (const lane of LANES) printLane(lane);
+    console.log("");
+    return;
+  }
+
+  const counts = Object.fromEntries(LANES.map((lane) => [lane, itemsIn(lane).length]));
+  console.log(LANES.map((lane) => `${lane}: ${counts[lane]}`).join("  ·  "));
+  for (const lane of ["open", "in-development", "testing"]) printLane(lane);
+  console.log(
+    "\nNarrow the result with `list --lane <lane> [--category <category>]`, " +
+      "`show <id>`, or `search <words>`. Use `list --all` for the exhaustive view.\n",
+  );
+}
+
+/** One task, including its full rationale and acceptance criteria. */
+function show(argv) {
+  const [id] = argv;
+  if (!id) die("Usage: show <id>");
+  const item = allItems().find((candidate) => candidate.id.toLowerCase() === id.toLowerCase());
+  if (!item) die(`No item with id ${id}.`);
+  console.log(`${item.href}\n`);
+  process.stdout.write(fs.readFileSync(item.file, "utf8"));
+}
+
+/**
+ * Search task metadata and prose without returning the task corpus. Common
+ * words can match hundreds of completed tickets, so the concise default is 25
+ * rows; an explicit --all asks for the unbounded result.
+ */
+function search(argv) {
+  const unbounded = argv.includes("--all");
+  const words = argv.filter((arg) => arg !== "--all").map((word) => word.toLowerCase());
+  if (words.length === 0) die("Usage: search <words> [--all]");
+  const matches = allItems().filter((item) => {
+    const haystack = `${item.id}\n${item.title}\n${fs.readFileSync(item.file, "utf8")}`.toLowerCase();
+    return words.every((word) => haystack.includes(word));
+  });
+  const shown = unbounded ? matches : matches.slice(0, 25);
+  console.log(`matches (${matches.length})`);
+  for (const item of shown) {
+    console.log(`  ${item.id.padEnd(5)} ${item.lane.padEnd(14)} ${item.priority.padEnd(6)} ${item.title}`);
+  }
+  if (shown.length < matches.length) {
+    console.log(`  … ${matches.length - shown.length} more; pass --all to show every match.`);
   }
   console.log("");
 }
@@ -1209,8 +1287,16 @@ if (!fs.existsSync(ROOT)) die("Run this from the repository root — docs/tasks 
 
 switch (command) {
   case undefined:
-  case "list":
     list();
+    break;
+  case "list":
+    list(rest);
+    break;
+  case "show":
+    show(rest);
+    break;
+  case "search":
+    search(rest);
     break;
   case "new":
     create(rest);
@@ -1232,7 +1318,7 @@ switch (command) {
     tidy(rest);
     break;
   default:
-    die(`Unknown command "${command}". Try: list, new, move, claim, release, index, tidy.`);
+    die(`Unknown command "${command}". Try: list, show, search, new, move, claim, release, index, tidy.`);
 }
 
 // Said once, after whatever was asked for, and on stderr so it survives being

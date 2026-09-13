@@ -166,6 +166,83 @@ runtime performance in this ticket. This is the repository and development
 harness used by coding agents. Do not require one vendor: Claude Code, Codex
 and a plain shell-based agent must all retain the documented path.
 
+## Progress
+
+Checkpoint on 2026-09-13: the branch now gives `tasks.mjs` concise default,
+lane/category, single-task and search views, with the former exhaustive output
+behind `list --all`. On the real task tree, default stdout fell from roughly
+160 KB to 7,525 bytes. Six focused discovery tests pass alongside the existing
+task-script and hold suites, and the two task-management skills now route to
+the narrow commands.
+
+The first test run also confirmed that this shell can resolve Node 18 while CI
+and the installed dependencies require Node 24.20.0. Checks pass when invoked
+with CI's exact Node binary. The later worktree-preflight slice should make that
+version mismatch explicit before a test starts.
+
+The instruction-size refactor follows the mechanical test wins so its quality
+benchmark can run on the faster suite.
+
+The settlement-clock slice is now implemented too. Vitest fake time advances
+the unchanged production polling window, and a new assertion preserves its
+five provider-status checks. The focused file fell from 80.8 seconds in the
+baseline to 1.0 second while all 11 tests still pass. Next is the backup-script
+critical path.
+
+The 37 backup cases are now registered from one shared suite through five
+isolated concern files. Their fixtures no longer share a restic repository;
+the split exposed and removed one hidden order dependency in the "repository
+with history" case. The five-file run preserved 35 passes and two existing
+environment skips and took 92.24 seconds versus the 170.65-second baseline
+(46% faster). A six-way trial took 131.85 seconds from storage contention and
+was rejected. The committed configuration stays at five; the ticket's required
+five-run median still has to be measured before final acceptance.
+
+The root instruction slice is implemented. `AGENTS.md` now holds the universal
+truth, authority, portability, verification, worktree and task gates plus a
+topic router in 11,784 bytes (84% below the 73,665-byte baseline). The detailed
+content, network, verification, worktree/task and tool explanations remain
+verbatim in five `docs/agents/` references and load only when relevant. A new
+keeper enforces the 28 KiB ceiling, resolves every local link and refuses an
+unlinked scoped reference; its three focused tests pass.
+
+`npm run check:changed -- <paths>` now unions Vitest's dependency-related
+tests with an explicit registry for instruction, task, skill, locale, API,
+brand/colour, browser-dialog, depersonalisation and capability keepers. It
+prints every reason, and runs the full suite when neither the graph nor the
+registry finds evidence. The `lib/theme.ts` trial selected five dependency
+files plus three otherwise invisible source-scan keepers; 92 tests passed.
+
+The quick verification path is deterministic now. `npm run build` writes a
+stamp over route-defining paths, the installed Next version, Next config and
+the generated `.next/types` contents. `verify --quick` skips the build only
+when both input and output hashes still match; otherwise it names the stale
+condition and builds automatically. Six stamp cases plus a fake successful
+Next build pass. A real build reached Next 16.3.3, but this restricted harness
+blocked its Google-font requests and then Turbopack's PostCSS subprocess port;
+the final gate still needs an unrestricted run.
+
+Worktree setup now has an executable preflight too. The repository pins Node
+24.20.0 in package metadata as well as `.nvmrc`; build and verify stop
+immediately with an actionable version error instead of reaching Next with
+Node 18. `npm run worktree:bootstrap` verifies the runtime and shared install,
+uses an APFS copy-on-write clone when valid, falls back to
+`npm ci --prefer-offline` when it is not, and stamps the lockfile provenance.
+On this worktree it correctly found `main`'s stale Zod 4.4.3 against the 4.6.2
+lock, took the fallback, completed in 10.8 seconds, and its second check passed
+without reinstalling. Eleven focused stamp/preflight tests pass.
+
+The quality corpus and measurement command are checked in under
+`docs/benchmarks/agent-efficiency/`. Its ten completed tasks cover API/schema,
+database/provider, helper/model, ordinary UI, visual/browser, sync/security
+and skill work; B420, B422 and B1090 are the three explicit historical failure
+cases. `npm run agent:benchmark` currently finds all 23 declared keeper checks
+(100% recall), with median task-context output of 1,289 bytes and check-plan
+output of 425 bytes. Structured model-run scoring records only aggregate
+timings/counts and correctness flags and refuses unknown fields such as raw
+conversation text. `npm run agent:context -- B1665` supplies the requested
+concise map from a task id, with detailed and JSON forms available.
+
 ## Acceptance
 
 - A committed baseline report and command reproduce measurements across at

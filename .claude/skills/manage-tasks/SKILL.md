@@ -50,7 +50,10 @@ change its `type:` and run `tidy`.
 Building one is `work-on-a-task`. This skill is the bookkeeping around it.
 
 ```bash
-npm run tasks                          # what is in each lane, and who is on what
+npm run tasks                          # concise counts plus active lanes
+npm run tasks -- list --lane open      # one lane; add --category for backlog
+npm run tasks -- show B03              # one task, including its full body
+npm run tasks -- search "forwarded for" # matching tasks, capped unless --all
 npm run tasks -- move B03 completed
 npm run tasks -- tidy                  # re-file after editing a type by hand
 ```
@@ -134,8 +137,7 @@ an agent takes, and it would rather be asked.
 ### 1. Capture — anything, any time
 
 ```bash
-npm run tasks                      # is it already listed?
-grep -ril "<keyword>" docs/tasks/
+npm run tasks -- search "<keyword>"  # is it already listed?
 ```
 
 Never open a second task for something already listed. Close but not the same?

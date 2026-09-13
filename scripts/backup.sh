@@ -662,7 +662,7 @@ fi
 # `timeout` is coreutils. It is on the VPS and is NOT on macOS without
 # `brew install coreutils`, so a missing one falls back to running unwrapped
 # and says so, rather than making this script Linux-only — the suite in
-# test/backup-script.test.ts runs on a maintainer's laptop, and a backup script
+# test/backup-script-*.test.ts runs on a maintainer's laptop, and a backup script
 # that cannot be exercised where it is edited is worse than an unbounded probe
 # on a machine that has no repository to reach.
 probe_timeout="${BACKUP_PROBE_TIMEOUT:-120}"
