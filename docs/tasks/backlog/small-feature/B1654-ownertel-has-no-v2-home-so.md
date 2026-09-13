@@ -78,3 +78,50 @@ An owner (or their agent) can set a phone number on an existing journal
 through a `/api/v2` door, read it back, and switch the WhatsApp reminder
 channel on — with no v1 route involved. `docs/v2-migration/06-contract-deltas.md`
 carries the D row and says what happened to provenance.
+
+
+## Decided 2026-09-13 — where each detail lives, and why they differ
+
+The owner asked for these to be centrally managed the way guest and buddy
+details are — a row in the database rather than a field in `config.json` — and
+left the call to me. **The two details split, and the reason is worth keeping.**
+
+**`owner.email` stays in `config.json`.** It is not contact information. It is
+the journal's own statement of who owns it: `lib/contacts/session.ts` reads it
+on every request, and a journal with none "has no owner, and therefore no admin
+surface". Three consequences follow, and each one is a reason not to move it:
+
+- **A database drop must not orphan a journal.** M1 dropped this instance's
+  database on purpose and will not be the last time. Every journal whose
+  ownership lived only in a dropped table would be unclaimable — nobody could
+  sign in, including the operator.
+- **An export has to be complete.** `npm run export` hands somebody their whole
+  journal back, and self-hosting it later is the documented way out. A folder
+  that does not say whose it is has lost the one fact that makes it theirs.
+- **A restore from content alone has to work.** Today it does. That property is
+  worth more than the tidiness of one storage location.
+
+A guest's address is genuinely different: it is a *grant*, it is revocable, and
+it is meaningless without the database row that carries it. The owner's address
+is the opposite — it is the claim everything else is checked against.
+
+**`owner.tel` may move centrally, and that is the part to build.** It is a
+notification channel rather than an ownership claim, so it degrades gracefully:
+lose it to a database drop and WhatsApp stops until somebody re-proves a
+number, which is an inconvenience rather than a lost journal. It also *wants* a
+row, because it carries provenance — v1 already stores
+`ownerTelProvenMethod`, and a number proved by passcode is a stronger claim
+than one an agent typed. Provenance is exactly the kind of fact a table holds
+well and a config file holds badly.
+
+So: a central store for the number, alongside contacts; `config.json` keeps the
+address. `PATCH /api/v1/{user}/config` survives until that store exists.
+
+Note for whoever builds it: the phone is used **only at signup** today
+(`/api/auth/signup/phone`) and for notifications. Nothing signs in to an
+existing journal by phone. If that ever changes, the number stops being a
+notification channel and this whole decision has to be revisited — a sign-in
+route that a database drop can delete is the orphaning problem again.
+
+Self-service editing of either detail is **not** in scope here and is parked as
+B1655.

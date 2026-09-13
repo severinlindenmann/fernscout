@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (241)
+## backlog (242)
 
 ### security (5)
 
@@ -149,7 +149,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (20)
+### small-feature (21)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -172,6 +172,7 @@ Do not edit them by hand; run the script.
 | [B1441](backlog/small-feature/B1441-postcard-order-status-only-updates-when.md) | Postcard order status only updates when the page is opened | FEATURE | low | medium |
 | [B1497](backlog/small-feature/B1497-a-book-whose-cover-the-planner.md) | A book whose cover the planner picked cannot show it anywhere outside the preview frame | FEATURE | low | medium |
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
+| [B1655](backlog/small-feature/B1655-an-owner-cannot-change-their-own.md) | An owner cannot change their own email or phone number | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
 ### chore (10)
