@@ -155,15 +155,36 @@ describe("task ids", () => {
     // "F1–F4, E4, E6, B7", and a task quoting that line is citing a roadmap
     // item, not a task. A single digit is therefore never one of ours, and
     // treating it as one only teaches people to ignore this.
+    //
+    // Up to five digits, not three — B1472. Every id allocated since B1000
+    // has four, and the trailing `\b` meant a four-digit id did not even
+    // match as its own first three characters: `"see B1471".match(/\bB\d{2,3}\b/)`
+    // is `null`. `\bB\d{2,5}\b` costs nothing today and survives the next
+    // thousand tasks the way `{2,3}` did not survive this one.
     const known = new Set(all.map((task) => task.id));
     const dangling = new Set<string>();
     for (const task of all) {
-      for (const [reference] of task.body.matchAll(/\bB\d{2,3}\b/g)) {
+      for (const [reference] of task.body.matchAll(/\bB\d{2,5}\b/g)) {
         if (!known.has(reference)) dangling.add(`${reference} (in ${task.where})`);
       }
     }
 
     expect([...dangling].sort()).toEqual([]);
+  });
+
+  test("the dangling-reference pattern catches a four-digit id and ignores a bare number — B1472", () => {
+    // The old `/\bB\d{2,3}\b/` never matched a four-digit id at all — not
+    // even its first three digits, because the trailing `\b` fails between
+    // two digits. Proven directly against the regex the test above uses,
+    // rather than against real task bodies, so this does not depend on which
+    // ids happen to exist in the checkout when it runs.
+    const pattern = /\bB\d{2,5}\b/g;
+    expect([..."see B1471 for the reasoning".matchAll(pattern)].map((m) => m[0])).toEqual(["B1471"]);
+    expect([..."see B123456 for the reasoning".matchAll(pattern)].map((m) => m[0])).toEqual([]);
+    // A number that is not a task reference at all — a count, a year, a port.
+    expect([..."there were 1471 rows and it took 3 seconds".matchAll(pattern)].map((m) => m[0])).toEqual([]);
+    // Still catches the ordinary two- and three-digit ids from before.
+    expect([..."see B01 and B130".matchAll(pattern)].map((m) => m[0])).toEqual(["B01", "B130"]);
   });
 
   test("every task in a categorised lane is in the folder its frontmatter names", () => {
