@@ -146,6 +146,44 @@ describe("content/example is v2-canonical", () => {
     expect(stray).toEqual([]);
   });
 
+  /**
+   * B1684 — every `src` a day names points at bytes that are actually there.
+   *
+   * The Lisbon trip named four photographs and shipped none, so the demo had
+   * days claiming pictures nobody could load, and nothing anywhere said so.
+   * A dangling `src` is invisible to the schema (it is a well-formed string)
+   * and invisible to the round-trip check (it serialises perfectly). Only
+   * looking at the disk finds it.
+   *
+   * The narrow attach doors already resolve a `src` against stored bytes
+   * (`attachDayMedia`/`srcStoredInTrip`), but a whole-day PUT or PATCH does
+   * not — so content written that way, which is how the demo is written, has
+   * no such check. This is that check, for the one journal that ships in the
+   * repository.
+   */
+  it("every photograph a day names is actually on disk", () => {
+    const dangling: string[] = [];
+    for (const trip of fs.readdirSync(path.join(EXAMPLE, "trips"))) {
+      const entries = path.join(EXAMPLE, "trips", trip, "entries");
+      if (!fs.existsSync(entries)) continue;
+      for (const file of fs.readdirSync(entries)) {
+        const day = readJson(path.join(entries, file)) as {
+          media?: { src?: string }[];
+        };
+        for (const item of day.media ?? []) {
+          if (!item.src) continue;
+          // `/media/<trip>/…` is trip-relative; the username is added at read
+          // time (`mediaWithOwner`), so the file sits under the trip itself.
+          const rel = item.src.replace(/^\/media\/[^/]+\//, "");
+          if (!fs.existsSync(path.join(EXAMPLE, "trips", trip, "media", rel))) {
+            dangling.push(`${trip}/${file}: ${item.src}`);
+          }
+        }
+      }
+    }
+    expect(dangling).toEqual([]);
+  });
+
   it("the journal document validates (minus the one legacy key the code still needs)", () => {
     const config = readJson(path.join(EXAMPLE, "config.json"));
     // `features` is read by lib/capabilities.ts's own resolver, so the file
