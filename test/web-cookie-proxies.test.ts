@@ -316,6 +316,27 @@ describe("PATCH /api/web/{user}/trips/{trip}/days/{slug} — a day's own correct
     expect(fs.readFileSync(entryFile(), "utf8")).toContain('"title": "A day"');
   });
 
+  /**
+   * Carried over from the route this replaced. `EditDay` is a correction to a
+   * day somebody already has, not a form that composes one — there is no CMS
+   * here (decision 24) — so this door accepts only what the panel can draw.
+   * Without the allowlist the browser could write any day field, and the
+   * no-CMS rule would be a promise rather than a mechanism.
+   */
+  test("a field the panel cannot draw is refused rather than written", async () => {
+    const { PATCH } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/route");
+    const before = fs.readFileSync(entryFile(), "utf8");
+    const response = await PATCH(
+      req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${FULL_SLUG}`, "PATCH", {
+        tags: ["smuggled"],
+      }),
+      dayParams,
+    );
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toBe("not_editable_here");
+    expect(fs.readFileSync(entryFile(), "utf8")).toBe(before);
+  });
+
   test("a correction lands on disk", async () => {
     const { PATCH } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/route");
     const response = await PATCH(
