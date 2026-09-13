@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (258)
+## backlog (261)
 
 ### security (6)
 
@@ -204,7 +204,7 @@ Do not edit them by hand; run the script.
 | [B1592](backlog/chore/B1592-units-metric-imperial-is-stored-and.md) | units (metric/imperial) is stored and editable but nothing converts by it | CHORE | low | low |
 | [B1678](backlog/chore/B1678-lib-trips-ts-new-is-a.md) | lib/trips.ts.new is a committed editor scratch file | CHORE | low | low |
 
-### ops (14)
+### ops (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -213,6 +213,9 @@ Do not edit them by hand; run the script.
 | [B1311](backlog/ops/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low |
 | [B1313](backlog/ops/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low |
 | [B1512](backlog/ops/B1512-the-sync-doors-have-never-been.md) | The sync doors have never been driven against the live instance or a real journal | OPS | high | medium |
+| [B1681](backlog/ops/B1681-the-owner-s-journal-was-deleted.md) | The owner's journal was deleted from the live instance during an automated run | OPS | high | low |
+| [B1682](backlog/ops/B1682-the-deploy-never-copies-content-example.md) | The deploy never copies content/example/figures, so a rebuilt box serves no demo journal | OPS | high | low |
+| [B1683](backlog/ops/B1683-live-instance-serves-500-on-three.md) | Live instance serves 500 on three document routes: the build and node_modules disagree about sharp | OPS | high | low |
 | [B403](backlog/ops/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
