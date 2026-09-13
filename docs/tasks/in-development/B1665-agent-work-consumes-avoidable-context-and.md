@@ -180,9 +180,14 @@ and the installed dependencies require Node 24.20.0. Checks pass when invoked
 with CI's exact Node binary. The later worktree-preflight slice should make that
 version mismatch explicit before a test starts.
 
-Next: remove the real settlement clock from photobook tests, then split the
-backup-script critical path. The instruction-size refactor follows those
-mechanical wins so its quality benchmark can run on the faster suite.
+The instruction-size refactor follows the mechanical test wins so its quality
+benchmark can run on the faster suite.
+
+The settlement-clock slice is now implemented too. Vitest fake time advances
+the unchanged production polling window, and a new assertion preserves its
+five provider-status checks. The focused file fell from 80.8 seconds in the
+baseline to 1.0 second while all 11 tests still pass. Next is the backup-script
+critical path.
 
 ## Acceptance
 
