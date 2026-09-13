@@ -1,14 +1,34 @@
 ---
 id: B1638
 title: "tripReminder splices a trip.md that new trips no longer have"
-type: CHORE
-priority: medium
+type: ISSUE
+priority: high
 complexity: low
 area: API v2
 found: 2026-09-13T00:00:00Z
 ---
 
 ## Why
+
+**Raised from CHORE/medium to ISSUE/high on 2026-09-13: a person is told
+"Saved." when nothing was saved.**
+
+The write being dead is not the whole fault. `lib/helper/tools/areas/trips.ts`
+offers the reminder as a proposal — *"Turn off the evening reminder for
+{trip}. No more nudges."* — the person presses accept, the splice writes into
+a `trip.md` nothing reads, and the helper answers with
+`agent.tool.setReminderDone`, which in `site/locales/en.json` is the single
+word **"Saved."**
+
+That is the exact sentence this codebase built its whole truthfulness net
+against: every mechanical guard holds, no write reaches anything, and the
+words on the screen are all the person has. It is worse than a dead feature,
+because a dead feature that said nothing would leave them able to notice.
+
+So this cannot land with B1598 unfixed — either the field gets a v2 home and
+the promise becomes true, or the tool is removed and stops making the promise.
+A third state, where it keeps saying "Saved.", is not available.
+
 
 `lib/api/tripReminder.ts` still edits `trip.md` through
 `spliceBlock`/`spliceScalar` (`lib/frontmatterScalar.ts`). Since B1598's

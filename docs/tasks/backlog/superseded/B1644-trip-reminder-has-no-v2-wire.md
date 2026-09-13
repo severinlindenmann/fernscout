@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: v2-migration
 found: "2026-09-13T06:34:27Z"
+superseded: \"B1638 — same finding, filed first and carrying the fuller analysis\"
 ---
 
 # B1644 — Trip reminder has no v2 wire home — the on/off switch writes a dead trip.md
