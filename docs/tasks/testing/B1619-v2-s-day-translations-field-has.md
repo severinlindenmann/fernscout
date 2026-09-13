@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: API v2
 found: "2026-09-12T20:20:41Z"
+merged: "2026-09-13T20:02:00Z"
 ---
 
 # B1619 — v2's day translations field has no journal-locale check at all, unlike v1's
