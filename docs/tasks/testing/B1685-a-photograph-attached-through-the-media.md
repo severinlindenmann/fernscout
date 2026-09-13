@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: api
 found: "2026-09-13T14:43:50Z"
+merged: "2026-09-13T15:12:42Z"
 ---
 
 # B1685 — A photograph attached through the media door never reaches the day it names
