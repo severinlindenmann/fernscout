@@ -1,0 +1,22 @@
+{
+  "id": "public-2026",
+  "title": "A Public Trip",
+  "tagline": "everyone can read this",
+  "dates": {
+    "from": "2026-01-01",
+    "to": "2026-01-10"
+  },
+  "visibility": "public",
+  "listed": true,
+  "people": [
+    {
+      "name": "Cre Ator",
+      "nickname": "Cre"
+    }
+  ],
+  "intro": "The public trip. PUBLICTRIPINTRO — a word that appears nowhere else.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

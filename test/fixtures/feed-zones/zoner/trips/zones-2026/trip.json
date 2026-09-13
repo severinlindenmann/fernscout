@@ -1,0 +1,22 @@
+{
+  "id": "zones-2026",
+  "title": "A Trip Across Zones",
+  "tagline": "everyone can read this",
+  "dates": {
+    "from": "2026-01-01",
+    "to": "2026-01-10"
+  },
+  "visibility": "public",
+  "listed": true,
+  "people": [
+    {
+      "name": "Cre Ator",
+      "nickname": "Cre"
+    }
+  ],
+  "intro": "The public trip. A trip whose days carry their own clocks.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

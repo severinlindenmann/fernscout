@@ -1,0 +1,21 @@
+{
+  "id": "delta-2025",
+  "title": "Private one",
+  "dates": {
+    "from": "2025-03-01",
+    "to": "2025-03-10"
+  },
+  "visibility": "password",
+  "listed": true,
+  "people": [
+    {
+      "name": "Test Person",
+      "nickname": "Test"
+    }
+  ],
+  "intro": "Not for everyone.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "id": "kappa-2023",
+  "title": "Unlisted one claiming to be advertised",
+  "dates": {
+    "from": "2023-09-01",
+    "to": "2023-09-05"
+  },
+  "visibility": "unlisted",
+  "listed": true,
+  "people": [
+    {
+      "name": "Test Person",
+      "nickname": "Test"
+    }
+  ],
+  "intro": "The older word already said no.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

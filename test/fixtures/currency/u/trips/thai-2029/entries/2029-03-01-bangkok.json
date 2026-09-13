@@ -1,0 +1,21 @@
+{
+  "title": "Bangkok again",
+  "date": "2029-03-01",
+  "location": "Bangkok",
+  "country": "Thailand",
+  "countryCode": "TH",
+  "coordinates": {
+    "lat": 13.7563,
+    "lng": 100.5018
+  },
+  "content": "The very same plate.",
+  "costs": [
+    {
+      "label": "Street food",
+      "amount": 450,
+      "currency": "THB",
+      "category": "food"
+    }
+  ],
+  "status": "published"
+}

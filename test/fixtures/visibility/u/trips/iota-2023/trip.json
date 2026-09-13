@@ -1,0 +1,21 @@
+{
+  "id": "iota-2023",
+  "title": "Guest one claiming to be advertised",
+  "dates": {
+    "from": "2023-08-01",
+    "to": "2023-08-05"
+  },
+  "visibility": "guest",
+  "listed": true,
+  "people": [
+    {
+      "name": "Test Person",
+      "nickname": "Test"
+    }
+  ],
+  "intro": "The key asks for advertising the visibility does not offer.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

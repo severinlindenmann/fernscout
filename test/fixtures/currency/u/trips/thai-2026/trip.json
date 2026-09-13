@@ -1,0 +1,32 @@
+{
+  "id": "thai-2026",
+  "title": "Thailand 2026",
+  "dates": {
+    "from": "2026-03-01",
+    "to": "2026-03-05"
+  },
+  "accent": "sky",
+  "rates": {
+    "currencies": ["THB", "EUR"],
+    "manual": {
+      "THB": 38.220408163265306,
+      "EUR": 0.9961702127659575
+    }
+  },
+  "intro": "Three currencies in one trip.",
+  "costs": {
+    "budget": {
+      "total": 1000,
+      "days": 10,
+      "currency": "CHF"
+    },
+    "items": [
+      {
+        "label": "Flights",
+        "amount": 300,
+        "category": "flights"
+      }
+    ],
+    "note": "Before we left."
+  }
+}

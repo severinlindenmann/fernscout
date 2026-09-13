@@ -1,0 +1,18 @@
+{
+  "title": "A Zoned Day",
+  "date": "2026-01-04",
+  "time": "09:15",
+  "timezone": "Asia/Bangkok",
+  "location": "Bangkok",
+  "country": "Testland",
+  "countryCode": "XT",
+  "coordinates": {
+    "lat": 13.75,
+    "lng": 100.5
+  },
+  "content": "This is public content, safe to syndicate. Marker: ZONEDMARKERTWO.",
+  "tags": [
+    "sleeper-train"
+  ],
+  "status": "published"
+}

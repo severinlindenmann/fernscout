@@ -1,0 +1,17 @@
+{
+  "title": "An Untimezoned Day",
+  "date": "2026-01-05",
+  "time": "09:15",
+  "location": "Somewhere Else",
+  "country": "Testland",
+  "countryCode": "XT",
+  "coordinates": {
+    "lat": 3,
+    "lng": 4
+  },
+  "content": "This is public content, safe to syndicate. Marker: UNTIMEZONEDMARKERTHREE.",
+  "tags": [
+    "sleeper-train"
+  ],
+  "status": "published"
+}
