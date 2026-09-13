@@ -667,7 +667,12 @@ export async function listPurchasesPage(
  * anything the approval page goes on to load.
  */
 export function approveMailUrl(baseUrl: string, username: string, paymentId: string, token: string): string {
-  return `${baseUrl}/${username}/payment/${paymentId}/approve/${token}`;
+  // The token is encoded, not interpolated raw: a fragment is read back
+  // through the same parsing a query string gets, where a literal `+` means
+  // a space. An unencoded token containing one would arrive at the approval
+  // page subtly wrong — and a credit-granting token that silently loses a
+  // character fails closed in the most confusing possible way.
+  return `${baseUrl}/${username}/payment/${paymentId}/approve#token=${encodeURIComponent(token)}`;
 }
 
 export function toPurchaseDoc(payment: Payment, mailedTo: string, baseUrl: string) {
