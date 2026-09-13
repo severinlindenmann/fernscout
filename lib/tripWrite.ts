@@ -1101,7 +1101,26 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     ...(input.tagline?.trim() ? { tagline: input.tagline.trim() } : {}),
     dates: { from: input.start, to: input.end },
     visibility,
-    people: peopleResult.value as TripFile["people"],
+    // A trip with nobody on it is not a trip — `tripDoc`'s `people` is
+    // `.min(1)` and says so. v1 simply omitted the block and let `peopleOf()`
+    // merge the owner in at read time; v2 states it on the document, so the
+    // writer has to put the owner there rather than write an empty array the
+    // reader will refuse. It did write `[]`, and `buildTripDoc` then threw a
+    // raw ZodError — an uncaught 500 rather than a refusal — for every trip
+    // created without an explicit `people:`.
+    people: (() => {
+      const given = peopleResult.value as TripFile["people"];
+      if (given && given.length > 0) return given;
+      const journal = getUser(username);
+      if (!journal) return given;
+      return [
+        {
+          name: journal.owner.name,
+          ...(journal.owner.nickname ? { nickname: journal.owner.nickname } : {}),
+          email: journal.owner.email,
+        },
+      ] as TripFile["people"];
+    })(),
     ...(input.listed === false ? { listed: false } : {}),
     ...(input.teaser === true ? { teaser: true } : {}),
     ...(input.test === true ? { test: true } : {}),

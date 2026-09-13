@@ -1127,12 +1127,19 @@ describe("the trip fields that had no writer", () => {
         path.join(dir, "wanderer", "trips", "solo", "trip.json"),
         "utf8",
       );
-      // FINDING (B1630, not a fixture problem): v2's `tripToJson` writes
-      // `"people": []` even for an empty list — unlike v1, which omitted the
-      // key entirely — so this assertion no longer holds against any
-      // production write. Reported alongside this repoint.
-      expect(file).not.toContain('"people"');
-      expect(getTrip("wanderer/solo")?.people).toEqual([]);
+      // v1 omitted `people:` when nobody was named, and let `peopleOf()` merge
+      // the owner in at read time. v2 states it on the document —
+      // `tripDoc.people` is `.min(1)`, because a trip nobody was on is not a
+      // trip — so the writer names the owner rather than writing an empty
+      // array the reader refuses. It did write `[]` for a while, and
+      // `buildTripDoc` threw a raw ZodError on every such trip: an uncaught
+      // 500 rather than a refusal.
+      expect(file).toContain('"people"');
+      // The journal's own owner, whoever the fixture made them.
+      const owner = getUser("wanderer")!.owner;
+      expect(getTrip("wanderer/solo")?.people).toEqual([
+        { name: owner.name, nickname: owner.nickname, email: owner.email },
+      ]);
     });
   });
 
