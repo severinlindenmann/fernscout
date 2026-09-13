@@ -405,3 +405,75 @@ describe("buildUserExportZipBuffer — narrowed to one trip", () => {
     ]);
   });
 });
+
+describe("buildUserExportZipBuffer — a held-back photograph", () => {
+  /**
+   * B596/B632, one filter over from the draft mistake this file already
+   * records. "open-to-link" means, in exportZip's own words, what an
+   * anonymous visitor could already see — and such a visitor cannot see a
+   * photograph a day or an item marks guest or private: visible() strips it
+   * from every reading path and the media route refuses the file.
+   *
+   * The trip-level filter is not enough, because the narrowing can sit on one
+   * day or one photograph inside a trip anybody may read. An export carrying
+   * it would be the second half of that pair failing, which AGENTS.md calls
+   * worse than having no protection at all.
+   */
+  test("a private photograph in a public trip is not in an open-to-link export", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    writeTripFixture("traveller", {
+      id: "seen-2026",
+      start: "2026-03-01",
+      end: "2026-03-02",
+      visibility: "public",
+      listed: true,
+    });
+    const mediaDir = path.join(srcDir, "traveller", "trips", "seen-2026", "media", "a-day");
+    write(path.join(mediaDir, "open.jpg"), "open bytes");
+    write(path.join(mediaDir, "held.jpg"), "held bytes");
+    writeDayFixture(srcDir, "traveller", "seen-2026", {
+      slug: "a-day",
+      date: "2026-03-01",
+      title: "A day",
+      media: [
+        { src: "/media/seen-2026/a-day/open.jpg" },
+        { src: "/media/seen-2026/a-day/held.jpg", visibility: "private" },
+      ],
+    });
+
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "held-back");
+    const at = (name: string) =>
+      path.join(extracted, "trips", "seen-2026", "media", "a-day", name);
+
+    expect(fs.existsSync(at("open.jpg"))).toBe(true);
+    expect(fs.existsSync(at("held.jpg"))).toBe(false);
+  });
+
+  test("scope all still carries it — the owner's own export is whole", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    writeTripFixture("traveller", {
+      id: "whole-2026",
+      start: "2026-04-01",
+      end: "2026-04-02",
+      visibility: "public",
+      listed: true,
+    });
+    const mediaDir = path.join(srcDir, "traveller", "trips", "whole-2026", "media", "a-day");
+    write(path.join(mediaDir, "held.jpg"), "held bytes");
+    writeDayFixture(srcDir, "traveller", "whole-2026", {
+      slug: "a-day",
+      date: "2026-04-01",
+      title: "A day",
+      media: [{ src: "/media/whole-2026/a-day/held.jpg", visibility: "private" }],
+    });
+
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "whole-export");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "whole-2026", "media", "a-day", "held.jpg"),
+      ),
+    ).toBe(true);
+  });
+});

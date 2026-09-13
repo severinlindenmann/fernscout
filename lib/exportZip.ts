@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { buffer as streamToBuffer } from "node:stream/consumers";
 import { ZipArchive } from "archiver";
-import { isDraft } from "./entries";
+import { isDraft, getAllEntries, AS_AUTHOR } from "./entries";
 import { isOpenToLink } from "./access";
 import { userConfigPath } from "./config";
 import { mediaOriginalsRoot, tripOriginalsDir } from "./media";
@@ -152,6 +152,19 @@ function appendUserContent(
 
   for (const trip of tripsForScope(username, scope, tripId)) {
     const tripRoot = path.join(root, "trips", trip.id);
+    // Photographs the trip itself lets in but a day or an item holds back —
+    // B596/B632. This scope means, in this file's own words above, what an
+    // anonymous visitor could already see, and such a visitor cannot see
+    // these: visible() strips them from every reading path and the media
+    // route refuses the file. An export carrying them would be the second
+    // half of that pair failing, which AGENTS.md calls worse than having no
+    // protection at all.
+    //
+    // Exactly the mistake this function already made once about drafts, one
+    // filter over. The trip-level check is not enough, because a narrowing
+    // can sit on a single day or a single photograph inside a trip anybody
+    // may read.
+    const heldBack = scope === "open-to-link" ? narrowedMedia(username, trip.id) : null;
     for (const file of walkFiles(tripRoot)) {
       const relative = path.relative(tripRoot, file);
       // B1603: originals used to be skipped here — "back them up with the
@@ -163,6 +176,7 @@ function appendUserContent(
       // in, at the same cost every other export already accepts.
       if (isDotfilePath(relative)) continue;
       if (scope === "open-to-link" && isDraftEntry(file)) continue;
+      if (heldBack?.has(relative.split(path.sep).join("/"))) continue;
       const name = path.relative(root, file).split(path.sep).join("/");
       archive.file(file, { name });
     }
@@ -183,6 +197,32 @@ function appendUserContent(
       }
     }
   }
+}
+
+/**
+ * Trip-relative paths of every photograph a day or an item holds back.
+ *
+ * Read at AS_AUTHOR deliberately: the question is not what this caller may
+ * see, but what the content itself is marked as. A reader-level read would
+ * hide the very items being collected — the closed default would return
+ * nothing, the filter would be empty, and everything would pass. That is
+ * B1647's shape, and getting it backwards here fails open.
+ */
+function narrowedMedia(username: string, tripId: string): Set<string> {
+  const held = new Set<string>();
+  for (const entry of getAllEntries(tripRef(username, tripId), AS_AUTHOR)) {
+    for (const item of entry.gallery) {
+      if (!entry.visibility && !item.visibility) continue;
+      for (const src of [item.src, item.poster]) {
+        if (!src) continue;
+        const at = src.indexOf("/media/");
+        if (at === -1) continue;
+        const rest = src.slice(at + "/media/".length).split("/").slice(1).join("/");
+        if (rest) held.add("media/" + rest);
+      }
+    }
+  }
+  return held;
 }
 
 /** A fresh, unfinalized archive with one user's content already queued onto
