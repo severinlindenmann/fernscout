@@ -9,8 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { runTool } from "@/lib/helper/tools";
 import { sessionStats } from "@/lib/helper/sessions";
 import type { Say } from "@/lib/helper/intents";
-import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
-import { writeTripFixture } from "./fixtures/content";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * `set_rate` and `set_budget` — B1042's two new money tools.
@@ -96,14 +95,7 @@ beforeEach(async () => {
     // introduced/exposed, not something this repoint can route around.
     costsVisibility: "guests",
   });
-  // B1630: `writeDayFixture` (test/fixtures/content.ts) has no notion of a
-  // day's own `costs:` list — its DayFixture models title/date/location/
-  // media/visibility, not per-day cost entries, so this writes the v2 JSON
-  // shape directly through the same production serialiser (`dayToJson`)
-  // instead of going through the narrower helper. Reported as a finding.
-  const entriesDir = path.join(dir, "alex", "trips", "reise", "entries");
-  fs.mkdirSync(entriesDir, { recursive: true });
-  const dayTwo: DayFile = {
+  writeDayFixture(dir, "alex", "reise", {
     slug: "day-two",
     title: "Day two",
     date: "2026-05-02",
@@ -113,8 +105,7 @@ beforeEach(async () => {
       { label: "Dinner", amount: 20, category: "food", currency: "CHF" },
       { label: "Market", amount: 400, category: "other", currency: "THB" },
     ],
-  };
-  fs.writeFileSync(path.join(entriesDir, "2026-05-02-day-two.json"), dayToJson(dayTwo));
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

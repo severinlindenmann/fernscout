@@ -1,6 +1,5 @@
 import "server-only";
 import fs from "node:fs";
-import matter from "gray-matter";
 import path from "node:path";
 import { buffer as streamToBuffer } from "node:stream/consumers";
 import { ZipArchive } from "archiver";
@@ -81,10 +80,16 @@ function walkFiles(dir: string): string[] {
  * by anybody, which is the one rule this project has.
  */
 function isDraftEntry(file: string): boolean {
-  if (path.extname(file) !== ".md") return false;
+  // `.json`, not `.md` — B1598 changed what a day is on disk, and this check
+  // did not follow. While it read `.md` it answered `false` for every day
+  // there is, so **every draft went into an `open-to-link` export**: the one
+  // scope whose whole point is that it is handed to somebody who was not
+  // invited. A day is a draft precisely because nobody has decided it should
+  // be read yet.
+  if (path.extname(file) !== ".json") return false;
   if (path.basename(path.dirname(file)) !== "entries") return false;
   try {
-    return isDraft(matter(fs.readFileSync(file, "utf8")).data);
+    return isDraft(JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>);
   } catch {
     // Unreadable or unparseable: not something to hand out either.
     return true;

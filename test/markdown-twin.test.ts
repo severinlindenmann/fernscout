@@ -73,64 +73,46 @@ beforeEach(() => {
   writeTrip("parks-2025", "past", "public", ["zion-narrows", "today"]);
   writeTrip("secret-2024", "past", "private", ["hidden-day"]);
 
-  // B371 — a day written in German with an English translation, in the same
-  // block-scalar shape lib/api/entries.ts's translationLines writes to disk.
-  const tripPath = path.join(dir, "alex", "trips", "now-2026");
-  fs.writeFileSync(
-    path.join(tripPath, "entries", "2026-01-03-zwei-sprachen.md"),
-    [
-      "---",
-      'title: "Ankunft"',
-      'date: "2026-01-03"',
-      'location: "Somewhere"',
-      'country: "Nowhere"',
-      "translations:",
-      "  en:",
-      '    title: "Arrival"',
-      "    content: |-",
-      "      In English, over two",
-      "",
-      "      paragraphs.",
-      "---",
-      "",
-      "Auf Deutsch.",
-      "",
-    ].join("\n"),
-  );
+  // B371 — a day written in German with an English translation. B545 — a
+  // day that asked for weather and has a reading, and one that asked and
+  // has none yet. `DayFixture` (test/fixtures/content.ts) carries both
+  // `translations` and `weather` directly now.
+  writeDayFixture(dir, "alex", "now-2026", {
+    slug: "zwei-sprachen",
+    date: "2026-01-03",
+    title: "Ankunft",
+    location: "Somewhere",
+    country: "Nowhere",
+    content: "Auf Deutsch.",
+    translations: { en: { title: "Arrival", content: "In English, over two\n\nparagraphs." } },
+  });
 
-  // B545 — a day that asked for weather and has a reading, and one that
-  // asked and has none yet.
-  fs.writeFileSync(
-    path.join(tripPath, "entries", "2026-01-04-mit-wetter.md"),
-    [
-      "---",
-      'title: "Mit Wetter"',
-      'date: "2026-01-04"',
-      'location: "Somewhere"',
-      'country: "Nowhere"',
-      "weather: true",
-      'weatherData: { tempMax: 18, tempMin: 2, precipitation: 2.9, source: "open-meteo", recordedAt: "2026-01-05T04:00:00Z" }',
-      "---",
-      "",
-      "Prose.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(tripPath, "entries", "2026-01-05-ohne-antwort.md"),
-    [
-      "---",
-      'title: "Ohne Antwort"',
-      'date: "2026-01-05"',
-      'location: "Somewhere"',
-      'country: "Nowhere"',
-      "weather: true",
-      "---",
-      "",
-      "Prose.",
-      "",
-    ].join("\n"),
-  );
+  // v2 merges `weather`/`weatherData` into one `weather` field: `true`
+  // (asked, no answer yet) or the reading itself.
+  writeDayFixture(dir, "alex", "now-2026", {
+    slug: "mit-wetter",
+    date: "2026-01-04",
+    title: "Mit Wetter",
+    location: "Somewhere",
+    country: "Nowhere",
+    content: "Prose.",
+    weather: {
+      tempMax: 18,
+      tempMin: 2,
+      precipitation: 2.9,
+      source: "open-meteo",
+      recordedAt: "2026-01-05T04:00:00Z",
+    },
+  });
+  writeDayFixture(dir, "alex", "now-2026", {
+    slug: "ohne-antwort",
+    date: "2026-01-05",
+    title: "Ohne Antwort",
+    location: "Somewhere",
+    country: "Nowhere",
+    content: "Prose.",
+    weather: true,
+  });
 });
 
 afterEach(() => {

@@ -75,21 +75,19 @@ afterEach(() => {
 });
 
 describe("getPlan", () => {
-  test("a plan.md whose frontmatter will not parse reads as empty, not thrown", () => {
+  test("a plan section with an unusable route reads as empty, not thrown", () => {
     const dir = journal();
-    writeTrip(dir);
-    writePlan(dir, BROKEN_PLAN);
+    writeTrip(dir, BROKEN_TRIP);
 
     expect(() => getPlan("u/asia-2023")).not.toThrow();
     expect(getPlan("u/asia-2023")).toEqual({ stops: [], reachedCount: 0, next: undefined });
     expect(warn).toHaveBeenCalled();
-    expect(String(warn.mock.calls[0][0])).toContain("plan.md");
+    expect(String(warn.mock.calls[0][0])).toContain("no usable");
   });
 
-  test("a good plan.md is unaffected by the guard", () => {
+  test("a good plan section is unaffected by the guard", () => {
     const dir = journal();
-    writeTrip(dir);
-    writePlan(dir, GOOD_PLAN);
+    writeTrip(dir, GOOD_TRIP);
 
     const plan = getPlan("u/asia-2023");
     expect(plan.stops.map((s) => s.location)).toEqual(["Faro"]);
@@ -98,11 +96,10 @@ describe("getPlan", () => {
 
   test("clears when the file is fixed, without a restart", () => {
     const dir = journal();
-    writeTrip(dir);
-    writePlan(dir, BROKEN_PLAN);
+    writeTrip(dir, BROKEN_TRIP);
     expect(getPlan("u/asia-2023").stops).toEqual([]);
 
-    writePlan(dir, GOOD_PLAN);
+    writeTrip(dir, GOOD_TRIP);
     expect(getPlan("u/asia-2023").stops.map((s) => s.location)).toEqual(["Faro"]);
   });
 });
