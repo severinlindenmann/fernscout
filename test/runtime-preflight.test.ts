@@ -40,7 +40,13 @@ describe("worktree bootstrap helpers", () => {
       "worktree /repo\nHEAD abc\nbranch refs/heads/main\n\n" +
         "worktree /repo/.claude/worktrees/b1\nHEAD def\nbranch refs/heads/b1\n",
     );
-    expect(entries.find((entry) => entry.branch === "refs/heads/main")?.worktree).toBe("/repo");
+    // `parseWorktreeList` lives in a .mjs lib, so its rows arrive untyped here
+    // and `noImplicitAny` refuses a bare parameter. Named at the call site
+    // rather than loosened in tsconfig.
+    type WorktreeRow = Record<string, string | true>;
+    expect(
+      (entries as WorktreeRow[]).find((entry) => entry.branch === "refs/heads/main")?.worktree,
+    ).toBe("/repo");
   });
 
   it("hashes lockfile content deterministically", () => {

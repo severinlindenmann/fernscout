@@ -62,7 +62,7 @@ and `/api/web/<user>/purchases/<id>/pay` sends them to a hosted checkout
 page for TWINT, a wallet or a card. Nothing an agent holds can pay, and nothing
 it holds can grant: `POST /api/webhooks/stripe` is what grants, from Stripe's
 own signature over the raw body and a once-only claim on the row
-(`claimProviderPayment`). That webhook is one of the three files `GRANT_ALLOWED`
+(`claimProviderPayment`). That webhook is one of the four files `GRANT_ALLOWED`
 in `test/credits.test.ts` names, beside the operator approval route and the
 one-off grant a new journal gets at signup — and that list is the whole of it.
 

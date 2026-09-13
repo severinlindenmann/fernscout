@@ -51,6 +51,15 @@ because nothing filled that field in. The feature was inert everywhere it
 mattered and no test could have said so. B1090. `work-on-a-task` step 5,
 `test-in-a-browser` and `check-a-drawing` each carry the procedure.
 
+**Run it in the foreground, and let it finish in the same turn.** It takes
+about five minutes, so `scripts/verify.mjs` **refuses to start** when no
+terminal is attached rather than let a short tool timeout kill it mid-suite:
+pass `VERIFY_WILL_WAIT=1` alongside `timeout: 900000`. Never background it and
+stop — your turn ends, nothing can wake you, and the run finishes into a file
+nobody reads. Nine agents did that in one day with the timeout instruction
+already in their briefs, which is why the guard is code rather than more words
+here.
+
 **While you are iterating, run the one test file** — `npx vitest run
 test/thing.test.ts` — and keep `verify` for the end. Measured on this
 checkout: `npx vitest run` alone is well over four minutes across 500-odd

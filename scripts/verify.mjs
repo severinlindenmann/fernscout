@@ -33,7 +33,6 @@ import { assertRepositoryNode } from "./runtime-preflight.mjs";
 
 const quick = process.argv.includes("--quick");
 
-assertRepositoryNode(process.cwd());
 
 /**
  * Six agents in one day read the instruction to pass `timeout: 900000`,
@@ -83,6 +82,15 @@ if (!process.stdout.isTTY && !process.env.CI && !process.env.VERIFY_WILL_WAIT) {
   );
   process.exit(1);
 }
+
+/**
+ * The node-version preflight runs *after* the guard above, not before it.
+ * It reads `.nvmrc`, and a caller that is about to be refused for being
+ * detached should be told that — not handed an ENOENT stack from a file it
+ * was never going to need. Deciding whether to start comes before checking
+ * what would have run.
+ */
+assertRepositoryNode(process.cwd());
 
 /**
  * A worktree has no `node_modules` of its own. `npx tsc`, `eslint` and
