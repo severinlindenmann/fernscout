@@ -61,7 +61,42 @@ answer. But the live table is *today's* rate and these are past trips: v1's
 hand-set number pinned the rate **as it was**. Dropping it silently re-prices
 a finished trip at today's rates, on a page that says what somebody spent.
 
-## Work — the owner picks one
+## Resolved 2026-09-13 — the owner's call, and it needed no invented numbers
+
+> *"default is CHF, and for the e.g. stuff just convert to today's rate or
+> define rates for today. we only have example data."*
+
+Taking that literally turned out to dissolve the problem. The ECB table
+publishes **CHF, USD, JPY and THB** — of the five currencies `example` uses,
+only **VND** is missing. And `manual` exists precisely for *"any listed
+currency the ECB does not publish, and overrides for ones it does"*. So:
+
+| trip | rates |
+|---|---|
+| alps-2024 | `{currencies: [EUR]}` |
+| asia-2023 | `{currencies: [THB, VND, EUR], manual: {VND: 26344.09}}` |
+| japan-2027 | `{currencies: [JPY]}` |
+| parks-2025 | `{currencies: [USD]}` |
+| usa-2026 | `{currencies: [USD]}` |
+
+Every published currency now converts from the live ECB snapshot; the three
+trips that had no EUR pivot needed one, because their currencies are
+published and want no manual rate at all.
+
+**The single manual figure invents nothing.** `26344.09` is asia-2023's own
+recorded numbers re-anchored: it recorded VND at `0.0000372` CHF and EUR at
+`0.98` CHF, so `0.98 / 0.0000372` is VND per EUR. Arithmetic on what the
+journal already said, not a rate fetched from a belief.
+
+The cost of the decision, stated because it is real: the published
+currencies now re-price at **today's** rate rather than the rate that was
+true on the trip. For demo content the owner has accepted that. **For a real
+journal it would not be acceptable**, and if somebody's own trips are ever
+migrated, the historical-pinning question comes back — which is the argument
+for making `manual` base-anchored (option 2 below) rather than a thing only
+example got away with.
+
+## The three options as they stood — kept for the real-journal case
 
 1. **Pivot from the ECB snapshot for the trip's dates.** Honest if the
    snapshot is a real historical reading, invention if it is today's rate
