@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (250)
+## backlog (258)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (65)
+### issue (72)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -81,6 +81,10 @@ Do not edit them by hand; run the script.
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
 | [B1634](backlog/issue/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low |
 | [B1647](backlog/issue/B1647-costs-apply-on-a-trip-cannot.md) | costs/apply on a trip cannot find days written through the day-write endpoint | ISSUE | high | medium |
+| [B1673](backlog/issue/B1673-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | low |
+| [B1674](backlog/issue/B1674-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | low |
+| [B1675](backlog/issue/B1675-docs-api-renders-the-v1-contract.md) | /docs/api renders the v1 contract, not v2 | ISSUE | high | low |
+| [B1680](backlog/issue/B1680-the-owner-s-own-journal-is.md) | The owner's own journal is unreadable on the live instance: its trips are still trip.md | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -109,6 +113,8 @@ Do not edit them by hand; run the script.
 | [B1642](backlog/issue/B1642-known-trip-fields-and-the-journals.md) | KNOWN_TRIP_FIELDS and the journals field-coverage test still speak v1's vocabulary | ISSUE | medium | medium |
 | [B1653](backlog/issue/B1653-the-me-settings-page-still-draws.md) | The /me settings page still draws inputs for two fields v2 dropped, so typing in them does nothing | ISSUE | medium | low |
 | [B1663](backlog/issue/B1663-five-credit-spending-paths-mint-a.md) | Five credit-spending paths mint a fresh ref per call, so a retry charges again | ISSUE | medium | medium |
+| [B1676](backlog/issue/B1676-content-model-json-advertises-v1-write.md) | content-model.json advertises v1 write doors and retired journal fields | ISSUE | medium | low |
+| [B1677](backlog/issue/B1677-runtime-responses-name-v1-routes-that.md) | Runtime responses name v1 routes that were deleted | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -131,6 +137,7 @@ Do not edit them by hand; run the script.
 | [B1649](backlog/issue/B1649-trip-put-s-missing-buddies-message.md) | trip PUT's missing-buddies message gives no schema and no pointer to the invites endpoint | ISSUE | low | low |
 | [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
 | [B1671](backlog/issue/B1671-trip-write-path-auto-fills-declined.md) | Trip write path auto-fills declined.days without the caller ever declining it | ISSUE | low | low |
+| [B1679](backlog/issue/B1679-nine-content-files-do-not-round.md) | Nine content files do not round-trip byte-identically through the serializers | ISSUE | low | low |
 
 ### big-feature (17)
 
@@ -180,7 +187,7 @@ Do not edit them by hand; run the script.
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (11)
+### chore (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -195,6 +202,7 @@ Do not edit them by hand; run the script.
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
 | [B1453](backlog/chore/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
 | [B1592](backlog/chore/B1592-units-metric-imperial-is-stored-and.md) | units (metric/imperial) is stored and editable but nothing converts by it | CHORE | low | low |
+| [B1678](backlog/chore/B1678-lib-trips-ts-new-is-a.md) | lib/trips.ts.new is a committed editor scratch file | CHORE | low | low |
 
 ### ops (14)
 
