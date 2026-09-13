@@ -150,7 +150,7 @@ function loadWorkerWithCaches(
   return { handlers, caches: store };
 }
 
-const HOME = "https://journal.test/api/v1/me/home";
+const HOME = "https://journal.test/api/v2/me/home";
 
 /** Drive one request through the fetch handler and wait for the answer, plus
  * anything the worker asked to finish afterwards. */
@@ -404,7 +404,7 @@ describe("the signed-in home payload", () => {
     expect(handles(HOME)).toBe(true);
     // The exemption is one exact path, not a loosened prefix. A prefix test is
     // one careless route away from caching somebody's contacts page.
-    expect(handles("https://journal.test/api/v1/me/devices/abc")).toBe(false);
+    expect(handles("https://journal.test/api/v2/me/devices/abc")).toBe(false);
     expect(handles("https://journal.test/api/v1/ana/status")).toBe(false);
     expect(handles("https://journal.test/api/auth/logout")).toBe(false);
   });

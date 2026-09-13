@@ -74,7 +74,7 @@ const RUNTIME = `runtime-${VERSION}`;
  * everything else has failed, and that is a weaker promise with two storage
  * APIs in it than with one.
  */
-const PERSONAL_PATH = "/api/v1/me/home";
+const PERSONAL_PATH = "/api/v2/me/home";
 const PERSONAL_PREFIX = "personal-";
 const PERSONAL_POINTER = `${PERSONAL_PREFIX}pointer`;
 /** A URL that is never fetched. It only has to be a stable cache key. */

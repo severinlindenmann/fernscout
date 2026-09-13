@@ -11,7 +11,7 @@ import { tellWorkerSignedOut } from "@/lib/signedOut";
  * B411.
  *
  * The part of `/` that is one person's. Everything here arrives from
- * `GET /api/v1/me/home`, which authenticates on the identity cookie alone; the
+ * `GET /api/v2/me/home`, which authenticates on the identity cookie alone; the
  * page around it holds no personal data at all, so that B412 can cache the two
  * separately and never serve one reader's list to the next.
  */
@@ -296,7 +296,7 @@ export function YourDevices({
   async function revoke(id: string) {
     setBusy(id);
     try {
-      const res = await fetch(`/api/v1/me/devices/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/v2/me/devices/${id}`, { method: "DELETE" });
       if (!res.ok) return;
       const { current } = (await res.json()) as { current?: boolean };
       if (current) {

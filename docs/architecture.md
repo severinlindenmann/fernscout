@@ -52,7 +52,7 @@ serves any trip at the explicit one. Both render the same components.
 | `lib/auth/` | email OTP, sessions, and agent tokens — two classes that are never interchangeable |
 | `lib/db/` · `lib/repos/` | the dialect split, migrations, and one repo per stored thing |
 | `lib/api/v2/` | the REST surface under `/api/v2` — trips, days, media, statements and the rest, generated into `/api/v2/openapi.json` from the Zod schemas in `lib/api/v2/schemas/` |
-| `lib/api/` (outside `v2/`) | the surviving `/api/v1` routes — `gps`/`contacts` import and drawing a trip's GPS track — and `/api/auth` |
+| `lib/api/` (outside `v2/`) | the surviving `/api/v1` routes — drawing a trip's GPS track — and `/api/auth` |
 | `lib/validate/` | what an agent may write, and why a rejection says what it says |
 | `lib/media.ts` · `lib/mediaSizes.ts` · `lib/mediaLimits.ts` | derivatives, quotas and upload ceilings |
 | `lib/ingest/` | a folder of camera files → EXIF, clustering, resizing, entry markdown |

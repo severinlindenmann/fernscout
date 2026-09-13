@@ -181,7 +181,7 @@ export function SiteHeader({
    * much smaller population.
    *
    * `undefined` on the server pass and for everybody who is not the operator.
-   * It arrives from `/api/v1/me/home` rather than the page, because `/` is the
+   * It arrives from `/api/v2/me/home` rather than the page, because `/` is the
    * same cacheable document for everybody (B412) — and it grants nothing:
    * `/admin` asks `isInstanceAdmin()` for itself on every request.
    */

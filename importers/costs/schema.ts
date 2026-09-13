@@ -94,8 +94,8 @@ export function isSanePayment(row: Payment): boolean {
  * **Run this against your own importer.** Same contract as the GPS folder's:
  * bring the row above, call this, fix what it lists.
  *
- * It is what `POST /api/v1/<user>/import` runs with `"dryRun": true`, so the
- * API is the same check without an import statement.
+ * It is what `POST /api/v2/<user>/import?dryRun=true` runs, so the API is the
+ * same check without an import statement.
  */
 export function checkCostsImporter(importer: CostsImporter, rows: Payment[]): string[] {
   const problems: string[] = [];

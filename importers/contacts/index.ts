@@ -10,6 +10,3 @@ import vcard from "./vcard";
  * bank's CSV.
  */
 export const CONTACTS_IMPORTERS: ContactsImporter[] = [vcard];
-
-/** The ids, for the API's listing and for `/openapi.json`'s enum. */
-export const CONTACTS_FORMATS = CONTACTS_IMPORTERS.map((i) => i.id);

@@ -342,9 +342,6 @@ describe("the grant path is not reachable over HTTP", () => {
     // B1517. One photograph classified into a proposed party — charged
     // before the model call, refunded on a throw, the same shape as every
     // route above.
-    "app/api/v1/[user]/trips/[trip]/travellers/from-photo/route.ts",
-    // The v2 door onto the same feature (B1517), same shape: charged before
-    // the model call, refunded on a throw.
     "app/api/v2/[user]/trips/[trip]/travellers/from-photo/route.ts",
     // B1557. This walk covered `app` only, while the grant walk above covers
     // `app` and `lib` since B1363 — every `lib/` refund caller sat outside it

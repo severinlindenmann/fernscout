@@ -416,8 +416,8 @@ export const FILES_TOOLS: readonly Tool[] = [
      * A phone's own address book, read and reported into the conversation —
      * B1394, the second half.
      *
-     * The read (`POST /api/v1/<user>/import`, kind `contacts`) and the write
-     * (`POST /api/v1/<user>/contacts/import`) were both built and both stay
+     * The read (`POST /api/v2/<user>/import`, kind `contacts`) and the write
+     * (`POST /api/v2/<user>/contacts/import`) were both built and both stay
      * correctly separated: the write takes only the rows it is given, and
      * nothing here or anywhere else lets a model pick which of somebody's
      * contacts are actually contacts of this journal. What was missing is
