@@ -511,11 +511,13 @@ describe("v2's status endpoint — GET /api/v2/{user}/status (B1620 #2: drafts w
     );
 
     const status = await v2Status(await agentToken());
-    const row = status.drafts.find((d) => d.slug === "queueday");
+    // The full stem — B1633 made every drafts slug addressable by the day
+    // route, which the bare form was not.
+    const row = status.drafts.find((d) => d.slug === "2026-01-09-queueday");
     expect(row).toBeDefined();
     // `{trip, slug, title, test}` — widened per Q14 ("widen: yes"), so an
     // agent reading the review queue can say which day is waiting and
     // whether it is content nobody lived, with no GET per row.
-    expect(row).toMatchObject({ trip: "proving-2026", slug: "queueday", title: "queueday", test: true });
+    expect(row).toMatchObject({ trip: "proving-2026", slug: "2026-01-09-queueday", title: "queueday", test: true });
   });
 });
