@@ -58,6 +58,22 @@ function writeSiteConfig(credits: boolean) {
   clearConfigCache();
 }
 
+/**
+ * What a press actually sends — B1659.
+ *
+ * `HelperAsk.tsx` seeds its `values` state from every field, fixed ones
+ * included (`Object.fromEntries(fields.map((f) => [f.name, f.value]))`), and
+ * posts `{ ...proposal.arguments, ...values }`. `proposal.arguments` alone
+ * (what these tests used to post) drops `buy_room`'s minted `id`, so a test
+ * built on it would never exercise the idempotency guard at all.
+ */
+function sentFor(proposal: { arguments: Record<string, string>; fields: { name: string; value: string }[] }) {
+  return {
+    ...proposal.arguments,
+    ...Object.fromEntries(proposal.fields.map((f) => [f.name, f.value])),
+  };
+}
+
 async function pressRows(tool: string) {
   const { db } = await getDatabase();
   return db
@@ -182,7 +198,7 @@ describe("buy_room", () => {
       new Request("https://t.test/api/helper/alex/storage", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(proposal.arguments),
+        body: JSON.stringify(sentFor(proposal)),
       }),
       params,
     );
@@ -191,6 +207,60 @@ describe("buy_room", () => {
     expect(await pressRows("buy_room")).toEqual([
       expect.objectContaining({ ok: 0, error: "no_credits" }),
     ]);
+  });
+
+  /**
+   * B1659 — the double-charge this ticket is about.
+   *
+   * Same proposal, same minted id, pressed twice — exactly what a network
+   * retry or a double-tap sends, since the card's fields (and so its `id`)
+   * do not change between the two presses. Without the guard this would
+   * insert two `credit_ledger` rows and decrement the balance twice; with it,
+   * the second press is a no-op that still answers `ok: true` and says
+   * nothing was charged again.
+   */
+  test("a doubled press charges once, not twice", async () => {
+    const { grant } = await import("@/lib/credits");
+    await grant("alex", 100);
+
+    const ran = await runTool("alex", "buy_room", {}, say, "2026-05-06");
+    const proposal = ran.proposal!;
+    const body = sentFor(proposal);
+
+    const first = await postStorage(
+      new Request("https://t.test/api/helper/alex/storage", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      params,
+    );
+    expect((await first.json()).ok).toBe(true);
+
+    const second = await postStorage(
+      new Request("https://t.test/api/helper/alex/storage", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      params,
+    );
+    const secondBody = (await second.json()) as { ok?: boolean; already?: boolean; message?: string };
+    expect(secondBody.ok).toBe(true);
+    expect(secondBody.already).toBe(true);
+    expect(secondBody.message).toMatch(/already/i);
+
+    const { db } = await getDatabase();
+    const rows = await db
+      .selectFrom("credit_ledger")
+      .selectAll()
+      .where("owner_id", "=", "alex")
+      .where("reason", "=", "storage")
+      .execute();
+    expect(rows).toHaveLength(1);
+
+    const { balanceOf } = await import("@/lib/credits");
+    expect(await balanceOf("alex")).toBe(50); // 100 granted, 50 spent once
   });
 });
 

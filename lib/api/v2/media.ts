@@ -318,12 +318,18 @@ export async function storeMediaV2(
   // beside the bytes. Parsing and applying a bank export or a GPS history is
   // step 4's job, not this door's — see MEDIA_KINDS's own doc comment.
   const shelf = intent.kind === "photo" ? "media" : "files";
-  const stored = storeInboxFile(username, shelf, upload.filename, upload.bytes, {
-    caption: intent.caption,
-    ...(intent.trip ? { trip: intent.trip } : {}),
-    ...(intent.kind !== "photo" ? { importKind: intent.kind } : {}),
-    ...(intent.format ? { importFormat: intent.format } : {}),
-  });
+  // B661's ceiling applies here too — this is the same flat inbox `files/`
+  // that `receiveInboxUpload` and the helper's own door already gate.
+  const guard = await withStorageQuota(username, upload.bytes.byteLength, () =>
+    storeInboxFile(username, shelf, upload.filename, upload.bytes, {
+      caption: intent.caption,
+      ...(intent.trip ? { trip: intent.trip } : {}),
+      ...(intent.kind !== "photo" ? { importKind: intent.kind } : {}),
+      ...(intent.format ? { importFormat: intent.format } : {}),
+    }),
+  );
+  if (!guard.ok) return { ok: false, error: "storage_full", problem: guard.problem };
+  const stored = guard.value;
   const src = `inbox:${stored.entry.id}`;
   return {
     ok: true,

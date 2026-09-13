@@ -3,7 +3,7 @@ import { attachOriginal, storeUploads } from "@/lib/api/media";
 import { loadUserConfig } from "@/lib/config";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { kindForExtension, storeInboxFile } from "@/lib/inbox";
-import { storageFor } from "@/lib/storageQuota";
+import { storageFor, withStorageQuota } from "@/lib/storageQuota";
 import { getTrip, tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
@@ -160,7 +160,16 @@ export async function POST(
     );
   }
   if (kind === "files") {
-    const stored = storeInboxFile(user, "files", file.name, bytes, {});
+    // B661's ceiling, from this door too — the room's own upload button used
+    // to write straight past it. Checked and written under the same
+    // per-username lock every other upload door uses (B1556).
+    const guard = await withStorageQuota(user, bytes.byteLength, () =>
+      storeInboxFile(user, "files", file.name, bytes, {}),
+    );
+    if (!guard.ok) {
+      return Response.json({ error: "storage_full", message: guard.problem }, { status: 400 });
+    }
+    const stored = guard.value;
     return Response.json(
       { ok: true, inbox: stored.entry.id, existed: stored.existed },
       { status: 201 },
