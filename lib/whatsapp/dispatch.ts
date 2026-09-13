@@ -14,6 +14,7 @@ import { recordTurn } from "../helper/sessions";
 import { MAX_AUDIO_BYTES, MAX_SPEECH_SECONDS, speechLanguageFor } from "../helper/speech";
 import { forget, history, lastTouched, proposed, remember, sessionId } from "../helper/thread";
 import { spendAndTranscribe } from "../helper/transcribeSpend";
+import { fingerprintOf, idempotencyKey, recall, remember as rememberOnce } from "../idempotency";
 import { kindForExtension, moveInboxFileToDay, storeInboxFile } from "../inbox";
 import { writeDayReadiness } from "../dayReadiness";
 import { translateIn } from "../locales";
@@ -408,7 +409,7 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
     console.log(`[whatsapp:inbound] ${maskNumber(message.from)} (${username}) — ${message.kind} (${message.id}), no model turn for this kind yet`);
     return;
   }
-  await answerOnWhatsapp(username, locale, message.from, said);
+  await answerOnWhatsapp(username, locale, message.from, said, message.id);
 }
 
 /**
@@ -422,11 +423,16 @@ export async function handleInboundMessage(message: InboundMessage): Promise<voi
  * rather than copied — B1060's own "Gap found" addendum is why that sharing
  * is the point of this function and not an incidental tidiness.
  *
- * **Idempotency is already settled before this runs.** Meta retries a
+ * **The outer wamid dedupe is not enough on its own — B1663.** Meta retries a
  * webhook for up to seven days, and `app/api/webhooks/whatsapp/route.ts`
- * dedupes on the wamid *before* `handleInboundMessage` is ever called — so a
- * retried voice note never reaches this function a second time, and never
- * reaches Deepgram or the ledger twice for one recording.
+ * dedupes on the wamid before `handleInboundMessage` is ever called, but it
+ * only remembers a wamid once that whole call returns without throwing. A
+ * voice note that transcribes successfully and then fails further down —
+ * `answerOnWhatsapp` itself throwing, say — leaves the outer key unremembered,
+ * so a genuine retry reaches this function again with the same recording.
+ * `messageId` guards the transcription call itself: a repeat reuses the first
+ * transcript rather than paying Deepgram and the ledger a second time for
+ * one recording, and skips resending the echo the first attempt already sent.
  *
  * The transcript is echoed back **before** it becomes a `said` fed to the
  * model — B1060's own instruction: a misheard place name that becomes a day
@@ -477,24 +483,43 @@ async function handleVoiceNote(
   }
 
   const mediaType = (audio.mimeType || message.mimeType).split(";")[0].toLowerCase();
-  // WhatsApp's webhook carries no duration, so nothing is claimed up front —
-  // `spendAndTranscribe` prices that as its one-hundredth-credit floor and
-  // reconciles to Deepgram's own measured seconds afterwards, exactly as a
-  // web recording with the microphone's own estimate does when it under-
-  // reports.
-  const outcome = await spendAndTranscribe(username, audio.data, mediaType, language, 0);
-  if (!outcome.ok) {
-    if (outcome.error === "no_credits") {
-      const balance = (await balanceOf(username)) ?? 0;
-      await sendServiceReply(message.from, balanceRefusal(locale, username, outcome.cost, balance), username);
-    } else {
-      console.error(`[whatsapp:inbound] transcription failed for ${username}`);
-    }
+
+  const idemKey = idempotencyKey(username, "whatsapp.transcription", message.id);
+  const idemFingerprint = fingerprintOf({ bytes: audio.data.byteLength, mediaType, language });
+  const recalled = await recall<{ text: string }>(idemKey, idemFingerprint);
+
+  let transcript: string;
+  if (recalled.kind === "conflict") {
+    console.error(`[whatsapp:inbound] idempotency conflict for voice note ${message.id}`);
     return;
+  } else if (recalled.kind === "replay") {
+    // Deepgram and the ledger already answered for this exact recording —
+    // B1663. Not re-echoed either: the first attempt already sent it.
+    transcript = recalled.value.text;
+  } else {
+    // WhatsApp's webhook carries no duration, so nothing is claimed up front —
+    // `spendAndTranscribe` prices that as its one-hundredth-credit floor and
+    // reconciles to Deepgram's own measured seconds afterwards, exactly as a
+    // web recording with the microphone's own estimate does when it under-
+    // reports.
+    const outcome = await spendAndTranscribe(username, audio.data, mediaType, language, 0);
+    if (!outcome.ok) {
+      if (outcome.error === "no_credits") {
+        const balance = (await balanceOf(username)) ?? 0;
+        await sendServiceReply(message.from, balanceRefusal(locale, username, outcome.cost, balance), username);
+      } else {
+        console.error(`[whatsapp:inbound] transcription failed for ${username}`);
+      }
+      return;
+    }
+    transcript = outcome.text;
+    // Only the success is remembered — a retry of a rejected call (no
+    // credits, a failed call) must be free to run again.
+    await rememberOnce(idemKey, idemFingerprint, { text: transcript });
+    await sendServiceReply(message.from, translateIn(locale, "wa.transcriptEcho", { text: transcript }), username);
   }
 
-  await sendServiceReply(message.from, translateIn(locale, "wa.transcriptEcho", { text: outcome.text }), username);
-  await answerOnWhatsapp(username, locale, message.from, outcome.text);
+  await answerOnWhatsapp(username, locale, message.from, transcript, message.id);
 }
 
 /**
@@ -673,12 +698,37 @@ async function handleContactCard(
  * proposal that channel will not press keeps its pre-B1230 shape — text and
  * a link into `/agent` — because a button that could not do anything is
  * worse than no button.
+ *
+ * **`messageId` guards the whole turn** — B1663. The webhook route dedupes on
+ * this same wamid before `handleInboundMessage` is ever called, but it only
+ * remembers a wamid as handled *after* that call returns without throwing
+ * (`app/api/webhooks/whatsapp/route.ts`). A turn that spends the credit,
+ * calls the model and then fails for an unrelated reason further down (a
+ * `sendOutboundReply` that throws, say) leaves that outer wamid unremembered,
+ * so Meta's own retry reaches this function a second time. Charging twice for
+ * one turn is the ticket; sending the reply a second time is the worse of the
+ * two, so a repeat is a silent no-op rather than a re-run — the person on the
+ * other end already has their answer.
  */
-async function answerOnWhatsapp(username: string, locale: string, to: string, said: string): Promise<void> {
+async function answerOnWhatsapp(
+  username: string,
+  locale: string,
+  to: string,
+  said: string,
+  messageId: string,
+): Promise<void> {
   // The same capability the web room's own routes gate on — an instance
   // running with no model at all must not try to run one here either.
   if (!isEnabled("helper", username)) {
     console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) — helper is not enabled here`);
+    return;
+  }
+
+  const idemKey = idempotencyKey(username, "whatsapp.ask_thread", messageId);
+  const idemFingerprint = fingerprintOf({ said });
+  const recalled = await recall<{ done: true }>(idemKey, idemFingerprint);
+  if (recalled.kind !== "fresh") {
+    console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) — turn ${messageId} already handled, skipping`);
     return;
   }
 
@@ -708,8 +758,11 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
 
   // The credit, before the model — B1091, the same gate `answerInThread`'s
   // other two callers (`/ask` and `/search`) use, and the same reason: a
-  // turn nothing can pay for must never reach a provider.
-  const ledgerRef = `${username}/whatsapp-ask/${Date.now()}`;
+  // turn nothing can pay for must never reach a provider. Keyed on the
+  // message rather than the clock — B1663 — so the row an operator
+  // reconciles against names the turn it paid for instead of the instant it
+  // happened to run.
+  const ledgerRef = `${username}/whatsapp-ask/${messageId}`;
   if (!(await spend(username, HELPER_TURN_CREDITS, "ask_thread", ledgerRef))) {
     const balance = (await balanceOf(username)) ?? 0;
     const url = `${serverSite().url}/${username}/account`;
@@ -836,6 +889,10 @@ async function answerOnWhatsapp(username: string, locale: string, to: string, sa
   });
 
   for (const message of messages) await sendOutboundReply(to, message, username);
+  // Only after every message actually went out — B1663. A failure between
+  // here and the spend above must leave this key unset, so the retry that
+  // follows still gets to try sending.
+  await rememberOnce(idemKey, idemFingerprint, { done: true });
 }
 
 /**

@@ -199,6 +199,42 @@ describe("a voice note once consented", () => {
     expect(await balanceOf("voicetest")).toBeLessThan(10);
   });
 
+  /**
+   * B1663 — the same wamid-redelivery gap `whatsapp-model-turn.test.ts`
+   * covers for a text turn, one function up. `handleVoiceNote` is called
+   * directly here with the same message twice, standing in for a Meta retry
+   * that reaches `handleInboundMessage` again after the first attempt
+   * transcribed successfully and then failed for some unrelated reason
+   * further down (`answerOnWhatsapp` itself, say) before the outer wamid was
+   * ever remembered.
+   */
+  test("the same wamid handled twice transcribes once and spends once", async () => {
+    await bindGreetAcknowledge("voicetest2", "41760055555");
+    await grant("voicetest2", 10, "test");
+    const { recordHelperConsent, currentHelperProvider } = await import("@/lib/helper/consent");
+    recordHelperConsent("voicetest2", currentHelperProvider("speech"), "speech");
+
+    transcribeAudio.mockResolvedValueOnce({ text: "We reached the summit at noon.", seconds: 42 });
+
+    const inbound = audioMessage("41760055555", "wamid.voice-5");
+    await handleInboundMessage(inbound);
+    // Same message, same wamid — a retry, not a second recording. Nothing is
+    // queued in `transcribeAudio` for a second call, so a second real
+    // transcription attempt would throw and fail this test outright.
+    await handleInboundMessage(inbound);
+
+    expect(downloadMedia).toHaveBeenCalledTimes(2); // downloaded again; only the spend is guarded
+    expect(transcribeAudio).toHaveBeenCalledTimes(1);
+
+    const echoes = repliesTo("voicetest2").filter((f) =>
+      String(f.body).includes("We reached the summit at noon."),
+    );
+    expect(echoes).toHaveLength(1);
+
+    const { balanceOf } = await import("@/lib/credits");
+    expect(await balanceOf("voicetest2")).toBeGreaterThan(10 - 1);
+  });
+
   test("a balance that cannot cover it is refused plainly, with the account link", async () => {
     await bindGreetAcknowledge("voicetest", "41760044444");
     const { recordHelperConsent, currentHelperProvider } = await import("@/lib/helper/consent");

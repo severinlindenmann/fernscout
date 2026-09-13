@@ -4,6 +4,7 @@ import { HELPER_TURN_CREDITS, noCreditsAnswer } from "@/lib/helper/creditGate";
 import { sayIn } from "@/lib/helper/intents";
 import { findInJournal } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
 import { requestLocale } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { searchCatalogueFor } from "@/lib/search";
@@ -85,6 +86,19 @@ export async function POST(
   const rows = await searchCatalogueFor(user, request);
   if (rows.length === 0) return Response.json({ hits: [] });
 
+  // Request-level dedup — B1663. `findInJournal` is a real model turn, so a
+  // repeat under the same key gets the first answer back rather than a second
+  // charge for asking the same question twice. Optional, the same way every
+  // other door on `lib/idempotency` is.
+  const suppliedKey = typeof body.idempotency_key === "string" ? body.idempotency_key.trim() : "";
+  const idemKey = suppliedKey === "" ? null : idempotencyKey(user, "helper.search", suppliedKey);
+  const idemFingerprint = fingerprintOf({ said, spoken });
+  const recalled = await recall<Record<string, unknown>>(idemKey, idemFingerprint);
+  if (recalled.kind === "replay") return Response.json(recalled.value);
+  if (recalled.kind === "conflict") {
+    return Response.json({ error: "idempotency_conflict" }, { status: 409 });
+  }
+
   const locale = await requestLocale();
   const say = sayIn(locale);
   const ledgerRef = `${user}/search/${Date.now()}`;
@@ -113,7 +127,7 @@ export async function POST(
   }
   const byId = new Map(rows.map((row) => [row.id, row]));
 
-  return Response.json({
+  const answer = {
     // What the model thinks they actually said, where a name in the catalogue
     // is what makes the correction work — B1006. Offered, never applied: a
     // search box that quietly answers a different question is worse than one
@@ -133,5 +147,9 @@ export async function POST(
         url: row.url,
         why: hit.why,
       })),
-  });
+  };
+  // Only a genuine success is remembered — a retry of a rejected call must be
+  // free to run again.
+  await remember(idemKey, idemFingerprint, answer);
+  return Response.json(answer);
 }
