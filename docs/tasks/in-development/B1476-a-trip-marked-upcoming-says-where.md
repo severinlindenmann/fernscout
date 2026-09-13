@@ -74,3 +74,19 @@ Still valid on current `main`: `MapPageContent` derives the heading from
 day location is announced in the past tense. The page metadata already uses the
 date-aware rule, while `WorldMap` independently derives its aria-label from
 `places.length`, leaving the visible and accessible names inconsistent.
+
+## Implemented
+
+Map tense now depends only on a completed trip with at least one written day;
+planned locations no longer force past tense. The same decision is passed to
+`WorldMap` for its aria-label, keeping visible and accessible copy aligned. A
+regression test covers a future trip with a located day and preserves the
+finished-trip and empty-trip cases.
+
+## Verification
+
+- Map/page/world-map tests — 48 passed.
+- `npm run build` — pass (existing 28 Turbopack filesystem warnings remain).
+- `npx tsc --noEmit` — pass.
+- ESLint — pass with no errors.
+- `npm run unused` — pass (existing configuration hints only).
