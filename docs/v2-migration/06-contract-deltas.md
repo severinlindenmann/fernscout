@@ -317,6 +317,50 @@ write path, not a special case for this field.
 
 ---
 
+## B1624 — print, inbox, statements, journals (phase 2 step 4)
+
+New schemas under `lib/api/v2/schemas/`, exported from `index.ts`:
+
+- `postcard.ts` — `postcardOrderWrite`/`postcardOrderDoc`/`postcardSource`.
+  Backs `PUT/GET /api/v2/{user}/postcards/orders/{id}`. No `declined` map
+  (print.md §2.1's own reasoning: every field is genuinely required or a
+  plain optional with a sensible default, rule 2's carve-out).
+- `statement.ts` — `statementRead`/`costsApplyRequest`. Backs
+  `GET /api/v2/{user}/statements/{src}` and
+  `POST /api/v2/{user}/trips/{trip}/costs/apply`. `statementRead` drops v1's
+  `format`/`detected`/`skipped` fields — content.md §3's field table names
+  only `src, trip?, dateRange, merchants, payments, rates`, and this is a
+  read report, not an echo of a write.
+- `inbox.ts` — `inboxList`. Backs `GET /api/v2/{user}/inbox`.
+- `journalCreate.ts` — `journalCreate`. Backs `POST /api/v2/journals`. Its
+  own file rather than a variant of `journalWrite` (./journal.ts): `owner` is
+  two flat fields here, not `journalWrite`'s nested object, and every field
+  is checked in `superRefine` with v1-parity prose rather than zod's built-in
+  `enum`/`length` messages — B263/B277/B839's finding was that a generic
+  refusal here costs a real person a redone conversation, and the wording is
+  carried over rather than dropped for being verbose.
+
+**Drift from print.md's recommended figure, deliberately:** `reserved_username`
+answers `403`, not v1's `400` — content.md §10 asked for 403 ("includes a
+tombstoned name") and this build follows the newer document over v1's actual
+behaviour. Every test that asserted the old `400` was updated with a comment
+pointing here.
+
+**Cut, not carried forward:** `GET .../statements/{src}` takes no `from`/`to`
+query — content.md §3's field table names none, and the whole statement is
+always returned; the trip's own date window is no longer a server-side filter
+on this read (an agent sends only the rows it means to apply, and a date with
+no day is reported back as `orphaned` rather than silently narrowed earlier).
+
+**Reused, not duplicated:** `POST /api/v2/journals`'s success response still
+carries `localesNote` (B855) from `SECOND_LANGUAGE_COMMITMENT` in
+`lib/api/agentCopy.ts` — added to `LIB_API_ALLOWLIST` in
+`test/api-v2-imports.test.ts` as a plain, dependency-free string constant
+with no request/response shaping of its own, the same reasoning already
+covers `lib/api/errorCodes.ts`.
+
+---
+
 ## Not a contract change, recorded because it looks like one
 
 - `lib/api/errorCodes.ts` became `as const satisfies Record<string, string>`

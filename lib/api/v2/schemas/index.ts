@@ -14,6 +14,14 @@ export type { PurchaseCreate, PurchaseDoc, LedgerRowDoc } from "./money";
 export { errorEnvelope, incompleteDetails, declineReason } from "./shared";
 export { geocodeRequest, geocodeResponse, geocodeCandidate } from "./geocode";
 export type { GeocodeRequest } from "./geocode";
+export { journalCreate } from "./journalCreate";
+export type { JournalCreate } from "./journalCreate";
+export { postcardOrderWrite, postcardOrderDoc, postcardSource } from "./postcard";
+export type { PostcardOrderWrite, PostcardOrderDoc } from "./postcard";
+export { statementRead, costsApplyRequest } from "./statement";
+export type { StatementRead, CostsApplyRequest } from "./statement";
+export { inboxList } from "./inbox";
+export type { InboxList } from "./inbox";
 export {
   CREDENTIAL_FOR,
   CREDENTIAL_TO_SESSION_KIND,

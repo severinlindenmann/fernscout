@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, expect, test } from "vitest";
-import { POST } from "@/app/api/v1/journals/route";
+import { POST } from "@/app/api/v2/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -62,7 +62,7 @@ async function signupToken(email: string): Promise<string> {
 function create(token: string, body: Record<string, unknown>) {
   caller += 1;
   return POST(
-    new Request("https://example.test/api/v1/journals", {
+    new Request("https://example.test/api/v2/journals", {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
@@ -172,7 +172,10 @@ test("every refusal leaves no journal behind, and the token is still spendable",
     "no defaultLocale": 400,
     "no title": 400,
     "no ownerName": 400,
-    "a reserved name": 400,
+    // 403, not 400, in v2 (content.md §10, B1624): a reserved name is a
+    // conflict with something this server already is or was, the same
+    // authority shape as a taken name — not a malformed request.
+    "a reserved name": 403,
     "a name that is not a name": 400,
   });
 

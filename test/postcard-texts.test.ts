@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { createDraft } from "@/lib/api/entries";
-import { GET as textsRoute } from "@/app/api/v1/[user]/postcards/texts/route";
+import { GET as textsRoute } from "@/app/api/v2/[user]/postcards/texts/route";
 
 // No browser here: every caller below arrives as an agent bearer token, which
 // is the other door `isOwner` opens. Without this the cookie jar throws for
@@ -52,7 +52,7 @@ async function ownerToken(): Promise<string> {
 
 async function texts(token: string | null, trip = "asien") {
   const response = await textsRoute(
-    new Request(`https://t.test/api/v1/viki/postcards/texts?trip=${trip}`, {
+    new Request(`https://t.test/api/v2/viki/postcards/texts?trip=${trip}`, {
       headers: token ? { authorization: `Bearer ${token}` } : {},
     }),
     { params: Promise.resolve({ user: "viki" }) },
@@ -157,7 +157,9 @@ describe("GET .../postcards/texts", () => {
 
   test("nobody who is not the owner is answered", async () => {
     createDraft(REF, DAY);
-    expect((await texts(null)).status).toBe(403);
+    // 401, not 403: v2 is bearer-only, and no token at all is `missing_token`
+    // rather than a credential that fails ownership.
+    expect((await texts(null)).status).toBe(401);
   });
 
   test("a trip that is not there is 404, and so is no trip at all", async () => {

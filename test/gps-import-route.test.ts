@@ -98,13 +98,22 @@ async function deriveTrack(token: string, trip = TRIP) {
   return { status: response.status, body: await response.json() };
 }
 
+/** Staging is the v2 media door now (B1624) — `kind: "gps_history"` always
+ * lands in the flat inbox regardless of `trip`, so it is declined here the
+ * same way an agent importing a whole archive (no one trip) would. */
 async function stageInInbox(token: string, name: string, text: string) {
-  const { POST } = await import("@/app/api/v1/[user]/inbox/route");
+  const { POST } = await import("@/app/api/v2/[user]/media/route");
   const form = new FormData();
-  form.append("files", new File([text], name, { type: "application/json" }));
-  form.append("meta", JSON.stringify({}));
+  form.append("file", new File([text], name, { type: "application/json" }));
+  form.append(
+    "intent",
+    JSON.stringify({
+      kind: "gps_history",
+      declined: { trip: "whole-archive import", format: "let the server detect it" },
+    }),
+  );
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/inbox`, {
+    new Request(`https://example.test/api/v2/${OWNER}/media`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}` }),
       body: form,
@@ -113,7 +122,7 @@ async function stageInInbox(token: string, name: string, text: string) {
   );
   const body = await response.json();
   if (response.status !== 201) throw new Error(`inbox refused: ${JSON.stringify(body)}`);
-  return body.items[0].id as string;
+  return (body.src as string).replace(/^inbox:/, "");
 }
 
 function storedFixes(): number {

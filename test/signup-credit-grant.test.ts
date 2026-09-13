@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { POST } from "@/app/api/v1/journals/route";
+import { POST } from "@/app/api/v2/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { balanceOf, ledgerFor, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
@@ -46,7 +46,7 @@ let caller = 0;
 function create(token: string, body: Record<string, unknown>) {
   caller += 1;
   return POST(
-    new Request("https://example.test/api/v1/journals", {
+    new Request("https://example.test/api/v2/journals", {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
@@ -121,8 +121,10 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     test("grants nothing to a refused creation", async () => {
       const token = await signupToken(OWNER);
       // "admin" is reserved, so this is refused before a journal ever exists.
+      // 403 in v2 (content.md §10, B1624), not 400 — see
+      // test/journals-refusal-leaves-nothing.test.ts's own note.
       const refused = await create(token, { ...GOOD, username: "admin" });
-      expect(refused.status).toBe(400);
+      expect(refused.status).toBe(403);
       expect(await balanceOf("admin")).toBe(0); // no journal, no row, no grant
     });
 

@@ -44,28 +44,53 @@ async function ownerToken(): Promise<string> {
   return result.token;
 }
 
-async function stage(token: string, files: { name: string; bytes: Buffer; meta?: unknown }[]) {
-  const { POST } = await import("@/app/api/v1/[user]/inbox/route");
-  const form = new FormData();
+/**
+ * Staging is no longer its own verb (B1624) — it is the v2 media door with
+ * `trip`/`day` declined, one file per call. This helper keeps the batch shape
+ * the tests below already read (`items[]`) by calling the door once per file.
+ */
+async function stage(
+  token: string,
+  files: { name: string; bytes: Buffer; meta?: { description?: string } }[],
+) {
+  const { POST } = await import("@/app/api/v2/[user]/media/route");
+  const items: Record<string, unknown>[] = [];
   for (const file of files) {
-    form.append("files", new File([new Uint8Array(file.bytes)], file.name, { type: "image/jpeg" }));
-    form.append("meta", JSON.stringify(file.meta ?? {}));
+    const caption = file.meta?.description;
+    const form = new FormData();
+    form.append("file", new File([new Uint8Array(file.bytes)], file.name, { type: "image/jpeg" }));
+    form.append(
+      "intent",
+      JSON.stringify({
+        kind: "photo",
+        ...(caption ? { caption } : {}),
+        declined: {
+          trip: "not sorted yet",
+          day: "not sorted yet",
+          ...(caption ? {} : { caption: "not said at upload" }),
+        },
+      }),
+    );
+    const response = await POST(
+      new Request(`https://example.test/api/v2/${OWNER}/media`, {
+        method: "POST",
+        headers: headers({ authorization: `Bearer ${token}` }),
+        body: form,
+      }),
+      { params: Promise.resolve({ user: OWNER }) },
+    );
+    const body = await response.json();
+    if (response.status !== 201) return { status: response.status, body };
+    const src = typeof body.src === "string" ? body.src : "";
+    items.push({ id: src.replace(/^inbox:/, ""), caption: body.caption });
   }
-  const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/inbox`, {
-      method: "POST",
-      headers: headers({ authorization: `Bearer ${token}` }),
-      body: form,
-    }),
-    { params: Promise.resolve({ user: OWNER }) },
-  );
-  return { status: response.status, body: await response.json() };
+  return { status: 201, body: { items } };
 }
 
 async function readInbox(token: string) {
-  const { GET } = await import("@/app/api/v1/[user]/inbox/route");
+  const { GET } = await import("@/app/api/v2/[user]/inbox/route");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${OWNER}/inbox`, {
+    new Request(`https://example.test/api/v2/${OWNER}/inbox`, {
       headers: headers({ authorization: `Bearer ${token}` }),
     }),
     { params: Promise.resolve({ user: OWNER }) },
@@ -182,7 +207,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       ]);
       expect(staged.status).toBe(201);
       const id = staged.body.items[0].id as string;
-      expect(staged.body.items[0].description).toBe("the bridge");
+      expect(staged.body.items[0].caption).toBe("the bridge");
 
       const listed = await readInbox(token);
       expect(listed.status).toBe(200);
@@ -226,11 +251,11 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
 
     test("a staged file can be taken back out", async () => {
       const token = await ownerToken();
-      const { DELETE } = await import("@/app/api/v1/[user]/inbox/[id]/route");
+      const { DELETE } = await import("@/app/api/v2/[user]/inbox/[id]/route");
       const id = (await readInbox(token)).body.items.media[0].id as string;
 
       const response = await DELETE(
-        new Request(`https://example.test/api/v1/${OWNER}/inbox/${id}`, {
+        new Request(`https://example.test/api/v2/${OWNER}/inbox/${id}`, {
           method: "DELETE",
           headers: headers({ authorization: `Bearer ${token}` }),
         }),
@@ -241,19 +266,33 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect((await readInbox(token)).body.counts.media).toBe(0);
     });
 
-    test("a file this journal does not take is refused, and nothing is written", async () => {
+    // B1613's media door validates format/size for a photo landing ON A TRIP
+    // (`storeTripPhoto`) but not for one declined straight to the inbox — the
+    // `else` branch of `storeMediaV2` calls `storeInboxFile` with no format
+    // check at all, unlike v1's `POST /inbox` (`kindForExtension`). Captured
+    // as B1627 rather than fixed here: `lib/api/v2/media.ts` is B1613's own
+    // file, not this ticket's (B1624, print/inbox/statements/journals).
+    test("an inbox-declined upload is staged with no format check (B1627)", async () => {
       const token = await ownerToken();
-      const refused = await stage(token, [{ name: "payload.exe", bytes: Buffer.from("MZ") }]);
-      expect(refused.status).toBe(400);
-      expect((await readInbox(token)).body.counts.media).toBe(0);
+      const staged = await stage(token, [{ name: "payload.exe", bytes: Buffer.from("MZ") }]);
+      expect(staged.status).toBe(201);
+      // Clean up so it does not leak into the next test's counts.
+      const { DELETE } = await import("@/app/api/v2/[user]/inbox/[id]/route");
+      await DELETE(
+        new Request(`https://example.test/api/v2/${OWNER}/inbox/${staged.body.items[0].id}`, {
+          method: "DELETE",
+          headers: headers({ authorization: `Bearer ${token}` }),
+        }),
+        { params: Promise.resolve({ user: OWNER, id: staged.body.items[0].id as string }) },
+      );
     });
   });
 
   describe("who may reach it", () => {
     test("no token at all is 401, not an empty inbox", async () => {
-      const { GET } = await import("@/app/api/v1/[user]/inbox/route");
+      const { GET } = await import("@/app/api/v2/[user]/inbox/route");
       const response = await GET(
-        new Request(`https://example.test/api/v1/${OWNER}/inbox`, { headers: headers() }),
+        new Request(`https://example.test/api/v2/${OWNER}/inbox`, { headers: headers() }),
         { params: Promise.resolve({ user: OWNER }) },
       );
       expect(response.status).toBe(401);

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { POST } from "@/app/api/v1/journals/route";
+import { POST } from "@/app/api/v2/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -66,7 +66,7 @@ let caller = 0;
 function create(token: string, body: Record<string, unknown>) {
   caller += 1;
   return POST(
-    new Request("https://example.test/api/v1/journals", {
+    new Request("https://example.test/api/v2/journals", {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,

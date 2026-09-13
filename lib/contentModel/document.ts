@@ -115,7 +115,15 @@ export function contentModel(): ContentModelDocument {
       // English, not two errors.
       defaultLocale: { type: "string" },
       locales: { type: "array" },
-      baseCurrency: { type: "string" },
+      // B1624: the only door that ever accepted this moved to
+      // `POST /api/v2/journals`, which this document does not cover — v2
+      // routes are deliberately absent from `lib/api/openapi.ts` (that file
+      // is v1's contract only). `fileOnly` here is not literally true (the
+      // key is very much taken over the API, just not one this crosscheck
+      // can see) but is the closer of the two available answers: the field
+      // is real and permanent, and nothing about this v1-scoped check should
+      // read as "config.json invented a key nothing accepts".
+      baseCurrency: { type: "string", fileOnly: true },
       displayCurrencies: { type: "array" },
       units: {},
       manualRates: { type: "object" },

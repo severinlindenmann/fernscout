@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { POST } from "@/app/api/v1/journals/route";
+import { POST } from "@/app/api/v2/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { balanceOf } from "@/lib/credits";
 import { clearUserCache, getUser } from "@/lib/users";
@@ -53,7 +53,7 @@ async function signupToken(): Promise<string> {
 
 function create(ip: string, token: string, username: string) {
   return POST(
-    new Request("https://example.test/api/v1/journals", {
+    new Request("https://example.test/api/v2/journals", {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,

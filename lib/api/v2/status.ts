@@ -17,6 +17,7 @@ import { resolveCapabilities } from "../../capabilities";
 import { FEATURE_NAMES, type FeatureName } from "../../config";
 import { balanceOf } from "../../credits";
 import { POSTCARD_CREDITS } from "../../credits/pricing";
+import { COSTS_FORMATS } from "@/importers/costs";
 import { importFormats } from "../../gps/api";
 import { listInbox } from "../../inbox";
 import { getTrips } from "../../trips";
@@ -43,7 +44,14 @@ export function buildInstanceStatus(): InstanceStatus {
   for (const name of FEATURE_NAMES) capabilities[name] = resolved[name].enabled;
 
   const formats = importFormats();
-  const bankExport = formats.find((f) => f.kind === "costs")?.formats.map((f) => f.id) ?? [];
+  // Read from the costs importers directly, not from `importFormats()`.
+  // B1624 took the `costs` kind out of that registry — a bank statement no
+  // longer arrives through `/import`, it goes to the media door and is read
+  // back at `/statements/{src}` — but the formats themselves did not go
+  // anywhere, and a caller still has to know which ones this server reads
+  // before sending one. A limit belongs where a caller can read it before
+  // they hit it (AGENTS.md).
+  const bankExport = [...COSTS_FORMATS];
   const gpsHistory = formats.find((f) => f.kind === "gps")?.formats.map((f) => f.id) ?? [];
 
   return {

@@ -171,4 +171,14 @@ export const ERROR_CODES = {
 
   // ── v2 only ─────────────────────────────────────────────────────────────
   incomplete: "The document is missing an answer to something this journal keeps track of. `details.missing` lists every open section at once — each with why it is asked, a schema excerpt of what to send, and how to decline it instead. Ask the person; never invent a value to get past this.",
+  unknown_recipient: "One or more of `recipients` is not a contact id this journal may post to — not an approved contact who asked for a real postcard and left an address. `details.unknown` names which. Nothing was written. GET .../postcards/recipients for the ones that are.",
+  unknown_photo: "That photo is not a file in the named trip's media, and not a photograph staged in this journal's inbox. Give a `src` a trip's own media already carries, or an id GET .../inbox answered with.",
+  unknown_statement: "No media item of that `src`, or it is not a `bank_export` — send the `src` a `POST .../media` upload with `intent.kind: \"bank_export\"` answered with.",
+  unreadable_statement: "The bytes at that `src` could not be read as a bank statement by any known importer. `problems` says what came out and why it does not hold up.",
+  invalid_username: "A username is 2–31 characters of lowercase letters, digits and dashes, starting with a letter or digit. It becomes the address of the journal.",
+  username_taken: "That username already belongs to a journal on this server. Pick another.",
+  reserved_username: "That username would shadow a route this server serves, or the operator has reserved it. Pick another.",
+  deleted_username: "A journal used to live at that name and was deleted; its name is not coming back on this server. Pick another.",
+  invalid_owner: "The owner's name or the name this journal calls them by is missing or empty. Both are asked, and neither is guessed from the other.",
+  tel_taken: "That phone number already proves a different journal. One number, one journal.",
 } as const satisfies Record<string, string>;
