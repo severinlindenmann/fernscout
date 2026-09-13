@@ -60,7 +60,7 @@ Do not edit them by hand; run the script.
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 
-### issue (62)
+### issue (63)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -108,6 +108,7 @@ Do not edit them by hand; run the script.
 | [B1614](backlog/issue/B1614-the-contract-test-s-scan-window.md) | The contract test's scan window could not see cookie-only doors, so a live error code read as dead | ISSUE | medium | low |
 | [B1619](backlog/issue/B1619-v2-s-day-translations-field-has.md) | v2's day translations field has no journal-locale check at all, unlike v1's | ISSUE | medium | medium |
 | [B1620](backlog/issue/B1620-three-v2-surfaces-drop-information-v1.md) | Three v2 surfaces drop information v1 exposed: day-list test inheritance, status drafts' test flag, and mail send error detail | ISSUE | medium | low |
+| [B1627](backlog/issue/B1627-the-v2-media-door-validates-format.md) | The v2 media door validates format for a trip photo but not one declined to the inbox | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
@@ -172,12 +173,11 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (12)
+### chore (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
-| [B1624](backlog/chore/B1624-v2-long-tail-print-and-inbox.md) | v2 long tail: print and inbox — postcards, photobooks, statements, inbox, journals | CHORE | high | high |
 | [B1630](backlog/chore/B1630-fifty-test-files-hand-write-the.md) | Fifty test files hand-write the storage format; there is no shared content fixture | CHORE | high | high |
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
@@ -353,7 +353,7 @@ _Nothing here._
 | [B1445](in-development/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (34)
+## testing (35)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -380,6 +380,7 @@ _Nothing here._
 | [B1621](testing/B1621-v2-creates-stopped-telling-an-agent.md) | v2 creates stopped telling an agent what comes next — B311's chain was broken by the migration | ISSUE | high | low | — |
 | [B1622](testing/B1622-v2-long-tail-money-purchases-ledger.md) | v2 long tail: money — purchases, ledger, storage | CHORE | high | high | — |
 | [B1623](testing/B1623-v2-long-tail-social-invites-contacts.md) | v2 long tail: social — invites, contacts, channels | CHORE | high | high | — |
+| [B1624](testing/B1624-v2-long-tail-print-and-inbox.md) | v2 long tail: print and inbox — postcards, photobooks, statements, inbox, journals | CHORE | high | high | — |
 | [B1625](testing/B1625-a-trip-or-day-accepts-translations.md) | A trip or day accepts translations in a locale the journal does not declare — the schema says the route refuses it and no route does | ISSUE | high | low | — |
 | [B1628](testing/B1628-day-translations-accept-a-duplicated-written.md) | Day translations accept a duplicated written language and a partial locale set | ISSUE | high | medium | — |
 | [B1629](testing/B1629-b560-s-zero-spend-day-reads.md) | B560's zero-spend day reads as unrecorded, overstating the costs average | ISSUE | high | low | — |
