@@ -355,7 +355,7 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (9)
+## in-development (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -366,10 +366,9 @@ _Nothing here._
 | [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
 | [B1582](in-development/B1582-health-and-contentmodel-never-create-their.md) | health and contentModel never create their cache directory, so a missing one reads as an unreachable server | ISSUE | medium | low | `615a7d13` |
-| [B1665](in-development/B1665-agent-work-consumes-avoidable-context-and.md) | Agent work consumes avoidable context and verification time without measured quality feedback | CHORE | medium | high | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (74)
+## testing (75)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -437,6 +436,7 @@ _Nothing here._
 | [B1657](testing/B1657-day-media-s-files-branch-upload.md) | day/media's files-branch upload bypasses the storage quota | ISSUE | medium | low | — |
 | [B1660](testing/B1660-create-trip-edit-trip-never-ask.md) | create_trip/edit_trip never ask v2's TRIP_DECLINABLES (rates, costs, plan, translations, accent, figures, tagline, intro) | FEATURE | medium | high | — |
 | [B1663](testing/B1663-five-credit-spending-paths-mint-a.md) | Five credit-spending paths mint a fresh ref per call, so a retry charges again | ISSUE | medium | medium | — |
+| [B1665](testing/B1665-agent-work-consumes-avoidable-context-and.md) | Agent work consumes avoidable context and verification time without measured quality feedback | CHORE | medium | high | — |
 | [B1666](testing/B1666-finish-decision-5-journal-level-features.md) | Finish decision 5: journal-level features and manualRates are still read by live code | CHORE | medium | high | — |
 | [B1669](testing/B1669-photo-visibility-and-reminder-channel-enums.md) | Photo visibility and reminder-channel enums are hand-typed in multiple v2 schema files instead of imported | CHORE | medium | low | — |
 | [B1684](testing/B1684-the-demo-journal-s-lisbon-trip.md) | The demo journal's Lisbon trip names photographs that do not exist, and nothing checks that a media src resolves | ISSUE | medium | low | — |
