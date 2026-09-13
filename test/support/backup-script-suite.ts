@@ -1,13 +1,13 @@
-import { beforeAll, afterAll, describe, expect, test } from "vitest";
+import { beforeAll, afterAll, describe, expect, test as vitestTest } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 import Database from "better-sqlite3";
-import { POSTGRES_HOWTO, freshDatabase, postgresConfigured } from "./support/dialects";
+import { POSTGRES_HOWTO, freshDatabase, postgresConfigured } from "./dialects";
 import { TABLE_NAMES, parseDatabaseUrl } from "@/lib/db";
-import { announceSkip } from "./support/announce";
+import { announceSkip } from "./announce";
 
 /**
  * `scripts/backup.sh`, exercised end to end against a **local filesystem
@@ -114,7 +114,7 @@ const TIMEOUT_SHIM = [
   "#!/bin/sh",
   "# A minimal timeout(1) for the test suite: timeout <seconds> <cmd> [args...]",
   "# Exits 124 when the bound expires, and passes the command's own status",
-  "# through when it does not. See test/backup-script.test.ts.",
+  "# through when it does not. See test/support/backup-script-suite.ts.",
   'secs="$1"; shift',
   'marker="${TMPDIR:-/tmp}/fernscout-timeout-shim.$$"',
   'rm -f "$marker"',
@@ -134,7 +134,10 @@ const TIMEOUT_SHIM = [
   "",
 ].join("\n");
 
-if (!RESTIC) {
+export type BackupScriptGroup = "content" | "database" | "repository" | "monitoring" | "recovery";
+
+function announcePrerequisites(group: BackupScriptGroup): void {
+if (!RESTIC && group === "content") {
   // Not a failure — but not a pass either: the whole file is skipped, loudly,
   // rather than asserting nothing.
   announceSkip(
@@ -143,11 +146,11 @@ if (!RESTIC) {
       "       back. Install it and run again:\n" +
       "  brew install restic          # macOS\n" +
       "  sudo apt install -y restic   # Debian/Ubuntu\n" +
-      "  npx vitest run test/backup-script.test.ts",
+      "  npx vitest run 'test/backup-script-*.test.ts'",
   );
 }
 
-if (RESTIC && !(postgresConfigured() && PG_DUMP && PG_RESTORE)) {
+if (group === "database" && RESTIC && !(postgresConfigured() && PG_DUMP && PG_RESTORE)) {
   // The one test in this file that talks to a real database. Name whichever of
   // its three preconditions is actually missing — "skipped" on its own sent
   // people looking for a Postgres they already had running (B181).
@@ -170,6 +173,7 @@ if (RESTIC && !(postgresConfigured() && PG_DUMP && PG_RESTORE)) {
       "  brew install libpq && brew link --force libpq   # macOS\n" +
       "  sudo apt install -y postgresql-client-17        # Debian/Ubuntu",
   );
+}
 }
 
 type Run = { status: number; stdout: string; stderr: string };
@@ -205,7 +209,39 @@ const isGeneratedOutput = (rel: string) => {
   return parts.length >= 2 && (parts[1] === "postcards" || parts[1] === "photobooks" || parts[1] === "mail");
 };
 
-describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
+/**
+ * The 37 cases in source order, divided where their fixture state is truly
+ * isolated. Each wrapper registers every title but runs only its group, so
+ * Vitest schedules five independent restic repositories in parallel without
+ * making tests inside one shared repository concurrent. B1665.
+ */
+const TEST_GROUPS: BackupScriptGroup[] = [
+  "content", "content", "content", "content", "content",
+  "database", "database", "database",
+  "repository", "repository", "repository", "repository", "repository", "repository", "repository",
+  "monitoring", "monitoring", "monitoring", "monitoring", "monitoring", "monitoring", "monitoring",
+  "monitoring", "monitoring", "monitoring", "monitoring",
+  "recovery", "recovery", "recovery", "recovery",
+  "database",
+  "content",
+  "recovery", "recovery", "recovery", "recovery", "recovery",
+];
+
+export function registerBackupScriptTests(group: BackupScriptGroup): void {
+  announcePrerequisites(group);
+  let testIndex = 0;
+  const nextTest = (condition = true) => {
+    const selected = TEST_GROUPS[testIndex];
+    testIndex += 1;
+    if (selected !== group) {
+      return (...args: unknown[]) => {
+        void args;
+      };
+    }
+    return vitestTest.runIf(condition);
+  };
+
+  describe.runIf(RESTIC)(`scripts/backup.sh — ${group}`, { shuffle: false }, () => {
   let scratch: string;
   let dataDir: string;
   let contentDir: string;
@@ -498,7 +534,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     if (scratch) fs.rmSync(scratch, { recursive: true, force: true });
   });
 
-  test(
+  nextTest()(
     "backs up exactly the allowlist — content/, config/config.json, state/*.json, db/fernscout.db, env/fernscout.env",
     () => {
       const run = runBackup();
@@ -581,7 +617,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "without sqlite3 on PATH, the database falls back to a plain copy that carries its -wal/-shm sidecars, and says plainly this is crash-consistent only",
     () => {
       // A dedicated DATA_DIR: the shared fixture's fernscout.db is a real
@@ -613,7 +649,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "generated postcards/ and photobooks/ nested under content/ never reach the snapshot",
     () => {
       const run = runBackup();
@@ -629,7 +665,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "B662: legacy plaintext mail under content/.mail/ and content/<user>/mail/ never reaches the snapshot",
     () => {
       const run = runBackup();
@@ -657,7 +693,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "everything under DATA_DIR that is not claimed by the allowlist is named as skipped",
     () => {
       const run = runBackup();
@@ -676,7 +712,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "no DATABASE_URL is not a failure — the prototype tier has no database",
     () => {
       const run = runBackup();
@@ -686,7 +722,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "a pg_dump that fails aborts, and pushes no snapshot at all",
     () => {
       // "no new snapshot" proves nothing against an empty repository, so make
@@ -708,7 +744,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "a pg_dump that succeeds lands in the snapshot as db/postgres.dump",
     () => {
       const run = runBackup({
@@ -727,7 +763,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
   // chmod is advisory to root, so the unwritable-repository case would pass
   // vacuously there — the same reason migrate-owner.test.ts skips its
   // permission case.
-  test.skipIf(IS_ROOT)(
+  nextTest(!IS_ROOT)(
     "an unwritable restic repository exits non-zero, so systemd records a failure",
     () => {
       const locked = path.join(scratch, "locked");
@@ -752,7 +788,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
 
   // --- B63: "not initialised yet" is not the same as "cannot see it" --------
 
-  test(
+  nextTest()(
     "a RESTIC_REPOSITORY that does not exist is refused, not quietly created",
     () => {
       // The whole of B63. A typo used to make a brand new empty repository,
@@ -774,7 +810,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "the first run still works, by the route the runbook documents",
     () => {
       // The convenience is not gone, it is opt-in: one run with the flag, or
@@ -796,9 +832,12 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "a healthy repository with a history draws no low-count warning",
     () => {
+      // This group has its own repository. Seed one successful night here
+      // instead of relying on an earlier test file to have made a snapshot.
+      expect(runBackup().status).toBe(0);
       const run = runBackup();
       expect(run.status).toBe(0);
       expect(run.stdout).toContain("repository is there and readable");
@@ -809,7 +848,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test.skipIf(IS_ROOT)(
+  nextTest(!IS_ROOT)(
     "a repository that cannot be read is never mistaken for one that is not there",
     () => {
       // The shape the restore drill actually hit on the live server: the repo
@@ -836,7 +875,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "a wrong password is not mistaken for an absent repository either",
     () => {
       // Same class as the permission case, different cause: something is
@@ -853,7 +892,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "an older restic, which returns 1 for everything, is classified by its message",
     () => {
       try {
@@ -890,7 +929,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
 
   // --- B64: a failed backup has to reach somebody ---------------------------
 
-  test(
+  nextTest()(
     "a run that finishes stamps DATA_DIR with the time /api/health reports",
     () => {
       fs.rmSync(successStamp(), { force: true });
@@ -911,7 +950,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "a run that fails leaves the last-success stamp alone",
     () => {
       // Otherwise the endpoint would report a backup that never happened,
@@ -930,7 +969,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "the repository is announced before it is reached, so a stall is legible",
     () => {
       // B64: with an unreachable repository restic retries with exponential
@@ -980,7 +1019,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     expect(run.stdout).not.toContain("creating a NEW, EMPTY repository");
   }
 
-  test(
+  nextTest()(
     "an unreachable repository gives up within BACKUP_PROBE_TIMEOUT, not the unit timeout",
     () => {
       // B180. This ran nowhere it was written: `timeout` is coreutils, the
@@ -993,7 +1032,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     120_000,
   );
 
-  test.skipIf(!HAS_TIMEOUT)(
+  nextTest(HAS_TIMEOUT)(
     "…and the same holds with the real timeout(1), where coreutils is installed",
     () => {
       // The shim's keeper. Where the real binary exists it must reach the
@@ -1003,7 +1042,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     120_000,
   );
 
-  test(
+  nextTest()(
     "the shim exits 124 only on expiry, so the bounded case is not asserting a constant",
     () => {
       // If TIMEOUT_SHIM returned 124 for everything, the test above would pass
@@ -1023,7 +1062,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     120_000,
   );
 
-  test(
+  nextTest()(
     "with no timeout binary the probe still runs, and says it is unbounded",
     () => {
       // The macOS case. Making the script Linux-only would have been the other
@@ -1054,7 +1093,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test(
+  nextTest()(
     "scripts/alert.sh records the failure even where nothing else works",
     () => {
       // No systemctl, no journalctl, no app to mail from: a developer laptop,
@@ -1079,7 +1118,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     120_000,
   );
 
-  test(
+  nextTest()(
     "scripts/alert.sh writes no backup stamp for a unit that is not the backup",
     () => {
       fs.rmSync(failureStamp(), { force: true });
@@ -1103,7 +1142,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     120_000,
   );
 
-  test(
+  nextTest()(
     "scripts/alert.sh calls it a success only when systemd says so, and stamps nothing",
     () => {
       // B458: the same handler serves OnFailure= and OnSuccess=, and the
@@ -1150,7 +1189,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     120_000,
   );
 
-  test(
+  nextTest()(
     "the success mail is handed no journal tail, and the failure mail is",
     () => {
       // B464 split the two bodies; B475 moved the status half out of this
@@ -1213,7 +1252,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
 
   // chmod is advisory to root: as root every file reads, so the case cannot be
   // set up at all. Same guard, same reason, as the unwritable-repository test.
-  test.skipIf(IS_ROOT)(
+  nextTest(!IS_ROOT)(
     "one unreadable file under content/ is named and skipped, not allowed to abort the run",
     () => {
       // A clean run first, so there is a success stamp for the partial run to
@@ -1266,7 +1305,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test.skipIf(IS_ROOT)(
+  nextTest(!IS_ROOT)(
     "an unreadable file beside config.json does NOT make the run partial (B651)",
     () => {
       // The exact shape of B651: two root-owned `config.json.bak` files
@@ -1295,7 +1334,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test.skipIf(IS_ROOT)(
+  nextTest(!IS_ROOT)(
     "an unreadable directory under content/ is named too, rather than staged as an empty one",
     () => {
       // The case a tree comparison alone cannot see: `cp` creates the
@@ -1329,7 +1368,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     180_000,
   );
 
-  test.skipIf(IS_ROOT)(
+  nextTest(!IS_ROOT)(
     "fixing the permissions makes the next run a clean success again",
     () => {
       // The state is not sticky: nothing is remembered between runs, so the
@@ -1368,7 +1407,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
   // second half real: `pg_restore -l` names a TABLE DATA entry whether or not
   // any rows are in it.
   const realPg = postgresConfigured() && PG_DUMP && PG_RESTORE;
-  test.runIf(realPg)(
+  nextTest(realPg)(
     "the dump taken from a real Postgres holds the schema and the rows",
     async () => {
       const url = process.env.POSTGRES_TEST_URL ?? "";
@@ -1435,7 +1474,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
   // second copy (B444); the allowlist has only ever one place content/ can
   // land, so there is nothing left to double up against and no skip to log.
 
-  test(
+  nextTest()(
     "content/ nested inside DATA_DIR lands at content/, not data/content, and is not logged as skipped",
     () => {
       const nestedData = fs.mkdtempSync(path.join(scratch, "nested-"));
@@ -1467,7 +1506,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
 
   // --- B450: the missing-path list is only as sorted as its consumer --------
 
-  test.skipIf(IS_ROOT)(
+  nextTest(!IS_ROOT)(
     "the missing-path list is right under a UTF-8 locale, not only under C",
     () => {
       // `list_tree` and `unreadable_paths` sort under LC_ALL=C; `comm` used to
@@ -1513,7 +1552,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
   // status, its `.backup-last-success` stamp, or the run's own stdout claim
   // of "done".
 
-  test(
+  nextTest()(
     "no RESTIC_REPOSITORY_SECONDARY: unchanged from before it existed, no secondary stamp",
     () => {
       const run = runBackup();
@@ -1524,7 +1563,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     60_000,
   );
 
-  test(
+  nextTest()(
     "RESTIC_REPOSITORY_SECONDARY configured: the snapshot lands there too, and restic check passes",
     () => {
       const secondaryRepo = path.join(scratch, "restic-repo-secondary");
@@ -1551,7 +1590,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     120_000,
   );
 
-  test(
+  nextTest()(
     "a secondary repository with the wrong password does not fail the run, and no stamp is written",
     () => {
       const secondaryRepo = path.join(scratch, "restic-repo-secondary-wrong-password");
@@ -1580,7 +1619,7 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
   // count are deleted — because none of them is checkable by reading the
   // script and each fails silently in a different way.
 
-  test(
+  nextTest()(
     "RESTIC_REPOSITORY_SECONDARY ending in /<date>: tonight gets its own repository, older nights are deleted, RESTORE.txt names what is left",
     () => {
       const base = path.join(scratch, "restic-offsite-dated");
@@ -1639,4 +1678,9 @@ describe.runIf(RESTIC)("scripts/backup.sh", { shuffle: false }, () => {
     },
     180_000,
   );
-});
+
+    if (testIndex !== TEST_GROUPS.length) {
+      throw new Error(`Backup suite registered ${testIndex} tests, expected ${TEST_GROUPS.length}.`);
+    }
+  });
+}

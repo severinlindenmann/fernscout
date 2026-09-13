@@ -189,6 +189,15 @@ five provider-status checks. The focused file fell from 80.8 seconds in the
 baseline to 1.0 second while all 11 tests still pass. Next is the backup-script
 critical path.
 
+The 37 backup cases are now registered from one shared suite through five
+isolated concern files. Their fixtures no longer share a restic repository;
+the split exposed and removed one hidden order dependency in the "repository
+with history" case. The five-file run preserved 35 passes and two existing
+environment skips and took 92.24 seconds versus the 170.65-second baseline
+(46% faster). A six-way trial took 131.85 seconds from storage contention and
+was rejected. The committed configuration stays at five; the ticket's required
+five-run median still has to be measured before final acceptance.
+
 ## Acceptance
 
 - A committed baseline report and command reproduce measurements across at

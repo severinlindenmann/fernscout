@@ -8,7 +8,7 @@ import { spawnSync } from "node:child_process";
  * `npm run alert` — the mail half of B64.
  *
  * `scripts/alert.sh` is started by `OnFailure=` on the backup unit and has two
- * channels: a stamp file (covered in `backup-script.test.ts`, because it must
+ * channels: a stamp file (covered in the `backup-script-*.test.ts` suite, because it must
  * work with nothing installed) and this, which is the only one that reaches a
  * person who is not already looking at the box.
  *
