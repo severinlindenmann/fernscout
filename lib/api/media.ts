@@ -845,6 +845,32 @@ export function deleteMediaFiles(ref: string, item: GalleryItem): void {
  * the only caller and is what moves the entry file and rewrites its gallery
  * `src`/`poster` fields to match — call that, not this, to rename a day.
  */
+/**
+ * Whether a slug's media or originals folder already holds files — B1539.
+ *
+ * `renameDayMedia` below already refuses to rename a day onto a slug whose
+ * folder is non-empty; `createDraft` picking a brand-new slug never asked the
+ * same question, which is the gap this closes. A day can be deleted while its
+ * photographs stay on disk (`deleteEntry`'s own doc comment: "the photographs
+ * stay either way" — an entry can be rewritten, and a deleted original cannot
+ * be recovered), so the slug that day held is free again while its folder is
+ * not. A later day that happens to land on the same slug — the common case is
+ * the same date, since an untitled day's placeholder slug is derived from its
+ * date — would otherwise have its own photographs numbered in after a stranger's
+ * leftovers, and its uploads silently deduplicated against them.
+ */
+export function slugHasOrphanedMedia(ref: string, slug: string): boolean {
+  for (const dir of [tripMediaDir(ref), tripOriginalsDir(ref)]) {
+    const folder = path.join(dir, slug);
+    try {
+      if (fs.readdirSync(folder).some((name) => !name.startsWith("."))) return true;
+    } catch {
+      // No folder — nothing orphaned.
+    }
+  }
+  return false;
+}
+
 export function renameDayMedia(
   ref: string,
   oldSlug: string,

@@ -501,7 +501,8 @@ function checkBody(input: EntryInput, problems: Problem[], required = true): voi
   }
 }
 
-/** The title is required by `validateDraft`; only its length is checked here. */
+/** `validateDraft` refuses a present-but-empty title (absence is "no title
+ * yet" — B1442); only the length is checked here. */
 function checkTitle(input: EntryInput, problems: Problem[]): void {
   if (typeof input.title === "string" && input.title.length > TITLE_MAX_LENGTH) {
     problems.push({

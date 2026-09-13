@@ -178,7 +178,7 @@ export default function HelperRoom({
    *  the follow-up chip after a words write may offer a lookup at all. */
   weather?: boolean;
 }) {
-  const { t, tn } = useI18n();
+  const { t, tn, formatLongDate } = useI18n();
 
   const [selected, setSelected] = useState<string[]>([]);
   /**
@@ -862,7 +862,9 @@ export default function HelperRoom({
         <div className="mb-2 flex items-center gap-2 border-b border-line-faint pb-2">
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-ink-strong">
-              {preview.day.lead.title || preview.day.lead.date}
+              {/* No title yet (B1442) reads as the date, formatted — never the
+                  ISO string a title would never actually be. */}
+              {preview.day.lead.title || formatLongDate(preview.day.lead.date)}
             </p>
             <p className="text-xs text-ink-muted">{preview.day.lead.date}</p>
           </div>
@@ -1989,8 +1991,11 @@ function HistoryPanel({
                       className="flex w-full items-center gap-3 rounded-xl border border-line-quiet bg-surface-raised px-3 py-2 text-left transition-colors hover:bg-surface-neutral"
                     >
                       <span className="min-w-0 flex-1">
+                        {/* No title yet (B1442) reads as the date, formatted
+                            the way a person reads it rather than as the ISO
+                            string a title would never actually be. */}
                         <span className="block truncate text-sm font-medium text-ink-strong">
-                          {day.title || day.date}
+                          {day.title || formatLongDate(day.date)}
                         </span>
                         <span className="block text-xs text-ink-muted">{day.date}</span>
                       </span>
