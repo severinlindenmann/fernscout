@@ -480,7 +480,7 @@ describe("the invariant: no route in this area can raise a balance", () => {
     // mirrors test/credits.test.ts's GRANT_ALLOWED rather than duplicating
     // its reasoning.
     const approve = fs.readFileSync(
-      path.join(process.cwd(), "app/api/web/[user]/purchases/[id]/approve/[token]/route.ts"),
+      path.join(process.cwd(), "app/api/web/[user]/purchases/[id]/approve/route.ts"),
       "utf8",
     );
     expect(approve).toMatch(/import\s*\{[^}]*\bgrant\b[^}]*\}\s*from\s*["'][^"']*credits["']/);

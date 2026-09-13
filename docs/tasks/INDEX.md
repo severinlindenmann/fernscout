@@ -49,9 +49,9 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (240)
+## backlog (242)
 
-### security (4)
+### security (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -59,8 +59,9 @@ Do not edit them by hand; run the script.
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
+| [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (64)
+### issue (65)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,6 +80,7 @@ Do not edit them by hand; run the script.
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
 | [B1631](backlog/issue/B1631-a-section-that-already-has-a.md) | A section that already has a value can never be declined — T6 has no symmetric rule | ISSUE | high | medium |
 | [B1633](backlog/issue/B1633-the-drafts-list-reports-a-slug.md) | The drafts list reports a slug the v2 day route cannot address | ISSUE | high | low |
+| [B1634](backlog/issue/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
