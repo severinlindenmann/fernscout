@@ -39,6 +39,15 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
   const stored = currentDoc(user);
   if (!stored) return fail("no_such_journal", ERROR_CODES.no_such_journal, undefined, 404);
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
+  // Owner-only, like PATCH and DELETE below — B1652. `ownsUser` answers only
+  // "which journal is this token for", and a **trip-scoped** token answers
+  // yes: it is a token for this journal, held by somebody on one trip's
+  // `people:` list. Without the second check that token could read the whole
+  // journal document, `owner.email` included. Being on the bus is not the
+  // same as holding the journal's own details, which is the line
+  // `mayActAsOwner` exists to draw. A trip-scoped agent that needs to know
+  // about the journal has `GET /api/v2/{user}/status`.
+  if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 
   return ok(stored, { etag: etagFor(stored) });
 }
