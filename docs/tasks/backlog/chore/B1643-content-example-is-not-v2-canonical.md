@@ -53,6 +53,24 @@ Not doing: replaying through the live HTTP API. The routes are still being
 built; the converter writes canonical files through the same serializer the
 routes use, and phase 3's live replay can re-run against the result.
 
+## State (2026-09-13)
+
+**Done, on branch `b1643-example`, not merged.** The conversion, the
+enrichment and `test/example-content.test.ts` (28 tests) are green in
+isolation; `test/api-v2-schemas.test.ts` (36) still passes beside them.
+B1645 was found by the first run and fixed here (delta D11).
+
+**Blocked on B1598.** With this content on `main`, 11 tests in 6 files fail
+— every one because the v1 readers still filter `.md`
+(`lib/entries.ts:263`). Four of those files land with B1598 itself
+(`currency`, `generator-output`, `story-jump-label`, `depersonalised`).
+
+**One open decision, the owner's:** the two remaining files are the v1 demo
+seeder (`scripts/build-demo-content.mjs`, `npm run demo:build`), which
+writes markdown a v2 instance cannot read. Retire it — the example is
+committed, so a fresh clone already has the demo, and B556 already made the
+script refuse to touch an existing journal — or port it to v2 JSON.
+
 ## Acceptance
 
 - `content/example` contains no `.md` under `trips/`; every file parses with
