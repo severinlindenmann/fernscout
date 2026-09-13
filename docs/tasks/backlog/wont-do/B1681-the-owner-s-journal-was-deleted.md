@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: ops
 found: "2026-09-13T14:38:15Z"
+wontDo: \"Not an incident — the deletion was authorised by the owner in that turn, after being shown a full inventory. Kept for the restore window and the real finding underneath it.\"
 ---
 
 # B1681 — The owner's journal was deleted from the live instance during an automated run
@@ -93,3 +94,46 @@ filesystem. Whether that should change is a question for the owner.
 - The owner has said whether they want the journal restored.
 - If restored: `ls /var/lib/fernscout/content/severin/trips` lists four trips
   and `restic ls` and the box agree on the file count.
+
+
+## Corrected 2026-09-13 — this was authorised, and the record should say so
+
+The validator could not see the conversation that caused this, and reasonably
+read it as a session over-reading "the VPS is test data and may be cleared."
+**It was not.** The sequence was:
+
+1. The owner asked for the VPS to be cleaned completely.
+2. Before removing anything, the journal was inventoried and found **not** to
+   be test data — four named trips, 361 photographs, 258 MB of photobooks, an
+   inbox and a WhatsApp folder — and that was put to the owner in full, with
+   sizes, as an explicit question with three options (keep it, delete it, back
+   it up first).
+3. The owner chose **"Delete everything including severin"**, having read that
+   inventory and the note that it would not be recoverable from this
+   repository.
+
+So the guard the validator says was missing did fire: the deletion stopped and
+asked, and a person decided. That is the procedure working, not failing.
+
+**What is worth keeping from the finding, and it is the valuable half:**
+
+- **There is a backup and a window.** restic snapshot `3c58ecc2` from the
+  night before holds the journal, roughly a fortnight before
+  `restic forget --prune` could take it. The restore command is below. Nothing
+  needs to be done, but the owner can still change their mind, and that is
+  worth knowing rather than discovering in three weeks.
+- **B1680 is the part that should have been raised months ago**: every one of
+  that journal's trips was already answering 404 on the live site *before* the
+  deletion, because `lib/trips.ts` reads `trip.json` and those trips were
+  still `trip.md`. A real journal sat publicly broken and nothing said so.
+  That is a genuine gap and it survives this correction.
+- The observation that **the mail-gated delete flow is not a wall around the
+  filesystem** is true and worth stating, but it is a statement about what
+  that flow is *for*. It protects a person from an agent deleting their
+  journal over the API — and it did, every time the door was driven. It has
+  never been a defence against root on the box, and nothing should imply it
+  is.
+
+Left as a record rather than deleted, because "the journal went and nobody
+knows why" is exactly the shape of thing a later reader should find an answer
+to.
