@@ -7,6 +7,7 @@ complexity: low
 area: components/InboxFileGroups.tsx
 found: "2026-09-11T07:09:26Z"
 started: "2026-09-13T07:11:20Z"
+merged: "2026-09-13T07:14:43Z"
 ---
 
 # B1417 — Inbox file thumbnails download uncapped photographs for a 96px tile

@@ -7,6 +7,7 @@ complexity: low
 area: components/HelperRoom.tsx
 found: "2026-09-11T07:09:18Z"
 started: "2026-09-13T07:11:19Z"
+merged: "2026-09-13T07:14:42Z"
 ---
 
 # B1416 — The files-rail chip downloads uncapped photographs for a 42px avatar
