@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (246)
+## backlog (248)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (67)
+### issue (69)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -83,6 +83,7 @@ Do not edit them by hand; run the script.
 | [B1636](backlog/issue/B1636-the-conversion-dropped-every-trip-rate.md) | The conversion dropped every trip rate, and three trips cannot be expressed in v2 at all | ISSUE | high | medium |
 | [B1637](backlog/issue/B1637-photo-ingest-still-writes-markdown-so.md) | Photo ingest still writes markdown, so a day it creates is invisible to the readers | ISSUE | high | low |
 | [B1641](backlog/issue/B1641-createtrip-wrote-people-and-every-trip.md) | createTrip wrote people: [] and every trip created without people became unreadable | ISSUE | high | low |
+| [B1645](backlog/issue/B1645-a-day-whose-weather-the-server.md) | A day whose weather the server fetched cannot be read back — dayDoc reuses the write shape's reserved-source refusal | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -115,6 +116,7 @@ Do not edit them by hand; run the script.
 | [B1627](backlog/issue/B1627-the-v2-media-door-validates-format.md) | The v2 media door validates format for a trip photo but not one declined to the inbox | ISSUE | medium | low |
 | [B1639](backlog/issue/B1639-a-trip-patch-silently-drops-any.md) | A trip PATCH silently drops any key the model does not carry, where v1 surfaced them as unknownFields | ISSUE | medium | low |
 | [B1642](backlog/issue/B1642-known-trip-fields-and-the-journals.md) | KNOWN_TRIP_FIELDS and the journals field-coverage test still speak v1's vocabulary | ISSUE | medium | medium |
+| [B1644](backlog/issue/B1644-trip-reminder-has-no-v2-wire.md) | Trip reminder has no v2 wire home — the on/off switch writes a dead trip.md | ISSUE | medium | medium |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
