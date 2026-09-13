@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (235)
+## backlog (239)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (58)
+### issue (61)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -79,6 +79,7 @@ Do not edit them by hand; run the script.
 | [B1601](backlog/issue/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low |
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
 | [B1634](backlog/issue/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low |
+| [B1647](backlog/issue/B1647-costs-apply-on-a-trip-cannot.md) | costs/apply on a trip cannot find days written through the day-write endpoint | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -123,8 +124,10 @@ Do not edit them by hand; run the script.
 | [B1532](backlog/issue/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
+| [B1648](backlog/issue/B1648-openapi-json-day-write-schema-omits.md) | openapi.json day write schema omits status from required though the server demands it | ISSUE | low | low |
+| [B1649](backlog/issue/B1649-trip-put-s-missing-buddies-message.md) | trip PUT's missing-buddies message gives no schema and no pointer to the invites endpoint | ISSUE | low | low |
 
-### big-feature (16)
+### big-feature (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -134,6 +137,7 @@ Do not edit them by hand; run the script.
 | [B1593](backlog/big-feature/B1593-a-closed-journal-has-no-way.md) | A closed journal has no way to show a public shopfront of the parts its owner would share | FEATURE | medium | high |
 | [B1595](backlog/big-feature/B1595-inbox-day-assembly-land-phases-4.md) | Inbox day-assembly: land Phases 4-5 (statement store, GPS extraction) | FEATURE | medium | high |
 | [B1646](backlog/big-feature/B1646-the-admin-panel-cannot-show-provider.md) | The admin panel cannot show provider balances, bills, or order attention | FEATURE | medium | high |
+| [B1650](backlog/big-feature/B1650-the-helper-writes-days-incrementally-but.md) | The helper writes days incrementally, but a v2 write demands all 14 declinables at once | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B672](backlog/big-feature/B672-everything-is-served-off-one-vps.md) | Everything is served off one VPS disk by one Node process | FEATURE | medium | high |

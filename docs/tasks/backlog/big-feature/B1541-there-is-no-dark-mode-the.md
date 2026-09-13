@@ -21,50 +21,50 @@ The cost is that the palette is not written for it. `app/globals.css` defines
 one set of hexes on `:root` and the ramps are named for a light ground: the
 navy ramp goes dark-text-on-cream and the contrast split documented in that file
 (navy-900 headings … navy-500 never text) is a statement about cream backgrounds
-only. There are ~1565 hard-coded colour-utility uses across 121 components. So
-this is not a `dark:` sweep — it is a decision about whether the tokens become
-theme-aware.
+only. The current inventory is about 3,475 colour-utility occurrences across
+151 files in `app/` and `components/`. So this is not a `dark:` sweep — the same
+colour token is often used for different jobs that need different dark values.
+
+**Plan:** `docs/plans/2026-09-13-b1541-dark-mode.md`.
 
 ## Work
 
-Not decided yet; the ticket exists to hold the decision. Two shapes, and the
-first is much the smaller diff:
+The decisions are now settled in the plan:
 
-1. **Tokens flip, components don't.** Keep every `text-navy-700` /
-   `bg-cream-50` exactly as written and redefine the hexes under a dark
-   selector — meaning the ramps stop being "navy" and "cream" literally and
-   become semantic (ink, ground). One CSS block, no component edits, but the
-   token names lie in dark and the brand yellow needs its own answer.
-2. **Semantic rename first**, then theme the new tokens. Honest names, 1565
-   call sites to migrate.
-
-Either way:
-
-- Three states, not two: `data-theme="light"`, `data-theme="dark"`, and absent
-  meaning follow `prefers-color-scheme`. Dark must not require a toggle press.
-- `colorScheme` in `app/layout.tsx` becomes `"light dark"`.
-- The brand is not free to invert — `apply-the-brand` decides what the mark,
-  the wordmark and the yellow do on a dark ground.
-- The drawings are the hard part and no test covers them: the travel animation,
-  the traveller figures, the day card, the print layouts. Print never goes
-  dark. `/docs/branding/*` is where each is looked at.
-- Contrast has to be re-audited on the dark ground, to the same AAA-at-11px bar
-  the light palette is held to; `/docs/branding/identity` computes it from the
-  hexes.
-- Where the preference is stored, if a toggle exists at all, and whether it is
-  per-journal or per-reader.
+- Add **Automatic / Light / Dark** as a labelled radio group on `/<user>/me`,
+  visible to every reader of that page, including somebody signed out.
+- Treat appearance as a per-browser reader preference. Store explicit light or
+  dark in `localStorage`; absence means Automatic. Nothing is written to a
+  journal, account, database or API.
+- Apply it to the whole browser-rendered app. Remove the helper room's separate
+  dark toggle so two preferences cannot disagree; keep its text-size setting.
+- Keep the existing named brand hues as primitives and introduce theme-aware
+  semantic screen roles. A wholesale primitive inversion cannot work:
+  `navy-900` is both strong text and a button background, and `white` is both a
+  raised surface and text on dark controls.
+- Set `data-theme="light"` or `data-theme="dark"` for explicit choices; leave
+  it absent for Automatic. A validated pre-paint bootstrap in the root layout
+  prevents a light flash and leaves Automatic to `prefers-color-scheme`.
+- Change `viewport.colorScheme` to `"light dark"` and make browser chrome's
+  theme colour follow the resolved appearance.
+- Extend `/docs/branding/identity` and contrast tests to measure both themes.
+  Yellow remains the waymark, green remains live/ahead and focus remains blue.
+- Audit every drawing and visual bench in both themes. Print and print-faithful
+  previews stay light, and no print renderer changes.
 
 **Not in scope:** a per-journal dark palette an owner chooses, and anything
-about the PDF/print renderers.
+about dark PDF/print output or cross-device preference sync.
 
 ## Acceptance
 
 - With no explicit choice and the OS in dark mode, the landing page, a journal,
   a trip and a day all render dark — including a day written before this branch.
-- A toggle (if built) overrides the OS in both directions, and the choice
-  survives a reload.
+- The `/me` radio group overrides the OS in both directions, survives a reload,
+  and Automatic follows a live OS theme change without a reload.
+- The choice affects landing, journal and helper-room pages in the same browser
+  but changes no journal content or server state.
 - `test/undefined-color-tokens.test.ts` still passes, and every token used in
   dark resolves.
-- The four benches at `/docs/branding` are looked at in both themes, per
-  `check-a-drawing`; print output is unchanged.
+- The identity and visual benches at `/docs/branding` are looked at in both
+  themes; print output and print-faithful previews are unchanged.
 - No flash of the light theme on load.
