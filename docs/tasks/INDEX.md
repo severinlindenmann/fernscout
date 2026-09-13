@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (240)
+## backlog (242)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (64)
+### issue (65)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -80,6 +80,7 @@ Do not edit them by hand; run the script.
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
 | [B1634](backlog/issue/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low |
 | [B1636](backlog/issue/B1636-the-conversion-dropped-every-trip-rate.md) | The conversion dropped every trip rate, and three trips cannot be expressed in v2 at all | ISSUE | high | medium |
+| [B1637](backlog/issue/B1637-photo-ingest-still-writes-markdown-so.md) | Photo ingest still writes markdown, so a day it creates is invisible to the readers | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -175,7 +176,7 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (10)
+### chore (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -183,6 +184,7 @@ Do not edit them by hand; run the script.
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
 | [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
+| [B1638](backlog/chore/B1638-tripreminder-splices-a-trip-md-that.md) | tripReminder splices a trip.md that new trips no longer have | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1413](backlog/chore/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low |
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
