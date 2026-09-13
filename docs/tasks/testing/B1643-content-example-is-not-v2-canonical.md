@@ -6,6 +6,7 @@ priority: high
 complexity: high
 area: content/example
 found: "2026-09-13T06:26:46Z"
+merged: "2026-09-13T08:01:18Z"
 ---
 
 # B1643 — content/example is not v2-canonical and demonstrates only part of the contract

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: API v2
 found: "2026-09-13T06:35:37Z"
+merged: "2026-09-13T08:01:19Z"
 ---
 
 # B1645 — A day whose weather the server fetched cannot be read back — dayDoc reuses the write shape's reserved-source refusal

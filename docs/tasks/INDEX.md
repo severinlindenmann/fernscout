@@ -49,20 +49,19 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (242)
+## backlog (234)
 
-### security (6)
+### security (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | high | low |
-| [B1640](backlog/security/B1640-drafts-leaked-into-the-open-to.md) | Drafts leaked into the open-to-link export because the draft check still looked for .md | SECURITY | high | low |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (63)
+### issue (58)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -80,11 +79,6 @@ Do not edit them by hand; run the script.
 | [B1601](backlog/issue/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low |
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
 | [B1634](backlog/issue/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low |
-| [B1636](backlog/issue/B1636-the-conversion-dropped-every-trip-rate.md) | The conversion dropped every trip rate, and three trips cannot be expressed in v2 at all | ISSUE | high | medium |
-| [B1637](backlog/issue/B1637-photo-ingest-still-writes-markdown-so.md) | Photo ingest still writes markdown, so a day it creates is invisible to the readers | ISSUE | high | low |
-| [B1638](backlog/issue/B1638-tripreminder-splices-a-trip-md-that.md) | tripReminder splices a trip.md that new trips no longer have | ISSUE | high | low |
-| [B1641](backlog/issue/B1641-createtrip-wrote-people-and-every-trip.md) | createTrip wrote people: [] and every trip created without people became unreadable | ISSUE | high | low |
-| [B1645](backlog/issue/B1645-a-day-whose-weather-the-server.md) | A day whose weather the server fetched cannot be read back — dayDoc reuses the write shape's reserved-source refusal | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -130,11 +124,10 @@ Do not edit them by hand; run the script.
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 
-### big-feature (16)
+### big-feature (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1598](backlog/big-feature/B1598-v2-canonical-files-are-unreadable-by.md) | v2-canonical files are unreadable by lib/entries.ts and lib/trips.ts — the render layer has no step in the build order | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
 | [B1541](backlog/big-feature/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
@@ -175,12 +168,11 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (10)
+### chore (9)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
-| [B1643](backlog/chore/B1643-content-example-is-not-v2-canonical.md) | content/example is not v2-canonical and demonstrates only part of the contract | CHORE | high | high |
 | [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
 | [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
@@ -355,7 +347,7 @@ _Nothing here._
 | [B1582](in-development/B1582-health-and-contentmodel-never-create-their.md) | health and contentModel never create their cache directory, so a missing one reads as an unreachable server | ISSUE | medium | low | `615a7d13` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (46)
+## testing (54)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -366,6 +358,7 @@ _Nothing here._
 | [B1590](testing/B1590-next-generated-route-types-reject-helper.md) | Next generated route types reject helper exports from two route modules | ISSUE | high | low | — |
 | [B1596](testing/B1596-v2-plumbing-route-helper-incomplete-422.md) | v2 plumbing: route helper, incomplete-422, dryRun, ETag, request log, import boundary, md serializer | CHORE | high | medium | — |
 | [B1597](testing/B1597-v2-tripdoc-costs-has-no-home.md) | v2 tripDoc.costs has no home for costs.md's preparation cost lines or its prose | ISSUE | high | low | — |
+| [B1598](testing/B1598-v2-canonical-files-are-unreadable-by.md) | v2-canonical files are unreadable by lib/entries.ts and lib/trips.ts — the render layer has no step in the build order | FEATURE | high | high | — |
 | [B1600](testing/B1600-v2-auth-one-codes-door-links.md) | v2 auth: one codes door, links redeem, keys, handover mint moved — and the six v1 code routes deleted | CHORE | high | high | — |
 | [B1604](testing/B1604-a-day-whose-prose-begins-with.md) | A day whose prose begins with three hyphens loses everything up to the next fence | ISSUE | high | low | — |
 | [B1605](testing/B1605-dryrun-fails-in-the-direction-that.md) | dryRun fails in the direction that writes — a mis-cased parameter performs the write it was asked to preview | ISSUE | high | low | — |
@@ -389,6 +382,13 @@ _Nothing here._
 | [B1630](testing/B1630-fifty-test-files-hand-write-the.md) | Fifty test files hand-write the storage format; there is no shared content fixture | CHORE | high | high | — |
 | [B1631](testing/B1631-a-section-that-already-has-a.md) | A section that already has a value can never be declined — T6 has no symmetric rule | ISSUE | high | medium | — |
 | [B1633](testing/B1633-the-drafts-list-reports-a-slug.md) | The drafts list reports a slug the v2 day route cannot address | ISSUE | high | low | — |
+| [B1636](testing/B1636-the-conversion-dropped-every-trip-rate.md) | The conversion dropped every trip rate, and three trips cannot be expressed in v2 at all | ISSUE | high | medium | — |
+| [B1637](testing/B1637-photo-ingest-still-writes-markdown-so.md) | Photo ingest still writes markdown, so a day it creates is invisible to the readers | ISSUE | high | low | — |
+| [B1638](testing/B1638-tripreminder-splices-a-trip-md-that.md) | tripReminder splices a trip.md that new trips no longer have | ISSUE | high | low | — |
+| [B1640](testing/B1640-drafts-leaked-into-the-open-to.md) | Drafts leaked into the open-to-link export because the draft check still looked for .md | SECURITY | high | low | — |
+| [B1641](testing/B1641-createtrip-wrote-people-and-every-trip.md) | createTrip wrote people: [] and every trip created without people became unreadable | ISSUE | high | low | — |
+| [B1643](testing/B1643-content-example-is-not-v2-canonical.md) | content/example is not v2-canonical and demonstrates only part of the contract | CHORE | high | high | — |
+| [B1645](testing/B1645-a-day-whose-weather-the-server.md) | A day whose weather the server fetched cannot be read back — dayDoc reuses the write shape's reserved-source refusal | ISSUE | high | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
 | [B1416](testing/B1416-the-files-rail-chip-downloads-uncapped.md) | The files-rail chip downloads uncapped photographs for a 42px avatar | ISSUE | medium | low | — |
 | [B1417](testing/B1417-inbox-file-thumbnails-download-uncapped-photographs.md) | Inbox file thumbnails download uncapped photographs for a 96px tile | ISSUE | medium | low | — |

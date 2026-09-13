@@ -577,3 +577,73 @@ with this content, every one of them because the v1 readers still filter
 
 **Order:** B1598 merges first, then this branch, then the two seeder tests
 resolve per that decision.
+
+## 2026-09-13 — phase 2 steps 5–6 (part), B1598, and the example replay
+
+**Merged and deployed at `07345e792a2f`. `npm run verify` green (5/5, 7664
+tests). `content/example` is JSON on the live instance; the markdown is gone
+from the server.**
+
+### What landed
+
+- **B1598** — readers, writers and content to JSON, with **B1637** (ingest)
+  as it had to. 148 failures across 38 files to zero.
+- **B1643** — `content/example` v2-canonical, 8 trips, and
+  `test/example-content.test.ts`, which derives what it expects **from the
+  schemas at run time**. That test is the real deliverable: it found B1645
+  within minutes of first running, and it caught D18 the moment the contract
+  grew a field the example did not demonstrate. It is the M3 instrument.
+- **Step 6, both halves** — `/api/v2/openapi.json` generated from the frozen
+  schemas (61 operations, 41 paths, no new dependency, coverage test walks
+  `app/api/v2/` on disk); the nine `/skill/*.md` guides and
+  `documentation.txt` rewritten against v2 with field tables pulled from the
+  generator.
+- **B1636** — resolved without inventing a figure. See the ticket.
+
+### Nine production bugs the flip exposed
+
+Each was live, not merely a failing fixture. In rough order of seriousness:
+
+1. `fillDayWeather` returned `not_asked` for **every** already-recorded
+   reading, because v2 folded `weatherData` into `weather` and the branch
+   order never followed — so an archive lookup could overwrite a reading the
+   author took themselves.
+2. The evening reminder wrote into a `trip.md` nothing reads while the helper
+   answered **"Saved."** (B1638 → **D18**).
+3. `readCostsFile` threw on any trip with a `costs` section and no budget —
+   the state `createTrip` itself writes — taking down the nav, both costs
+   pages, the costs route and the sitemap.
+4. `exportZip` still checked `.md`, so **every draft went into an
+   open-to-link export** (B1640).
+5. `toMediaWireItem` dropped a gallery item's `from`, and the reader never
+   read it back: B527 resumability silently gone.
+6. `attachGallery` lost its malformed-item guard — v1 caught it by accident
+   through YAML corruption, JSON does not. Now explicit.
+7. `figureDocToFigure` skipped the enum filter an inline figure block gets.
+8. `eurManualRates` never wrote the base currency's own entry, so every
+   currency a trip named vanished from `trip.rates` on read.
+9. `readersOf` named the owner back to themselves as another reader.
+
+### Contract deltas
+
+**D17** (the weather read/write split — filed as a duplicate "D11" on its
+branch and renumbered on merge; **third** delta-number collision between
+lanes), **D18** (`trip.reminder`), **D19** (`trip.costs.budget` optional).
+D18 and D19 both carry their cost in the ledger rather than only their
+reason — D19 genuinely weakens the `costs` declinable's promise.
+
+### Still open
+
+- **Step 5** is the remaining build work: 47 helper routes under
+  `app/api/helper/`, plus `app/api/journal` and `app/api/trip`, to be
+  repointed at v2 handlers one area per merge. This is consolidation, not
+  correctness — those routes work; they are a second door onto the same
+  content.
+- **20 v1 routes** survive under `app/api/v1/`. B1632 covers the ones with v2
+  doors already beside them.
+- **Phase 3's live replay** — the *content* is migrated and deployed, but it
+  was replayed through the serializers, not driven through the live HTTP API
+  the way `02-plan.md` specifies. Driving it is what proves the API can
+  write what the files contain.
+- **Phase 4** — AGENTS.md and the README still open by saying the content is
+  markdown.
