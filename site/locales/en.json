@@ -501,7 +501,7 @@
   "landing.hero": "A travel journal your agent writes for you.",
   "landing.heroKicker": "Your own travel journal",
   "landing.hostedIn": "Hosted in Europe",
-  "landing.instruction": "Guide me through creating my own travel journal, following the overview at {docUrl} and the full guide at {agentUrl}. You will need an email address I control.",
+  "landing.instruction": "Guide me through creating my own travel journal, following the overview at {docUrl} and the day-writing guide at {agentUrl}. You will need an email address I control.",
   "landing.lede": "Your journal is markdown and photographs in a folder you own. You read it in a browser. An agent writes it — you hand it a link and an email address.",
   "landing.legal": "Imprint & privacy",
   "landing.madeBy": "Made in {flag} with love by {name}",

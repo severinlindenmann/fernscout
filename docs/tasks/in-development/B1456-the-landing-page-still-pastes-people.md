@@ -70,3 +70,18 @@ Still valid on current `main`: both the landing page and `/agent` page pass
 `/agent.md` as the pasted guide URL, and the English, German, and Hungarian
 landing strings still describe it as the full guide. `/agent.md` now redirects
 to the documentation index, so the copied instruction is stale and misleading.
+
+## Implemented
+
+The landing and `/agent` pages now hand the copy block the direct
+`/skill/add-a-day.md` document. English, German, and Hungarian call it the
+day-writing guide instead of claiming it is a single full guide. Landing tests
+assert the direct skill URL.
+
+## Verification
+
+- `npm run build` — pass (the existing 28 Turbopack filesystem warnings remain).
+- `npx tsc --noEmit` — pass.
+- focused landing/signup tests — 39 passed.
+- ESLint — 0 errors (existing warnings only).
+- `npm run unused` — pass (existing configuration hints only).

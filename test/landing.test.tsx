@@ -115,7 +115,7 @@ function renderLanding(locale = "en", helperEnabled = false, whatsappNumber?: st
       <Landing
         siteName="Fernscout"
         docUrl="https://fernscout.test/documentation.txt"
-        agentUrl="https://fernscout.test/agent.md"
+        agentUrl="https://fernscout.test/skill/add-a-day.md"
         codeMinutes="30"
       journals={journals}
         locales={installedLocales()}
@@ -139,7 +139,7 @@ describe("the landing page", () => {
     const html = renderLanding();
     expect(html).toContain("fernscout.test");
     expect(html).toContain("/documentation.txt");
-    expect(html).toContain("/agent.md");
+    expect(html).toContain("/skill/add-a-day.md");
   });
 
   test("lists every journal with something public, as a link", () => {
@@ -336,7 +336,7 @@ describe("the landing page", () => {
   test("hands over an instruction, not a bare link", () => {
     const instruction = translate(dictionaryFor("en"), "landing.instruction", {
       docUrl: "https://fernscout.test/documentation.txt",
-      agentUrl: "https://fernscout.test/agent.md",
+      agentUrl: "https://fernscout.test/skill/add-a-day.md",
     });
     expect(instruction).toContain("https://fernscout.test/documentation.txt");
     expect(instruction).toMatch(/email address I control/i);
@@ -362,15 +362,15 @@ describe("the landing page", () => {
   test("names both documents in the same instruction", () => {
     const instruction = translate(dictionaryFor("en"), "landing.instruction", {
       docUrl: "https://fernscout.test/documentation.txt",
-      agentUrl: "https://fernscout.test/agent.md",
+      agentUrl: "https://fernscout.test/skill/add-a-day.md",
     });
     expect(instruction).toContain("https://fernscout.test/documentation.txt");
-    expect(instruction).toContain("https://fernscout.test/agent.md");
+    expect(instruction).toContain("https://fernscout.test/skill/add-a-day.md");
     // One sentence, not a bulleted list — no line breaks or bullet markers.
     expect(instruction).not.toMatch(/\n|^[-*]/);
 
     const html = renderLanding();
-    expect(html).toContain("fernscout.test/agent.md");
+    expect(html).toContain("fernscout.test/skill/add-a-day.md");
   });
 });
 
