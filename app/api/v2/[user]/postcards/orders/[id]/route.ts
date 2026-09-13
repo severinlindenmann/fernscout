@@ -6,30 +6,23 @@
 // door anywhere under /api/v2 or /api/v1: that is
 // app/api/web/[user]/postcards/orders/[id]/send/route.ts's job, cookie-only,
 // and nothing here imports the domain send function (lib/postcard/send.ts).
-import { isTestContent } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
-import { loadServerConfig } from "@/lib/config";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { postcardOrderDoc, postcardOrderWrite } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
-import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
-import { findInboxFile } from "@/lib/inbox";
-import { resolveMediaFile } from "@/lib/media";
-import { postcardCandidates } from "@/lib/postcard/contacts";
 import {
   createOrder,
   getOrder,
   isExpired,
   orderCost,
   ORDER_TTL_MS,
-  type NewOrder,
+  resolvePostcardInput,
   type PostcardOrder,
 } from "@/lib/postcard/orders";
 import { serverSite } from "@/lib/site";
-import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
@@ -163,69 +156,27 @@ export async function PUT(
   }
   const write = result.data;
 
-  // Resolve the source — a trip's own photograph, or one staged in the inbox.
-  let tripField: string | null = null;
-  let dayField: string | null = null;
-  let photoField: string;
-  if ("inbox" in write.source) {
-    const staged = findInboxFile(user, write.source.inbox);
-    if (!staged || staged.entry.kind !== "media") {
-      return fail(
-        "unknown_photo",
-        `${ERROR_CODES.unknown_photo} ("${write.source.inbox}" is not staged in this journal's inbox.)`,
-        undefined,
-        404,
-      );
+  // Resolve the source, the recipient list and the provider — the one
+  // shared check `resolvePostcardInput` runs for every caller that proposes
+  // an order (B1650): a trip's own photograph or one staged in the inbox,
+  // recipients that are actually on the approved list, and the configured
+  // provider.
+  const resolved = await resolvePostcardInput(user, write);
+  if (!resolved.ok) {
+    switch (resolved.error) {
+      case "unknown_photo":
+        return fail("unknown_photo", ERROR_CODES.unknown_photo, undefined, 404);
+      case "unknown_trip":
+        return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
+      case "unknown_day":
+        return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
+      case "test_content":
+        return fail("test_content", ERROR_CODES.test_content, undefined, 400);
+      case "unknown_recipient":
+        return fail("unknown_recipient", ERROR_CODES.unknown_recipient, { unknown: resolved.unknown }, 404);
     }
-    photoField = write.source.inbox;
-  } else {
-    const { trip: tripId, day, photo } = write.source;
-    const ref = tripRef(user, tripId);
-    const trip = getTrip(ref);
-    if (!trip) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
-    const entry = getEntryBySlug(ref, day, AS_AUTHOR);
-    if (!entry) return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
-    if (isTestContent(trip, entry)) {
-      return fail("test_content", ERROR_CODES.test_content, undefined, 400);
-    }
-    if (!resolveMediaFile(user, [tripId, ...photo.split("/").filter(Boolean)])) {
-      return fail(
-        "unknown_photo",
-        `${ERROR_CODES.unknown_photo} ("${photo}" is not a file in "${tripId}"'s media.)`,
-        undefined,
-        404,
-      );
-    }
-    tripField = ref;
-    dayField = day;
-    photoField = photo;
   }
-
-  const candidates = await postcardCandidates(user);
-  const allowed = new Set(candidates.map((c) => c.contactId));
-  const wanted = [...new Set(write.recipients)];
-  const unknown = wanted.filter((r) => !allowed.has(r));
-  if (unknown.length > 0) {
-    return fail("unknown_recipient", ERROR_CODES.unknown_recipient, { unknown }, 404);
-  }
-
-  const locale = write.locale ?? getUser(user)?.defaultLocale ?? "en";
-  const configured = loadServerConfig().features.postcards.provider;
-  const provider = typeof configured === "string" ? configured : "dry-run";
-
-  const input: NewOrder = {
-    id,
-    trip: tripField,
-    day: dayField,
-    photo: photoField,
-    message: write.message,
-    from: write.from,
-    recipients: wanted,
-    locale,
-    provider,
-    ...(write.crop ? { crop: write.crop } : {}),
-    ...(write.figures !== undefined ? { figures: write.figures } : {}),
-  };
+  const { input: resolvedInput } = resolved;
 
   if (dryRun) {
     const now = new Date().toISOString();
@@ -233,19 +184,19 @@ export async function PUT(
       id,
       owner: user,
       status: "draft",
-      provider,
+      provider: resolvedInput.provider,
       payload: {
-        trip: tripField,
-        day: dayField,
-        photo: photoField,
-        message: write.message,
-        from: write.from,
-        recipients: wanted,
-        locale,
+        trip: resolvedInput.trip,
+        day: resolvedInput.day,
+        photo: resolvedInput.photo,
+        message: resolvedInput.message,
+        from: resolvedInput.from,
+        recipients: resolvedInput.recipients,
+        locale: resolvedInput.locale,
         creditsEach: 0,
         expiresAt: new Date(Date.now() + ORDER_TTL_MS).toISOString(),
-        ...(write.crop ? { crop: write.crop } : {}),
-        ...(write.figures !== undefined ? { figures: write.figures } : {}),
+        ...(resolvedInput.crop ? { crop: resolvedInput.crop } : {}),
+        ...(resolvedInput.figures !== undefined ? { figures: resolvedInput.figures } : {}),
       },
       createdAt: now,
       updatedAt: now,
@@ -253,7 +204,7 @@ export async function PUT(
     return ok(docFor(user, preview));
   }
 
-  const order = await createOrder(user, input);
+  const order = await createOrder(user, { ...resolvedInput, id });
   if (!order) return fail("no_database", ERROR_CODES.no_database, undefined, 503);
 
   const doc = docFor(user, order);

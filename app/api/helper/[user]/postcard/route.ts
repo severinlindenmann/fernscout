@@ -1,19 +1,12 @@
-import { isTestContent } from "@/lib/access";
 import { isEnabled } from "@/lib/capabilities";
-import { loadServerConfig } from "@/lib/config";
 import { balanceOf, creditsEnabled } from "@/lib/credits";
 import { POSTCARD_CREDITS } from "@/lib/credits/pricing";
-import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
+import { postcardOrderWrite } from "@/lib/api/v2/schemas";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
-import { findInboxFile } from "@/lib/inbox";
-import { resolveMediaFile } from "@/lib/media";
-import { postcardCandidates } from "@/lib/postcard/contacts";
-import { createOrder } from "@/lib/postcard/orders";
+import { createOrder, resolvePostcardInput } from "@/lib/postcard/orders";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
-import { getTrip, tripRef } from "@/lib/trips";
-import { getUser } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -21,25 +14,24 @@ export const dynamic = "force-dynamic";
  * The postcard proposal the conversation confirmed — `propose_postcards` in
  * `lib/helper/tools/areas/printed.ts`.
  *
- * **The same call as `POST /api/v1/<user>/postcards`, made through the
- * browser's own cookie instead of a bearer token** — the same split every
- * other route in this family draws (`app/api/helper/[user]/invite/route.ts`).
- * It validates the same four things that route does — a real trip, a real
- * day, a photograph in the trip's own media, and recipients who are on the
- * approved list `GET .../postcards/recipients` (here, `postcardCandidates`)
- * answers with — and writes through the same `createOrder`. Duplicating the
- * checks rather than importing the route is deliberate: a route file is not a
- * library, and `app/api/helper/[user]/trip/route.ts` makes the identical
- * choice against `POST /api/v1/<user>/trips`.
+ * **Made through the browser's own cookie instead of a bearer token** — the
+ * same split every other route in this family draws
+ * (`app/api/helper/[user]/invite/route.ts`). It validates against
+ * `postcardOrderWrite`, the same schema `PUT /api/v2/<user>/postcards/orders/<id>`
+ * parses, and resolves the source, the recipients and the provider through
+ * `resolvePostcardInput` — the same function that route calls (B1650,
+ * money/storage/print parcel). What used to be duplicated by hand between the
+ * two routes is now one function neither can drift out of sync with; only the
+ * request's own shape (flat fields here, a JSON document there) and the
+ * response's status codes stay route-specific, since this room has answered
+ * with its own codes since before v2 existed and the conversation's `Proposed`
+ * handling reads them.
  *
  * **This writes a pending order and nothing more.** Charging a credit and
  * reaching a printer both happen only when the owner presses the button on
  * `/<user>/postcards/<id>` — AGENTS.md's rule for postcards, unchanged by
  * there being a conversational way to get here.
  */
-
-const MAX_RECIPIENTS = 25;
-const MAX_MESSAGE = 600;
 
 const LIMIT = { max: 10, windowMs: 15 * 60 * 1000 };
 
@@ -78,7 +70,8 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const photo = text(body.photo);
   const message = text(body.message);
   const from = text(body.from);
-  const wanted = [
+  const locale = text(body.locale);
+  const recipients = [
     ...new Set(
       text(body.recipients)
         .split(",")
@@ -89,88 +82,54 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
 
   // B1393 — a day is where a photograph is *found*, not something the
   // printer needs. Neither given means `photo` names a file staged in the
-  // inbox instead of a path in a trip's own media.
-  let ref: string | null = null;
-  if (tripId || slug) {
-    if (!tripId || !slug) {
-      refused(user, "propose_postcards", "unknown_day");
-      return Response.json({ error: "unknown_day" }, { status: 404 });
-    }
-    ref = tripRef(user, tripId);
-    const trip = getTrip(ref);
-    if (!trip) {
-      refused(user, "propose_postcards", "unknown_trip");
-      return Response.json({ error: "unknown_trip" }, { status: 404 });
-    }
-    const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
-    if (!entry) {
-      refused(user, "propose_postcards", "unknown_day");
-      return Response.json({ error: "unknown_day" }, { status: 404 });
-    }
-    if (isTestContent(trip, entry)) {
-      refused(user, "propose_postcards", "test_content");
-      return Response.json({ error: "test_content" }, { status: 400 });
-    }
-    if (!photo || !resolveMediaFile(user, [tripId, ...photo.split("/").filter(Boolean)])) {
-      refused(user, "propose_postcards", "unknown_photo");
-      return Response.json({ error: "unknown_photo" }, { status: 400 });
-    }
-  } else {
-    const staged = photo ? findInboxFile(user, photo) : null;
-    if (!staged || staged.entry.kind !== "media") {
-      refused(user, "propose_postcards", "unknown_photo");
-      return Response.json({ error: "unknown_photo" }, { status: 400 });
-    }
+  // inbox instead of a path in a trip's own media; one without the other is
+  // a request that names half a day.
+  if ((tripId || slug) && !(tripId && slug)) {
+    refused(user, "propose_postcards", "unknown_day");
+    return Response.json({ error: "unknown_day" }, { status: 404 });
   }
-  if (!message || !from) {
-    refused(user, "propose_postcards", "invalid_request");
-    return Response.json({ error: "invalid_request" }, { status: 400 });
-  }
-  if (message.length > MAX_MESSAGE) {
-    refused(user, "propose_postcards", "invalid_request");
-    return Response.json({ error: "invalid_request" }, { status: 400 });
-  }
-  if (wanted.length === 0) {
-    refused(user, "propose_postcards", "no_recipients");
-    return Response.json({ error: "no_recipients" }, { status: 400 });
-  }
-  if (wanted.length > MAX_RECIPIENTS) {
-    refused(user, "propose_postcards", "invalid_request");
-    return Response.json({ error: "invalid_request" }, { status: 400 });
-  }
+  const source = tripId && slug ? { trip: tripId, day: slug, photo } : { inbox: photo };
 
-  const candidates = await postcardCandidates(user);
-  const allowed = new Set(candidates.map((c) => c.contactId));
-  const unknown = wanted.filter((id) => !allowed.has(id));
-  if (unknown.length > 0) {
-    refused(user, "propose_postcards", "unknown_recipient");
-    return Response.json({ error: "unknown_recipient", unknown }, { status: 400 });
-  }
-
-  const locale = text(body.locale) || getUser(user)?.defaultLocale || "en";
-  const configured = loadServerConfig().features.postcards.provider;
-  const provider = typeof configured === "string" ? configured : "dry-run";
-
-  const order = await createOrder(user, {
-    trip: ref,
-    day: ref ? slug : null,
-    photo,
+  const parsed = postcardOrderWrite.safeParse({
+    source,
     message,
     from,
-    recipients: wanted,
-    locale,
-    provider,
+    recipients,
+    ...(locale ? { locale } : {}),
   });
+  if (!parsed.success) {
+    // This room's own request shape, checked before its own errors — the
+    // route's historical codes (`no_recipients`, over-length message, too
+    // many recipients) all collapse to the schema's `invalid_request` now
+    // that the schema enforces the same bounds (message ≤ 600, 1-25
+    // recipients) it always did; recipients.length === 0 is worth telling
+    // apart, since "you named nobody" reads differently from "that is not
+    // a real request".
+    refused(user, "propose_postcards", recipients.length === 0 ? "no_recipients" : "invalid_request");
+    return Response.json({ error: recipients.length === 0 ? "no_recipients" : "invalid_request" }, { status: 400 });
+  }
+
+  const resolved = await resolvePostcardInput(user, parsed.data);
+  if (!resolved.ok) {
+    refused(user, "propose_postcards", resolved.error);
+    const status = resolved.error === "unknown_trip" || resolved.error === "unknown_day" ? 404 : 400;
+    return Response.json(
+      resolved.error === "unknown_recipient" ? { error: resolved.error, unknown: resolved.unknown } : { error: resolved.error },
+      { status },
+    );
+  }
+
+  const order = await createOrder(user, resolved.input);
   if (!order) {
     return Response.json({ error: "no_database" }, { status: 503 });
   }
 
-  const total = POSTCARD_CREDITS * wanted.length;
+  const total = POSTCARD_CREDITS * resolved.input.recipients.length;
   const url = `${serverSite().url}/${user}/postcards/${order.id}`;
 
   wrote(user, "propose_postcards", {
     id: order.id,
-    recipients: wanted.length,
+    recipients: resolved.input.recipients.length,
     credits: total,
   });
 
@@ -181,7 +140,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       status: order.status,
       url,
       expiresAt: order.payload.expiresAt,
-      recipients: wanted.length,
+      recipients: resolved.input.recipients.length,
       credits: { each: POSTCARD_CREDITS, total, balance: creditsEnabled() ? await balanceOf(user) : null },
       // Read by the model on the next turn, and by nobody as a claim of fact:
       // a preview is waiting, and only the owner's own press prints anything.
