@@ -48,3 +48,9 @@ recurred twice after being fixed.
 
 Still valid: the files rail still uses `fill sizes="42px"`; the fix is isolated
 to the image layout and has no product decision.
+
+## Implemented / Verification
+
+The 42px rail image now uses explicit dimensions. The paired inbox thumbnails
+were corrected in the same change. Focused inbox/helper tests passed; build,
+typecheck, lint, and knip pass with existing warnings only.
