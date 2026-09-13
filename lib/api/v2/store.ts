@@ -12,7 +12,15 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "../../contentRoot";
-import { dayFromJson, dayToJson, tripFromJson, tripToJson, type DayFile, type TripFile } from "./documents";
+import {
+  dayFromJson,
+  dayToJson,
+  tripFromJson,
+  tripToJson,
+  unknownTripKeys,
+  type DayFile,
+  type TripFile,
+} from "./documents";
 
 function tripDirFor(user: string, tripId: string): string {
   return path.join(contentRoot(), user, "trips", tripId);
@@ -40,6 +48,27 @@ export function readTripFile(user: string, tripId: string): TripFile | null {
     return tripFromJson(fs.readFileSync(file, "utf8"));
   } catch {
     return null;
+  }
+}
+
+/**
+ * Every key on this trip's `trip.json` that `tripFromJson` has no reading
+ * for — B1639. Read-modify-write (a PATCH) rebuilds the whole document from
+ * `TripFile`, so a key that got in some other way (a hand edit, a version
+ * ahead of this one) would otherwise vanish the next time anything touched
+ * the trip, with nothing said: every wire body already refuses an unknown
+ * key at the door (every trip schema is a `strictObject`), but that guard
+ * never sees a file already sitting on disk. `[]` for no such file, same as
+ * "nothing unknown" — a caller that needs to tell those apart already knows
+ * whether the trip exists before asking this.
+ */
+export function tripFileUnknownKeys(user: string, tripId: string): string[] {
+  const file = tripJsonPath(user, tripId);
+  if (!fs.existsSync(file)) return [];
+  try {
+    return unknownTripKeys(fs.readFileSync(file, "utf8"));
+  } catch {
+    return [];
   }
 }
 
