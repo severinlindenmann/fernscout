@@ -10,8 +10,8 @@ decide *how* they behave; this file only says *what they want and know*.
 **Wants:** to start a travel journal for an upcoming or ongoing trip. Has
 photos on their phone and a rough idea of the days but no patience for a form.
 
-**Knows:** nothing about Fernscout's content model, frontmatter, or the
-draft/publish distinction. Discovers `/agent`, WhatsApp, or a bring-your-own-
+**Knows:** nothing about Fernscout's content model, its JSON day documents, or
+the draft/publish distinction. Discovers `/agent`, WhatsApp, or a bring-your-own-
 agent doc the way a real stranger would — from whatever the flow hands them
 (a URL, a WhatsApp number), never from source or a ticket.
 

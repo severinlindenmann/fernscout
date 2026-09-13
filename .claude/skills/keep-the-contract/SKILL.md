@@ -18,16 +18,24 @@ touches a route.
 ## 1. The mechanical half — the tests already do it
 
 ```bash
-npx vitest run test/openapi-contract.test.ts test/api-route-schemas.test.ts
+npx vitest run test/openapi-contract.test.ts test/openapi-v2-contract.test.ts \
+  test/openapi-v2-required-or-declined.test.ts test/api-route-schemas.test.ts
 ```
 
-Between them they fail on:
+`openapi-contract.test.ts` covers the hand-maintained document
+(`lib/api/openapi.ts`, still current for the surviving `/api/v1/**` and
+`/api/auth/**` routes); `openapi-v2-contract.test.ts` covers the generated one
+(`lib/api/v2/openapi.ts`, built from the Zod schemas in `lib/api/v2/schemas/`
+— a new `/api/v2/**` field or route is a schema change, not a second document
+to edit). Between all four they fail on:
 
-- a `/api/v1/**` or `/api/auth/**` route+verb that is not in the document
+- a `/api/v1/**`, `/api/v2/**` or `/api/auth/**` route+verb that is not in its document
 - an `enum` that has drifted from the constant the validator uses
 - an operation with no refusal documented beside the success
 - a `required` list naming a field that is not in `properties`
 - a route that reads a body and publishes no schema
+- (v2 only) a section that is neither required nor declinable, per
+  `/skill/add-a-day.md`'s "asked, or declined" rule
 
 If you added a route and it now fails, that is the test doing its job. Add the
 operation; do not add it to an allowlist. The two allowlists that exist —
@@ -86,9 +94,10 @@ Mail is written to files locally, so the six-digit codes are readable: they
 land in `$CONTENT_DIR/.mail/` for a signup and `$CONTENT_DIR/<user>/mail/` for
 everything else, base64 inside the `.eml`.
 
-**`"kind": "agent"` on both `/api/auth/request` and `/api/auth/verify`.**
-Without it the verify call answers `200` with no token in it — a guest cookie —
-and nothing in the response says you asked for the wrong thing.
+**`"for": "write"` on both `POST /api/auth/codes` and `POST /api/auth/codes/redeem`.**
+Ask for `"read"` instead and the redeem call answers `200` with a guest cookie,
+not an agent token, and nothing in the response says you asked for the wrong
+thing.
 
 Then, for the field you changed: **send it, and read it back.** That is the
 whole test, and it is the one that keeps finding things.

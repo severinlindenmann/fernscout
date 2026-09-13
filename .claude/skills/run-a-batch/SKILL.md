@@ -280,7 +280,7 @@ to `.claude/runs/<run-id>/<id>/live.json` as `{"verdict": …, "evidence": …}`
 - **`answers`** — the ticket changes behaviour with no visible face, which is
   most backend work. Name a request against the deployed instance whose
   response proves the change, run it, and paste the actual response:
-  `/api/health` for a capability or a limit, a documented `/api/v1` call for a
+  `/api/health` for a capability or a limit, a documented `/api/v2` call for a
   route, a refusal for a gate that should now refuse. A test passing in CI is
   not this: CI ran against a checkout, and this step is about the machine
   serving the site.

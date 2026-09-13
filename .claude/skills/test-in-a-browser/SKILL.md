@@ -100,9 +100,9 @@ is indistinguishable from a wrong address. The tell is an empty `login_codes`
 table.
 
 ```bash
-curl -s -X POST http://localhost:3001/api/auth/request \
+curl -s -X POST http://localhost:3001/api/auth/codes \
   -H 'content-type: application/json' \
-  -d '{"user":"example","email":"agent@fernscout.ch"}'
+  -d '{"user":"example","email":"agent@fernscout.ch","for":"read"}'
 ```
 
 With `AUTH_DEV_CODE` set, the code is `123456` and there is nothing to read.
@@ -133,9 +133,9 @@ instead.
 Then verify into a cookie jar:
 
 ```bash
-curl -s -c /tmp/wt-cookies.txt -X POST http://localhost:3001/api/auth/verify \
+curl -s -c /tmp/wt-cookies.txt -X POST http://localhost:3001/api/auth/codes/redeem \
   -H 'content-type: application/json' \
-  -d '{"user":"example","email":"agent@fernscout.ch","code":"123456"}'
+  -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","for":"read"}'
 ```
 
 Confirm with a `curl -b /tmp/wt-cookies.txt` against the page before opening a

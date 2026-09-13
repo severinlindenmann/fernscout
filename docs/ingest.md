@@ -8,7 +8,7 @@ A folder of camera files becomes a dated, geotagged, editable entry. The
 target is a stopwatch, not a feature list: **if writing up a day takes more
 than about ten minutes, the blog is abandoned by month two.** Everything below
 serves that, which is why the command asks no questions — it makes its best
-guess, writes markdown you can edit, and gets out of the way.
+guess, writes a JSON entry you can edit, and gets out of the way.
 
 Measured on a 2026 laptop: **30 photographs at 12 megapixels (137 MB) → two
 entries in 13 seconds**, leaving the whole ten minutes for the words. A second
@@ -29,8 +29,9 @@ work.
 3. **Names the place** from a bundled offline copy of GeoNames.
 4. **Writes web derivatives** at up to 2000 px, with the orientation baked
    into the pixels and **every scrap of metadata removed**.
-5. **Writes the markdown** with date, time, location, country, coordinates and
-   a gallery with width and height on every item.
+5. **Writes the entry document** (`entries/YYYY-MM-DD-slug.json`) with date,
+   time, location, country, coordinates and a gallery with width and height
+   on every item.
 6. **Remembers what it has imported**, so running it twice changes nothing.
 
 ## Options
@@ -59,8 +60,9 @@ write-up there is.
 
 **Served derivatives carry no metadata at all.** A photograph straight off a
 phone contains the coordinates of wherever it was taken, and people photograph
-their own front door. The coordinates belong in frontmatter, where you can see
-them and delete them — not silently inside a file anyone can download.
+their own front door. The coordinates belong as a field on the entry document,
+where you can see them and delete them — not silently inside a file anyone
+can download.
 
 The colour profile is the single exception, because dropping it turns a
 wide-gamut photo into a lurid one and a colour profile identifies nobody.
@@ -89,8 +91,9 @@ perceptual hash, so:
   difference hash.
 
 New photographs from a day that already has an entry are appended to that
-entry's gallery, and the file is edited textually so your prose, your title
-and your captions survive untouched.
+entry's gallery, and the JSON document is parsed and re-written with only its
+`media` field touched, so your prose, your title and your captions survive
+untouched.
 
 ## Video
 
@@ -195,8 +198,8 @@ location blank, and it tells you how to build it.
 
 ## What it will not do
 
-- **Invent a trip.** Create `content/<user>/trips/<id>/trip.md` first.
-- **Write a username into frontmatter.** Media paths stay trip-relative
+- **Invent a trip.** Create `content/<user>/trips/<id>/trip.json` first.
+- **Write a username into the document.** Media paths stay trip-relative
   (`/media/<tripId>/…`); `lib/entries.ts` prefixes the owner at read time, so
   a trip folder can be copied or handed to somebody else unchanged.
 - **Guess your transport.** Except for one case that cannot be anything else:
@@ -206,7 +209,8 @@ location blank, and it tells you how to build it.
 ## What you get is a draft
 
 Every entry ingest writes carries `status: draft`, which keeps it off the site
-— out of the story, the feed, the sitemap and the search index — until a person
-deletes that line. The body it leaves behind is a placeholder (*"Write the day
+— out of the story, the feed, the sitemap and the search index — until a
+separate publish call moves it (see AGENTS.md, "What an agent writes arrives
+as a draft"). The body it leaves behind is a placeholder (*"Write the day
 here"*), and publishing that automatically is how somebody's family reads a
-stub. Write the words, delete the line.
+stub. Write the words, then publish.

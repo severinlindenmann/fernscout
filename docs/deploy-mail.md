@@ -234,9 +234,9 @@ The cheapest end-to-end check on a live instance is the login code — it uses
 the same transport as everything else:
 
 ```bash
-curl -s -X POST https://<domain>/api/auth/request \
+curl -s -X POST https://<domain>/api/auth/codes \
   -H 'content-type: application/json' \
-  -d '{"user":"<user>","email":"<the journal owner>","kind":"agent"}'
+  -d '{"user":"<user>","email":"<the journal owner>","for":"write"}'
 # 202 always, by design. Whether it sent is in the log:
 journalctl -u fernscout -n 20 | grep mail
 ```

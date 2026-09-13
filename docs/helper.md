@@ -1,6 +1,6 @@
 # Fernscout Helper
 
-**A journal is markdown and photographs in a folder you own, and there is still
+**A journal is JSON documents and photographs in a folder you own, and there is still
 no form that composes a new day out of fields, no upload widget with its own
 idea of what a day is, no CMS — and there will not be one (ROADMAP decision
 24). Writing happens through an agent; a person may correct a day they already
@@ -16,9 +16,9 @@ extract what you already have, ask for what only you know, and write it out in
 this project's own content format.
 
 It is not part of this software and it is not required to use it. Nothing it
-produces depends on it afterwards — the output is `trip.md`, `costs.md` and
-`entries/*.md`, which is what this repository reads whether an agent, a script or
-a text editor wrote them.
+produces depends on it afterwards — the output is `trip.json` and
+`entries/*.json`, one JSON document per trip and per day, which is what this
+repository reads whether an agent, a script or a text editor wrote them.
 
 ## What it is for
 
@@ -69,8 +69,9 @@ commands the agent runs for you, and one evening you spend in a browser.
    You turn off what does not belong — the screenshots, the picture somebody
    sent you — and write a few words. It saves as you type.
 5. **The content folder is written.** One entry per day, galleries sized to
-   2000px, your photo notes as captions, coordinates in the frontmatter — and
-   **every trace of metadata stripped from the pictures themselves**, which is
+   2000px, your photo notes as captions, coordinates as a field on the day
+   document — and **every trace of metadata stripped from the pictures
+   themselves**, which is
    the same rule `lib/ingest` follows here and for the same reason: a phone
    writes the coordinates of somebody's front door into a file.
 
@@ -90,9 +91,11 @@ app, *Accounts* → the three-dot menu → *Statement*.
   between your own pots is not a trip cost — and they are kept in the working
   file and marked, never silently dropped.
 - **The exchange rate is computed from what the bank actually moved**: the amount
-  debited divided by the amount received, across every payment. That is the
-  number `trip.md`'s `rates:` block wants, and it is the one figure nobody can
-  look up afterwards.
+  debited divided by the amount received, across every payment — the one
+  figure nobody can look up afterwards. `trip.json`'s `rates.manual` wants a
+  different convention (units of the foreign currency per 1 EUR, since
+  B1606); see [`currencies.md`](currencies.md) before converting this number
+  into it.
 - You sort the merchants into this project's seven categories. **A statement says
   what was paid, never what it was for** — the agent proposes, you correct, and a
   category this software does not know is refused rather than quietly turned into
@@ -111,9 +114,9 @@ else's card, the cash nobody has a receipt for.
 The agent looks at what is already recorded, names what is missing — which
 categories have nothing, which days have nothing, whether flights and
 accommodation are absent entirely — and asks about those rather than about
-everything. Advance bookings land in `costs.md`; things paid during the trip land
-on the day. A budget can be set, and the costs page then draws real spending
-against it.
+everything. Advance bookings land in the trip document's own `costs.items`;
+things paid during the trip land on the day. A budget can be set, and the
+costs page then draws real spending against it.
 
 **It will not estimate.** An amount nobody remembers is not recorded, and the
 page reports an incomplete total rather than a confident wrong one. Costs
@@ -126,21 +129,28 @@ yours.
 Everything above assumes an agent with a shell, running this tool on your own
 machine against files this project reads and writes directly. A **hosted**
 journal's owner has no shell on the server, and an agent driving one over the
-network never does either — so since B665/B671/B677 this project has grown
-its own door for the two kinds of data that are measurements rather than
-editorial judgement: `POST /api/v1/<user>/import`, taking a `kind` of `gps`
-or `costs` and bytes from the inbox, from multipart or from plain `text`.
+network never does either — so since B665/B671 this project has grown its
+own door for the kind of data that is a measurement rather than editorial
+judgement: `POST /api/v1/<user>/import`, taking a `kind` of `gps` or
+`contacts` and bytes from the inbox, from multipart or from plain `text`.
 
-It is not a replacement for this repository's interview — **costs** import
-still writes nothing on its own: a statement is reported, a person agrees the
-categories merchant by merchant the same way they would in a conversation
-with an agent, and a second call (`.../costs/import`) writes the agreed rows.
-**GPS** import is different in kind, not degree: a coordinate is a
-measurement, so it is stored as read, with no agreement step at all — see
-`docs/gps.md`. `importers/` (MIT-licensed, same as this whole tool) is the
-registry of small parsers behind both: Google Timeline, Google Takeout, GPX
-and a neutral JSON Lines format on the GPS side; a bank statement's own CSV
-shape on the costs side.
+A bank statement moved to `/api/v2` in B1624 and no longer goes through that
+door: stage it with `POST /api/v2/<user>/media` (`intent.kind: "bank_export"`),
+read it back as a report with `GET /api/v2/<user>/statements/<src>`, and once
+a person has agreed the categories merchant by merchant, `POST
+/api/v2/<user>/trips/<trip>/costs/apply` writes the agreed rows — see
+[`statements.md`](statements.md).
+
+It is not a replacement for this repository's interview — the bank-statement
+read still writes nothing on its own, exactly as it always has. **GPS** import
+is different in kind, not degree: a coordinate is a measurement, so it is
+stored as read, with no agreement step at all — see `docs/gps.md`. A phone's
+address book (`contacts`) is read the same way a statement is: reported,
+agreed, and only then written with a second call
+(`POST /api/v1/<user>/contacts/import`). `importers/` (MIT-licensed, same as
+this whole tool) is the registry of small parsers behind these: Google
+Timeline, Google Takeout, GPX and a neutral JSON Lines format on the GPS side;
+a bank statement's own CSV shape under `importers/costs/`.
 
 There is no equivalent import kind for photographs yet. `content/<user>/inbox/media/`
 (B663) is where a file can land before it belongs to a day — named by a hash
@@ -154,9 +164,9 @@ files directly.
 
 ```
 content/<you>/trips/<trip>/
-  trip.md                     the trip, its dates, its rates, its budget
-  costs.md                    what was spent before leaving
-  entries/2026-06-23-….md     one day: prose, gallery, costs
+  trip.json                   the trip: dates, rates, budget and preparation
+                              costs (its own `costs` section), plan
+  entries/2026-06-23-….json   one day: prose, gallery, costs
   media/…                     pictures, resized, metadata stripped
 ```
 

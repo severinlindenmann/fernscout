@@ -43,8 +43,8 @@ book preview and order confirmation).
    calls nobody, per the dry-run discipline every print provider in this
    codebase follows.
 4. Confirm the resulting order appears at
-   `GET /api/v1/test-owner-established/photobooks/<id>` with its price and
-   who it is for.
+   `GET /api/v2/test-owner-established/photobooks/orders/<id>` with its price
+   and who it is for.
 
 ## Done when
 

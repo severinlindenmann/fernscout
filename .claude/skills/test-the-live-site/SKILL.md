@@ -61,11 +61,11 @@ Rate limits are per-IP and every agent shares yours:
 
 | Endpoint | Budget |
 | --- | --- |
-| `POST /api/auth/signup/request` | 5 per hour |
-| `POST /api/v1/journals` | 5 per hour |
-| `POST /api/auth/request` (`kind: agent`) | 5 per 15 min |
-| `POST /api/auth/request` (`kind: guest`) | 10 per 15 min |
-| `POST /api/trip-access` | 8 per 15 min |
+| `POST /api/auth/codes` (`for: "signup"`) | 5 per hour |
+| `POST /api/v2/journals` | 5 per hour |
+| `POST /api/auth/codes` (`for: "write"`) | 5 per 15 min |
+| `POST /api/auth/codes` (`for: "read"`) | 10 per 15 min |
+| `POST /api/auth/codes/redeem` | 20 per 15 min |
 
 Forty agents each signing up would exhaust that in the first minute and every
 429 would read as a failure to the next agent. So **the orchestrator provisions

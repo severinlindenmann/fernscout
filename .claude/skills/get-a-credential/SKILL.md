@@ -40,7 +40,7 @@ argument is clean for some other reason.
 
 | You want to | Hold | Get it |
 | --- | --- | --- |
-| call `/api/v1/**` | an **agent token**, `Authorization: Bearer` | `get-token.sh … agent` |
+| call `/api/v2/**` | an **agent token**, `Authorization: Bearer` | `get-token.sh … agent` |
 | load an owner-only **page** — `/<user>/contacts`, `/<user>/me`, `/admin` | a **cookie** | `get-token.sh … cookie` |
 | prove an address across the whole instance | the **`fs_identity`** cookie | falls out of any sign-in |
 | hand an agent its own token from a browser | a **handover** credential | `POST /api/auth/<user>/handover` |
@@ -194,9 +194,11 @@ older one for that address, so a stale `.eml` gives `invalid_code`.
 
 | Bucket | Cap |
 | --- | --- |
-| `auth-request-agent` | 5 / 15 min |
-| `auth-request` (guest) | 10 / 15 min |
-| `auth-verify` | 20 / 15 min |
+| `codes-write` (agent token) | 5 / 15 min |
+| `codes-read` (guest) | 10 / 15 min |
+| `codes-identity` | 5 / hour |
+| `codes-signup` | 5 / hour |
+| `codes-redeem` | 20 / 15 min |
 
 Five journals per quarter of an hour is the ceiling for anything needing a
 fresh token each. Sleep between batches; do not reach for `X-Forwarded-For` to
@@ -254,7 +256,7 @@ write into, and the failure surfaces much later as a refused upload.
 ssh 95.216.112.173 'rm -rf /var/lib/fernscout/content/test-scratch /var/lib/fernscout/mail/test-scratch'
 ```
 
-`rm -rf` rather than `DELETE /api/v1/<user>`: the API route deletes nothing and
+`rm -rf` rather than `DELETE /api/v2/<user>`: the API route deletes nothing and
 answers `202`, mailing a single-use link to a page with a button (B38). That is
 the right path for a real journal and a slow one for a scratch directory you
 made ninety seconds ago. Removing the directory by hand leaves **no tombstone**,

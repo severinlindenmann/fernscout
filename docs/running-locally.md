@@ -80,7 +80,7 @@ not help you in the moment.
 
 Needed as soon as `features.auth` or `features.signup` is on: it is what those
 two capabilities require, so without it `lib/capabilities.ts` reports them off
-and `/api/auth/request` answers 404. Nobody can prove an address, so nobody can
+and `/api/auth/codes` answers 404. Nobody can prove an address, so nobody can
 be let into a closed trip. That is the designed behaviour — an optional
 capability is absent rather than half-working — rather than a crash, but you
 still cannot get in.
@@ -157,9 +157,9 @@ npm run db:migrate
 npm run dev
 
 # 3. Ask for a code. The field is `user`, not `username` — see below.
-curl -s -X POST http://localhost:3000/api/auth/request \
+curl -s -X POST http://localhost:3000/api/auth/codes \
   -H "Content-Type: application/json" \
-  -d '{"user":"example","email":"agent@fernscout.ch"}'
+  -d '{"user":"example","email":"agent@fernscout.ch","for":"read"}'
 
 # 4. Read it. The terminal prints the path; the body is base64, so decode it
 #    rather than grepping the file for six digits.
@@ -179,28 +179,29 @@ PY
 # 5. Redeem it **in the browser**, not with curl: the cookies are HttpOnly, so
 #    a jar on disk cannot be handed to Chrome. From the site's own console:
 #
-#      await fetch('/api/auth/verify', { method: 'POST', credentials: 'include',
+#      await fetch('/api/auth/codes/redeem', { method: 'POST', credentials: 'include',
 #        headers: { 'Content-Type': 'application/json' },
 #        body: JSON.stringify({ user: 'example', email: 'agent@fernscout.ch',
-#                               code: '123456', kind: 'guest' }) })
+#                               code: '123456', for: 'read' }) })
 ```
 
-**The field is `user`.** `app/api/auth/request/route.ts` reads `body.user`;
-posting `username` leaves it empty and the route answers `202` anyway, because
-every address-dependent outcome on that endpoint is a `202` by design — a
-status that varied by address would say which of somebody's family is
-registered. The cost of that uniformity is that a typo in a field name is
-indistinguishable from a wrong address, and it is worth an hour if you do not
-know. Nothing is issued, so `login_codes` stays empty and no `[mail]` line is
-printed: **an empty `login_codes` table is the tell that a guard returned early
-rather than that delivery failed.**
+**The field is `user`, not `username`.** `app/api/auth/codes/route.ts` reads
+`body.user`, and for `"for":"read"` or `"for":"write"` it is a required shape
+field: posting `username` instead leaves `user` missing and the route answers
+an explicit `invalid_request` refusal rather than the uniform `202` — only an
+address-dependent outcome (a code sent or not, for an address that may or may
+not exist) is uniformly `202` by design, since a status that varied by address
+would say which of somebody's family is registered. A typo in the field name
+is still worth knowing about: nothing is issued, so `login_codes` stays empty
+and no `[mail]` line is printed even when the response looks like a refusal
+you can read past.
 
 To spend credits locally, grant some: `npm run credits -- grant example 500`.
 
 ## Testing the agent surface
 
 Auth, contacts and mail are **off by default** in `site/config.json`, so
-`/api/auth/request` answers 404 and there is no way to get a token. That is
+`/api/auth/codes` answers 404 and there is no way to get a token. That is
 deliberate — every optional capability is absent rather than half-working — but
 it means trying the agent API needs a few minutes of setup.
 
@@ -252,15 +253,16 @@ is the failure this project cannot afford.
 No SMTP is involved. `transport: "file"` writes each message as an `.eml` under
 `<DATA_DIR>/mail/<user>/`, and the six-digit code is inside it.
 
-Two things catch people out: the request must say `"kind":"agent"` (without it
-you get a *guest* code, which the agent endpoints will not accept), and the
+Two things catch people out: the request must say `"for":"write"` (without it
+you get a *read* code, which the agent endpoints will not accept), and the
 address must be the journal's own `owner.email` — `agent@fernscout.ch` in the
-demo content. Anyone listed in a trip's `people:` may also ask, naming that
-trip, and gets a token scoped to it and nothing else.
+demo content. Anyone listed in a trip's `people` array may also ask, naming
+that trip (with `"scope": {"trip": "<trip-id>"}`), and gets a token scoped to
+it and nothing else.
 
 ```bash
-curl -X POST localhost:3700/api/auth/request -H 'content-type: application/json' \
-  -d '{"user":"example","email":"agent@fernscout.ch","kind":"agent"}'
+curl -X POST localhost:3700/api/auth/codes -H 'content-type: application/json' \
+  -d '{"user":"example","email":"agent@fernscout.ch","for":"write"}'
 ```
 
 Read the code out of the newest file in `/tmp/fs-data/mail/example/` — it is
@@ -280,11 +282,11 @@ PY
 Then exchange it. The token lasts seven days and is scoped to that journal:
 
 ```bash
-curl -X POST localhost:3700/api/auth/verify -H 'content-type: application/json' \
-  -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","kind":"agent"}'
+curl -X POST localhost:3700/api/auth/codes/redeem -H 'content-type: application/json' \
+  -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","for":"write"}'
 ```
 
-From there, `Authorization: Bearer fs_agent_…` reaches `/api/v1/…`.
+From there, `Authorization: Bearer fs_agent_…` reaches `/api/v2/…`.
 `GET /documentation.txt` and the nine `GET /skill/<task>.md` guides (B311) are
 what an agent reads, and they are generated from the same constants the
 endpoints enforce, so they cannot drift from them.
@@ -293,31 +295,31 @@ endpoints enforce, so they cannot drift from them.
 
 ## A closed trip, without touching your own content
 
-There is nothing to generate: a trip is closed by one word in its frontmatter.
-Edit a trip's `trip.md` in your **copy**:
+There is nothing to generate: a trip is closed by one field in its document.
+Edit a trip's `trip.json` in your **copy**:
 
-```yaml
-visibility: guest      # or: private
+```json
+{ "visibility": "guest" }
 ```
 
-Then reload, and you meet the gate instead of the trip. B39 removed the trip
-password — the scrypt hash, the signed cookie, the unlock form and the script
-that printed hashes — so nothing in a trip's frontmatter takes a secret any
-more. What replaced it is a reader proving an address by e-mail and the owner
-granting them access; see `lib/access.ts` for why one shared secret was the
-wrong shape.
+(or `"private"`.) Then reload, and you meet the gate instead of the trip. B39
+removed the trip password — the scrypt hash, the signed cookie, the unlock
+form and the script that printed hashes — so nothing on a trip takes a secret
+any more. What replaced it is a reader proving an address by e-mail and the
+owner granting them access; see `lib/access.ts` for why one shared secret was
+the wrong shape.
 
 The two values differ, and the difference is the thing worth seeing locally:
 `guest` opens to anyone the owner has approved into the *journal*, `private`
-only to the people in the trip's `people:` block. To get past either one you
+only to the people in the trip's `people` array. To get past either one you
 need `features.auth` on and `SESSION_SECRET` set, above — signing in alone
 opens nothing, so you also need a grant (`private` takes none: put your own
-address in `people:`).
+address in `people`).
 
 Editing this on a running server is fine and is worth doing once — content here
-is markdown a person edits, and the caches carry a fingerprint of the files
-they were built from, so a visibility change takes effect on the next request
-with no restart and no rebuild.
+is a JSON document a person edits, and the caches carry a fingerprint of the
+files they were built from, so a visibility change takes effect on the next
+request with no restart and no rebuild.
 
 ## Checking a change before you push
 
@@ -376,7 +378,7 @@ is for when CI has failed and you need to see why.
 
 | | |
 | --- | --- |
-| `content/` | everything a person owns: the markdown and the photographs |
+| `content/` | everything a person owns: the JSON content and the photographs |
 | `.data/` | reader data — reaction counts, push subscriptions, the SQLite file. `DATA_DIR` moves it, and on a server it **must** point outside the repo so a `git pull` cannot delete it |
 | `.data/mail/<user>/` | messages, when `transport: "file"`. Delete freely |
 | `.data/mail/.mail/` | the same, for mail that belongs to no journal yet — signup codes. Delete freely |

@@ -53,7 +53,7 @@ export default async function AnalyticsPage({ params }: PageProps<"/[user]/analy
   /**
    * A hub with no cards is not an empty hub, it is a page that is not there —
    * the same answer `/costs` gives for a journal with spending off or a trip
-   * that never wrote a `costs.md`. Absent rather than broken. B165, B267.
+   * that never wrote a costs section. Absent rather than broken. B165, B267.
    */
   if (!cards.costs && !cards.weather) notFound();
   // The layout draws the gate; this stops the page from *running*.

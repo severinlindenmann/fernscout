@@ -29,14 +29,14 @@ type RawStop = Partial<Record<keyof PlannedStop, unknown>>;
 /**
  * The intended route with each stop marked reached or not.
  *
- * Returns an empty plan when content/plan.md is absent or malformed rather
- * than throwing — the plan is a nice-to-have layer on the map, and a typo in
- * it shouldn't take the map down.
+ * Returns an empty plan when the trip's `plan` section is absent or
+ * malformed rather than throwing — the plan is a nice-to-have layer on the
+ * map, and a typo in it shouldn't take the map down.
  *
  * `{ includeDrafts: true }` additionally folds in future-dated draft entries
  * (W33): an agent drafting the next few days with coordinates is, in effect,
- * extending the route by hand — writing the same stop into `plan.md` too
- * would just be a second place for it to go stale. This is the one path in
+ * extending the route by hand — writing the same stop into the trip's own
+ * `plan` too would just be a second place for it to go stale. This is the one path in
  * the codebase allowed to read draft coordinates into something rendered on
  * the map, and it must only ever be called with `includeDrafts: true` for
  * somebody `draftsVisibleTo` has said yes to — callers are responsible for

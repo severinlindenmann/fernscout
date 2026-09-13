@@ -102,7 +102,7 @@ has sent them):
    confirm whatever write-up proposal follows, the same draft-then-confirm
    shape `owner-established-use-agent-helper.md` already walks through for
    `/agent`.
-6. Check `GET /api/v1/test-owner-new-wa/status` for the resulting draft day.
+6. Check `GET /api/v2/test-owner-new-wa/status` for the resulting draft day.
 
 ## Done when
 

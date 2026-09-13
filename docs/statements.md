@@ -4,23 +4,29 @@ A budget is what somebody meant to spend. A statement is what left their
 account, and it is the only record of the fortnight nobody wrote down at the
 time.
 
-Reading one is `POST /api/v1/<user>/import` with `kind: "costs"` — the same
-door a location history goes through (`docs/gps.md`), keyed by what the data
-is.
+Since B1624 this moved to `/api/v2` — the statement door is no longer keyed
+through the same `kind` mechanism a location history goes through
+(`docs/gps.md`, still `POST /api/v1/<user>/import` with `kind: "gps"` or
+`"contacts"`). "Import" now means that shared door's own verb; a bank
+statement's read is a different call, on a different route.
 
-## Two calls, because there are two decisions
+## Three calls, because there are two decisions
 
 ```http
-POST /api/v1/<user>/import
-{"kind": "costs", "inbox": "<id>", "from": "2026-06-22", "to": "2026-07-01"}
+POST /api/v2/<user>/media
+{"intent": {"kind": "bank_export", "trip": "<trip-id>"}, …}
 ```
 
-Stage the CSV in the inbox first; a `.csv` lands in `files/`. The window is
-worth sending — a statement holds the trip *and* the fortnight either side of
-it — because the totals and the rates that come back describe whatever you
-asked for.
+Stage the CSV through the ordinary media door — `intent.kind: "bank_export"`
+says what this upload is, the way `photo`, `gps_history` and `document` say
+what theirs are. It answers with a `src` (an `inbox:<id>` reference today).
 
-**This writes nothing.** It answers with:
+```http
+GET /api/v2/<user>/statements/<src>
+```
+
+Read it back as a report, against the `src` the upload answered with. **This
+writes nothing.** It answers with:
 
 | | |
 | --- | --- |
@@ -32,10 +38,17 @@ asked for.
 Then a person decides two things nobody else can, and only then:
 
 ```http
-POST /api/v1/<user>/trips/<trip>/costs/import
+POST /api/v2/<user>/trips/<trip>/costs/apply
 {"rows": [{"date": "2026-06-22", "label": "Padaria Central",
            "amount": 11.65, "currency": "CHF", "category": "food"}]}
 ```
+
+Renamed from v1's `.../costs/import` in the same move: "import" is now the
+media door's own verb, and this call does something different — it applies
+agreed rows, it never imports anything itself. Writable by anybody who may
+write the trip (a trip-scoped token included); only the statement *read*
+above is owner-only, because a location-history-sized read of the whole
+journal's bank export is not a trip-scoped decision.
 
 ## Why the split
 
@@ -65,9 +78,10 @@ that way: one decision covers every payment to that merchant.
 - **Refuses every bad field at once**, so forty rows with four mistakes are one
   round trip.
 
-The rates are not written either — `PUT /api/v1/<user>/trips/<trip>/rates` is
-their door, and whether a trip's frozen rates should change is its own
-decision.
+The rates are not written either — a trip's `rates` are a section of
+`trip.json`, written with `PATCH /api/v2/<user>/trips/<trip>` (see
+`docs/currencies.md`), and whether a trip's frozen rates should change is its
+own decision.
 
 ## Adding a bank
 
@@ -77,9 +91,9 @@ negative is money out — plus an optional `charged` (what it cost the account,
 where that differs, which is where a real exchange rate comes from) and
 `transfer` for money moving between somebody's own pots.
 
-`checkCostsImporter` is the function to run against your own, and
-`"dryRun": true`... does nothing here, because a `costs` import never writes
-anyway. Send the file and read what comes back.
+`checkCostsImporter` is the function to run against your own. There is no
+`dryRun` flag on this route — the whole call is read-only, so every request
+already is one. Send the file and read what comes back.
 
 ## Where this came from
 

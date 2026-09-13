@@ -90,11 +90,12 @@ always safe, since a journal already carrying `owner` is left untouched.
 ### By hand
 
 Everyone who was on a trip, other than the owner, belongs in that trip's
-`people:` block in `trip.md`, which already decides who may write to it and
+`people` section in `trip.json`, which already decides who may write to it and
 now also decides who the trip is credited to:
 
-    people:
-      - { name: "Robin Berger", email: "robin@example.com", nickname: "Robin" }
+    "people": [
+      { "name": "Robin Berger", "email": "robin@example.com", "nickname": "Robin" }
+    ]
 
 `owner.email` stays optional; a journal without one is read-only, as it was
 without `ownerEmail`.

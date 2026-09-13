@@ -90,9 +90,9 @@ Desktop **1440×900** and mobile **390×844**, both.
 | C1 | A draft entry (`status: draft`) | Absent from story, feed, sitemap, search, gallery, API reads |
 | C2 | Removing `status: draft` publishes it, and so does `POST .../days/<slug>/publish` | Appears everywhere, by either route |
 | C3 | Several entries on one date | Ordered by `time:`, grouped as one day |
-| C4 | Media paths stay trip-relative | Owner prefixed at read time; no username in frontmatter |
+| C4 | Media paths stay trip-relative | Owner prefixed at read time; no username on the stored document |
 | C5 | Trip statuses current / past / upcoming | Current at bare URLs, upcoming shows a countdown and no days |
-| C6 | `plan.md` route stops | Drawn on the map, reached stops marked |
+| C6 | `trip.json`'s `plan` section's route stops | Drawn on the map, reached stops marked |
 
 ## D — Privacy and isolation
 
@@ -153,27 +153,27 @@ The section where a mistake is unrecoverable.
 
 | # | Scenario | Pass |
 | --- | --- | --- |
-| H1 | `POST /api/auth/request` for the owner address | 202, and an `.eml` appears in `<DATA_DIR>/mail/<user>/` |
+| H1 | `POST /api/auth/codes` with `for: "write"` for the owner address | 202, and an `.eml` appears in `<DATA_DIR>/mail/<user>/` |
 | H2 | Same for a **non-owner** address | 202 (no enumeration) but **no** agent mail written |
-| H3 | `POST /api/auth/verify` with the code | Token prefixed `fs_agent_` |
+| H3 | `POST /api/auth/codes/redeem` with `for: "write"` and the code | Token prefixed `fs_agent_` |
 | H4 | Wrong code | Refused |
 | H5 | An agent token in a cookie | Rejected — bearer only |
 | H6 | A guest cookie used as a bearer token | Rejected |
 | H7 | Guest session lifetime vs agent token lifetime | 365 days vs ~7 days |
 | H8 | `POST /api/auth/logout` | Session gone |
 
-## I — REST API v1
+## I — REST API v2
 
 | # | Scenario | Pass |
 | --- | --- | --- |
-| I1 | `GET /api/v1/<user>/trips`, authorised | Every trip as JSON |
+| I1 | `GET /api/v2/<user>/trips`, authorised | Every trip as JSON |
 | I2 | Same, unauthorised | 401 |
 | I3 | One user's token against another user's journal | 403/404, never data |
-| I4 | `GET .../trips/<trip>/days` | Day summaries |
-| I5 | `POST` a new day | 201, and the file says `status: draft` |
+| I4 | `GET /api/v2/<user>/trips/<trip>` | The trip, with its days inline |
+| I5 | `PUT` a new day at a client-chosen slug | 201, and the document says `status: "draft"` |
 | I6 | That day on the site | **Absent** until it is published |
-| I7 | `GET /api/v1/<user>/drafts` | The draft, waiting |
-| I8 | Re-POST the same title and date | 409 — a retry never overwrites |
+| I7 | `GET /api/v2/<user>/status` | The draft, waiting, in the `drafts` list |
+| I8 | Re-`PUT` the same slug | 409 — a retry never overwrites |
 | I9 | Malformed body, missing fields, bad dates | 400 with a usable message, never a 500 |
 | I10 | No parameter anywhere skips draft status | Confirmed by reading the code and by trying |
 

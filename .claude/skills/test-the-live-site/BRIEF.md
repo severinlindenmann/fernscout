@@ -32,8 +32,8 @@ BLOCKED for that bullet, and the verdict is BLOCKED.
 - **Never write to `example`, `sevi` or `sevi2`.** They are real journals.
   Read-only against those.
 - Write only to the QA journals named in your task prompt.
-- Anything you create that is not a real memory carries **`test: true`** in its
-  frontmatter. That is the rule in AGENTS.md and it applies to you.
+- Anything you create that is not a real memory carries **`test: true`** as a
+  field on the document. That is the rule in AGENTS.md and it applies to you.
 - The VPS is `ssh 95.216.112.173` (root). Live content is
   **`/var/lib/fernscout/content/`**, NOT `/srv/fernscout/content` — the repo
   checkout at `/srv/fernscout` is code only. Server inspection is
@@ -47,10 +47,10 @@ BLOCKED for that bullet, and the verdict is BLOCKED.
 
 | Endpoint | Budget |
 | --- | --- |
-| `POST /api/auth/signup/request` | 5 per hour |
-| `POST /api/v1/journals` | 5 per hour |
-| `POST /api/auth/request` (`kind: agent`) | 5 per 15 min |
-| `POST /api/trip-access` | 8 per 15 min |
+| `POST /api/auth/codes` (`for: "signup"`) | 5 per hour |
+| `POST /api/v2/journals` | 5 per hour |
+| `POST /api/auth/codes` (`for: "write"`) | 5 per 15 min |
+| `POST /api/auth/codes/redeem` | 20 per 15 min |
 
 **Do not sign up journals or request agent codes unless your ticket is
 specifically about that flow.** You have been handed a token. A 429 you caused

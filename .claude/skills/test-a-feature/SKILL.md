@@ -77,7 +77,7 @@ pages, a throwaway `test-*` journal for a fresh persona.
   one at a time.
 - **Journal UI interface:** follow `.claude/skills/test-in-a-browser/SKILL.md`
   for the credential and viewport setup, then the flow's own Steps.
-- **Bring-your-own-agent (API) interface:** drive `/api/v1/**` directly with
+- **Bring-your-own-agent (API) interface:** drive `/api/v2/**` directly with
   the agent token from step 2, per `/documentation.txt` and the relevant
   `/skill/<task>.md` guide — no browser involved.
 

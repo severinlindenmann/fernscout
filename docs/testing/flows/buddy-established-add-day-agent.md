@@ -1,7 +1,7 @@
 # Flow: buddy-established-add-day-agent
 
 **Persona:** `buddy-established` (docs/testing/personas/buddy-established.md)
-**Interface:** `api` — the bring-your-own-agent door (`/api/v1/**`), a bearer
+**Interface:** `api` — the bring-your-own-agent door (`/api/v2/**`), a bearer
 token directly. **Not `/agent`**: confirmed live (B1505, 2026-09-11) that
 `app/api/helper/[user]/*` is cookie-only, bound to `journal.owner.email`, and
 refuses every bearer token outright — a buddy has no way into `/agent` today,
@@ -21,10 +21,10 @@ the trip boundary and at the `/agent` boundary).
 
 ## Steps
 
-1. As the buddy, `POST /api/v1/test-buddy-established/trips/<trip>/days`
-   with what the persona actually said happened — "the pass we crossed
-   today" — writing only what was told, no invented weather or feelings
-   (AGENTS.md).
+1. As the buddy, `PUT /api/v2/test-buddy-established/trips/<trip>/days/<slug>`
+   (client-chosen slug, `YYYY-MM-DD-slug`) with what the persona actually
+   said happened — "the pass we crossed today" — writing only what was told,
+   no invented weather or feelings (AGENTS.md).
 2. Confirm the day writes as a draft (`status: draft`, never published on
    create) and is scoped to the one trip the token covers — the same token
    against a second trip in the same journal must be refused.

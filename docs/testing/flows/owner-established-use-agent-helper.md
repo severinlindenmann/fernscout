@@ -22,7 +22,8 @@ transcript, at each viewport).
    design's Global Constraints), `transcription.backend: dry-run` (canned
    transcript, no real audio needed).
 2. An owner **cookie session** for `example` (or a seeded `test-*` journal)
-   — `POST /api/auth/request {"kind":"guest"}` + verify, not an agent token.
+   — `POST /api/auth/codes {"for":"read", "user": "example"}` + `POST
+   /api/auth/codes/redeem`, not an agent token.
 3. An existing trip with at least one published day, so this exercises real
    content rather than inventing a day for the test (AGENTS.md's B1090
    point).
