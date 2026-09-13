@@ -130,7 +130,15 @@ export default function EditDay({
 
   /** What this update would send — only the fields whose value actually moved,
    *  so an untouched day writes nothing and an untouched field is not
-   *  rewritten into the file it came from. */
+   *  rewritten into the file it came from.
+   *
+   *  v2 has no flat `captions`/`photoVisibility` maps and no `null`-clears
+   *  `visibility` (owner review, 2026-09-12): a caption or a per-photo label
+   *  lives on the day's own `media` array, whole (merge-patch replaces an
+   *  array rather than merging into it, so any change to either sends every
+   *  surviving photograph back); "back to whatever the trip says" is the
+   *  asked-or-declined mechanism every field on a v2 day answers through, so
+   *  it is `declined.visibility` rather than a `null`. */
   function changesFor(
     at: number,
     gone: string[] = [],
@@ -142,31 +150,34 @@ export default function EditDay({
     if (now.time !== was.time) patch.time = now.time;
     if (now.location !== was.location) patch.location = now.location;
     if (now.content !== was.content) patch.content = now.content;
-    // `visibility: null` is how the writer is told "back to whatever the trip
-    // says" — an empty string would be a value, and there is no empty one.
-    if (now.visibility !== was.visibility)
-      patch.visibility = now.visibility || null;
+    if (now.visibility !== was.visibility) {
+      if (now.visibility) patch.visibility = now.visibility;
+      else patch.declined = { visibility: "shown to everyone the trip lets in" };
+    }
     if (JSON.stringify(now.translations) !== JSON.stringify(was.translations)) {
       patch.translations = now.translations;
     }
-    // Only the photographs whose line actually moved. The writer takes a
-    // partial map, so sending the whole gallery back would rewrite captions
-    // nobody touched — and `photoVisibility` takes `null` for "as the update
-    // says", the same way `visibility` does above.
-    const captions = Object.fromEntries(
-      Object.entries(now.captions).filter(
-        ([src, text]) => text !== was.captions[src] && !gone.includes(src),
-      ),
+    // Only when a caption or a per-photo label actually moved — sending
+    // `media` at all rewrites the whole array, so an untouched gallery is
+    // left off the patch entirely rather than echoed back for nothing.
+    const captionsMoved = Object.entries(now.captions).some(
+      ([src, text]) => text !== was.captions[src] && !gone.includes(src),
     );
-    if (Object.keys(captions).length > 0) patch.captions = captions;
-    const labels = Object.entries(now.photoVisibility).filter(
-      ([src, level]) =>
-        level !== was.photoVisibility[src] && !gone.includes(src),
+    const labelsMoved = Object.entries(now.photoVisibility).some(
+      ([src, level]) => level !== was.photoVisibility[src] && !gone.includes(src),
     );
-    if (labels.length > 0) {
-      patch.photoVisibility = Object.fromEntries(
-        labels.map(([src, level]) => [src, level || null]),
-      );
+    if (captionsMoved || labelsMoved) {
+      patch.media = day.entries[at].gallery
+        .filter((item) => !gone.includes(item.src))
+        .map((item) => {
+          const caption = now.captions[item.src] ?? "";
+          const visibility = now.photoVisibility[item.src] ?? "";
+          return {
+            src: item.src,
+            ...(caption ? { caption } : {}),
+            ...(visibility ? { visibility } : {}),
+          };
+        });
     }
     // The date belongs to the day rather than to one update, so a change to it
     // goes to every update of the day — otherwise half a day moves.
@@ -176,6 +187,13 @@ export default function EditDay({
 
   const dayUrl = (slug: string, tail: string) =>
     `/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/day/${encodeURIComponent(slug)}/${tail}`;
+
+  /** The v2 cookie proxies (B1595) — `/api/web`, never `/api/v1` or
+   *  `/api/v2` directly, since a browser must never hold the bearer token
+   *  those read. `photos/` above stays on the older `dayUrl` door; only the
+   *  document write, the take-down and the trip's own visibility moved. */
+  const dayApiUrl = (slug: string) =>
+    `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/days/${encodeURIComponent(slug)}`;
 
   async function save() {
     setFailed(null);
@@ -219,7 +237,7 @@ export default function EditDay({
     for (const [at, entry] of day.entries.entries()) {
       const patch = changesFor(at, dropping);
       if (Object.keys(patch).length === 0) continue;
-      const response = await fetch(dayUrl(entry.slug, "edit"), {
+      const response = await fetch(dayApiUrl(entry.slug), {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(patch),
@@ -238,7 +256,7 @@ export default function EditDay({
     if (tripListed !== tripVisibility.listed) tripPatch.listed = tripListed;
     if (Object.keys(tripPatch).length > 0) {
       const response = await fetch(
-        `/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/visibility`,
+        `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/visibility`,
         {
           method: "PATCH",
           headers: { "content-type": "application/json" },
@@ -274,7 +292,7 @@ export default function EditDay({
     setBusy(true);
     for (const entry of day.entries) {
       if (entry.draft) continue;
-      const response = await fetch(dayUrl(entry.slug, "unpublish"), {
+      const response = await fetch(`${dayApiUrl(entry.slug)}/unpublish`, {
         method: "POST",
       }).catch(() => null);
       if (!response?.ok) {

@@ -219,10 +219,29 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   const gate = await gateTrip(request, user, tripId);
   if (!gate.ok) return gate.response;
 
+  return applyDayPatch(user, tripId, slug, gate.trip, request);
+}
+
+/**
+ * The write itself, factored out of `PATCH` above so
+ * `/api/web/[user]/trips/[trip]/days/[slug]` (the owner's cookie proxy,
+ * B1595) can reach the same validation and the same writer without a bearer
+ * token ever existing — nothing is minted for the browser to hold, and this
+ * is a direct, in-process call, never an HTTP round trip. Everything above
+ * this point is the trip-write gate (`gateTrip`); nothing below ever looked
+ * at `session` or `gate` beyond the trip file itself.
+ */
+export async function applyDayPatch(
+  user: string,
+  tripId: string,
+  slug: string,
+  trip: TripFile,
+  request: Request,
+): Promise<Response> {
   const stored = readDayFile(user, tripId, slug);
   if (!stored) return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
 
-  const currentDoc = dayDoc.parse(withResolvedTest(dayEchoInput(stored), gate.trip, stored));
+  const currentDoc = dayDoc.parse(withResolvedTest(dayEchoInput(stored), trip, stored));
   const currentEtag = etagFor(currentDoc);
   if (ifMatchStale(request, currentEtag)) {
     return fail("stale_document", ERROR_CODES.stale_document, currentDoc, 409);
@@ -306,12 +325,12 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   };
 
   if (dryRun) {
-    const preview = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), gate.trip, toWrite));
+    const preview = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), trip, toWrite));
     return ok(preview, { etag: etagFor(preview) });
   }
 
   writeDayFile(user, tripId, slug, toWrite);
-  const echo = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), gate.trip, toWrite));
+  const echo = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), trip, toWrite));
   return ok(echo, { etag: etagFor(echo) });
 }
 

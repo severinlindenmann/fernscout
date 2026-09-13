@@ -587,10 +587,10 @@ export function JournalVisibility({
         chosen === "public" ? t("me.journalVisibilityGoPublic") : t("me.journalVisibilityGoGuest")
       }
       onSave={async (value) => {
-        const response = await fetch("/api/journal", {
+        const response = await fetch(`/api/web/${encodeURIComponent(username)}`, {
           method: "PATCH",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ user: username, visibility: value }),
+          body: JSON.stringify({ visibility: value }),
         }).catch(() => null);
         if (!response?.ok) return t("me.journalFailed");
         router.refresh();
@@ -660,7 +660,7 @@ export function TripVisibilityFor({
       confirmLabel={t("me.tripWhoConfirm")}
       onSave={async (value) => {
         const response = await fetch(
-          `/${encodeURIComponent(was.username)}/trips/${encodeURIComponent(was.id)}/visibility`,
+          `/api/web/${encodeURIComponent(was.username)}/trips/${encodeURIComponent(was.id)}/visibility`,
           {
             method: "PATCH",
             headers: { "content-type": "application/json" },

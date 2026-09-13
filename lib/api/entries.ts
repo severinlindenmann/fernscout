@@ -950,27 +950,6 @@ export const EDITABLE_DAY_FIELDS = [
   "weatherData",
 ] as const;
 
-/**
- * The journal's declared languages, for B294's completeness refusal.
- *
- * `locales` is what a reader may switch into and `writtenLocale` is the
- * language the prose itself is in — so a day owes a translation for every
- * locale except that one. Read per request rather than cached: an owner can
- * change both with one `PATCH .../config` (B220), and a day written a minute
- * later must be judged against what the journal says now.
- *
- * Here rather than in the route that first needed it, because B980 gave the
- * owner's own browser a second door onto `editEntry` and the two must judge a
- * day by the same languages.
- */
-export function journalLanguages(
-  user: string,
-): { locales: readonly string[]; writtenLocale: string } | undefined {
-  const journal = getUser(user);
-  if (!journal) return undefined;
-  return { locales: journal.locales, writtenLocale: journal.defaultLocale };
-}
-
 /** A partial `DraftInput` — every field optional, since a PATCH names only
  * what it is changing. `idempotency_key` is not among them: an edit is
  * naturally safe to repeat, since resending the same fields just writes the
