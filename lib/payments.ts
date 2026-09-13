@@ -667,7 +667,7 @@ export async function listPurchasesPage(
  * anything the approval page goes on to load.
  */
 export function approveMailUrl(baseUrl: string, username: string, paymentId: string, token: string): string {
-  return `${baseUrl}/${username}/payment/${paymentId}/approve#token=${encodeURIComponent(token)}`;
+  return `${baseUrl}/${username}/payment/${paymentId}/approve/${token}`;
 }
 
 export function toPurchaseDoc(payment: Payment, mailedTo: string, baseUrl: string) {
