@@ -529,3 +529,51 @@ between the v2 API and content it can actually read.
 Step 5 proper (`/api/web`, the helper, the webapp), step 6 (docs generation
 and `/api/v2/openapi.json`), phase 3 (the replay), phase 4 (the finish line —
 `AGENTS.md` and the README still say the content is markdown).
+
+## 2026-09-13 — phase 3 started early: content/example converted (B1643)
+
+**Branch `b1643-example`, NOT merged — it cannot be until B1598 lands.**
+
+`content/example` is v2-canonical JSON: 44 days, 5 trips, the journal and 15
+figures, converted by `scripts/example-to-v2.mts` through the real
+serializers, with `docs/v2-migration/example-migration-report.txt` listing
+all 303 transformations. The only legacy key left is the journal's
+`features` block, kept deliberately: `lib/capabilities.ts` still reads it
+(`resolveOne`, ~line 519), so dropping it would switch reactions, costs,
+weather and analytics OFF for the demo. Decision 5 is owed by the CODE
+first; content cannot lead it.
+
+Then enriched to cover the whole contract (M3) — three trips (lisbon-2025
+guest+teaser, a-wedding-2026 private with no days, test-pipeline-2026
+test+unlisted), five days, cost lines on three existing days, and the
+figure library's missing axes.
+
+**`test/example-content.test.ts` (28 tests) is the acceptance instrument.**
+Half of it validates every file through `buildTripDoc` — the routes' own
+path, so passing means the routes can serve it. Half of it derives the
+expected field and enum coverage FROM THE SCHEMAS at run time, so a field
+added to the contract tomorrow fails there until the example demonstrates
+it. Three exemptions are documented in the test with their reasons: the
+journal is a singleton (cannot show both `units` values), `declined.status`
+cannot occur in a stored day (a file always has a status — the decline is
+wire-only), and the figure appearance axes are proven value-by-value at
+/docs/branding/travellers rather than by dressing the demo's cast in every
+hairstyle.
+
+**Found and fixed on the way: B1645** — `dayDoc` reused the write shape's
+reserved-source refusal, so a day whose weather the server fetched could not
+be read back at all (36 of 44 example days). Delta row D11.
+
+**What blocks the merge, precisely:** 11 tests in 6 files fail on `main`
+with this content, every one of them because the v1 readers still filter
+`.md` (`lib/entries.ts:263`) — B1598's whole subject.
+- 4 files are pure reader casualties and land with B1598: `currency`,
+  `generator-output`, `story-jump-label`, `depersonalised`.
+- 2 files are the v1 demo seeder (`scripts/build-demo-content.mjs`,
+  `npm run demo:build`), which writes markdown a v2 instance cannot read.
+  **This needs the owner's word: retire it (the example is committed, so a
+  fresh clone already has the demo, and the script is a one-off that already
+  refuses to touch an existing journal — B556) or port it to v2 JSON.**
+
+**Order:** B1598 merges first, then this branch, then the two seeder tests
+resolve per that decision.

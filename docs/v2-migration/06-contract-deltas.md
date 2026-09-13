@@ -307,6 +307,24 @@ wrong trade it should be reversed deliberately, not discovered.
 
 ---
 
+### D11 — the weather reading splits into a write shape and a read shape
+**What:** `day.ts`'s one `weatherData` became `weatherMeasurements` (the
+fields, shared) plus two schemas over it: `weatherData` (write — refuses
+`RESERVED_SOURCES`) and `weatherReading` (read — does not). `dayDoc.weather`
+takes the read one; `dayBase`/`dayWrite` keep the write one.
+**Why:** `dayDoc` spread the write shape, so `open-meteo` — the source the
+SERVER itself writes when a day asks for a lookup — was refused on read.
+Every `GET` of such a day goes through `dayDoc.parse` and threw: 36 of
+`content/example`'s 44 days. The schema's own comment already said the
+refusal belonged to the write shape alone, so this is the code catching up
+with a promise the contract had already made, not a new decision.
+**Found by:** `test/example-content.test.ts` (B1643), the first time the demo
+journal was validated against the schemas.
+**Ticket:** B1645.
+**Drift:** none on the wire in the direction that matters — a caller still
+cannot claim the server's source. The asymmetry is now stated in two schemas
+instead of one comment.
+
 ## Considered and REJECTED — the contract stands
 
 These are real problems found in real content. Each has an obvious fix that
