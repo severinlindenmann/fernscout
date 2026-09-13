@@ -72,10 +72,10 @@ function RoleBadge({ role }: { role: MineJournal["role"] }) {
   const { t } = useI18n();
   const tone =
     role === "owner"
-      ? "bg-yellow-100 text-navy-900"
+      ? "bg-yellow-100 text-on-bright"
       : role === "traveller"
-        ? "bg-sky-100 text-navy-900"
-        : "bg-cream-100 text-navy-700";
+        ? "bg-sky-100 text-on-bright"
+        : "bg-surface-subtle text-ink-body";
   return (
     <span
       className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.12em] ${tone}`}
@@ -91,18 +91,18 @@ function JournalCard({ journal }: { journal: MineJournal }) {
   const rest = journal.trips.length - shown.length;
 
   return (
-    <li className="rounded-xl border border-navy-200 bg-white p-4">
+    <li className="rounded-xl border border-line-quiet bg-surface-raised p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
             href={journal.href}
-            className="font-display text-base font-semibold break-words text-navy-900
+            className="font-display text-base font-semibold break-words text-ink-strong
                        underline decoration-blue-500 decoration-2 underline-offset-4
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             {journal.title}
           </Link>
-          <p className="mt-1 line-clamp-2 break-words text-sm leading-5 text-navy-600">
+          <p className="mt-1 line-clamp-2 break-words text-sm leading-5 text-ink-secondary">
             {journal.tagline}
           </p>
         </div>
@@ -122,8 +122,8 @@ function JournalCard({ journal }: { journal: MineJournal }) {
             <Link
               href={trip.href}
               title={trip.title}
-              className="block max-w-full truncate text-sm leading-6 text-navy-700
-                         underline decoration-navy-200 underline-offset-4
+              className="block max-w-full truncate text-sm leading-6 text-ink-body
+                         underline decoration-line-quiet underline-offset-4
                          hover:decoration-blue-500
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
@@ -132,13 +132,13 @@ function JournalCard({ journal }: { journal: MineJournal }) {
           </li>
         ))}
         {rest > 0 && (
-          <li className="font-mono text-xs leading-6 text-navy-600">
+          <li className="font-mono text-xs leading-6 text-ink-secondary">
             {tn("home.moreTrips", rest, { count: String(rest) })}
           </li>
         )}
       </ul>
 
-      <p className="mt-2 font-mono text-xs text-navy-600">
+      <p className="mt-2 font-mono text-xs text-ink-secondary">
         /{journal.username} ·{" "}
         {tn("landing.trips", journal.trips.length, {
           count: String(journal.trips.length),
@@ -146,7 +146,7 @@ function JournalCard({ journal }: { journal: MineJournal }) {
       </p>
 
       {journal.role === "owner" && (
-        <p className="mt-2 text-xs leading-5 text-navy-600">
+        <p className="mt-2 text-xs leading-5 text-ink-secondary">
           {t("home.ownerHint")}
         </p>
       )}
@@ -176,15 +176,15 @@ function AdminJournals({ journals }: { journals: HomeJournal[] }) {
     <section aria-labelledby="admin-journals" className="mt-10">
       <h2
         id="admin-journals"
-        className="font-display text-lg font-semibold text-navy-900"
+        className="font-display text-lg font-semibold text-ink-strong"
       >
         {t("home.adminSection")}
       </h2>
-      <p className="mt-1 text-xs leading-5 text-navy-600">
+      <p className="mt-1 text-xs leading-5 text-ink-secondary">
         {t("home.adminSectionBody")}
       </p>
 
-      <ul className="mt-3 divide-y divide-navy-200 border-y border-navy-200">
+      <ul className="mt-3 divide-y divide-line-quiet border-y border-line-quiet">
         {journals.map((journal) => (
           <li key={journal.username} className="py-2">
             <Link
@@ -193,12 +193,12 @@ function AdminJournals({ journals }: { journals: HomeJournal[] }) {
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
               <span
-                className="min-w-0 max-w-full truncate text-sm font-semibold text-navy-900
-                           underline decoration-navy-200 underline-offset-4"
+                className="min-w-0 max-w-full truncate text-sm font-semibold text-ink-strong
+                           underline decoration-line-quiet underline-offset-4"
               >
                 {journal.title}
               </span>
-              <span className="font-mono text-xs text-navy-600">
+              <span className="font-mono text-xs text-ink-secondary">
                 /{journal.username} ·{" "}
                 {tn("landing.trips", journal.trips.length, {
                   count: String(journal.trips.length),
@@ -228,11 +228,11 @@ export function YourJournals({
     <section aria-labelledby="your-journals" className="mt-6">
       <h1
         id="your-journals"
-        className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-[1.15] text-navy-900"
+        className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-[1.15] text-ink-strong"
       >
         {t("home.title")}
       </h1>
-      <p className="mt-2 font-mono text-xs text-navy-600">
+      <p className="mt-2 font-mono text-xs text-ink-secondary">
         {t("home.signedInAs", { email })}
       </p>
 
@@ -243,8 +243,8 @@ export function YourJournals({
       <p className="mt-3">
         <Link
           href="/docs/guide/guest"
-          className="text-sm text-navy-700 underline decoration-navy-300 underline-offset-4
-                     transition-colors hover:decoration-navy-700
+          className="text-sm text-ink-body underline decoration-line-quiet underline-offset-4
+                     transition-colors hover:decoration-line-prominent
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         >
           {t("guides.readMore")}
@@ -256,7 +256,7 @@ export function YourJournals({
            no journals is in a real and explicable state — nobody has approved
            them yet, or they have not started their own — and saying so is the
            difference between a working page and a broken-looking one. */
-        <p className="mt-4 text-base leading-6 text-navy-700">
+        <p className="mt-4 text-base leading-6 text-ink-body">
           {t("home.none")}
         </p>
       ) : (
@@ -318,19 +318,19 @@ export function YourDevices({
   return (
     <section
       aria-labelledby="your-devices"
-      className="mt-12 border-t border-navy-200 pt-8"
+      className="mt-12 border-t border-line-quiet pt-8"
     >
       <h2
         id="your-devices"
-        className="font-display text-xl font-semibold text-navy-900"
+        className="font-display text-xl font-semibold text-ink-strong"
       >
         {t("home.devices")}
       </h2>
-      <p className="mt-2 text-sm leading-6 text-navy-700">
+      <p className="mt-2 text-sm leading-6 text-ink-body">
         {t("home.devicesBody")}
       </p>
 
-      <ul className="mt-4 divide-y divide-navy-200 border-y border-navy-200">
+      <ul className="mt-4 divide-y divide-line-quiet border-y border-line-quiet">
         {devices.map((device) => {
           const name = deviceName(device.userAgent);
           return (
@@ -339,7 +339,7 @@ export function YourDevices({
               className="flex items-center justify-between gap-4 py-3"
             >
               <div className="min-w-0">
-                <p className="text-sm font-semibold leading-5 text-navy-900">
+                <p className="text-sm font-semibold leading-5 text-ink-strong">
                   {name ?? t("home.unknownDevice")}
                   {device.current && (
                     <span className="ml-2 font-mono text-[11px] uppercase tracking-[0.12em] text-coral-600">
@@ -347,7 +347,7 @@ export function YourDevices({
                     </span>
                   )}
                 </p>
-                <p className="mt-0.5 font-mono text-xs text-navy-600">
+                <p className="mt-0.5 font-mono text-xs text-ink-secondary">
                   {device.lastSeenAt
                     ? t("home.lastUsed", {
                         when: device.lastSeenAt.slice(0, 10),
@@ -359,8 +359,8 @@ export function YourDevices({
                 busy={busy === device.id}
                 type="button"
                 onClick={() => revoke(device.id)}
-                className="min-h-11 shrink-0 rounded-lg border border-navy-200 px-3 text-sm font-semibold text-navy-900
-                           hover:border-navy-700 disabled:opacity-50
+                className="min-h-11 shrink-0 rounded-lg border border-line-quiet px-3 text-sm font-semibold text-ink-strong
+                           hover:border-line-ink disabled:opacity-50
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
               >
                 {t("home.revoke")}

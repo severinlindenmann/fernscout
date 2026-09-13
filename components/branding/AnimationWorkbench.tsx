@@ -68,20 +68,20 @@ export default function AnimationWorkbench() {
   return (
     <div className="mx-auto max-w-5xl space-y-16 px-4 py-10 sm:px-6">
       <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong">
           Travel scene workbench
         </h1>
-        <p className="mt-3 max-w-2xl text-navy-700">
+        <p className="mt-3 max-w-2xl text-ink-body">
           Every part of the travel animation, one at a time. Hold a scene still at any
           moment, swap the mode, the sky, the party and the size of either town, and
           look at each vehicle, surface and skyline on its own.
         </p>
-        <p className="mt-2 max-w-2xl text-sm text-navy-600">
+        <p className="mt-2 max-w-2xl text-sm text-ink-secondary">
           Reporting something from here is most useful when it names the section: a
           fault in <em>Vehicles</em> is a drawing in{" "}
-          <code className="rounded bg-cream-100 px-1">components/travel/Vehicle.tsx</code>, a
+          <code className="rounded bg-surface-subtle px-1">components/travel/Vehicle.tsx</code>, a
           fault in <em>Whole scene</em> that the parts do not show is timing in{" "}
-          <code className="rounded bg-cream-100 px-1">components/TravelScene.tsx</code>.
+          <code className="rounded bg-surface-subtle px-1">components/TravelScene.tsx</code>.
         </p>
       </header>
 
@@ -169,7 +169,7 @@ function SceneBench() {
         <button
           type="button"
           onClick={() => setPlaying(false)}
-          className="min-h-11 rounded-full border border-navy-200 bg-white px-5 font-display text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
+          className="min-h-11 rounded-full border border-line-quiet bg-surface-raised px-5 font-display text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
         >
           Hold at a moment
         </button>
@@ -222,7 +222,7 @@ function VehicleBench() {
       </div>
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
         {MODES.filter((m) => m !== "walk").map((mode) => (
-          <figure key={mode} className="overflow-hidden rounded-xl border border-navy-200 bg-sky-200">
+          <figure key={mode} className="overflow-hidden rounded-xl border border-line-quiet bg-sky-200">
             <div className="relative flex h-[150px] items-end justify-center">
               {surface !== "none" && <StaticGround surface={surface} />}
               <div
@@ -232,19 +232,19 @@ function VehicleBench() {
                 <Vehicle mode={mode} width={width} />
               </div>
             </div>
-            <figcaption className="border-t border-navy-200 bg-white px-3 py-2 font-display text-xs font-semibold text-navy-700">
+            <figcaption className="border-t border-line-quiet bg-surface-raised px-3 py-2 font-display text-xs font-semibold text-ink-body">
               {mode} · rides on {surfaceFor(mode)}
             </figcaption>
           </figure>
         ))}
-        <figure className="overflow-hidden rounded-xl border border-navy-200 bg-sky-200">
+        <figure className="overflow-hidden rounded-xl border border-line-quiet bg-sky-200">
           <div className="relative flex h-[150px] items-end justify-center">
             {surface !== "none" && <StaticGround surface={surface} />}
             <div className="relative z-10 mb-4">
               <Travelers size={64} available={220} />
             </div>
           </div>
-          <figcaption className="border-t border-navy-200 bg-white px-3 py-2 font-display text-xs font-semibold text-navy-700">
+          <figcaption className="border-t border-line-quiet bg-surface-raised px-3 py-2 font-display text-xs font-semibold text-ink-body">
             walk · has no vehicle — the party is what crosses
           </figcaption>
         </figure>
@@ -263,11 +263,11 @@ function SurfaceBench() {
       <Slider label={`Camera — ${Math.round(at * 100)}%`} value={at} min={0} max={1} step={0.005} onChange={setAt} />
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
         {SURFACES.map((surface) => (
-          <figure key={surface} className="overflow-hidden rounded-xl border border-navy-200">
+          <figure key={surface} className="overflow-hidden rounded-xl border border-line-quiet">
             <div className="relative h-[120px] bg-sky-300">
               <ScrubbedGround surface={surface} at={at} />
             </div>
-            <figcaption className="border-t border-navy-200 bg-white px-3 py-2 font-display text-xs font-semibold text-navy-700">
+            <figcaption className="border-t border-line-quiet bg-surface-raised px-3 py-2 font-display text-xs font-semibold text-ink-body">
               {surface}
               {surface === "sky" && " · draws nothing, on purpose"}
             </figcaption>
@@ -309,7 +309,7 @@ function BuildingBench() {
       </div>
       <div className="mt-5 grid gap-5 sm:grid-cols-3">
         {BUILDING_KINDS.map((kind) => (
-          <figure key={kind} className="overflow-hidden rounded-xl border border-navy-200">
+          <figure key={kind} className="overflow-hidden rounded-xl border border-line-quiet">
             <div className="flex h-[150px] items-end justify-center bg-sky-300">
               <svg width={w + 40} height={140} viewBox={`0 0 ${w + 40} 140`} aria-hidden>
                 <BuildingShape
@@ -327,7 +327,7 @@ function BuildingBench() {
                 <rect x={0} y={130} width={w + 40} height={12} fill="#cdeecb" />
               </svg>
             </div>
-            <figcaption className="border-t border-navy-200 bg-white px-3 py-2 font-display text-xs font-semibold text-navy-700">
+            <figcaption className="border-t border-line-quiet bg-surface-raised px-3 py-2 font-display text-xs font-semibold text-ink-body">
               {kind}
               {kind === "airport" && " · only on a flight leg"}
             </figcaption>
@@ -350,7 +350,7 @@ function SkylineBench() {
             <tr>
               <th className="w-24" />
               {LATITUDES.map((l) => (
-                <th key={l.lat} className="text-left font-display text-xs font-semibold text-navy-700">
+                <th key={l.lat} className="text-left font-display text-xs font-semibold text-ink-body">
                   {l.label} · {floraFor(l.lat)}
                 </th>
               ))}
@@ -359,9 +359,9 @@ function SkylineBench() {
           <tbody>
             {POPULATIONS.map((pop) => (
               <tr key={pop.label}>
-                <th scope="row" className="align-bottom text-left font-display text-xs font-semibold text-navy-700">
+                <th scope="row" className="align-bottom text-left font-display text-xs font-semibold text-ink-body">
                   {pop.label}
-                  <span className="block font-sans font-normal text-navy-500">
+                  <span className="block font-sans font-normal text-ink-muted">
                     scale {cityScale(pop.value).toFixed(2)}
                   </span>
                 </th>
@@ -403,7 +403,7 @@ function PartyBench() {
         <Slider label="Figure size" value={size} min={32} max={140} step={2} onChange={setSize} />
         <Slider label="How many" value={count} min={1} max={10} step={1} onChange={setCount} />
       </div>
-      <div className="mt-5 flex min-h-[190px] items-end rounded-xl border border-navy-200 bg-sky-200 p-4">
+      <div className="mt-5 flex min-h-[190px] items-end rounded-xl border border-line-quiet bg-sky-200 p-4">
         <Travelers figures={Array.from({ length: count }, () => figure)} size={size} available={860} />
       </div>
     </Section>
@@ -440,8 +440,8 @@ function Section({
 }) {
   return (
     <section className="scroll-mt-8" id={title.toLowerCase().replace(/\s+/g, "-")}>
-      <h2 className="font-display text-xl font-semibold tracking-tight text-navy-900">{title}</h2>
-      <p className="mt-2 max-w-3xl text-sm text-navy-600">{note}</p>
+      <h2 className="font-display text-xl font-semibold tracking-tight text-ink-strong">{title}</h2>
+      <p className="mt-2 max-w-3xl text-sm text-ink-secondary">{note}</p>
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -460,13 +460,13 @@ function Choice<T extends string>({
 }) {
   return (
     <label className="block">
-      <span className="block font-display text-xs font-semibold uppercase tracking-wide text-navy-600">
+      <span className="block font-display text-xs font-semibold uppercase tracking-wide text-ink-secondary">
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="mt-1 min-h-11 w-full rounded-lg border border-navy-200 bg-white px-3 text-sm text-navy-900"
+        className="mt-1 min-h-11 w-full rounded-lg border border-line-quiet bg-surface-raised px-3 text-sm text-ink-strong"
       >
         {options.map((o) => (
           <option key={o} value={o}>
@@ -499,7 +499,7 @@ function Slider({
 }) {
   return (
     <label className="block">
-      <span className="block font-display text-xs font-semibold uppercase tracking-wide text-navy-600">
+      <span className="block font-display text-xs font-semibold uppercase tracking-wide text-ink-secondary">
         {label}
       </span>
       <input
@@ -512,7 +512,7 @@ function Slider({
         onChange={(e) => onChange(Number(e.target.value))}
         className="mt-2 w-full accent-yellow-400 disabled:opacity-50"
       />
-      <span className="block text-xs text-navy-500">{hint ?? value.toLocaleString("en")}</span>
+      <span className="block text-xs text-ink-muted">{hint ?? value.toLocaleString("en")}</span>
     </label>
   );
 }

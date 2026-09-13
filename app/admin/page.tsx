@@ -204,10 +204,10 @@ export default async function AdminPage() {
           any navigation, so without this the only exit is the browser's own
           back button — and a page opened from a mailed link has no history to
           go back through. */}
-      <Link href="/" className="text-sm font-semibold text-navy-700 underline">
+      <Link href="/" className="text-sm font-semibold text-ink-body underline">
         ← {siteName}
       </Link>
-      <h1 className="mt-3 font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
+      <h1 className="mt-3 font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
         Operator
       </h1>
 
@@ -227,9 +227,9 @@ export default async function AdminPage() {
               <>
                 <Verdict data={data} daily={daily} paid={paidTwoMonths} />
                 <SpendChart days={daily} />
-                <p className="mt-2 text-sm text-navy-700">
+                <p className="mt-2 text-sm text-ink-body">
                   The chart is the metered half. The other half is{" "}
-                  <span className="font-mono text-navy-900">
+                  <span className="font-mono text-ink-strong">
                     {formatChf(Math.round(fixedRappen(data.fixed) / 30))} a day
                   </span>{" "}
                   fixed — the server, the domain, the mailbox — owed whether anybody writes a day
@@ -244,10 +244,10 @@ export default async function AdminPage() {
                   journals={report.journals.length}
                 />
                 <section className="mt-8">
-                  <h2 className="font-display text-lg font-semibold text-navy-900">
+                  <h2 className="font-display text-lg font-semibold text-ink-strong">
                     Where it goes
                   </h2>
-                  <p className="mt-1 text-sm text-navy-700">
+                  <p className="mt-1 text-sm text-ink-body">
                     The last {WINDOW_DAYS} days. Open a bar for the lines behind it.
                   </p>
                   <Breakdown
@@ -293,14 +293,14 @@ export default async function AdminPage() {
                 <Funnel steps={steps} signups={signups} />
                 <HelperSummary stats={helper} />
                 <section className="mt-8">
-                  <h2 className="font-display text-lg font-semibold text-navy-900">Journals</h2>
-                  <p className="mt-1 text-sm text-navy-700">
+                  <h2 className="font-display text-lg font-semibold text-ink-strong">Journals</h2>
+                  <p className="mt-1 text-sm text-ink-body">
                     When somebody last wrote, from the day file&rsquo;s own timestamp — the only
                     record of it there is. A restore from backup rewrites every file, so the
                     morning after a restore drill every journal reads as freshly written.
                   </p>
                   {!metered ? (
-                    <p className="mt-1 text-sm text-navy-500">
+                    <p className="mt-1 text-sm text-ink-muted">
                       Credits are switched off on this instance, so there are no balances to show.
                     </p>
                   ) : null}
@@ -336,7 +336,7 @@ export default async function AdminPage() {
                       ),
                     }))}
                   />
-                  <p className="mt-3 text-xs text-navy-500">
+                  <p className="mt-3 text-xs text-ink-muted">
                     {formatBytes(report.journals.reduce((sum, row) => sum + row.bytes, 0))} across{" "}
                     {report.journals.length}{" "}
                     {report.journals.length === 1 ? "journal" : "journals"} · measured{" "}
@@ -357,26 +357,26 @@ export default async function AdminPage() {
             panel: (
               <>
                 <section className="mt-2">
-                  <h2 className="font-display text-lg font-semibold text-navy-900">Messages</h2>
+                  <h2 className="font-display text-lg font-semibold text-ink-strong">Messages</h2>
                   {!smsInboundOn && (
-                    <p className="mt-1 text-sm text-navy-700">
+                    <p className="mt-1 text-sm text-ink-body">
                       Receiving is switched off (features.smsInbound) — /api/health says what it
                       needs. Nothing arriving at the number lands here until it is on and the
                       Twilio webhook points at /api/webhooks/twilio.
                     </p>
                   )}
                   {smsMessages.length === 0 ? (
-                    <p className="mt-2 text-sm text-navy-500">No messages yet.</p>
+                    <p className="mt-2 text-sm text-ink-muted">No messages yet.</p>
                   ) : (
                     <ul className="mt-3 space-y-3">
                       {smsMessages.map((sms) => (
-                        <li key={sms.id} className="rounded-xl border border-navy-200 bg-cream-50 p-3">
-                          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600">
+                        <li key={sms.id} className="rounded-xl border border-line-quiet bg-surface-base p-3">
+                          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary">
                             {sms.direction === "in" ? `from +${sms.from}` : `to +${sms.to}`} ·{" "}
                             {sms.createdAt.slice(0, 16).replace("T", " ")} UTC
                             {sms.direction === "out" && !sms.providerSid ? " · dry-run" : ""}
                           </p>
-                          <p className="mt-1 whitespace-pre-wrap break-words text-base leading-7 text-navy-900">
+                          <p className="mt-1 whitespace-pre-wrap break-words text-base leading-7 text-ink-strong">
                             {sms.body}
                           </p>
                         </li>
@@ -385,11 +385,11 @@ export default async function AdminPage() {
                   )}
                 </section>
                 <section className="mt-8">
-                  <h2 className="font-display text-lg font-semibold text-navy-900">Send one</h2>
+                  <h2 className="font-display text-lg font-semibold text-ink-strong">Send one</h2>
                   {smsOn ? (
                     <SmsSend />
                   ) : (
-                    <p className="mt-1 text-sm text-navy-700">
+                    <p className="mt-1 text-sm text-ink-body">
                       Sending is switched off (features.sms) — /api/health says what it needs.
                     </p>
                   )}
@@ -466,7 +466,7 @@ function NeedsYou({
         <h2 className="font-display text-lg font-semibold text-green-700">
           {hidden.length === 0 ? "Nothing needs you." : "Nothing new needs you."}
         </h2>
-        <p className="mt-1 text-sm text-navy-700">
+        <p className="mt-1 text-sm text-ink-body">
           {/* An empty band with three things acknowledged behind it is exactly
               the ambiguity B1203 is about, and the one B1085 left behind when
               the nightly success mail stopped: silence and a broken alarm
@@ -482,10 +482,10 @@ function NeedsYou({
         </p>
       </section>
     ) : (
-      <section className="mt-5 overflow-hidden rounded-2xl border border-coral-600 bg-white">
+      <section className="mt-5 overflow-hidden rounded-2xl border border-coral-600 bg-surface-raised">
         <header className="flex items-center gap-2.5 border-b border-coral-100 bg-coral-50 px-4 py-3">
           <h2 className="font-display text-lg font-semibold text-coral-600">Needs you</h2>
-          <span className="rounded-full bg-coral-600 px-2 py-0.5 font-mono text-xs font-semibold text-white">
+          <span className="rounded-full bg-coral-600 px-2 py-0.5 font-mono text-xs font-semibold text-on-deep">
             {items.length}
           </span>
         </header>
@@ -493,17 +493,17 @@ function NeedsYou({
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex flex-wrap items-start gap-x-3.5 gap-y-2 border-t border-navy-100 px-4 py-3 first:border-t-0"
+              className="flex flex-wrap items-start gap-x-3.5 gap-y-2 border-t border-line-faint px-4 py-3 first:border-t-0"
             >
-              <span className="mt-0.5 min-w-[5.5rem] rounded-md border border-navy-200 bg-navy-50 px-1.5 py-0.5 text-center font-mono text-[0.6875rem] font-semibold uppercase tracking-wide text-navy-600">
+              <span className="mt-0.5 min-w-[5.5rem] rounded-md border border-line-quiet bg-surface-neutral px-1.5 py-0.5 text-center font-mono text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-secondary">
                 {KIND_LABEL[item.kind]}
               </span>
               <span className="min-w-0 flex-1 basis-56">
-                <strong className="break-words font-semibold text-navy-900">{item.title}</strong>
-                <span className="mt-0.5 block text-sm text-navy-700">{item.detail}</span>
+                <strong className="break-words font-semibold text-ink-strong">{item.title}</strong>
+                <span className="mt-0.5 block text-sm text-ink-body">{item.detail}</span>
               </span>
               <span className="flex shrink-0 items-center gap-3">
-                <span className="font-mono text-xs text-navy-500">{item.age}</span>
+                <span className="font-mono text-xs text-ink-muted">{item.age}</span>
                 {/* It hides and it fixes nothing, which is why the word is
                     "acknowledge" and not "dismiss" or "done". */}
                 <AckButton id={item.id} label="Acknowledge" />
@@ -546,16 +546,16 @@ function AckHistory({ acks }: { acks: Ack[] }) {
   if (acks.length === 0) return null;
   const holding = acks.filter((one) => one.endedAt === null).length;
   return (
-    <details className="mt-2 rounded-2xl border border-navy-200 bg-white px-4">
-      <summary className="cursor-pointer list-none py-3 text-sm font-semibold text-navy-700">
+    <details className="mt-2 rounded-2xl border border-line-quiet bg-surface-raised px-4">
+      <summary className="cursor-pointer list-none py-3 text-sm font-semibold text-ink-body">
         Show history · {holding} still hidden of {acks.length} acknowledged
       </summary>
-      <ul className="divide-y divide-navy-100 border-t border-navy-100 pb-2">
+      <ul className="divide-y divide-line-faint border-t border-line-faint pb-2">
         {acks.map((one) => (
           <li key={one.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
             <span className="min-w-0 flex-1 basis-48">
-              <span className="break-words font-mono text-sm text-navy-900">{one.entryId}</span>
-              <span className="mt-0.5 block text-xs text-navy-500">
+              <span className="break-words font-mono text-sm text-ink-strong">{one.entryId}</span>
+              <span className="mt-0.5 block text-xs text-ink-muted">
                 acknowledged {one.ackedAt.slice(0, 16).replace("T", " ")} UTC
                 {one.endedAt
                   ? ` · ended ${one.endedAt.slice(0, 10)}, ${ENDED_WHY[one.endedWhy] ?? one.endedWhy}`
@@ -620,7 +620,7 @@ function Verdict({
   return (
     <section className="mt-6 flex flex-wrap items-end gap-x-10 gap-y-6">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
           Net, {WINDOW_DAYS} days
         </p>
         <p
@@ -630,13 +630,13 @@ function Verdict({
         >
           {net < 0 ? `−${formatChf(-net)}` : formatChf(net)}
         </p>
-        <p className="mt-1.5 text-sm text-navy-700">
+        <p className="mt-1.5 text-sm text-ink-body">
           {net === 0
             ? "In and out came to the same."
             : `Running at ${net < 0 ? "a loss" : "a surplus"} of about `}
           {net === 0 ? null : (
             <>
-              <span className="font-mono text-navy-900">{formatChf(perDay)}</span> a day.
+              <span className="font-mono text-ink-strong">{formatChf(perDay)}</span> a day.
             </>
           )}{" "}
           {/* A floor, never an invoice: an unpriced line contributes nothing
@@ -647,15 +647,15 @@ function Verdict({
       </div>
       <div className="flex gap-7">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">Taken in</p>
-          <p className="font-mono text-lg font-semibold text-navy-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">Taken in</p>
+          <p className="font-mono text-lg font-semibold text-ink-strong">
             {formatChf(data.takenRappen)}
           </p>
           <Delta now={data.takenRappen} then={takenBefore} what="takings" good />
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">Paid out</p>
-          <p className="font-mono text-lg font-semibold text-navy-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">Paid out</p>
+          <p className="font-mono text-lg font-semibold text-ink-strong">
             {formatChf(data.totalRappen)}
           </p>
           <Delta now={now} then={then} what="metered spend" />
@@ -707,8 +707,8 @@ function Units({
 
   return (
     <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-navy-900">What a journal costs</h2>
-      <p className="mt-1 text-sm text-navy-700">
+      <h2 className="font-display text-lg font-semibold text-ink-strong">What a journal costs</h2>
+      <p className="mt-1 text-sm text-ink-body">
         Metered spend over the same {WINDOW_DAYS} days, divided. These are the figures that say
         whether the next thirty journals are affordable.
       </p>
@@ -717,7 +717,7 @@ function Units({
           label="Per active journal"
           value={per(metered, active)}
           note={
-            <span className="text-xs text-navy-500">
+            <span className="text-xs text-ink-muted">
               {active === 0 ? "nobody wrote this month" : `${active} wrote something`}
             </span>
           }
@@ -726,7 +726,7 @@ function Units({
           label="Per day written"
           value={per(metered, written)}
           note={
-            <span className="text-xs text-navy-500">
+            <span className="text-xs text-ink-muted">
               {written === 0 ? "no day is dated in the window" : `${written} days dated in it`}
             </span>
           }
@@ -735,7 +735,7 @@ function Units({
           label="Per conversation"
           value={per(metered, conversations)}
           note={
-            <span className="text-xs text-navy-500">
+            <span className="text-xs text-ink-muted">
               {conversations === 0 ? "no conversations" : `${conversations} with the helper`}
             </span>
           }
@@ -743,7 +743,7 @@ function Units({
         <Tile
           label="Fixed, per journal"
           value={per(fixed, journals)}
-          note={<span className="text-xs text-navy-500">divided across all {journals}</span>}
+          note={<span className="text-xs text-ink-muted">divided across all {journals}</span>}
         />
       </div>
     </section>
@@ -763,15 +763,15 @@ function Tile({
 }) {
   return (
     <div
-      className={`rounded-2xl border bg-white p-3 ${alert ? "border-coral-600" : "border-navy-200"}`}
+      className={`rounded-2xl border bg-surface-raised p-3 ${alert ? "border-coral-600" : "border-line-quiet"}`}
     >
       <p
-        className={`text-xs font-semibold uppercase tracking-wide ${alert ? "text-coral-600" : "text-navy-600"}`}
+        className={`text-xs font-semibold uppercase tracking-wide ${alert ? "text-coral-600" : "text-ink-secondary"}`}
       >
         {label}
       </p>
       <p
-        className={`font-display text-xl font-semibold ${alert ? "text-coral-600" : "text-navy-900"}`}
+        className={`font-display text-xl font-semibold ${alert ? "text-coral-600" : "text-ink-strong"}`}
       >
         {value}
       </p>
@@ -799,16 +799,16 @@ function Delta({
   good?: boolean;
 }) {
   if (then === 0 && now === 0) {
-    return <span className="text-xs text-navy-500">no {what} either month</span>;
+    return <span className="text-xs text-ink-muted">no {what} either month</span>;
   }
   if (then === 0) {
-    return <span className="text-xs text-navy-500">no {what} the month before</span>;
+    return <span className="text-xs text-ink-muted">no {what} the month before</span>;
   }
   const change = Math.round(((now - then) / then) * 100);
   const rising = change > 0;
   // Rising spend is bad news and rising takings are good news, so the caller
   // says which this is rather than the colour guessing from the sign.
-  const tone = change === 0 ? "text-navy-500" : rising === Boolean(good) ? "text-green-700" : "text-coral-600";
+  const tone = change === 0 ? "text-ink-muted" : rising === Boolean(good) ? "text-green-700" : "text-coral-600";
   return (
     <span className={`text-xs font-semibold ${tone}`}>
       {change > 0 ? "▲" : change < 0 ? "▼" : "="} {Math.abs(change)}% {what}
@@ -835,40 +835,40 @@ function SpentOn({ operations }: { operations: { operation: string; rappen: numb
 function TakingsPanel({ money, paid }: { money: Takings; paid: Payment[] }) {
   return (
     <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-navy-900">Taken</h2>
-      <p className="mt-1 text-sm text-navy-700">
+      <h2 className="font-display text-lg font-semibold text-ink-strong">Taken</h2>
+      <p className="mt-1 text-sm text-ink-body">
         Purchases settled in the last {WINDOW_DAYS} days, at what the buyer actually paid. A grant
         made from a journal&rsquo;s panel carries no price and is not takings.
       </p>
-      <ul className="mt-3 divide-y divide-navy-200 border-t border-navy-200">
+      <ul className="mt-3 divide-y divide-line-quiet border-t border-line-quiet">
         {money.byMethod.map((row) => (
           <li key={row.method} className="flex items-baseline justify-between gap-3 py-2">
-            <span className="text-sm text-navy-900">
+            <span className="text-sm text-ink-strong">
               {row.method} · {row.count} {row.count === 1 ? "purchase" : "purchases"}
             </span>
-            <span className="font-mono text-sm text-navy-900">{formatChf(row.rappen)}</span>
+            <span className="font-mono text-sm text-ink-strong">{formatChf(row.rappen)}</span>
           </li>
         ))}
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-navy-700">Waiting on you</span>
-          <span className="font-mono text-sm text-navy-900">
+          <span className="text-sm text-ink-body">Waiting on you</span>
+          <span className="font-mono text-sm text-ink-strong">
             {formatChf(money.waitingRappen)}
             {money.waitingCount > 0 ? ` · ${money.waitingCount}` : ""}
           </span>
         </li>
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-navy-700">Refunded</span>
-          <span className="font-mono text-sm text-navy-900">{formatChf(money.refundedRappen)}</span>
+          <span className="text-sm text-ink-body">Refunded</span>
+          <span className="font-mono text-sm text-ink-strong">{formatChf(money.refundedRappen)}</span>
         </li>
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-navy-700">Given by hand</span>
-          <span className="font-mono text-sm text-navy-900">
+          <span className="text-sm text-ink-body">Given by hand</span>
+          <span className="font-mono text-sm text-ink-strong">
             {money.grantedCredits} credits
           </span>
         </li>
       </ul>
       {paid.length === 0 ? (
-        <p className="mt-2 text-sm text-navy-500">Nothing was bought in this period.</p>
+        <p className="mt-2 text-sm text-ink-muted">Nothing was bought in this period.</p>
       ) : null}
     </section>
   );
@@ -913,9 +913,9 @@ function JournalPanel({
   const bought = settled.reduce((sum, one) => sum + one.amountRappen, 0);
 
   return (
-    <div className="border-t border-navy-200">
+    <div className="border-t border-line-quiet">
       {status ? (
-        <p className="px-4 pt-3 text-sm text-navy-700">
+        <p className="px-4 pt-3 text-sm text-ink-body">
           {status.trips} {status.trips === 1 ? "trip" : "trips"} · {status.days}{" "}
           {status.days === 1 ? "day" : "days"}
           {status.drafts > 0 ? ` · ${status.drafts} draft` : ""}
@@ -927,10 +927,10 @@ function JournalPanel({
       {status && ceiling ? (
         <div className="px-4 pt-3">
           <div className="flex items-baseline justify-between gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+            <span className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
               Disk
             </span>
-            <span className="font-mono text-sm text-navy-900">
+            <span className="font-mono text-sm text-ink-strong">
               {formatBytes(status.bytes)} of {formatBytes(ceiling)}
             </span>
           </div>
@@ -943,15 +943,15 @@ function JournalPanel({
 
       {reasons.length > 0 ? (
         <div className="px-4 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
             Credits went on
           </p>
           <ul className="mt-1 space-y-1.5">
             {reasons.map((row) => (
               <li key={row.reason}>
                 <div className="flex items-baseline justify-between gap-3">
-                  <span className="text-sm text-navy-900">{REASON_LABEL[row.reason] ?? row.reason}</span>
-                  <span className="font-mono text-sm text-navy-900">
+                  <span className="text-sm text-ink-strong">{REASON_LABEL[row.reason] ?? row.reason}</span>
+                  <span className="font-mono text-sm text-ink-strong">
                     {formatCredits(row.credits)}
                   </span>
                 </div>
@@ -964,10 +964,10 @@ function JournalPanel({
 
       {helper ? (
         <div className="px-4 pt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
             Conversations
           </p>
-          <p className="mt-1 text-sm text-navy-900">
+          <p className="mt-1 text-sm text-ink-strong">
             <span className="font-mono">
               {helper.pressed}/{helper.proposed}
             </span>{" "}
@@ -983,7 +983,7 @@ function JournalPanel({
           {/* No words, ever — B976. Whether they could be read at all is a
               separate permission, and saying which it is here is the whole of
               what this panel may say about them. */}
-          <p className="mt-0.5 text-xs text-navy-500">
+          <p className="mt-0.5 text-xs text-ink-muted">
             {helper.readable
               ? "No words here. Reading them is a separate permission."
               : "Words not shared by this journal."}
@@ -1039,25 +1039,25 @@ function Purchases({
   return (
     <div className="px-4 pt-3">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
           Purchases
         </span>
-        <span className="font-mono text-sm text-navy-900">
+        <span className="font-mono text-sm text-ink-strong">
           {settled} paid · {formatChf(bought)}
         </span>
       </div>
-      <ul className="mt-1 divide-y divide-navy-200">
+      <ul className="mt-1 divide-y divide-line-quiet">
         {payments.slice(0, 5).map((payment) => (
           <li key={payment.id} className="py-2">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="min-w-0 break-words text-sm text-navy-900">
+              <span className="min-w-0 break-words text-sm text-ink-strong">
                 {payment.credits} credits
               </span>
-              <span className="shrink-0 font-mono text-sm text-navy-900">
+              <span className="shrink-0 font-mono text-sm text-ink-strong">
                 {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}
               </span>
             </div>
-            <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
+            <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-ink-muted">
               {payment.status}
               {` · ${(payment.paidAt ?? payment.createdAt).slice(0, 10)}`}
             </p>
@@ -1073,7 +1073,7 @@ function Purchases({
         ))}
       </ul>
       {payments.length > 5 ? (
-        <p className="pb-1 text-xs text-navy-500">
+        <p className="pb-1 text-xs text-ink-muted">
           {payments.length - 5} older, not shown.
         </p>
       ) : null}
@@ -1102,33 +1102,33 @@ function Funnel({ steps, signups }: { steps: FunnelStep[] | null; signups: Week[
   return (
     <section className="mt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display text-lg font-semibold text-navy-900">
+        <h2 className="font-display text-lg font-semibold text-ink-strong">
           Does anybody get through
         </h2>
-        <span className="font-mono text-sm text-navy-500">last {CHART_DAYS} days</span>
+        <span className="font-mono text-sm text-ink-muted">last {CHART_DAYS} days</span>
       </div>
-      <p className="mt-1 text-sm text-navy-700">
+      <p className="mt-1 text-sm text-ink-body">
         Every journal started in the window, and how far each one got. Cohorted by when they
         arrived, so a bad first year does not follow the instance around for ever.
       </p>
       {steps === null ? (
-        <p className="mt-3 text-sm text-navy-500">
+        <p className="mt-3 text-sm text-ink-muted">
           There is no database on this instance, so there is no record of who arrived when. The
           journals themselves are below.
         </p>
       ) : steps[0].count === 0 ? (
-        <p className="mt-3 text-sm text-navy-500">
+        <p className="mt-3 text-sm text-ink-muted">
           Nobody has started a journal in the last {CHART_DAYS} days.
         </p>
       ) : (
-        <div className="mt-3 rounded-2xl border border-navy-200 bg-white p-4">
+        <div className="mt-3 rounded-2xl border border-line-quiet bg-surface-raised p-4">
           {steps.map((step, at) => (
             <div key={step.label}>
               {at > 0 && step.lost.startsWith("0 ") ? null : at > 0 ? (
                 <p className="py-1 font-mono text-xs text-coral-600">▼ {step.lost}</p>
               ) : null}
               <div className="flex items-center gap-3">
-                <span className="w-28 shrink-0 text-xs font-semibold uppercase tracking-wide text-navy-600 sm:w-36">
+                <span className="w-28 shrink-0 text-xs font-semibold uppercase tracking-wide text-ink-secondary sm:w-36">
                   {step.label}
                 </span>
                 {/* One measure, one hue — `Charts.tsx`'s rule, and these four
@@ -1136,13 +1136,13 @@ function Funnel({ steps, signups }: { steps: FunnelStep[] | null; signups: Week[
                     outcome and it was drawn in the brand's yellow for a
                     while; that is a waymark rather than a measure, and the
                     same note in `Charts.tsx` says so. */}
-                <span className="h-7 flex-1 overflow-hidden rounded-md bg-navy-100">
+                <span className="h-7 flex-1 overflow-hidden rounded-md bg-surface-neutral-strong">
                   <span
-                    className="block h-full bg-navy-700"
+                    className="block h-full bg-action-strong"
                     style={{ width: `${Math.round((step.count / steps[0].count) * 100)}%` }}
                   />
                 </span>
-                <span className="w-10 shrink-0 text-right font-mono text-sm font-semibold text-navy-900">
+                <span className="w-10 shrink-0 text-right font-mono text-sm font-semibold text-ink-strong">
                   {step.count}
                 </span>
               </div>
@@ -1188,8 +1188,8 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
 
   return (
     <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-navy-900">The helper</h2>
-      <p className="mt-1 text-sm text-navy-700">
+      <h2 className="font-display text-lg font-semibold text-ink-strong">The helper</h2>
+      <p className="mt-1 text-sm text-ink-body">
         The last {WINDOW_DAYS} days. A proposal that was never pressed is somebody who described
         their day and did not get one.
       </p>
@@ -1198,7 +1198,7 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
           label="Proposals pressed"
           value={proposed === 0 ? "—" : `${Math.round((pressed / proposed) * 100)}%`}
           note={
-            <span className="text-xs text-navy-500">
+            <span className="text-xs text-ink-muted">
               {proposed === 0 ? "nothing was proposed" : `${pressed} of ${proposed}`}
             </span>
           }
@@ -1207,7 +1207,7 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
           label="Conversations"
           value={String(sessions)}
           note={
-            <span className="text-xs text-navy-500">
+            <span className="text-xs text-ink-muted">
               across {stats.length} {stats.length === 1 ? "journal" : "journals"}
             </span>
           }
@@ -1217,7 +1217,7 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
           value={String(total)}
           alert={total > 0}
           note={
-            <span className="font-mono text-xs text-navy-500">
+            <span className="font-mono text-xs text-ink-muted">
               {fires.length === 0
                 ? "nothing was caught"
                 : fires
@@ -1230,7 +1230,7 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
         <Tile
           label="Refused outright"
           value={String(refused)}
-          note={<span className="text-xs text-navy-500">a write the server would not make</span>}
+          note={<span className="text-xs text-ink-muted">a write the server would not make</span>}
         />
       </div>
     </section>
@@ -1258,11 +1258,11 @@ function HealthCard({ health, troubles }: { health: Health; troubles: Trouble[] 
   const clear = health.wrong.length === 0 && troubles.length === 0;
   return (
     <section className="mt-6">
-      <h2 className="font-display text-lg font-semibold text-navy-900">This instance</h2>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">This instance</h2>
       {clear ? (
         <div className="mt-2 rounded-2xl border border-green-700 bg-green-100 p-4">
           <p className="font-display font-semibold text-green-700">Nothing is wrong.</p>
-          <p className="mt-1 text-sm text-navy-700">
+          <p className="mt-1 text-sm text-ink-body">
             Commit {health.commit ?? "unknown"} · up{" "}
             {Math.round(health.uptimeSeconds / 3600)}h
             {health.backupAgeHours !== null
@@ -1276,25 +1276,25 @@ function HealthCard({ health, troubles }: { health: Health; troubles: Trouble[] 
           {health.wrong.map((one) => (
             <li
               key={one.title}
-              className="rounded-2xl border border-coral-600 bg-white p-3 [overflow-wrap:anywhere]"
+              className="rounded-2xl border border-coral-600 bg-surface-raised p-3 [overflow-wrap:anywhere]"
             >
               <p className="font-semibold text-coral-600">{one.title}</p>
-              <p className="mt-0.5 text-sm text-navy-700">{one.detail}</p>
+              <p className="mt-0.5 text-sm text-ink-body">{one.detail}</p>
             </li>
           ))}
           {troubles.map((one) => (
-            <li key={`${one.what}-${one.owner}-${one.when}`} className="rounded-2xl border border-navy-200 bg-white p-3">
+            <li key={`${one.what}-${one.owner}-${one.when}`} className="rounded-2xl border border-line-quiet bg-surface-raised p-3">
               <div className="flex items-baseline justify-between gap-3">
-                <span className="font-semibold text-navy-900">{one.what}</span>
-                <span className="shrink-0 font-mono text-xs text-navy-500">{one.when}</span>
+                <span className="font-semibold text-ink-strong">{one.what}</span>
+                <span className="shrink-0 font-mono text-xs text-ink-muted">{one.when}</span>
               </div>
-              <p className="mt-0.5 text-sm text-navy-700">
+              <p className="mt-0.5 text-sm text-ink-body">
                 {one.owner ? `${one.owner} · ` : ""}
                 {one.detail}
               </p>
             </li>
           ))}
-          <li className="text-xs text-navy-500">
+          <li className="text-xs text-ink-muted">
             Commit {health.commit ?? "unknown"} · up {Math.round(health.uptimeSeconds / 3600)}h
             {offSummary(health.offByChoice)}
           </li>
@@ -1333,16 +1333,16 @@ function BackupPanel({ backup }: { backup: Health["backup"] }) {
     ? `${offsite.lastSuccessAt.slice(0, 16).replace("T", " ")} UTC`
     : "never";
   return (
-    <div className="mt-3 rounded-2xl border border-navy-200 bg-white p-4">
+    <div className="mt-3 rounded-2xl border border-line-quiet bg-surface-raised p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-display font-semibold text-navy-900">Backups</h3>
+        <h3 className="font-display font-semibold text-ink-strong">Backups</h3>
         <span
           className={`rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold ${tone}`}
         >
           {backup.state}
         </span>
       </div>
-      <p className="mt-1 text-sm text-navy-700">
+      <p className="mt-1 text-sm text-ink-body">
         Last success {when}
         {backup.ageHours !== null ? ` · ${Math.round(backup.ageHours)}h ago` : ""} · stale past{" "}
         {backup.maxAgeHours}h
@@ -1353,25 +1353,25 @@ function BackupPanel({ backup }: { backup: Health["backup"] }) {
           {backup.lastFailure}
         </p>
       )}
-      <div className="mt-3 border-t border-navy-100 pt-3">
+      <div className="mt-3 border-t border-line-faint pt-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h4 className="font-display font-semibold text-navy-900">Off-site copy</h4>
+          <h4 className="font-display font-semibold text-ink-strong">Off-site copy</h4>
           <span
             className={`rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold ${stateTone(offsite.state)}`}
           >
             {offsite.state}
           </span>
         </div>
-        <p className="mt-1 text-sm text-navy-700">
+        <p className="mt-1 text-sm text-ink-body">
           Last success {offsiteWhen}
           {offsite.ageHours !== null ? ` · ${Math.round(offsite.ageHours)}h ago` : ""} · stale past{" "}
           {offsite.maxAgeHours}h
         </p>
         {offsite.reason && (
-          <p className="mt-1 text-sm text-navy-500 [overflow-wrap:anywhere]">{offsite.reason}</p>
+          <p className="mt-1 text-sm text-ink-muted [overflow-wrap:anywhere]">{offsite.reason}</p>
         )}
       </div>
-      <p className="mt-2 text-xs text-navy-500">
+      <p className="mt-2 text-xs text-ink-muted">
         A run that works no longer sends mail; this is where it says so. A run that fails still
         mails.
       </p>
@@ -1396,7 +1396,7 @@ function BackupPanel({ backup }: { backup: Health["backup"] }) {
  */
 function stateTone(state: "ok" | "stale" | "failing" | "unknown"): string {
   if (state === "ok") return "border-green-700 text-green-700";
-  if (state === "unknown") return "border-navy-300 text-navy-700";
+  if (state === "unknown") return "border-line-strong text-ink-body";
   return "border-coral-600 text-coral-600";
 }
 
@@ -1439,8 +1439,8 @@ function WhatItDid({
   const printed = print.reduce((sum, line) => sum + line.calls, 0);
   return (
     <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-navy-900">What it did</h2>
-      <p className="mt-1 text-sm text-navy-700">
+      <h2 className="font-display text-lg font-semibold text-ink-strong">What it did</h2>
+      <p className="mt-1 text-sm text-ink-body">
         The last {WEEKS} weeks. Days are counted by the day they describe, which is the date the
         file is named for.
       </p>
@@ -1456,7 +1456,7 @@ function WhatItDid({
         unit="sent"
         empty="Nothing has been announced to a reader."
       />
-      <p className="mt-3 text-sm text-navy-700">
+      <p className="mt-3 text-sm text-ink-body">
         {printed === 0
           ? "Nothing has been printed in the costing window."
           : `${printed} ${printed === 1 ? "thing" : "things"} printed in the last ${WINDOW_DAYS} days.`}
@@ -1499,31 +1499,31 @@ function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones:
   const tripStones = stones.filter((stone) => stone.kind === "trip");
   return (
     <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-navy-900">Roster</h2>
-      <ul className="mt-3 divide-y divide-navy-200 border-t border-navy-200">
+      <h2 className="font-display text-lg font-semibold text-ink-strong">Roster</h2>
+      <ul className="mt-3 divide-y divide-line-quiet border-t border-line-quiet">
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-navy-700">Journals</span>
-          <span className="font-mono text-sm text-navy-900">{report.journals.length}</span>
+          <span className="text-sm text-ink-body">Journals</span>
+          <span className="font-mono text-sm text-ink-strong">{report.journals.length}</span>
         </li>
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-navy-700">Never wrote a day</span>
-          <span className="font-mono text-sm text-navy-900">{empty}</span>
+          <span className="text-sm text-ink-body">Never wrote a day</span>
+          <span className="font-mono text-sm text-ink-strong">{empty}</span>
         </li>
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-navy-700">Deleted journals, name still held</span>
-          <span className="font-mono text-sm text-navy-900">{journalStones.length}</span>
+          <span className="text-sm text-ink-body">Deleted journals, name still held</span>
+          <span className="font-mono text-sm text-ink-strong">{journalStones.length}</span>
         </li>
         <li className="flex items-baseline justify-between gap-3 py-2">
-          <span className="text-sm text-navy-700">Deleted trips, of journals still here</span>
-          <span className="font-mono text-sm text-navy-900">{tripStones.length}</span>
+          <span className="text-sm text-ink-body">Deleted trips, of journals still here</span>
+          <span className="font-mono text-sm text-ink-strong">{tripStones.length}</span>
         </li>
       </ul>
       {journalStones.length > 0 && (
         <div className="mt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
             Whole journals deleted — the name is held
           </h3>
-          <p className="mt-1 text-xs text-navy-700">
+          <p className="mt-1 text-xs text-ink-body">
             Nobody may sign up as this name until it is released. Releasing does not restore
             anything; it only lets the next person to type the name take it, and its old URLs stop
             answering &ldquo;gone&rdquo; and start answering &ldquo;not found&rdquo;.
@@ -1532,11 +1532,11 @@ function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones:
             {journalStones.map((stone) => (
               <li
                 key={stone.username}
-                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl border border-navy-200 bg-cream-50 p-3"
+                className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 rounded-xl border border-line-quiet bg-surface-base p-3"
               >
                 <div>
-                  <p className="font-mono text-sm text-navy-900">/{stone.username}</p>
-                  <p className="text-xs text-navy-700">
+                  <p className="font-mono text-sm text-ink-strong">/{stone.username}</p>
+                  <p className="text-xs text-ink-body">
                     “{stone.title}” · deleted {stone.deletedAt.slice(0, 10)}
                   </p>
                 </div>
@@ -1548,10 +1548,10 @@ function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones:
       )}
       {tripStones.length > 0 && (
         <div className="mt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
             One trip deleted — the journal is still here
           </h3>
-          <p className="mt-1 text-xs text-navy-700">
+          <p className="mt-1 text-xs text-ink-body">
             The journal itself was never touched and holds no name back. The record only keeps the
             trip&rsquo;s own old links answering &ldquo;gone&rdquo; rather than becoming a new trip
             of the same id; freeing it is{" "}
@@ -1564,12 +1564,12 @@ function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones:
             {tripStones.map((stone) => (
               <li
                 key={`${stone.username}/${stone.tripId}`}
-                className="rounded-xl border border-navy-200 bg-cream-50 p-3"
+                className="rounded-xl border border-line-quiet bg-surface-base p-3"
               >
-                <p className="font-mono text-sm text-navy-900">
+                <p className="font-mono text-sm text-ink-strong">
                   {stone.username}/{stone.tripId}
                 </p>
-                <p className="text-xs text-navy-700">
+                <p className="text-xs text-ink-body">
                   “{stone.title}” · deleted {stone.deletedAt.slice(0, 10)}
                 </p>
               </li>

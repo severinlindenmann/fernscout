@@ -95,7 +95,7 @@ export default async function Root() {
         <div
           role="note"
           className="border-b border-coral-600 bg-coral-300 px-4 py-1.5 text-center text-xs
-                     leading-5 text-navy-900"
+                     leading-5 text-on-bright"
         >
           {banner}
         </div>

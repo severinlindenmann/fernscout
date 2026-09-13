@@ -82,8 +82,8 @@ function Press({
         onClick={press}
         className={
           subtle
-            ? "rounded-full border border-navy-200 bg-white px-2.5 py-1 text-xs font-semibold text-navy-700 hover:bg-cream-100"
-            : "rounded-full border border-navy-200 bg-white px-3 py-1 text-xs font-semibold text-navy-700 hover:bg-cream-100"
+            ? "rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-body hover:bg-surface-subtle"
+            : "rounded-full border border-line-quiet bg-surface-raised px-3 py-1 text-xs font-semibold text-ink-body hover:bg-surface-subtle"
         }
       >
         {label}

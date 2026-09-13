@@ -100,7 +100,7 @@ describe("the daily bars", () => {
     expect(out).toContain("height:50%");
     // The empty day is a foot rather than an absence — a chart that silently
     // drops the quiet days makes one busy afternoon look like a trend.
-    expect(out).toContain("bg-cream-200");
+    expect(out).toContain("bg-surface-muted");
   });
 
   test("a day is split by what spent it, in proportion", () => {

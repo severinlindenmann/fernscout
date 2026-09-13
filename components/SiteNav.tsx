@@ -171,13 +171,13 @@ function TabBar({ entries }: { entries: NavEntry[] }) {
           aria-label={label}
           aria-current={active ? "page" : undefined}
           className={`flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full text-sm font-semibold transition-colors ${
-            strangerDoor ? "border border-navy-700 px-3.5 sm:px-4" : "px-2.5 sm:px-3"
+            strangerDoor ? "border border-line-ink px-3.5 sm:px-4" : "px-2.5 sm:px-3"
           } ${
             active
               ? "bg-yellow-400 text-yellow-950"
               : strangerDoor
-                ? "text-navy-900 hover:bg-navy-200/60"
-                : "text-navy-600 hover:bg-navy-200/60 hover:text-navy-900"
+                ? "text-ink-strong hover:bg-surface-selected/60"
+                : "text-ink-secondary hover:bg-surface-selected/60 hover:text-ink-strong"
           }`}
         >
           <Icon className="h-4 w-4" strokeWidth={2.2} aria-hidden />
@@ -208,7 +208,7 @@ function ListNav({ entries, onNavigate }: { entries: NavEntry[]; onNavigate?: ()
           onClick={onNavigate}
           aria-current={active ? "page" : undefined}
           className={`flex min-h-12 items-center gap-3 rounded-xl px-3 text-base font-semibold transition-colors ${
-            active ? "bg-yellow-400 text-yellow-950" : "text-navy-700 hover:bg-cream-100"
+            active ? "bg-yellow-400 text-yellow-950" : "text-ink-body hover:bg-surface-subtle"
           }`}
         >
           <Icon className="h-5 w-5 shrink-0" strokeWidth={2.2} aria-hidden />

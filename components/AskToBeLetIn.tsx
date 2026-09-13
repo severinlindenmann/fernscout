@@ -59,7 +59,7 @@ export default function AskToBeLetIn({ username }: { username: string }) {
     return (
       <p
         role="status"
-        className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 text-base leading-7 text-navy-700"
+        className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 text-base leading-7 text-ink-body"
       >
         {t("gate.askSent")}
       </p>
@@ -69,17 +69,17 @@ export default function AskToBeLetIn({ username }: { username: string }) {
   return (
     <form
       onSubmit={ask}
-      className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6"
+      className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6"
     >
-      <h2 className="font-display text-xl font-semibold text-navy-900">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
         {t("gate.askTitle")}
       </h2>
-      <p className="mt-2 text-base leading-7 text-navy-700">
+      <p className="mt-2 text-base leading-7 text-ink-body">
         {t("gate.askBody")}
       </p>
       <label
         htmlFor="ask-name"
-        className="mt-4 block text-base font-medium text-navy-700"
+        className="mt-4 block text-base font-medium text-ink-body"
       >
         {t("gate.askName")}
       </label>
@@ -90,7 +90,7 @@ export default function AskToBeLetIn({ username }: { username: string }) {
         required
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className="mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-base text-navy-900"
+        className="mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-base text-ink-strong"
       />
       <p role="alert" className="mt-3 text-base text-coral-600 empty:mt-0">
         {done === "failed" ? t("gate.askFailed") : ""}
@@ -99,7 +99,7 @@ export default function AskToBeLetIn({ username }: { username: string }) {
         busy={busy}
         type="submit"
         disabled={name.trim() === ""}
-        className="mt-4 min-h-12 w-full rounded-xl bg-navy-900 px-4 py-3 text-lg font-medium text-cream-50 disabled:opacity-50"
+        className="mt-4 min-h-12 w-full rounded-xl bg-action-strong px-4 py-3 text-lg font-medium text-on-action disabled:opacity-50"
         busyLabel={t("gate.askSending")}
       >
         {t("gate.askSubmit")}

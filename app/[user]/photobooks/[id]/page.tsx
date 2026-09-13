@@ -130,12 +130,12 @@ export default async function PhotobookOrderPage({
                carrier gave one, its own link. Markup with links in it, so a
                slot rather than a field on the view model. */
             print?.tracking && print.tracking.length > 0 ? (
-              <ul className="mt-3 space-y-1 border-t border-navy-100 pt-3">
+              <ul className="mt-3 space-y-1 border-t border-line-faint pt-3">
                 {print.tracking.map((code) => (
-                  <li key={code.code} className="text-sm text-navy-700">
+                  <li key={code.code} className="text-sm text-ink-body">
                     {code.url ? (
                       <a
-                        className="font-semibold text-navy-900 underline hover:no-underline"
+                        className="font-semibold text-ink-strong underline hover:no-underline"
                         href={code.url}
                       >
                         {code.carrier

@@ -64,13 +64,13 @@ export default function WeatherPageContent({ summary }: { summary: WeatherSummar
     <div className="min-h-screen">
       <PageHeader />
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("weatherPage.title")}
         </h1>
-        <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("weatherPage.subtitle")}</p>
+        <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{t("weatherPage.subtitle")}</p>
 
         {/* The denominator, before any figure that rests on it. */}
-        <p className="mt-4 rounded-xl border border-navy-200 bg-white px-4 py-3 text-sm text-navy-600">
+        <p className="mt-4 rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-sm text-ink-secondary">
           {tn("weatherPage.measured", days, {
             measured: String(summary.measured),
             days: String(days),
@@ -170,8 +170,8 @@ export default function WeatherPageContent({ summary }: { summary: WeatherSummar
                 const hi = d.tempMax ?? d.tempMin!;
                 return (
                   <li key={d.date} className="flex items-center gap-3 text-xs">
-                    <span className="w-16 shrink-0 text-navy-600">{formatShortDate(d.date)}</span>
-                    <span className="relative h-2.5 min-w-0 flex-1 rounded-full bg-navy-200/50">
+                    <span className="w-16 shrink-0 text-ink-secondary">{formatShortDate(d.date)}</span>
+                    <span className="relative h-2.5 min-w-0 flex-1 rounded-full bg-surface-selected/50">
                       <span
                         className="absolute inset-y-0 rounded-full"
                         style={{
@@ -183,7 +183,7 @@ export default function WeatherPageContent({ summary }: { summary: WeatherSummar
                       />
                     </span>
                     {/* Also the accessible reading of the bar beside it. */}
-                    <span className="w-24 shrink-0 text-right tabular-nums text-navy-900">
+                    <span className="w-24 shrink-0 text-right tabular-nums text-ink-strong">
                       {lo === hi ? deg(hi) : `${deg(lo)} – ${deg(hi)}`}
                     </span>
                   </li>
@@ -228,7 +228,7 @@ function Credit({ sources }: { sources: string[] }) {
   const { t } = useI18n();
   if (sources.length === 0) return null;
   return (
-    <p className="mt-10 text-xs text-navy-600">
+    <p className="mt-10 text-xs text-ink-secondary">
       {t("weatherPage.credit")}{" "}
       {sources.map((source, i) => {
         const credit = SOURCE_CREDIT[source];
@@ -240,7 +240,7 @@ function Credit({ sources }: { sources: string[] }) {
                 href={credit.href}
                 target="_blank"
                 rel="noreferrer nofollow"
-                className="underline hover:text-navy-900"
+                className="underline hover:text-ink-strong"
               >
                 {credit.label}
               </a>
@@ -265,8 +265,8 @@ function Section({
 }) {
   return (
     <section className="mt-10">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{title}</h2>
-      {note && <p className="mt-1 text-xs text-navy-600">{note}</p>}
+      <h2 className="font-display text-xl font-semibold text-ink-strong">{title}</h2>
+      {note && <p className="mt-1 text-xs text-ink-secondary">{note}</p>}
       <div className="mt-3">{children}</div>
     </section>
   );
@@ -286,13 +286,13 @@ function Stat({
   return (
     <div
       className={`rounded-xl border px-4 py-3 ${
-        hero ? "border-yellow-600/40 bg-yellow-400/25" : "border-navy-200 bg-white"
+        hero ? "border-yellow-600/40 bg-yellow-400/25" : "border-line-quiet bg-surface-raised"
       }`}
     >
-      <dt className="text-xs text-navy-600">{label}</dt>{" "}
-      <dd className={`font-display font-semibold text-navy-900 ${hero ? "text-2xl" : "text-xl"}`}>
+      <dt className="text-xs text-ink-secondary">{label}</dt>{" "}
+      <dd className={`font-display font-semibold text-ink-strong ${hero ? "text-2xl" : "text-xl"}`}>
         {value}
-        {sub && <> <span className="block text-xs font-normal text-navy-600">{sub}</span></>}
+        {sub && <> <span className="block text-xs font-normal text-ink-secondary">{sub}</span></>}
       </dd>
     </div>
   );

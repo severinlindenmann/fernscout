@@ -75,7 +75,7 @@ export default function MobileDaySheet({
   if (!current) return null;
 
   return (
-    <div className="sticky bottom-0 z-30 border-t border-navy-200 bg-cream-100/95 shadow-[0_-8px_24px_rgba(30,41,59,0.12)] backdrop-blur lg:hidden">
+    <div className="sticky bottom-0 z-30 border-t border-line-quiet bg-surface-subtle/95 shadow-[0_-8px_24px_rgba(30,41,59,0.12)] backdrop-blur lg:hidden">
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
@@ -85,7 +85,7 @@ export default function MobileDaySheet({
             transition={{ duration: CLOSE_MS / 1000, ease: "easeOut" }}
             className="overflow-hidden"
           >
-            <div className="flex gap-2 border-b border-navy-200 px-4 py-2">
+            <div className="flex gap-2 border-b border-line-quiet px-4 py-2">
               <button
                 onClick={() => {
                   onOverview();
@@ -93,8 +93,8 @@ export default function MobileDaySheet({
                 }}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
                   onOverviewActive
-                    ? "bg-navy-900 text-white"
-                    : "border border-navy-200 bg-white text-navy-700"
+                    ? "bg-action-strong text-on-action"
+                    : "border border-line-quiet bg-surface-raised text-ink-body"
                 }`}
               >
                 <LayoutDashboard className="h-3.5 w-3.5" />
@@ -114,9 +114,9 @@ export default function MobileDaySheet({
             </div>
             <div
               ref={listRef}
-              className="no-scrollbar max-h-[46vh] overflow-y-auto overscroll-contain border-b border-navy-200"
+              className="no-scrollbar max-h-[46vh] overflow-y-auto overscroll-contain border-b border-line-quiet"
             >
-              <ul className="divide-y divide-navy-200/70">
+              <ul className="divide-y divide-line-quiet/70">
                 {days.map((day, i) => {
                   const isCurrent = i === currentIndex;
                   const isPast = i < currentIndex;
@@ -134,7 +134,7 @@ export default function MobileDaySheet({
                         }}
                         aria-current={isCurrent ? "true" : undefined}
                         className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
-                          isCurrent ? "bg-yellow-400/20" : "active:bg-cream-50"
+                          isCurrent ? "bg-yellow-400/20" : "active:bg-surface-base"
                         }`}
                       >
                         <span
@@ -142,18 +142,18 @@ export default function MobileDaySheet({
                             isCurrent
                               ? "bg-yellow-400 text-yellow-950"
                               : isPast
-                                ? "bg-green-500 text-white"
-                                : "bg-white text-navy-600 ring-1 ring-navy-200"
+                                ? "bg-green-500 text-on-bright"
+                                : "bg-surface-raised text-ink-secondary ring-1 ring-line-quiet"
                           }`}
                         >
                           {i + 1}
                         </span>
 
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold text-navy-900">
+                          <span className="block truncate text-sm font-semibold text-ink-strong">
                             {flagFor(day.country, day.countryCode)} {day.location}
                           </span>
-                          <span className="block text-[11px] text-navy-600">
+                          <span className="block text-[11px] text-ink-secondary">
                             {formatShortDate(day.date)}
                             {day.updates > 1 && ` · ${day.updates} ${t("day.updates")}`}
                             {/* What was actually paid leads, converted beside
@@ -180,21 +180,21 @@ export default function MobileDaySheet({
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           aria-label={open ? t("day.hideDays") : t("day.chooseDay")}
-          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors active:bg-cream-50"
+          className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors active:bg-surface-base"
         >
           <span className="min-w-0 flex-1">
-            <span className="block truncate font-display text-sm font-semibold text-navy-900">
+            <span className="block truncate font-display text-sm font-semibold text-ink-strong">
               {flagFor(current.country, current.countryCode)} {current.location}
             </span>
-            <span className="block text-[11px] text-navy-600">
+            <span className="block text-[11px] text-ink-secondary">
               {formatShortDate(current.date)} · {t("day.label")} {currentIndex + 1}{" "}
               {t("day.of")} {days.length}
             </span>
           </span>
           {open ? (
-            <ChevronDown className="h-4 w-4 shrink-0 text-navy-600" />
+            <ChevronDown className="h-4 w-4 shrink-0 text-ink-secondary" />
           ) : (
-            <ChevronUp className="h-4 w-4 shrink-0 text-navy-600" />
+            <ChevronUp className="h-4 w-4 shrink-0 text-ink-secondary" />
           )}
         </button>
 

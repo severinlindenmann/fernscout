@@ -139,7 +139,7 @@ export default function PostcardCropper({
         // number, has a real slider of its own below.
         aria-label={hint}
         tabIndex={0}
-        className="relative block w-full touch-none select-none overflow-hidden rounded border border-navy-300 focus-visible:ring-2 focus-visible:ring-yellow-400"
+        className="relative block w-full touch-none select-none overflow-hidden rounded border border-line-strong focus-visible:ring-2 focus-visible:ring-yellow-400"
         style={{ aspectRatio: aspect, cursor: "grab" }}
         onPointerDown={(e) => {
           last.current = fromPoint(e.clientX, e.clientY);
@@ -206,7 +206,7 @@ export default function PostcardCropper({
           busy={saving}
           type="button"
           onClick={() => save(CENTRE)}
-          className="shrink-0 rounded-full border border-navy-300 px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-60"
+          className="shrink-0 rounded-full border border-line-strong px-3 py-1.5 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle disabled:opacity-60"
         >
           {resetLabel}
         </BusyButton>

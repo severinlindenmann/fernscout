@@ -30,10 +30,10 @@ export default function TestNotice() {
       data-test-notice
       className="mb-5 flex items-start gap-3 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3"
     >
-      <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" aria-hidden />
+      <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-on-bright" aria-hidden />
       <div className="min-w-0">
-        <p className="font-display text-base font-semibold text-navy-900">{t("test.title")}</p>
-        <p className="mt-1 text-sm leading-6 text-navy-900">{t("test.body")}</p>
+        <p className="font-display text-base font-semibold text-on-bright">{t("test.title")}</p>
+        <p className="mt-1 text-sm leading-6 text-on-bright">{t("test.body")}</p>
       </div>
     </div>
   );

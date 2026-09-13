@@ -90,6 +90,35 @@
   --background: var(--color-cream-50);
   --foreground: var(--color-navy-900);
 
+  /* Screen roles, separate from the brand hues above. A colour name cannot
+     answer both `text-navy-900` and `bg-navy-900` once the ground changes;
+     these variables say what the colour is doing instead. */
+  --surface-base: #fffaf0;
+  --surface-raised: #ffffff;
+  --surface-subtle: #fff3dc;
+  --surface-muted: #ffe9bd;
+  --surface-neutral: #f7f8fa;
+  --surface-neutral-strong: #eceef4;
+  --surface-selected: #d8dee8;
+  --ink-strong: #1e293b;
+  --ink-body: #3a4a63;
+  --ink-secondary: #43536b;
+  --ink-muted: #5a6a80;
+  --ink-faint: #8490a2;
+  --line-faint: #eceef4;
+  --line-quiet: #d8dee8;
+  --line-strong: #aeb7c5;
+  --line-prominent: #5a6a80;
+  --line-ink: #3a4a63;
+  --action-strong: #1e293b;
+  --action-strong-hover: #3a4a63;
+  --on-action: #fffaf0;
+  --on-bright: #1e293b;
+  --on-deep: #fffaf0;
+  --overlay-strong: #1e293b;
+  --overlay-ink: #ffffff;
+  --shadow-color: #1e293b;
+
   /* Every checkbox, radio, range and progress bar on the site, in one line —
      B702. Unset, the browser paints them in the operating system's blue,
      which is the one colour on the page that belongs to no palette; six of
@@ -139,6 +168,32 @@
 
   --color-blue-500: var(--color-blue-500);
 
+  --color-surface-base: var(--surface-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-neutral: var(--surface-neutral);
+  --color-surface-neutral-strong: var(--surface-neutral-strong);
+  --color-surface-selected: var(--surface-selected);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-body: var(--ink-body);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-line-faint: var(--line-faint);
+  --color-line-quiet: var(--line-quiet);
+  --color-line-strong: var(--line-strong);
+  --color-line-prominent: var(--line-prominent);
+  --color-line-ink: var(--line-ink);
+  --color-action-strong: var(--action-strong);
+  --color-action-strong-hover: var(--action-strong-hover);
+  --color-on-action: var(--on-action);
+  --color-on-bright: var(--on-bright);
+  --color-on-deep: var(--on-deep);
+  --color-overlay-strong: var(--overlay-strong);
+  --color-overlay-ink: var(--overlay-ink);
+  --color-shadow-color: var(--shadow-color);
+
   /* B1044 — each family's -ext variable carries the latin-ext subset, not
      preloaded (see app/layout.tsx), listed second so the browser reaches for
      it only when a character the first font lacks shows up. */
@@ -152,6 +207,74 @@
 html {
   /* Sticky header + day bar, so anchored jumps don't land under them. */
   scroll-padding-top: 7rem;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #171d29;
+  --foreground: #f2ecdd;
+  --surface-base: #171d29;
+  --surface-raised: #1f2736;
+  --surface-subtle: #242e40;
+  --surface-muted: #2b3750;
+  --surface-neutral: #20283a;
+  --surface-neutral-strong: #2a3550;
+  --surface-selected: #33405a;
+  --ink-strong: #f2ecdd;
+  --ink-body: #e6e0d2;
+  --ink-secondary: #d7d4ca;
+  --ink-muted: #c9c8c0;
+  --ink-faint: #b9bbc0;
+  --line-faint: #2a3550;
+  --line-quiet: #33405a;
+  --line-strong: #60708c;
+  --line-prominent: #8490a2;
+  --line-ink: #c9c8c0;
+  --action-strong: #f2ecdd;
+  --action-strong-hover: #c9c8c0;
+  --on-action: #171d29;
+  --on-bright: #1e293b;
+  --on-deep: #fffaf0;
+  --overlay-strong: #10151f;
+  --overlay-ink: #ffffff;
+  --shadow-color: #080b11;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --background: #171d29;
+    --foreground: #f2ecdd;
+    --surface-base: #171d29;
+    --surface-raised: #1f2736;
+    --surface-subtle: #242e40;
+    --surface-muted: #2b3750;
+    --surface-neutral: #20283a;
+    --surface-neutral-strong: #2a3550;
+    --surface-selected: #33405a;
+    --ink-strong: #f2ecdd;
+    --ink-body: #e6e0d2;
+    --ink-secondary: #d7d4ca;
+    --ink-muted: #c9c8c0;
+    --ink-faint: #b9bbc0;
+    --line-faint: #2a3550;
+    --line-quiet: #33405a;
+    --line-strong: #60708c;
+    --line-prominent: #8490a2;
+    --line-ink: #c9c8c0;
+    --action-strong: #f2ecdd;
+    --action-strong-hover: #c9c8c0;
+    --on-action: #171d29;
+    --on-bright: #1e293b;
+    --on-deep: #fffaf0;
+    --overlay-strong: #10151f;
+    --overlay-ink: #ffffff;
+    --shadow-color: #080b11;
+    color-scheme: dark;
+  }
 }
 
 body {
@@ -172,6 +295,18 @@ body {
   opacity: 0.035;
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] .grain::before {
+  opacity: 0.02;
+  mix-blend-mode: screen;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .grain::before {
+    opacity: 0.02;
+    mix-blend-mode: screen;
+  }
 }
 
 @keyframes path-pulse {
@@ -364,7 +499,7 @@ body {
 
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-navy-200) transparent;
+  scrollbar-color: var(--line-quiet) transparent;
 }
 
 /* Keyboard focus. Nearly every control here is a custom-styled button, so
@@ -452,7 +587,7 @@ select:disabled {
   }
 
   select:not([size]):not([multiple])::picker-icon {
-    color: var(--color-navy-500);
+    color: var(--ink-muted);
     flex: 0 0 auto;
     margin-inline-start: auto;
     transition: rotate 150ms ease;
@@ -462,11 +597,11 @@ select:disabled {
   }
 
   ::picker(select) {
-    border: 1px solid var(--color-navy-200);
+    border: 1px solid var(--line-quiet);
     border-radius: 12px;
-    background: var(--color-cream-50);
+    background: var(--surface-base);
     padding: 4px;
-    box-shadow: 0 12px 32px rgb(30 41 59 / 0.16);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow-color) 16%, transparent);
     /* The popup is the page's own surface now, so it inherits the page's own
        type rather than the OS's. */
     font: inherit;
@@ -482,7 +617,7 @@ select:disabled {
     gap: 8px;
     border-radius: 8px;
     padding: 8px 10px;
-    color: var(--color-navy-900);
+    color: var(--ink-strong);
     /* See the cap above: a long option wraps rather than widening the popup
        past the screen. */
     white-space: normal;
@@ -490,7 +625,7 @@ select:disabled {
 
   option:hover,
   option:focus {
-    background: var(--color-cream-100);
+    background: var(--surface-subtle);
     outline: none;
   }
 
@@ -515,31 +650,6 @@ select:disabled {
    log so chrome (header, rails) keeps its size. */
 .fs-scale-s [role="log"] { zoom: 0.93; }
 .fs-scale-l [role="log"] { zoom: 1.12; }
-
-/* The dark room — B1209 (D04), a manual toggle, room-scoped: the journal
-   pages keep their daylight brand. A first pass by scoped override of the
-   room's own surface classes; corners that stay light are B-tickets, not
-   reasons to invert a brand with a filter. */
-.fs-room-dark { color-scheme: dark; }
-.fs-room-dark.bg-navy-50, .fs-room-dark.bg-cream-50, .fs-room-dark .bg-navy-50 { background-color: #171d29; }
-.fs-room-dark .bg-white { background-color: #1f2736; }
-.fs-room-dark .bg-navy-100 { background-color: #2a3550; }
-.fs-room-dark .bg-cream-50 { background-color: #1f2736; }
-.fs-room-dark .bg-cream-100 { background-color: #242e40; }
-.fs-room-dark .bg-cream-200 { background-color: #2b3750; }
-.fs-room-dark .border-navy-100 { border-color: #2a3550; }
-.fs-room-dark .border-navy-200 { border-color: #33405a; }
-.fs-room-dark .border-navy-300 { border-color: #45536f; }
-.fs-room-dark .text-navy-900 { color: #f2ecdd; }
-.fs-room-dark .text-navy-800 { color: #e6e0d2; }
-.fs-room-dark .text-navy-700 { color: #c9c8c0; }
-.fs-room-dark .text-navy-600 { color: #a8aeba; }
-.fs-room-dark .text-navy-500 { color: #93a9bd; }
-.fs-room-dark .bg-navy-800 { background-color: #ffd23f; color: #1e293b; }
-.fs-room-dark input, .fs-room-dark textarea, .fs-room-dark select {
-  background-color: #171d29; color: #f2ecdd;
-}
-.fs-room-dark .shadow-sm { --tw-shadow-color: rgb(0 0 0 / 0.4); }
 
 /* One short pulse when an accepted write changed the previewed day —
    B1214 (D27). Removed for prefers-reduced-motion with everything else. */

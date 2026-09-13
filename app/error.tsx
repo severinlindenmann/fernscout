@@ -36,10 +36,10 @@ export default function Error({
 
   return (
     <main id="main" tabIndex={-1} className="mx-auto w-full max-w-xl px-6 py-20 sm:py-28">
-      <h1 className="font-display text-3xl font-semibold leading-tight text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl font-semibold leading-tight text-ink-strong sm:text-4xl">
         {t("err.crashTitle")}
       </h1>
-      <p className="mt-5 text-xl leading-8 text-navy-700">{t("err.crashBody")}</p>
+      <p className="mt-5 text-xl leading-8 text-ink-body">{t("err.crashBody")}</p>
 
       <div className="mt-9 flex flex-col gap-3 sm:flex-row">
         <button
@@ -52,7 +52,7 @@ export default function Error({
       </div>
 
       {error.digest && (
-        <p className="mt-8 font-mono text-sm text-navy-600">
+        <p className="mt-8 font-mono text-sm text-ink-secondary">
           {t("err.reference", { id: error.digest })}
         </p>
       )}

@@ -111,7 +111,7 @@ export default function AgentDoor({
     // viewport, and the `body` background (`--background`, `cream-50`) showed
     // through below it as a second, slightly different tone. `min-h-screen`
     // is the idiom every other full-bleed page here already uses instead.
-    <div className="min-h-screen bg-cream-100">
+    <div className="min-h-screen bg-surface-subtle">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-6 pt-6">
         {/* B1121 — `app/agent/layout.tsx` used to draw this above every page
             under `/agent`; it draws nothing now, so the door carries its own
@@ -120,8 +120,8 @@ export default function AgentDoor({
           fallbackHref="/"
           fallbackLabel={t("docs.backToSite", { name: siteName })}
           retraceLabel={t("nav.back")}
-          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-navy-700
-                     transition-colors hover:text-navy-900
+          className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
+                     transition-colors hover:text-ink-strong
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         />
         {/* The one page a stranger meets first, and it had no language
@@ -133,10 +133,10 @@ export default function AgentDoor({
             show what the product actually is. The chat vignette is that:
             a static, once-only conversation naming a real day and three real
             photographs, arriving bubble by bubble on first paint. */}
-        <h1 className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-tight text-navy-900">
+        <h1 className="font-display text-[clamp(1.5rem,5vw,2.25rem)] font-semibold leading-tight text-ink-strong">
           {t("agent.chatHeroTitle")}
         </h1>
-        <p className="mt-2 max-w-md text-lg leading-7 text-navy-700">
+        <p className="mt-2 max-w-md text-lg leading-7 text-ink-body">
           {t("agent.chatHeroLede")}
         </p>
         <ChatVignette />
@@ -155,15 +155,15 @@ export default function AgentDoor({
         {!signedIn && !signupEnabled && (
           <>
             <IdentitySignIn codeMinutes={codeMinutes} onDone={() => window.location.reload()} />
-            <p className="mt-6 text-base leading-7 text-navy-600">{t("agent.signupOff")}</p>
+            <p className="mt-6 text-base leading-7 text-ink-secondary">{t("agent.signupOff")}</p>
           </>
         )}
 
         {!signedIn && signupEnabled && (
           <div className="mt-6">
             {has === null ? (
-              <section className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
-                <h2 className="font-display text-xl font-semibold text-navy-900">
+              <section className="rounded-2xl border border-line-quiet bg-surface-base p-5 sm:p-6">
+                <h2 className="font-display text-xl font-semibold text-ink-strong">
                   {t("agent.haveJournal")}
                 </h2>
                 <div className="mt-4 flex flex-col gap-3">
@@ -177,7 +177,7 @@ export default function AgentDoor({
                   <button
                     type="button"
                     onClick={() => setHas(false)}
-                    className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-800 transition-colors hover:bg-cream-100"
+                    className="min-h-11 rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle"
                   >
                     {t("agent.haveJournalNo")}
                   </button>
@@ -223,7 +223,7 @@ export default function AgentDoor({
               <button
                 type="button"
                 onClick={() => setHas(null)}
-                className="mt-3 min-h-11 text-base text-navy-600 underline underline-offset-4 hover:text-navy-900"
+                className="mt-3 min-h-11 text-base text-ink-secondary underline underline-offset-4 hover:text-ink-strong"
               >
                 {t("agent.haveJournalAgain")}
               </button>
@@ -252,7 +252,7 @@ export default function AgentDoor({
               )}
             </div>
           ) : (
-            <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 text-base leading-7 text-navy-800 sm:p-6">
+            <p className="mt-6 rounded-2xl border border-line-quiet bg-surface-base p-5 text-base leading-7 text-ink-strong sm:p-6">
               {t("agent.noJournal")}
             </p>
           ))}
@@ -265,9 +265,9 @@ export default function AgentDoor({
             instead. The owner then dropped "why?" and the demo from it
             entirely (2026-09-10) — the vignette above does their job now;
             only the own-agent guide (B751/B804) remains. */}
-        <div className="mt-6 text-sm text-navy-600">
+        <div className="mt-6 text-sm text-ink-secondary">
           <details>
-            <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm text-navy-600 underline underline-offset-4">
+            <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm text-ink-secondary underline underline-offset-4">
               {t("agent.ownAgentOptional")}
             </summary>
             <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />

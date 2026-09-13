@@ -106,12 +106,12 @@ function Card({
       aria-checked={chosen}
       onClick={onChoose}
       className={`flex min-h-11 flex-col items-start gap-1.5 rounded-xl border-2 p-2.5 text-left ${
-        chosen ? "border-yellow-600 bg-yellow-50" : "border-navy-200 bg-white"
+        chosen ? "border-yellow-600 bg-yellow-50" : "border-line-quiet bg-surface-raised"
       }`}
     >
-      {children && <span className="text-navy-800">{children}</span>}
-      <span className="text-sm leading-tight font-semibold text-navy-900">{label}</span>
-      {hint && <span className="text-xs leading-snug text-navy-600">{hint}</span>}
+      {children && <span className="text-ink-strong">{children}</span>}
+      <span className="text-sm leading-tight font-semibold text-ink-strong">{label}</span>
+      {hint && <span className="text-xs leading-snug text-ink-secondary">{hint}</span>}
     </button>
   );
 }
@@ -259,8 +259,8 @@ export default function FirstBookFlow({
   const included = days.filter((d) => !excluded(d.date)).length;
 
   return (
-    <section className="mt-4 rounded-xl border-2 border-navy-900 bg-cream-100 p-3 sm:mt-6 sm:max-w-2xl sm:p-4">
-      <p className="text-xs font-semibold tracking-wide text-navy-600 uppercase">
+    <section className="mt-4 rounded-xl border-2 border-action-strong bg-surface-subtle p-3 sm:mt-6 sm:max-w-2xl sm:p-4">
+      <p className="text-xs font-semibold tracking-wide text-ink-secondary uppercase">
         {t("photobook.first.eyebrow")}
       </p>
 
@@ -278,7 +278,7 @@ export default function FirstBookFlow({
           <li
             key={s}
             aria-hidden
-            className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-yellow-600" : "bg-navy-200"}`}
+            className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-yellow-600" : "bg-surface-selected"}`}
           />
         ))}
       </ol>
@@ -406,7 +406,7 @@ export default function FirstBookFlow({
                   onClick={() => setDayExcluded(day.date, !excluded(day.date))}
                   className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg border-2 px-2.5 py-1.5 text-left ${
                     excluded(day.date)
-                      ? "border-navy-200 bg-white opacity-60"
+                      ? "border-line-quiet bg-surface-raised opacity-60"
                       : "border-yellow-600 bg-yellow-50"
                   }`}
                 >
@@ -414,17 +414,17 @@ export default function FirstBookFlow({
                     aria-hidden
                     className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 text-xs font-bold ${
                       excluded(day.date)
-                        ? "border-navy-300 text-transparent"
+                        ? "border-line-strong text-transparent"
                         : "border-yellow-600 bg-yellow-400 text-yellow-950"
                     }`}
                   >
                     ✓
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate text-sm font-semibold text-navy-900">
+                    <span className="block truncate text-sm font-semibold text-ink-strong">
                       {day.title}
                     </span>
-                    <span className="block truncate text-xs text-navy-600">{day.location}</span>
+                    <span className="block truncate text-xs text-ink-secondary">{day.location}</span>
                   </span>
                 </button>
               </li>
@@ -475,7 +475,7 @@ export default function FirstBookFlow({
               className={`flex aspect-square items-center justify-center rounded-md border-2 p-1 text-center text-[10px] font-semibold ${
                 !options.cover
                   ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                  : "border-navy-200 bg-white text-navy-600"
+                  : "border-line-quiet bg-surface-raised text-ink-secondary"
               }`}
             >
               {t("photobook.option.coverDefault")}
@@ -491,7 +491,7 @@ export default function FirstBookFlow({
                 aria-label={tile.caption || tile.src}
                 onClick={() => set("cover", tile.src)}
                 className={`relative block aspect-square w-full overflow-hidden rounded-md border-2 ${
-                  options.cover === tile.src ? "border-yellow-600" : "border-navy-200"
+                  options.cover === tile.src ? "border-yellow-600" : "border-line-quiet"
                 }`}
               >
                 <Image src={tile.src} loader={mediaLoader} alt="" fill sizes="20vw" className="object-cover" />
@@ -518,21 +518,21 @@ export default function FirstBookFlow({
 
       {at === "summary" && (
         <div className="mt-3">
-          <h2 className="font-display text-lg font-semibold text-navy-900">
+          <h2 className="font-display text-lg font-semibold text-ink-strong">
             {t("photobook.first.summary")}
           </h2>
           {preview ? (
             <>
               {/* The binding, stated with the page count: Gelato glues every
                   photobook, so this is a fact rather than a choice. */}
-              <p className="mt-2 text-sm text-navy-700">
+              <p className="mt-2 text-sm text-ink-body">
                 {t("photobook.first.bindingPerfect", { pages: String(preview.pages) })}
               </p>
             </>
           ) : (
-            <p className="mt-2 text-sm text-navy-600">{t("photobook.first.planning")}</p>
+            <p className="mt-2 text-sm text-ink-secondary">{t("photobook.first.planning")}</p>
           )}
-          <p className="mt-3 text-sm text-navy-600">{t("photobook.first.changeable")}</p>
+          <p className="mt-3 text-sm text-ink-secondary">{t("photobook.first.changeable")}</p>
         </div>
       )}
 
@@ -543,7 +543,7 @@ export default function FirstBookFlow({
           <button
             type="button"
             onClick={() => (at === "summary" ? onDone() : next())}
-            className="min-h-11 w-full rounded-full border-2 border-navy-900 bg-navy-900 px-5 text-sm font-semibold text-white sm:w-auto"
+            className="min-h-11 w-full rounded-full border-2 border-action-strong bg-action-strong px-5 text-sm font-semibold text-on-action sm:w-auto"
           >
             {t(at === "summary" ? "photobook.first.open" : "photobook.first.next")}
           </button>
@@ -552,7 +552,7 @@ export default function FirstBookFlow({
               <button
                 type="button"
                 onClick={() => setStep((s) => s - 1)}
-                className="min-h-11 text-sm font-semibold text-navy-600 underline"
+                className="min-h-11 text-sm font-semibold text-ink-secondary underline"
               >
                 {t("photobook.first.back")}
               </button>
@@ -566,7 +566,7 @@ export default function FirstBookFlow({
               <button
                 type="button"
                 onClick={onDone}
-                className="min-h-11 text-sm font-semibold text-navy-600 underline"
+                className="min-h-11 text-sm font-semibold text-ink-secondary underline"
               >
                 {t("photobook.first.skip")}
               </button>
@@ -608,8 +608,8 @@ function Question({
 }) {
   return (
     <div className="mt-3">
-      <h2 className="font-display text-lg font-semibold text-navy-900">{heading}</h2>
-      <p className="mt-1 text-sm text-navy-600">{hint}</p>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">{heading}</h2>
+      <p className="mt-1 text-sm text-ink-secondary">{hint}</p>
       <div
         role={plain ? undefined : multi ? "group" : "radiogroup"}
         aria-label={plain ? undefined : heading}
@@ -617,7 +617,7 @@ function Question({
       >
         {children}
       </div>
-      {multi && <p className="mt-2 text-xs text-navy-500">{t("photobook.first.extrasMulti")}</p>}
+      {multi && <p className="mt-2 text-xs text-ink-muted">{t("photobook.first.extrasMulti")}</p>}
     </div>
   );
 }

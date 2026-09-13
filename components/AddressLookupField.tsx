@@ -180,13 +180,13 @@ export default function AddressLookupField({
         // genuine "no matches" and is what let this sit broken for a week.
         <div
           role="status"
-          className="absolute z-10 mt-1 w-full rounded-xl border border-navy-200 bg-white px-4 py-2 text-base text-navy-600 shadow-lg"
+          className="absolute z-10 mt-1 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-2 text-base text-ink-secondary shadow-lg"
         >
           {unavailable}
         </div>
       )}
       {showList && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-navy-200 bg-white shadow-lg">
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-line-quiet bg-surface-raised shadow-lg">
           <ul id={listId} role="listbox" aria-label={label} className="max-h-64 overflow-y-auto">
             {suggestions.map((suggestion, i) => (
               <li
@@ -194,7 +194,7 @@ export default function AddressLookupField({
                 id={`${listId}-${i}`}
                 role="option"
                 aria-selected={i === highlight}
-                className={`cursor-pointer px-4 py-2 text-base ${i === highlight ? "bg-cream-100" : ""}`}
+                className={`cursor-pointer px-4 py-2 text-base ${i === highlight ? "bg-surface-subtle" : ""}`}
                 // mousedown, not click — CountryField's own note applies here
                 // too: it fires before the input's blur closes the list.
                 onMouseDown={(e) => {
@@ -215,7 +215,7 @@ export default function AddressLookupField({
               what keeps it from being read as an option: nothing in here
               carries `role="option"` or an `aria-selected`, and `aria-controls`
               on the input still names only `listId`, the `<ul>` itself. */}
-          <p className="border-t border-navy-100 px-4 py-1.5 text-xs text-navy-400">{attribution}</p>
+          <p className="border-t border-line-faint px-4 py-1.5 text-xs text-ink-faint">{attribution}</p>
         </div>
       )}
     </div>

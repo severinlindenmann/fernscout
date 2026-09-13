@@ -218,7 +218,7 @@ export default function Landing({
       // every panel inside, so a card reads as a thing sitting on the page
       // rather than a border on a document. Scoped to this page: nothing
       // outside `/` and `/agent` changes ground.
-      <div className="min-h-full bg-cream-100">
+      <div className="min-h-full bg-surface-subtle">
         <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
           {header}
           <YourJournals email={home.email} journals={home.journals} />
@@ -236,7 +236,7 @@ export default function Landing({
             journal yet.
           */}
           {!helperEnabled && !home.journals.some((journal) => journal.role === "owner") && (
-            <div className="mt-12 border-t border-navy-200 pt-8">
+            <div className="mt-12 border-t border-line-quiet pt-8">
               <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
             </div>
           )}
@@ -255,7 +255,7 @@ export default function Landing({
   }
 
   return (
-    <div className="min-h-full bg-cream-100">
+    <div className="min-h-full bg-surface-subtle">
       <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
         {header}
         {/*
@@ -286,9 +286,9 @@ export default function Landing({
              swapping it out is the flash this exists to prevent. Cream-200
              against a cream-100 ground, not cream-100 against itself. */
           <div aria-hidden className="mt-6 animate-pulse space-y-4">
-            <div className="h-9 w-2/3 rounded bg-cream-200" />
-            <div className="h-24 rounded-xl bg-cream-200" />
-            <div className="h-24 rounded-xl bg-cream-200" />
+            <div className="h-9 w-2/3 rounded bg-surface-muted" />
+            <div className="h-24 rounded-xl bg-surface-muted" />
+            <div className="h-24 rounded-xl bg-surface-muted" />
           </div>
         ) : (
           <>

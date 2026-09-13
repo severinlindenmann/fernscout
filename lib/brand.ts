@@ -16,6 +16,7 @@
 import { readRepoFile, section } from "./docs";
 
 export type Swatch = { token: string; hex: string };
+export type ScreenTheme = "light" | "dark";
 
 /**
  * Every `--color-*` token in `app/globals.css`, in file order.
@@ -33,6 +34,20 @@ export function palette(css = readRepoFile("app/globals.css")): Swatch[] {
     token,
     hex: hex.toLowerCase(),
   }));
+}
+
+/** The semantic screen colours for one theme, parsed from the same stylesheet. */
+export function screenPalette(theme: ScreenTheme, css = readRepoFile("app/globals.css")): Swatch[] {
+  const source =
+    theme === "dark"
+      ? css.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1]
+      : css.match(/:root\s*\{([\s\S]*?)\n\}/)?.[1];
+  if (!source) return [];
+  return [
+    ...source.matchAll(
+      /--((?:surface|ink|line|action|on-|overlay|shadow)[a-z-]*):\s*(#[0-9a-fA-F]{6})/g,
+    ),
+  ].map(([, token, hex]) => ({ token, hex: hex.toLowerCase() }));
 }
 
 /** WCAG 2.x relative luminance of a `#rrggbb`. */

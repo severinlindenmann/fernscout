@@ -258,7 +258,7 @@ export default function WorldMap({
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-2xl border border-navy-200 bg-sky-300 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-line-quiet bg-sky-300 shadow-sm">
         {/* role="group", not role="img": img makes every descendant
             presentational, which hid the focusable cluster markers below from
             assistive tech entirely. */}
@@ -644,19 +644,19 @@ export default function WorldMap({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 12 }}
               transition={{ duration: 0.2 }}
-              className="absolute inset-x-3 bottom-3 rounded-xl border border-navy-200 bg-white/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm"
+              className="absolute inset-x-3 bottom-3 rounded-xl border border-line-quiet bg-surface-raised/95 p-3 shadow-lg backdrop-blur sm:inset-x-auto sm:left-4 sm:max-w-sm"
             >
               <button
                 onClick={() => setSelected(null)}
                 aria-label="Close"
-                className="absolute right-2 top-2 rounded-full p-1 text-navy-600 hover:bg-navy-200/60 hover:text-navy-900"
+                className="absolute right-2 top-2 rounded-full p-1 text-ink-secondary hover:bg-surface-selected/60 hover:text-ink-strong"
               >
                 <X className="h-4 w-4" />
               </button>
-              <div className="font-display text-base font-semibold text-navy-900">
+              <div className="font-display text-base font-semibold text-ink-strong">
                 {selected.location}
               </div>
-              <div className="text-xs text-navy-600">
+              <div className="text-xs text-ink-secondary">
                 {flagFor(selected.country, selected.countryCode)} {selected.country} ·{" "}
                 {formatShortDate(selected.firstDate)}
                 {selected.lastDate !== selected.firstDate &&
@@ -671,7 +671,7 @@ export default function WorldMap({
                     .map((m) => (
                       <span
                         key={m.src}
-                        className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-md border border-navy-200 bg-cream-200"
+                        className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-md border border-line-quiet bg-surface-muted"
                       >
                         {m.type === "video" ? (
                           <video src={m.src} className="h-full w-full object-cover" muted />
@@ -691,7 +691,7 @@ export default function WorldMap({
               )}
               <a
                 href={href(`/day/${selected.entries[0].slug}`)}
-                className="mt-2 inline-block text-sm font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
+                className="mt-2 inline-block text-sm font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
               >
                 {t("map.readDay")} →
               </a>
@@ -705,7 +705,7 @@ export default function WorldMap({
           {usedModes.map((mode) => {
             const style = TRANSPORT_STYLE[mode];
             return (
-              <span key={mode} className="flex items-center gap-2 text-xs text-navy-600">
+              <span key={mode} className="flex items-center gap-2 text-xs text-ink-secondary">
                 {/* The swatch bows by the same fraction the real leg does, so
                     the legend teaches the shape and not only the colour — a
                     flight curves here exactly as it curves up there. Its own
@@ -745,7 +745,7 @@ function MapButton({
       onClick={onClick}
       aria-label={label}
       title={label}
-      className="flex h-11 w-11 items-center justify-center rounded-lg border border-navy-200 bg-white/95 text-navy-700 shadow-sm transition-colors hover:bg-white hover:text-navy-900"
+      className="flex h-11 w-11 items-center justify-center rounded-lg border border-line-quiet bg-surface-raised/95 text-ink-body shadow-sm transition-colors hover:bg-surface-raised hover:text-ink-strong"
     >
       {children}
     </button>

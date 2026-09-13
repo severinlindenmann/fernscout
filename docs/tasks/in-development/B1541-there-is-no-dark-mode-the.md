@@ -65,6 +65,40 @@ The decisions are now settled in the plan:
 **Not in scope:** a per-journal dark palette an owner chooses, and anything
 about dark PDF/print output or cross-device preference sync.
 
+## Implementation notes
+
+Implemented on `b1541-dark-mode` on 2026-09-13. The light-only utility uses
+across `app/` and `components/` now point at semantic surface, ink, line,
+action and overlay roles; the original brand ramps remain available for the
+waymark, status accents and print work. Charts and native select popovers use
+the same screen roles, while the photobook/postcard renderers and print specs
+were not changed.
+
+`components/ThemePicker.tsx` owns the browser-local radio group and
+`components/ThemeScript.tsx` applies a validated explicit choice from the
+document head before first paint. The latter follows Next 16's inline-script
+pattern: executable in the server-rendered document and inert on client
+renders, avoiding React's script warning on soft/error navigation. Automatic
+stores no value and is therefore a live CSS media-query choice. The old
+helper-only `fs.agent.dark` switch was removed.
+
+Verification evidence is under
+`.claude/runs/2026-09-13-b1541/B1541/`: existing landing, journal, Alps trip
+and Susten day pages, `/me`, `/agent`, and all six branding workbenches were
+captured at desktop and 390 px in light and dark. The interaction record at
+`interaction/me-light-override.json` shows a Light click overriding a dark OS,
+persisting `fs.theme=light`, and remaining selected after reload. The page
+captures at `interaction/me-dark-over-light.json` and
+`interaction/me-auto-live.json` also show Dark overriding a light OS and
+Automatic changing from the light to dark surface on a live OS media change,
+without a reload. The captures have no theme-related console error or
+horizontal overflow; the demo journal's existing unauthenticated reactions
+request still answers 404.
+
+`npm run verify` passes: production build, typecheck, lint, 7,648 tests (four
+environment-dependent skips), and knip. The focused theme, contrast, locale,
+undefined-token, navigation and chart checks pass as 127 tests.
+
 ## Acceptance
 
 - With no explicit choice and the OS in dark mode, the landing page, a journal,

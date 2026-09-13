@@ -91,25 +91,25 @@ export default function AgentKeys({
 
   return (
     <div className="mt-5">
-      <h3 className="font-display text-base font-semibold text-navy-900">
+      <h3 className="font-display text-base font-semibold text-ink-strong">
         {t("me.keysTitle")}
       </h3>
-      <p className="mt-1 text-base leading-7 text-navy-700">
+      <p className="mt-1 text-base leading-7 text-ink-body">
         {t("me.keysBody")}
       </p>
       <ul className="mt-3 space-y-2">
         {keys.map((key) => (
           <li
             key={key.id}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-navy-200 bg-white px-4 py-3"
+            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line-quiet bg-surface-raised px-4 py-3"
           >
             <span className="text-base">
-              <span className="font-semibold text-navy-900">
+              <span className="font-semibold text-ink-strong">
                 {t(
                   key.kind === "handover" ? "me.keysHandover" : "me.keysAgent",
                 )}
               </span>
-              <span className="block text-sm text-navy-600">
+              <span className="block text-sm text-ink-secondary">
                 {[
                   t("me.keysUntil", {
                     date: new Date(key.expiresAt).toLocaleString(),
@@ -126,7 +126,7 @@ export default function AgentKeys({
               busy={busy === key.id}
               type="button"
               onClick={() => revoke(key.id)}
-              className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
+              className="rounded-lg border border-line-quiet px-3 py-1 text-sm text-ink-body disabled:opacity-50"
             >
               {t("me.keysRevoke")}
             </BusyButton>

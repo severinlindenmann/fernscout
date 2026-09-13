@@ -177,38 +177,38 @@ export default function ReadTheBookView({
       ref={dialog}
       aria-label={t("photobook.read.heading")}
       onClose={() => (dialog.current?.returnValue === "order" ? onOrder() : onBack())}
-      className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-cream-50 p-0 backdrop:bg-navy-900/40"
+      className="fixed inset-0 z-50 m-0 flex h-full max-h-none w-full max-w-none flex-col border-0 bg-surface-base p-0 backdrop:bg-overlay-strong/40"
     >
-      <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
+      <div className="flex items-center gap-3 border-b border-line-quiet px-4 py-2">
         <button
           type="button"
           onClick={dismiss}
-          className="min-h-11 shrink-0 text-sm font-semibold text-navy-800 underline"
+          className="min-h-11 shrink-0 text-sm font-semibold text-ink-strong underline"
         >
           ← {t("photobook.read.back")}
         </button>
-        <p className="truncate text-sm font-semibold text-navy-900">
+        <p className="truncate text-sm font-semibold text-ink-strong">
           {t("photobook.read.heading")}
         </p>
       </div>
 
       {hasKeyboard && (
-        <p className="px-4 py-1 text-xs text-navy-600">{t("photobook.composer.keyHint")}</p>
+        <p className="px-4 py-1 text-xs text-ink-secondary">{t("photobook.composer.keyHint")}</p>
       )}
 
       <iframe
         ref={frame}
         srcDoc={html}
-        className="min-h-0 w-full flex-1 border-0 bg-cream-100"
+        className="min-h-0 w-full flex-1 border-0 bg-surface-subtle"
         title={t("photobook.read.heading")}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-navy-200 px-4 py-3">
-        {summary && <p className="text-sm text-navy-700">{summary}</p>}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-quiet px-4 py-3">
+        {summary && <p className="text-sm text-ink-body">{summary}</p>}
         <button
           type="button"
           onClick={() => dialog.current?.close("order")}
-          className="min-h-11 flex-1 rounded-full bg-navy-900 px-5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 sm:flex-none"
+          className="min-h-11 flex-1 rounded-full bg-action-strong px-5 text-sm font-semibold text-on-action transition-colors hover:bg-action-strong-hover sm:flex-none"
         >
           {t("photobook.read.order")}
         </button>

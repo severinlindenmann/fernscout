@@ -61,7 +61,7 @@ export default function DeleteTrip({
   }
 
   return (
-    <div className="mt-3 border-t border-navy-200 pt-3">
+    <div className="mt-3 border-t border-line-quiet pt-3">
       {inventory ? (
         <ConfirmPanel
           label={t("del.tripButton")}

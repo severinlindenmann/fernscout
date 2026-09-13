@@ -289,7 +289,7 @@ export default function SlideShow({
           .fs-present-frame { width: 100vw; height: 100vh; }
         }
       `}</style>
-      <div ref={containerRef} className="relative overflow-hidden bg-navy-900 fs-present-frame">
+      <div ref={containerRef} className="relative overflow-hidden bg-overlay-strong fs-present-frame">
         {cut === "full" && fullStep ? (
           <>
             {/* Map layer — always mounted so the camera keeps its position. */}
@@ -346,7 +346,7 @@ export default function SlideShow({
 
             {/* Caption — place, when, and one line of what. */}
             {fullPlace && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-900 via-navy-900/70 to-transparent px-[4%] pb-[14%] pt-[10%]">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong via-overlay-strong/70 to-transparent px-[4%] pb-[14%] pt-[10%]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`cap-${index}`}
@@ -355,10 +355,10 @@ export default function SlideShow({
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.35 }}
                   >
-                    <div className="font-display font-semibold text-white text-[clamp(1.5rem,4.2vw,3.25rem)]">
+                    <div className="font-display font-semibold text-overlay-ink text-[clamp(1.5rem,4.2vw,3.25rem)]">
                       {flagFor(fullPlace.country, fullPlace.countryCode)} {fullPlace.location}
                     </div>
-                    <div className="mt-1 text-white/70 text-[clamp(0.8rem,1.4vw,1.25rem)]">
+                    <div className="mt-1 text-overlay-ink/70 text-[clamp(0.8rem,1.4vw,1.25rem)]">
                       {showingFullMedia && fullStep.kind === "media" ? (
                         <>
                           {fullStep.dayLabel}
@@ -393,15 +393,15 @@ export default function SlideShow({
         {/* Progress */}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2">
           {Array.from({ length: total }).map((_, i) => (
-            <div key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/25">
-              {i < index && <div className="h-full w-full bg-white/80" />}
+            <div key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-overlay-ink/25">
+              {i < index && <div className="h-full w-full bg-surface-raised/80" />}
               {i === index && (
                 <motion.div
                   key={`p-${index}-${isPlaying}`}
                   initial={{ width: "0%" }}
                   animate={{ width: isPlaying ? "100%" : "35%" }}
                   transition={{ duration: isPlaying ? duration / 1000 : 0.3, ease: "linear" }}
-                  className="h-full bg-white"
+                  className="h-full bg-surface-raised"
                 />
               )}
             </div>
@@ -441,7 +441,7 @@ export default function SlideShow({
                   onClick={toggleFullscreen}
                   aria-label={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
                   title={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
-                  className="rounded-full bg-white/10 p-2.5 text-white/90 transition-colors hover:bg-white/20"
+                  className="rounded-full bg-overlay-ink/10 p-2.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
                 >
                   {isFullscreen ? (
                     <Minimize2 className="h-5 w-5" />
@@ -453,7 +453,7 @@ export default function SlideShow({
                   onClick={onClose}
                   aria-label={t("show.close")}
                   title={t("show.close")}
-                  className="rounded-full bg-white/10 p-2.5 text-white/90 transition-colors hover:bg-white/20"
+                  className="rounded-full bg-overlay-ink/10 p-2.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -485,17 +485,17 @@ export default function SlideShow({
                     <ChevronRight className="h-5 w-5" />
                   </Ctrl>
                 </div>
-                <div className="flex items-center gap-1 rounded-full bg-white/10 px-1.5 py-1.5">
+                <div className="flex items-center gap-1 rounded-full bg-overlay-ink/10 px-1.5 py-1.5">
                   <button
                     onClick={() => setDwellSeconds((s) => Math.max(MIN_DWELL_S, s - 1))}
                     disabled={dwellSeconds <= MIN_DWELL_S}
                     aria-label={t("show.slower")}
                     title={t("show.slower")}
-                    className="rounded-full p-1.5 text-white/90 transition-colors hover:bg-white/20 disabled:opacity-30"
+                    className="rounded-full p-1.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="w-12 text-center text-xs tabular-nums text-white/80">
+                  <span className="w-12 text-center text-xs tabular-nums text-overlay-ink/80">
                     {t("show.perSlide", { seconds: String(dwellSeconds) })}
                   </span>
                   <button
@@ -503,7 +503,7 @@ export default function SlideShow({
                     disabled={dwellSeconds >= MAX_DWELL_S}
                     aria-label={t("show.faster")}
                     title={t("show.faster")}
-                    className="rounded-full p-1.5 text-white/90 transition-colors hover:bg-white/20 disabled:opacity-30"
+                    className="rounded-full p-1.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
                   >
                     <Plus className="h-3.5 w-3.5" />
                   </button>
@@ -551,9 +551,9 @@ function NarratedSlide({
           />
         </motion.div>
       ) : (
-        <div className="absolute inset-0 bg-gradient-to-br from-navy-900 via-navy-700 to-sky-500/40 grain" />
+        <div className="absolute inset-0 bg-gradient-to-br from-overlay-strong via-overlay-strong to-sky-500/40 grain" />
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-navy-900/95 via-navy-900/25 to-navy-900/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-overlay-strong/95 via-overlay-strong/25 to-overlay-strong/10" />
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -568,7 +568,7 @@ function NarratedSlide({
             {flagFor(slide.country, slide.countryCode)} {slide.location} · {dateLabel}
           </div>
           {headline && (
-            <div className="mt-2 font-display font-semibold leading-tight text-white text-[clamp(1.75rem,5vw,4.5rem)]">
+            <div className="mt-2 font-display font-semibold leading-tight text-overlay-ink text-[clamp(1.75rem,5vw,4.5rem)]">
               {headline}
             </div>
           )}
@@ -594,7 +594,7 @@ function CutTab({
       onClick={onClick}
       aria-pressed={active}
       className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-        active ? "bg-yellow-400 text-yellow-950" : "text-white/80 hover:bg-white/10"
+        active ? "bg-yellow-400 text-yellow-950" : "text-overlay-ink/80 hover:bg-overlay-ink/10"
       }`}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -625,7 +625,7 @@ function Ctrl({
       className={`rounded-full p-3 transition-colors disabled:opacity-30 ${
         primary
           ? "bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
-          : "bg-white/10 text-white hover:bg-white/20"
+          : "bg-overlay-ink/10 text-overlay-ink hover:bg-overlay-ink/20"
       }`}
     >
       {children}

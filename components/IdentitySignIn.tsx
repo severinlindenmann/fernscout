@@ -154,7 +154,7 @@ export default function IdentitySignIn({
   return (
     <section
       ref={panelRef}
-      className="relative mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6"
+      className="relative mt-6 rounded-2xl border border-line-quiet bg-surface-base p-5 sm:p-6"
     >
       {flying && origin && (
         <EnvelopeFly
@@ -163,17 +163,17 @@ export default function IdentitySignIn({
           onDone={() => setFlying(false)}
         />
       )}
-      <h2 className="font-display text-xl font-semibold text-navy-900">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
         {t("home.signInTitle")}
       </h2>
 
       {unavailable ? (
-        <p role="alert" className="mt-2 text-base leading-7 text-navy-700">
+        <p role="alert" className="mt-2 text-base leading-7 text-ink-body">
           {t("home.signInUnavailable")}
         </p>
       ) : step === "email" ? (
         <form onSubmit={requestCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {t("home.signInBody")}
           </p>
           {/* The inset label — B733's addendum. The label lives *inside* the
@@ -184,10 +184,10 @@ export default function IdentitySignIn({
           {/* One focus indicator, on the wrapper — B752. The ring alone is
               enough; a border colour change stacked on top of it read as a
               second, thicker edge with nothing between them. */}
-          <div className="mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="mt-4 min-h-11 rounded-xl border border-line-strong bg-surface-base px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500">
             <label
               htmlFor="identity-email"
-              className="block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600"
+              className="block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary"
             >
               {t("me.signInEmail")}
             </label>
@@ -209,7 +209,7 @@ export default function IdentitySignIn({
               // cannot do this: it lives in `@layer utilities`, and an
               // unlayered rule like the global one always wins over a
               // layered one regardless of specificity or order.
-              className="block w-full border-0 bg-transparent p-0 text-base text-navy-900 focus:outline-none focus:ring-0 quiet-inner-focus"
+              className="block w-full border-0 bg-transparent p-0 text-base text-ink-strong focus:outline-none focus:ring-0 quiet-inner-focus"
             />
           </div>
           {/* `sendRef` is what the flight is measured from — B762. The
@@ -235,7 +235,7 @@ export default function IdentitySignIn({
           {/* Quiet reassurance under the control — the real TTL, not a
               written-in "ten", so the sentence cannot outlive a change to
               CODE_TTL_MINUTES (B426). */}
-          <p className="mt-3 text-center text-sm text-navy-600">
+          <p className="mt-3 text-center text-sm text-ink-secondary">
             {t("me.signInHint", { minutes: codeMinutes })}
           </p>
         </form>
@@ -244,13 +244,13 @@ export default function IdentitySignIn({
           {/* The number comes from CODE_TTL_MS, not from the sentence — see
               CODE_TTL_MINUTES. This is a client component, so it is passed in
               rather than imported. */}
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {t("home.signInSent", { minutes: codeMinutes })}
           </p>
-          <div className="mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="mt-4 min-h-11 rounded-xl border border-line-strong bg-surface-base px-4 py-2 focus-within:ring-2 focus-within:ring-blue-500">
             <label
               htmlFor="identity-code"
-              className="block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600"
+              className="block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary"
             >
               {t("me.signInCode")}
             </label>
@@ -274,7 +274,7 @@ export default function IdentitySignIn({
               onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
               aria-describedby={wrong ? "identity-error" : undefined}
               aria-invalid={wrong ? true : undefined}
-              className="block w-full border-0 bg-transparent p-0 font-mono text-2xl tracking-[0.3em] text-navy-900 focus:outline-none focus:ring-0 quiet-inner-focus"
+              className="block w-full border-0 bg-transparent p-0 font-mono text-2xl tracking-[0.3em] text-ink-strong focus:outline-none focus:ring-0 quiet-inner-focus"
             />
           </div>
           <p
@@ -299,7 +299,7 @@ export default function IdentitySignIn({
               setCode("");
               setWrong(false);
             }}
-            className="mt-3 min-h-11 text-base text-navy-600 underline underline-offset-4"
+            className="mt-3 min-h-11 text-base text-ink-secondary underline underline-offset-4"
           >
             {t("me.signInAgain")}
           </button>

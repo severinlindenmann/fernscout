@@ -115,12 +115,12 @@ export default function OwnerTools({
   return (
     <section
       aria-label={t("owner.onlyYou")}
-      className="mt-8 rounded-xl border border-navy-200 bg-cream-100 p-3"
+      className="mt-8 rounded-xl border border-line-quiet bg-surface-subtle p-3"
     >
-      <p className="font-display text-sm font-semibold text-navy-900">
+      <p className="font-display text-sm font-semibold text-ink-strong">
         {t("owner.onlyYou")}
       </p>
-      <p className="mt-0.5 text-xs leading-5 text-navy-600">
+      <p className="mt-0.5 text-xs leading-5 text-ink-secondary">
         {t("owner.onlyYouBody")}
       </p>
 
@@ -174,7 +174,7 @@ export default function OwnerTools({
           below it is the same intent said in words. B844's box, moved by B877,
           and drawn as a row rather than an underlined line by B1007. */}
       {helper && (
-        <div className="mt-3 border-t border-navy-200 pt-3">
+        <div className="mt-3 border-t border-line-quiet pt-3">
           <AgentRow
             href={room}
             tone="yellow"

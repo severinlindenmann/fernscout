@@ -120,14 +120,14 @@ export default function Pricing({ locale }: { locale: string }) {
 
   return (
     <section className="mt-12" aria-labelledby="pricing-title">
-      <h2 id="pricing-title" className="font-display text-2xl font-semibold text-navy-900">
+      <h2 id="pricing-title" className="font-display text-2xl font-semibold text-ink-strong">
         {t("pricing.title")}
       </h2>
-      <p className="mt-2 leading-relaxed text-navy-700">{t("pricing.lede")}</p>
+      <p className="mt-2 leading-relaxed text-ink-body">{t("pricing.lede")}</p>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2">
-        <div className="rounded-xl border border-navy-200 bg-cream-50 p-5">
-          <h3 className="font-display text-lg font-semibold text-navy-900">
+        <div className="rounded-xl border border-line-quiet bg-surface-base p-5">
+          <h3 className="font-display text-lg font-semibold text-ink-strong">
             {t("pricing.freeTitle")}
           </h3>
           <ul className="mt-3 space-y-1.5">
@@ -149,9 +149,9 @@ export default function Pricing({ locale }: { locale: string }) {
               </span>
             </li>
             {free.map((item) => (
-              <li key={item} className="flex gap-2 text-navy-700">
+              <li key={item} className="flex gap-2 text-ink-body">
                 <Check
-                  className="mt-1 h-4 w-4 shrink-0 text-navy-500"
+                  className="mt-1 h-4 w-4 shrink-0 text-ink-muted"
                   aria-hidden
                   strokeWidth={2.4}
                 />
@@ -161,19 +161,19 @@ export default function Pricing({ locale }: { locale: string }) {
           </ul>
         </div>
 
-        <div className="rounded-xl border border-navy-200 bg-cream-50 p-5">
-          <h3 className="font-display text-lg font-semibold text-navy-900">
+        <div className="rounded-xl border border-line-quiet bg-surface-base p-5">
+          <h3 className="font-display text-lg font-semibold text-ink-strong">
             {t("pricing.creditsTitle")}
           </h3>
-          <p className="mt-1 text-sm text-navy-600">{t("pricing.creditsLede")}</p>
-          <ul className="mt-3 divide-y divide-navy-200">
+          <p className="mt-1 text-sm text-ink-secondary">{t("pricing.creditsLede")}</p>
+          <ul className="mt-3 divide-y divide-line-quiet">
             {rows.map((row) => (
               <li key={row.label} className="flex items-baseline justify-between gap-3 py-2">
                 <span className="min-w-0">
-                  <span className="block text-navy-900">{row.label}</span>
-                  <span className="block text-sm text-navy-600">{row.detail}</span>
+                  <span className="block text-ink-strong">{row.label}</span>
+                  <span className="block text-sm text-ink-secondary">{row.detail}</span>
                 </span>
-                <span className="shrink-0 text-right font-semibold tabular-nums text-navy-900">
+                <span className="shrink-0 text-right font-semibold tabular-nums text-ink-strong">
                   {row.from
                     ? t("pricing.fromPrice", { price: formatChf(row.rappen) })
                     : formatChf(row.rappen)}
@@ -184,7 +184,7 @@ export default function Pricing({ locale }: { locale: string }) {
           {/* The one place credits are explained: the unit, the gift's worth,
               the smallest purchase and the best rate — all arithmetic on the
               price function, nothing typed into a locale string. */}
-          <p className="mt-3 text-sm leading-6 text-navy-600">
+          <p className="mt-3 text-sm leading-6 text-ink-secondary">
             {t("pricing.creditNote", {
               one: formatChf(creditsInRappen(1)),
               grant: String(SIGNUP_CREDIT_GRANT),

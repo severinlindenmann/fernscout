@@ -37,7 +37,7 @@ export default function OfflineNotice() {
         className={`mt-9 inline-flex min-h-12 items-center justify-center rounded-full px-6 text-lg font-semibold transition-colors ${
           online
             ? "bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
-            : "border border-navy-200 bg-white text-navy-700"
+            : "border border-line-quiet bg-surface-raised text-ink-body"
         }`}
       >
         {t("err.retry")}

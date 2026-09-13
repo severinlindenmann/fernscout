@@ -112,20 +112,20 @@ function AgentTurn({
       <div
         aria-hidden
         className="fs-chat-dots col-start-1 row-start-1 flex w-fit items-center gap-1 rounded-2xl rounded-bl-sm
-                   border border-navy-200 bg-cream-50 px-3.5 py-3"
+                   border border-line-quiet bg-surface-base px-3.5 py-3"
         style={{ animationDelay: `${dotsDelayMs}ms` }}
       >
         {[0, 120, 240].map((delay) => (
           <span
             key={delay}
-            className="fs-waymark-bounce h-1.5 w-1.5 rounded-full bg-navy-400"
+            className="fs-waymark-bounce h-1.5 w-1.5 rounded-full bg-action-strong"
             style={{ animationDelay: `${delay}ms` }}
           />
         ))}
       </div>
       <div
         className="fs-assemble-in col-start-1 row-start-1 max-w-[88%] rounded-2xl rounded-bl-sm border
-                   border-navy-200 bg-cream-50 px-3.5 py-2.5 text-sm leading-relaxed text-navy-800"
+                   border-line-quiet bg-surface-base px-3.5 py-2.5 text-sm leading-relaxed text-ink-strong"
         style={{ animationDelay: `${bubbleDelayMs}ms` }}
       >
         {t(textKey)}

@@ -72,8 +72,8 @@ function Group({
 }) {
   return (
     <section className="mt-10">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{heading}</h2>
-      <p className="mt-1 text-navy-600">{note}</p>
+      <h2 className="font-display text-xl font-semibold text-ink-strong">{heading}</h2>
+      <p className="mt-1 text-ink-secondary">{note}</p>
       <ul className="mt-4 grid gap-3 sm:grid-cols-3">
         {DOCS_PAGES.filter((page) => page.group === group).map((page) => {
           const Icon = ICONS[page.id];
@@ -81,12 +81,12 @@ function Group({
             <li key={page.id}>
               <Link
                 href={page.href}
-                className="flex h-full min-h-11 items-center gap-2.5 rounded-xl border border-navy-200
-                           bg-white px-4 py-3 text-base font-semibold text-navy-900 transition-colors
-                           hover:border-navy-700
+                className="flex h-full min-h-11 items-center gap-2.5 rounded-xl border border-line-quiet
+                           bg-surface-raised px-4 py-3 text-base font-semibold text-ink-strong transition-colors
+                           hover:border-line-ink
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
               >
-                <Icon className="h-4 w-4 shrink-0 text-navy-600" aria-hidden strokeWidth={2.2} />
+                <Icon className="h-4 w-4 shrink-0 text-ink-secondary" aria-hidden strokeWidth={2.2} />
                 {translateIn(locale, page.labelKey)}
               </Link>
             </li>
@@ -103,10 +103,10 @@ export default async function DocsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
         {translateIn(locale, "docs.title")}
       </h1>
-      <p className="mt-3 text-lg leading-relaxed text-navy-700">
+      <p className="mt-3 text-lg leading-relaxed text-ink-body">
         {translateIn(locale, "docs.lede")}
       </p>
 
@@ -150,34 +150,34 @@ export default async function DocsPage() {
         also the nav on every inner page, and a reader following the guides has
         no use for a bench.
       */}
-      <section className="mt-12 border-t border-navy-200 pt-6">
-        <h2 className="font-display text-lg font-semibold text-navy-900">
+      <section className="mt-12 border-t border-line-quiet pt-6">
+        <h2 className="font-display text-lg font-semibold text-ink-strong">
           {translateIn(locale, "docs.benchesGroup")}
         </h2>
-        <p className="mt-1 text-sm text-navy-600">
+        <p className="mt-1 text-sm text-ink-secondary">
           {translateIn(locale, "docs.benchesGroupNote")}
         </p>
         <Link
           href="/docs/branding"
-          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-navy-200
-                     bg-white px-4 py-3 text-base font-semibold text-navy-900 transition-colors
-                     hover:border-navy-700
+          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-line-quiet
+                     bg-surface-raised px-4 py-3 text-base font-semibold text-ink-strong transition-colors
+                     hover:border-line-ink
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         >
-          <Ruler className="h-4 w-4 shrink-0 text-navy-600" aria-hidden strokeWidth={2.2} />
+          <Ruler className="h-4 w-4 shrink-0 text-ink-secondary" aria-hidden strokeWidth={2.2} />
           /docs/branding
         </Link>
       </section>
 
-      <p className="mt-12 border-t border-navy-200 pt-6 font-mono text-xs text-navy-600">
+      <p className="mt-12 border-t border-line-quiet pt-6 font-mono text-xs text-ink-secondary">
         <a
           href="/documentation.txt"
-          className="underline decoration-navy-200 hover:decoration-navy-500"
+          className="underline decoration-line-quiet hover:decoration-line-prominent"
         >
           /documentation.txt
         </a>{" "}
         ·{" "}
-        <a href="/openapi.json" className="underline decoration-navy-200 hover:decoration-navy-500">
+        <a href="/openapi.json" className="underline decoration-line-quiet hover:decoration-line-prominent">
           /openapi.json
         </a>{" "}
         · {site.url}

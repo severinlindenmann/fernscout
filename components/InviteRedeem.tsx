@@ -66,8 +66,8 @@ import TelField, { joinTel, splitTel } from "./TelField";
 type Step = "form" | "confirm" | "code" | "waiting" | "in";
 
 const FIELD =
-  "mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg text-navy-900";
-const LABEL = "block text-base font-medium text-navy-700";
+  "mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg text-ink-strong";
+const LABEL = "block text-base font-medium text-ink-body";
 const BUTTON =
   "mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-yellow-400 px-6 text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-60 sm:w-auto";
 
@@ -310,7 +310,7 @@ export default function InviteRedeem({
 
   return (
     <main className="mx-auto w-full max-w-xl px-6 py-12 sm:py-16" lang={locale}>
-      <h1 className="font-display text-3xl leading-tight text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl leading-tight text-ink-strong sm:text-4xl">
         {step === "in"
           ? t("invite.inTitle")
           : step === "waiting"
@@ -324,7 +324,7 @@ export default function InviteRedeem({
 
       {(step === "form" || step === "confirm") && (
         <form onSubmit={redeem} noValidate>
-          <p className="mt-3 text-lg leading-relaxed text-navy-700">
+          <p className="mt-3 text-lg leading-relaxed text-ink-body">
             {kind === "buddy"
               ? t(
                   preapproved
@@ -346,7 +346,7 @@ export default function InviteRedeem({
           </p>
 
           {step === "confirm" ? (
-            <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-5 text-lg text-navy-800">
+            <p className="mt-6 rounded-2xl border border-line-quiet bg-surface-subtle p-5 text-lg text-ink-strong">
               {t("invite.confirmAs", { email: knownEmail ?? "" })}
             </p>
           ) : (
@@ -377,7 +377,7 @@ export default function InviteRedeem({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
-                <p className="mt-2 text-base text-navy-600">
+                <p className="mt-2 text-base text-ink-secondary">
                   {t("contact.emailHint")}
                 </p>
                 {/* B338 — the sentence that matters more than the prefill
@@ -389,7 +389,7 @@ export default function InviteRedeem({
                     explanation there. Never shown for a hand-copied link,
                     which never prefilled anything to begin with. */}
                 {invitedEmail && (
-                  <p className="mt-2 text-base text-navy-600">
+                  <p className="mt-2 text-base text-ink-secondary">
                     {t("invite.emailPrefilledHint", { email: invitedEmail })}
                   </p>
                 )}
@@ -431,17 +431,17 @@ export default function InviteRedeem({
                   noMatches={t("contact.telNoMatches")}
                   locale={locale}
                 />
-                <p className="mt-2 text-base text-navy-600">
+                <p className="mt-2 text-base text-ink-secondary">
                   {t(telHintKey("reader", postcardsEnabled, whatsappEnabled))}
                 </p>
               </div>
 
               {postcardsEnabled && (
-                <fieldset className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5">
-                  <legend className="px-2 font-display text-xl text-navy-900">
+                <fieldset className="mt-10 rounded-2xl border border-line-quiet bg-surface-subtle p-5">
+                  <legend className="px-2 font-display text-xl text-ink-strong">
                     {t("contact.address")}
                   </legend>
-                  <p className="text-base text-navy-700">
+                  <p className="text-base text-ink-body">
                     {t("contact.addressHint")}
                   </p>
 
@@ -552,7 +552,7 @@ export default function InviteRedeem({
                   `ContactForm`: one contacts table should not be filled by two
                   forms that disagree about what was asked. B315. */}
               <div className="mt-8 space-y-4">
-                <label className="flex items-start gap-3 text-lg text-navy-900">
+                <label className="flex items-start gap-3 text-lg text-ink-strong">
                   <input
                     type="checkbox"
                     className="mt-1.5 size-5"
@@ -562,7 +562,7 @@ export default function InviteRedeem({
                   <span>{t("contact.wantsDigest")}</span>
                 </label>
                 {postcardsEnabled && (
-                  <label className="flex items-start gap-3 text-lg text-navy-900">
+                  <label className="flex items-start gap-3 text-lg text-ink-strong">
                     <input
                       type="checkbox"
                       className="mt-1.5 size-5"
@@ -573,7 +573,7 @@ export default function InviteRedeem({
                   </label>
                 )}
                 {whatsappEnabled && (
-                  <label className="flex items-start gap-3 text-lg text-navy-900">
+                  <label className="flex items-start gap-3 text-lg text-ink-strong">
                     <input
                       type="checkbox"
                       className="mt-1.5 size-5"
@@ -587,7 +587,7 @@ export default function InviteRedeem({
             </>
           )}
 
-          <p className="mt-6 text-base leading-relaxed text-navy-600">
+          <p className="mt-6 text-base leading-relaxed text-ink-secondary">
             {t(preapproved ? "invite.notYetPreapproved" : "invite.notYet")}
           </p>
 
@@ -606,7 +606,7 @@ export default function InviteRedeem({
 
       {step === "code" && (
         <form onSubmit={submitCode} noValidate>
-          <p className="mt-3 text-lg leading-relaxed text-navy-700">
+          <p className="mt-3 text-lg leading-relaxed text-ink-body">
             {t("contact.codeIntro", { email })}
           </p>
           <div className="mt-8">
@@ -634,14 +634,14 @@ export default function InviteRedeem({
       )}
 
       {step === "waiting" && (
-        <p className="mt-5 text-xl leading-8 text-navy-700">
+        <p className="mt-5 text-xl leading-8 text-ink-body">
           {t("invite.waitingBody", { title: journalTitle })}
         </p>
       )}
 
       {step === "in" && (
         <>
-          <p className="mt-5 text-xl leading-8 text-navy-700">
+          <p className="mt-5 text-xl leading-8 text-ink-body">
             {t("invite.inBody", { title: journalTitle })}
           </p>
           <a

@@ -56,12 +56,12 @@ export default function CostsPageContent({
     <div className="min-h-screen">
       <PageHeader />
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("cost.title")}
         </h1>
         {/* Which of the two pages this is, said in a sentence, so a reader
             never has to work it out from a zero. */}
-        <p className="mt-1 max-w-2xl text-sm text-navy-600">
+        <p className="mt-1 max-w-2xl text-sm text-ink-secondary">
           {planned ? t("cost.subtitlePlanned", { currency }) : t("cost.subtitle", { currency })}
         </p>
 
@@ -100,7 +100,7 @@ export default function CostsPageContent({
 
         {/* Owner-only: says why the page otherwise looks like an import that
             dropped everything, rather than leaving them to wonder. B539. */}
-        {noDaySpending && <p className="mt-2 text-xs text-navy-600">{t("cost.noDaySpending")}</p>}
+        {noDaySpending && <p className="mt-2 text-xs text-ink-secondary">{t("cost.noDaySpending")}</p>}
 
         {/* Where the money went */}
         <Section title={t("cost.byCategory")}>
@@ -134,7 +134,7 @@ export default function CostsPageContent({
                 spending nobody recorded counts as a zero everywhere here, and
                 a zero means "nothing was spent". B560. */}
             {summary.unrecordedDays > 0 && (
-              <p className="text-sm text-ink/70">
+              <p className="text-sm text-ink-secondary/70">
                 {t("cost.unrecordedDays").replace("{count}", String(summary.unrecordedDays))}
               </p>
             )}
@@ -178,7 +178,7 @@ export default function CostsPageContent({
             ) : (
               summary.byDay.length === 1 && (
                 <Section title={t("cost.perDayChart")}>
-                  <p className="text-sm text-navy-600">
+                  <p className="text-sm text-ink-secondary">
                     {formatShortDate(summary.byDay[0].date)} · {money(summary.byDay[0].amount)}
                   </p>
                 </Section>
@@ -190,12 +190,12 @@ export default function CostsPageContent({
         {/* Everything, itemised — also the accessible fallback for the charts */}
         <section className="mt-10">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="font-display text-xl font-semibold text-navy-900">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("cost.everyExpense")}
             </h2>
             <button
               onClick={() => setShowTable((v) => !v)}
-              className="flex min-h-11 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-3.5 text-sm font-semibold text-navy-600 transition-colors hover:text-navy-900"
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-3.5 text-sm font-semibold text-ink-secondary transition-colors hover:text-ink-strong"
             >
               {showTable ? <BarChart3 className="h-3.5 w-3.5" /> : <Table2 className="h-3.5 w-3.5" />}
               {showTable ? t("cost.hideTable") : t("cost.showTable")}
@@ -203,9 +203,9 @@ export default function CostsPageContent({
           </div>
 
           {showTable && (
-            <div className="mt-3 overflow-x-auto rounded-xl border border-navy-200 bg-white">
+            <div className="mt-3 overflow-x-auto rounded-xl border border-line-quiet bg-surface-raised">
               <table className="w-full text-left text-sm">
-                <thead className="border-b border-navy-200 text-xs text-navy-600">
+                <thead className="border-b border-line-quiet text-xs text-ink-secondary">
                   <tr>
                     <th className="px-4 py-2 font-semibold">{t("cost.when")}</th>
                     <th className="px-4 py-2 font-semibold">{t("cost.what")}</th>
@@ -213,24 +213,24 @@ export default function CostsPageContent({
                     <th className="px-4 py-2 text-right font-semibold">{t("cost.amount")}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-navy-200">
+                <tbody className="divide-y divide-line-quiet">
                   {summary.items.map((item, i) => (
                     <tr key={`${item.label}-${i}`}>
-                      <td className="whitespace-nowrap px-4 py-2 text-xs text-navy-600">
+                      <td className="whitespace-nowrap px-4 py-2 text-xs text-ink-secondary">
                         {item.date ? formatShortDate(item.date) : t("cost.beforeLeaving")}
                       </td>
-                      <td className="px-4 py-2 text-navy-900">
+                      <td className="px-4 py-2 text-ink-strong">
                         {item.label}
                         {/* A real space, not a margin. JSX drops the newline
                             between these two, so the margin was the only thing
                             separating them and copying the table gave you
                             "GroceriesMoab". */}
                         {item.location && (
-                          <> <span className="text-xs text-navy-600">{item.location}</span></>
+                          <> <span className="text-xs text-ink-secondary">{item.location}</span></>
                         )}
                       </td>
                       <td className="whitespace-nowrap px-4 py-2">
-                        <span className="inline-flex items-center gap-1.5 text-xs text-navy-600">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-ink-secondary">
                           <span
                             className="h-2.5 w-2.5 rounded-sm"
                             style={{ background: CATEGORY_STYLE[item.category].color }}
@@ -245,20 +245,20 @@ export default function CostsPageContent({
                       <td className="whitespace-nowrap px-4 py-2 text-right">
                         {item.base === undefined ? (
                           <>
-                            <span className="font-display font-semibold text-navy-900">
+                            <span className="font-display font-semibold text-ink-strong">
                               {original(item.amount, item.currency)}
                             </span>
-                            <span className="ml-1.5 rounded-full bg-coral-300 px-2 py-0.5 text-xs font-semibold text-navy-900">
+                            <span className="ml-1.5 rounded-full bg-coral-300 px-2 py-0.5 text-xs font-semibold text-on-bright">
                               {t("cost.noRate")}
                             </span>
                           </>
                         ) : (
                           <>
-                            <span className="font-display font-semibold text-navy-900">
+                            <span className="font-display font-semibold text-ink-strong">
                               {money(item.base)}
                             </span>
                             {item.currency !== currency && (
-                              <span className="block text-[11px] font-normal text-navy-600">
+                              <span className="block text-[11px] font-normal text-ink-secondary">
                                 {original(item.amount, item.currency)} {t("cost.spentIn")}
                               </span>
                             )}
@@ -268,12 +268,12 @@ export default function CostsPageContent({
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="border-t border-navy-200 bg-cream-50">
+                <tfoot className="border-t border-line-quiet bg-surface-base">
                   <tr>
-                    <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-navy-900">
+                    <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-ink-strong">
                       {t("cost.total")}
                     </td>
-                    <td className="px-4 py-2 text-right font-display font-semibold text-navy-900">
+                    <td className="px-4 py-2 text-right font-display font-semibold text-ink-strong">
                       {money(summary.total)}
                     </td>
                   </tr>
@@ -283,14 +283,14 @@ export default function CostsPageContent({
           )}
         </section>
 
-        <p className="mt-8 text-xs text-navy-600">
+        <p className="mt-8 text-xs text-ink-secondary">
           {t("cost.disclaimer", {
             travellers,
             currency: summary.baseCurrency,
           })}
         </p>
         {approximate && (
-          <p className="mt-1.5 text-xs text-navy-600">
+          <p className="mt-1.5 text-xs text-ink-secondary">
             {asOf
               ? t("currency.approxNote", { currency, base, date: asOf })
               : t("currency.approxNoteUndated", { currency, base })}
@@ -299,7 +299,7 @@ export default function CostsPageContent({
         {/* A rate the archive supplied, not a person, names where it came
             from — B543. A hand-typed rate has no entry here at all. */}
         {Object.keys(summary.ratesFrom).length > 0 && (
-          <p className="mt-1.5 text-xs text-navy-600">
+          <p className="mt-1.5 text-xs text-ink-secondary">
             {t("cost.ratesFrom", {
               list: Object.entries(summary.ratesFrom)
                 .map(([code, note]) => `${code} — ${note}`)
@@ -323,8 +323,8 @@ function Section({
 }) {
   return (
     <section className="mt-10">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{title}</h2>
-      {note && <p className="mb-4 mt-0.5 text-xs text-navy-600">{note}</p>}
+      <h2 className="font-display text-xl font-semibold text-ink-strong">{title}</h2>
+      {note && <p className="mb-4 mt-0.5 text-xs text-ink-secondary">{note}</p>}
       <div className={note ? "" : "mt-4"}>{children}</div>
     </section>
   );
@@ -347,17 +347,17 @@ function PlannedBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: nu
   const used = budget.total > 0 ? Math.min(1, spent / budget.total) : 0;
 
   return (
-    <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="font-display text-lg font-semibold text-navy-900">{t("cost.budgetPlan")}</h2>
+    <section className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
+      <h2 className="font-display text-lg font-semibold text-ink-strong">{t("cost.budgetPlan")}</h2>
 
       <div className="mt-4">
-        <div className="h-3 w-full overflow-hidden rounded-full bg-navy-200/50">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-surface-selected/50">
           <div
             className="h-full rounded-full transition-[width] duration-700"
             style={{ width: `${used * 100}%`, background: "#5a6a80" }}
           />
         </div>
-        <p className="mt-1.5 text-[11px] text-navy-600">
+        <p className="mt-1.5 text-[11px] text-ink-secondary">
           {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
         </p>
       </div>
@@ -369,7 +369,7 @@ function PlannedBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: nu
         <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
       </dl>
 
-      <p className="mt-3 text-[11px] leading-relaxed text-navy-600">
+      <p className="mt-3 text-[11px] leading-relaxed text-ink-secondary">
         {t("cost.budgetNotePlanned")}
       </p>
     </section>
@@ -393,22 +393,22 @@ function PastBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: numbe
   const used = budget.total > 0 ? Math.min(1, spent / budget.total) : 0;
 
   return (
-    <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="font-display text-lg font-semibold text-navy-900">{t("cost.budget")}</h2>
+        <h2 className="font-display text-lg font-semibold text-ink-strong">{t("cost.budget")}</h2>
         <p className={`font-display text-sm font-semibold ${over ? "text-coral-600" : "text-green-700"}`}>
           {money(Math.abs(delta))} {over ? t("cost.overBudgetFinal") : t("cost.underBudgetFinal")}
         </p>
       </div>
 
       <div className="mt-4">
-        <div className="h-3 w-full overflow-hidden rounded-full bg-navy-200/50">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-surface-selected/50">
           <div
             className="h-full rounded-full"
             style={{ width: `${used * 100}%`, background: over ? CATEGORY_STYLE.other.color : "#5a6a80" }}
           />
         </div>
-        <p className="mt-1.5 text-[11px] text-navy-600">
+        <p className="mt-1.5 text-[11px] text-ink-secondary">
           {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
         </p>
       </div>
@@ -419,7 +419,7 @@ function PastBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: numbe
         <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
       </dl>
 
-      <p className="mt-3 text-[11px] leading-relaxed text-navy-600">{t("cost.budgetNoteFinal")}</p>
+      <p className="mt-3 text-[11px] leading-relaxed text-ink-secondary">{t("cost.budgetNoteFinal")}</p>
     </section>
   );
 }
@@ -447,7 +447,7 @@ function BudgetPanel({
   const overBudget = budget.total > 0 && spent > budget.total;
 
   const tone = {
-    text: onPace ? "text-navy-700" : under ? "text-green-700" : "text-coral-600",
+    text: onPace ? "text-ink-body" : under ? "text-green-700" : "text-coral-600",
     // Neutral while there is budget left; the one colour this site uses for
     // an alarm only once spending has actually passed the total, which is
     // the one state the bar being full-and-red should mean.
@@ -461,9 +461,9 @@ function BudgetPanel({
     budget.total > 0 ? Math.min(1, Math.max(0, pace.expectedToDate / budget.total)) : null;
 
   return (
-    <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="font-display text-lg font-semibold text-navy-900">{t("cost.budget")}</h2>
+        <h2 className="font-display text-lg font-semibold text-ink-strong">{t("cost.budget")}</h2>
         <p className={`flex items-center gap-1.5 font-display text-sm font-semibold ${tone.text}`}>
           {!onPace &&
             (under ? (
@@ -478,20 +478,20 @@ function BudgetPanel({
       </div>
 
       <div className="mt-4">
-        <div className="relative h-3 w-full overflow-hidden rounded-full bg-navy-200/50">
+        <div className="relative h-3 w-full overflow-hidden rounded-full bg-surface-selected/50">
           <div
             className="h-full rounded-full transition-[width] duration-700"
             style={{ width: `${used * 100}%`, background: tone.bar }}
           />
           {expectedPct !== null && (
             <div
-              className="absolute inset-y-0 w-px bg-navy-900/60"
+              className="absolute inset-y-0 w-px bg-overlay-strong/60"
               style={{ left: `${expectedPct * 100}%` }}
               aria-hidden
             />
           )}
         </div>
-        <p className="mt-1.5 text-[11px] text-navy-600">
+        <p className="mt-1.5 text-[11px] text-ink-secondary">
           {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
           {expectedPct !== null && (
             <span className="sr-only">
@@ -522,7 +522,7 @@ function BudgetPanel({
         <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
       </dl>
 
-      <p className="mt-3 text-[11px] leading-relaxed text-navy-600">{t("cost.budgetNote")}</p>
+      <p className="mt-3 text-[11px] leading-relaxed text-ink-secondary">{t("cost.budgetNote")}</p>
     </section>
   );
 }
@@ -531,12 +531,12 @@ function Stat({ label, value, hero = false }: { label: string; value: string; he
   return (
     <div
       className={`rounded-xl border px-4 py-3 ${
-        hero ? "border-yellow-600/40 bg-yellow-400/25" : "border-navy-200 bg-white"
+        hero ? "border-yellow-600/40 bg-yellow-400/25" : "border-line-quiet bg-surface-raised"
       }`}
     >
-      <dt className="text-xs text-navy-600">{label}</dt>{" "}
+      <dt className="text-xs text-ink-secondary">{label}</dt>{" "}
       <dd
-        className={`font-display font-semibold text-navy-900 ${hero ? "text-2xl" : "text-xl"}`}
+        className={`font-display font-semibold text-ink-strong ${hero ? "text-2xl" : "text-xl"}`}
       >
         {value}
       </dd>

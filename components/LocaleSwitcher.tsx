@@ -71,8 +71,8 @@ export default function LocaleSwitcher({
         // gives up the border and the fill until it is pointed at.
         className={`flex min-h-11 items-center gap-1 rounded-full border px-2.5 text-xs font-bold transition-colors ${
           subtle
-            ? "border-transparent bg-transparent text-navy-600 hover:bg-cream-100 hover:text-navy-900"
-            : "border-navy-200 bg-white text-navy-700 hover:border-navy-500"
+            ? "border-transparent bg-transparent text-ink-secondary hover:bg-surface-subtle hover:text-ink-strong"
+            : "border-line-quiet bg-surface-raised text-ink-body hover:border-line-prominent"
         }`}
       >
         <Languages className="h-3.5 w-3.5" aria-hidden />
@@ -82,7 +82,7 @@ export default function LocaleSwitcher({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-40 mt-1.5 min-w-[9rem] overflow-hidden rounded-xl border border-navy-200 bg-white py-1 shadow-lg"
+          className="absolute right-0 top-full z-40 mt-1.5 min-w-[9rem] overflow-hidden rounded-xl border border-line-quiet bg-surface-raised py-1 shadow-lg"
         >
           {locales.map((l: string) => (
             <button
@@ -93,8 +93,8 @@ export default function LocaleSwitcher({
                 choose(l);
                 setOpen(false);
               }}
-              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-cream-50 ${
-                locale === l ? "font-semibold text-navy-900" : "text-navy-600"
+              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-surface-base ${
+                locale === l ? "font-semibold text-ink-strong" : "text-ink-secondary"
               }`}
             >
               {LOCALE_LABEL[l]}

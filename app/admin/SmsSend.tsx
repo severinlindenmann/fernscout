@@ -50,12 +50,12 @@ export default function SmsSend() {
   }
 
   const field =
-    "mt-2 block w-full rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-base text-navy-900 " +
+    "mt-2 block w-full rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-base text-ink-strong " +
     "focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   return (
     <form onSubmit={submit} className="mt-4 max-w-md">
-      <label className="block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600" htmlFor="sms-to">
+      <label className="block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary" htmlFor="sms-to">
         To
       </label>
       <input
@@ -68,7 +68,7 @@ export default function SmsSend() {
         className={field}
       />
       <label
-        className="mt-4 block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600"
+        className="mt-4 block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary"
         htmlFor="sms-body"
       >
         Message
@@ -86,12 +86,12 @@ export default function SmsSend() {
         busy={busy}
         type="submit"
         busyLabel="Sending…"
-        className="mt-4 min-h-11 rounded-xl bg-navy-900 px-5 font-semibold text-cream-50 disabled:opacity-50"
+        className="mt-4 min-h-11 rounded-xl bg-action-strong px-5 font-semibold text-on-action disabled:opacity-50"
       >
         Send the SMS
       </BusyButton>
       {said && (
-        <p role="status" className={`mt-3 text-sm leading-6 ${said.ok ? "text-navy-700" : "text-coral-600"}`}>
+        <p role="status" className={`mt-3 text-sm leading-6 ${said.ok ? "text-ink-body" : "text-coral-600"}`}>
           {said.text}
         </p>
       )}

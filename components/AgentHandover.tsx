@@ -101,10 +101,10 @@ export default function AgentHandover({
 
   return (
     <div>
-      <h3 className="font-display text-base font-semibold text-navy-900">
+      <h3 className="font-display text-base font-semibold text-ink-strong">
         {t("me.agentTitle")}
       </h3>
-      <p className="mt-1 text-base leading-7 text-navy-700">
+      <p className="mt-1 text-base leading-7 text-ink-body">
         {t("me.agentBody")}
       </p>
 
@@ -155,7 +155,7 @@ export function HandoverPrompt({
   }, []);
   return (
     <div ref={block} tabIndex={-1} className="mt-3 outline-none">
-      <p className="text-base leading-7 text-navy-900">
+      <p className="text-base leading-7 text-ink-strong">
         {t("me.handoverReady", {
           time: expires ? new Date(expires).toLocaleTimeString() : "",
         })}
@@ -166,7 +166,7 @@ export function HandoverPrompt({
         over — and because the clipboard fails silently often enough that a
         block you cannot read is a block you cannot recover.
       */}
-      <pre className="mt-3 max-h-64 overflow-auto rounded-xl bg-cream-100 p-3 text-xs leading-6 text-navy-900">
+      <pre className="mt-3 max-h-64 overflow-auto rounded-xl bg-surface-subtle p-3 text-xs leading-6 text-ink-strong">
         {prompt}
       </pre>
       <div className="mt-3">
@@ -182,7 +182,7 @@ export function HandoverPrompt({
           name={t("me.handoverCopy")}
         />
       </div>
-      <p className="mt-3 border-l-2 border-coral-600 pl-3 text-base leading-7 text-navy-900">
+      <p className="mt-3 border-l-2 border-coral-600 pl-3 text-base leading-7 text-ink-strong">
         {t("me.handoverWarning")}
       </p>
     </div>

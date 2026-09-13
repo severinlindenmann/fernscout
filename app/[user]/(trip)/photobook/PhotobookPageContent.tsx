@@ -601,10 +601,10 @@ export default function PhotobookPageContent({
             and at 390px every one of them costs a slice of it — B548. What
             this page is goes in the eyebrow; the heading is the trip, which
             is what the book is of. */}
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
           {t("photobook.title")}
         </p>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-strong sm:text-3xl">
           {tripTitle}
         </h1>
 
@@ -722,11 +722,11 @@ export default function PhotobookPageContent({
                 trap: even without ever going back in, the owner can see how
                 many days are still in the book and undo any of this here. */}
             {!drill && excludedDays.length > 0 && (
-              <div className="mt-4 rounded-lg border border-navy-200 bg-white px-3 py-3">
-                <p className="text-sm font-semibold text-navy-800">
+              <div className="mt-4 rounded-lg border border-line-quiet bg-surface-raised px-3 py-3">
+                <p className="text-sm font-semibold text-ink-strong">
                   {t("photobook.excluded.heading")}
                 </p>
-                <p className="mt-1 text-xs text-navy-600">
+                <p className="mt-1 text-xs text-ink-secondary">
                   {t("photobook.excluded.summary", {
                     included: String(days.length - excludedDays.length),
                     total: String(days.length),
@@ -735,11 +735,11 @@ export default function PhotobookPageContent({
                 <ul className="mt-2 space-y-1">
                   {excludedDays.map((d) => (
                     <li key={d.date} className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-navy-700">{d.title}</span>
+                      <span className="text-ink-body">{d.title}</span>
                       <button
                         type="button"
                         onClick={() => setDayExcluded(d.date, false)}
-                        className="min-h-8 shrink-0 rounded-full border border-navy-200 px-3 text-xs font-semibold text-navy-700"
+                        className="min-h-8 shrink-0 rounded-full border border-line-quiet px-3 text-xs font-semibold text-ink-body"
                       >
                         {t("photobook.excluded.putBack")}
                       </button>

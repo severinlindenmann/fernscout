@@ -62,7 +62,7 @@ export default function SpendChart({ days }: { days: DailySpend[] }) {
   return (
     <section className="mt-8">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display text-lg font-semibold text-navy-900">Metered spend, by day</h2>
+        <h2 className="font-display text-lg font-semibold text-ink-strong">Metered spend, by day</h2>
         <div role="group" aria-label="How many days" className="flex gap-1">
           {WINDOWS.map((count) => (
             <button
@@ -72,8 +72,8 @@ export default function SpendChart({ days }: { days: DailySpend[] }) {
               onClick={() => setSpan(count)}
               className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
                 span === count
-                  ? "border-navy-900 bg-navy-900 text-white"
-                  : "border-navy-200 bg-white text-navy-700 hover:bg-cream-100"
+                  ? "border-action-strong bg-action-strong text-on-action"
+                  : "border-line-quiet bg-surface-raised text-ink-body hover:bg-surface-subtle"
               }`}
             >
               {count}d
@@ -83,7 +83,7 @@ export default function SpendChart({ days }: { days: DailySpend[] }) {
       </div>
 
       {total === 0 ? (
-        <p className="mt-2 text-sm text-navy-500">
+        <p className="mt-2 text-sm text-ink-muted">
           Nothing metered in these {span} days. Models and speech are the only things counted
           here — the fixed monthly lines are below.
         </p>
@@ -100,7 +100,7 @@ export default function SpendChart({ days }: { days: DailySpend[] }) {
                     with nothing still draws a 2px foot, so the axis reads as
                     a row of days rather than as a gap of unknown length. */}
                 {day.rappen === 0 ? (
-                  <div className="h-0.5 rounded-sm bg-cream-200" />
+                  <div className="h-0.5 rounded-sm bg-surface-muted" />
                 ) : (
                   <div
                     className="flex flex-col-reverse overflow-hidden rounded-t-sm"
@@ -118,28 +118,28 @@ export default function SpendChart({ days }: { days: DailySpend[] }) {
               </div>
             ))}
           </div>
-          <div className="mt-1 flex justify-between font-mono text-xs text-navy-500">
+          <div className="mt-1 flex justify-between font-mono text-xs text-ink-muted">
             <span>{shown[0]?.date}</span>
             <span>{shown[shown.length - 1]?.date}</span>
           </div>
 
           <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
             {ranked.map((operation, at) => (
-              <li key={operation} className="flex items-center gap-1.5 text-xs text-navy-700">
+              <li key={operation} className="flex items-center gap-1.5 text-xs text-ink-body">
                 <span className={`inline-block h-2 w-2 rounded-full ${SERIES[at]}`} />
                 {OPERATION_LABEL[operation] ?? operation}
               </li>
             ))}
             {rest ? (
-              <li className="flex items-center gap-1.5 text-xs text-navy-700">
-                <span className="inline-block h-2 w-2 rounded-full bg-navy-200" />
+              <li className="flex items-center gap-1.5 text-xs text-ink-body">
+                <span className="inline-block h-2 w-2 rounded-full bg-surface-selected" />
                 everything else
               </li>
             ) : null}
           </ul>
 
-          <p className="mt-2 text-sm text-navy-700">
-            <span className="font-mono text-navy-900">{formatChf(total)}</span> over {span} days.
+          <p className="mt-2 text-sm text-ink-body">
+            <span className="font-mono text-ink-strong">{formatChf(total)}</span> over {span} days.
           </p>
         </>
       )}
@@ -151,5 +151,5 @@ export default function SpendChart({ days }: { days: DailySpend[] }) {
  *  is the grey that the legend calls "everything else". */
 function hueOf(operation: string, ranked: string[]): string {
   const at = ranked.indexOf(operation);
-  return at === -1 ? "bg-navy-200" : SERIES[at];
+  return at === -1 ? "bg-surface-selected" : SERIES[at];
 }

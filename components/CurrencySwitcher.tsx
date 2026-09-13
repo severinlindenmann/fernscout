@@ -45,7 +45,7 @@ export default function CurrencySwitcher() {
         aria-haspopup="menu"
         aria-expanded={open}
         title={t("currency.label")}
-        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-2.5 text-xs font-bold text-navy-700 transition-colors hover:border-navy-500"
+        className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 text-xs font-bold text-ink-body transition-colors hover:border-line-prominent"
       >
         {currency}
       </button>
@@ -53,7 +53,7 @@ export default function CurrencySwitcher() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-40 mt-1.5 min-w-[9rem] overflow-hidden rounded-xl border border-navy-200 bg-white py-1 shadow-lg"
+          className="absolute right-0 top-full z-40 mt-1.5 min-w-[9rem] overflow-hidden rounded-xl border border-line-quiet bg-surface-raised py-1 shadow-lg"
         >
           {currencies.map((c) => (
             <button
@@ -64,8 +64,8 @@ export default function CurrencySwitcher() {
                 setCurrency(c);
                 setOpen(false);
               }}
-              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-cream-50 ${
-                currency === c ? "font-semibold text-navy-900" : "text-navy-600"
+              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-surface-base ${
+                currency === c ? "font-semibold text-ink-strong" : "text-ink-secondary"
               }`}
             >
               {c}

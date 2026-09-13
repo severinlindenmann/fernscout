@@ -10,10 +10,13 @@ import { motion, useReducedMotion } from "motion/react";
  * mark, and a hover tooltip on every plotted form.
  */
 
-const INK = "#1e293b";
-const MUTED = "#64748b";
-const GRID = "#e6e2d6";
-const SURFACE = "#fffaf0";
+// SVG presentation attributes accept CSS colours. Keeping the structural
+// chart ink on the semantic roles makes axes and surface gaps follow the
+// page without repainting the data-series hues themselves.
+const INK = "var(--ink-strong)";
+const MUTED = "var(--ink-muted)";
+const GRID = "var(--line-quiet)";
+const SURFACE = "var(--surface-base)";
 
 export type Slice = { key: string; label: string; value: number; color: string };
 
@@ -27,7 +30,7 @@ function Tooltip({ tip, width }: { tip: { x: number; y: number; text: string }; 
   const left = Math.min(Math.max(tip.x, 8), width - 8);
   return (
     <div
-      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-navy-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-navy-900 shadow-md"
+      className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-line-quiet bg-surface-raised px-2.5 py-1.5 text-[11px] font-medium text-ink-strong shadow-md"
       style={{ left, top: tip.y - 8 }}
     >
       {tip.text}
@@ -128,8 +131,8 @@ export function StackedShareBar({
               style={{ background: s.color }}
               aria-hidden
             />
-            <span className="min-w-0 flex-1 truncate text-navy-600">{s.label}</span>{" "}
-            <span className="font-display font-semibold text-navy-900">{format(s.value)}</span>
+            <span className="min-w-0 flex-1 truncate text-ink-secondary">{s.label}</span>{" "}
+            <span className="font-display font-semibold text-ink-strong">{format(s.value)}</span>
           </li>
         ))}
       </ul>
@@ -154,17 +157,17 @@ export function BarList({
       {rows.map((r) => (
         <li key={r.key}>
           <div className="mb-1 flex items-baseline justify-between gap-3 text-xs">
-            <span className="min-w-0 truncate font-medium text-navy-900">{r.label}</span>{" "}
+            <span className="min-w-0 truncate font-medium text-ink-strong">{r.label}</span>{" "}
             {/* The spaces are for whoever is reading this as text rather than
                 looking at it: between flex items a whitespace-only node is not
                 rendered, so the layout is untouched and copying the row stops
                 producing "VorbereitungCHF 2’132". */}
-            <span className="shrink-0 text-navy-600">
+            <span className="shrink-0 text-ink-secondary">
               {r.sub && <><span>{r.sub}</span> </>}
-              <span className="font-display font-semibold text-navy-900">{format(r.value)}</span>
+              <span className="font-display font-semibold text-ink-strong">{format(r.value)}</span>
             </span>
           </div>
-          <div className="h-2.5 w-full overflow-hidden rounded-full bg-navy-200/50">
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-surface-selected/50">
             <motion.div
               {...grow({ scaleX: 0 }, { scaleX: 1 }, { duration: 0.6, ease: "easeOut" })}
               className="h-full rounded-full"
@@ -212,7 +215,7 @@ export function DailyColumns({
           aria-hidden
         />
         <span
-          className="pointer-events-none absolute right-0 -translate-y-1/2 rounded bg-cream-50 px-1 text-[11px] font-medium text-navy-600"
+          className="pointer-events-none absolute right-0 -translate-y-1/2 rounded bg-surface-base px-1 text-[11px] font-medium text-ink-secondary"
           style={{ bottom: `${avgPct}%` }}
         >
           ø {format(average)}
@@ -265,7 +268,7 @@ export function DailyColumns({
       </div>
       {tip && <Tooltip tip={tip} width={9999} />}
 
-      <div className="mt-2 flex justify-between text-[11px] text-navy-600">
+      <div className="mt-2 flex justify-between text-[11px] text-ink-secondary">
         <span>{data.length > 0 && formatDate(data[0].date)}</span>
         <span>{data.length > 0 && formatDate(data.at(-1)!.date)}</span>
       </div>
@@ -396,7 +399,7 @@ export function CumulativeArea({
       </svg>
       {tip && <Tooltip tip={tip} width={9999} />}
 
-      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[11px] text-navy-600">
+      <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-3 text-[11px] text-ink-secondary">
         <span>{data.length > 0 && formatDate(data[0].date)}</span>
         {reference && (
           <span className="flex items-center gap-1.5">
@@ -414,7 +417,7 @@ export function CumulativeArea({
             {reference.label}
           </span>
         )}
-        <span className="font-display font-semibold text-navy-900">
+        <span className="font-display font-semibold text-ink-strong">
           {data.length > 0 && format(data.at(-1)!.cumulative)}
         </span>
       </div>

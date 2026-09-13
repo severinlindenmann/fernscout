@@ -299,7 +299,7 @@ export default function SearchBox({
       <div className="relative">
         <div className="relative">
         <SearchIcon
-          className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-navy-500"
+          className="pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-ink-muted"
           strokeWidth={2.2}
         />
         <input
@@ -310,7 +310,7 @@ export default function SearchBox({
           placeholder={t("search.placeholder")}
           disabled={state === "error"}
           autoFocus
-          className={`w-full rounded-full border border-navy-200 bg-white py-3 pl-11 text-sm text-navy-900 placeholder:text-navy-500 focus:border-navy-500 focus:outline-none disabled:opacity-60 ${
+          className={`w-full rounded-full border border-line-quiet bg-surface-raised py-3 pl-11 text-sm text-ink-strong placeholder:text-ink-muted focus:border-line-prominent focus:outline-none disabled:opacity-60 ${
             (canSpeak && !speech) || speech ? "pr-12" : "pr-4"
           }`}
         />
@@ -324,7 +324,7 @@ export default function SearchBox({
                 : t("search.voiceStart")
             }
             aria-pressed={voice === "listening"}
-            className="absolute top-1/2 right-2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-navy-600 transition-colors hover:bg-cream-100"
+            className="absolute top-1/2 right-2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-surface-subtle"
           >
             {voice === "listening" ? (
               <MicOff className="h-4 w-4 text-coral-600" strokeWidth={2.2} />
@@ -344,7 +344,7 @@ export default function SearchBox({
             // ring inside it reads as a control bolted on. `right-1.5` rather
             // than `right-1` so the circle is inset from the field's own
             // rounded edge by the same amount the search icon is on the left.
-            compactClassName="absolute right-1.5 top-px h-11 w-11 hover:bg-cream-100"
+            compactClassName="absolute right-1.5 top-px h-11 w-11 hover:bg-surface-subtle"
             // A toggle, never a hold: press to start, press to stop. Moving
             // the pointer off a 44px target is what a person does when they
             // start speaking, and it was ending the recording.
@@ -383,13 +383,13 @@ export default function SearchBox({
       )}
 
       {voice === "listening" && (
-        <p role="status" className="mt-2 text-xs text-navy-600">
+        <p role="status" className="mt-2 text-xs text-ink-secondary">
           {t("search.voiceListening")}
         </p>
       )}
 
       {outOfCredits && (
-        <p className="mt-2 text-sm text-navy-700">
+        <p className="mt-2 text-sm text-ink-body">
           {t("search.voiceNoCredits")}
         </p>
       )}
@@ -407,12 +407,12 @@ export default function SearchBox({
             type="button"
             onClick={() => void askAgent()}
             disabled={trimmed.length === 0}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-navy-300 px-4 text-sm font-semibold text-navy-800 transition-colors hover:bg-cream-100 disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong transition-colors hover:bg-surface-subtle disabled:opacity-50"
           >
             <Sparkles className="h-4 w-4" strokeWidth={2.2} />
             {agent === "busy" ? t("search.agentBusy") : t("search.agentAsk")}
           </BusyButton>
-          <p className="text-xs text-navy-600">{t("search.agentHint")}</p>
+          <p className="text-xs text-ink-secondary">{t("search.agentHint")}</p>
         </div>
       )}
 
@@ -429,7 +429,7 @@ export default function SearchBox({
             setQuery(suggestion);
             void askAgent(suggestion);
           }}
-          className="mt-3 min-h-11 rounded-full border border-navy-300 px-4 text-sm text-navy-800 transition-colors hover:bg-cream-100"
+          className="mt-3 min-h-11 rounded-full border border-line-strong px-4 text-sm text-ink-strong transition-colors hover:bg-surface-subtle"
         >
           {t("search.agentDidYouMean", { said: suggestion })}
         </button>
@@ -437,25 +437,25 @@ export default function SearchBox({
 
       {hits && agent !== "busy" && (
         <div className="mt-4">
-          <h2 className="font-display text-sm font-semibold text-navy-900">
+          <h2 className="font-display text-sm font-semibold text-ink-strong">
             {t("search.agentHeading")}
           </h2>
           {hits.length === 0 ? (
-            <p className="mt-2 text-sm text-navy-600">
+            <p className="mt-2 text-sm text-ink-secondary">
               {t("search.agentEmpty", { query: asked })}
             </p>
           ) : (
-            <ul className="mt-2 divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
+            <ul className="mt-2 divide-y divide-line-quiet overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
               {hits.map((hit) => (
                 <li key={hit.id}>
                   <Link
                     href={hit.url}
-                    className="block px-4 py-3 transition-colors hover:bg-cream-100"
+                    className="block px-4 py-3 transition-colors hover:bg-surface-subtle"
                   >
-                    <p className="font-display text-base font-semibold text-navy-900">
+                    <p className="font-display text-base font-semibold text-ink-strong">
                       {hit.title}
                     </p>
-                    <p className="mt-0.5 text-xs text-navy-600">
+                    <p className="mt-0.5 text-xs text-ink-secondary">
                       {[hit.where, hit.why].filter(Boolean).join(" · ")}
                     </p>
                   </Link>
@@ -468,21 +468,21 @@ export default function SearchBox({
 
       <div className="mt-6">
         {state === "error" && (
-          <p className="text-sm text-navy-600">{t("search.error")}</p>
+          <p className="text-sm text-ink-secondary">{t("search.error")}</p>
         )}
 
         {state === "ready" && trimmed.length === 0 && (
-          <p className="text-sm text-navy-600">{t("search.noQuery")}</p>
+          <p className="text-sm text-ink-secondary">{t("search.noQuery")}</p>
         )}
 
         {state === "ready" && trimmed.length > 0 && results.length === 0 && (
-          <p className="text-sm text-navy-600">
+          <p className="text-sm text-ink-secondary">
             {t("search.noResults", { query: trimmed })}
           </p>
         )}
 
         {results.length > 0 && (
-          <ul className="divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
+          <ul className="divide-y divide-line-quiet overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
             {results.map((r) => {
               // Only a day has a date *and* a place; everything else would
               // be misread as one if it borrowed that line. A destination
@@ -502,13 +502,13 @@ export default function SearchBox({
                 <li key={r.id as string}>
                   <Link
                     href={r.url as string}
-                    className="block px-4 py-3 transition-colors hover:bg-cream-100"
+                    className="block px-4 py-3 transition-colors hover:bg-surface-subtle"
                   >
-                    <p className="font-display text-base font-semibold text-navy-900">
+                    <p className="font-display text-base font-semibold text-ink-strong">
                       {r.title as string}
                     </p>
                     {subtitle && (
-                      <p className="mt-0.5 text-xs text-navy-600">{subtitle}</p>
+                      <p className="mt-0.5 text-xs text-ink-secondary">{subtitle}</p>
                     )}
                   </Link>
                 </li>

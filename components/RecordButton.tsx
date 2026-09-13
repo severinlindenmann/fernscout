@@ -648,7 +648,7 @@ export default function RecordButton({
     <>
       <label
         htmlFor={`speech-language-${username}`}
-        className="mt-2 block text-sm font-semibold text-navy-800"
+        className="mt-2 block text-sm font-semibold text-ink-strong"
       >
         {t("agent.speechLanguage")}
       </label>
@@ -666,7 +666,7 @@ export default function RecordButton({
             // A browser with no storage still records; it just forgets.
           }
         }}
-        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+        className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
       >
         <option value="">{t("agent.speechLanguageDefault")}</option>
         {SPEECH_LANGUAGES.map((code) => (
@@ -724,7 +724,7 @@ export default function RecordButton({
           }
           className={`${
             compactClassName ?? "absolute right-2 top-2 h-11 w-11 border"
-          } flex items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:outline-none disabled:opacity-50 ${
+          } flex items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none disabled:opacity-50 ${
             recording
               // Colours that exist — B1004. This used a coral-100 background
               // and coral-700 text when neither was in the palette, so while
@@ -734,7 +734,7 @@ export default function RecordButton({
               // stay as they are — coral-300/30 over coral-600 is the pair
               // that was actually looked at and chosen.
               ? "border-coral-400 bg-coral-300/30 text-coral-600"
-              : "border-navy-300 text-navy-700"
+              : "border-line-strong text-ink-body"
           }`}
         >
           {icon ?? <Mic className="h-5 w-5" aria-hidden />}
@@ -775,7 +775,7 @@ export default function RecordButton({
                   // A browser with no storage still records; it just forgets.
                 }
               }}
-              className="order-last mt-1.5 h-10 w-full basis-full rounded-lg border border-navy-300 bg-white px-2 text-sm text-navy-800"
+              className="order-last mt-1.5 h-10 w-full basis-full rounded-lg border border-line-strong bg-surface-raised px-2 text-sm text-ink-strong"
             >
               <option value="">{t("agent.speechLanguageDefault")}</option>
               {SPEECH_LANGUAGES.map((code) => (
@@ -811,8 +811,8 @@ export default function RecordButton({
         {...hold}
         className={`min-h-11 w-full rounded-full border px-5 text-base font-semibold disabled:opacity-50 ${
           recording
-            ? "border-coral-400 bg-cream-100 text-coral-600"
-            : "border-navy-300 text-navy-800"
+            ? "border-coral-400 bg-surface-subtle text-coral-600"
+            : "border-line-strong text-ink-strong"
         }`}
       >
         {/* The price is on the button, before the hold — on the wizard's own

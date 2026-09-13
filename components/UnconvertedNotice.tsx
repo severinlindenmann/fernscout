@@ -25,7 +25,7 @@ export default function UnconvertedNotice({ items }: { items: Unconverted[] }) {
   return (
     <p
       role="status"
-      className="mt-4 flex items-start gap-2 rounded-xl border border-coral-400/50 bg-coral-300/25 px-3.5 py-3 text-xs leading-relaxed text-navy-900"
+      className="mt-4 flex items-start gap-2 rounded-xl border border-coral-400/50 bg-coral-300/25 px-3.5 py-3 text-xs leading-relaxed text-ink-strong"
     >
       <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-coral-600" aria-hidden />
       <span>{t("cost.unconverted", { amounts })}</span>

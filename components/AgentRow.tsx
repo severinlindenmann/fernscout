@@ -83,10 +83,10 @@ const PLATE_BASE = "grid h-[30px] w-[30px] shrink-0 place-items-center rounded-l
 
 const ROW = {
   coral: {
-    row: "border-coral-600 bg-coral-300 hover:border-navy-900",
-    plate: "bg-white text-coral-600",
-    title: "text-navy-900",
-    hint: "text-navy-900",
+    row: "border-coral-600 bg-coral-300 hover:border-action-strong",
+    plate: "bg-surface-raised text-coral-600",
+    title: "text-on-bright",
+    hint: "text-on-bright",
   },
   yellow: {
     row: "border-yellow-600 bg-yellow-300 hover:bg-yellow-400",
@@ -95,9 +95,9 @@ const ROW = {
     hint: "text-yellow-950",
   },
   quiet: {
-    row: "border-navy-200 bg-white hover:border-navy-500",
+    row: "border-line-quiet bg-surface-raised hover:border-line-prominent",
     plate: "bg-yellow-300 text-yellow-950",
-    title: "text-navy-900",
-    hint: "text-navy-600",
+    title: "text-ink-strong",
+    hint: "text-ink-secondary",
   },
 } as const;

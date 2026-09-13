@@ -161,7 +161,7 @@ export default function PostcardSend({
     <section
       id="send"
       ref={boxRef}
-      className="relative mt-8 scroll-mt-4 rounded-xl border-2 border-navy-900 bg-cream-100 p-4"
+      className="relative mt-8 scroll-mt-4 rounded-xl border-2 border-action-strong bg-surface-subtle p-4"
     >
       {flying && origin ? (
         <EnvelopeFly
@@ -193,7 +193,7 @@ export default function PostcardSend({
           data-testid="send-result"
           className={`mb-3 scroll-mt-4 rounded-lg border px-3 py-2 text-sm ${
             sent
-              ? "border-navy-900 bg-white font-semibold text-navy-900"
+              ? "border-action-strong bg-surface-raised font-semibold text-ink-strong"
               : "border-yellow-300 bg-yellow-50 text-yellow-900"
           }`}
         >
@@ -227,7 +227,7 @@ export default function PostcardSend({
       {statusLine ? (
         <p className="mt-2 text-sm">{statusLine}</p>
       ) : sent ? null : step === "confirm" && sendable ? (
-        <div className="mt-3 rounded-lg border border-navy-900 bg-white px-4 py-3">
+        <div className="mt-3 rounded-lg border border-action-strong bg-surface-raised px-4 py-3">
           <p className="font-semibold">{strings.heading}</p>
           <p className="mt-1 text-sm">{strings.body}</p>
           {/* Suppressed when the balance is short: "leaving you -3" is not a
@@ -246,7 +246,7 @@ export default function PostcardSend({
               type="submit"
               busy={busy}
               busyLabel={strings.sending}
-              className="min-h-11 w-full rounded-full border-2 border-yellow-600 bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 shadow-md transition-all duration-150 hover:bg-yellow-300 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-navy-900 active:translate-y-px active:shadow-sm sm:w-auto"
+              className="min-h-11 w-full rounded-full border-2 border-yellow-600 bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 shadow-md transition-all duration-150 hover:bg-yellow-300 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-blue-500 active:translate-y-px active:shadow-sm sm:w-auto"
             >
               {strings.yes}
             </BusyButton>
@@ -284,7 +284,7 @@ export default function PostcardSend({
             className={`inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 px-5 text-sm font-semibold transition-colors sm:w-auto ${
               sendable
                 ? "border-yellow-600 bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
-                : "pointer-events-none border-navy-200 bg-navy-100 text-navy-400"
+                : "pointer-events-none border-line-quiet bg-surface-neutral-strong text-ink-faint"
             }`}
           >
             {strings.send}

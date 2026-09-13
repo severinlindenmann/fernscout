@@ -384,7 +384,7 @@ export default function TripStory({
     return (
       <div className="min-h-screen">
         <PageHeader />
-        <p className="p-6 text-navy-600">{t("story.empty")}</p>
+        <p className="p-6 text-ink-secondary">{t("story.empty")}</p>
       </div>
     );
   }
@@ -409,11 +409,11 @@ export default function TripStory({
   const story = (
     <div className="flex min-h-screen flex-col">
       <PageHeader onHome={goToOverview}>
-        <div className="hidden w-36 text-right text-xs text-navy-600 xl:block">
-          <div className="font-display font-semibold text-navy-900">
+        <div className="hidden w-36 text-right text-xs text-ink-secondary xl:block">
+          <div className="font-display font-semibold text-ink-strong">
             {t("day.label")} {activeIndex + 1} {t("day.of")} {index.length}
           </div>
-          <div className="mt-1 h-2 overflow-hidden rounded-full bg-navy-200">
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-surface-selected">
             <div
               className="h-full rounded-full bg-yellow-400 transition-all duration-500"
               style={{ width: `${progress}%` }}
@@ -423,14 +423,14 @@ export default function TripStory({
       </PageHeader>
 
       {/* Day bar — desktop only; mobile uses the bottom sheet instead. */}
-      <div className="sticky top-[61px] z-20 hidden border-b border-navy-200 bg-cream-50/95 backdrop-blur sm:top-[65px] lg:block">
+      <div className="sticky top-[61px] z-20 hidden border-b border-line-quiet bg-surface-base/95 backdrop-blur sm:top-[65px] lg:block">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
           <div className="min-w-0">
-            <div className="truncate font-display text-sm font-semibold text-navy-900">
+            <div className="truncate font-display text-sm font-semibold text-ink-strong">
               {t("day.label")} {activeIndex + 1} ·{" "}
               {flagFor(active.country, active.countryCode)} {active.location}
             </div>
-            <div className="truncate text-[11px] text-navy-600">
+            <div className="truncate text-[11px] text-ink-secondary">
               {formatLongDate(active.date)}
               {active.updates > 1 && ` · ${active.updates} ${t("day.updates")}`}
             </div>
@@ -447,7 +447,7 @@ export default function TripStory({
               onClick={() => stepDay(-1)}
               disabled={activeIndex === 0}
               aria-label={t("day.prev")}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-navy-200 bg-white text-navy-700 transition-colors hover:text-navy-900 disabled:opacity-60"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet bg-surface-raised text-ink-body transition-colors hover:text-ink-strong disabled:opacity-60"
             >
               <ChevronUp className="h-5 w-5" />
             </button>
@@ -455,7 +455,7 @@ export default function TripStory({
               onClick={() => stepDay(1)}
               disabled={activeIndex === index.length - 1}
               aria-label={t("day.next")}
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-navy-200 bg-white text-navy-700 transition-colors hover:text-navy-900 disabled:opacity-60"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet bg-surface-raised text-ink-body transition-colors hover:text-ink-strong disabled:opacity-60"
             >
               <ChevronDown className="h-5 w-5" />
             </button>
@@ -469,8 +469,8 @@ export default function TripStory({
             onClick={goToOverview}
             className={`mx-auto mb-4 flex min-h-11 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
               onOverview
-                ? "bg-navy-900 text-white"
-                : "border border-navy-200 bg-white text-navy-700 hover:border-navy-500"
+                ? "bg-action-strong text-on-action"
+                : "border border-line-quiet bg-surface-raised text-ink-body hover:border-line-prominent"
             }`}
           >
             <LayoutDashboard className="h-4 w-4" />

@@ -149,7 +149,7 @@ export default function TripGate({
           in and been refused was told nothing. The journal's name is public,
           is what a reader needs in order to know whose sign-in form this is,
           and is already the tab's title on this page. */}
-      <h1 className="font-display text-2xl text-navy-900">
+      <h1 className="font-display text-2xl text-ink-strong">
         {signedInAs
           ? t(
               refusedForPrivacy
@@ -163,7 +163,7 @@ export default function TripGate({
 
       {signedInAs ? (
         <>
-          <p className="mt-3 text-lg leading-8 text-navy-700">
+          <p className="mt-3 text-lg leading-8 text-ink-body">
             {refusedForPrivacy
               ? t("gate.privateBody")
               : stillWaiting
@@ -175,7 +175,7 @@ export default function TripGate({
               trying another one. */}
           <Link
             href={`/${username}/me`}
-            className="mt-5 text-base text-navy-900 underline underline-offset-4"
+            className="mt-5 text-base text-ink-strong underline underline-offset-4"
           >
             {t("gate.refusedSeeAccess")}
           </Link>
@@ -188,7 +188,7 @@ export default function TripGate({
         </>
       ) : canSignIn ? (
         <>
-          <p className="mt-3 text-lg leading-8 text-navy-700">{t("gate.signInBody")}</p>
+          <p className="mt-3 text-lg leading-8 text-ink-body">{t("gate.signInBody")}</p>
           <GuestSignIn
             username={username}
             codeMinutes={codeMinutes}
@@ -197,7 +197,7 @@ export default function TripGate({
           />
         </>
       ) : (
-        <p className="mt-3 text-lg leading-8 text-navy-700">{t("gate.askOwner")}</p>
+        <p className="mt-3 text-lg leading-8 text-ink-body">{t("gate.askOwner")}</p>
       )}
 
       {/* This page has no header — it cannot show a locked trip's navigation —

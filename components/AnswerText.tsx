@@ -22,7 +22,7 @@ function Runs({ parts }: { parts: AnswerInline[] }) {
     <>
       {parts.map((part, i) =>
         part.bold ? (
-          <strong key={i} className="font-semibold text-navy-900">
+          <strong key={i} className="font-semibold text-ink-strong">
             {part.text}
           </strong>
         ) : (
@@ -35,13 +35,13 @@ function Runs({ parts }: { parts: AnswerInline[] }) {
 
 function AnswerBlockView({ block }: { block: AnswerBlock }) {
   if (block.kind === "meta") {
-    return <p className="text-sm text-navy-500">{block.text}</p>;
+    return <p className="text-sm text-ink-muted">{block.text}</p>;
   }
   if (block.kind === "quote") {
     return (
       <blockquote className="border-l-4 border-yellow-400 pl-3">
         {block.lines.map((line, i) => (
-          <p key={i} className="text-base leading-6 text-navy-600">
+          <p key={i} className="text-base leading-6 text-ink-secondary">
             <Runs parts={line} />
           </p>
         ))}
@@ -52,7 +52,7 @@ function AnswerBlockView({ block }: { block: AnswerBlock }) {
     return (
       <ul className="list-disc space-y-1 pl-5">
         {block.items.map((item, i) => (
-          <li key={i} className="text-base leading-6 text-navy-800">
+          <li key={i} className="text-base leading-6 text-ink-strong">
             <Runs parts={item} />
           </li>
         ))}
@@ -60,7 +60,7 @@ function AnswerBlockView({ block }: { block: AnswerBlock }) {
     );
   }
   return (
-    <p className="text-base leading-6 text-navy-800">
+    <p className="text-base leading-6 text-ink-strong">
       <Runs parts={block.parts} />
     </p>
   );

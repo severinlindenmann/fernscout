@@ -64,10 +64,10 @@ export default function DraftNotice({
       data-draft-notice
       className="mb-5 flex items-start gap-3 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3"
     >
-      <FileWarning className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" aria-hidden />
+      <FileWarning className="mt-0.5 h-5 w-5 shrink-0 text-on-bright" aria-hidden />
       <div className="min-w-0">
-        <p className="font-display text-base font-semibold text-navy-900">{t(canPublish ? "draft.title" : "draft.titleShared")}</p>
-        <p className="mt-1 text-sm leading-6 text-navy-900">{t(canPublish ? "draft.body" : "draft.bodyShared")}</p>
+        <p className="font-display text-base font-semibold text-on-bright">{t(canPublish ? "draft.title" : "draft.titleShared")}</p>
+        <p className="mt-1 text-sm leading-6 text-on-bright">{t(canPublish ? "draft.body" : "draft.bodyShared")}</p>
       </div>
     </div>
   );

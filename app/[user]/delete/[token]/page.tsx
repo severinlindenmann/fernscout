@@ -86,15 +86,15 @@ export default async function DeletePage({ params }: PageProps<"/[user]/delete/[
 
   return (
     <main id="main" tabIndex={-1} lang={locale} className="mx-auto w-full max-w-xl px-6 py-16 sm:py-24">
-      <h1 className="font-display text-3xl font-semibold leading-tight text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl font-semibold leading-tight text-ink-strong sm:text-4xl">
         {t(isJournal ? "del.journalTitle" : "del.tripTitle")}
       </h1>
-      <p className="mt-5 text-xl leading-8 text-navy-700">{t("del.pageLead", vars)}</p>
+      <p className="mt-5 text-xl leading-8 text-ink-body">{t("del.pageLead", vars)}</p>
 
-      <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">
+      <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">
         {t("del.whatGoesHeading")}
       </h2>
-      <p className="mt-3 text-lg leading-8 text-navy-700">
+      <p className="mt-3 text-lg leading-8 text-ink-body">
         {t(isJournal ? "del.journalWhatGoes" : "del.tripWhatGoes", vars)}
       </p>
       {/* Absent when credits are off or the balance is zero — a "you will
@@ -102,25 +102,25 @@ export default async function DeletePage({ params }: PageProps<"/[user]/delete/[
           never turned charging on (B74, restated for money by B374). Never
           rendered for a trip: deleting one destroys no credits. */}
       {isJournal && typeof summary.credits === "number" && summary.credits > 0 && (
-        <p className="mt-3 text-lg leading-8 text-navy-700">
+        <p className="mt-3 text-lg leading-8 text-ink-body">
           {t("del.credits", { ...vars, credits: formatCredits(summary.credits) })}
         </p>
       )}
 
-      <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">
+      <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">
         {t("del.exportHeading")}
       </h2>
-      <p className="mt-3 text-lg leading-8 text-navy-700">{t("del.export")}</p>
+      <p className="mt-3 text-lg leading-8 text-ink-body">{t("del.export")}</p>
       <p className="mt-4">
         <a
           href={deletionExportUrl(site.url, username, token)}
-          className="inline-flex min-h-12 items-center justify-center rounded-full border border-navy-200 bg-white px-6 text-lg font-semibold text-navy-700 transition-colors hover:border-navy-500"
+          className="inline-flex min-h-12 items-center justify-center rounded-full border border-line-quiet bg-surface-raised px-6 text-lg font-semibold text-ink-body transition-colors hover:border-line-prominent"
         >
           {t("del.exportButton")}
         </a>
       </p>
 
-      <p className="mt-10 text-lg leading-8 text-navy-700">{t("del.backups")}</p>
+      <p className="mt-10 text-lg leading-8 text-ink-body">{t("del.backups")}</p>
 
       <DeleteConfirm
         endpoint={`/api/v1/${username}/deletions/${token}`}

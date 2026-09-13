@@ -114,12 +114,12 @@ function ChannelSwitch({
         // has to look pressable while it is off. `navy-500` is the palette's
         // border-and-label ink (5.51:1 on white) — see apply-the-brand.
         className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors disabled:opacity-50 ${
-          enabled ? "border-navy-900 bg-navy-900" : "border-navy-500 bg-white"
+          enabled ? "border-action-strong bg-action-strong" : "border-line-prominent bg-surface-raised"
         }`}
       >
         <span
           className={`absolute top-0.5 h-4 w-4 rounded-full transition-[left] ${
-            enabled ? "left-[22px] bg-white" : "left-0.5 bg-navy-500"
+            enabled ? "left-[22px] bg-surface-raised" : "left-0.5 bg-line-prominent"
           }`}
           aria-hidden="true"
         />
@@ -187,7 +187,7 @@ function BuyStorageButton({ username }: { username: string }) {
           setFailed(false);
           setAsking(true);
         }}
-        className="inline-flex min-h-11 items-center rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50"
+        className="inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-base"
       >
         {t("me.storageBuy", { credits: String(EXTRA_STORAGE_CREDITS) })}
       </button>
@@ -254,7 +254,7 @@ function CleanupButton({
         onCancel={() => setAsking(false)}
       >
         {reclaimable.hasStagedFiles && (
-          <label className="mt-3 flex items-start gap-2 text-sm leading-6 text-navy-700">
+          <label className="mt-3 flex items-start gap-2 text-sm leading-6 text-ink-body">
             <input
               type="checkbox"
               checked={staged}
@@ -276,7 +276,7 @@ function CleanupButton({
           setFailed(false);
           setAsking(true);
         }}
-        className="inline-flex min-h-11 items-center rounded-full border border-navy-500 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-50"
+        className="inline-flex min-h-11 items-center rounded-full border border-line-prominent px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-base"
       >
         {t("me.storageCleanup", { size: reclaimable.human })}
       </button>
@@ -299,12 +299,12 @@ function CleanupButton({
  * is decoration and nothing is only available by looking at a colour.
  */
 const BAR_COLOURS = [
-  "bg-navy-900",
+  "bg-action-strong",
   "bg-yellow-400",
   "bg-sky-400",
   "bg-coral-400",
   "bg-green-500",
-  "bg-navy-500",
+  "bg-ink-muted",
   "bg-yellow-600",
   "bg-sky-500",
 ];
@@ -313,7 +313,7 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
   return (
     <>
       <div
-        className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-navy-200"
+        className="mt-3 flex h-3 w-full overflow-hidden rounded-full bg-surface-selected"
         aria-hidden="true"
       >
         {rows.map((row, at) => (
@@ -335,9 +335,9 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
                 className={`h-3 w-3 shrink-0 rounded-full ${BAR_COLOURS[at % BAR_COLOURS.length]}`}
                 aria-hidden="true"
               />
-              <span className="truncate text-navy-700">{row.label}</span>
+              <span className="truncate text-ink-body">{row.label}</span>
             </span>
-            <span className="shrink-0 tabular-nums text-navy-900">
+            <span className="shrink-0 tabular-nums text-ink-strong">
               {row.human}
             </span>
           </li>
@@ -407,15 +407,15 @@ function BuyCreditsPanel({ username }: { username: string }) {
      * a second decision. The room's own "Guthaben kaufen" links straight to
      * `#buy`, and the slider, the price and the button are simply there.
      */
-    <div id="buy" className="mt-4 scroll-mt-24 rounded-xl border border-navy-200 bg-cream-50 px-4 py-3 sm:px-5 sm:py-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+    <div id="buy" className="mt-4 scroll-mt-24 rounded-xl border border-line-quiet bg-surface-base px-4 py-3 sm:px-5 sm:py-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
         {t("me.buyDialogTitle")}
       </p>
       <p className="mt-2 flex items-baseline justify-between gap-3">
-        <span className="font-display text-2xl font-semibold tabular-nums text-navy-900">
+        <span className="font-display text-2xl font-semibold tabular-nums text-ink-strong">
           {credits} {tn("me.paymentUnit", credits)}
         </span>
-        <span className="font-display text-2xl font-semibold tabular-nums text-navy-900">
+        <span className="font-display text-2xl font-semibold tabular-nums text-ink-strong">
           {formatChf(priceRappen(credits))}
         </span>
       </p>
@@ -436,7 +436,7 @@ function BuyCreditsPanel({ username }: { username: string }) {
           className="h-11 w-full accent-yellow-400"
         />
       </label>
-      <p className="text-sm text-navy-600">
+      <p className="text-sm text-ink-secondary">
         {discountFor(credits) > 0
           ? t("me.buyDialogDiscount", { discount: discountLabel(credits) })
           : t("me.buyDialogNoDiscount", {
@@ -561,7 +561,7 @@ export default function AccountPageContent({
         tabIndex={-1}
         className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       >
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("account.title")}
         </h1>
 
@@ -569,21 +569,21 @@ export default function AccountPageContent({
           {orders.recent.length > 0 && (
             // B1452. At the top — what an owner asks most right after a
             // purchase is "did it go through", not their balance.
-            <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+            <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
               <div className="flex items-center justify-between gap-3">
-                <h3 className="font-display text-lg font-semibold text-navy-900">
+                <h3 className="font-display text-lg font-semibold text-ink-strong">
                   {t("orders.title")}
                 </h3>
                 {orders.total > orders.recent.length && (
                   <Link
                     href={`${site.base}/orders`}
-                    className="text-sm font-semibold text-navy-700 transition-colors hover:text-navy-900"
+                    className="text-sm font-semibold text-ink-body transition-colors hover:text-ink-strong"
                   >
                     {t("orders.viewAll")}
                   </Link>
                 )}
               </div>
-              <ul className="mt-2 -mx-5 divide-y divide-navy-200 border-t border-navy-200 sm:-mx-6">
+              <ul className="mt-2 -mx-5 divide-y divide-line-quiet border-t border-line-quiet sm:-mx-6">
                 {orders.recent.map((order) => (
                   <OrderListItem key={`${order.kind}-${order.id}`} order={order} />
                 ))}
@@ -592,22 +592,22 @@ export default function AccountPageContent({
           )}
 
           {payment && (
-            <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+            <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-ink-strong">
                   <Wallet className="h-[18px] w-[18px]" aria-hidden="true" />
                 </span>
-                <h3 className="font-display text-lg font-semibold text-navy-900">
+                <h3 className="font-display text-lg font-semibold text-ink-strong">
                   {t("me.paymentTitle")}
                 </h3>
               </div>
 
               <div className="mt-4 sm:flex sm:items-stretch sm:gap-4">
-                <div className="flex flex-col justify-center rounded-xl border border-navy-200 bg-cream-50 px-5 py-4 sm:w-44 sm:shrink-0">
-                  <span className="font-display text-4xl font-semibold tabular-nums tracking-tight text-navy-900">
+                <div className="flex flex-col justify-center rounded-xl border border-line-quiet bg-surface-base px-5 py-4 sm:w-44 sm:shrink-0">
+                  <span className="font-display text-4xl font-semibold tabular-nums tracking-tight text-ink-strong">
                     {payment.balance.toLocaleString("de-CH")}
                   </span>
-                  <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-navy-600">
+                  <span className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-ink-secondary">
                     {tn("me.paymentUnit", payment.balance)}
                   </span>
                   {payment.balance === 0 && (
@@ -619,29 +619,29 @@ export default function AccountPageContent({
 
                 {CHANNELS.some(({ recipients }) => recipients > 0) ? (
                 <div className="mt-4 sm:mt-0 sm:flex-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
                     {t("me.paymentEstimateTitle")}
                   </p>
-                  <ul className="mt-2 border-t border-navy-200">
+                  <ul className="mt-2 border-t border-line-quiet">
                     {CHANNELS.map(
                       ({ key, icon: Icon, labelKey, recipients, costs }) => {
                         const on = payment.channels[key];
                         if (on === null) return null;
                         return (
                           <li
-                            className="border-b border-navy-200 py-2.5"
+                            className="border-b border-line-quiet py-2.5"
                             key={key}
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
-                                <span className="flex items-center gap-2 text-base text-navy-900">
+                                <span className="flex items-center gap-2 text-base text-ink-strong">
                                   <Icon
-                                    className="h-4 w-4 shrink-0 text-navy-600"
+                                    className="h-4 w-4 shrink-0 text-ink-secondary"
                                     aria-hidden="true"
                                   />
                                   {t(labelKey)}
                                 </span>
-                                <span className="mt-0.5 block text-sm text-navy-500">
+                                <span className="mt-0.5 block text-sm text-ink-muted">
                                   {tn("me.paymentUpTo", recipients, {
                                     count: String(recipients),
                                   })}
@@ -649,7 +649,7 @@ export default function AccountPageContent({
                                   <span
                                     className={
                                       on
-                                        ? "font-semibold text-navy-900"
+                                        ? "font-semibold text-ink-strong"
                                         : undefined
                                     }
                                   >
@@ -679,7 +679,7 @@ export default function AccountPageContent({
                                 there — read once here, by the owner switching the
                                 channel on, rather than per reader. */}
                             {key === "whatsapp" && on && (
-                              <p className="mt-2 text-sm leading-6 text-navy-600">
+                              <p className="mt-2 text-sm leading-6 text-ink-secondary">
                                 {t("me.whatsappPhotoDisclosure")}
                               </p>
                             )}
@@ -688,11 +688,11 @@ export default function AccountPageContent({
                       },
                     )}
                   </ul>
-                  <p className="flex items-baseline justify-between gap-3 py-2.5 text-base font-semibold text-navy-900">
+                  <p className="flex items-baseline justify-between gap-3 py-2.5 text-base font-semibold text-ink-strong">
                     <span>{t("me.paymentDayTotal")}</span>
                     <span className="tabular-nums">{dayCost}</span>
                   </p>
-                  <p className="mt-2.5 text-sm leading-6 text-navy-600">
+                  <p className="mt-2.5 text-sm leading-6 text-ink-secondary">
                     {t("me.paymentPrices")}
                     {payment.postcardCredits !== null && (
                       <>
@@ -705,7 +705,7 @@ export default function AccountPageContent({
                   </p>
                 </div>
                 ) : (
-                  <p className="mt-4 text-sm leading-6 text-navy-600 sm:mt-0 sm:flex-1 sm:self-center">
+                  <p className="mt-4 text-sm leading-6 text-ink-secondary sm:mt-0 sm:flex-1 sm:self-center">
                     {t("me.paymentPrices")}
                   </p>
                 )}
@@ -714,55 +714,55 @@ export default function AccountPageContent({
               <BuyCreditsPanel username={username} />
 
               {payment.spent.length > 0 && (
-                <div className="mt-5 border-t border-navy-200 pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                <div className="mt-5 border-t border-line-quiet pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
                     {t("me.spentTitle")}
                   </p>
-                  <ul className="mt-2 divide-y divide-navy-200">
+                  <ul className="mt-2 divide-y divide-line-quiet">
                     {payment.spent.map(({ reason, credits }) => (
                       <li
                         key={reason}
                         className="flex items-baseline justify-between gap-3 py-2"
                       >
-                        <span className="text-base text-navy-900">
+                        <span className="text-base text-ink-strong">
                           {t(`me.spentReason.${reason}` as TranslationKey)}
                         </span>
-                        <span className="shrink-0 tabular-nums text-navy-700">
+                        <span className="shrink-0 tabular-nums text-ink-body">
                           {credits} {tn("me.paymentUnit", credits)}
                         </span>
                       </li>
                     ))}
                   </ul>
-                  <p className="mt-2.5 text-sm leading-6 text-navy-600">
+                  <p className="mt-2.5 text-sm leading-6 text-ink-secondary">
                     {t("me.spentAiNote")}
                   </p>
                 </div>
               )}
 
               {payment.transactions.length > 0 && (
-                <div className="mt-5 border-t border-navy-200 pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+                <div className="mt-5 border-t border-line-quiet pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
                     {t("me.txHistoryTitle")}
                   </p>
-                  <ul className="mt-2 divide-y divide-navy-200">
+                  <ul className="mt-2 divide-y divide-line-quiet">
                     {payment.transactions.map((tx) => (
                       <li
                         key={tx.id}
                         className="flex items-center justify-between gap-3 py-2"
                       >
                         <div className="min-w-0">
-                          <p className="text-base text-navy-900">
+                          <p className="text-base text-ink-strong">
                             {tx.credits} {tn("me.paymentUnit", tx.credits)} ·{" "}
                             {tx.amount}
                           </p>
-                          <p className="text-sm tabular-nums text-navy-600">
+                          <p className="text-sm tabular-nums text-ink-secondary">
                             {tx.createdAt.slice(0, 10)}
                           </p>
                         </div>
                         {tx.status === "refunded" ? (
                           // No link: there is nothing left to pay, and the
                           // money is on its way back. B878.
-                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-navy-100 px-3 py-1 text-sm font-semibold text-navy-700">
+                          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface-neutral-strong px-3 py-1 text-sm font-semibold text-ink-body">
                             <Undo2 className="h-4 w-4" aria-hidden="true" />
                             {t("me.txRefunded")}
                           </span>
@@ -774,7 +774,7 @@ export default function AccountPageContent({
                         ) : tx.status === "requested" ? (
                           <Link
                             href={`${site.base}/payment/${tx.id}`}
-                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-cream-50 px-3 py-1 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-base px-3 py-1 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
                           >
                             {t("me.txAwaiting")}
                           </Link>
@@ -795,17 +795,17 @@ export default function AccountPageContent({
           )}
 
           {storage && (
-            <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+            <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
               <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-navy-900">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-300/50 text-ink-strong">
                   <HardDrive className="h-[18px] w-[18px]" aria-hidden="true" />
                 </span>
-                <h3 className="font-display text-lg font-semibold text-navy-900">
+                <h3 className="font-display text-lg font-semibold text-ink-strong">
                   {t("me.storageTitle")}
                 </h3>
               </div>
 
-              <p className="mt-4 text-base text-navy-900">
+              <p className="mt-4 text-base text-ink-strong">
                 {t("me.storageUsed", {
                   used: storage.used,
                   limit: storage.limit ?? "",
@@ -820,7 +820,7 @@ export default function AccountPageContent({
               {storage.rows.length > 0 && <StorageBar rows={storage.rows} />}
 
               {(storage.reclaimable.files > 0 || storage.canBuy) && (
-                <div className="mt-5 border-t border-navy-200 pt-4">
+                <div className="mt-5 border-t border-line-quiet pt-4">
                   <div className="flex flex-wrap items-center gap-3">
                     {storage.reclaimable.files > 0 && (
                       <CleanupButton
@@ -831,7 +831,7 @@ export default function AccountPageContent({
                     {storage.canBuy && <BuyStorageButton username={username} />}
                   </div>
                   {storage.reclaimable.files > 0 && (
-                    <p className="mt-2 text-sm leading-6 text-navy-600">
+                    <p className="mt-2 text-sm leading-6 text-ink-secondary">
                       {t("me.storageCleanupBody")}
                     </p>
                   )}
@@ -845,7 +845,7 @@ export default function AccountPageContent({
             // and credits switched off. Rare (an instance normally sets one
             // or the other), but a page with two absent cards and no
             // explanation reads as broken rather than as "nothing to show".
-            <p className="rounded-2xl border border-navy-200 bg-white p-5 text-base leading-7 text-navy-700 sm:p-6">
+            <p className="rounded-2xl border border-line-quiet bg-surface-raised p-5 text-base leading-7 text-ink-body sm:p-6">
               {t("me.accountCardBody")}
             </p>
           )}

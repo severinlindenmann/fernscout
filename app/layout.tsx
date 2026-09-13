@@ -5,6 +5,8 @@ import BackTracker from "@/components/BackTracker";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
+import { DARK_THEME_COLOR, LIGHT_THEME_COLOR } from "@/lib/theme";
+import ThemeScript from "@/components/ThemeScript";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -94,8 +96,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#ffd23f",
-  colorScheme: "light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: LIGHT_THEME_COLOR },
+    { media: "(prefers-color-scheme: dark)", color: DARK_THEME_COLOR },
+  ],
+  colorScheme: "light dark",
   // Without cover, env(safe-area-inset-*) is 0 in the installed PWA and the
   // room's tab bar sat inside the iPhone's rounded corners — B1351. The body
   // paints its own cream ground, so drawing into the insets shows colour,
@@ -118,8 +123,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={locale}
+      suppressHydrationWarning
       className={`${fredoka.variable} ${fredokaExt.variable} ${jakarta.variable} ${jakartaExt.variable} ${plexMono.variable} ${plexMonoMedium.variable} h-full antialiased`}
     >
+      <head>
+        <ThemeScript />
+      </head>
       {/*
         `min-w-0` is load-bearing, not tidying — B431.
 

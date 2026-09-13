@@ -123,24 +123,24 @@ export default function GuestSignIn({
   }
 
   const field =
-    "mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-base text-navy-900";
+    "mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-base text-ink-strong";
   const button =
-    "mt-4 min-h-12 w-full rounded-xl bg-navy-900 px-4 py-3 text-lg font-medium text-cream-50 disabled:opacity-50";
+    "mt-4 min-h-12 w-full rounded-xl bg-action-strong px-4 py-3 text-lg font-medium text-on-action disabled:opacity-50";
 
   return (
-    <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">
+    <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
         {t("me.signInTitle")}
       </h2>
 
       {step === "email" ? (
         <form onSubmit={requestCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {t("me.signInBody")}
           </p>
           <label
             htmlFor="signin-email"
-            className="mt-4 block text-base font-medium text-navy-700"
+            className="mt-4 block text-base font-medium text-ink-body"
           >
             {t("me.signInEmail")}
           </label>
@@ -175,7 +175,7 @@ export default function GuestSignIn({
             type="submit"
             name="whatsapp"
             disabled={busy}
-            className="mt-3 min-h-12 w-full rounded-xl border border-navy-300 bg-white px-4 py-3 text-lg font-medium text-navy-900 disabled:opacity-50"
+            className="mt-3 min-h-12 w-full rounded-xl border border-line-strong bg-surface-raised px-4 py-3 text-lg font-medium text-ink-strong disabled:opacity-50"
           >
             {t("me.signInWhatsapp")}
           </button>}
@@ -185,14 +185,14 @@ export default function GuestSignIn({
           {/* The number comes from CODE_TTL_MS, not from the sentence — see
               CODE_TTL_MINUTES. This is a client component, so it is passed in
               rather than imported. */}
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {channel === "whatsapp"
               ? t("me.signInSentWhatsapp", { minutes: codeMinutes })
               : t("me.signInSent", { minutes: codeMinutes })}
           </p>
           <label
             htmlFor="signin-code"
-            className="mt-4 block text-base font-medium text-navy-700"
+            className="mt-4 block text-base font-medium text-ink-body"
           >
             {t("me.signInCode")}
           </label>
@@ -239,7 +239,7 @@ export default function GuestSignIn({
               setCode("");
               setWrong(false);
             }}
-            className="mt-3 min-h-11 text-base text-navy-600 underline underline-offset-4"
+            className="mt-3 min-h-11 text-base text-ink-secondary underline underline-offset-4"
           >
             {t("me.signInAgain")}
           </button>

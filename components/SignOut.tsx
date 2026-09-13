@@ -52,18 +52,18 @@ export default function SignOut() {
   }
 
   return (
-    <section className="mt-8 border-t border-navy-200 pt-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">
+    <section className="mt-8 border-t border-line-quiet pt-6">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
         {t("me.signOutTitle")}
       </h2>
-      <p className="mt-2 text-base leading-7 text-navy-700">
+      <p className="mt-2 text-base leading-7 text-ink-body">
         {t("me.signOutBody")}
       </p>
       <BusyButton
         busy={busy}
         type="button"
         onClick={signOut}
-        className="mt-4 inline-flex min-h-11 items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 disabled:opacity-50"
+        className="mt-4 inline-flex min-h-11 items-center rounded-full border border-line-ink px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle disabled:opacity-50"
         busyLabel={t("me.signingOut")}
       >
         {t("me.signOut")}

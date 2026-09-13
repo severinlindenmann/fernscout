@@ -42,10 +42,10 @@ export default async function GuidePage({ params }: PageProps<"/docs/guide/[guid
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className=" font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
+      <h1 className=" font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
         {translateIn(locale, `guides.${guide}.title`)}
       </h1>
-      <p className="mt-3 text-lg leading-relaxed text-navy-700">
+      <p className="mt-3 text-lg leading-relaxed text-ink-body">
         {translateIn(locale, `guides.${guide}.lede`)}
       </p>
 
@@ -60,12 +60,12 @@ export default async function GuidePage({ params }: PageProps<"/docs/guide/[guid
         the one least able to tell the difference.
       */}
       {written !== locale && (
-        <p className="mt-6 rounded-xl border border-navy-200 bg-cream-100 px-4 py-3 text-sm text-navy-700">
+        <p className="mt-6 rounded-xl border border-line-quiet bg-surface-subtle px-4 py-3 text-sm text-ink-body">
           {translateIn(locale, "guides.inEnglish")}
         </p>
       )}
 
-      <div className="mt-8 border-t border-navy-200 pt-8">
+      <div className="mt-8 border-t border-line-quiet pt-8">
         <EntryContent markdown={markdown} />
       </div>
     </main>

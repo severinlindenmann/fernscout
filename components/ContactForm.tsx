@@ -47,8 +47,8 @@ type Step = "form" | "code" | "done";
 // surface a control sits on. sky-500 is 2.73:1 on white and 2.63:1 on cream,
 // so as a focus indicator it failed everywhere it was drawn.
 const FIELD =
-  "mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg text-navy-900";
-const LABEL = "block text-base font-medium text-navy-700";
+  "mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg text-ink-strong";
+const LABEL = "block text-base font-medium text-ink-body";
 
 export default function ContactForm({
   username,
@@ -253,12 +253,12 @@ export default function ContactForm({
     <main className="mx-auto w-full max-w-xl px-6 py-12 sm:py-16" lang={locale}>
       {step === "form" && (
         <form onSubmit={submitDetails} noValidate>
-          <h1 className="font-display text-3xl leading-tight text-navy-900 sm:text-4xl">
+          <h1 className="font-display text-3xl leading-tight text-ink-strong sm:text-4xl">
             {initialName
               ? t("contact.greeting", { name: initialName })
               : t("contact.title")}
           </h1>
-          <p className="mt-3 text-lg leading-relaxed text-navy-700">
+          <p className="mt-3 text-lg leading-relaxed text-ink-body">
             {t("contact.intro")}
           </p>
 
@@ -288,7 +288,7 @@ export default function ContactForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <p className="mt-2 text-base text-navy-600">
+            <p className="mt-2 text-base text-ink-secondary">
               {t("contact.emailHint")}
             </p>
           </div>
@@ -325,17 +325,17 @@ export default function ContactForm({
               noMatches={t("contact.telNoMatches")}
               locale={locale}
             />
-            <p className="mt-2 text-base text-navy-600">
+            <p className="mt-2 text-base text-ink-secondary">
               {t(telHintKey("reader", postcardsEnabled, whatsappEnabled))}
             </p>
           </div>
 
           {postcardsEnabled && (
-            <fieldset className="mt-10 rounded-2xl border border-navy-200 bg-cream-100 p-5">
-              <legend className="px-2 font-display text-xl text-navy-900">
+            <fieldset className="mt-10 rounded-2xl border border-line-quiet bg-surface-subtle p-5">
+              <legend className="px-2 font-display text-xl text-ink-strong">
                 {t("contact.address")}
               </legend>
-              <p className="text-base text-navy-700">
+              <p className="text-base text-ink-body">
                 {t("contact.addressHint")}
               </p>
 
@@ -445,7 +445,7 @@ export default function ContactForm({
               and the number above was asked for as a postal detail. See
               migration 015. */}
           <div className="mt-8 space-y-4">
-            <label className="flex items-start gap-3 text-lg text-navy-900">
+            <label className="flex items-start gap-3 text-lg text-ink-strong">
               <input
                 type="checkbox"
                 className="mt-1.5 size-5"
@@ -455,7 +455,7 @@ export default function ContactForm({
               <span>{t("contact.wantsDigest")}</span>
             </label>
             {postcardsEnabled && (
-              <label className="flex items-start gap-3 text-lg text-navy-900">
+              <label className="flex items-start gap-3 text-lg text-ink-strong">
                 <input
                   type="checkbox"
                   className="mt-1.5 size-5"
@@ -466,7 +466,7 @@ export default function ContactForm({
               </label>
             )}
             {whatsappEnabled && (
-              <label className="flex items-start gap-3 text-lg text-navy-900">
+              <label className="flex items-start gap-3 text-lg text-ink-strong">
                 <input
                   type="checkbox"
                   className="mt-1.5 size-5"
@@ -487,7 +487,7 @@ export default function ContactForm({
           <BusyButton
             busy={busy}
             type="submit"
-            className="mt-8 w-full rounded-xl bg-navy-900 px-4 py-4 text-lg font-medium text-cream-50 disabled:opacity-50"
+            className="mt-8 w-full rounded-xl bg-action-strong px-4 py-4 text-lg font-medium text-on-action disabled:opacity-50"
             busyLabel={t("contact.working")}
           >
             {t("contact.submit")}
@@ -497,10 +497,10 @@ export default function ContactForm({
 
       {step === "code" && (
         <form onSubmit={submitCode}>
-          <h1 className="font-display text-3xl leading-tight text-navy-900 sm:text-4xl">
+          <h1 className="font-display text-3xl leading-tight text-ink-strong sm:text-4xl">
             {t("contact.codeTitle")}
           </h1>
-          <p className="mt-3 text-lg leading-relaxed text-navy-700">
+          <p className="mt-3 text-lg leading-relaxed text-ink-body">
             {t("contact.codeIntro", { email })}
           </p>
           <label className={`${LABEL} mt-8`} htmlFor="contact-code">
@@ -524,7 +524,7 @@ export default function ContactForm({
             busy={busy}
             type="submit"
             disabled={code.length < 6}
-            className="mt-8 w-full rounded-xl bg-navy-900 px-4 py-4 text-lg font-medium text-cream-50 disabled:opacity-50"
+            className="mt-8 w-full rounded-xl bg-action-strong px-4 py-4 text-lg font-medium text-on-action disabled:opacity-50"
             busyLabel={t("contact.working")}
           >
             {t("contact.codeSubmit")}
@@ -534,10 +534,10 @@ export default function ContactForm({
 
       {step === "done" && (
         <div>
-          <h1 className="font-display text-3xl leading-tight text-navy-900 sm:text-4xl">
+          <h1 className="font-display text-3xl leading-tight text-ink-strong sm:text-4xl">
             {t(approved ? "contact.welcomeBackTitle" : "contact.doneTitle")}
           </h1>
-          <p className="mt-3 text-lg leading-relaxed text-navy-700">
+          <p className="mt-3 text-lg leading-relaxed text-ink-body">
             {t(approved ? "contact.welcomeBackBody" : "contact.doneBody", {
               title: journalTitle,
             })}
@@ -545,7 +545,7 @@ export default function ContactForm({
           {approved && (
             <p className="mt-6 text-base">
               <a
-                className="text-navy-900 underline decoration-sky-500 decoration-2 underline-offset-2"
+                className="text-ink-strong underline decoration-sky-500 decoration-2 underline-offset-2"
                 href={`/${username}`}
               >
                 {t("contact.startReading", { title: journalTitle })}
@@ -555,13 +555,13 @@ export default function ContactForm({
           {manage && (
             <p className="mt-6 text-base">
               <a
-                className="text-navy-900 underline decoration-sky-500 decoration-2 underline-offset-2"
+                className="text-ink-strong underline decoration-sky-500 decoration-2 underline-offset-2"
                 href={manage}
               >
                 {t("contact.manageLink")}
               </a>
               <br />
-              <span className="text-sm text-navy-500">
+              <span className="text-sm text-ink-muted">
                 {t("contact.manageLinkCaption")}
               </span>
             </p>
@@ -574,10 +574,10 @@ export default function ContactForm({
           out rather than sharing `BackToJournal`, because this form carries
           its own language picker and the link has to follow it, not the
           cookie the rest of the site reads. */}
-      <p className="mt-12 border-t border-navy-200 pt-6 text-sm">
+      <p className="mt-12 border-t border-line-quiet pt-6 text-sm">
         <a
           href={`/${username}`}
-          className="text-navy-600 underline-offset-4 hover:text-navy-900 hover:underline"
+          className="text-ink-secondary underline-offset-4 hover:text-ink-strong hover:underline"
         >
           ← {t("nav.toJournal", { title: journalTitle })}
         </a>

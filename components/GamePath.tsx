@@ -220,8 +220,8 @@ export default function GamePath({
                   isCurrent
                     ? "border-yellow-600 bg-yellow-400 text-yellow-950"
                     : isPast
-                      ? "border-green-700 bg-green-500 text-white"
-                      : "border-navy-200 bg-white text-navy-700"
+                      ? "border-green-700 bg-green-500 text-on-bright"
+                      : "border-line-quiet bg-surface-raised text-ink-body"
                 }`}
                 style={{ width: size, height: size }}
               >
@@ -229,7 +229,7 @@ export default function GamePath({
               </span>
               {flag && (
                 <span
-                  className="absolute -right-1 -top-1 rounded-full bg-white px-0.5 shadow-sm"
+                  className="absolute -right-1 -top-1 rounded-full bg-surface-raised px-0.5 shadow-sm"
                   style={{ fontSize: size * 0.3, lineHeight: 1.1 }}
                 >
                   {flag}
@@ -244,19 +244,19 @@ export default function GamePath({
 
                 Sized by its content, not fixed: day 7 and day 118 both happen.
               */}
-              <span className="absolute -bottom-0.5 -left-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-navy-900 px-1 text-[9px] font-bold tabular-nums text-white shadow-sm">
+              <span className="absolute -bottom-0.5 -left-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-action-strong px-1 text-[9px] font-bold tabular-nums text-on-action shadow-sm">
                 {i + 1}
               </span>
             </span>
             <span
               className={`mt-1 max-w-[104px] truncate font-display text-xs font-semibold ${
-                isCurrent ? "text-navy-900" : "text-navy-600"
+                isCurrent ? "text-ink-strong" : "text-ink-secondary"
               }`}
             >
               {day.location}
             </span>
             {/* The same second line the mobile day list draws. */}
-            <span className="max-w-[112px] truncate text-[10px] leading-tight text-navy-600 tabular-nums">
+            <span className="max-w-[112px] truncate text-[10px] leading-tight text-ink-secondary tabular-nums">
               {formatShortDate(day.date)}
               {day.updates > 1 && ` · ${day.updates} ${t("day.updates")}`}
               {day.cost > 0 && ` · ${spend(day.cost, day.costLocal)}`}

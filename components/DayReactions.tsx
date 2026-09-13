@@ -35,7 +35,7 @@ export default function DayReactions({ daySlug }: { daySlug: string }) {
       {/* The prompt on its own line rather than inline with the choices: at
           390px a question plus three of them wraps, and what wraps is the last
           choice — which then reads as a stray control under the other two. */}
-      <span className="block text-xs text-navy-600">{t("react.prompt")}</span>
+      <span className="block text-xs text-ink-secondary">{t("react.prompt")}</span>
       <div className="mt-1 flex flex-wrap items-center gap-1">
         {REACTIONS.map((emoji) => (
           <ReactionButton
@@ -97,14 +97,14 @@ function ReactionButton({
       <span
         aria-hidden
         className={`flex h-8 w-8 items-center justify-center rounded-full text-xl leading-none transition-colors ${
-          selected ? "bg-yellow-400" : "group-hover:bg-cream-100"
+          selected ? "bg-yellow-400" : "group-hover:bg-surface-subtle"
         }`}
       >
         {emoji}
       </span>
       <span
         className={`font-display text-sm font-semibold tabular-nums ${
-          selected ? "text-navy-900" : "text-navy-600 group-hover:text-navy-900"
+          selected ? "text-ink-strong" : "text-ink-secondary group-hover:text-ink-strong"
         }`}
       >
         {count}

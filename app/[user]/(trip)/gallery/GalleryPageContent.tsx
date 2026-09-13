@@ -42,11 +42,11 @@ export default function GalleryPageContent({
         tabIndex={-1}
         className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8"
       >
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("gallery.title")}
         </h1>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-navy-600">
+          <p className="text-sm text-ink-secondary">
             {media.length} {t("gallery.subtitle")}
           </p>
           {/* One row at every width — B1502. `shrink-0` on two buttons whose
@@ -63,7 +63,7 @@ export default function GalleryPageContent({
             {photobook && media.length > 0 && (
               <a
                 href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
-                className="flex min-h-11 min-w-0 items-center gap-1.5 truncate rounded-full border border-navy-200 bg-white px-3 text-xs font-semibold text-navy-700 transition-colors hover:border-navy-500 sm:px-4 sm:text-sm"
+                className="flex min-h-11 min-w-0 items-center gap-1.5 truncate rounded-full border border-line-quiet bg-surface-raised px-3 text-xs font-semibold text-ink-body transition-colors hover:border-line-prominent sm:px-4 sm:text-sm"
               >
                 <BookOpen className="h-4 w-4 shrink-0" />
                 {t("photobook.start")}
@@ -80,7 +80,7 @@ export default function GalleryPageContent({
                 className={`flex min-h-11 min-w-0 items-center gap-1.5 truncate rounded-full border px-3 text-xs font-semibold transition-colors sm:px-4 sm:text-sm ${
                   picking
                     ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                    : "border-navy-200 bg-white text-navy-700 hover:border-navy-500"
+                    : "border-line-quiet bg-surface-raised text-ink-body hover:border-line-prominent"
                 }`}
               >
                 <Send className="h-4 w-4 shrink-0" />
@@ -90,7 +90,7 @@ export default function GalleryPageContent({
           </div>
         </div>
         {picking && (
-          <p className="mt-3 text-sm text-navy-700">{t("postcard.pickHint")}</p>
+          <p className="mt-3 text-sm text-ink-body">{t("postcard.pickHint")}</p>
         )}
         <div className="mt-6">
           <GalleryGrid

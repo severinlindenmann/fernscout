@@ -43,10 +43,10 @@ export default function NoticeShell({
       lang={lang}
       className="mx-auto w-full max-w-xl px-6 py-20 sm:py-28"
     >
-      <h1 className="font-display text-3xl font-semibold leading-tight text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl font-semibold leading-tight text-ink-strong sm:text-4xl">
         {title}
       </h1>
-      {body && <p className="mt-5 text-xl leading-8 text-navy-700">{body}</p>}
+      {body && <p className="mt-5 text-xl leading-8 text-ink-body">{body}</p>}
 
       {actions.length > 0 && (
         <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -59,7 +59,7 @@ export default function NoticeShell({
                 // the only one that looks like a button.
                 i === 0
                   ? "inline-flex min-h-12 items-center justify-center rounded-full bg-yellow-400 px-6 text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
-                  : "inline-flex min-h-12 items-center justify-center rounded-full border border-navy-200 bg-white px-6 text-lg font-semibold text-navy-700 transition-colors hover:border-navy-500"
+                  : "inline-flex min-h-12 items-center justify-center rounded-full border border-line-quiet bg-surface-raised px-6 text-lg font-semibold text-ink-body transition-colors hover:border-line-prominent"
               }
             >
               {action.label}

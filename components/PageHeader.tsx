@@ -105,7 +105,7 @@ export default function PageHeader({
   }, [menuOpen]);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-navy-200 bg-cream-100/95 px-4 py-2.5 backdrop-blur sm:px-6 sm:py-3">
+    <header className="sticky top-0 z-30 border-b border-line-quiet bg-surface-subtle/95 px-4 py-2.5 backdrop-blur sm:px-6 sm:py-3">
       <SkipLink />
       {/*
         One row on a phone, below `sm` — B770.
@@ -141,8 +141,8 @@ export default function PageHeader({
               retraceLabel={t("nav.back")}
               showLabel={false}
               iconClassName="h-5 w-5"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-600
-                         transition-colors hover:bg-navy-200/60 hover:text-navy-900
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-secondary
+                         transition-colors hover:bg-surface-selected/60 hover:text-ink-strong
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             />
           )}
@@ -150,14 +150,14 @@ export default function PageHeader({
             <button
               onClick={onHome}
               className="flex min-h-11 min-w-0 flex-1 items-center truncate text-left font-display
-                         text-lg font-semibold tracking-tight text-navy-900"
+                         text-lg font-semibold tracking-tight text-ink-strong"
             >
               {site.title}
             </button>
           ) : (
             <Link
               href={homeHref}
-              className="min-w-0 flex-1 truncate font-display text-lg font-semibold tracking-tight text-navy-900"
+              className="min-w-0 flex-1 truncate font-display text-lg font-semibold tracking-tight text-ink-strong"
             >
               {site.title}
             </Link>
@@ -184,8 +184,8 @@ export default function PageHeader({
             aria-expanded={menuOpen}
             aria-controls="mobile-menu-panel"
             aria-label={menuOpen ? t("nav.closeMenu") : t("nav.menu")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700
-                       transition-colors hover:bg-navy-200/60
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-body
+                       transition-colors hover:bg-surface-selected/60
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             {menuOpen ? (
@@ -208,7 +208,7 @@ export default function PageHeader({
             aria-modal="false"
             aria-label={t("nav.menu")}
             tabIndex={-1}
-            className="relative mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-navy-200 bg-cream-50 p-3 shadow-lg"
+            className="relative mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-line-quiet bg-surface-base p-3 shadow-lg"
           >
             {/* `children` is not repeated here: the one caller that passes any
                 (`TripStory`'s day counter) already marks it `xl:block`, so it
@@ -222,16 +222,16 @@ export default function PageHeader({
                 not destinations live. Icon-only, with the label as its
                 accessible name, because it is joining a set rather than
                 arriving as a new kind of control. */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-navy-200 pb-3">
+            <div className="flex flex-wrap items-center gap-2 border-b border-line-quiet pb-3">
               <TripSwitcher />
               <CurrencySwitcher />
               <LocaleSwitcher />
               <Link
                 href="/docs"
                 onClick={() => setMenuOpen(false)}
-                className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white
-                           px-3 text-sm font-semibold text-navy-700 transition-colors
-                           hover:border-navy-500 focus-visible:outline-2 focus-visible:outline-offset-2
+                className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised
+                           px-3 text-sm font-semibold text-ink-body transition-colors
+                           hover:border-line-prominent focus-visible:outline-2 focus-visible:outline-offset-2
                            focus-visible:outline-blue-500"
               >
                 <FileText
@@ -261,12 +261,12 @@ export default function PageHeader({
                 destination, so `yellow-400` stays true to "you are here".
               */}
               {site.helperEnabled && (
-                <nav className="border-b border-navy-200 pb-2">
+                <nav className="border-b border-line-quiet pb-2">
                   <Link
                     href="/agent"
                     onClick={() => setMenuOpen(false)}
-                    className="flex min-h-12 items-center gap-3 rounded-xl bg-navy-900 px-3 text-base
-                               font-semibold text-cream-50 transition-colors hover:bg-navy-700
+                    className="flex min-h-12 items-center gap-3 rounded-xl bg-action-strong px-3 text-base
+                               font-semibold text-on-action transition-colors hover:bg-action-strong-hover
                                focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                   >
                     <Bot
@@ -370,26 +370,26 @@ export default function PageHeader({
               retraceLabel={t("nav.back")}
               iconClassName="h-3.5 w-3.5"
               className="-ml-1 mb-0.5 inline-flex min-h-6 items-center gap-1 rounded px-1 text-xs
-                         font-semibold text-navy-600 transition-colors hover:text-navy-900
+                         font-semibold text-ink-secondary transition-colors hover:text-ink-strong
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             />
           )}
           {onHome ? (
             <button
               onClick={onHome}
-              className="block max-w-full truncate font-display text-lg font-semibold tracking-tight text-navy-900 sm:text-xl"
+              className="block max-w-full truncate font-display text-lg font-semibold tracking-tight text-ink-strong sm:text-xl"
             >
               {site.title}
             </button>
           ) : (
             <Link
               href={homeHref}
-              className="block truncate font-display text-lg font-semibold tracking-tight text-navy-900 sm:text-xl"
+              className="block truncate font-display text-lg font-semibold tracking-tight text-ink-strong sm:text-xl"
             >
               {site.title}
             </Link>
           )}
-          <p className="hidden truncate text-xs text-navy-600 sm:block">
+          <p className="hidden truncate text-xs text-ink-secondary sm:block">
             {tagline}
           </p>
         </div>
@@ -405,7 +405,7 @@ export default function PageHeader({
 
             There is room here that the phone row does not have, so
             icon-and-word sits inline rather than waiting for the panel.
-            `bg-navy-900` rather than `yellow-400`, same reasoning as the
+            `bg-action-strong` rather than `yellow-400`, same reasoning as the
             mobile panel above: `SiteNav`'s active-tab colour, on the line
             below, is already the header's "you are here" waymark, and this
             is a different kind of control — a call to action to leave the
@@ -415,8 +415,8 @@ export default function PageHeader({
           {site.helperEnabled && (
             <Link
               href="/agent"
-              className="flex min-h-11 items-center gap-2 rounded-full bg-navy-900 px-4 text-sm font-semibold
-                           text-cream-50 transition-colors hover:bg-navy-800
+              className="flex min-h-11 items-center gap-2 rounded-full bg-action-strong px-4 text-sm font-semibold
+                           text-on-action transition-colors hover:bg-action-strong-hover
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
               <Bot className="h-4 w-4" aria-hidden strokeWidth={2.2} />
@@ -431,8 +431,8 @@ export default function PageHeader({
             href="/docs"
             title={t("nav.docs")}
             aria-label={t("nav.docs")}
-            className="flex h-11 w-11 items-center justify-center rounded-full text-navy-600
-                           transition-colors hover:bg-navy-200/60 hover:text-navy-900
+            className="flex h-11 w-11 items-center justify-center rounded-full text-ink-secondary
+                           transition-colors hover:bg-surface-selected/60 hover:text-ink-strong
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             <FileText className="h-4 w-4" aria-hidden strokeWidth={2.2} />

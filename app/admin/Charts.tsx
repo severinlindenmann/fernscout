@@ -25,11 +25,11 @@ import type { CostLine } from "@/lib/instanceCosts";
 /** The hues a stacked series may use, in order. Every one is a measured
  *  contrast on cream and on white; see the note above on the yellow. */
 export const SERIES = [
-  "bg-navy-700",
+  "bg-action-strong",
   "bg-sky-500",
   "bg-green-700",
   "bg-coral-400",
-  "bg-navy-500",
+  "bg-ink-muted",
   "bg-sky-300",
 ] as const;
 
@@ -51,29 +51,29 @@ export function BarChart({ title, bars, empty }: { title: string; bars: Bar[]; e
 
   return (
     <section className="mt-8">
-      <h2 className="font-display text-lg font-semibold text-navy-900">{title}</h2>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">{title}</h2>
       {shown.length === 0 ? (
-        <p className="mt-2 text-sm text-navy-500">{empty}</p>
+        <p className="mt-2 text-sm text-ink-muted">{empty}</p>
       ) : (
         <ul className="mt-3 space-y-3">
           {shown.map((row) => (
             <li key={row.label}>
               <div className="flex items-baseline justify-between gap-3">
-                <span className="min-w-0 break-words text-sm text-navy-700">{row.label}</span>
-                <span className="shrink-0 font-mono text-sm text-navy-900">
+                <span className="min-w-0 break-words text-sm text-ink-body">{row.label}</span>
+                <span className="shrink-0 font-mono text-sm text-ink-strong">
                   {formatChf(row.rappen)}
                 </span>
               </div>
               {/* The mark. `max` is the longest bar rather than the total, so a
                   chart of one dominant line still shows the small ones as
                   something rather than as a hairline. */}
-              <div className="mt-1 h-2 w-full rounded-full bg-cream-200">
+              <div className="mt-1 h-2 w-full rounded-full bg-surface-muted">
                 <div
-                  className="h-2 rounded-full bg-navy-700"
+                  className="h-2 rounded-full bg-action-strong"
                   style={{ width: `${Math.max((row.rappen / max) * 100, 2)}%` }}
                 />
               </div>
-              {row.note ? <p className="mt-1 text-xs text-navy-500">{row.note}</p> : null}
+              {row.note ? <p className="mt-1 text-xs text-ink-muted">{row.note}</p> : null}
             </li>
           ))}
         </ul>
@@ -99,9 +99,9 @@ export function Meter({
 }) {
   const width = Math.min(Math.max(fraction, 0), 1) * 100;
   const fill =
-    tone === "alert" ? "bg-coral-600" : tone === "good" ? "bg-green-700" : "bg-navy-700";
+    tone === "alert" ? "bg-coral-600" : tone === "good" ? "bg-green-700" : "bg-action-strong";
   return (
-    <div className="mt-1 h-1.5 w-full rounded-full bg-cream-200">
+    <div className="mt-1 h-1.5 w-full rounded-full bg-surface-muted">
       {/* A measured zero draws nothing at all. Every other bar keeps a 2%
           foot so a small number reads as small rather than as absent. */}
       <div
@@ -138,7 +138,7 @@ export function Sparkline({ points, label }: { points: number[]; label: string }
     <svg
       viewBox="0 0 100 20"
       preserveAspectRatio="none"
-      className="h-5 w-20 shrink-0 text-navy-500"
+      className="h-5 w-20 shrink-0 text-ink-muted"
       role="img"
       aria-label={label}
     >
@@ -180,26 +180,26 @@ export function CountBars({
   return (
     <div className="mt-4">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-navy-600">{title}</span>
-        <span className="font-mono text-sm text-navy-900">
+        <span className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">{title}</span>
+        <span className="font-mono text-sm text-ink-strong">
           {total} {unit}
         </span>
       </div>
       {total === 0 ? (
-        <p className="mt-1 text-sm text-navy-500">{empty}</p>
+        <p className="mt-1 text-sm text-ink-muted">{empty}</p>
       ) : (
         <>
           <div className="mt-2 flex h-14 items-end gap-0.5">
             {weeks.map((week) => (
               <div
                 key={week.week}
-                className="flex-1 rounded-t-sm bg-navy-700"
+                className="flex-1 rounded-t-sm bg-action-strong"
                 title={`week of ${week.week} — ${week.count} ${unit}`}
                 style={{ height: `${Math.max((week.count / max) * 100, 2)}%` }}
               />
             ))}
           </div>
-          <div className="mt-1 flex justify-between font-mono text-xs text-navy-500">
+          <div className="mt-1 flex justify-between font-mono text-xs text-ink-muted">
             <span>{weeks[0]?.week}</span>
             <span>this week</span>
           </div>
@@ -242,15 +242,15 @@ export function Breakdown({
             <details className="group">
               <summary className="cursor-pointer list-none">
                 <span className="flex items-baseline justify-between gap-3">
-                  <span className="min-w-0 break-words text-sm text-navy-700">
+                  <span className="min-w-0 break-words text-sm text-ink-body">
                     {group.label}
-                    <span className="ml-1 text-navy-500 group-open:hidden">
+                    <span className="ml-1 text-ink-muted group-open:hidden">
                       · {group.lines.length}
                     </span>
                   </span>
-                  <span className="shrink-0 font-mono text-sm text-navy-900">
+                  <span className="shrink-0 font-mono text-sm text-ink-strong">
                     {group.rappen === 0 && group.unpriced ? (
-                      <span className="text-navy-500">not priced</span>
+                      <span className="text-ink-muted">not priced</span>
                     ) : (
                       formatChf(group.rappen)
                     )}
@@ -259,9 +259,9 @@ export function Breakdown({
                 {/* A group that cost nothing draws nothing — the same rule
                     `Meter` keeps, and for the same reason: a 2% foot under
                     "CHF 0.00" reads as a small amount rather than as none. */}
-                <span className="mt-1 block h-2 w-full rounded-full bg-cream-200">
+                <span className="mt-1 block h-2 w-full rounded-full bg-surface-muted">
                   <span
-                    className="block h-2 rounded-full bg-navy-700"
+                    className="block h-2 rounded-full bg-action-strong"
                     style={{
                       width:
                         group.rappen === 0 ? "0" : `${Math.max((group.rappen / max) * 100, 2)}%`,
@@ -269,27 +269,27 @@ export function Breakdown({
                   />
                 </span>
               </summary>
-              <div className="mt-2 border-l-2 border-navy-200 pl-3">
-                <p className="text-xs text-navy-500">{group.note}</p>
+              <div className="mt-2 border-l-2 border-line-quiet pl-3">
+                <p className="text-xs text-ink-muted">{group.note}</p>
                 {group.lines.length === 0 ? (
-                  <p className="mt-1 text-sm text-navy-500">Nothing in this period.</p>
+                  <p className="mt-1 text-sm text-ink-muted">Nothing in this period.</p>
                 ) : (
-                  <ul className="mt-1 divide-y divide-navy-200">
+                  <ul className="mt-1 divide-y divide-line-quiet">
                     {group.lines.map((line) => (
                       <li key={`${line.label}-${line.detail}`} className="py-1.5">
                         <div className="flex items-baseline justify-between gap-3">
-                          <span className="min-w-0 break-words text-sm text-navy-900">
+                          <span className="min-w-0 break-words text-sm text-ink-strong">
                             {line.label}
                           </span>
-                          <span className="shrink-0 font-mono text-sm text-navy-900">
+                          <span className="shrink-0 font-mono text-sm text-ink-strong">
                             {line.unpriced ? (
-                              <span className="text-navy-500">not priced</span>
+                              <span className="text-ink-muted">not priced</span>
                             ) : (
                               formatChf(line.rappen)
                             )}
                           </span>
                         </div>
-                        <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-navy-500">
+                        <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-ink-muted">
                           {line.detail}
                           {line.calls > 0
                             ? ` · ${line.calls} ${line.calls === 1 ? "call" : "calls"}`

@@ -242,10 +242,10 @@ export default function PushOptIn({
   const inSection = (children: React.ReactNode) =>
     heading ? (
       <section className="mt-8">
-        <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900">
+        <h2 className="font-display text-2xl font-semibold tracking-tight text-ink-strong">
           {heading.title}
         </h2>
-        <p className="mt-1.5 text-base leading-7 text-navy-600">
+        <p className="mt-1.5 text-base leading-7 text-ink-secondary">
           {heading.lede}
         </p>
         {children}
@@ -266,7 +266,7 @@ export default function PushOptIn({
     state === "unavailable"
   ) {
     return inSection(
-      <p className="mt-3 max-w-md text-[11px] leading-relaxed text-navy-500">
+      <p className="mt-3 max-w-md text-[11px] leading-relaxed text-ink-muted">
         {t(
           state === "needs-install"
             ? "push.iosInstall"
@@ -285,21 +285,21 @@ export default function PushOptIn({
           onClick={disable}
           aria-label={t("push.turnOff")}
           title={t("push.enabled")}
-          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-navy-200 bg-white text-green-700 transition-colors hover:border-navy-500"
+          className="ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet bg-surface-raised text-green-700 transition-colors hover:border-line-prominent"
         >
           <BellRing className="h-4 w-4" aria-hidden />
         </button>
       );
     }
     return inSection(
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-navy-500">
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
         <span className="inline-flex items-center gap-1.5 font-medium text-green-700">
           <BellRing className="h-3.5 w-3.5" aria-hidden />
           {t("push.enabled")}
         </span>
         <button
           onClick={disable}
-          className="inline-flex items-center gap-1 rounded-full border border-navy-200 bg-white px-2.5 py-1 font-semibold text-navy-700 transition-colors hover:border-navy-500"
+          className="inline-flex items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 font-semibold text-ink-body transition-colors hover:border-line-prominent"
         >
           <BellOff className="h-3 w-3" aria-hidden />
           {t("push.turnOff")}
@@ -316,10 +316,10 @@ export default function PushOptIn({
         onClick={enable}
         aria-label={t("push.enable")}
         title={state === "failed" ? t("push.failed") : t("push.enable")}
-        className={`ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full border bg-white transition-colors disabled:opacity-50 ${
+        className={`ml-auto inline-flex h-11 w-11 items-center justify-center rounded-full border bg-surface-raised transition-colors disabled:opacity-50 ${
           state === "failed"
             ? "border-coral-400 text-coral-600"
-            : "border-navy-200 text-navy-600 hover:border-navy-500"
+            : "border-line-quiet text-ink-secondary hover:border-line-prominent"
         }`}
       >
         <Bell className="h-4 w-4" aria-hidden />
@@ -332,7 +332,7 @@ export default function PushOptIn({
       <BusyButton
         busy={state === "working"}
         onClick={enable}
-        className="inline-flex items-center gap-1.5 rounded-full border border-navy-200 bg-white px-3 py-1.5 text-xs font-semibold text-navy-700 transition-colors hover:border-navy-500 disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-3 py-1.5 text-xs font-semibold text-ink-body transition-colors hover:border-line-prominent disabled:opacity-50"
       >
         <Bell className="h-3.5 w-3.5" aria-hidden />
         {state === "working" ? t("push.working") : t("push.enable")}

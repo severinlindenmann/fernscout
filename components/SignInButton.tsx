@@ -80,7 +80,7 @@ export default function SignInButton({
         label
       </BusyButton>
       {state === "failed" && (
-        <p className="mt-4 text-xl leading-8 text-navy-700">{failed}</p>
+        <p className="mt-4 text-xl leading-8 text-ink-body">{failed}</p>
       )}
     </div>
   );

@@ -15,11 +15,11 @@ export default function EntryContent({ markdown }: { markdown: string }) {
   return (
     <div
       className="prose max-w-none prose-p:leading-relaxed prose-headings:font-display
-        prose-headings:font-semibold prose-headings:text-navy-900 prose-p:text-navy-700
-        prose-a:text-navy-900 prose-a:decoration-blue-500 prose-a:decoration-2
+        prose-headings:font-semibold prose-headings:text-ink-strong prose-p:text-ink-body
+        prose-a:text-ink-strong prose-a:decoration-blue-500 prose-a:decoration-2
         prose-a:underline-offset-2 hover:prose-a:decoration-coral-600
-        prose-strong:text-navy-900 prose-blockquote:border-yellow-400
-        prose-blockquote:text-navy-600 prose-li:text-navy-700 prose-hr:border-navy-200"
+        prose-strong:text-ink-strong prose-blockquote:border-yellow-400
+        prose-blockquote:text-ink-secondary prose-li:text-ink-body prose-hr:border-line-quiet"
     >
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
     </div>

@@ -9,10 +9,10 @@ export const metadata: Metadata = { title: "API" };
 
 /** Badge classes per verb — all pairs already used elsewhere in the codebase, so none of them are a new contrast bet. */
 const METHOD_STYLE: Record<string, string> = {
-  get: "bg-navy-900 text-white",
+  get: "bg-action-strong text-on-action",
   post: "bg-yellow-400 text-yellow-950",
-  patch: "border border-navy-700 text-navy-900",
-  delete: "bg-coral-600 text-white",
+  patch: "border border-line-ink text-ink-strong",
+  delete: "bg-coral-600 text-on-deep",
 };
 
 type Operation = {
@@ -48,18 +48,18 @@ export default async function ApiDocsPage() {
           out now, and two of them is the duplication B470 exists to remove.
           The two agent-facing documents stay, because they are what somebody
           reading an API reference actually wants next. */}
-      <p className="text-sm font-semibold text-navy-500">
+      <p className="text-sm font-semibold text-ink-muted">
         <a
           href="/documentation.txt"
-          className="underline decoration-navy-200 hover:decoration-navy-500"
+          className="underline decoration-line-quiet hover:decoration-line-prominent"
         >
           /documentation.txt
         </a>{" "}
-        · <a href="/openapi.json" className="underline decoration-navy-200 hover:decoration-navy-500">
+        · <a href="/openapi.json" className="underline decoration-line-quiet hover:decoration-line-prominent">
           /openapi.json
         </a>
       </p>
-      <h1 className="mt-2 font-display text-3xl font-semibold text-navy-900">{doc.info.title}</h1>
+      <h1 className="mt-2 font-display text-3xl font-semibold text-ink-strong">{doc.info.title}</h1>
       <div className="mt-3">
         <EntryContent markdown={doc.info.description} />
       </div>
@@ -68,8 +68,8 @@ export default async function ApiDocsPage() {
         <DocsNav locale={locale} entries={docsNavEntries()} current="/docs/api" />
       </div>
 
-      <nav className="mt-8 rounded-2xl border border-navy-200 bg-white p-4" aria-label="Endpoints">
-        <ul className="grid gap-1 font-mono text-sm text-navy-700 sm:grid-cols-2">
+      <nav className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-4" aria-label="Endpoints">
+        <ul className="grid gap-1 font-mono text-sm text-ink-body sm:grid-cols-2">
           {paths.map(([path]) => (
             // `min-w-0`: a grid item's default `min-width: auto` refuses to
             // shrink below its content, and a route path is one unbreakable
@@ -77,7 +77,7 @@ export default async function ApiDocsPage() {
             // `app/layout.tsx` (B431), one level down. `break-all` on the
             // link is what actually wraps it once the item can shrink.
             <li key={path} className="min-w-0">
-              <a href={`#${anchorFor(path)}`} className="break-all hover:text-navy-900 hover:underline">
+              <a href={`#${anchorFor(path)}`} className="break-all hover:text-ink-strong hover:underline">
                 {path}
               </a>
             </li>
@@ -88,7 +88,7 @@ export default async function ApiDocsPage() {
       <div className="mt-10 space-y-8">
         {paths.map(([path, methods]) => (
           <section key={path} id={anchorFor(path)} className="scroll-mt-6">
-            <h2 className="break-all font-mono text-lg font-semibold text-navy-900">{path}</h2>
+            <h2 className="break-all font-mono text-lg font-semibold text-ink-strong">{path}</h2>
             <div className="mt-2 space-y-3">
               {METHOD_ORDER.filter((m) => methods[m]).map((method) => (
                 <Endpoint key={method} method={method} op={methods[method]} />
@@ -106,16 +106,16 @@ function Endpoint({ method, op }: { method: string; op: Operation }) {
   const bodyContent = op.requestBody ? Object.entries(op.requestBody.content) : [];
 
   return (
-    <details className="group rounded-2xl border border-navy-200 bg-white open:pb-4">
+    <details className="group rounded-2xl border border-line-quiet bg-surface-raised open:pb-4">
       <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3">
         <span
-          className={`rounded-md px-2 py-0.5 text-xs font-bold uppercase ${METHOD_STYLE[method] ?? "bg-navy-200 text-navy-900"}`}
+          className={`rounded-md px-2 py-0.5 text-xs font-bold uppercase ${METHOD_STYLE[method] ?? "bg-surface-selected text-ink-strong"}`}
         >
           {method}
         </span>
-        <span className="text-sm font-semibold text-navy-900">{op.summary}</span>
+        <span className="text-sm font-semibold text-ink-strong">{op.summary}</span>
         {op.security?.length === 0 && (
-          <span className="ml-auto shrink-0 text-xs font-semibold text-navy-500">no token</span>
+          <span className="ml-auto shrink-0 text-xs font-semibold text-ink-muted">no token</span>
         )}
       </summary>
 
@@ -124,11 +124,11 @@ function Endpoint({ method, op }: { method: string; op: Operation }) {
 
         {op.parameters && op.parameters.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold uppercase text-navy-500">Parameters</h3>
-            <ul className="mt-1 space-y-0.5 font-mono text-navy-700">
+            <h3 className="text-xs font-bold uppercase text-ink-muted">Parameters</h3>
+            <ul className="mt-1 space-y-0.5 font-mono text-ink-body">
               {op.parameters.map((p) => (
                 <li key={p.name}>
-                  {p.name} <span className="text-navy-500">({p.in}{p.required ? ", required" : ""})</span>
+                  {p.name} <span className="text-ink-muted">({p.in}{p.required ? ", required" : ""})</span>
                 </li>
               ))}
             </ul>
@@ -137,13 +137,13 @@ function Endpoint({ method, op }: { method: string; op: Operation }) {
 
         {bodyContent.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold uppercase text-navy-500">
+            <h3 className="text-xs font-bold uppercase text-ink-muted">
               Request body{op.requestBody?.required ? "" : " (optional)"}
             </h3>
             {bodyContent.map(([contentType, { schema }]) => (
               <div key={contentType} className="mt-1">
-                <p className="font-mono text-xs text-navy-500">{contentType}</p>
-                <pre className="mt-1 overflow-x-auto rounded-lg bg-cream-100 p-3 text-xs text-navy-700">
+                <p className="font-mono text-xs text-ink-muted">{contentType}</p>
+                <pre className="mt-1 overflow-x-auto rounded-lg bg-surface-subtle p-3 text-xs text-ink-body">
                   {JSON.stringify(schema, null, 2)}
                 </pre>
               </div>
@@ -153,12 +153,12 @@ function Endpoint({ method, op }: { method: string; op: Operation }) {
 
         {responses.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold uppercase text-navy-500">Responses</h3>
+            <h3 className="text-xs font-bold uppercase text-ink-muted">Responses</h3>
             <dl className="mt-1 space-y-2">
               {responses.map(([status, r]) => (
                 <div key={status} className="flex gap-3">
-                  <dt className="shrink-0 font-mono font-semibold text-navy-900">{status}</dt>
-                  <dd className="text-navy-700">
+                  <dt className="shrink-0 font-mono font-semibold text-ink-strong">{status}</dt>
+                  <dd className="text-ink-body">
                     {r.description && <EntryContent markdown={r.description} />}
                   </dd>
                 </div>

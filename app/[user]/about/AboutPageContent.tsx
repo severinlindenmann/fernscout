@@ -27,11 +27,11 @@ export default function AboutPageContent({
         tabIndex={-1}
         className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       >
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {title}
         </h1>
-        <p className="mt-2 text-lg text-navy-700">{ownerName}</p>
-        <div className="mt-6 border-t border-navy-200 pt-6">
+        <p className="mt-2 text-lg text-ink-body">{ownerName}</p>
+        <div className="mt-6 border-t border-line-quiet pt-6">
           <EntryContent markdown={markdown} />
         </div>
       </main>
