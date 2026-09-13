@@ -4,13 +4,16 @@ import { serverSite } from "../../site";
 import { getDefaultUsername, listedUsernames } from "../../users";
 import { ERROR_CODES } from "../errorCodes";
 import { V2_ONLY_CODES } from "./route";
+import type { Declinable } from "./schemas/shared";
 import {
   dayDoc,
   dayWrite,
   dayPatch,
+  DAY_DECLINABLES,
   tripCreate,
   tripPatch,
   tripDoc,
+  TRIP_DECLINABLES,
   publishRequest,
   sendRequest,
   journalDoc,
@@ -87,10 +90,54 @@ function schemaOf(zodSchema: z.ZodType): Record<string, unknown> {
   return z.toJSONSchema(zodSchema) as Record<string, unknown>;
 }
 
-const jsonBody = (schema: z.ZodType, description?: string) => ({
+/**
+ * Layers the asked-or-declined rule onto a generated body schema — B1648.
+ * `checkRequiredOrDeclined` (lib/api/v2/schemas/shared.ts) enforces, at
+ * write time, that every declinable section is either present or named in
+ * `declined`; every one of those fields is `.optional()` in the Zod shape
+ * itself (declining it is exactly as valid as answering it), so
+ * `z.toJSONSchema()` alone describes a document with no requirements where
+ * the server in fact refuses several of them as `422 incomplete`. Adding
+ * `status` to a hand-typed `required` array would drift the moment a
+ * fifteenth declinable is added — so this reads the same exported list the
+ * runtime check reads (`DAY_DECLINABLES`/`TRIP_DECLINABLES`) and expresses
+ * it as an ordinary JSON Schema constraint per field: the field itself, or a
+ * `declined.<field>` entry, one of the two. `x-required-or-declined` repeats
+ * the same list in the words `checkRequiredOrDeclined` actually raises
+ * (`whyRequired`), for a reader that wants the reason rather than the
+ * constraint.
+ */
+function withRequiredOrDeclined(
+  schema: Record<string, unknown>,
+  declinables: readonly Declinable[],
+): Record<string, unknown> {
+  return {
+    ...schema,
+    "x-required-or-declined": declinables.map((d) => ({
+      field: d.field,
+      whyRequired: d.whyRequired,
+      toDecline: `declined.${d.field}`,
+    })),
+    allOf: [
+      ...((schema.allOf as unknown[] | undefined) ?? []),
+      ...declinables.map((d) => ({
+        anyOf: [
+          { required: [d.field] },
+          { required: ["declined"], properties: { declined: { required: [d.field] } } },
+        ],
+      })),
+    ],
+  };
+}
+
+const jsonBody = (schema: z.ZodType, description?: string, declinables?: readonly Declinable[]) => ({
   description: description ?? "",
   required: true,
-  content: { "application/json": { schema: schemaOf(schema) } },
+  content: {
+    "application/json": {
+      schema: declinables ? withRequiredOrDeclined(schemaOf(schema), declinables) : schemaOf(schema),
+    },
+  },
 });
 
 const jsonResponse = (status: number, schema: z.ZodType, description: string) => ({
@@ -353,10 +400,21 @@ const daySendResult = z.strictObject({
 const costsApplyResult = z.strictObject({
   trip: z.string(),
   total: z.number().int().nonnegative(),
-  written: z.array(z.strictObject({ date: z.string(), slug: z.string(), kept: z.number().int().nonnegative() })),
-  orphaned: z.array(z.string()),
+  written: z.array(
+    z.strictObject({
+      date: z.string(),
+      slug: z.string(),
+      added: z.number().int().nonnegative(),
+      kept: z.number().int().nonnegative(),
+    }),
+  ),
+  orphaned: z.array(z.strictObject({ date: z.string(), rows: z.number().int().positive() })),
   message: z.string(),
   next: z.string().optional(),
+  // B1647 — none of the rows sent were applied anywhere. Worth a caller's
+  // attention on its own, even when every individual date is a genuine gap
+  // rather than a broken lookup.
+  allOrphaned: z.literal(true).optional(),
 });
 
 const mediaDeleted = z.strictObject({ ok: z.literal(true), src: z.string() });
@@ -596,7 +654,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     put: {
       summary: "Create a trip at a client-chosen id, or replace one (with a matching If-Match).",
-      request: jsonBody(tripCreate, "the whole trip document"),
+      request: jsonBody(tripCreate, "the whole trip document", TRIP_DECLINABLES),
       responses: {
         ...jsonResponse(201, tripCreatedFirst, "created — carries `next` when this is the journal's first trip"),
         ...jsonResponse(200, tripDoc, "replaced (If-Match matched the stored ETag)"),
@@ -657,7 +715,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     put: {
       summary: "Create a day at a client-chosen slug, or replace a draft (with a matching If-Match).",
-      request: jsonBody(dayWrite, "the whole day document"),
+      request: jsonBody(dayWrite, "the whole day document", DAY_DECLINABLES),
       responses: {
         ...jsonResponse(201, dayCreatedFirst, "created — carries `next` when this is the trip's first day"),
         ...jsonResponse(200, dayDoc, "replaced"),

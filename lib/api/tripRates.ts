@@ -3,7 +3,7 @@ import { isEnabled } from "../capabilities";
 import { loadUserConfig } from "../config";
 import { conversionFor, getAllCosts } from "../costs";
 import { crossRate, normalizeCurrency, type RateTable } from "../currency";
-import { fileUnchangedSince } from "../entries";
+import { AS_AUTHOR, fileUnchangedSince } from "../entries";
 import { ecbRatesOnOrBefore, fetchEcbHistory } from "../ecbHistory";
 import { getTrip, parseTripRef, type TripRef } from "../trips";
 import { eurManualRates, ratesBlock } from "../tripWrite";
@@ -234,7 +234,13 @@ export async function fillTripRates(
   // of anything — so it freezes at the trip's own start, the earliest date
   // there is a fact about.
   const firstSeen = new Map<string, string>();
-  for (const item of getAllCosts(ref, { includeDrafts: true })) {
+  // AS_AUTHOR, not bare options: a bare `{includeDrafts: true}` leaves
+  // `reader` at its closed `"public"` default, so a day narrowed to `guest`
+  // or `private` contributes no costs here — and this loop decides the date
+  // each currency's rate is frozen at. A missed day is a rate anchored to the
+  // wrong day, which is money reported wrongly rather than merely a gap.
+  // Same root cause as B1647.
+  for (const item of getAllCosts(ref, AS_AUTHOR)) {
     const date = item.date ?? trip.start;
     const current = firstSeen.get(item.currency);
     if (!current || date < current) firstSeen.set(item.currency, date);

@@ -15,7 +15,7 @@ import { renderMail, type MailBlock } from "./mail/template";
 import { release } from "./registry";
 import { serverSite } from "./site";
 import { writeTombstone } from "./tombstones";
-import { forgetEntries, getAllEntries } from "./entries";
+import { AS_AUTHOR, forgetEntries, getAllEntries } from "./entries";
 import { getTrip, getTrips, parseTripRef, tripDir, tripRef } from "./trips";
 import { clearUserCache, getUser, userDir } from "./users";
 import { sql } from "kysely";
@@ -133,6 +133,16 @@ export function humanBytes(bytes: number): string {
  * likely to have forgotten exists, and the whole purpose of this number is to
  * be recognised — "three journeys, ninety-one days" — before the button.
  *
+ * `AS_AUTHOR` rather than a bare `{includeDrafts: true}`, which is what this
+ * read used to be — and the difference was a number that lied. Bare options
+ * leave `reader` at its closed default, `"public"`, so every day narrowed to
+ * `guest` or `private` (B596/B632) was left out of the count: a three-day
+ * trip reported one. The person was shown fewer days than the button was
+ * about to delete, and the ones missing from the total were the most private
+ * ones they had. Same root cause as B1647 in `lib/statements/apply.ts` — the
+ * caller's standing is established long before this runs, so the read must be
+ * made at that standing rather than at a stranger's.
+ *
  * `ignoreTombstone` is for `resolveDeletionToken` alone (B1175): a journal
  * deletion writes its tombstone before removing anything, so a step that
  * throws after that point leaves the journal reading as gone to every
@@ -149,7 +159,7 @@ export function summarise(
   if (target.kind === "journal") {
     const trips = getTrips(target.username);
     const days = trips.reduce(
-      (n, trip) => n + getAllEntries(tripRef(target.username, trip.id), { includeDrafts: true }).length,
+      (n, trip) => n + getAllEntries(tripRef(target.username, trip.id), AS_AUTHOR).length,
       0,
     );
     const { files, bytes } = measure(userDir(target.username));
@@ -176,7 +186,7 @@ export function summarise(
     title: trip.title,
     journalTitle: user.title,
     trips: 1,
-    days: getAllEntries(ref, { includeDrafts: true }).length,
+    days: getAllEntries(ref, AS_AUTHOR).length,
     files,
     bytes,
   };

@@ -1,5 +1,5 @@
 import "server-only";
-import { getAllEntries } from "@/lib/entries";
+import { getAllEntries, AS_AUTHOR } from "@/lib/entries";
 import { editEntry, type CostInput } from "@/lib/api/entries";
 import { COST_CATEGORIES, type CostCategory } from "@/lib/costFormat";
 import type { Entry } from "@/lib/types";
@@ -101,10 +101,14 @@ function dayFor(entries: Entry[], date: string): Entry | undefined {
 }
 
 export function applyCosts(ref: string, rows: CostRow[]): ApplyResult {
-  // Drafts included: the days a statement is being read into are usually the
-  // ones nobody has published yet, and refusing to cost a draft would mean
-  // publishing first — which is the wrong order and somebody else's decision.
-  const entries = getAllEntries(ref, { includeDrafts: true });
+  // Drafts included, and no visibility narrowing: the caller already passed
+  // `mayWriteTrip` (this route's own gate), the same standing as the person
+  // who wrote the day, so a day or gallery item declared `guest`/`private`
+  // must not read as absent here the way it would to a public reader —
+  // that read exactly as "no day for that date" and orphaned every row of a
+  // real day (B1647). `AS_AUTHOR` is the named constant for "already
+  // checked who this is" (lib/entries.ts).
+  const entries = getAllEntries(ref, AS_AUTHOR);
 
   const byDate = new Map<string, CostRow[]>();
   for (const row of rows) {
