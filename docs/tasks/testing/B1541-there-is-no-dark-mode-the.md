@@ -7,6 +7,7 @@ complexity: high
 area: UI / theming
 found: "2026-09-11T21:02:39Z"
 started: "2026-09-13T08:43:34Z"
+merged: "2026-09-13T12:44:40Z"
 ---
 
 # B1541 — There is no dark mode; the whole app is cream and yellow at 2am
