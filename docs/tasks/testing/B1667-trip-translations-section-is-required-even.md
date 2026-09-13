@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: api-v2
 found: "2026-09-13T13:55:05Z"
+merged: "2026-09-13T14:28:06Z"
 ---
 
 # B1667 — Trip translations section is required even on single-locale journals, contradicting decision and its own schema comment

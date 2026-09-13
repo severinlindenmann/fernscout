@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: API v2
 found: "2026-09-13T09:51:53Z"
+merged: "2026-09-13T14:28:09Z"
 ---
 
 # B1654 — ownerTel has no v2 home, so retiring the v1 config route would strand every WhatsApp feature

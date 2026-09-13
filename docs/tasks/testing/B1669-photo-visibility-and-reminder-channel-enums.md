@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: api-v2
 found: "2026-09-13T13:56:03Z"
+merged: "2026-09-13T14:28:07Z"
 ---
 
 # B1669 — Photo visibility and reminder-channel enums are hand-typed in multiple v2 schema files instead of imported

@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: Helper / Money
 found: "2026-09-13T10:20:00Z"
+merged: "2026-09-13T14:28:05Z"
 ---
 
 # B1659 — helper buy_room spends with no idempotency ref, unlike the v2/web storage purchase door

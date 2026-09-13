@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: Helper / inbox
 found: "2026-09-13T10:04:04Z"
+merged: "2026-09-13T14:28:05Z"
 ---
 
 # B1657 — day/media's files-branch upload bypasses the storage quota

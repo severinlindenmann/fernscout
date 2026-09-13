@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: api-v2
 found: "2026-09-13T13:55:35Z"
+merged: "2026-09-13T14:28:06Z"
 ---
 
 # B1668 — Trip 422 tells a caller to declined.teaser, a key the schema refuses

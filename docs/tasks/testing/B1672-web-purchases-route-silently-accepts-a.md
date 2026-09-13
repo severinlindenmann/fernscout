@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: api-v2
 found: "2026-09-13T13:57:08Z"
+merged: "2026-09-13T14:28:08Z"
 ---
 
 # B1672 — web purchases route silently accepts a bearer token despite its own cookie-only comment

@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: Helper / API v2
 found: "2026-09-13T10:03:26Z"
+merged: "2026-09-13T14:28:08Z"
 ---
 
 # B1656 — The helper's photo-gallery and inbox writes hit B1650's same wall — v2 has no gallery-attach at all

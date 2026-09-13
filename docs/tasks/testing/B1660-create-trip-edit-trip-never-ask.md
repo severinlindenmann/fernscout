@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: Helper / API v2
 found: "2026-09-13T10:36:37Z"
+merged: "2026-09-13T14:28:09Z"
 ---
 
 # B1660 — create_trip/edit_trip never ask v2's TRIP_DECLINABLES (rates, costs, plan, translations, accent, figures, tagline, intro)
