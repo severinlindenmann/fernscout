@@ -471,13 +471,19 @@ describe("a journal that has never mentioned mail has not switched it off", () =
   });
 
   test("its day letter is not refused over mail", async () => {
-    // It is refused over `contacts`, which really is an opt-in and really is
-    // absent here. Asserting the *other* reason is what proves the mail gate
-    // let it through rather than that nothing was checked. (Was the digest's
-    // until B387; the property is the letter's just as much.)
+    // Used to be refused over `contacts` instead, proving the mail gate let
+    // it through rather than that nothing was checked — because `contacts`
+    // was a per-journal opt-in and SILENT had never opted in. Decision 5
+    // (docs/v2-migration/00-decisions.md, B1666) made `contacts`
+    // instance-only: no v2 door ever let a journal set it, so a bare journal
+    // like SILENT getting nothing back was exactly the same silent trap mail
+    // itself avoids by treating absence as "no opinion" rather than "no".
+    // `serverConfig()` in `beforeEach` enables `contacts`, so there is no
+    // longer any other reason left to refuse the send — which is a stronger
+    // proof that mail's own switch was not what blocked it: nothing did.
     publishADay(SILENT);
     const outcome = await sendDayLetter(SILENT, `${SILENT}/trip`, "a-day");
-    expect(outcome).toMatchObject({ ok: false, reason: "contacts_off" });
+    expect(outcome).toMatchObject({ ok: true });
   });
 
   test("a stated false is still a no, beside it", async () => {

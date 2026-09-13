@@ -3,7 +3,7 @@ import path from "node:path";
 import { isEmail } from "./auth";
 import { contentRoot } from "./contentRoot";
 import { siteRoot } from "./siteRoot";
-import { normalizeCurrency, type RateTable } from "./currency";
+import { normalizeCurrency } from "./currency";
 import {
   DEFAULT_MEDIA_LIMITS,
   narrowest,
@@ -69,7 +69,18 @@ export type FeatureName = (typeof FEATURE_NAMES)[number];
  * no postcard proposal, with nothing on the page to say why. That was every
  * journal on this instance; the demo was the only one that worked, because
  * somebody had edited its file by hand. `resolveOne` skips the per-user check
- * for these, and `setJournalFeatures` refuses to write any of the four.
+ * for these, and `setJournalFeatures` refuses to write any of them.
+ *
+ * **Decision 5 (00-decisions.md, B1666) makes this list almost everything.**
+ * Every remaining opt-in-shaped flag joined it below for the same reason
+ * `costs` did: no v2 door ever lets a journal set one, so the per-journal
+ * read was a silent trap rather than a working switch — a journal that had
+ * never written the word (every journal, since no writer exists) got
+ * nothing, regardless of what the operator had configured. What is
+ * deliberately *not* here is the small set of channels a journal can
+ * actually mute narrower than the server's own ceiling — `mail`,
+ * `whatsapp` and `whatsappInbound` — reached from `/api/v2/{user}/channels`
+ * and the helper's own channel toggle, and nowhere else.
  */
 export const OPERATOR_ONLY_FEATURES = [
   "logging",
@@ -109,6 +120,24 @@ export const OPERATOR_ONLY_FEATURES = [
   // the B611 failure mode, for a capability that had no vote to cast in the
   // first place.
   "costs",
+  // Decision 5 (docs/v2-migration/00-decisions.md, B1666): every capability
+  // is instance-only unless it is a channel a journal can mute, and that is
+  // `mail`, `whatsapp` and `whatsappInbound` alone — nowhere else does a v2
+  // door ever let a journal set one of these, so the per-journal flag was
+  // dead weight that could only narrow a journal below the server's own
+  // answer, invisibly, the same B611 failure `costs` names above: a journal
+  // that had never written the word got nothing, with no way back short of
+  // hand-editing `content/<user>/config.json`. `resolveOne` skips the
+  // per-user read for every name here, and `setJournalFeatures` refuses to
+  // write any of them.
+  "reactions",
+  "push",
+  "auth",
+  "signup",
+  "contacts",
+  "addressLookup",
+  "weather",
+  "analytics",
 ] as const satisfies readonly FeatureName[];
 
 /**
@@ -243,12 +272,6 @@ export type UserConfig = {
   locales: string[];
   baseCurrency: string;
   displayCurrencies: string[];
-  /**
-   * Rates for anything the ECB does not publish, and overrides for anything
-   * it does. Same convention as the ECB table: units of the currency for one
-   * euro, so `{ "VND": 30500 }` reads "1 EUR = 30 500 VND".
-   */
-  manualRates: RateTable;
   units: "metric" | "imperial";
   /** Opt-ins, bounded by what the server can actually provide. */
   features: Record<FeatureName, FeatureConfig>;
@@ -632,44 +655,6 @@ function readStringArray(
   return v as string[];
 }
 
-/**
- * `site.manualRates` — a currency-code → number map.
- *
- * Validated here rather than shrugged off the way trip rates are: a trip is
- * one page among many and must degrade rather than fail, but a typo in the
- * one file a cloner edits should be named on the way in.
- */
-function readManualRates(
-  src: Record<string, unknown>,
-  problems: string[],
-): Record<string, number> {
-  const v = src.manualRates;
-  if (v === undefined) return {};
-  if (typeof v !== "object" || v === null || Array.isArray(v)) {
-    problems.push('manualRates must be an object like { "VND": 30500 }');
-    return {};
-  }
-  const out: Record<string, number> = {};
-  for (const [key, value] of Object.entries(v as Record<string, unknown>)) {
-    const code = normalizeCurrency(key);
-    if (!code) {
-      problems.push(
-        `manualRates has key "${key}", expected a three-letter currency code`,
-      );
-      continue;
-    }
-    if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-      problems.push(
-        `manualRates.${code} must be a positive number (units per 1 EUR), got ${JSON.stringify(value)}`,
-      );
-      continue;
-    }
-    out[code] = value;
-  }
-  return out;
-}
-
-
 function parseOwner(src: Record<string, unknown>, problems: string[]): Owner {
   // The shape before W37. Named explicitly rather than ignored: this file has
   // no configVersion gate, so an unrecognised key would otherwise be a journal
@@ -821,7 +806,6 @@ function parseUser(
     locales,
     baseCurrency,
     displayCurrencies,
-    manualRates: readManualRates(src, problems),
     units,
     features: parseFeatures(src.features, problems, USER_DEFAULT_FEATURES),
     media: parseMediaLimits(src.media),

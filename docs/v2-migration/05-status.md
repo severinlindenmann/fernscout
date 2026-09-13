@@ -657,7 +657,7 @@ cookie proxies, and `app/api/v1` down from 20 route files to three.**
 
 | Route | Why it stays |
 |---|---|
-| `[user]/config` | `lib/capabilities.ts` still reads a journal's own `features` block **as a gate**, and `lib/rates.ts` still reads `manualRates` for the journal-wide currency picker. Decision 5 is decided and **not implemented**. B1666 |
+| ~~`[user]/config`~~ | Gone (B1666, 2026-09-13) — see the status entry at the end of this file |
 | `[user]/deletions/[token]` | Authenticates by a single-use token mailed to the owner — no cookie, no bearer. It is not an instance of the credential split, and filing it under `/api/web`'s cookie-`isOwner` convention would misrepresent its auth model |
 | `[user]/trips/[trip]/track` | Touches the GPS store. Left alone on purpose |
 
@@ -702,8 +702,7 @@ Found by doing the work, not by looking for them:
 
 ### What is left
 
-- **B1666** — audit deployed journals' `features`/`manualRates`, then finish
-  decision 5. `config` and `test/api-route-schemas.test.ts` go with it.
+- ~~B1666~~ — done, 2026-09-13. See the status entry at the end of this file.
 - **B1650's siblings** — B1658 (verified *not* unblocked by B1660), B1661.
 - **B1663** — five credit paths with no idempotency.
 - **B1656's remainder**, B1655 (parked by the owner), B1657/B1659 done.
@@ -712,3 +711,50 @@ Found by doing the work, not by looking for them:
 **Not yet done: an independent check.** Everything above was verified by the
 agents that wrote it and by the lead who merged it. A fresh reader who did not
 watch it being built should test the result against `01-golden-contract.md`.
+
+## 2026-09-13 — B1666: decision 5 finished, `app/api/v1` down to two
+
+The live instance was wiped and reseeded from `content/example` alone, which
+is what made this safe to finish blind: no deployed journal's own `features`
+narrowing could be silently switched, because none but the demo's existed.
+
+`resolveOne` (`lib/capabilities.ts`) no longer reads a journal's own
+`features` flag for `reactions`, `costs`, `push`, `auth`, `signup`,
+`contacts`, `addressLookup`, `weather` or `analytics` — they joined
+`OPERATOR_ONLY_FEATURES` (`lib/config.ts`) alongside `logging`, `credits`,
+`photobook`, `postcards`, `helper`, `transcription`, `sms`, `smsInbound` and
+`costs` (already there since B1092). `setJournalFeatures` refuses to write
+any of them, the same way it already refused the printing pair. What stayed
+per-journal, deliberately: `mail` and `whatsapp` (the mute switches
+`/api/v2/{user}/channels` and the helper's channel toggle actually write) and
+`whatsappInbound` (the opt-in `lib/whatsapp/onboarding.ts` and
+`lib/whatsapp/dispatch.ts` still set) — the only names any v2 or helper door
+ever sets to something other than the server's own ceiling.
+
+`manualRates` is gone from `UserConfig` entirely (`lib/config.ts`), from
+`journalProfile`/`setJournalProfile` (`lib/journals.ts`), and from
+`currencyOptions()` (`lib/rates.ts`), which now offers only what the cached
+ECB table covers — `content/example` never used a non-ECB currency or a
+manual override, so nothing on the demo journal lost a currency option.
+`00-decisions.md`'s own words already say where the *other* half of this
+lives: "`manualRates` lives per-trip inside `rates.manual`"
+(`lib/tripWrite.ts`, `lib/api/tripRates.ts`) — that mechanism predates this
+ticket and answers a different question (what a trip's costs may be priced
+in), so it needed no change.
+
+`app/api/v1/{user}/config` — the last v1 route reading a body — is deleted,
+with its `lib/api/openapi.ts` entry, `journalFeatures()`'s only caller
+outside `setJournalFeatures` itself, and the `manualRates` write case in
+`setJournalProfile`'s switch. `test/api-route-schemas.test.ts` is deleted
+too, per the instruction the file itself carried: "whoever deletes the last
+one should delete this file with it." `app/api/v1` is down to two routes —
+`[user]/deletions/[token]` and `[user]/trips/[trip]/track` — both already
+named in the table above as staying for reasons unrelated to this ticket.
+
+`content/example/config.json`'s `features` block is gone; the checked-in
+`site/config.json` default has every capability off, so seeing reactions,
+costs, weather and analytics actually render meant running the dev server
+against a config with those switched on server-side and checking
+`/example`'s pages in a browser, not just `test/example-content.test.ts`
+(updated to validate the journal document whole, with no legacy key to
+strip first).

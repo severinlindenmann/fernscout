@@ -126,7 +126,6 @@ export function contentModel(): ContentModelDocument {
       baseCurrency: { type: "string", fileOnly: true },
       displayCurrencies: { type: "array" },
       units: {},
-      manualRates: { type: "object" },
       features: { type: "object" },
       // B1526: no longer fileOnly. `PATCH …/config` accepts it and
       // `GET …/travellers` reads it back, so this key now has an

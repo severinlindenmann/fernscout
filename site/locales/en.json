@@ -270,7 +270,7 @@
   "cost.total": "Total so far",
   "cost.tripDescription": "What {trip} actually cost, itemised in {currency}.",
   "cost.tripDescriptionPlanned": "What {trip} is budgeted to cost, itemised in {currency}.",
-  "cost.unconverted": "Not counted in these totals: {amounts}. This trip’s rate table has no rate for them yet, so they are shown as they were paid rather than folded into a number that would look right and be wrong. Most currencies fill in on their own within a day or so; one the European Central Bank doesn’t publish, or a date over ninety days old, needs a rate added to this journal’s manualRates instead.",
+  "cost.unconverted": "Not counted in these totals: {amounts}. This trip’s rate table has no rate for them yet, so they are shown as they were paid rather than folded into a number that would look right and be wrong. Most currencies fill in on their own within a day or so; one the European Central Bank doesn’t publish, or a date over ninety days old, needs a rate added to this trip’s own rate table instead.",
   "cost.underBudget": "under plan so far",
   "cost.underBudgetFinal": "under budget",
   "cost.what": "What",

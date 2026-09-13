@@ -270,7 +270,7 @@
   "cost.total": "Eddig összesen",
   "cost.tripDescription": "Mennyibe került valójában {trip}, {currency} pénznemben.",
   "cost.tripDescriptionPlanned": "Mennyibe tervezzük {trip} költségét, {currency} pénznemben.",
-  "cost.unconverted": "Nincs beleszámítva ezekbe az összegekbe: {amounts}. Ehhez még nincs árfolyam ennek az útnak a táblázatában, ezért úgy jelennek meg, ahogy kifizettük őket — nem pedig egy hihetőnek látszó, de hibás összegben. A legtöbb pénznemhez egy napon belül magától megjelenik az árfolyam; amelyiket az Európai Központi Bank nem közöl, vagy amelynek dátuma kilencven napnál régebbi, ahhoz a napló manualRates beállításába kell felvenni egyet.",
+  "cost.unconverted": "Nincs beleszámítva ezekbe az összegekbe: {amounts}. Ehhez még nincs árfolyam ennek az útnak a táblázatában, ezért úgy jelennek meg, ahogy kifizettük őket — nem pedig egy hihetőnek látszó, de hibás összegben. A legtöbb pénznemhez egy napon belül magától megjelenik az árfolyam; amelyiket az Európai Központi Bank nem közöl, vagy amelynek dátuma kilencven napnál régebbi, ahhoz ennek az útnak a saját árfolyamtáblázatába kell felvenni egyet.",
   "cost.underBudget": "eddig terv alatt",
   "cost.underBudgetFinal": "a keret alatt",
   "cost.what": "Mi",

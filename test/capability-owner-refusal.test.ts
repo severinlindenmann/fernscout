@@ -54,6 +54,22 @@ function writeConfig(features: Record<string, { enabled: boolean }>) {
       baseCurrency: "CHF",
       displayCurrencies: ["CHF"],
       units: "metric",
+    }),
+  );
+}
+
+/**
+ * Decision 5 (docs/v2-migration/00-decisions.md, B1666) made `auth` and
+ * `contacts` instance-only: no v2 door ever lets a journal set either, so
+ * the capability half of the tests below has to be switched off at the
+ * server, not the journal.
+ */
+function writeServerConfig(features: Record<string, { enabled: boolean }>) {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "R", url: "https://example.test", defaultUser: OWNER },
+      users: { reserved: [] },
       features,
     }),
   );
@@ -133,20 +149,20 @@ async function keys(user: string, token?: string): Promise<{ status: number; bod
 
 describe("invites: ownership is checked before the capability", () => {
   test("the owner, with contacts off, is told the real reason", async () => {
-    writeConfig({ auth: { enabled: true }, contacts: { enabled: false } });
+    writeServerConfig({ auth: { enabled: true }, contacts: { enabled: false } });
     await clearCaches();
     try {
       const result = await invites(OWNER, await ownerToken());
       expect(result.status).toBe(409);
       expect(result.body.error).toBe("contacts_disabled");
     } finally {
-      writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
+      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
       await clearCaches();
     }
   });
 
   test("a journal with contacts off answers a non-owner exactly as one that does not exist", async () => {
-    writeConfig({ auth: { enabled: true }, contacts: { enabled: false } });
+    writeServerConfig({ auth: { enabled: true }, contacts: { enabled: false } });
     await clearCaches();
     try {
       // v2's bearer gate (`requireJournalOwner`) refuses a missing token
@@ -159,7 +175,7 @@ describe("invites: ownership is checked before the capability", () => {
       expect(noToken.body.error).toBe("missing_token");
       expect(noToken).toEqual(fakeJournal);
     } finally {
-      writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
+      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
       await clearCaches();
     }
   });
@@ -175,20 +191,20 @@ describe("invites: ownership is checked before the capability", () => {
 describe("keys: the same order", () => {
   test("the owner, with auth off, is told the real reason", async () => {
     const token = await ownerToken();
-    writeConfig({ auth: { enabled: false }, contacts: { enabled: true } });
+    writeServerConfig({ auth: { enabled: false }, contacts: { enabled: true } });
     await clearCaches();
     try {
       const result = await keys(OWNER, token);
       expect(result.status).toBe(409);
       expect(result.body.error).toBe("auth_disabled");
     } finally {
-      writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
+      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
       await clearCaches();
     }
   });
 
   test("a non-owner and a nonexistent journal answer identically, whatever the capability", async () => {
-    writeConfig({ auth: { enabled: false }, contacts: { enabled: true } });
+    writeServerConfig({ auth: { enabled: false }, contacts: { enabled: true } });
     await clearCaches();
     try {
       const noToken = await keys(OWNER);
@@ -196,7 +212,7 @@ describe("keys: the same order", () => {
       expect(noToken.status).toBe(403);
       expect(noToken).toEqual(fakeJournal);
     } finally {
-      writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
+      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
       await clearCaches();
     }
   });

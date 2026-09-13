@@ -1170,14 +1170,13 @@ describe("the documents that describe them", () => {
     expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/invites");
     expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/invites/{id}");
     expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/channels");
-    // A door this ticket has no reason to touch, still there. `config`
-    // rather than `import`: import was deleted the same afternoon by the
-    // branch that retired every v1 route v2 covers, so it made a control
-    // that quietly stopped controlling for anything. `config` survives
-    // deliberately and with a written reason (B1666 — `features` and
-    // `manualRates` are still read by live code), which is what a control
-    // wants: a door that is staying put on purpose.
-    expect(Object.keys(document.paths)).toContain("/api/v1/{user}/config");
+    // `config` used to be the control here — a door this ticket had no
+    // reason to touch, kept deliberately while B1666 was still open
+    // (`features` and `manualRates` were still read by live code). B1666
+    // closed that gap and deleted the route with it, so the control this
+    // test wants is now the opposite assertion: the door is gone, on
+    // purpose, and nothing else under v1 moved when it went.
+    expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/config");
   });
 
   /**

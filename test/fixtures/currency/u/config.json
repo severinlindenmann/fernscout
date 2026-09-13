@@ -7,7 +7,6 @@
   "locales": ["en"],
   "baseCurrency": "CHF",
   "displayCurrencies": ["CHF", "EUR", "USD", "VND", "XXQ"],
-  "manualRates": { "VND": 30000 },
   "units": "metric",
   "features": {
     "reactions": { "enabled": true },

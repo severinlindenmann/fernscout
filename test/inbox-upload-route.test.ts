@@ -28,9 +28,11 @@ function writeConfig(features: Record<string, unknown> = {}) {
   );
 }
 
-/** The journal's own opt-in. A server capability is a ceiling; this is the
- * user's vote inside it (`lib/capabilities.ts`'s `resolveOne`) — addressLookup
- * is not in `OPERATOR_ONLY_FEATURES`, so the journal has to ask for it too. */
+/** A journal's own `features` block. `addressLookup` joined
+ * `OPERATOR_ONLY_FEATURES` in decision 5 (B1666), so `resolveOne`
+ * (`lib/capabilities.ts`) no longer reads this journal's own flag for it —
+ * writing it here is harmless and no longer load-bearing for the test below,
+ * kept only so this fixture still reads like a real journal's file. */
 function writeUserConfig(features: Record<string, unknown> = {}) {
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),

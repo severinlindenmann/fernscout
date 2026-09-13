@@ -4,7 +4,7 @@ import { contentRoot } from "./contentRoot";
 import { siteRoot } from "./siteRoot";
 import { dataDir } from "./dataDir";
 import { loadUserConfig } from "./config";
-import { ECB_BASE, crossRate, normalizeCurrency, parseRateTable, type RateTable } from "./currency";
+import { crossRate, normalizeCurrency, parseRateTable, type RateTable } from "./currency";
 
 /**
  * The second hop: base currency → whatever the reader picked.
@@ -122,16 +122,20 @@ export type CurrencyOptions = {
  * Builds the reader-facing currency list.
  *
  * A configured display currency with no rate is dropped from the list rather
- * than offered and then silently wrong. `site.manualRates` fills the gaps —
- * it uses the ECB's own convention (units per euro) so the two tables merge
- * without a second mental model, and it wins where both have an entry, which
- * is what makes it an override.
+ * than offered and then silently wrong. There is no journal-level override
+ * for a currency the ECB does not publish any more — decision 5 (B1666)
+ * retired `site.manualRates`, and the per-trip `rates.manual` (`lib/trips.ts`,
+ * `lib/tripWrite.ts`) answers a different question, what a trip's own costs
+ * may be priced in, not what this journal-wide switcher may offer. A journal
+ * whose `displayCurrencies` names a currency the ECB does not cover simply
+ * loses that option from the switcher, logged below, rather than the site
+ * failing to build.
  */
 export function currencyOptions(username: string): CurrencyOptions {
   const site = loadUserConfig(username);
   const base = normalizeCurrency(site.baseCurrency, site.baseCurrency.toUpperCase());
   const snapshot = loadEcbRates();
-  const eur: RateTable = { ...(snapshot?.rates ?? {}), ...site.manualRates };
+  const eur: RateTable = snapshot?.rates ?? {};
 
   const currencies: string[] = [base];
   const rates: Record<string, number> = { [base]: 1 };
@@ -142,9 +146,8 @@ export function currencyOptions(username: string): CurrencyOptions {
     const rate = crossRate(base, code, eur);
     if (rate === undefined) {
       console.warn(
-        `[rates] site.displayCurrencies lists ${code}, but neither the cached ECB table ` +
-          `nor site.manualRates covers ${base}→${code}. Add it to site.manualRates ` +
-          `(units of the currency per 1 ${ECB_BASE}) or run npm run rates:update.`,
+        `[rates] site.displayCurrencies lists ${code}, but the cached ECB table does not cover ` +
+          `${base}→${code}. Run npm run rates:update, or drop it from displayCurrencies.`,
       );
       continue;
     }

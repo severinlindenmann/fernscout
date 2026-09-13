@@ -110,6 +110,10 @@ describe("the visitor identifier is what the imprint says it is", () => {
  * teardown below is file-scoped and runs for it too. */
 let dir: string | undefined;
 
+// Decision 5 (docs/v2-migration/00-decisions.md, B1666) made `analytics`
+// instance-only: no v2 door ever lets a journal opt in or out of it, so
+// `enabled` here switches the server's own flag rather than the journal's —
+// a journal's own `features.analytics` is no longer read at all.
 async function setup(dialect: string, enabled: boolean): Promise<void> {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-analytics-"));
   process.env.CONTENT_DIR = dir;
@@ -123,7 +127,7 @@ async function setup(dialect: string, enabled: boolean): Promise<void> {
     JSON.stringify({
       site: { name: "R", url: "https://example.test" },
       users: { reserved: [] },
-      features: { analytics: { enabled: true } },
+      features: { analytics: { enabled } },
     }),
   );
   fs.mkdirSync(path.join(dir, "alice"), { recursive: true });
@@ -132,7 +136,6 @@ async function setup(dialect: string, enabled: boolean): Promise<void> {
     JSON.stringify({
       title: "Alice",
       owner: { name: "Alice A", nickname: "Alice", email: "a@example.test" },
-      features: { analytics: { enabled } },
     }),
   );
   clearConfigCache();

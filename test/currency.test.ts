@@ -116,16 +116,25 @@ describe("the reader's currency list", () => {
   test("offers the base first, then everything a rate reaches", () => {
     const options = currencyOptions("u");
     expect(options.base).toBe("CHF");
-    expect(options.currencies).toEqual(["CHF", "EUR", "USD", "VND"]);
+    expect(options.currencies).toEqual(["CHF", "EUR", "USD"]);
     expect(options.rates.CHF).toBe(1);
     expect(options.rates.USD).toBeCloseTo(1.1643 / 0.9364, 9);
     expect(options.asOf).toBe("2026-08-28");
   });
 
-  test("site.manualRates covers what the ECB does not publish", () => {
-    // VND is absent from the ECB table; the manual rate is euro-quoted, so
-    // 1 CHF = 30000 / 0.9364 VND.
-    expect(currencyOptions("u").rates.VND).toBeCloseTo(30000 / 0.9364, 6);
+  // Decision 5 (B1666) retired `site.manualRates` — there is no journal-wide
+  // override for a currency the ECB does not publish any more, so a currency
+  // like VND (absent from the ECB table) is dropped from the switcher
+  // exactly like an unrecognised code, rather than filled from a journal's
+  // own table. A trip that needs one prices its own costs through its own
+  // `rates.manual` (lib/tripWrite.ts) instead — a different question, what a
+  // trip's costs may be priced in, not what this switcher may offer.
+  test("a currency the ECB does not publish is dropped, loudly, with no journal-level fallback", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const options = currencyOptions("u");
+    expect(options.currencies).not.toContain("VND");
+    expect(options.rates.VND).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("VND"));
   });
 
   test("a configured currency with no rate anywhere is dropped, loudly", () => {

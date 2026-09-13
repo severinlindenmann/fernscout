@@ -14,14 +14,20 @@ import { issueCode } from "@/lib/auth";
  * questions about the same journal.
  *
  * `app/[user]/trips/[trip]/layout.tsx` asked `isEnabled("auth", user)` — the
- * per-journal opt-in every other capability uses — while `/api/auth/request`
- * and `/api/auth/verify` asked only `isEnabled("auth")`, the server-wide
- * ceiling, with no username. So a journal that never turned `auth` on in its
- * own `config.json` had a gate showing no sign-in form, while the API still
- * minted it codes and issued it sessions.
+ * per-journal opt-in every other capability used to have — while
+ * `/api/auth/request` and `/api/auth/verify` asked only `isEnabled("auth")`,
+ * the server-wide ceiling, with no username. So a journal that never turned
+ * `auth` on in its own `config.json` had a gate showing no sign-in form,
+ * while the API still minted it codes and issued it sessions.
  *
- * `SILENT` never mentions `auth`; `LOUD` states it. Both are on the same
- * server, which has `auth` enabled — the ceiling both journals sit under.
+ * Decision 5 (docs/v2-migration/00-decisions.md, B1666) later made `auth`
+ * instance-only outright: no v2 door ever let a journal set it, so
+ * `SILENT` and `LOUD` below no longer differ in what they get — both are
+ * always answered by the same server-wide switch, everywhere, which is a
+ * stronger version of the coordination B252 fixed rather than a weaker one.
+ * The three-way split that used to exist here (silent journal / stated
+ * journal / server-wide off) collapses into one: the server's answer, and
+ * only the server's, reaching the gate and the API alike.
  */
 
 const SILENT = "silent";
@@ -34,7 +40,7 @@ function headers(): Record<string, string> {
   return { "content-type": "application/json", "x-forwarded-for": "10.9.0.1" };
 }
 
-function writeJournal(username: string, statesAuth: boolean) {
+function writeJournal(username: string) {
   fs.mkdirSync(path.join(dir, username, "trips"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, username, "config.json"),
@@ -44,9 +50,20 @@ function writeJournal(username: string, statesAuth: boolean) {
       defaultLocale: "en",
       locales: ["en"],
       baseCurrency: "CHF",
-      ...(statesAuth ? { features: { auth: { enabled: true } } } : {}),
     }),
   );
+}
+
+function writeServerConfig(authOn: boolean) {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "Testbed", url: "https://example.test", defaultUser: LOUD },
+      users: { reserved: [] },
+      features: { auth: { enabled: authOn }, mail: { enabled: true, transport: "file" } },
+    }),
+  );
+  clearConfigCache();
 }
 
 beforeAll(async () => {
@@ -56,16 +73,9 @@ beforeAll(async () => {
   process.env.SESSION_SECRET = "88".repeat(32);
   process.env.AUTH_DEV_CODE = "654321";
 
-  fs.writeFileSync(
-    path.join(dir, "config.json"),
-    JSON.stringify({
-      site: { name: "Testbed", url: "https://example.test", defaultUser: LOUD },
-      users: { reserved: [] },
-      features: { auth: { enabled: true }, mail: { enabled: true, transport: "file" } },
-    }),
-  );
-  writeJournal(SILENT, false);
-  writeJournal(LOUD, true);
+  writeServerConfig(true);
+  writeJournal(SILENT);
+  writeJournal(LOUD);
   clearConfigCache();
   clearUserCache();
 
@@ -81,27 +91,42 @@ afterAll(async () => {
 });
 
 describe("the trip gate and the capability report already agree", () => {
-  test("a journal that never mentions auth has it off", () => {
-    expect(isEnabled("auth", SILENT)).toBe(false);
+  test("a journal that never mentions auth still inherits the server's answer", () => {
+    expect(isEnabled("auth", SILENT)).toBe(true);
   });
 
-  test("a journal that states it has it on", () => {
+  test("a journal that states it too — the wording no longer matters", () => {
     expect(isEnabled("auth", LOUD)).toBe(true);
+  });
+
+  test("the server switched off reaches both alike", () => {
+    writeServerConfig(false);
+    try {
+      expect(isEnabled("auth", SILENT)).toBe(false);
+      expect(isEnabled("auth", LOUD)).toBe(false);
+    } finally {
+      writeServerConfig(true);
+    }
   });
 });
 
 describe("POST /api/auth/request now asks the same question", () => {
-  test("a guest code is refused for a journal that has not turned auth on", async () => {
-    const { POST } = await import("@/app/api/auth/codes/route");
-    const response = await POST(
-      new Request("https://example.test/api/auth/request", {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ user: SILENT, email: OWNER_EMAIL, for: "read" }),
-      }),
-    );
-    expect(response.status).toBe(404);
-    expect((await response.json()).error).toBe("auth_disabled");
+  test("a guest code is refused for every journal once the server has auth off", async () => {
+    writeServerConfig(false);
+    try {
+      const { POST } = await import("@/app/api/auth/codes/route");
+      const response = await POST(
+        new Request("https://example.test/api/auth/request", {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({ user: SILENT, email: OWNER_EMAIL, for: "read" }),
+        }),
+      );
+      expect(response.status).toBe(404);
+      expect((await response.json()).error).toBe("auth_disabled");
+    } finally {
+      writeServerConfig(true);
+    }
   });
 
   test("a guest code still goes through for a journal that has", async () => {
@@ -130,19 +155,24 @@ describe("POST /api/auth/request now asks the same question", () => {
 });
 
 describe("POST /api/auth/codes/redeem now asks the same question", () => {
-  test("a code minted for a journal that has not turned auth on cannot be redeemed", async () => {
+  test("a code cannot be redeemed once the server has auth off", async () => {
     // Write, not read — see the note on the success case below for why.
     const { code } = await issueCode(SILENT, OWNER_EMAIL, "agent");
-    const { POST } = await import("@/app/api/auth/codes/redeem/route");
-    const response = await POST(
-      new Request("https://example.test/api/auth/codes/redeem", {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ user: SILENT, email: OWNER_EMAIL, code, for: "write" }),
-      }),
-    );
-    expect(response.status).toBe(404);
-    expect((await response.json()).error).toBe("auth_disabled");
+    writeServerConfig(false);
+    try {
+      const { POST } = await import("@/app/api/auth/codes/redeem/route");
+      const response = await POST(
+        new Request("https://example.test/api/auth/codes/redeem", {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({ user: SILENT, email: OWNER_EMAIL, code, for: "write" }),
+        }),
+      );
+      expect(response.status).toBe(404);
+      expect((await response.json()).error).toBe("auth_disabled");
+    } finally {
+      writeServerConfig(true);
+    }
   });
 
   test("the same code shape still redeems for a journal that has turned auth on", async () => {

@@ -29,7 +29,7 @@
 export type RateTable = Readonly<Record<string, number>>;
 
 /** The currency the ECB quotes everything against. */
-export const ECB_BASE = "EUR";
+const ECB_BASE = "EUR";
 
 const CODE_RE = /^[A-Z]{3}$/;
 

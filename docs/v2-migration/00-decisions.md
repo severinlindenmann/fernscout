@@ -24,6 +24,13 @@ the owner with a recommended default.
    dropped; `units`/`visibility`/`displayCurrencies` required on the
    journal; `manualRates` lives per-trip inside `rates.manual`; storage is
    read-only accounting on the journal read doc -> moved to journalStatus.
+   **Implemented 2026-09-13 (B1666) — see `05-status.md`'s entry of that
+   date.** It was decided on 2026-09-12 and not built until then: nobody
+   could see what deployed journals carried in their own `features`/
+   `manualRates` blocks, and flipping the switch blind risked silently
+   turning a capability off (or back on) under a journal that depended on
+   the old behaviour. The live instance was wiped and reseeded from
+   `content/example` alone first, which is what made it safe to finish.
 6. Four prefixes: /api/v2 (bearer contract) · /api/web (cookie-only) ·
    /api/auth · /api/webhooks.
 7. One error envelope from lib/api/errorCodes.ts; client-chosen ids
