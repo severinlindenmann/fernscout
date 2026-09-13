@@ -83,6 +83,36 @@ export const MIGRATIONS: Record<string, Migration> = {
   "034-owner-tel": ownerTel,
 };
 
+/**
+ * B1146 — two branches in flight both numbered a migration 028. Git cannot
+ * catch this: the filenames differ, so both branches merge cleanly and the
+ * duplicate ordinal only shows up once somebody notices the schema the
+ * second one was meant to create never happened. This is the migration
+ * analogue of the task-id collision `nextId()` guards against — the
+ * cheapest fix from B1146's own list, applied at the earliest possible
+ * moment: module load, before a single migration ever runs, and before
+ * `verify` gets anywhere near vitest.
+ *
+ * Exported so a test can call it against a synthetic list without needing
+ * two real files with the same ordinal on disk.
+ */
+export function assertUniqueOrdinals(names: string[]): void {
+  const seen = new Map<string, string>();
+  for (const name of names) {
+    const ordinal = name.slice(0, 3);
+    const existing = seen.get(ordinal);
+    if (existing) {
+      throw new Error(
+        `lib/db/migrations: "${existing}" and "${name}" both claim ordinal ${ordinal} — ` +
+          "renumber one of them before merging.",
+      );
+    }
+    seen.set(ordinal, name);
+  }
+}
+
+assertUniqueOrdinals(Object.keys(MIGRATIONS));
+
 export const migrationProvider: MigrationProvider = {
   async getMigrations() {
     return MIGRATIONS;

@@ -14,7 +14,7 @@ import {
 } from "@/lib/api/agentCopy";
 import { EDITABLE_DAY_FIELDS } from "@/lib/api/entries";
 import { RESERVED_SOURCES } from "@/lib/weather";
-import { CODE_TTL_MINUTES } from "@/lib/auth";
+import { CODE_TTL_MINUTES, HANDOVER_TTL_MINUTES } from "@/lib/auth";
 
 /** Markdown emphasis is prose's, not a JSON `description`'s — the same trim
  * `VISIBILITY_NOT_A_LOCK` gets a few lines down, done once. */
@@ -1144,7 +1144,7 @@ export function openApiDocument() {
           description:
             "The first call an agent makes when the owner pasted a prompt instead of " +
             "reading out a code. Send the handover credential as `Authorization: Bearer`. " +
-            "It lasts 20 minutes, is spent by succeeding here, and is refused on every " +
+            `It lasts ${HANDOVER_TTL_MINUTES} minutes, is spent by succeeding here, and is refused on every ` +
             "other route. A 401 means expired or already used — ask the person for a fresh " +
             "one rather than retrying. The answer carries the 7-day token and the status " +
             "URL to read next.",
@@ -1167,7 +1167,7 @@ export function openApiDocument() {
             "the unqualified journal-wide one; a token scoped to a single trip is refused " +
             "even when it belongs to the owner's own address, because a credential good " +
             "for one trip must not mint a journal-wide handover. The credential it answers " +
-            "with (`handover`) lasts 20 minutes and can only be exchanged at " +
+            `with (\`handover\`) lasts ${HANDOVER_TTL_MINUTES} minutes and can only be exchanged at ` +
             "POST /api/auth/handover — never used to read or write.",
           parameters: [
             { name: "user", in: "path", required: true, schema: { type: "string" } },
@@ -1175,7 +1175,7 @@ export function openApiDocument() {
           responses: {
             "200": {
               description:
-                "`{handover, expiresAt, minutes, exchange, next}` — a 20-minute handover " +
+                `\`{handover, expiresAt, minutes, exchange, next}\` — a ${HANDOVER_TTL_MINUTES}-minute handover ` +
                 "credential, the URL that spends it, and what to do next",
             },
             "403": {

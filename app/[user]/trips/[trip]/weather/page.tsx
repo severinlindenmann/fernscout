@@ -7,7 +7,7 @@ import { getDays } from "@/lib/entries";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
-import { getUsernames } from "@/lib/users";
+import { getUser, getUsernames } from "@/lib/users";
 import { hasWeather, summariseWeather, weatherDays } from "@/lib/weatherStats";
 
 export function generateStaticParams() {
@@ -62,7 +62,7 @@ export default async function TripWeatherPage({
   if (trip.status === "current") redirect(`/${user}/weather`);
 
   return (
-    <TripProvider trip={trip} isCurrent={false}>
+    <TripProvider trip={trip} isCurrent={false} units={getUser(user)?.units}>
       <WeatherPageContent summary={summariseWeather(days)} />
     </TripProvider>
   );

@@ -3,6 +3,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import {
   MIGRATIONS,
+  assertUniqueOrdinals,
 } from "@/lib/db/migrations";
 import {
   TABLE_NAMES,
@@ -39,6 +40,23 @@ describe("migration sources", () => {
     const names = Object.keys(MIGRATIONS);
     expect(names).toEqual([...names].sort());
     for (const name of names) expect(name).toMatch(/^\d{3}-/);
+  });
+
+  /**
+   * B1146 — two branches in flight both numbered their migration 028. Two
+   * different filenames sort and merge cleanly, so the test above ("lexical
+   * order is execution order") does not catch it: the duplicate ordinal has
+   * to be checked for on its own, which is exactly what `assertUniqueOrdinals`
+   * does at module load, before `MIGRATIONS` is ever handed to a migrator.
+   */
+  test("throws when two migrations claim the same ordinal", () => {
+    expect(() => assertUniqueOrdinals(["028-signup-phone", "028-journal-registry"])).toThrow(
+      /028/,
+    );
+  });
+
+  test("the real migration list has no such collision", () => {
+    expect(() => assertUniqueOrdinals(Object.keys(MIGRATIONS))).not.toThrow();
   });
 });
 

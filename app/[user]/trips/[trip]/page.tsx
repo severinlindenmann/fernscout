@@ -115,7 +115,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     // at the top of this function and was simply never handed on, so an
     // owner's own controls on a past trip's story, `DayNotify` among them,
     // rendered for nobody.
-    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader} owner={owner}>
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
       <BlogStructuredData
         entries={getAllEntries(trip.ref)}
         site={site}
