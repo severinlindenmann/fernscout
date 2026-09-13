@@ -71,9 +71,20 @@ describe("every /api/v1 route that reads a body", () => {
     // much v1 is left, and it has to keep working right down to the last v1
     // route. It reaches zero legitimately at the end of the migration, and
     // whoever deletes the last one should delete this file with it rather
-    // than lower the number again. Three remain today: `channels`, `config`
-    // and `invites`.
-    expect(readsABody.length).toBeGreaterThan(1);
+    // than lower the number again.
+    //
+    // **One remains: `config`**, and it is the last one there will be.
+    // `channels` and `invites` moved to /api/web cookie proxies the same
+    // afternoon the seven v2 already covered were deleted. `config` survives
+    // deliberately rather than by omission — `lib/capabilities.ts` still
+    // reads a journal's own `features` block as a gate, and `lib/rates.ts`
+    // still reads `manualRates` for the journal-wide currency picker, so
+    // decision 5 is decided and not yet implemented (B1666).
+    //
+    // So the floor is 1, not 0: the walk finding nothing would still mean it
+    // broke. When B1666 lands and `config` goes, this file goes with it —
+    // that is the instruction above, and it is now one route away.
+    expect(readsABody.length).toBeGreaterThanOrEqual(1);
   });
 
   test("either publishes a request schema, or is on B536's list", () => {
