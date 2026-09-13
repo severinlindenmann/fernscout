@@ -117,7 +117,9 @@ function previewOf(answer: Record<string, unknown>, t: (key: TranslationKey) => 
 /** Whether a turn ends in something to check before it happens. Focus goes
  *  there when it does — a proposal nobody is looking at is a proposal nobody
  *  presses. */
-function isProposal(block: Block): boolean {
+function isProposal(
+  block: Block,
+): block is Extract<Block, { shape: "form" | "confirm" }> {
   return block.shape === "form" || block.shape === "confirm";
 }
 
@@ -1183,6 +1185,16 @@ export default function HelperAsk({
             </p>
           )}
           {turns.map((turn, index) => {
+            // A guarded turn may carry the same replacement sentence as a
+            // plain `say` block and as a proposal card caption. The sentence
+            // belongs to the card once; drawing both makes the guard look
+            // confused. Ordinary cards with different prose are unchanged.
+            const proposalSentences = new Set(
+              turn.blocks
+                .filter(isProposal)
+                .map((block) => (block.proposal?.sentence ?? block.text))
+                .filter((text): text is string => Boolean(text)),
+            );
             const day = dayOf(turn.blocks);
             /** A quiet clock between exchanges ten minutes apart — B1212
              *  (D22). Client-only (`mounted`): a local-time string is the
@@ -1223,7 +1235,9 @@ export default function HelperAsk({
                     {turn.via === "whatsapp" && <WhatsAppMark label={t("agent.chat.viaWhatsapp")} />}
                   </p>
                 )}
-                {turn.blocks.map((block, n) => (
+                {turn.blocks.map((block, n) => {
+                  if (block.shape === "say" && proposalSentences.has(block.text)) return null;
+                  return (
                   <BlockView
                     key={n}
                     block={block}
@@ -1253,7 +1267,8 @@ export default function HelperAsk({
                     onChoose={(label) => go(label)}
                     onAccept={accept}
                   />
-                ))}
+                  );
+                })}
                 {/*
                   What used to be a header pill is this, now — B1016. The
                   owner's own reading: "a really small emoji or thumbnail in
