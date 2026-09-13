@@ -5,7 +5,7 @@
 // safety shape: it removes nothing, answers 202, and the second step happens
 // in a mailbox — see lib/deletions.ts.
 import type { ZodType } from "zod";
-import { journalDoc, journalPatch, journalWrite, JOURNAL_DECLINABLES } from "@/lib/api/v2/schemas";
+import { journalDoc, journalPatch, journalWrite, JOURNAL_DECLINABLES, type JournalDoc } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import { JOURNAL_IMMUTABLE_FIELDS, clearDeclinedSections, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
@@ -56,6 +56,22 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 
+  return applyJournalPatch(user, stored, request);
+}
+
+/**
+ * The write itself, factored out of `PATCH` above so `/api/web/[user]`
+ * (the owner's cookie proxy, B1595) can reach the same validation and the
+ * same writer without a bearer token ever existing — no token is minted for
+ * the browser to hold, and this function is called directly, in-process,
+ * never over HTTP. Everything above this point in `PATCH` is the bearer
+ * check; everything below never looked at `session` in the first place.
+ */
+export async function applyJournalPatch(
+  user: string,
+  stored: JournalDoc,
+  request: Request,
+): Promise<Response> {
   const currentEtag = etagFor(stored);
   if (ifMatchStale(request, currentEtag)) {
     return fail("stale_document", ERROR_CODES.stale_document, stored, 409);

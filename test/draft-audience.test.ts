@@ -389,18 +389,17 @@ describe("nothing under app/[user] decides drafts for itself", () => {
    * caller, so there is no draft-visibility decision here for `draftsVisibleTo`
    * to have made instead.
    *
-   * `app/[user]/trips/[trip]/day/[slug]/unpublish/route.ts` (B980 round 3) is
-   * the identical shape one level further: `entry.draft` refuses *repeating*
-   * a takedown that already happened — "already a draft" — never decides
-   * whether the caller may read the entry, which this route never returns.
-   * `isOwner` beside it is the gate on pressing the button at all, exactly as
-   * for `notify`.
+   * The identical shape once lived one level further, in
+   * `app/[user]/trips/[trip]/day/[slug]/unpublish/route.ts` (B980 round 3):
+   * `entry.draft` refused *repeating* a takedown that already happened.
+   * B1595 moved that door to `app/api/web/[user]/trips/[trip]/days/[slug]/
+   * unpublish/route.ts` — outside `app/[user]`, so outside this walk — and
+   * it is unpublish's own `test/web-cookie-proxies.test.ts` that pins it now.
    */
   const OWNER_ONLY = new Set([
     "app/[user]/export.zip/route.ts",
     "app/[user]/trips/page.tsx",
     "app/[user]/trips/[trip]/day/[slug]/notify/route.ts",
-    "app/[user]/trips/[trip]/day/[slug]/unpublish/route.ts",
   ]);
 
   /** Comments say `isOwner` when explaining why it is *not* used any more —

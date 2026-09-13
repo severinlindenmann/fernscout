@@ -43,6 +43,19 @@ export async function POST(
     );
   }
 
+  return applyUnpublish(user, tripId, slug);
+}
+
+/**
+ * The write itself, factored out of `POST` above so
+ * `/api/web/[user]/trips/[trip]/days/[slug]/unpublish` (the owner's cookie
+ * proxy, B1595) can reach the same writer without a bearer token ever
+ * existing — nothing is minted for the browser to hold, and this is a
+ * direct, in-process call, never an HTTP round trip. Everything above this
+ * point is the owner-only bearer gate; nothing below ever looked at
+ * `session`.
+ */
+export async function applyUnpublish(user: string, tripId: string, slug: string): Promise<Response> {
   const day = readDayFile(user, tripId, slug);
   if (!day) return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
   if (day.status !== "published") {

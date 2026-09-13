@@ -95,10 +95,10 @@ function JournalSettings({
   async function save() {
     setBusy(true);
     setState("idle");
-    const response = await fetch("/api/journal", {
+    const response = await fetch(`/api/web/${encodeURIComponent(username)}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, title, tagline }),
+      body: JSON.stringify({ title, tagline }),
     }).catch(() => null);
     setBusy(false);
     if (!response?.ok) {
@@ -229,20 +229,23 @@ function JournalProfileFields({
     setBusy(true);
     setState("idle");
     setError(undefined);
-    const response = await fetch("/api/journal", {
+    // v2's journal document has no `startLocation` and no `ownerTel` —
+    // "rendered and computed by nothing" (owner review, 2026-09-12, see
+    // lib/api/v2/schemas/journal.ts) — and no separate `defaultLocale`: the
+    // first entry of `locales` IS the default, which `[defaultLocale,
+    // ...extraLocales]` below already produces. Those three inputs stay on
+    // the panel (v1 still reads them back for display) but nothing here
+    // saves them any more; see B1595's report for the gap.
+    const response = await fetch(`/api/web/${encodeURIComponent(username)}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        user: username,
-        startLocation,
         units,
         locales: [defaultLocale, ...extraLocales],
-        defaultLocale,
         displayCurrencies: currencies
           .split(",")
           .map((code) => code.trim())
           .filter((code) => code !== ""),
-        ownerTel,
       }),
     }).catch(() => null);
     setBusy(false);
@@ -558,11 +561,14 @@ function TripEditor({
   async function save(body: Record<string, unknown>): Promise<boolean> {
     setBusy(true);
     setProblem(null);
-    const response = await fetch("/api/trip", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ user: username, trip: trip.id, ...body }),
-    }).catch(() => null);
+    const response = await fetch(
+      `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(trip.id)}`,
+      {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ).catch(() => null);
     setBusy(false);
     if (!response?.ok) {
       const said = (await response?.json().catch(() => null)) as {
@@ -634,7 +640,9 @@ function TripEditor({
             type="button"
             disabled={!dirty || title.trim() === ""}
             onClick={async () => {
-              if (await save({ title, tagline, start, end })) onClose();
+              // v2 carries a trip's dates as one object (`dates: {from, to}`)
+              // rather than the two flat scalars v1 used — lib/api/v2/schemas/trip.ts.
+              if (await save({ title, tagline, dates: { from: start, to: end } })) onClose();
             }}
             className="inline-flex min-h-11 w-fit items-center rounded-full bg-navy-900 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-700 disabled:opacity-50"
           >

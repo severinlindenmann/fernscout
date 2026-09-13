@@ -274,6 +274,26 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   if (!ownsUser(bearer.session, user)) return outOfScopeRefusal(bearer.session, user);
   if (!mayActAsOwner(bearer.session, user)) return ownerOnlyRefusal();
 
+  return applyTripPatch(user, trip, journal, request);
+}
+
+/**
+ * The write itself, factored out of `PATCH` above so `/api/web/[user]/trips/
+ * [trip]` (the owner's cookie proxy, B1595) can reach the same validation and
+ * the same writer without a bearer token ever existing — nothing is minted
+ * for the browser to hold, and this is a direct, in-process call, never an
+ * HTTP round trip. Everything above this point is the bearer check; nothing
+ * below ever looked at `session`. This is also the trip's `visibility` door:
+ * v2 folded `/visibility` into the trip document itself (unlike v1's separate
+ * call), so a patch naming only `visibility`/`listed`/`teaser` runs the exact
+ * same path as one renaming the trip.
+ */
+export async function applyTripPatch(
+  user: string,
+  trip: string,
+  journal: NonNullable<ReturnType<typeof getUser>>,
+  request: Request,
+): Promise<Response> {
   const stored = readTripFile(user, trip);
   if (!stored) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
 
