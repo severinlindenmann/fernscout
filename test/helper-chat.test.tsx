@@ -382,6 +382,18 @@ describe("the blocks a tool declares", () => {
     expect((document.activeElement as HTMLElement)?.textContent).toContain("A trip called Japan.");
   });
 
+  test("does not repeat a guarded sentence above its card", async () => {
+    const proposal = proposed().blocks[0];
+    answers({
+      ok: true,
+      kind: "read",
+      blocks: [proposal, { shape: "say", text: proposal.text } as Block],
+    });
+    render();
+    await ask("make a trip to japan");
+    expect((container!.textContent ?? "").split(proposal.text).length - 1).toBe(1);
+  });
+
   test("pressing posts what the proposal says, where it says, edits and all", async () => {
     answers(proposed(), { ok: true, id: "japan-2027" }, { ok: true });
     render();

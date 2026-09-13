@@ -59,3 +59,18 @@ same shape and simply has two different strings, which would hide it.
 Still valid on current `main`: helper turn rendering can include the guard's
 replacement text as the message body and again as the card caption. The task
 has a focused acceptance condition and requires no product decision.
+
+## Implemented
+
+Proposal turns now suppress an identical plain `say` block when its sentence is
+already rendered by the proposal card. Different prose and ordinary cards are
+unchanged. The helper chat test asserts the guarded sentence appears exactly
+once.
+
+## Verification
+
+- Helper chat and honesty tests — 225 passed.
+- `npm run build` — pass (existing Turbopack filesystem warnings remain).
+- `npx tsc --noEmit` — pass.
+- ESLint — 0 errors (existing warning only).
+- `npm run unused` — pass (existing configuration hints only).
