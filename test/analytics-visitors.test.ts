@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -67,26 +67,47 @@ describe("the visitor identifier is what the imprint says it is", () => {
   });
 
   test("the code is not a reversible encoding of anything it was made from", () => {
-    // B713: the salt is a genuine crypto.randomBytes() draw (by design — see
-    // the module comment), so a substring check against an unpinned hash is
-    // a coin flip that comes up "contains 203" about one run in three
-    // hundred. Pin the salt so the assertion is about the hashing, not about
-    // today's randomness.
-    // `randomBytes` has a callback overload TS prefers when inferring
-    // `spyOn`'s type, so `mockReturnValueOnce` alone types as `void` —
-    // `mockImplementationOnce` sidesteps overload selection entirely.
-    // B988: and the pin only takes if there is a draw left to pin. `dailySalt`
-    // memoises per day and the test above has already drawn day1's, so
-    // without this the mock expires unused and the assertion runs against the
-    // very randomness B713 was removing — a full-suite failure about one run
-    // in three hundred, which reads as "this branch broke something".
+    // B713/B988 tried to pin the salt with `vi.spyOn(crypto, "randomBytes")`
+    // so this assertion would be deterministic. It never actually worked:
+    // `lib/analytics/visitor.ts` imports `randomBytes` as a named binding,
+    // and Vitest's transform resolves that to the real function at import
+    // time rather than reading it back off the `crypto` namespace object on
+    // every call — spying on the object property does not touch the bound
+    // reference the module already holds. `dailySalt` kept drawing genuine
+    // randomness on every run; nothing here was ever pinned.
+    //
+    // That went unnoticed because the assertion left behind — the hex digest
+    // does not literally contain the substrings "203" or "alice" — is true
+    // of almost any hash, pinned or not, real or broken: hex-encoding
+    // "203.0.113.9" byte-for-byte produces "32302e3130332e302e3131392e39",
+    // which has no run of decimal "203" or the bytes of "alice" in it either.
+    // A fully reversible, broken `visitorHash` would sail through both
+    // checks — which is B1610: the property the test's name promises was
+    // never actually being tested, by chance or otherwise.
+    //
+    // The fix does not try to control the randomness at all. `dailySalt` is
+    // exported and memoises per UTC day, so calling it once here captures
+    // exactly the salt `visitorHash` is about to use for the same day — real
+    // or not, it is now a known value — and the test recomputes the sha256
+    // the module documents itself as producing from that captured salt and
+    // the same inputs. A swap to something reversible, or a dropped
+    // length-prefix, fails this immediately instead of surviving it by luck.
     forgetSalt();
-    vi.spyOn(crypto, "randomBytes").mockImplementationOnce(() => Buffer.alloc(32, 0x11));
-    const hash = visitorHash("alice", "203.0.113.9", "Mozilla/5.0 (X11)", day1);
-    vi.restoreAllMocks();
+    const username = "alice";
+    const ip = "203.0.113.9";
+    const userAgent = "Mozilla/5.0 (X11)";
+    const salt = dailySalt(day1);
+    const hash = visitorHash(username, ip, userAgent, day1);
+
+    const expected = crypto
+      .createHash("sha256")
+      .update(salt)
+      .update(`${username.length}:${username}${ip.length}:${ip}${userAgent}`)
+      .digest("hex")
+      .slice(0, 16);
+
+    expect(hash).toBe(expected);
     expect(hash).toMatch(/^[0-9a-f]{16}$/);
-    expect(hash).not.toContain("203");
-    expect(hash).not.toContain("alice");
   });
 
   test("a field boundary cannot be forged by moving the separator", () => {

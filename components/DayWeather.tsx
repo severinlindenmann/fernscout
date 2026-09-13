@@ -1,5 +1,6 @@
 import type { DayWeather as Reading } from "@/lib/weather";
 import { SOURCE_CREDIT, weatherGroup, type WeatherGroup } from "@/lib/weather";
+import { celsiusToFahrenheit, mmToInches, type Units } from "@/lib/units";
 
 /**
  * What the weather actually was, in the day's own furniture — B325.
@@ -168,19 +169,28 @@ function Glyph({ group }: { group: WeatherGroup }) {
  * reads `-4° – -2°C` — three near-identical dashes doing two different jobs,
  * at 12px.
  */
-function temperature(reading: Reading): string | undefined {
+function temperature(reading: Reading, units: Units): string | undefined {
   const { tempMin, tempMax } = reading;
-  const deg = (n: number) => `${String(Math.round(n)).replace("-", "−")}°`;
+  const unit = units === "imperial" ? "F" : "C";
+  const convert = (n: number) => (units === "imperial" ? celsiusToFahrenheit(n) : n);
+  const deg = (n: number) => `${String(Math.round(convert(n))).replace("-", "−")}°`;
   if (tempMin !== undefined && tempMax !== undefined) {
-    return tempMin === tempMax ? `${deg(tempMax)}C` : `${deg(tempMin)} – ${deg(tempMax)}C`;
+    return tempMin === tempMax ? `${deg(tempMax)}${unit}` : `${deg(tempMin)} – ${deg(tempMax)}${unit}`;
   }
   const one = tempMax ?? tempMin;
-  return one === undefined ? undefined : `${deg(one)}C`;
+  return one === undefined ? undefined : `${deg(one)}${unit}`;
+}
+
+/** `18 mm`, or `0.7 in` for an imperial journal — one decimal, since an inch
+ * of rain is a lot and a tenth of one is not nothing. */
+function precipitation(mm: number, units: Units): string {
+  return units === "imperial" ? `${mmToInches(mm).toFixed(1)} in` : `${mm} mm`;
 }
 
 export default function DayWeather({
   weather,
   labels,
+  units = "metric",
 }: {
   /** Absent for a day that never asked, a day without coordinates, and every
    * day in a journal with the capability off — in each case this renders
@@ -190,12 +200,15 @@ export default function DayWeather({
    * already has the dictionary and a second one here would be a second thing
    * to keep in step. `group` is looked up by the caller for the same reason. */
   labels: { description: string; via: string };
+  /** The journal's own `units` — B1592. Every reading is stored metric; this
+   * only changes what a reader sees. */
+  units?: Units;
 }) {
   if (!weather) return null;
   const credit = SOURCE_CREDIT[weather.source];
 
   const group = weatherGroup(weather.code);
-  const temp = temperature(weather);
+  const temp = temperature(weather, units);
   const rain = weather.precipitation;
 
   // A reading with a code we cannot draw and no numbers to print would be an
@@ -231,7 +244,7 @@ export default function DayWeather({
       <span aria-hidden className="tabular-nums">
         {temp}
         {temp !== undefined && rain ? " · " : ""}
-        {rain ? `${rain} mm` : ""}
+        {rain ? precipitation(rain, units) : ""}
       </span>
     </Wrapper>
   );

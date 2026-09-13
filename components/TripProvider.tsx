@@ -3,6 +3,7 @@
 import { createContext, useContext, useMemo } from "react";
 import type { Trip } from "@/lib/types";
 import type { ReaderLevel } from "@/lib/photos";
+import type { Units } from "@/lib/units";
 
 type Ctx = {
   trip: Trip;
@@ -63,6 +64,13 @@ type Ctx = {
    * rather than an owner's controls.
    */
   owner: boolean;
+  /**
+   * The journal's own `units` — B1592. Defaults to `"metric"`, the same
+   * default `lib/config.ts` gives an unset field, so a page that forgets to
+   * pass it shows the figures every reading is actually stored in rather than
+   * silently converting.
+   */
+  units: Units;
 };
 
 const TripContext = createContext<Ctx | null>(null);
@@ -73,6 +81,7 @@ export default function TripProvider({
   canPublish = false,
   reader = "public",
   owner = false,
+  units = "metric",
   children,
 }: {
   trip: Trip;
@@ -83,6 +92,8 @@ export default function TripProvider({
   reader?: ReaderLevel;
   /** See `Ctx.owner`. Omitted on a page that draws no visibility control. */
   owner?: boolean;
+  /** See `Ctx.units`. Omitted on a page that shows no weather. */
+  units?: Units;
   children: React.ReactNode;
 }) {
   const value = useMemo<Ctx>(() => {
@@ -97,6 +108,7 @@ export default function TripProvider({
       canPublish,
       reader,
       owner,
+      units,
       base,
       userBase,
       // "/" is the story page, whose URL is the base itself — so it must not
@@ -105,7 +117,7 @@ export default function TripProvider({
       /** For pages that belong to the user rather than to one trip. */
       userHref: (path: string) => (path === "/" ? userBase : `${userBase}${path}`),
     };
-  }, [trip, isCurrent, canPublish, reader, owner]);
+  }, [trip, isCurrent, canPublish, reader, owner, units]);
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;
 }

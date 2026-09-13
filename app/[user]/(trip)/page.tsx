@@ -40,7 +40,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   const userConfig = getUser(user);
   if (!userConfig) notFound();
   return (
-    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader} owner={owner}>
+    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
       <BlogStructuredData
         entries={getAllEntries(tripId)}
         site={site}
