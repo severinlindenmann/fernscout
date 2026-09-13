@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: agent docs, whatsapp
 found: "2026-09-11T14:29:07Z"
+started: "2026-09-13T06:55:45Z"
 ---
 
 # B1471 — The messenger number is printed for a person to dial in a form only a machine can use
@@ -53,3 +54,10 @@ one was found by accident rather than by looking.
 - `/documentation.txt` prints the messenger number in a form a person can dial.
 - No function whose name promises a display form returns a URL form.
 - `npm run verify` clean.
+
+## Revalidated — 2026-09-13
+
+Still valid on current `main`: `lib/api/documentation.ts` prints the result of
+`whatsappDisplayNumber()`, which is bare E.164 digits despite its display name.
+The same helper is used by URL builders, so the machine form needs an explicit
+URL name and a separate human-readable formatter.
