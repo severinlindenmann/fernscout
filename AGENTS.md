@@ -50,8 +50,11 @@ publish, deploy or contact somebody beyond what the user authorised.
 
 # Fernscout, for agents
 
-A self-hostable travel journal. **The content is markdown and photographs in a
-folder the author owns.** There is no CMS, and there will not be one (ROADMAP
+A self-hostable travel journal. **The content is JSON documents and
+photographs in a folder the author owns.** It was markdown with YAML
+frontmatter until B1598; the prose still lives in a `content` field and is
+still written by a person, but a day and a trip are each one JSON file now,
+serialised by `lib/api/v2/documents.ts` and by nothing else. There is no CMS, and there will not be one (ROADMAP
 decision 24): no form that composes a new day out of fields, no upload widget
 with its own idea of what a day is. **An agent is the only thing that writes a
 day; a person may correct one they already have** — `components/EditDay.tsx`
@@ -267,12 +270,15 @@ content/
                               locales, baseCurrency, per-user features
     trips/
       <trip-id>/
-        trip.md               the trip's metadata (frontmatter) + intro prose
+        trip.json             the whole trip as one document: metadata, intro
+                              prose, and the `costs`, `plan`, `rates` and
+                              `translations` sections that used to be their
+                              own files
         entries/
-          YYYY-MM-DD-slug.md  one update. Several per day is normal.
-        costs.md              budget + preparation costs (optional)
-        plan.md               planned route (`route:` of `location:` stops),
-                              for an upcoming trip (optional)
+          YYYY-MM-DD-slug.json  one update. Several per day is normal. The
+                              file name is the day's id, date prefix and all.
+                              (`costs.md` and `plan.md` are gone — both are
+                              sections inside `trip.json` since B1606)
         media/                derivatives served to the browser
         track.json            the ground actually covered on this trip, derived
                               from `gps/` below and clipped to it — B665
@@ -377,8 +383,10 @@ boundary.
 
 Not repeated here. Writing content is the network door's job, so the field
 lists live where the writer is actually reading them: `/skill/add-a-day.md` for
-an entry, `trip.md`, `costs.md` and `plan.md`, and the request schemas in
-`lib/api/openapi.ts` for what each route will accept. A reference kept in two
+an entry and for the trip document, and the Zod schemas in
+`lib/api/v2/schemas/` for what each route will accept — those schemas are the
+contract, and `/api/v2/openapi.json` is generated from them rather than
+maintained beside them. A reference kept in two
 files is a reference that disagrees with itself within a month, and this one
 already had: the visibility vocabulary changed in W27 and only one copy
 followed.

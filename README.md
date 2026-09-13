@@ -46,8 +46,8 @@ closed trip's picture never leaves the gate.
 **What this does not promise.** fernscout.ch is a hobby project run by one
 person, free, one journal per person. There is no uptime guarantee, no
 durability guarantee and no support — best effort, and nothing more is
-implied by it being offered. Your content is still markdown and photographs in
-a folder, whoever hosts it: `npm run export -- <username>` hands the whole
+implied by it being offered. Your content is still plain files in
+a folder you own — JSON documents and photographs — whoever hosts it: `npm run export -- <username>` hands the whole
 journal back as a zip at any time, so self-hosting the same content later is
 the documented way out, not a downgrade.
 
@@ -58,9 +58,11 @@ npm install
 npm run dev            # http://localhost:3000
 ```
 
-That is the whole setup for a public journal. **Your content is markdown and
+That is the whole setup for a public journal. **Your content is JSON documents and
 photographs in a folder you own** — no database needed, and everything exports
-as the files it already is. One instance serves many people:
+as the files it already is. The prose inside a day is still prose you wrote;
+what changed in B1598 is the envelope around it, from YAML frontmatter to one
+JSON file per day and per trip. One instance serves many people:
 `content/<username>/…`, reachable at `/<username>`. A demo journal ships in the
 repo and serves at `/example`.
 
@@ -133,36 +135,43 @@ The gallery, filterable by place, with a slideshow behind the button.
 
 ## What a day looks like
 
-One markdown file per update, in
-`content/<username>/trips/<trip-id>/entries/`, named `YYYY-MM-DD-slug.md`.
-Frontmatter is plain YAML, Obsidian-compatible:
+One JSON file per update, in
+`content/<username>/trips/<trip-id>/entries/`, named `YYYY-MM-DD-slug.json`.
+It was YAML frontmatter and markdown until B1598; the prose is still prose,
+and it now lives in a `content` field:
 
-```markdown
----
-title: "Lanterns of Hoi An"
-date: "2026-08-26"
-time: "16:45"                 # orders several updates within one day
-location: "Hoi An"
-country: "Vietnam"
-lat: 15.8801
-lng: 108.338
-transportMode: "bus"          # flight | train | bus | motorbike | bicycle | boat | car | taxi | walk
-transportFrom: "Da Lat"
-transportTo: "Hoi An"
-gallery:
-  - src: "/media/<trip-id>/hoi-an/01.jpg"   # trip-relative; the username is added at read time
-    type: "image"
-    width: 1200
-    height: 800
-costs:
-  - { label: "Dinner", amount: 180000, category: "food", currency: "VND" }
-status: draft                 # present ⇒ not on the site
----
-
-The diary text, in plain markdown.
+```json
+{
+  "title": "Lanterns of Hoi An",
+  "date": "2026-08-26",
+  "time": "16:45",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "location": "Hoi An",
+  "country": "Vietnam",
+  "countryCode": "VN",
+  "coordinates": { "lat": 15.8801, "lng": 108.338 },
+  "content": "The diary text, in plain markdown.\n\nBlank lines and all.",
+  "transportMode": "bus",
+  "transportFrom": "Da Lat",
+  "transportTo": "Hoi An",
+  "media": [
+    { "src": "/media/<trip-id>/hoi-an/01.jpg", "type": "image", "width": 1200, "height": 800 }
+  ],
+  "costs": [
+    { "label": "Dinner", "amount": 180000, "category": "food", "currency": "VND" }
+  ],
+  "status": "draft"
+}
 ```
 
-Gaps are fine. A trip's own `trip.md` carries its title, dates, who was on it,
+`"status": "draft"` keeps the day off the site. Anything unrecognised or
+missing reads as a draft too, never as published — a file nobody can parse
+must not publish itself. `src` is trip-relative; the username is added at
+read time. The `type`/`width`/`height` on a photograph are written by the
+upload, not by hand.
+
+Gaps are fine. A trip's own `trip.json` carries its title, dates, who was on
+it, its budget, its planned route, its exchange rates,
 and its visibility: `private`, `public` or `guest`. An unrecognised value reads
 as `private`, never as public — a typo must not publish somebody's trip.
 
