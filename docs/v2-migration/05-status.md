@@ -448,3 +448,84 @@ together. In flight now.
 **Not started:** step 5 proper (`/api/web`, the helper, the webapp), step 6
 (docs generation), phase 3 (the replay), phase 4 (the finish line —
 `AGENTS.md` and the README still say the content is markdown).
+
+## 2026-09-13, overnight — steps 3 and 4 live; the render layer is the last wall
+
+### Merged and deployed
+
+`main` is at `66f7f8ec53ba` on fernscout.ch. Everything below is live and was
+checked over TLS with a token minted through the new door, not asserted from a
+test:
+
+- **Step 4 complete** — money (B1622), social (B1623), print/inbox (B1624).
+- **B1631** — T6's mirror: a patch that declines a section now removes that
+  section's stored value, so `declined` finally works in both directions.
+- **B1633** — the drafts list hands out an addressable slug.
+- **B1636** — the credit-granting approval token is out of the URL.
+- **B1630** — 42 of 48 hand-rolled fixture writers now share
+  `test/fixtures/content.ts`.
+
+A create → retry → delete round trip against the live API proved: `201` with
+the guide pointer (B1621), `409` on a retried create carrying the stored
+document (S2), and — a real find — **`404` on DELETE for a trip the same API
+had just created and could still GET** (B1634). Two smoke-test trips were
+left on the instance by that check and removed by hand, since the API could
+not.
+
+### What the overnight run found, and the shape it keeps taking
+
+Five of the seven bugs found tonight are the same two shapes:
+
+**Two readers disagreeing.** B1634 (DELETE resolves a trip with the v1 reader
+while GET reads JSON) and B1633 (the drafts list reports v1's bare slug to a
+v2 door) are both a v1 reader left in a v2 path. Every one of these is
+invisible to a shape-only test and visible immediately to a round trip —
+create it, then read it back the way a caller would.
+
+**A stored answer no patch can retract.** B1616, D14's half of B1626, and
+B1631 make three. The cause is structural rather than careless: merge-patch
+spells "unchanged" as omission, so retraction needs the *stored* document,
+which a stateless Zod schema can never see. It will always live in the write
+path. If a fourth appears, it is a class and deserves a named helper rather
+than a third bespoke fix.
+
+### Two process facts worth keeping
+
+**A subagent cannot run a build, so it cannot see a bundling fault.** B1624
+shipped two syntax errors `tsc` was happy with — a template literal with
+nested unescaped quotes, and a single-quoted string carrying backtick escapes
+— both of which broke the route's bundle. The full `verify` before a merge is
+not ceremony.
+
+**`lib/api/openapi.ts` conflicts do not resolve by hunk.** Both sides
+documented routes the other had deleted, and the boundaries did not line up
+with whole entries; resolving by eye produced a file that parsed as nothing.
+Reset to one side, then remove paths by walking the document and asking
+whether each route file exists — and watch for catch-all segments
+(`[...path]`), which a naive check reads as missing.
+
+### The render layer is the last wall, and it is one landing
+
+`b1598-readers` now has **readers, content and writers** flipped — `createTrip`
+writes `trip.json`, `createDraft`/`editEntry` write day JSON. That was the
+missing third of it: flipping readers alone would have left the helper and the
+browser writing files nothing could read, and **every day written through
+`/agent` would have vanished from the site**.
+
+Remaining on that branch: **815 failing tests**, down from 1091. The bulk is
+fixtures rather than properties — including `test/fixtures/content/`, a
+committed directory of 14 markdown files that several suites point
+`CONTENT_DIR` straight at. Two rules for converting it: the deliberately
+malformed fixtures must become malformed **JSON** rather than being "fixed"
+(they exist to prove a reader fails closed), and `without: [costs]` →
+`costs: []` while `unrecorded: [costs]` → `declined.costs`, because those are
+different claims and the costs averages depend on the difference (B1629).
+
+**Nothing else should merge ahead of it.** It is the only thing standing
+between the v2 API and content it can actually read.
+
+### Not started
+
+Step 5 proper (`/api/web`, the helper, the webapp), step 6 (docs generation
+and `/api/v2/openapi.json`), phase 3 (the replay), phase 4 (the finish line —
+`AGENTS.md` and the README still say the content is markdown).
