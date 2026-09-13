@@ -139,7 +139,11 @@ export const JOURNAL_TOOLS: readonly Tool[] = [
         sentence: say("agent.tool.buyRoom", { credits: String(EXTRA_STORAGE_CREDITS), price }),
         accept: say("agent.tool.buyRoomAccept"),
         done: say("agent.tool.buyRoomDone"),
-        fields: [],
+        // Minted once, here, and carried through the press as a fixed field
+        // (B1107) rather than read back from the model — a retried press
+        // reuses this same proposal and so this same id, which is what lets
+        // the route (B1659) tell a double-submit from a second purchase.
+        fields: [{ name: "id", value: crypto.randomUUID(), fixed: true }],
         preview: [
           say("agent.tool.buyRoomPreview", {
             credits: String(EXTRA_STORAGE_CREDITS),

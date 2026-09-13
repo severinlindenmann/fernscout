@@ -204,6 +204,28 @@ describe("the wizard's two-phase upload", () => {
     expect(odd.body.error).toBe("unknown_file_type");
   });
 
+  test("B1657: a non-photograph upload is refused once the journal is at its storage ceiling", async () => {
+    const slug = await startDay();
+
+    // Shrink the ceiling to well under what is already on disk (the trip
+    // fixture, the day itself) so any further write is over it.
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "T", url: "https://t.test" },
+        features: { auth: { enabled: true } },
+        media: { perUserBytes: 1 },
+      }),
+    );
+    clearConfigCache();
+
+    const csv = Buffer.from("date,amount\n2026-05-04,12.50\n");
+    const refused = await upload({ trip: "a-trip", day: slug, phase: "web" }, "bank.csv", csv);
+    expect(refused.status).toBe(400);
+    expect(refused.body.error).toBe("storage_full");
+    expect(fs.existsSync(path.join(dir, "alex", "inbox", "files"))).toBe(false);
+  });
+
   test("how much room is left is answerable before the queue starts", async () => {
     const response = await GET(
       new Request("https://t.test/api/helper/alex/day/media"),
