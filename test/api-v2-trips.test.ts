@@ -517,6 +517,45 @@ describe("DELETE /api/v2/{user}/trips/{trip}", () => {
 
     const { readTripFile } = await import("@/lib/api/v2/store");
     expect(readTripFile(OWNER, "delete-me-trip")).toBeTruthy();
+
+    const mailDir = path.join(dir, "mail", OWNER);
+    const mails = fs.existsSync(mailDir) ? fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml")) : [];
+    expect(mails.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * B1639 — a trip PATCH is read-modify-write through `tripFromJson`/
+ * `tripToJson` (lib/api/v2/documents.ts), which rebuild the whole document
+ * from the fields the model knows. Before this fix, a key on `trip.json`
+ * that model does not carry (a hand edit, or a version ahead of this one)
+ * was silently absent after the very next PATCH — not refused, not
+ * reported. Every wire body already refuses an unknown key at the door
+ * (every trip schema is a `strictObject`), so the fix makes the file on
+ * disk answer to the same rule: `tripFromJson` throws
+ * `UnknownTripFieldError`, and the route turns that into a named 400
+ * instead of quietly building a document without it.
+ */
+describe("PATCH /api/v2/{user}/trips/{trip} — an unmodelled key on disk", () => {
+  test("refuses, naming the field, instead of silently dropping it", async () => {
+    const token = await ownerToken();
+    await putTrip(OWNER, "hand-edited-trip", fullTrip("hand-edited-trip"), token);
+
+    // Simulate a hand edit, or a file written by a version this build has
+    // never heard of — a key `tripFromJson` has no reading for.
+    const file = path.join(dir, OWNER, "trips", "hand-edited-trip", "trip.json");
+    const onDisk = JSON.parse(fs.readFileSync(file, "utf8"));
+    onDisk.mysteryField = "something a future version added";
+    fs.writeFileSync(file, JSON.stringify(onDisk, null, 2) + "\n");
+
+    const { status, body } = await patchTrip(OWNER, "hand-edited-trip", { tagline: "Updated" }, token);
+    expect(status, JSON.stringify(body)).toBe(400);
+    expect(body.message).toContain("mysteryField");
+
+    // Refused before the write — the field, and everything else, survives.
+    const stillOnDisk = JSON.parse(fs.readFileSync(file, "utf8"));
+    expect(stillOnDisk.mysteryField).toBe("something a future version added");
+    expect(stillOnDisk.tagline).toBeUndefined();
   });
 });
 

@@ -289,3 +289,64 @@ export function tripFromJson(raw: string): TripFile {
 
   return trip;
 }
+
+/** Every key `tripFromJson` above reads onto `TripFile`. */
+const KNOWN_TRIP_KEYS = [
+  "id",
+  "title",
+  "tagline",
+  "dates",
+  "visibility",
+  "listed",
+  "teaser",
+  "reminder",
+  "test",
+  "accent",
+  "cover",
+  "people",
+  "rates",
+  "figures",
+  "translations",
+  "intro",
+  "costs",
+  "plan",
+  "declined",
+] as const;
+
+/** v1 keys with no v2 home, or superseded by one — `tripFromJson`'s own
+ * comment above explains why each is read and thrown away on purpose.
+ * Not "unknown": a v2 build knows exactly what these are and has already
+ * decided against carrying them forward. */
+const RETIRED_TRIP_KEYS = [
+  "travellers",
+  "tracks",
+  "status",
+  "startLocation",
+  "ratesFrom",
+  "costsVisibility",
+  "reminderChannel",
+] as const;
+
+/**
+ * The keys on a raw `trip.json` that `tripFromJson` has no reading for at
+ * all — not even a retired one. `[]` for a file that will not even parse as
+ * JSON, the same as "no unknown keys": a caller wanting to distinguish that
+ * case already has `tripFromJson`'s own thrown `SyntaxError` to catch.
+ *
+ * Exists for the one caller that cannot tolerate `tripFromJson`'s usual
+ * silence about a key it drops (B1639's own PATCH route, below) without
+ * changing what `tripFromJson` does for its other callers — `lib/trips.ts`'s
+ * `readTrip` parses the same bytes twice today for exactly this reason (see
+ * its own comment) rather than have the shared parser throw on a case one
+ * caller wants to survive and another wants to refuse.
+ */
+export function unknownTripKeys(raw: string): string[] {
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  const known = new Set<string>([...KNOWN_TRIP_KEYS, ...RETIRED_TRIP_KEYS]);
+  return Object.keys(data).filter((key) => !known.has(key));
+}

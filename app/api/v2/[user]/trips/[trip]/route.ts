@@ -32,7 +32,7 @@ import {
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { skillDocPath } from "@/lib/api/skillDocMeta";
 import { serverSite } from "@/lib/site";
-import { readTripFile, writeTripFile, writeDayFile } from "@/lib/api/v2/store";
+import { readTripFile, tripFileUnknownKeys, writeTripFile, writeDayFile } from "@/lib/api/v2/store";
 import { toStoredMedia } from "@/lib/api/v2/days";
 import { buildTripDoc, notifyNewPeople, tripDays } from "@/lib/api/v2/trips";
 import type { TripFile } from "@/lib/api/v2/documents";
@@ -313,6 +313,25 @@ export async function applyTripPatch(
 ): Promise<Response> {
   const stored = readTripFile(user, trip);
   if (!stored) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
+
+  // B1639 — this route is read-modify-write (`storedWritable` below spreads
+  // `stored` into the merge, then the merged document is written back
+  // whole). `stored` only ever carries the keys `tripFromJson` recognises,
+  // so a key on disk it does not — a hand edit, a version ahead of this one
+  // — would otherwise vanish the moment anything touched the trip, with
+  // nothing said. Every wire body already refuses an unknown key at the
+  // door (every trip schema is a `strictObject`); this is that same refusal
+  // applied to the file already on disk, named rather than silent.
+  const unknownKeys = tripFileUnknownKeys(user, trip);
+  if (unknownKeys.length > 0) {
+    return fail(
+      "invalid_request",
+      `${ERROR_CODES.invalid_request} trip.json carries a field this version does not know: ` +
+        `${unknownKeys.join(", ")}. Fix or remove it on disk before writing this trip through the API.`,
+      undefined,
+      400,
+    );
+  }
 
   const currentDoc = buildTripDoc(user, trip, stored, "full");
   const currentEtag = etagFor(currentDoc);

@@ -1346,6 +1346,12 @@ describe("the trip fields that had no writer", () => {
       // field for it at all — an upcoming trip's plan is written some other
       // way (or by hand) until that gets a call of its own.
       plan: "createTrip has no field for a planned route yet",
+      // B1642 — `reminder` (D18/D46) is a real v2 field (schemas/trip.ts),
+      // but `createTrip` has no input for it: an evening nudge is a setting
+      // switched on later, through a PATCH, not a question a brand-new trip
+      // is asked. `KNOWN_TRIP_FIELDS` now derives from `tripDoc`'s own
+      // shape, which is what caught it missing here in the first place.
+      reminder: "createTrip has no field for it — set through a PATCH after creation",
     };
 
     const trip = createTrip("wanderer", {
@@ -1380,5 +1386,18 @@ describe("the trip fields that had no writer", () => {
     expect([...written, ...Object.keys(decidedAgainst)].sort()).toEqual(
       [...KNOWN_TRIP_FIELDS].sort(),
     );
+  });
+
+  test("reminder (D18) is a known field, not an unknownFields entry", async () => {
+    // B1642 — the hand-typed KNOWN_TRIP_FIELDS predated `reminder` getting
+    // its own v2 home and never picked it up, so a trip carrying it read as
+    // though it had a field this reader had never heard of.
+    const trip = createTrip("wanderer", { ...DATES, id: "reminded", title: "R" });
+    expect(trip.ok).toBe(true);
+    const { writeTripFile, readTripFile } = await import("@/lib/api/v2/store");
+    const stored = readTripFile("wanderer", "reminded");
+    writeTripFile("wanderer", "reminded", { ...stored!, reminder: { channel: "mail" } });
+
+    expect(getTrip("wanderer/reminded")?.unknownFields).toBeUndefined();
   });
 });

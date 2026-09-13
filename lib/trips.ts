@@ -430,6 +430,29 @@ function parseVisibility(
  * no v2 home at all (retired outright — see `deriveStatus` above for
  * `status`, dropped the same way).
  */
+/**
+ * The top-level keys `readTrip` below consumes. Anything else in a
+ * `trip.json` is reported on the trip as `unknownFields` — see the note on
+ * that field.
+ *
+ * Deriving this from `tripDoc` (schemas/trip.ts) rather than hand-listing it
+ * was tried and reverted: `schemas/trip.ts` already imports
+ * `MAX_TRIP_PEOPLE` from this file, so importing the schema back here makes
+ * a cycle, and whichever side of it evaluates first sees the other's
+ * constants as `undefined` mid-construction — a broken `tripCreate` that
+ * `PUT`/`PATCH` crash on for every request, not just one carrying an
+ * unrecognised field. `test/journals.test.ts`'s "every field the reader
+ * knows" is the guard instead: it fails whenever this set and `createTrip`'s
+ * own fields (lib/tripWrite.ts) drift apart, which is the drift B1642 found.
+ *
+ * v2's own vocabulary (`lib/api/v2/schemas/trip.ts`'s `tripBase`), not v1's
+ * — `start`/`end` are `dates`, `costsVisibility` is inside `costs`,
+ * `travellers` is `figures`, and `tracks`/`status` have no v2 home at all
+ * (retired outright — see `deriveStatus` above for `status`, dropped the
+ * same way). `reminder` (D18/D46) is the field this set was missing until
+ * B1642: a real v2 field with no `createTrip` input, so a trip carrying it
+ * read as though it had a field this reader had never heard of.
+ */
 export const KNOWN_TRIP_FIELDS = new Set([
   "id",
   "title",
@@ -438,6 +461,7 @@ export const KNOWN_TRIP_FIELDS = new Set([
   "visibility",
   "listed",
   "teaser",
+  "reminder",
   "people",
   "rates",
   "costs",
