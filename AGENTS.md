@@ -528,7 +528,12 @@ because nothing filled that field in. The feature was inert everywhere it
 mattered and no test could have said so. B1090. `work-on-a-task` step 5,
 `test-in-a-browser` and `check-a-drawing` each carry the procedure.
 
-**Run `verify` in the foreground, and give it a real timeout.** It takes about
+**Run `verify` in the foreground, and give it a real timeout.** Since B1667's guard landed,
+`verify` **refuses to start** when no terminal is attached: pass
+`VERIFY_WILL_WAIT=1` in the same call that sets `timeout: 900000`, and wait for
+it in that turn. The variable is read for nothing else, and setting it is the
+whole point — it makes "I will wait for this" something you state rather than
+something the harness guesses. It takes about
 five minutes; a tool call that defaults to a two-minute limit kills it
 mid-suite and hands back something that looks like a failure and is not. The
 fix is the timeout — `timeout: 900000` on the call — **not** backgrounding it.
