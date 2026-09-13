@@ -175,7 +175,7 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (11)
+### chore (10)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -188,7 +188,6 @@ Do not edit them by hand; run the script.
 | [B1413](backlog/chore/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low |
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
 | [B1453](backlog/chore/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
-| [B1473](backlog/chore/B1473-twenty-three-photobook-print-strings-lost.md) | Twenty-three photobook print strings lost their reader in B1428 and are still shipped in three languages | CHORE | low | low |
 | [B1592](backlog/chore/B1592-units-metric-imperial-is-stored-and.md) | units (metric/imperial) is stored and editable but nothing converts by it | CHORE | low | low |
 
 ### ops (14)
@@ -222,7 +221,7 @@ Do not edit them by hand; run the script.
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
-### superseded (94)
+### superseded (95)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -304,6 +303,7 @@ Do not edit them by hand; run the script.
 | [B1143](backlog/superseded/B1143-making-a-trip-public-from-the.md) | Making a trip public from the day panel is the same single press as fixing a typo | FEATURE | low | low |
 | [B1226](backlog/superseded/B1226-the-resolution-floor-is-200-dpi.md) | The resolution floor is 200 dpi where the printer starts warning at 225 | FEATURE | low | low |
 | [B1432](backlog/superseded/B1432-german-phrasing-for-where-s-my.md) | German phrasing for “where's my stuff” still routes to the bytes-only account tool | ISSUE | low | low |
+| [B1473](backlog/superseded/B1473-twenty-three-photobook-print-strings-lost.md) | Twenty-three photobook print strings lost their reader in B1428 and are still shipped in three languages | CHORE | low | low |
 | [B176](backlog/superseded/B176-a-closed-trip-cannot-be.md) | A closed trip cannot be advertised as existing without being made readable | FEATURE | low | medium |
 | [B243](backlog/superseded/B243-npm-run-postcard-prints-four-lines.md) | npm run postcard prints four lines of Node module-type warning before its own first line | ISSUE | low | low |
 | [B246](backlog/superseded/B246-openapi-json-does-not-document-costsvisibility.md) | openapi.json does not document costsVisibility on POST trips | ISSUE | low | low |

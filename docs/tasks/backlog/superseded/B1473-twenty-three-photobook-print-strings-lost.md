@@ -6,9 +6,18 @@ priority: low
 complexity: low
 area: locales
 found: "2026-09-11T15:24:01Z"
+superseded: "current usage audit"
 ---
 
 # B1473 — Twenty-three photobook print strings lost their reader in B1428 and are still shipped in three languages
+
+## Revalidation — 2026-09-13
+
+Superseded by the current order-flow work. A fresh search of `app/`,
+`components/`, `lib/` and `scripts/` finds a reader for every
+`photobook.print.*` key and `postcard.page.reviewButton`; none of the listed
+strings is dead on current `main`. The stale ticket must not delete live order
+copy.
 
 ## Why
 
