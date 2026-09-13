@@ -846,7 +846,21 @@ export function attachGallery(
   }
 
   const media = [...(day.media ?? []), ...items.map(toMediaWireItem)];
-  const next: DayFile = { ...day, media };
+
+  /**
+   * A day that said it had no photographs, and now has some, no longer says
+   * it — B540/B1564, T6's retraction rule. `appendGallery` (lib/ingest/entry.ts)
+   * and v2's `attachDayMedia` (lib/api/v2/days.ts) already do this; this door
+   * missed it, which is how `unrecorded: [photos]` and a filled gallery ended
+   * up on the same live day.
+   */
+  let declined = day.declined;
+  if (declined?.media !== undefined) {
+    const { media: _media, ...rest } = declined;
+    declined = Object.keys(rest).length > 0 ? rest : undefined;
+  }
+
+  const next: DayFile = { ...day, media, declined };
 
   // B643 — see `fileUnchangedSince`. The photographs themselves are already
   // on disk by this point (`storeUploads` wrote them before this was ever
