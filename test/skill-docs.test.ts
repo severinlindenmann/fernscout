@@ -195,10 +195,37 @@ describe("the guide split by task (B311)", () => {
     );
     expect(withNextPointer.length).toBeGreaterThan(0);
 
+    // `lib/api/openapi.ts` is v1's document and describes v1 and /api/auth
+    // only — v2's contract is the Zod schemas, and its own
+    // `/api/v2/openapi.json` is generated from them in step 6 of the
+    // migration. So a v2 route sending `next` cannot be checked against this
+    // document; it is not a gap in the route, it is the wrong document.
+    //
+    // **The obligation does not disappear, it moves.** The generator that
+    // builds `/api/v2/openapi.json` has to carry this same rule, and this
+    // filter has to come back out when it does. `docs/v2-migration/05-status.md`
+    // records it against step 6 so it is not lost with this comment.
+    const v1WithNextPointer = withNextPointer.filter(
+      (file) => !path.relative(process.cwd(), file).startsWith(path.join("app", "api", "v2")),
+    );
+
+    // B1624 moved the last of them. Every route that sends a `next` pointer
+    // is now a v2 route, so this loop has nothing left to check and the
+    // filter above has stopped protecting anything — it is a placeholder for
+    // an obligation that has entirely moved, not a live assertion.
+    //
+    // What must happen at step 6, when `/api/v2/openapi.json` is generated:
+    // delete the filter, point `doc` at the v2 document, and let the loop run
+    // over `withNextPointer` whole. Until then this asserts the honest thing
+    // — that the v1 side is empty — so that the day a v1 route grows a `next`
+    // pointer again, this fails and somebody reads the comment. B1621.
+    expect(v1WithNextPointer).toEqual([]);
+    expect(withNextPointer.length).toBeGreaterThan(0);
+
     const doc = openApiDocument() as unknown as {
       paths: Record<string, Record<string, { responses?: Record<string, { description?: string }> }>>;
     };
-    for (const file of withNextPointer) {
+    for (const file of v1WithNextPointer) {
       const routePath =
         "/" +
         path
@@ -221,20 +248,26 @@ describe("the guide split by task (B311)", () => {
   });
 
   test("the reply that creates a journal, a trip, and a day each names the next document", () => {
+    // The journals create moved to /api/v2 in B1624, carrying its pointer.
     const journalsSrc = fs.readFileSync(
-      path.join(process.cwd(), "app/api/v1/journals/route.ts"),
+      path.join(process.cwd(), "app/api/v2/journals/route.ts"),
       "utf8",
     );
     expect(journalsSrc).toContain('skillDocPath("add-a-trip")');
 
+    // The trip and day creates moved to v2 (B1612), and the chain moved with
+    // them — it had to be put back, because it had not been (B1621): an agent
+    // that made its first trip through v2 was told nothing about what comes
+    // next. Creating is a PUT to the id now, so the pointer lives on the
+    // single-trip and single-day routes rather than on a collection POST.
     const tripsSrc = fs.readFileSync(
-      path.join(process.cwd(), "app/api/v1/[user]/trips/route.ts"),
+      path.join(process.cwd(), "app/api/v2/[user]/trips/[trip]/route.ts"),
       "utf8",
     );
     expect(tripsSrc).toContain('skillDocPath("add-a-day")');
 
     const daysSrc = fs.readFileSync(
-      path.join(process.cwd(), "app/api/v1/[user]/trips/[trip]/days/route.ts"),
+      path.join(process.cwd(), "app/api/v2/[user]/trips/[trip]/days/[slug]/route.ts"),
       "utf8",
     );
     expect(daysSrc).toContain('skillDocPath("ingest-photos")');

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * `GET /api/v1/<user>/status` — B91.
@@ -36,48 +37,28 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
 }
 
 function writeTrip(id: string, people: string[]) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      'visibility: "public"',
-      ...(people.length
-        ? ["people:", ...people.flatMap((email) => [`  - name: "R"`, `    email: "${email}"`])]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "public",
+    people: people.map((email) => ({ name: "R", email })),
+  });
 }
 
 /** A day on disk, draft or published, as ingest or an agent would leave it. */
 function writeDay(trip: string, slug: string, draft: boolean) {
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", trip, "entries", `2026-08-25-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      'date: "2026-08-25"',
-      'location: "Somewhere"',
-      'country: "Switzerland"',
-      "lat: 47.0",
-      "lng: 8.0",
-      ...(draft ? ['status: "draft"'] : []),
-      "---",
-      "",
-      "Something happened.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, trip, {
+    slug,
+    date: "2026-08-25",
+    location: "Somewhere",
+    country: "Switzerland",
+    coordinates: { lat: 47.0, lng: 8.0 },
+    status: draft ? "draft" : undefined,
+    content: "Something happened.",
+  });
 }
 
 async function ownerToken(): Promise<string> {
@@ -301,18 +282,29 @@ describe("what status says about this server", () => {
   });
 });
 
-describe("the drafts shape", () => {
-  test("is the same object /drafts returns — one function, not two", async () => {
+/**
+ * B1612 repoint: v1's `GET /api/v1/{user}/drafts` is deleted — "one function,
+ * not two" is now trivially true, since there is only the one function left
+ * (`lib/api/v2/status.ts`'s `buildJournalStatus`). What is worth pinning
+ * instead is that v2's own status route (`GET /api/v2/{user}/status`) carries
+ * the same drafts this fixture's v1 queue used to list, in its own shape
+ * (`{trip, slug}[]`, no nested `{count, items}`, no `publish` URL — see
+ * `lib/api/v2/schemas/status.ts`).
+ */
+describe("the drafts shape, folded into v2 status", () => {
+  test("v2 status carries the same drafts as the v1 queue used to, in its own shape", async () => {
     const token = await ownerToken();
-    const { GET } = await import("@/app/api/v1/[user]/drafts/route");
+    const { GET } = await import("@/app/api/v2/[user]/status/route");
     const response = await GET(
-      new Request(`https://example.test/api/v1/${OWNER}/drafts`, {
+      new Request(`https://example.test/api/v2/${OWNER}/status`, {
         headers: headers({ authorization: `Bearer ${token}` }),
       }),
       { params: Promise.resolve({ user: OWNER }) },
     );
-    const drafts = (await response.json()) as { drafts: unknown[] };
-    const { body } = await status(token);
-    expect(drafts.drafts).toEqual(body.drafts?.items);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { drafts: { trip: string; slug: string }[] };
+    expect(body.drafts.map((d) => `${d.trip}/${d.slug}`).sort()).toEqual(
+      ["alps-2026/another-draft", "asia-2026/a-draft"],
+    );
   });
 });

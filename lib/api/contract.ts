@@ -76,6 +76,6 @@ export function checkAgainstContract(path: string, verb: string, body: unknown):
  * date" where this can only say "date is a string". Two entries for one
  * mistake reads as a bug in the API.
  */
-export function alsoWrong(existing: { field: string }[], shape: BodyCheck): typeof shape.problems {
+function alsoWrong(existing: { field: string }[], shape: BodyCheck): typeof shape.problems {
   return shape.problems.filter((p) => !existing.some((q) => q.field === p.field));
 }

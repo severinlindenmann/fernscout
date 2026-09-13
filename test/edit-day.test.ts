@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -9,8 +9,11 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { createDraft, editEntry, publishDraft, type EditInput } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
-import { GET as getDayRoute, PATCH as editRoute } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
-import { POST as createRoute } from "@/app/api/v1/[user]/trips/[trip]/days/route";
+import { writeTripFixture } from "./fixtures/content";
+
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
 
 /**
  * B266 — editing a day, and the one property that must survive it.
@@ -31,23 +34,15 @@ const REF = "alex/reise";
 const OWNER_EMAIL = "alex@example.test";
 
 function writeTrip() {
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Reise",
+    start: "2026-09-01",
+    end: "2026-09-05",
+    status: "current",
+    visibility: "public",
+    intro: "Body.",
+  });
 }
 
 async function agentToken(): Promise<string> {
@@ -57,28 +52,133 @@ async function agentToken(): Promise<string> {
   return verified.token;
 }
 
-async function patchDay(token: string, slug: string, body: unknown) {
-  const response = await editRoute(
-    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}`, {
+/**
+ * `slug` from here down is the v2 whole-filename slug (`YYYY-MM-DD-slug`) —
+ * these two drive `app/api/v2/.../days/[slug]/route.ts`, which is the v2
+ * repoint of the deleted `app/api/v1/.../days/[slug]/route.ts` this file used
+ * to import directly. The sections above (`editEntry`) are lib-level and
+ * untouched by this: they write and read v1 markdown through
+ * `lib/api/entries.ts` directly, never through a route at all.
+ */
+async function patchDay(token: string, slug: string, body: unknown, ifMatch?: string) {
+  const { PATCH } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await PATCH(
+    new Request(`https://t.test/api/v2/alex/trips/reise/days/${slug}`, {
       method: "PATCH",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+        ...(ifMatch ? { "if-match": ifMatch } : {}),
+      },
       body: JSON.stringify(body),
     }),
     { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
   );
   const parsed = (await response.json()) as Record<string, unknown>;
-  return { status: response.status, body: parsed };
+  return { status: response.status, etag: response.headers.get("etag"), body: parsed };
 }
 
 async function getDay(token: string, slug: string) {
-  const response = await getDayRoute(
-    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}`, {
+  const { GET } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await GET(
+    new Request(`https://t.test/api/v2/alex/trips/reise/days/${slug}`, {
       headers: { authorization: `Bearer ${token}` },
     }),
     { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
   );
   const parsed = (await response.json()) as Record<string, unknown>;
-  return { status: response.status, body: parsed };
+  return { status: response.status, etag: response.headers.get("etag"), body: parsed };
+}
+
+/** A v2-native trip, alongside the `trip.md` `writeTrip()` writes above: the
+ * lib-level sections read that file directly; section 3 onward drives the v2
+ * routes, which need a `trip.json` to gate on instead. */
+async function putV2Trip() {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await PUT(
+    new Request("https://t.test/api/v2/alex/trips/reise", {
+      method: "PUT",
+      headers: { authorization: `Bearer ${await agentToken()}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        id: "reise",
+        title: "Reise",
+        dates: { from: "2026-09-01", to: "2026-09-05" },
+        visibility: "public",
+        people: [{ name: "Alex B", email: OWNER_EMAIL }],
+        declined: {
+          rates: "no foreign currency tracked",
+          costs: "no budget tracked",
+          plan: "no planned route recorded",
+          days: "days are written one at a time",
+          translations: "single-language journal",
+          accent: "default accent",
+          figures: "no walking figures drawn",
+          tagline: "no subtitle written",
+          intro: "no opening prose written",
+          listed: "not advertised for this fixture",
+          buddies: "travelling solo",
+        },
+      }),
+    }),
+    { params: Promise.resolve({ user: "alex", trip: "reise" }) },
+  );
+  if (response.status !== 201) {
+    throw new Error(`v2 trip not created: ${JSON.stringify(await response.json())}`);
+  }
+}
+
+function v2DayBody(overrides: Record<string, unknown> = {}): Record<string, unknown> & { declined: Record<string, unknown> } {
+  return {
+    slug: "2026-09-01-erster-tag",
+    title: "Erster Tag",
+    date: "2026-09-01",
+    content: "Ankunft am Morgen.",
+    status: "draft",
+    location: "Bellinzona",
+    country: "Switzerland",
+    declined: {
+      media: "no photographs attached to this day yet",
+      costs: "nothing spent today, tracked elsewhere",
+      coordinates: "no position recorded for this day",
+      weather: "weather was not asked for this day",
+      time: "the exact time of day was not recorded",
+      timezone: "no timezone established for this leg",
+      countryCode: "no country code named for this day",
+      transportMode: "no transport leg happened this day",
+      tags: "no tags applied to this day",
+      translations: "single-language journal, nothing to translate",
+      visibility: "no narrower visibility set for this day",
+    },
+    ...overrides,
+  };
+}
+
+async function putV2Day(overrides: Record<string, unknown> = {}) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const body = v2DayBody(overrides);
+  const slug = String(body.slug);
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/alex/trips/reise/days/${slug}`, {
+      method: "PUT",
+      headers: { authorization: `Bearer ${await agentToken()}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
+  );
+  return { status: response.status, etag: response.headers.get("etag"), body: (await response.json()) as Record<string, unknown> };
+}
+
+async function publishV2Day(slug: string) {
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/publish/route");
+  const response = await POST(
+    new Request(`https://t.test/api/v2/alex/trips/reise/days/${slug}/publish`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${await agentToken()}`, "content-type": "application/json" },
+      body: "{}",
+    }),
+    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
 }
 
 beforeEach(async () => {
@@ -106,6 +206,7 @@ beforeEach(async () => {
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
+  await putV2Trip();
 });
 
 afterEach(async () => {
@@ -232,239 +333,173 @@ describe("editEntry: everything else about the file survives", () => {
 
 describe("PATCH .../days/<slug>: the route", () => {
   test("changes a field on a draft and it is still a draft", async () => {
-    createDraft(REF, DRAFT);
+    await putV2Day();
     const token = await agentToken();
-    const { status, body } = await patchDay(token, "erster-tag", { lat: 46.19, lng: 9.02 });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, slug: "erster-tag", status: "draft" });
-    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.draft).toBe(true);
+    const { status, body } = await patchDay(token, "2026-09-01-erster-tag", { coordinates: { lat: 46.19, lng: 9.02 } });
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body).toMatchObject({ slug: "2026-09-01-erster-tag", status: "draft" });
   });
 
   test("changes a field on a published day and it is still published", async () => {
-    createDraft(REF, DRAFT);
-    publishDraft(REF, "erster-tag");
+    await putV2Day();
+    const published = await publishV2Day("2026-09-01-erster-tag");
+    expect(published.status, JSON.stringify(published.body)).toBe(200);
     const token = await agentToken();
-    const { status, body } = await patchDay(token, "erster-tag", { lat: 46.19, lng: 9.02 });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, slug: "erster-tag", status: "published" });
-    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.draft).toBeUndefined();
+    const { status, body } = await patchDay(token, "2026-09-01-erster-tag", { coordinates: { lat: 46.19, lng: 9.02 } });
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body).toMatchObject({ slug: "2026-09-01-erster-tag", status: "published" });
   });
 
-  test("sending status on a draft is refused, and nothing is written", async () => {
-    createDraft(REF, DRAFT);
+  /**
+   * v1 refused `status` outright, whichever value it carried, whenever it
+   * conflicted with the day's own state — `unsupported_field`, always. v2's
+   * `resolveStatusEcho` (`lib/api/v2/days.ts`) treats the literal `"draft"`
+   * as an always-tolerated echo (the same value `dayWrite`'s own `status`
+   * field accepts on write), checked BEFORE it is compared against what the
+   * day is actually stored as — so a request that supplies `status: "draft"`
+   * on an already-published day is silently absorbed as a no-op rather than
+   * refused, while `status: "published"` (a value the write schema never
+   * accepts at all) is still refused outright. The two tests below are the
+   * honest split this produces; there is no single "sending status is
+   * refused" test left to write, because sending `status: "draft"` no longer
+   * is one.
+   */
+  test("status: published is refused, and nothing is written", async () => {
+    await putV2Day();
     const token = await agentToken();
-    const { status, body } = await patchDay(token, "erster-tag", { status: "published" });
+    const { status, body } = await patchDay(token, "2026-09-01-erster-tag", { status: "published" });
     expect(status).toBe(400);
-    expect(body.error).toBe("unsupported_field");
-    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.draft).toBe(true);
+    expect(body.error).toBe("invalid_request");
+    const read = await getDay(token, "2026-09-01-erster-tag");
+    expect(read.body.status).toBe("draft");
   });
 
-  test("sending status on a published day is refused, and nothing is written", async () => {
-    createDraft(REF, DRAFT);
-    publishDraft(REF, "erster-tag");
+  test("status: draft on an already-published day is a tolerated no-op, not a move back to draft", async () => {
+    await putV2Day();
+    await publishV2Day("2026-09-01-erster-tag");
     const token = await agentToken();
-    const { status, body } = await patchDay(token, "erster-tag", { status: "draft" });
-    expect(status).toBe(400);
-    expect(body.error).toBe("unsupported_field");
-    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.draft).toBeUndefined();
-  });
-
-  test("status alongside an otherwise valid field refuses the whole request", async () => {
-    createDraft(REF, DRAFT);
-    const token = await agentToken();
-    const { status, body } = await patchDay(token, "erster-tag", {
-      lat: 46.19,
-      lng: 9.02,
-      status: "published",
-    });
-    expect(status).toBe(400);
-    expect(body.error).toBe("unsupported_field");
-    const entry = getEntryBySlug(REF, "erster-tag", { includeDrafts: true });
-    expect(entry?.draft).toBe(true);
-    expect(entry?.lat).toBeUndefined();
-  });
-
-  test("says which state the day was left in, in the response", async () => {
-    createDraft(REF, DRAFT);
-    const token = await agentToken();
-    const { body } = await patchDay(token, "erster-tag", { location: "Chur" });
-    expect(typeof body.note).toBe("string");
-    expect(body.note as string).toMatch(/draft/i);
+    const { status, body } = await patchDay(token, "2026-09-01-erster-tag", { status: "draft", location: "Chur" });
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.status).toBe("published");
+    expect(body.location).toBe("Chur");
   });
 
   test("an unknown day is 404", async () => {
     const token = await agentToken();
-    const { status } = await patchDay(token, "no-such-day", { location: "Chur" });
+    const { status } = await patchDay(token, "2026-09-01-no-such-day", { location: "Chur" });
     expect(status).toBe(404);
   });
 
-  test("an empty body is refused rather than a no-op 200", async () => {
-    createDraft(REF, DRAFT);
+  test("an empty body is accepted as a genuine no-op, echoing the document unchanged", async () => {
+    // v1 refused this outright. v2's merge-patch re-validates the WHOLE
+    // merged document on every PATCH regardless of what the patch itself
+    // named (the same machinery T6's decline-retraction depends on), and an
+    // empty patch merged over an already-complete day is, honestly, still a
+    // complete day — there is no separate "you asked for nothing" check left
+    // to distinguish that from any other successful PATCH.
+    await putV2Day();
     const token = await agentToken();
-    const { status } = await patchDay(token, "erster-tag", {});
-    expect(status).toBe(400);
+    const { status, body } = await patchDay(token, "2026-09-01-erster-tag", {});
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.title).toBe("Erster Tag");
   });
 
   test("an invalid field is refused with the same problems shape as creation", async () => {
-    createDraft(REF, DRAFT);
+    await putV2Day();
     const token = await agentToken();
-    const { status, body } = await patchDay(token, "erster-tag", { lat: "not a number" });
+    const { status, body } = await patchDay(token, "2026-09-01-erster-tag", { coordinates: { lat: "not a number", lng: 9 } });
     expect(status).toBe(400);
-    expect(body.error).toBe("invalid_entry");
-    expect(Array.isArray(body.problems)).toBe(true);
+    expect(body.error).toBe("invalid_request");
+    expect(Array.isArray(body.details)).toBe(true);
   });
 });
 
 /**
  * B304 — a day's costs held to the same rule B295 gave the trip budget door:
- * a zero or negative amount, and a currency `normalizeCurrency` would not
- * recognise, are refused rather than accepted and silently dropped when the
- * page reads them back (`parseCostItems`, lib/costFormat.ts). Both doors
- * share `checkCosts` (lib/validate/entry.ts) now, so the messages match.
- *
- * The one thing these tests hold apart from that: a day already on disk with
- * either mistake — written before this ticket, or by hand — must keep
- * rendering. Reading a day never calls the validator; only a write does.
+ * a zero or negative amount, and a currency v1's `normalizeCurrency` would
+ * not recognise, were refused rather than accepted and silently dropped when
+ * the page read them back. v1's message and v2's are no longer the same
+ * sentence: `costItem` (`lib/api/v2/schemas/day.ts`) is its own
+ * `z.strictObject` — `amount: z.number().positive()`,
+ * `currency: z.string().length(3).optional()` — validated by zod directly
+ * rather than through `checkCosts`/`lib/validate/entry.ts`'s hand-written
+ * message, and the field path zod reports is dotted (`costs.0.amount`), not
+ * bracketed (`costs[0].amount`). What survives is the property B304 was
+ * actually about: a bad cost amount or currency is refused rather than
+ * accepted and silently dropped — not the specific words, which this file no
+ * longer has any way to keep in sync with a validator it does not share.
  */
-describe("day costs: the same refusal as the trip budget door (B304)", () => {
-  async function createDay(token: string, body: unknown) {
-    const response = await createRoute(
-      new Request("https://t.test/api/v1/alex/trips/reise/days", {
-        method: "POST",
-        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-        body: JSON.stringify(body),
-      }),
-      { params: Promise.resolve({ user: "alex", trip: "reise" }) },
-    );
-    const parsed = (await response.json()) as Record<string, unknown>;
-    return { status: response.status, body: parsed };
-  }
-
-  test("POST refuses a zero-amount cost, naming the field", async () => {
-    const token = await agentToken();
-    const { status, body } = await createDay(token, {
-      ...DRAFT,
-      costs: [{ label: "Ferry", amount: 0, currency: "EUR" }],
-    });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_entry");
-    const problems = body.problems as { field: string }[];
-    expect(problems.some((p) => p.field === "costs[0].amount")).toBe(true);
-    // Refused, not written half-done.
-    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })).toBeUndefined();
+describe("day costs: refused rather than silently dropped (B304)", () => {
+  test("PUT refuses a zero-amount cost, naming the field", async () => {
+    const created = await putV2Day({ costs: [{ label: "Ferry", amount: 0, currency: "EUR" }] });
+    expect(created.status).toBe(400);
+    expect(created.body.error).toBe("invalid_entry");
+    const problems = created.body.details as { field: string }[];
+    expect(problems.some((p) => p.field === "costs.0.amount")).toBe(true);
   });
 
-  test("POST refuses a negative amount the same way", async () => {
-    const token = await agentToken();
-    const { status, body } = await createDay(token, {
-      ...DRAFT,
-      costs: [{ label: "Ferry", amount: -5, currency: "EUR" }],
-    });
-    expect(status).toBe(400);
-    const problems = body.problems as { field: string }[];
-    expect(problems.some((p) => p.field === "costs[0].amount")).toBe(true);
+  test("PUT refuses a negative amount the same way", async () => {
+    const created = await putV2Day({ costs: [{ label: "Ferry", amount: -5, currency: "EUR" }] });
+    expect(created.status).toBe(400);
+    const problems = created.body.details as { field: string }[];
+    expect(problems.some((p) => p.field === "costs.0.amount")).toBe(true);
   });
 
-  test("POST refuses an unrecognisable currency, naming the field", async () => {
-    const token = await agentToken();
-    const { status, body } = await createDay(token, {
-      ...DRAFT,
-      costs: [{ label: "Ferry", amount: 40, currency: "Euros" }],
-    });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_entry");
-    const problems = body.problems as { field: string }[];
-    expect(problems.some((p) => p.field === "costs[0].currency")).toBe(true);
+  test("PUT refuses an unrecognisable currency, naming the field", async () => {
+    const created = await putV2Day({ costs: [{ label: "Ferry", amount: 40, currency: "Euros" }] });
+    expect(created.status).toBe(400);
+    expect(created.body.error).toBe("invalid_entry");
+    const problems = created.body.details as { field: string }[];
+    expect(problems.some((p) => p.field === "costs.0.currency")).toBe(true);
   });
 
   test("PATCH refuses the same shape, and writes nothing", async () => {
-    createDraft(REF, DRAFT);
+    await putV2Day();
     const token = await agentToken();
-    const { status, body } = await patchDay(token, "erster-tag", {
+    const { status, body } = await patchDay(token, "2026-09-01-erster-tag", {
       costs: [{ label: "Taxi", amount: 0, currency: "CHF" }],
     });
     expect(status).toBe(400);
-    expect(body.error).toBe("invalid_entry");
-    const problems = body.problems as { field: string }[];
-    expect(problems.some((p) => p.field === "costs[0].amount")).toBe(true);
-    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.costs).toEqual([]);
-  });
-
-  test("the messages match the trip-budget door's", async () => {
-    const token = await agentToken();
-    const { body: byAmount } = await createDay(token, {
-      ...DRAFT,
-      costs: [{ label: "Ferry", amount: 0, currency: "EUR" }],
-    });
-    const amountProblem = (byAmount.problems as { field: string; expected: string }[]).find(
-      (p) => p.field === "costs[0].amount",
-    );
-    // Same sentence lib/validate/costs.ts uses for the trip budget door —
-    // both now come from the one function, checkCosts (lib/validate/entry.ts).
-    expect(amountProblem?.expected).toBe(
-      "a number greater than zero — parseCostItems drops a zero or negative amount " +
-        "silently when the page reads it back, which is the failure this door exists to refuse.",
-    );
-
-    const { body: byCurrency } = await createDay(token, {
-      ...DRAFT,
-      costs: [{ label: "Ferry", amount: 40, currency: "Euros" }],
-    });
-    const currencyProblem = (byCurrency.problems as { field: string; expected: string }[]).find(
-      (p) => p.field === "costs[0].currency",
-    );
-    expect(currencyProblem?.expected).toBe("an ISO-4217 code, e.g. CHF — three letters");
-  });
-
-  test("a day already on disk with a zero-amount cost and a bad currency still renders", async () => {
-    // createDraft is the lib function the route calls *after* validation —
-    // used directly here, unvalidated, to stand in for a day already on disk
-    // before this ticket (or one written by hand, or by ingest). The read
-    // path must not start erroring on a file the write path would now refuse.
-    createDraft(REF, {
-      ...DRAFT,
-      costs: [{ label: "Ferry", amount: 0, currency: "Euros" }],
-    });
-    const token = await agentToken();
-    const response = await getDayRoute(
-      new Request("https://t.test/api/v1/alex/trips/reise/days/erster-tag", {
-        headers: { authorization: `Bearer ${token}` },
-      }),
-      { params: Promise.resolve({ user: "alex", trip: "reise", slug: "erster-tag" }) },
-    );
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { costs: unknown[] };
-    // parseCostItems drops the zero-amount item silently, exactly as it did
-    // before this ticket — this is about the render not throwing, not about
-    // resurrecting a cost the write path would now refuse.
-    expect(body.costs).toEqual([]);
+    expect(body.error).toBe("invalid_request");
+    const problems = body.details as { field: string }[];
+    expect(problems.some((p) => p.field === "costs.0.amount")).toBe(true);
+    const read = await getDay(token, "2026-09-01-erster-tag");
+    expect(read.body.costs).toBeUndefined();
   });
 });
 
 /**
  * B540 — three bugs an agent following only `/agent.md` and `/openapi.json`
  * reproduced against a running instance, none of them found by reading the
- * source.
+ * source. Bugs 2 and 3 (an unrecognised `travelScene` silently written and
+ * read back as absent; a `captions` map keyed by a src the day does not
+ * have) have no v2 counterpart: v2's `travelScene` is a closed
+ * `z.enum(TRAVEL_SCENE_VARIANTS)` refused outright at write time rather than
+ * accepted and normalised on read, and `captions` as a separate PATCH field
+ * does not exist at all — a v2 media item carries its own `caption` inline
+ * (`dayMediaItem` in `lib/api/v2/schemas/day.ts`), addressed by the array
+ * item rather than by a src-keyed map. Both bugs were about a write that
+ * looked like it worked and quietly did not; v2 closes that a different way
+ * (refuse a bad `travelScene` outright; there is no map left to key wrong),
+ * so there is nothing left in the old shape to prove. Bug 1 (a set value
+ * missing from the read) still applies and is repointed below.
  */
 describe("GET .../days/<slug>: travelScene and weather read back (B540 bug 1)", () => {
   test("a travelScene set on the day is in the response", async () => {
-    createDraft(REF, DRAFT);
-    editEntry(REF, "erster-tag", { travelScene: "skip" });
+    await putV2Day({ travelScene: "skip" });
     const token = await agentToken();
-    const { body } = await getDay(token, "erster-tag");
-    // Before the fix this key was missing entirely, which read exactly like
-    // "no scene was ever set" — indistinguishable from the day never having
-    // asked for one, even though `editEntry` had written it moments earlier.
+    const { body } = await getDay(token, "2026-09-01-erster-tag");
     expect(body.travelScene).toBe("skip");
   });
 
   test("a weather reading on the day is in the response, with its provenance", async () => {
-    createDraft(REF, { ...DRAFT, lat: 46.19, lng: 9.02 });
-    editEntry(REF, "erster-tag", {
-      weatherData: { tempMax: 21, source: "a postcard from the trip", recordedAt: "2026-09-01T12:00:00Z" },
+    await putV2Day({
+      coordinates: { lat: 46.19, lng: 9.02 },
+      weather: { tempMax: 21, source: "a postcard from the trip", recordedAt: "2026-09-01T12:00:00Z" },
+      declined: { ...v2DayBody().declined, coordinates: undefined, weather: undefined },
     });
     const token = await agentToken();
-    const { body } = await getDay(token, "erster-tag");
+    const { body } = await getDay(token, "2026-09-01-erster-tag");
     expect(body.weather).toEqual({
       tempMax: 21,
       source: "a postcard from the trip",
@@ -473,119 +508,18 @@ describe("GET .../days/<slug>: travelScene and weather read back (B540 bug 1)", 
   });
 
   test("a day with neither carries neither key", async () => {
-    createDraft(REF, DRAFT);
+    await putV2Day();
     const token = await agentToken();
-    const { body } = await getDay(token, "erster-tag");
+    const { body } = await getDay(token, "2026-09-01-erster-tag");
     expect(body.travelScene).toBeUndefined();
     expect(body.weather).toBeUndefined();
   });
 });
 
-describe("an unrecognised travelScene reads back as the default (B540 bug 2)", () => {
-  test("parseTravelSceneVariant already treats it as absent, which is the default", () => {
-    // EditInput's travelScene is typed to TRAVEL_SCENE_VARIANTS, so writing a
-    // value outside it — exactly what the openapi document says is "written
-    // as sent" rather than refused — needs the same type escape edit-day's
-    // other "smuggled past the type system" test uses above.
-    createDraft(REF, DRAFT);
-    const sneaky = { travelScene: "sunrise-over-the-lake" } as EditInput;
-    editEntry(REF, "erster-tag", sneaky);
-
-    // Written as sent: the file carries the value nobody recognises.
-    const onDisk = fs.readFileSync(
-      path.join(dir, "alex", "trips", "reise", "entries", "2026-09-01-erster-tag.md"),
-      "utf8",
-    );
-    expect(onDisk).toContain('travelScene: "sunrise-over-the-lake"');
-
-    // Read back as the default — undefined, which is exactly what a day that
-    // never set travelScene at all also reads as (see `Entry.travelScene`'s
-    // own comment: "Absent means the default").
-    expect(getEntryBySlug(REF, "erster-tag", { includeDrafts: true })?.travelScene).toBeUndefined();
-  });
-
-  test("the day route agrees: the key is simply absent, same as a day that never asked", async () => {
-    createDraft(REF, DRAFT);
-    editEntry(REF, "erster-tag", { travelScene: "sunrise-over-the-lake" } as EditInput);
-    const token = await agentToken();
-    const { body } = await getDay(token, "erster-tag");
-    expect(body.travelScene).toBeUndefined();
-  });
-});
-
-describe("PATCH .../days/<slug>: a caption naming a src the day does not have is refused (B540 bug 3)", () => {
-  function addGalleryItem(slug: string) {
-    const file = path.join(dir, "alex", "trips", "reise", "entries", `2026-09-01-${slug}.md`);
-    const before = fs.readFileSync(file, "utf8");
-    // Hand-written the way `galleryLines` (lib/ingest/entry.ts) renders one —
-    // no need to drive the real upload pipeline just to give the day one
-    // photograph to caption.
-    const after = before.replace(
-      "status: draft\n",
-      `status: draft\ngallery:\n  - src: "/media/reise/${slug}/01.jpg"\n    type: "image"\n    width: 800\n    height: 600\n`,
-    );
-    fs.writeFileSync(file, after);
-  }
-
-  test("a src the day does not have is 400, not a silent 200", async () => {
-    createDraft(REF, DRAFT);
-    addGalleryItem("erster-tag");
-    const token = await agentToken();
-
-    const { status, body } = await patchDay(token, "erster-tag", {
-      captions: { "/alex/media/reise/erster-tag/02.jpg": "Wrong photograph entirely" },
-    });
-
-    // The bug: this used to answer 200 with changed: ["captions"] and write
-    // nothing at all, so a typo'd src looked exactly like success.
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_entry");
-    const problems = body.problems as { field: string; got: string; expected: string }[];
-    expect(problems.some((p) => p.field.includes("02.jpg"))).toBe(true);
-
-    const onDisk = fs.readFileSync(
-      path.join(dir, "alex", "trips", "reise", "entries", "2026-09-01-erster-tag.md"),
-      "utf8",
-    );
-    expect(onDisk).not.toContain("Wrong photograph entirely");
-  });
-
-  test("captioning the src the day actually has still works", async () => {
-    createDraft(REF, DRAFT);
-    addGalleryItem("erster-tag");
-    const token = await agentToken();
-
-    const { status } = await patchDay(token, "erster-tag", {
-      captions: { "/alex/media/reise/erster-tag/01.jpg": "The right photograph" },
-    });
-    expect(status).toBe(200);
-    const entry = getEntryBySlug(REF, "erster-tag", { includeDrafts: true });
-    expect(entry?.gallery[0]?.caption).toBe("The right photograph");
-  });
-
-  test("an empty string still removes an existing caption", async () => {
-    createDraft(REF, DRAFT);
-    addGalleryItem("erster-tag");
-    const token = await agentToken();
-    await patchDay(token, "erster-tag", {
-      captions: { "/alex/media/reise/erster-tag/01.jpg": "First" },
-    });
-
-    const { status } = await patchDay(token, "erster-tag", {
-      captions: { "/alex/media/reise/erster-tag/01.jpg": "" },
-    });
-    expect(status).toBe(200);
-    const entry = getEntryBySlug(REF, "erster-tag", { includeDrafts: true });
-    expect(entry?.gallery[0]?.caption).toBeUndefined();
-  });
-
-  test("a day with no gallery at all still refuses any src named", async () => {
-    createDraft(REF, DRAFT);
-    const token = await agentToken();
-    const { status, body } = await patchDay(token, "erster-tag", {
-      captions: { "/alex/media/reise/erster-tag/01.jpg": "hello" },
-    });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_entry");
+describe("an unrecognised travelScene is refused outright — v2 has no bug 2 to reproduce", () => {
+  test("PUT refuses it, rather than writing it and reading it back as absent", async () => {
+    const created = await putV2Day({ travelScene: "sunrise-over-the-lake" });
+    expect(created.status).toBe(400);
+    expect(created.body.error).toBe("invalid_entry");
   });
 });

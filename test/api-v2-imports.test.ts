@@ -55,6 +55,28 @@ const LIB_API_ALLOWLIST = [
   // its own, reused verbatim by the v2 media door for its `url` upload path
   // rather than reimplemented a second time.
   "lib/api/fetchMedia",
+  // B1624. `SECOND_LANGUAGE_COMMITMENT` is plain, dependency-free UI-facing
+  // prose — one sentence about a real commitment a `locales` answer makes,
+  // read by the guide, the v1 OpenAPI document and now POST /api/v2/journals
+  // so the three cannot say something different about the same fact (B855).
+  // Not route glue: it has no request/response shaping of its own.
+  "lib/api/agentCopy",
+  // `mailSummary`/`whatsappSummary` — B1620. They look like route glue and
+  // are not, by this rule's own test: neither reads a `Request` nor builds a
+  // `Response`, they turn one domain outcome (`DayLetterOutcome`) into a
+  // plain object. Two cookie-only routes still call them, so the modules stay
+  // where they are and v2 shares them rather than keeping a copy. The copy is
+  // why this entry exists: v2's inline pair silently dropped the
+  // per-recipient `errors` list, so a publish that failed for one reader
+  // reported a count and never which address — the half a person can act on.
+  "lib/api/dayMail",
+  "lib/api/dayWhatsapp",
+  // Pure vocabulary — a slug union and a path builder, the same category as
+  // `errorCodes` above. It reads no request and builds no response, and
+  // typing the slug is the point: a `next` pointer cannot name a document
+  // that does not exist. B1621.
+  "lib/api/skillDocMeta",
+
 ];
 
 const ROOT = process.cwd();

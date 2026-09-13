@@ -45,7 +45,13 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   };
 }
 
-function writeTrip(id: string, people: string[]) {
+/**
+ * Writes both stores a v2 day-write has to agree with: `trip.md`, which
+ * `mayRequestAgentToken` still reads (B1598 — the read layer has not flipped
+ * yet), and `trip.json`, which `PUT .../days/{slug}` reads through
+ * `lib/api/v2/store.ts`.
+ */
+async function writeTrip(id: string, people: string[]) {
   const root = path.join(dir, OWNER, "trips", id);
   fs.mkdirSync(path.join(root, "entries"), { recursive: true });
   fs.writeFileSync(
@@ -67,6 +73,15 @@ function writeTrip(id: string, people: string[]) {
       "",
     ].join("\n"),
   );
+
+  const { writeTripFile } = await import("@/lib/api/v2/store");
+  writeTripFile(OWNER, id, {
+    id,
+    title: id,
+    dates: { from: "2026-08-25", to: "2026-08-26" },
+    visibility: "public",
+    people: people.map((email) => ({ name: "R", email })),
+  });
 }
 
 async function ownerAgentToken(): Promise<string> {
@@ -92,6 +107,26 @@ async function tripAgentToken(email: string, trip: string): Promise<string> {
   const result = await verifyCode(OWNER, email, code, "agent", tripWriteScope(trip));
   if (!result.ok) throw new Error("no trip token");
   return result.token;
+}
+
+/** Every declinable a v2 day is not actually about, answered rather than
+ * left to fail the completeness contract (B531/DAY_DECLINABLES). */
+function declineTheRest(): Record<string, string> {
+  return {
+    media: "not this file's subject",
+    costs: "not this file's subject",
+    coordinates: "not this file's subject",
+    weather: "not this file's subject",
+    time: "not this file's subject",
+    timezone: "not this file's subject",
+    location: "not this file's subject",
+    country: "not this file's subject",
+    countryCode: "not this file's subject",
+    transportMode: "not this file's subject",
+    tags: "not this file's subject",
+    translations: "not this file's subject",
+    visibility: "not this file's subject",
+  };
 }
 
 type IssueBody = {
@@ -159,7 +194,7 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  writeTrip("asia-2026", [ROBIN]);
+  await writeTrip("asia-2026", [ROBIN]);
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
@@ -243,21 +278,22 @@ describe("spending it", () => {
   test("the token it gives back really can write", async () => {
     const issued = await issue(await ownerAgentToken());
     const exchanged = await exchange(issued.body.handover);
-    const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
-    const response = await POST(
-      new Request(`https://example.test/api/v1/${OWNER}/trips/asia-2026/days`, {
-        method: "POST",
+    const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const slug = "2026-08-25-a-day-from-a-handover";
+    const response = await PUT(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/asia-2026/days/${slug}`, {
+        method: "PUT",
         headers: headers({ authorization: `Bearer ${exchanged.body.token}` }),
         body: JSON.stringify({
           date: "2026-08-25",
           title: "A day from a handover",
           content: "Something happened.",
+          status: "draft",
           // B531's contract, satisfied rather than argued with.
-          costs: false,
-          coordinates: false,
+          declined: declineTheRest(),
         }),
       }),
-      { params: Promise.resolve({ user: OWNER, trip: "asia-2026" }) },
+      { params: Promise.resolve({ user: OWNER, trip: "asia-2026", slug }) },
     );
     expect(response.status).toBeLessThan(300);
   });
@@ -317,35 +353,37 @@ describe("a handover credential is refused everywhere else", () => {
 
   test("on a write", async () => {
     const handover = await fresh();
-    const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
-    const response = await POST(
-      new Request(`https://example.test/api/v1/${OWNER}/trips/asia-2026/days`, {
-        method: "POST",
+    const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const response = await PUT(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/asia-2026/days/2026-08-25-no`, {
+        method: "PUT",
         headers: headers({ authorization: `Bearer ${handover}` }),
         body: JSON.stringify({ date: "2026-08-25", title: "No", content: "No." }),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: "asia-2026", slug: "2026-08-25-no" }) },
+    );
+    expect(response.status).toBe(401);
+  });
+
+  // `.../drafts` is retired (B1612) — a draft day is now read off the trip
+  // document's own `days` list, so this checks the route that carries it.
+  test("on the trip document, which carries the days that used to be the drafts queue", async () => {
+    const handover = await fresh();
+    const { GET } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+    const response = await GET(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/asia-2026`, {
+        headers: headers({ authorization: `Bearer ${handover}` }),
       }),
       { params: Promise.resolve({ user: OWNER, trip: "asia-2026" }) },
     );
     expect(response.status).toBe(401);
   });
 
-  test("on the drafts queue", async () => {
-    const handover = await fresh();
-    const { GET } = await import("@/app/api/v1/[user]/drafts/route");
-    const response = await GET(
-      new Request(`https://example.test/api/v1/${OWNER}/drafts`, {
-        headers: headers({ authorization: `Bearer ${handover}` }),
-      }),
-      { params: Promise.resolve({ user: OWNER }) },
-    );
-    expect(response.status).toBe(401);
-  });
-
   test("on the trip list", async () => {
     const handover = await fresh();
-    const { GET } = await import("@/app/api/v1/[user]/trips/route");
+    const { GET } = await import("@/app/api/v2/[user]/trips/route");
     const response = await GET(
-      new Request(`https://example.test/api/v1/${OWNER}/trips`, {
+      new Request(`https://example.test/api/v2/${OWNER}/trips`, {
         headers: headers({ authorization: `Bearer ${handover}` }),
       }),
       { params: Promise.resolve({ user: OWNER }) },
@@ -501,14 +539,14 @@ describe("the keys that can write, and revoking one", () => {
     // made that true for writes as well.
     expect(await resolveSession(token, "agent")).toBeNull();
 
-    const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
-    const response = await POST(
-      new Request(`https://example.test/api/v1/${OWNER}/trips/asia-2026/days`, {
-        method: "POST",
+    const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const response = await PUT(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/asia-2026/days/2026-08-25-after-revoke`, {
+        method: "PUT",
         headers: headers({ authorization: `Bearer ${token}` }),
         body: JSON.stringify({ date: "2026-08-25", title: "After revoke", content: "No." }),
       }),
-      { params: Promise.resolve({ user: OWNER, trip: "asia-2026" }) },
+      { params: Promise.resolve({ user: OWNER, trip: "asia-2026", slug: "2026-08-25-after-revoke" }) },
     );
     expect(response.status).toBe(401);
 

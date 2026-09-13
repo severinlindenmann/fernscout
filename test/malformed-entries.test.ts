@@ -32,6 +32,13 @@ function journal(): string {
   return dir;
 }
 
+// NOT repointed at writeTripFixture: the username here is "u" — one
+// character — which fails `isValidUsername`'s two-character minimum
+// (`lib/users.ts`). `createTrip` (what writeTripFixture calls) refuses with
+// `no_such_journal` for a user `getUsernames()` will not list, even though
+// the folder and its config.json are right there. The hand-written trip.md
+// never asked `getUser` anything, so it never noticed. A finding for B1630's
+// report, not something the fixture should route around.
 function writeTrip(dir: string): void {
   fs.mkdirSync(path.join(dir, "u", "trips", "asia-2023"), { recursive: true });
   fs.writeFileSync(path.join(dir, "u", "trips", "asia-2023", "trip.md"), GOOD_TRIP);

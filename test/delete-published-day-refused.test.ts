@@ -4,142 +4,218 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { forgetEntries } from "@/lib/entries";
+import { closeDatabase, getDatabase } from "@/lib/db";
+import { migrateToLatest } from "@/lib/db/migrate";
+import { issueCode, verifyCode } from "@/lib/auth";
 
-/**
- * B1118 — a published day is not deleted on a self-served round trip.
- *
- * B101 found `DELETE .../days` would remove a *published* day behind the
- * `agentConfirm` handshake, which is the same agent asking for the code and
- * spending it. B224's doctrine is that destroying content people have already
- * read needs a step no bearer token can complete alone. There is no mailbox on
- * this route, so the fix refuses a published day outright and points at
- * `unpublish` (reversible) — a draft still deletes the normal way.
- *
- * The gate itself (`@/lib/api/auth`) is mocked to a passing owner, because the
- * thing under test is what the handler does *after* auth, not auth.
- */
-
-vi.mock("@/lib/api/auth", () => ({
-  authenticate: vi.fn(async () => ({ ok: true, session: { username: OWNER, scope: ["write:content"], email: "alex@example.test" } })),
-  ownsUser: vi.fn(() => true),
-  mayWriteTrip: vi.fn(async () => ({ ok: true })),
-  outOfScope: vi.fn(() => Response.json({ error: "out_of_scope" }, { status: 404 })),
-  refuseWrite: vi.fn(() => Response.json({ error: "refused" }, { status: 403 })),
-  errorResponse: vi.fn((a: { status: number; error: string }) => Response.json({ error: a.error }, { status: a.status })),
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
 }));
 
+/**
+ * B1118 — a published day is not deleted on a self-served round trip,
+ * repointed onto v2's `DELETE .../days/{slug}` for B1612.
+ *
+ * B101 found the old `DELETE .../days` (body-addressed) would remove a
+ * *published* day behind the `agentConfirm` handshake, which is the same
+ * agent asking for the code and spending it. B224's doctrine is that
+ * destroying content people have already read needs a step no bearer token
+ * can complete alone. `published_day_not_deletable` stands unchanged in v2
+ * (`app/api/v2/.../days/[slug]/route.ts`'s own `DELETE`, B1118's doctrine
+ * "carried over unchanged" per its comment) — take it off the site with
+ * `.../unpublish` first (reversible); a draft still deletes outright, and v2
+ * drops the confirm-code handshake entirely for that case, since nothing
+ * about a draft has ever been on the site to protect a reader from.
+ */
+
 const OWNER = "alex";
-const TRIP = "alps";
+const OWNER_EMAIL = "alex@example.test";
+const TRIP_ID = "alps";
+
 let dir: string;
+let calls = 0;
 
-const entriesDir = () => path.join(dir, OWNER, "trips", TRIP, "entries");
-
-function entry(slug: string, draft: boolean) {
-  fs.writeFileSync(
-    path.join(entriesDir(), `2026-09-02-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      'date: "2026-09-02"',
-      'location: "Somewhere"',
-      'country: "Nowhere"',
-      ...(draft ? ['status: "draft"'] : []),
-      "---",
-      "",
-      "Something happened.",
-      "",
-    ].join("\n"),
-  );
+function headers(extra: Record<string, string> = {}): Record<string, string> {
+  calls += 1;
+  return { "content-type": "application/json", "x-forwarded-for": `10.9.10.${calls % 250}`, ...extra };
 }
 
-beforeEach(() => {
+async function token(): Promise<string> {
+  const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
+  const verified = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
+  if (!verified.ok) throw new Error("no token");
+  return verified.token;
+}
+
+type Body = Record<string, unknown> & { error?: string; message?: string };
+
+function fullTrip(): Record<string, unknown> {
+  return {
+    id: TRIP_ID,
+    title: "Alps",
+    dates: { from: "2026-09-01", to: "2026-09-10" },
+    visibility: "public",
+    people: [{ name: "Alex B", email: OWNER_EMAIL }],
+    declined: {
+      rates: "no foreign currency tracked",
+      costs: "no budget tracked",
+      plan: "no planned route recorded",
+      days: "days are written one at a time",
+      translations: "single-language journal",
+      accent: "default accent",
+      figures: "no walking figures drawn",
+      tagline: "no subtitle written",
+      intro: "no opening prose written",
+      listed: "not advertised for this fixture",
+      buddies: "travelling solo",
+    },
+  };
+}
+
+function fullDayBody(slug: string): Record<string, unknown> {
+  return {
+    slug,
+    title: slug,
+    date: slug.slice(0, 10),
+    content: "Something happened.",
+    status: "draft",
+    declined: {
+      media: "no photographs attached to this day yet",
+      costs: "nothing spent today, tracked elsewhere",
+      coordinates: "no position recorded for this day",
+      weather: "weather was not asked for this day",
+      time: "the exact time of day was not recorded",
+      timezone: "no timezone established for this leg",
+      location: "no specific location named for this day",
+      country: "no country named for this day entry",
+      countryCode: "no country code named for this day",
+      transportMode: "no transport leg happened this day",
+      tags: "no tags applied to this day",
+      translations: "single-language journal, nothing to translate",
+      visibility: "no narrower visibility set for this day",
+    },
+  };
+}
+
+async function putTrip() {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}`, {
+      method: "PUT",
+      headers: headers({ authorization: `Bearer ${await token()}` }),
+      body: JSON.stringify(fullTrip()),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
+async function putDay(slug: string) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/${slug}`, {
+      method: "PUT",
+      headers: headers({ authorization: `Bearer ${await token()}` }),
+      body: JSON.stringify(fullDayBody(slug)),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
+async function publish(slug: string) {
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/publish/route");
+  const response = await POST(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/${slug}/publish`, {
+      method: "POST",
+      headers: headers({ authorization: `Bearer ${await token()}` }),
+      body: "{}",
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
+async function deleteDay(slug: string) {
+  const { DELETE } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await DELETE(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/${slug}`, {
+      method: "DELETE",
+      headers: headers({ authorization: `Bearer ${await token()}` }),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
+function dayFile(slug: string): string {
+  return path.join(dir, OWNER, "trips", TRIP_ID, "entries", `${slug}.json`);
+}
+
+beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-b1118-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.SESSION_SECRET = "b1118-test-secret-b1118-test-secret";
   fs.writeFileSync(
     path.join(dir, "config.json"),
-    JSON.stringify({
-      site: { name: "R", url: "https://example.test", defaultUser: OWNER },
-      users: { reserved: [] },
-      features: { auth: { enabled: true } },
-    }),
+    JSON.stringify({ site: { name: "R", url: "https://example.test" }, features: { auth: { enabled: true } } }),
   );
   clearConfigCache();
-  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, OWNER, "config.json"),
-    JSON.stringify({
-      title: "Notebook",
-      owner: { name: "Alex B", nickname: "Alex", email: "alex@example.test" },
-      defaultLocale: "en",
-      locales: ["en"],
-      baseCurrency: "CHF",
-      features: {},
-    }),
-  );
-  fs.mkdirSync(entriesDir(), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", TRIP, "trip.md"),
-    ['---', `id: "${TRIP}"`, `title: "${TRIP}"`, 'start: "2026-09-01"', 'end: "2026-09-10"', 'visibility: "public"', "---", "", "Intro.", ""].join("\n"),
-  );
   clearUserCache();
-  forgetEntries(`${OWNER}/${TRIP}`);
-});
+  await migrateToLatest(await getDatabase());
 
-afterEach(() => {
-  fs.rmSync(dir, { recursive: true, force: true });
-  delete process.env.CONTENT_DIR;
-  delete process.env.SESSION_SECRET;
-  vi.clearAllMocks();
-});
-
-const params = { params: Promise.resolve({ user: OWNER, trip: TRIP }) } as never;
-const del = (body: unknown) =>
-  new Request(`https://t.test/api/v1/${OWNER}/trips/${TRIP}/days`, {
-    method: "DELETE",
-    headers: { "content-type": "application/json", authorization: "Bearer x" },
-    body: JSON.stringify(body),
+  const { createJournal } = await import("@/lib/journals");
+  const created = createJournal({
+    username: OWNER,
+    title: "Notebook",
+    ownerEmail: OWNER_EMAIL,
+    ownerName: "Alex B",
+    ownerNickname: "Alex",
   });
+  if (!created.ok) throw new Error(created.message);
+
+  const trip = await putTrip();
+  if (trip.status !== 201) throw new Error(`trip not created: ${JSON.stringify(trip.body)}`);
+});
+
+afterEach(async () => {
+  await closeDatabase();
+  delete process.env.CONTENT_DIR;
+  delete process.env.DATABASE_URL;
+  delete process.env.SESSION_SECRET;
+  clearConfigCache();
+  clearUserCache();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
 
 describe("deleting a published day", () => {
-  test("is refused with published_day_not_deletable, no code can satisfy it, and the file survives", async () => {
-    entry("live-day", false); // published
-    forgetEntries(`${OWNER}/${TRIP}`);
-    const { DELETE } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
+  test("is refused with published_day_not_deletable, and the file survives", async () => {
+    const slug = "2026-09-02-live-day";
+    const written = await putDay(slug);
+    expect(written.status, JSON.stringify(written.body)).toBe(201);
+    const published = await publish(slug);
+    expect(published.status, JSON.stringify(published.body)).toBe(200);
 
-    const first = await DELETE(del({ slug: "live-day" }), params);
-    expect(first.status).toBe(409);
-    const body = await first.json();
-    expect(body.error).toBe("published_day_not_deletable");
-    expect(body.unpublish).toContain("/unpublish");
-    // No confirm code is offered — there is nothing to repeat.
-    expect(body.confirm).toBeUndefined();
+    const refused = await deleteDay(slug);
+    expect(refused.status).toBe(409);
+    expect(refused.body.error).toBe("published_day_not_deletable");
+    expect(String(refused.body.message)).toContain("unpublish");
 
     // The entry file is still there.
-    expect(fs.existsSync(path.join(entriesDir(), "2026-09-02-live-day.md"))).toBe(true);
+    expect(fs.existsSync(dayFile(slug))).toBe(true);
   });
 });
 
 describe("deleting a draft day", () => {
-  test("still works through the self-served handshake, and removes the file", async () => {
-    entry("scrap", true); // draft
-    forgetEntries(`${OWNER}/${TRIP}`);
-    const { DELETE } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
+  test("goes through outright — no code to satisfy, nothing here was ever on the site", async () => {
+    const slug = "2026-09-02-scrap";
+    const written = await putDay(slug);
+    expect(written.status, JSON.stringify(written.body)).toBe(201);
 
-    const first = await DELETE(del({ slug: "scrap" }), params);
-    expect(first.status).toBe(409);
-    const asked = await first.json();
-    expect(typeof asked.confirm).toBe("string");
-    // A confirmation prompt, not the published-day refusal — the code is what
-    // makes it a self-served round trip, which is fine for a draft nobody read.
-    expect(asked.error).toBe("confirmation_required");
-    expect(asked.error).not.toBe("published_day_not_deletable");
-
-    const second = await DELETE(del({ slug: "scrap", confirm: asked.confirm }), params);
-    expect(second.status).toBe(200);
-    const done = await second.json();
-    expect(done.deleted).toBe(true);
-    expect(fs.existsSync(path.join(entriesDir(), "2026-09-02-scrap.md"))).toBe(false);
+    const deleted = await deleteDay(slug);
+    expect(deleted.status, JSON.stringify(deleted.body)).toBe(200);
+    expect(deleted.body.deleted).toBe(true);
+    expect(fs.existsSync(dayFile(slug))).toBe(false);
   });
 });

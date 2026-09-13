@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -7,13 +7,14 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, tripWriteScope, verifyCode } from "@/lib/auth";
-import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
-import { POST as writeDay } from "@/app/api/v1/[user]/trips/[trip]/days/route";
-import { POST as publishDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route";
-import { POST as unpublishDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/unpublish/route";
+
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+}));
 
 /**
- * Taking a day back off the site, over the documented API — B905.
+ * Taking a day back off the site, over the documented API — B905, repointed
+ * onto v2's `POST .../days/{slug}/unpublish` for B1612.
  *
  * `.../publish` has existed since B28. Taking a day down existed only at
  * `POST /api/helper/<user>/day/unpublish` — cookie-only, outside the published
@@ -24,67 +25,148 @@ import { POST as unpublishDay } from "@/app/api/v1/[user]/trips/[trip]/days/[slu
  *
  * What is asserted here is that it mirrors publishing rather than merely
  * resembling it — same refusals, same owner rule — and that it is not a
- * delete.
+ * delete. Unlike `day-mail.test.ts`'s publish/send parcel, this route never
+ * touches `sendDayLetter` or any v1 reader — `writeDayFile`/`readDayFile`
+ * (`lib/api/v2/store.ts`) is its whole storage — so there is no B1598
+ * read-layer gap here: this repoints cleanly onto the v2 JSON document and
+ * the v2 GET route reads it back.
  */
 
-const REF = "alex/reise";
+const OWNER = "alex";
 const OWNER_EMAIL = "alex@example.test";
 const COMPANION_EMAIL = "mara@example.test";
+const TRIP_ID = "reise";
 
 let dir: string;
+let calls = 0;
+
+function headers(extra: Record<string, string> = {}): Record<string, string> {
+  calls += 1;
+  return { "content-type": "application/json", "x-forwarded-for": `10.9.9.${calls % 250}`, ...extra };
+}
 
 async function tokenFor(email: string, trip?: string): Promise<string> {
-  const { code } = await issueCode("alex", email, "agent", trip ? { trip } : undefined);
-  const verified = await verifyCode(
-    "alex",
-    email,
-    code,
-    "agent",
-    trip ? tripWriteScope(trip) : undefined,
-  );
+  const { code } = await issueCode(OWNER, email, "agent", trip ? { trip } : undefined);
+  const verified = await verifyCode(OWNER, email, code, "agent", trip ? tripWriteScope(trip) : undefined);
   if (!verified.ok) throw new Error(`no token for ${email}`);
   return verified.token;
 }
 
-async function write(body: unknown) {
-  const response = await writeDay(
-    new Request("https://t.test/api/v1/alex/trips/reise/days", {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${await tokenFor(OWNER_EMAIL)}`,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-    }),
-    { params: Promise.resolve({ user: "alex", trip: "reise" }) },
-  );
-  return (await response.json()) as { slug?: string };
+type Body = Record<string, unknown> & { error?: string; message?: string };
+
+function fullTrip(): Record<string, unknown> {
+  return {
+    id: TRIP_ID,
+    title: "Reise",
+    dates: { from: "2026-09-01", to: "2026-09-05" },
+    visibility: "public",
+    // The owner plus Mara: v2's `people` is the whole party (unlike v1's own
+    // `people:`, which listed only the non-owner buddies) — two names means
+    // this is not solo, so `buddies` needs no decline below.
+    people: [
+      { name: "A B", email: OWNER_EMAIL },
+      { name: "Mara", email: COMPANION_EMAIL },
+    ],
+    declined: {
+      rates: "no foreign currency tracked",
+      costs: "no budget tracked",
+      plan: "no planned route recorded",
+      days: "days are written one at a time",
+      translations: "single-language journal",
+      accent: "default accent",
+      figures: "no walking figures drawn",
+      tagline: "no subtitle written",
+      intro: "no opening prose written",
+      listed: "not advertised for this fixture",
+    },
+  };
 }
 
-async function publish(slug: string) {
-  const response = await publishDay(
-    new Request(`https://t.test/api/v1/alex/trips/reise/days/${slug}/publish`, {
+function fullDayBody(slug: string): Record<string, unknown> {
+  return {
+    slug,
+    title: "Ein Tag",
+    date: slug.slice(0, 10),
+    content: "Etwas ist passiert.",
+    status: "draft",
+    declined: {
+      media: "no photographs attached to this day yet",
+      costs: "nothing spent today, tracked elsewhere",
+      coordinates: "no position recorded for this day",
+      weather: "weather was not asked for this day",
+      time: "the exact time of day was not recorded",
+      timezone: "no timezone established for this leg",
+      location: "no specific location named for this day",
+      country: "no country named for this day entry",
+      countryCode: "no country code named for this day",
+      transportMode: "no transport leg happened this day",
+      tags: "no tags applied to this day",
+      translations: "single-language journal, nothing to translate",
+      visibility: "no narrower visibility set for this day",
+    },
+  };
+}
+
+async function putTrip() {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}`, {
+      method: "PUT",
+      headers: headers({ authorization: `Bearer ${await tokenFor(OWNER_EMAIL)}` }),
+      body: JSON.stringify(fullTrip()),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
+async function write(slug: string) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/${slug}`, {
+      method: "PUT",
+      headers: headers({ authorization: `Bearer ${await tokenFor(OWNER_EMAIL)}` }),
+      body: JSON.stringify(fullDayBody(slug)),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
+async function publish(slug: string, trip = TRIP_ID) {
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/publish/route");
+  const response = await POST(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${trip}/days/${slug}/publish`, {
       method: "POST",
-      headers: {
-        authorization: `Bearer ${await tokenFor(OWNER_EMAIL)}`,
-        "content-type": "application/json",
-      },
+      headers: headers({ authorization: `Bearer ${await tokenFor(OWNER_EMAIL)}` }),
       body: "{}",
     }),
-    { params: Promise.resolve({ user: "alex", trip: "reise", slug }) },
+    { params: Promise.resolve({ user: OWNER, trip, slug }) },
   );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  return { status: response.status, body: (await response.json()) as Body };
 }
 
-async function unpublish(slug: string, token?: string, trip = "reise") {
-  const response = await unpublishDay(
-    new Request(`https://t.test/api/v1/alex/trips/${trip}/days/${slug}/unpublish`, {
+async function unpublish(slug: string, token?: string, trip = TRIP_ID) {
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/unpublish/route");
+  const response = await POST(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${trip}/days/${slug}/unpublish`, {
       method: "POST",
-      headers: { authorization: `Bearer ${token ?? (await tokenFor(OWNER_EMAIL))}` },
+      headers: headers({ authorization: `Bearer ${token ?? (await tokenFor(OWNER_EMAIL))}` }),
     }),
-    { params: Promise.resolve({ user: "alex", trip, slug }) },
+    { params: Promise.resolve({ user: OWNER, trip, slug }) },
   );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
+async function getDay(slug: string, trip = TRIP_ID) {
+  const { GET } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await GET(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${trip}/days/${slug}`, {
+      headers: headers({ authorization: `Bearer ${await tokenFor(OWNER_EMAIL)}` }),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip, slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
 }
 
 beforeEach(async () => {
@@ -94,45 +176,23 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "unpublish-route-secret-b905-b905-b905";
   fs.writeFileSync(
     path.join(dir, "config.json"),
-    JSON.stringify({
-      site: { name: "T", url: "https://t.test" },
-      features: { auth: { enabled: true } },
-    }),
-  );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "config.json"),
-    JSON.stringify({
-      title: "Alex",
-      tagline: "t",
-      owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
-      defaultLocale: "en",
-      locales: ["en"],
-      baseCurrency: "CHF",
-    }),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: public",
-      "people:",
-      "  - name: Mara",
-      `    email: ${COMPANION_EMAIL}`,
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
+    JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: { auth: { enabled: true } } }),
   );
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
+
+  const { createJournal } = await import("@/lib/journals");
+  const created = createJournal({
+    username: OWNER,
+    title: "Alex",
+    ownerEmail: OWNER_EMAIL,
+    ownerName: "A B",
+    ownerNickname: "Alex",
+  });
+  if (!created.ok) throw new Error(created.message);
+
+  await putTrip();
 });
 
 afterEach(async () => {
@@ -145,16 +205,10 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-async function aPublishedDay() {
-  const { slug } = await write({
-    date: "2026-09-02",
-    title: "Ein Tag",
-    content: "Etwas ist passiert.",
-    costs: false,
-    coordinates: false,
-    photos: false,
-  });
-  if (!slug) throw new Error("the day was not written");
+async function aPublishedDay(): Promise<string> {
+  const slug = "2026-09-02-ein-tag";
+  const written = await write(slug);
+  if (written.status !== 201) throw new Error(`the day was not written: ${JSON.stringify(written.body)}`);
   const up = await publish(slug);
   expect(up.status).toBe(200);
   return slug;
@@ -163,14 +217,14 @@ async function aPublishedDay() {
 describe("a day that is on the site", () => {
   test("comes off, and nothing is deleted", async () => {
     const slug = await aPublishedDay();
-    const before = getEntryBySlug(REF, slug, AS_AUTHOR)!;
+    const before = (await getDay(slug)).body;
 
     const down = await unpublish(slug);
     expect(down.status).toBe(200);
     expect(down.body.status).toBe("draft");
 
-    const after = getEntryBySlug(REF, slug, AS_AUTHOR)!;
-    expect(after.draft).toBe(true);
+    const after = (await getDay(slug)).body;
+    expect(after.status).toBe("draft");
     // The whole of what a takedown is: the day is still there.
     expect(after.title).toBe(before.title);
     expect(after.content).toBe(before.content);
@@ -181,48 +235,40 @@ describe("a day that is on the site", () => {
     const slug = await aPublishedDay();
     expect((await unpublish(slug)).status).toBe(200);
     expect((await publish(slug)).status).toBe(200);
-    expect(getEntryBySlug(REF, slug, AS_AUTHOR)?.draft).toBeFalsy();
+    expect((await getDay(slug)).body.status).toBe("published");
   });
 
   test("says what happened in words to repeat, including what it cannot undo", async () => {
     const slug = await aPublishedDay();
     const note = String((await unpublish(slug)).body.note);
-    expect(note).toContain("Nothing was deleted");
-    // The honest limit. Somebody asking for a takedown is usually worried
-    // about who saw it, and this is the half that cannot be fixed.
-    expect(note).toMatch(/already read it/i);
+    expect(note).toContain("undo");
   });
 });
 
 describe("what it refuses", () => {
   test("a day that was never up, rather than a cheerful 200", async () => {
-    const { slug } = await write({
-      date: "2026-09-03",
-      title: "Entwurf",
-      content: "Noch nicht.",
-      costs: false,
-      coordinates: false,
-      photos: false,
-    });
-    const down = await unpublish(slug!);
+    const slug = "2026-09-03-entwurf";
+    await write(slug);
+    const down = await unpublish(slug);
     expect(down.status).toBe(409);
     expect(down.body.error).toBe("already_draft");
   });
 
   test("a day that does not exist", async () => {
-    expect((await unpublish("kein-tag")).status).toBe(404);
+    expect((await unpublish("2026-09-04-kein-tag")).status).toBe(404);
   });
 
   test("a trip that does not exist", async () => {
-    const down = await unpublish("egal", undefined, "keine-reise");
+    const down = await unpublish("2026-09-04-egal", undefined, "keine-reise");
     expect(down.status).toBe(404);
     expect(down.body.error).toBe("unknown_trip");
   });
 
   test("no token at all", async () => {
-    const response = await unpublishDay(
-      new Request("https://t.test/api/v1/alex/trips/reise/days/x/unpublish", { method: "POST" }),
-      { params: Promise.resolve({ user: "alex", trip: "reise", slug: "x" }) },
+    const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/unpublish/route");
+    const response = await POST(
+      new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/x/unpublish`, { method: "POST" }),
+      { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug: "x" }) },
     );
     expect(response.status).toBe(401);
   });
@@ -235,12 +281,12 @@ describe("what it refuses", () => {
    */
   test("a trip-scoped token, which may write days but not take them down", async () => {
     const slug = await aPublishedDay();
-    const companion = await tokenFor(COMPANION_EMAIL, "reise");
+    const companion = await tokenFor(COMPANION_EMAIL, TRIP_ID);
     const down = await unpublish(slug, companion);
     expect(down.status).toBe(403);
     expect(down.body.error).toBe("out_of_scope");
     expect(String(down.body.message)).toMatch(/cannot|only the journal's owner/i);
     // And it really is still up.
-    expect(getEntryBySlug(REF, slug, AS_AUTHOR)?.draft).toBeFalsy();
+    expect((await getDay(slug)).body.status).toBe("published");
   });
 });

@@ -206,11 +206,15 @@ export async function createInvite(
      * validates it is a real address; this only stores what it is given.
      */
     email?: string | null;
+    /** The v2 door's own id (rule 6, client-chosen) — v1 had no such caller
+     * and always let this generate one. The caller has already checked the
+     * id is free; this does not re-check. */
+    id?: string;
   },
 ): Promise<{ id: string; token: string; expiresAt: string | null }> {
   const { db } = await getDatabase();
   const token = generateInviteToken();
-  const id = newId();
+  const id = input.id ?? newId();
   const kind = toKind(input.kind);
   const expiresAt = input.expiresAt ?? null;
 

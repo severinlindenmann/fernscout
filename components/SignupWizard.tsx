@@ -14,7 +14,7 @@ import { LOCALE_COOKIE } from "@/lib/requestKeys";
  * the sentence it gets — B1247/B1250, the same shape as `HelperAsk.tsx`'s
  * `NAMED_FAILURES`. The eight are every `createJournal()` refusal
  * (`lib/journals.ts`) a person's own input can trigger; `invalid_token` and
- * `missing_token` are the two ways `/api/v1/journals` and the phone-request
+ * `missing_token` are the two ways `/api/v2/journals` and the phone-request
  * route refuse a signup token that has expired or was already spent —
  * neither of which reads as a sentence when shown raw, since both name an
  * HTTP endpoint. `phone_required` is not here: `createJournal()` branches on
@@ -63,7 +63,7 @@ type Step =
  * Wraps the existing signup API rather than inventing a second one: every
  * step below is a `fetch` to a route `/agent.md` already documents —
  * `POST /api/auth/codes` and `/codes/redeem` (both `for: "signup"`),
- * `/api/v1/journals`, `/api/v1/<user>/trips` — called from the browser
+ * `/api/v2/journals`, `/api/v1/<user>/trips` — called from the browser
  * exactly as an external agent would call them, with the tokens they hand
  * back kept only in this component's own state and never written to a cookie
  * by this component itself. The one exception is the last step:
@@ -93,7 +93,7 @@ type Step =
  * | which languages a reader may switch into (`locales`) | asked — until B838 it was hardcoded to `[defaultLocale]`, which is B277 by construction |
  * | what they count money in (`baseCurrency`) | asked — B839 added it to both, since it is the one field nothing can change afterwards |
  *
- * Everything else `POST /api/v1/journals` accepts — `tagline`,
+ * Everything else `POST /api/v2/journals` accepts — `tagline`,
  * `startLocation`, `units`, `displayCurrencies` — is absent here on purpose:
  * each is correctable later at `PATCH /api/v1/<user>/config`, and a question
  * with a good default and a way back does not belong in front of somebody who
@@ -161,7 +161,7 @@ export default function SignupWizard({
   /** The *extra* languages a reader may switch into — `defaultLocale` is
    * always sent as well and is not in here, so changing the answer above
    * cannot leave a journal whose own language is not on offer to its
-   * readers (which `POST /api/v1/journals` refuses outright). */
+   * readers (which `POST /api/v2/journals` refuses outright). */
   const [extraLocales, setExtraLocales] = useState<string[]>([]);
   /** Empty, required, and deliberately not guessed — B839. It is the one
    * field `setJournalProfile` refuses for ever after, so a value prefilled
@@ -171,7 +171,7 @@ export default function SignupWizard({
   const [baseCurrency, setBaseCurrency] = useState("");
 
   /**
-   * The phone step — B1222. Only reached when `POST /api/v1/journals`
+   * The phone step — B1222. Only reached when `POST /api/v2/journals`
    * answers `phone_required`, so an instance whose operator address or
    * `test-` prefix exempts it never sees these, and neither does one that
    * drops the requirement. The passcode arrives over WhatsApp; the step
@@ -294,7 +294,7 @@ export default function SignupWizard({
     setBusy(true);
     setError(null);
     const result = await post(
-      "/api/v1/journals",
+      "/api/v2/journals",
       {
         title,
         username,

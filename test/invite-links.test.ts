@@ -1021,9 +1021,9 @@ describe("an invite token is not a credential", () => {
     const url = created.body.invite!.url!;
     const secret = url.slice(url.lastIndexOf("/") + 1);
 
-    const { GET } = await import("@/app/api/v1/[user]/trips/route");
+    const { GET } = await import("@/app/api/v2/[user]/trips/route");
     const refused = await GET(
-      new Request("https://example.test/api/v1/ana/trips", {
+      new Request("https://example.test/api/v2/ana/trips", {
         headers: headers({ authorization: `Bearer ${secret}` }),
       }),
       { params: Promise.resolve({ user: OWNER }) },

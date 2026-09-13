@@ -26,8 +26,9 @@ const { resolveAccess } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/auth/handshake", () => ({ resolveAccess }));
 
-const { PATCH: editDayRoute } = await import(
-  "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route"
+const { PUT: putTripRoute } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+const { PUT: putDayRoute, PATCH: editDayRoute } = await import(
+  "@/app/api/v2/[user]/trips/[trip]/days/[slug]/route"
 );
 const { GET: helperDayRoute } = await import("@/app/api/helper/[user]/day/route");
 
@@ -58,19 +59,75 @@ function writeInstance() {
       units: "metric",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", 'title: "Reise"', 'start: "2026-09-01"', 'end: "2026-09-05"',
-      "status: current", "visibility: public", "---", "", "Body.", ""].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-09-02-a-day.md"),
-    ["---", 'title: "A day"', 'date: "2026-09-02"', "status: draft", "---", "", "Prose.", ""].join(
-      "\n",
-    ),
-  );
   clearConfigCache();
   clearUserCache();
+}
+
+/** The v2 trip/day fixture B778's PATCH test needs — a real create through
+ * the real routes, same shape as `test/api-v2-days.test.ts`. */
+async function writeTripAndDay(token: string) {
+  const tripBody = {
+    id: "reise",
+    title: "Reise",
+    dates: { from: "2026-09-01", to: "2026-09-05" },
+    visibility: "public",
+    listed: false,
+    people: [{ name: "A B", email: OWNER_EMAIL }],
+    declined: {
+      rates: "no foreign currency tracked on this trip at all",
+      costs: "no budget tracked for this trip currently",
+      plan: "no planned route recorded for this trip",
+      days: "no days written for this trip at create time",
+      translations: "single-language journal, nothing to translate",
+      accent: "default accent left as the renderer's choice",
+      figures: "no walking figures drawn for this trip",
+      tagline: "no one-line subtitle written for this trip",
+      intro: "no opening prose written for this trip yet",
+      buddies: "travelling solo, nobody else was on this trip",
+    },
+  };
+  const tripResponse = await putTripRoute(
+    new Request("https://t.test/api/v2/alex/trips/reise", {
+      method: "PUT",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(tripBody),
+    }),
+    { params: Promise.resolve({ user: "alex", trip: "reise" }) },
+  );
+  if (tripResponse.status >= 300) {
+    throw new Error(`trip create failed: ${tripResponse.status} ${JSON.stringify(await tripResponse.json())}`);
+  }
+
+  const dayBody = {
+    slug: "2026-09-02-a-day",
+    title: "A day",
+    date: "2026-09-02",
+    content: "Prose.",
+    status: "draft",
+    declined: {
+      media: "no photographs attached to this day yet",
+      costs: "nothing spent today, tracked elsewhere",
+      coordinates: "no position recorded for this day",
+      weather: "weather was not asked for this day",
+      time: "the exact time of day was not recorded",
+      timezone: "no timezone established for this leg",
+      location: "no specific location named for this day",
+      country: "no country named for this day entry",
+      countryCode: "no country code named for this day",
+      transportMode: "no transport leg happened this day",
+      tags: "no tags applied to this day",
+      translations: "single-language journal, nothing to translate",
+      visibility: "no narrower visibility set for this day",
+    },
+  };
+  await putDayRoute(
+    new Request("https://t.test/api/v2/alex/trips/reise/days/2026-09-02-a-day", {
+      method: "PUT",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(dayBody),
+    }),
+    { params: Promise.resolve({ user: "alex", trip: "reise", slug: "2026-09-02-a-day" }) },
+  );
 }
 
 beforeEach(async () => {
@@ -223,12 +280,12 @@ describe("B777 — creating a journal and correcting one refuse the same languag
 describe("B778 — asking for a lookup nobody will make", () => {
   async function patchDay(token: string, body: unknown) {
     const response = await editDayRoute(
-      new Request("https://t.test/api/v1/alex/trips/reise/days/a-day", {
+      new Request("https://t.test/api/v2/alex/trips/reise/days/2026-09-02-a-day", {
         method: "PATCH",
         headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
         body: JSON.stringify(body),
       }),
-      { params: Promise.resolve({ user: "alex", trip: "reise", slug: "a-day" }) },
+      { params: Promise.resolve({ user: "alex", trip: "reise", slug: "2026-09-02-a-day" }) },
     );
     return { status: response.status, body: (await response.json()) as Record<string, unknown> };
   }
@@ -242,23 +299,40 @@ describe("B778 — asking for a lookup nobody will make", () => {
 
   test("weather: true with the capability off is refused, in the answer to that call", async () => {
     const token = await agentToken();
+    await writeTripAndDay(token);
     const refused = await patchDay(token, { weather: true });
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("weather_disabled");
     expect(String(refused.body.message)).toContain("/api/health");
     // The old answer, which is what this exists to prevent.
     expect(refused.body.changed).toBeUndefined();
-    // And nothing was written: the day is untouched.
-    const file = fs.readFileSync(
-      path.join(dir, "alex", "trips", "reise", "entries", "2026-09-02-a-day.md"),
-      "utf8",
-    );
-    expect(file).not.toContain("weather");
+    // And nothing was written: the day still declines weather, exactly as it
+    // was created. Checked as "no request is stored" rather than "the word
+    // does not appear" — in v2 a day with no weather SAYS so, in
+    // `declined.weather`, so the file contains the word either way. v1 had no
+    // way to say it and the old assertion could lean on the absence.
+    const file = JSON.parse(
+      fs.readFileSync(
+        path.join(dir, "alex", "trips", "reise", "entries", "2026-09-02-a-day.json"),
+        "utf8",
+      ),
+    ) as { weather?: unknown; declined?: Record<string, string> };
+    expect(file.weather).toBeUndefined();
+    expect(file.declined?.weather).toBeTruthy();
   });
 
-  test("withdrawing the request is not refused — there is nothing to service", async () => {
+  test("declining weather is not refused — there is nothing to service", async () => {
+    // v1 withdrew a request with `weather: false`. v2 has no such value: the
+    // `declined` map is the one mechanism for "this day has none of that",
+    // and `dayWrite`'s `weather` is `true | a reading`, nothing else. So the
+    // property survives the vocabulary change — saying a day has no weather
+    // must never hit the capability refusal, because no lookup is being asked
+    // for — and this is what it looks like in v2's words.
     const token = await agentToken();
-    const answer = await patchDay(token, { weather: false });
+    await writeTripAndDay(token);
+    const answer = await patchDay(token, {
+      declined: { weather: "no lookup wanted for this day at all" },
+    });
     expect(answer.status).toBe(200);
   });
 });

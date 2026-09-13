@@ -7,6 +7,7 @@ import { mediaUrl, resolveMediaFile } from "@/lib/media";
 import { getPlaces, getTripStats } from "@/lib/entries";
 import { getAllTrips, getTrip, getTrips, parseTripRef, tripRef } from "@/lib/trips";
 import { clearUserCache, getUser, getUsernames, isUsableUsername } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * Isolation between users.
@@ -36,24 +37,16 @@ function writeUser(username: string, trips: Record<string, string>) {
     }),
   );
   for (const [id, visibility] of Object.entries(trips)) {
+    writeTripFixture(username, {
+      id,
+      title: id,
+      start: "2026-01-01",
+      end: "2026-01-05",
+      status: "past",
+      visibility: visibility as "public" | "guest" | "private",
+    });
     const tripPath = path.join(dir, username, "trips", id);
     fs.mkdirSync(path.join(tripPath, "media"), { recursive: true });
-    fs.writeFileSync(
-      path.join(tripPath, "trip.md"),
-      [
-        "---",
-        `id: ${id}`,
-        `title: "${id}"`,
-        'start: "2026-01-01"',
-        'end: "2026-01-05"',
-        "status: past",
-        `visibility: ${visibility}`,
-        "---",
-        "",
-        "Body.",
-        "",
-      ].join("\n"),
-    );
     fs.writeFileSync(path.join(tripPath, "media", "photo.jpg"), "not really a jpeg");
   }
 }
@@ -230,24 +223,14 @@ describe("reaction keys carry their owner", () => {
  */
 describe("entries are read by qualified ref", () => {
   function writeEntry(username: string, tripId: string) {
-    const entries = path.join(dir, username, "trips", tripId, "entries");
-    fs.mkdirSync(entries, { recursive: true });
-    fs.writeFileSync(
-      path.join(entries, "2026-01-02-a-pass.md"),
-      [
-        "---",
-        'title: "A pass"',
-        'date: "2026-01-02"',
-        'location: "Susten"',
-        'country: "Switzerland"',
-        "lat: 46.7",
-        "lng: 8.4",
-        "---",
-        "",
-        "Body.",
-        "",
-      ].join("\n"),
-    );
+    writeDayFixture(dir, username, tripId, {
+      slug: "a-pass",
+      date: "2026-01-02",
+      title: "A pass",
+      location: "Susten",
+      country: "Switzerland",
+      coordinates: { lat: 46.7, lng: 8.4 },
+    });
   }
 
   test("a trip's ref finds its days; its bare id finds nothing", () => {

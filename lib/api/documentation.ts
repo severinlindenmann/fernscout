@@ -1981,8 +1981,8 @@ bills; read it before you publish with either flag rather than discovering an
 empty account from a 402. An absent \`credits\` key means this server does not
 charge, not that the account is empty.
 
-**A 402 is a message to pass on, and you can pass a link with it.** \`POST
-/api/v1/${example}/credits/purchase\` with a \`credits\` amount starts a purchase and
+**A 402 is a message to pass on, and you can pass a link with it.** \`PUT
+/api/v2/${example}/purchases/{id}\` with a \`credits\` amount starts a purchase and
 answers with \`paymentUrl\` — an absolute link to a page showing the amount, the
 credits and a button. **It buys nothing.** No balance moves, no card is
 charged, and nothing you hold can change that: the money happens on that page,

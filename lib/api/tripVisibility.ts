@@ -31,7 +31,7 @@ export type VisibilityWriteResult =
 
 /** Read `visibility:`/`listed:` currently on disk, as `getTrip` already
  * derives them — nothing this module does not already trust. */
-export function readTripVisibility(
+function readTripVisibility(
   ref: TripRef,
 ): { visibility: TripVisibility; listed: boolean; teaser: boolean } | null {
   const trip = getTrip(ref);

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B629 — a postcard's default signature names the trip, not only the owner.
@@ -18,26 +19,16 @@ const OWNER_EMAIL = "ana@example.test";
 
 let dir: string;
 
-function writeTrip(id: string, people: string) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      'visibility: "private"',
-      ...(people ? [people] : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+function writeTrip(id: string, people: Array<{ name: string; email: string; nickname?: string }>) {
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "private",
+    people,
+  });
 }
 
 async function letInAsBuddy(tripId: string, email: string, name: string): Promise<void> {
@@ -98,14 +89,9 @@ beforeAll(async () => {
     }),
   );
 
-  writeTrip("solo-2026", "");
-  writeTrip(
-    "bus-2026",
-    ["people:", '  - name: "Bo Lind"', '    email: "bo@example.test"', '    nickname: "Bo"'].join(
-      "\n",
-    ),
-  );
-  writeTrip("buddy-2026", "");
+  writeTrip("solo-2026", []);
+  writeTrip("bus-2026", [{ name: "Bo Lind", email: "bo@example.test", nickname: "Bo" }]);
+  writeTrip("buddy-2026", []);
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");

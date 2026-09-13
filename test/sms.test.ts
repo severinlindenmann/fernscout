@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { POST as twilioPOST } from "@/app/api/webhooks/twilio/route";
-import { POST as journalsPOST } from "@/app/api/v1/journals/route";
+import { POST as journalsPOST } from "@/app/api/v2/journals/route";
 import { POST as phoneRequestPOST } from "@/app/api/auth/signup/phone/route";
 import { POST as phoneVerifyPOST } from "@/app/api/auth/signup/phone/redeem/route";
 import { NO_JOURNAL, issueCode, verifyCode } from "@/lib/auth";
