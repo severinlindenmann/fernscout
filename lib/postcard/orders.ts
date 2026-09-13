@@ -1,6 +1,14 @@
 import "server-only";
+import { isTestContent } from "../access";
+import { loadServerConfig } from "../config";
 import { getDatabaseOrNull, newId, nowIso } from "../db";
 import { POSTCARD_CREDITS } from "../credits/pricing";
+import { AS_AUTHOR, getEntryBySlug } from "../entries";
+import { findInboxFile } from "../inbox";
+import { resolveMediaFile } from "../media";
+import { getTrip, tripRef } from "../trips";
+import { getUser } from "../users";
+import { postcardCandidates } from "./contacts";
 import { MAX_CROP_ZOOM } from "./spec";
 import { fetchStannpStatus, type StannpStatus } from "./stannp";
 
@@ -396,6 +404,96 @@ function toOrder(row: {
     payload: JSON.parse(row.payload) as OrderPayload,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+/** What a proposal names its photograph by — a trip's own day, or a file
+ * still staged in the inbox. The same discriminated union `postcardSource`
+ * (lib/api/v2/schemas/postcard.ts) validates on the wire; kept here as a
+ * plain type rather than imported so this file needs no schemas import. */
+type PostcardSourceInput =
+  | { trip: string; day: string; photo: string }
+  | { inbox: string };
+
+/** The part of a proposal every caller has already answered in their own
+ * words: what it says, who signs it, who it goes to. */
+export type PostcardWriteInput = {
+  source: PostcardSourceInput;
+  message: string;
+  from: string;
+  recipients: readonly string[];
+  locale?: string;
+  crop?: OrderPayload["crop"];
+  figures?: boolean;
+};
+
+export type PostcardResolveFailure =
+  | { ok: false; error: "unknown_trip" | "unknown_day" | "unknown_photo" | "test_content" }
+  | { ok: false; error: "unknown_recipient"; unknown: string[] };
+
+/**
+ * The one place a photograph, a trip and a recipient list are checked
+ * against the disk — B1650 (money/storage/print parcel). `PUT
+ * /api/v2/{user}/postcards/orders/{id}` and the helper's cookie-only
+ * `POST /api/helper/{user}/postcard` both propose the same kind of order and
+ * both used to run this exact sequence of checks inline, hand-copied; this
+ * is the shared function so a rule added to one (a new refusal, a widened
+ * source) cannot silently miss the other. Nothing here writes: it resolves a
+ * validated write into the shape `createOrder` takes (minus the id, which is
+ * the caller's own to choose or omit), or says which check failed.
+ */
+export async function resolvePostcardInput(
+  user: string,
+  write: PostcardWriteInput,
+): Promise<PostcardResolveFailure | { ok: true; input: Omit<NewOrder, "id"> }> {
+  let tripField: string | null = null;
+  let dayField: string | null = null;
+  let photoField: string;
+
+  if ("inbox" in write.source) {
+    const staged = findInboxFile(user, write.source.inbox);
+    if (!staged || staged.entry.kind !== "media") return { ok: false, error: "unknown_photo" };
+    photoField = write.source.inbox;
+  } else {
+    const { trip: tripId, day, photo } = write.source;
+    const ref = tripRef(user, tripId);
+    const trip = getTrip(ref);
+    if (!trip) return { ok: false, error: "unknown_trip" };
+    const entry = getEntryBySlug(ref, day, AS_AUTHOR);
+    if (!entry) return { ok: false, error: "unknown_day" };
+    if (isTestContent(trip, entry)) return { ok: false, error: "test_content" };
+    if (!resolveMediaFile(user, [tripId, ...photo.split("/").filter(Boolean)])) {
+      return { ok: false, error: "unknown_photo" };
+    }
+    tripField = ref;
+    dayField = day;
+    photoField = photo;
+  }
+
+  const candidates = await postcardCandidates(user);
+  const allowed = new Set(candidates.map((c) => c.contactId));
+  const wanted = [...new Set(write.recipients)];
+  const unknown = wanted.filter((r) => !allowed.has(r));
+  if (unknown.length > 0) return { ok: false, error: "unknown_recipient", unknown };
+
+  const locale = write.locale ?? getUser(user)?.defaultLocale ?? "en";
+  const configured = loadServerConfig().features.postcards.provider;
+  const provider = typeof configured === "string" ? configured : "dry-run";
+
+  return {
+    ok: true,
+    input: {
+      trip: tripField,
+      day: dayField,
+      photo: photoField,
+      message: write.message,
+      from: write.from,
+      recipients: wanted,
+      locale,
+      provider,
+      ...(write.crop ? { crop: write.crop } : {}),
+      ...(write.figures !== undefined ? { figures: write.figures } : {}),
+    },
   };
 }
 
