@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: api-v2
 found: "2026-09-13T13:56:25Z"
+merged: "2026-09-13T19:50:30Z"
 ---
 
 # B1670 — Several v2-migration docs and code comments describe a pre-migration state that no longer exists

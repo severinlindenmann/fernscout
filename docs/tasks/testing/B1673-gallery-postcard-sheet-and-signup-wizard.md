@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: web
 found: "2026-09-13T14:28:19Z"
+merged: "2026-09-13T19:50:32Z"
 ---
 
 # B1673 — Gallery postcard sheet and signup wizard call v1 routes that no longer exist

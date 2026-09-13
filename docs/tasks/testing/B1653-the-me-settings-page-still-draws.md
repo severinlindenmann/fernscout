@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: Webapp
 found: "2026-09-13T09:10:25Z"
+merged: "2026-09-13T19:50:30Z"
 ---
 
 # B1653 — The /me settings page still draws inputs for two fields v2 dropped, so typing in them does nothing

@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: api-v2
 found: "2026-09-13T13:56:49Z"
+merged: "2026-09-13T19:50:31Z"
 ---
 
 # B1671 — Trip write path auto-fills declined.days without the caller ever declining it

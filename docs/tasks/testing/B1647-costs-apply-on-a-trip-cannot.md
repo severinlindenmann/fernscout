@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: API v2
 found: "2026-09-13T08:38:09Z"
+merged: "2026-09-13T19:50:27Z"
 ---
 
 # B1647 — costs/apply on a trip cannot find days written through the day-write endpoint

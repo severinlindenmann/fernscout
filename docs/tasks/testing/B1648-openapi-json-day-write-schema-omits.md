@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: API v2
 found: "2026-09-13T08:38:31Z"
+merged: "2026-09-13T19:50:28Z"
 ---
 
 # B1648 — openapi.json day write schema omits status from required though the server demands it

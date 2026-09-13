@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: API v2
 found: "2026-09-13T09:08:50Z"
+merged: "2026-09-13T19:50:29Z"
 ---
 
 # B1652 — GET /api/v2/{user} leaks owner.email and the whole journal document to a trip-scoped token

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: ops
 found: "2026-09-13T14:38:16Z"
+merged: "2026-09-13T19:50:32Z"
 ---
 
 # B1682 — The deploy never copies content/example/figures, so a rebuilt box serves no demo journal

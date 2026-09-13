@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: API v2
 found: "2026-09-13T08:38:51Z"
+merged: "2026-09-13T19:50:28Z"
 ---
 
 # B1649 — trip PUT's missing-buddies message gives no schema and no pointer to the invites endpoint

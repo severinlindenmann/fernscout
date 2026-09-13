@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: Skills
 found: "2026-09-13T08:40:16Z"
+merged: "2026-09-13T19:50:29Z"
 ---
 
 # B1651 — get-a-credential drives auth routes that no longer exist, so the documented way in 404s

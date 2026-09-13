@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: ops
 found: "2026-09-13T14:38:16Z"
+merged: "2026-09-13T19:50:33Z"
 ---
 
 # B1683 — Live instance serves 500 on three document routes: the build and node_modules disagree about sharp
