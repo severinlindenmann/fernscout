@@ -7,6 +7,7 @@ complexity: low
 area: agent docs, whatsapp
 found: "2026-09-11T14:29:07Z"
 started: "2026-09-13T06:55:45Z"
+merged: "2026-09-13T06:59:58Z"
 ---
 
 # B1471 — The messenger number is printed for a person to dial in a form only a machine can use
