@@ -114,23 +114,40 @@ afterEach(async () => {
 });
 
 describe("switching a capability on", () => {
-  test("an existing journal can reach contacts without anybody touching the server", () => {
-    // The state B153 describes, still true for every journal already on disk.
-    expect(isEnabled("contacts", "ana")).toBe(false);
+  // `whatsappInbound` is the surviving opt-in shape: off by default
+  // (`DEFAULT_FEATURES.whatsappInbound`, lib/config.ts) and switched on per
+  // journal — from onboarding (`lib/whatsapp/onboarding.ts`) and from the
+  // inbox itself (`lib/whatsapp/dispatch.ts`) — never from a bare `true` the
+  // server has not also allowed.
+  function allowWhatsappInbound() {
+    writeServerConfig({ whatsappInbound: { enabled: true } });
+    process.env.WHATSAPP_APP_SECRET = "secret";
+    process.env.WHATSAPP_VERIFY_TOKEN = "token";
+  }
 
-    const result = setJournalFeatures("ana", { contacts: true });
-    expect(result).toMatchObject({ ok: true, changed: ["contacts"] });
-    expect(isEnabled("contacts", "ana")).toBe(true);
+  afterEach(() => {
+    delete process.env.WHATSAPP_APP_SECRET;
+    delete process.env.WHATSAPP_VERIFY_TOKEN;
+  });
+
+  test("an existing journal can reach whatsappInbound without anybody touching the server", () => {
+    allowWhatsappInbound();
+    expect(isEnabled("whatsappInbound", "ana")).toBe(false);
+
+    const result = setJournalFeatures("ana", { whatsappInbound: true });
+    expect(result).toMatchObject({ ok: true, changed: ["whatsappInbound"] });
+    expect(isEnabled("whatsappInbound", "ana")).toBe(true);
   });
 
   test("saying the same thing twice changes nothing and is not an error", () => {
-    setJournalFeatures("ana", { contacts: true });
-    const again = setJournalFeatures("ana", { contacts: true });
+    allowWhatsappInbound();
+    setJournalFeatures("ana", { whatsappInbound: true });
+    const again = setJournalFeatures("ana", { whatsappInbound: true });
     expect(again).toMatchObject({ ok: true, changed: [] });
   });
 });
 
-describe("the two the server decides alone — B611", () => {
+describe("decision 5 (B1666) — everything but a channel mute is the server's alone", () => {
   test.each([true, false])("a journal cannot switch photobook %s", (enabled) => {
     // Both directions: on would be a grant it does not have, off would be a
     // key written into the file that nothing reads.
@@ -142,23 +159,38 @@ describe("the two the server decides alone — B611", () => {
   });
 
   test("postcards is refused the same way, and refusing writes nothing at all", () => {
-    const result = setJournalFeatures("ana", { postcards: false, contacts: true });
+    const result = setJournalFeatures("ana", { postcards: false, whatsappInbound: true });
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unreachable");
     expect(result.error).toBe("capability_not_yours");
-    // `contacts` was legitimate and is still unwritten: the refusal is the
-    // whole request's, not this one key's.
-    expect((rawConfig().features as Record<string, unknown>).contacts).toBeUndefined();
+    // `whatsappInbound` was legitimate and is still unwritten: the refusal
+    // is the whole request's, not this one key's.
+    expect((rawConfig().features as Record<string, unknown>).whatsappInbound).toBeUndefined();
   });
+
+  // The capabilities decision 5 moved into the same bucket as photobook and
+  // postcards above: no v2 door ever lets a journal set one, so a journal's
+  // own vote was dead weight that could only narrow it below the server's
+  // answer. `resolveOne` no longer reads the per-journal flag for any of
+  // these — see `OPERATOR_ONLY_FEATURES` in lib/config.ts — and this is the
+  // write side of the same fact.
+  test.each(["reactions", "costs", "push", "auth", "signup", "contacts", "addressLookup", "weather", "analytics"])(
+    "a journal cannot switch %s on or off any more",
+    (name) => {
+      const result = setJournalFeatures("ana", { [name]: true });
+      expect(result.ok).toBe(false);
+      if (result.ok) throw new Error("unreachable");
+      expect(result.error).toBe("capability_not_yours");
+    },
+  );
 });
 
 describe("the server is still the ceiling", () => {
   test("a journal cannot switch on what this server does not provide", () => {
-    // Contacts off on the server: no key, no server-side opt-in.
+    // whatsappInbound off on the server: no key, no server-side opt-in.
     writeServerConfig({});
-    delete process.env.CONTACTS_ENCRYPTION_KEY;
 
-    const result = setJournalFeatures("ana", { contacts: true });
+    const result = setJournalFeatures("ana", { whatsappInbound: true });
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unreachable");
     expect(result.error).toBe("capability_unavailable");
@@ -166,26 +198,25 @@ describe("the server is still the ceiling", () => {
     expect(result.message).toContain("not enabled on this server");
 
     // And nothing was written, so the file cannot claim something untrue.
-    expect((rawConfig().features as Record<string, unknown>).contacts).toBeUndefined();
+    expect((rawConfig().features as Record<string, unknown>).whatsappInbound).toBeUndefined();
   });
 
   test("the refusal names the missing credential when that is what is missing", () => {
-    writeServerConfig({ contacts: { enabled: true } });
-    delete process.env.CONTACTS_ENCRYPTION_KEY;
+    writeServerConfig({ whatsappInbound: { enabled: true } });
 
-    const result = setJournalFeatures("ana", { contacts: true });
+    const result = setJournalFeatures("ana", { whatsappInbound: true });
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unreachable");
-    expect(result.message).toContain("CONTACTS_ENCRYPTION_KEY");
+    expect(result.message).toContain("WHATSAPP_APP_SECRET");
   });
 
-  test("switching something off always works, whatever the server says", () => {
+  test("switching a channel off always works, whatever the server says", () => {
     // A journal narrowing itself asks nobody — `features.mail: false` in
     // particular is a mute button somebody must always be able to press (B60).
     writeServerConfig({});
-    const result = setJournalFeatures("ana", { reactions: false });
-    expect(result).toMatchObject({ ok: true, changed: ["reactions"] });
-    expect(getUser("ana")?.features.reactions.enabled).toBe(false);
+    const result = setJournalFeatures("ana", { mail: false });
+    expect(result).toMatchObject({ ok: true, changed: ["mail"] });
+    expect(getUser("ana")?.features.mail.enabled).toBe(false);
   });
 });
 
@@ -194,7 +225,7 @@ describe("what it will not touch", () => {
     // Including a key this code has never heard of: the file is edited, not
     // regenerated from what the parser understood.
     writeUserConfig({ somethingNobodyParsed: { keep: true } });
-    setJournalFeatures("ana", { contacts: true });
+    setJournalFeatures("ana", { mail: false });
 
     const after = rawConfig();
     expect(after.title).toBe("Ana");

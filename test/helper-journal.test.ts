@@ -101,9 +101,10 @@ beforeEach(async () => {
       defaultLocale: "en",
       locales: ["en"],
       baseCurrency: "CHF",
-      // `auth` is opt-in per journal, unlike `credits` and `helper` which the
-      // operator alone decides (`OPERATOR_ONLY_FEATURES`) — without this,
-      // `keys` and `revoke_key` see the journal as having no sign-in at all.
+      // `auth` is instance-only now (decision 5, B1666) — the server's own
+      // `features.auth` in `writeSiteConfig` below is what `keys` and
+      // `revoke_key` actually key off. Harmless and no longer load-bearing,
+      // kept only so this fixture still reads like a real journal's file.
       features: { auth: { enabled: true } },
     }),
   );

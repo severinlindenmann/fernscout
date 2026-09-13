@@ -14,7 +14,7 @@ import {
 } from "./config";
 import { contentRoot } from "./contentRoot";
 import type { MediaLimits } from "./mediaLimits";
-import { normalizeCurrency, type RateTable } from "./currency";
+import { normalizeCurrency } from "./currency";
 import { release, reserve } from "./registry";
 import { toE164 } from "./whatsapp/phone";
 import { issueStandingLink, signInUrl } from "./auth";
@@ -716,15 +716,16 @@ export type SetFeaturesResult =
 
 /**
  * A journal's `features` block exactly as any reader should show it: the
- * per-journal flag for an opt-in, the server-resolved answer for the two
- * capabilities in `OPERATOR_ONLY_FEATURES` that are never a journal's own to
- * set. The one place this map is built, so the GET and the PATCH on
- * `/api/v1/<user>/config` cannot answer differently about the same journal in
- * the same second — B408 fixed `view()` alone and `setJournalFeatures` below
- * kept reading the raw per-journal flag for both, which is exactly how B408
- * came back on the PATCH response (B607).
+ * per-journal flag for an opt-in, the server-resolved answer for every
+ * capability in `OPERATOR_ONLY_FEATURES` that is never a journal's own to
+ * set. Used only by `setJournalFeatures` below now — the v1 `GET`/`PATCH`
+ * on `/api/v1/<user>/config` this was also once shared with is gone
+ * (decision 5, B1666) — but kept as its own function rather than inlined,
+ * since B408/B607's lesson was exactly that two call sites building this map
+ * separately is how they answer differently about the same journal in the
+ * same second.
  */
-export function journalFeatures(user: UserConfig): Record<FeatureName, boolean> {
+function journalFeatures(user: UserConfig): Record<FeatureName, boolean> {
   const serverOnly = resolveCapabilities();
   const features = {} as Record<FeatureName, boolean>;
   for (const name of FEATURE_NAMES) {
@@ -910,7 +911,6 @@ export const JOURNAL_PROFILE_FIELDS = [
   "locales",
   "defaultLocale",
   "displayCurrencies",
-  "manualRates",
   "travellers",
 ] as const;
 
@@ -955,7 +955,6 @@ export type JournalProfile = {
   locales: string[];
   defaultLocale: string;
   displayCurrencies: string[];
-  manualRates: RateTable;
   /**
    * `owner.tel`, flattened — B614, and **read-only since B1654.**
    *
@@ -1021,7 +1020,6 @@ export function journalProfile(user: UserConfig): JournalProfile {
     locales: user.locales,
     defaultLocale: user.defaultLocale,
     displayCurrencies: user.displayCurrencies,
-    manualRates: user.manualRates,
     ownerTel: user.owner.tel ?? "",
     baseCurrency: user.baseCurrency,
     media: user.media,
@@ -1237,47 +1235,6 @@ export function setJournalProfile(
         break;
       }
 
-      case "manualRates": {
-        if (typeof value !== "object" || value === null || Array.isArray(value)) {
-          return refuse(
-            "invalid_manualRates",
-            'manualRates is an object of currency code to number: {"VND": 30500}. The ' +
-              "convention is the ECB's — units of that currency for one EURO, so a currency " +
-              "worth less than the euro has a LARGE number. This is the opposite direction " +
-              "from a trip's own rates: block, which is base-per-unit. Send null for a code " +
-              "to remove it.",
-          );
-        }
-        // Merged rather than replaced, so a caller can correct one currency
-        // without holding the rest of the table. `null` removes a code —
-        // otherwise a rate typed wrongly could never be taken out again.
-        const merged: Record<string, number> = { ...user.manualRates };
-        for (const [rawCode, rawRate] of Object.entries(value as Record<string, unknown>)) {
-          const code = normalizeCurrency(rawCode);
-          if (!code) {
-            return refuse(
-              "invalid_manualRates",
-              `manualRates has key "${rawCode}"; each key is a three-letter currency code.`,
-            );
-          }
-          if (rawRate === null) {
-            delete merged[code];
-            continue;
-          }
-          const n = typeof rawRate === "string" ? Number(rawRate) : rawRate;
-          if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
-            return refuse(
-              "invalid_manualRates",
-              `manualRates.${code} must be a positive number of ${code} for one EUR, got ` +
-                `${JSON.stringify(rawRate)}. Send null to remove it.`,
-            );
-          }
-          merged[code] = n;
-        }
-        patch.manualRates = merged;
-        break;
-      }
-
       case "travellers": {
         // The same validator `.../trips/{trip}/travellers` uses — a figure
         // refused there is refused here, in the same words.
@@ -1363,10 +1320,11 @@ export function setJournalProfile(
  * as a field of its own.
  *
  * Deliberately not built by bending `journalProfile`'s field list to fit:
- * that function's shape is v1's and is used by a still-live v1 route: adding
- * `owner`/`figures`/`declined` to it and removing `startLocation`/
- * `manualRates` would change what that route reads and writes, for a
- * document nothing there has a schema for. `JournalDoc` (the wire type) is
+ * that function's shape is v1's, kept for the surviving v1 profile writers
+ * (`app/api/helper/[user]/journal/route.ts`, `app/[user]/me/page.tsx`'s own
+ * read), and adding `owner`/`figures`/`declined` to it would change what
+ * those already read and write, for a document nothing there has a schema
+ * for. `JournalDoc` (the wire type) is
  * intentionally not imported here — this file stays under `lib/`, and the
  * wire type lives one layer up in `lib/api/v2/schemas/`; the caller composes
  * this bare object into a validated `journalDoc` with `username` attached.
@@ -1405,8 +1363,8 @@ export type SetJournalV2Result =
 
 /**
  * Writes the v2 journal document onto `content/<user>/config.json` — an
- * edit, not a regeneration, so `ownerTel`, `startLocation`, `manualRates`,
- * `features`, `media` and everything else v1 still owns survive untouched.
+ * edit, not a regeneration, so `ownerTel`, `startLocation`, `features`,
+ * `media` and everything else v1 still owns survive untouched.
  *
  * The caller (the v2 route, through the shared write path in
  * `lib/api/v2/write.ts`) has already validated the FULL merged document

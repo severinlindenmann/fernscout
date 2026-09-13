@@ -184,14 +184,14 @@ describe("content/example is v2-canonical", () => {
     expect(dangling).toEqual([]);
   });
 
-  it("the journal document validates (minus the one legacy key the code still needs)", () => {
+  it("the journal document validates", () => {
+    // Decision 5 landed (B1666): `features` is instance-only now, and
+    // `content/example/config.json` no longer carries the legacy key this
+    // test used to strip before validating — the file is a plain v2 journal
+    // document, whole.
     const config = readJson(path.join(EXAMPLE, "config.json"));
-    // `features` is read by lib/capabilities.ts's own resolver, so the file
-    // keeps it until decision 5 ("features are instance-only") lands in the
-    // CODE. Content cannot lead that. Strip it here, and when the code stops
-    // reading it, this line and the key go in the same commit.
-    const { features: _legacyFeatures, ...v2 } = config;
-    expect(journalWrite.safeParse(v2)).toMatchObject({ success: true });
+    expect(config).not.toHaveProperty("features");
+    expect(journalWrite.safeParse(config)).toMatchObject({ success: true });
   });
 
   it("every figure in the library validates", () => {

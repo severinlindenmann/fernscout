@@ -95,7 +95,6 @@ export const ERROR_CODES = {
   no_frontmatter: "The file has no frontmatter block, so nothing can be read out of it. This is a fault on disk rather than in your call.",
   invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET /api/v2/{user}/figures/presets for the vocabulary.",
   unsupported_field: "A field name this call does not take. The `message` lists the ones it does — send only those, and note that publishing is never a field.",
-  mixed_change: "`features` cannot travel with a profile field. Send it in a call of its own, so switching a capability cannot also rename the journal.",
   expected_urls: "The JSON form of this upload needs `urls`. To send bytes instead, use multipart/form-data.",
   expected_src: "DELETE .../media needs `src` — one or more photographs, exactly as GET .../days/<slug> hands them back.",
   unknown_media: "One or more of `src` is not a photograph this day has. `problems` names each one; nothing was removed.",

@@ -81,7 +81,7 @@ beforeAll(async () => {
   const { clearUserCache } = await import("@/lib/users");
   const { migrateToLatest } = await import("@/lib/db/migrate");
   const { getDatabase } = await import("@/lib/db");
-  const { createJournal, setJournalFeatures } = await import("@/lib/journals");
+  const { createJournal } = await import("@/lib/journals");
   const { createTrip } = await import("@/lib/tripWrite");
 
   clearConfigCache();
@@ -96,8 +96,9 @@ beforeAll(async () => {
     ownerNickname: "Mira",
   });
   if (!created.ok) throw new Error(created.message);
-  const enabled = setJournalFeatures(OWNER, { contacts: true });
-  if (!enabled.ok) throw new Error(enabled.message);
+  // Decision 5 (docs/v2-migration/00-decisions.md, B1666) made `contacts`
+  // instance-only: the server config above already enables it, and there is
+  // no v2 door left that lets a journal opt in for itself.
 
   const trip = createTrip(OWNER, {
     id: TRIP,

@@ -28,20 +28,23 @@ import { writeTripFixture } from "./fixtures/content";
 let dir: string;
 const ref = "ana/alps";
 
-function writeInstance() {
+// Decision 5 (docs/v2-migration/00-decisions.md, B1666) made `weather`
+// instance-only: no v2 door ever lets a journal opt in or out of it, so the
+// capability's only switch left is the server's own — `writeInstance`'s
+// argument, not a per-journal flag.
+function writeInstance(weatherOn = true) {
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
       site: { name: "Fernscout", url: "https://example.test", defaultUser: "ana" },
       users: { reserved: [] },
-      // The server is the ceiling and the journal opts in inside it, so both
-      // halves have to say yes — see `resolveOne` in lib/capabilities.ts.
-      features: { weather: { enabled: true } },
+      features: { weather: { enabled: weatherOn } },
     }),
   );
+  clearConfigCache();
 }
 
-function writeJournal(weatherOn: boolean) {
+function writeJournal() {
   fs.mkdirSync(path.join(dir, "ana"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "ana", "config.json"),
@@ -55,7 +58,6 @@ function writeJournal(weatherOn: boolean) {
       baseCurrency: "CHF",
       displayCurrencies: ["CHF"],
       units: "metric",
-      features: { weather: { enabled: weatherOn } },
     }),
   );
   // Idempotent: a test may flip the capability with a second call, and
@@ -116,7 +118,7 @@ beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-weather-"));
   process.env.CONTENT_DIR = dir;
   writeInstance();
-  writeJournal(true);
+  writeJournal();
 });
 
 afterEach(() => {
@@ -210,7 +212,7 @@ describe("the line this rests on: a caller cannot assert weather", () => {
 
 describe("the capability is off", () => {
   test("no request is made to anybody, and nothing is written", async () => {
-    writeJournal(false);
+    writeInstance(false);
     const file = writeDay({ weather: true, coordinates: { lat: 15.88, lng: 108.34 } });
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -220,7 +222,7 @@ describe("the capability is off", () => {
   });
 
   test("and nothing is rendered — the day carries no reading at all", () => {
-    writeJournal(false);
+    writeInstance(false);
     writeDay({ weather: true, coordinates: { lat: 15.88, lng: 108.34 } });
     expect(getAllEntries(ref)[0].weather).toBeUndefined();
   });

@@ -59,7 +59,29 @@ function writeTrip(id: string, visibility: string) {
   });
 }
 
-/** The journal's own config, rewritten so a test can switch reactions off. */
+/**
+ * The instance's own config, rewritten so a test can switch reactions off.
+ *
+ * Decision 5 (docs/v2-migration/00-decisions.md, B1666) made `reactions`
+ * instance-only: no v2 door ever lets a journal opt out of it, so the
+ * B232 disclosure property below — a trip nobody may read must answer
+ * exactly like a trip that does not exist — has to be reached by switching
+ * the capability off at the server, not the journal.
+ */
+function writeServerConfig(features: Record<string, { enabled: boolean }>) {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "R", url: "https://example.test", defaultUser: OWNER },
+      users: { reserved: [] },
+      features,
+    }),
+  );
+}
+
+/** The journal's own config. Kept for the fields other than `features`
+ * that still live here; a journal's own `features` block is no longer read
+ * for anything this suite exercises — see writeServerConfig above. */
 function writeUserConfig(features: Record<string, { enabled: boolean }>) {
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
@@ -255,8 +277,8 @@ describe('the whole file, kept in written order', { shuffle: false }, () => {
       expect(posted.status).toBe(200);
     });
 
-    test("a journal with reactions switched off is absent, not empty", async () => {
-      writeUserConfig({
+    test("reactions switched off at the instance is absent, not empty", async () => {
+      writeServerConfig({
         auth: { enabled: true },
         contacts: { enabled: true },
         reactions: { enabled: false },
@@ -276,7 +298,7 @@ describe('the whole file, kept in written order', { shuffle: false }, () => {
         const posted = await react(`${OWNER}/open-2026`, "the-first-day", "10.9.0.4");
         expect(posted.status).toBe(404);
       } finally {
-        writeUserConfig({
+        writeServerConfig({
           auth: { enabled: true },
           contacts: { enabled: true },
           reactions: { enabled: true },

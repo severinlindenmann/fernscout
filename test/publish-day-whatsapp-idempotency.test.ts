@@ -137,7 +137,7 @@ beforeAll(async () => {
   const { clearUserCache } = await import("@/lib/users");
   const { migrateToLatest } = await import("@/lib/db/migrate");
   const { getDatabase } = await import("@/lib/db");
-  const { createJournal, setJournalFeatures } = await import("@/lib/journals");
+  const { createJournal } = await import("@/lib/journals");
 
   clearConfigCache();
   clearUserCache();
@@ -157,8 +157,9 @@ beforeAll(async () => {
     ownerTelProvenMethod: "sms",
   });
   if (!created.ok) throw new Error(created.message);
-  const featured = setJournalFeatures(OWNER, { contacts: true });
-  if (!featured.ok) throw new Error(featured.message);
+  // No setJournalFeatures here: decision 5 landed (B1666) and `contacts` is
+  // decided by the instance for every journal on it. The server config above
+  // already enables it, which is now the only place that can.
 
   const { writeTripFile } = await import("@/lib/api/v2/store");
   const { tripCreate } = await import("@/lib/api/v2/schemas");
