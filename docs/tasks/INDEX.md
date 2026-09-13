@@ -82,7 +82,7 @@ Do not edit them by hand; run the script.
 | [B1634](backlog/issue/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low |
 | [B1647](backlog/issue/B1647-costs-apply-on-a-trip-cannot.md) | costs/apply on a trip cannot find days written through the day-write endpoint | ISSUE | high | medium |
 | [B1673](backlog/issue/B1673-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | low |
-| [B1674](backlog/issue/B1674-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | low |
+| [B1674](backlog/issue/B1674-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | medium |
 | [B1675](backlog/issue/B1675-docs-api-renders-the-v1-contract.md) | /docs/api renders the v1 contract, not v2 | ISSUE | high | low |
 | [B1680](backlog/issue/B1680-the-owner-s-own-journal-is.md) | The owner's own journal is unreadable on the live instance: its trips are still trip.md | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
