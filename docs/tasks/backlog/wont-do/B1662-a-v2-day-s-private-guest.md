@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: API v2 / media
 found: "2026-09-13T12:19:30Z"
+wontDo: \"Checked and the premise is false — the gate does enforce per-photo visibility on v2 days. Evidence below.\"
 ---
 
 # B1662 — A v2 day's private/guest photograph visibility is not enforced by the file-serving route
@@ -65,3 +66,33 @@ A photograph attached to a v2-native day via
 `visibility: "private"` (or `"guest"`) answers 404 at its `/media/...` URL
 for a reader who is not entitled to it, the same as an equivalent v1 gallery
 item already does.
+
+
+## Closed 2026-09-13 — not a bug, and the evidence
+
+This was captured on the reading that `labelOf`
+(`app/[user]/media/[...path]/route.ts`) "scans only v1 markdown entries", so a
+`visibility: private` photograph on a v2 day would be served to anyone who
+guessed its URL. **That is not what happens.**
+
+`labelOf` reads `getAllEntries(ref, AS_AUTHOR)` — and since B1598
+`getAllEntries` *is* the v2 reader. Its projection
+(`lib/entries.ts`) maps each `day.media` item into the gallery shape carrying
+`visibility: parsePhotoVisibility(item.visibility)`, which fails **closed**: a
+word the code does not recognise reads as `private`, never as "no label".
+
+Checked rather than reasoned about: `test/entry-visibility.test.ts` imports the
+real `GET` from `app/[user]/media/[...path]/route.ts` and drives it against
+fixtures that are v2 JSON like everything else since B1598. 47 tests pass,
+including the held-back-day case whose own comment records B327 and B632 —
+"the words hidden and the pictures not" — which is precisely this failure mode.
+
+So both halves AGENTS.md requires are intact: `visible()` strips the item from
+every reading path, and the media route refuses the file.
+
+**Kept rather than deleted, because the reasoning is worth finding.** An agent
+reading `lib/api/v2/media.ts` alone would reach the same wrong conclusion — that
+file genuinely knows nothing about days. What makes the gate work is one level
+up, in a reader whose name does not say "v2". Anyone who rediscovers this
+should land here rather than spend an afternoon on it, or worse, "fix" a
+protection that already holds.

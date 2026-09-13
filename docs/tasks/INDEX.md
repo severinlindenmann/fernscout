@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (250)
+## backlog (251)
 
 ### security (6)
 
@@ -329,13 +329,14 @@ Do not edit them by hand; run the script.
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 | [B988](backlog/superseded/B988-the-visitor-hash-test-pins-a.md) | The visitor-hash test pins a salt that has already been drawn, so it fails about one run in three hundred | ISSUE | low | low |
 
-### wont-do (12)
+### wont-do (13)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B386](backlog/wont-do/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
 | [B1542](backlog/wont-do/B1542-the-title-page-s-reverse-is.md) | The title page's reverse is printed on, so the title leaf reads as a page rather than a title | ISSUE | medium | low |
+| [B1662](backlog/wont-do/B1662-a-v2-day-s-private-guest.md) | A v2 day's private/guest photograph visibility is not enforced by the file-serving route | ISSUE | medium | medium |
 | [B590](backlog/wont-do/B590-a-fulfilment-instance-has-no-route.md) | A fulfilment instance has no route to accept an uploaded print job | FEATURE | medium | high |
 | [B591](backlog/wont-do/B591-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to relay a print job to a fulfilment instance | FEATURE | medium | high |
 | [B592](backlog/wont-do/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
