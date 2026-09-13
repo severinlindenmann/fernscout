@@ -243,6 +243,19 @@ describe("PUT /api/v2/{user}/trips/{trip} — the 422 incomplete body", () => {
     for (const row of missing) {
       expect(row.to_decline, JSON.stringify(row)).toBe(`declined.${row.field}: <reason>`);
     }
+
+    // B1649 — `buddies` names no property of a trip at all (a buddy is
+    // added through POST .../invites), so its row must point AT that door
+    // rather than leave `to_provide` looking the same as every field a
+    // caller really can answer inline.
+    const buddiesRow = missing.find((m) => m.field === "buddies") as
+      | { to_provide?: { method?: string; path?: string; body?: Record<string, unknown> } }
+      | undefined;
+    expect(buddiesRow?.to_provide).toEqual({
+      method: "POST",
+      path: "/api/v2/{user}/invites",
+      body: { kind: "buddy", trip: "<this trip's id>", name: "<full name>", email: "<email>" },
+    });
   });
 });
 

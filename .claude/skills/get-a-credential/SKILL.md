@@ -43,7 +43,7 @@ argument is clean for some other reason.
 | call `/api/v1/**` | an **agent token**, `Authorization: Bearer` | `get-token.sh … agent` |
 | load an owner-only **page** — `/<user>/contacts`, `/<user>/me`, `/admin` | a **cookie** | `get-token.sh … cookie` |
 | prove an address across the whole instance | the **`fs_identity`** cookie | falls out of any sign-in |
-| hand an agent its own token from a browser | a **handover** credential | `POST /api/v1/<user>/handover` |
+| hand an agent its own token from a browser | a **handover** credential | `POST /api/auth/<user>/handover` |
 
 **The two do not substitute for each other, and this is the single most
 expensive confusion here.** An agent token reaches `/api/…` and never a
@@ -95,10 +95,10 @@ fresh worktree; it is gitignored and carries the demo journal's credits.
 read at all:
 
 ```bash
-curl -s -X POST localhost:3013/api/auth/request -H 'content-type: application/json' \
-  -d '{"user":"example","email":"agent@fernscout.ch","kind":"agent"}'
-curl -s -X POST localhost:3013/api/auth/verify -H 'content-type: application/json' \
-  -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","kind":"agent"}'
+curl -s -X POST localhost:3013/api/auth/codes -H 'content-type: application/json' \
+  -d '{"user":"example","email":"agent@fernscout.ch","for":"write"}'
+curl -s -X POST localhost:3013/api/auth/codes/redeem -H 'content-type: application/json' \
+  -d '{"user":"example","email":"agent@fernscout.ch","code":"123456","for":"write"}'
 ```
 
 Set it in the dev command and nowhere else: an instance that has it set has no
@@ -225,7 +225,7 @@ is live as soon as the file is valid.
 ```
 
 **`owner.nickname` is required** and its absence is the one failure you will
-hit: the journal is skipped, every page 404s, and `/api/auth/verify` answers
+hit: the journal is skipped, every page 404s, and `/api/auth/codes/redeem` answers
 `invalid_code` because no code was ever issued for a journal that does not
 exist. The server says so plainly — read it rather than guessing:
 
@@ -267,7 +267,7 @@ An owner's browser session can mint a **handover** credential: twenty minutes,
 scope `exchange:token`, refused on every route except one.
 
 ```bash
-curl -s -b "$JAR" -X POST localhost:3013/api/v1/example/handover \
+curl -s -b "$JAR" -X POST localhost:3013/api/auth/example/handover \
   -H 'content-type: application/json' -d '{}'
 # → {"handover":"fs_handover_…","minutes":20}
 
@@ -316,7 +316,7 @@ console errors, and what a screenshot can and cannot tell you.
   not exist. The request answers `202` for all three, deliberately: a different
   answer for a known address than an unknown one turns the endpoint into a way
   of asking who is registered.
-- **`403` asking for an agent code** — that address is neither the owner nor on
+- **`403` asking for a write code** — that address is neither the owner nor on
   the trip. Name the trip:
-  `{"user":"…","email":"…","kind":"agent","trip":"<trip-id>"}`.
+  `{"user":"…","email":"…","for":"write","scope":{"trip":"<trip-id>"}}`.
 - **Locally, everything 500s** — `DATABASE_URL` is not set.

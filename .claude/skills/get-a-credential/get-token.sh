@@ -70,9 +70,10 @@ newest_mail() {
   fi
 }
 
-body='{"user":"'"$JOURNAL"'","email":"agent@fernscout.ch"'
-[[ "$KIND" == agent ]] && body="$body"',"kind":"agent"'
-body="$body"'}'
+for_val="read"
+[[ "$KIND" == agent ]] && for_val="write"
+
+body='{"user":"'"$JOURNAL"'","email":"agent@fernscout.ch","for":"'"$for_val"'"}'
 
 # Note the timestamp of the newest mail before asking, so we can tell a fresh
 # one from the one that was already there — a code read out of a stale mail is
@@ -80,7 +81,7 @@ body="$body"'}'
 before="$(newest_mail | head -c 200 || true)"
 
 status=$(curl -sS -o /tmp/get-token-request.json -w '%{http_code}' \
-  -X POST "$BASE/api/auth/request" -H 'content-type: application/json' -d "$body")
+  -X POST "$BASE/api/auth/codes" -H 'content-type: application/json' -d "$body")
 if [[ "$status" != 202 ]]; then
   echo "asking for a code failed: HTTP $status" >&2
   cat /tmp/get-token-request.json >&2; echo >&2
@@ -103,19 +104,17 @@ fi
 
 code="$(printf '%s' "$mail" | python3 "$HERE/read-code.py")"
 
-verify='{"user":"'"$JOURNAL"'","email":"agent@fernscout.ch","code":"'"$code"'"'
-[[ "$KIND" == agent ]] && verify="$verify"',"kind":"agent"'
-verify="$verify"'}'
+verify='{"user":"'"$JOURNAL"'","email":"agent@fernscout.ch","code":"'"$code"'","for":"'"$for_val"'"}'
 
 if [[ "$KIND" == agent ]]; then
-  out="$(curl -sS -X POST "$BASE/api/auth/verify" -H 'content-type: application/json' -d "$verify")"
+  out="$(curl -sS -X POST "$BASE/api/auth/codes/redeem" -H 'content-type: application/json' -d "$verify")"
   token="$(printf '%s' "$out" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("token",""))')"
-  if [[ -z "$token" ]]; then echo "verify refused: $out" >&2; exit 1; fi
+  if [[ -z "$token" ]]; then echo "redeem refused: $out" >&2; exit 1; fi
   echo "$token"
 else
   jar="/tmp/fernscout-$JOURNAL-cookies.txt"
   rm -f "$jar"
-  out="$(curl -sS -c "$jar" -X POST "$BASE/api/auth/verify" -H 'content-type: application/json' -d "$verify")"
-  if ! grep -q fs_identity "$jar" 2>/dev/null; then echo "verify refused: $out" >&2; exit 1; fi
+  out="$(curl -sS -c "$jar" -X POST "$BASE/api/auth/codes/redeem" -H 'content-type: application/json' -d "$verify")"
+  if ! grep -q fs_identity "$jar" 2>/dev/null; then echo "redeem refused: $out" >&2; exit 1; fi
   echo "$jar"
 fi
