@@ -3,7 +3,7 @@
 // one error envelope every v2 route answers with.
 import type { ZodType } from "zod";
 import { describe, expect, it } from "vitest";
-import { dayDoc, dayWrite } from "../lib/api/v2/schemas";
+import { dayDoc, dayWrite, DAY_DECLINABLE_KEYS } from "../lib/api/v2/schemas";
 import { incompleteFrom, problemsFrom, splitIssues } from "../lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, logV2Request, ok, readDryRun, readJson, V2_ONLY_CODES, V2_STATUS } from "../lib/api/v2/route";
 import { ERROR_CODES } from "../lib/api/errorCodes";
@@ -22,7 +22,7 @@ const bareDay = {
 describe("incompleteFrom", () => {
   const result = dayWrite.safeParse(bareDay);
   if (result.success) throw new Error("expected the bare day to fail — nothing was declined");
-  const { missing } = incompleteFrom(result.error, dayDoc.shape as unknown as Record<string, ZodType>);
+  const { missing } = incompleteFrom(result.error, dayDoc.shape as unknown as Record<string, ZodType>, DAY_DECLINABLE_KEYS);
 
   it("names every silently-omitted section, not just the first", () => {
     const fields = missing.map((m) => m.field).sort();
@@ -74,7 +74,7 @@ describe("splitIssues", () => {
     const bad = { ...bareDay, title: "" };
     const result = dayWrite.safeParse(bad);
     if (result.success) throw new Error("expected an empty title to fail");
-    const { incomplete, problems } = splitIssues(result.error, dayDoc.shape as unknown as Record<string, ZodType>);
+    const { incomplete, problems } = splitIssues(result.error, dayDoc.shape as unknown as Record<string, ZodType>, DAY_DECLINABLE_KEYS);
     expect(incomplete).not.toBeNull();
     expect(incomplete!.missing.length).toBeGreaterThan(0);
     expect(incomplete!.problems).toBeDefined();
@@ -103,7 +103,7 @@ describe("splitIssues", () => {
     };
     const result = dayWrite.safeParse({ ...bareDay, title: "", declined });
     if (result.success) throw new Error("expected an empty title to fail");
-    const { incomplete, problems } = splitIssues(result.error, dayDoc.shape as unknown as Record<string, ZodType>);
+    const { incomplete, problems } = splitIssues(result.error, dayDoc.shape as unknown as Record<string, ZodType>, DAY_DECLINABLE_KEYS);
     expect(incomplete).toBeNull();
     expect(problems.some((p) => p.field === "title")).toBe(true);
   });

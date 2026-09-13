@@ -15,8 +15,9 @@
 // when the v1 reader they depend on cannot see a v2-native trip (B1598) — so
 // a send requested against a v2-only day reports `attempted:false` honestly
 // rather than crashing, until that read layer is rebuilt.
-import { dayDoc, dayWrite, publishRequest } from "@/lib/api/v2/schemas";
+import { dayDoc, dayWrite, publishRequest, DAY_DECLINABLE_KEYS } from "@/lib/api/v2/schemas";
 import { incompleteFrom, problemsFrom } from "@/lib/api/v2/incomplete";
+import { exemptSingleLocaleTranslations } from "@/lib/api/v2/write";
 import { fail, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import { resolveBearer, ownsUser } from "@/lib/api/v2/auth";
 import { mayActAsOwner, mayWriteTrip, refuseWrite } from "@/lib/api/auth";
@@ -95,9 +96,20 @@ export async function POST(
   // Completeness is `dayWrite`'s own check (the `superRefine` `dayDoc` does
   // not carry) — the media echo is stripped first, same as PATCH/PUT, since
   // this day came off disk with server-added fields `dayWrite` refuses.
-  const check = dayWrite.safeParse(stripMediaEcho({ ...merged }));
+  // B1667 — same door-level exemption the write routes apply: a
+  // single-locale journal has no honest answer for `translations` either
+  // way, so this completeness recheck must not re-demand it here either.
+  // Applied to the throwaway validation candidate only — `merged` itself
+  // (written to disk below) never carries the synthesised value.
+  const publishCandidate = stripMediaEcho({ ...merged });
+  exemptSingleLocaleTranslations(publishCandidate, getUser(user)?.locales ?? []);
+  const check = dayWrite.safeParse(publishCandidate);
   if (!check.success) {
-    const { missing } = incompleteFrom(check.error, dayDoc.shape as unknown as Record<string, import("zod").ZodType>);
+    const { missing } = incompleteFrom(
+      check.error,
+      dayDoc.shape as unknown as Record<string, import("zod").ZodType>,
+      DAY_DECLINABLE_KEYS,
+    );
     if (missing.length > 0) {
       return fail(
         "incomplete_day",
