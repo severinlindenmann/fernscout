@@ -81,6 +81,12 @@ function seedSource() {
     path.join(srcDir, "traveller", "trips", "open-2026", "media", "alpha", "photo.jpg"),
     "not really a jpeg, just bytes to round-trip",
   );
+  // B1603 — the untouched print master a photobook prints from, kept whole
+  // beside the derivative the site serves.
+  write(
+    path.join(srcDir, "traveller", "trips", "open-2026", "originals", "alpha", "photo.heic"),
+    "the untouched original, an order of magnitude larger",
+  );
 
   // A real export pulled from a scratch journal turned these up — B1387.
   // `.DS_Store` at the trip root *and* under `media/`, plus the internal
@@ -226,6 +232,69 @@ describe("buildUserExportZipBuffer — scope 'all'", () => {
       "utf8",
     );
     expect(photo).toBe("not really a jpeg, just bytes to round-trip");
+  });
+});
+
+/**
+ * B1603 — an export used to skip `originals/` outright, on the theory that a
+ * hosted owner would "back it up with the filesystem" — not an option they
+ * have. The deletion export is the last chance to get a copy of anything
+ * before it is gone for good, so it has to carry the print master too.
+ */
+describe("buildUserExportZipBuffer — originals", () => {
+  test("scope 'all', whole journal: carries the original", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "all-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("scope 'open-to-link': carries the original for a trip anyone could already read", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "open-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("narrowed to one trip (the deletion export's own shape): carries the original", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("MEDIA_ORIGINALS_DIR pointed at another disk: the original still ends up in the zip", async () => {
+    const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-export-originals-"));
+    process.env.MEDIA_ORIGINALS_DIR = externalRoot;
+    write(
+      path.join(externalRoot, "traveller", "open-2026", "alpha", "photo-external.heic"),
+      "kept on another disk entirely",
+    );
+    try {
+      process.env.CONTENT_DIR = srcDir;
+      const buffer = await buildUserExportZipBuffer("traveller", "all");
+      const extracted = unzipInto(buffer, "external-originals");
+      expect(
+        fs.existsSync(
+          path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo-external.heic"),
+        ),
+      ).toBe(true);
+    } finally {
+      delete process.env.MEDIA_ORIGINALS_DIR;
+      fs.rmSync(externalRoot, { recursive: true, force: true });
+    }
   });
 });
 

@@ -1,5 +1,5 @@
 import { attachGallery, detachGallery } from "@/lib/api/entries";
-import { attachOriginal, storeUploads } from "@/lib/api/media";
+import { storeUploads } from "@/lib/api/media";
 import { loadUserConfig } from "@/lib/config";
 import { dayForWizard, isHelperOwner, notYourJournal, previewOf } from "@/lib/helper/server";
 import { kindForExtension, storeInboxFile } from "@/lib/inbox";
@@ -9,32 +9,37 @@ import { getTrip, tripRef } from "@/lib/trips";
 export const dynamic = "force-dynamic";
 
 /**
- * Two phases, a bucket for everything else, and the number to ask before
- * starting — B683.
+ * A bucket for everything else, and the number to ask before starting —
+ * B683.
  *
  * B682 sent one file per request, whole, in order, and that is exactly the
  * shape that fails on hotel wifi: forty 50 MB HEICs go up at the speed of the
  * worst minute of the connection and the day is unreadable until the last one
  * lands. The transfer is what changed here; nothing about storage did.
  *
- * ## `phase=web`
+ * B683 also built a `phase=original` two-phase upload for this route (a
+ * 2000px web copy first, the untouched file afterwards through
+ * `attachOriginal`) so a phone's own full-resolution HEIC would not be the
+ * thing standing between hotel wifi and a readable day. B1435 found it had
+ * no caller left once the inbox-first redesign (B984/B1171,
+ * `components/HelperRoom.tsx`'s `UploadPanel`) retired the step wizard this
+ * was built for — every photograph now reaches a day through the inbox
+ * (`POST .../inbox`, then attach), and the inbox already sends the untouched
+ * file in one request because it needs no web derivative before anybody can
+ * see the day. That path's `storeUploads` call keeps the same original the
+ * two-phase design existed to protect, so the phone-original problem is
+ * already solved a different way; `attachOriginal` and `phase=original` were
+ * removed rather than left as an orphaned capability nothing exercises.
  *
- * A 2000px copy the browser made — the width `lib/mediaSizes.ts` already
- * targets — straight into `storeUploads`, which is the same function the
+ * What is left:
+ *
+ * ## `POST`, media
+ *
+ * A photograph or clip straight into `storeUploads`, the same function the
  * documented `POST /api/v1/.../media` calls and which owns every rule about
- * formats, counts, duplicates, the quota and keeping an original. A day is
- * complete and readable within seconds of the first few landing.
+ * formats, counts, duplicates, the quota and keeping an original.
  *
- * The response carries each item's `src`, which the web copy's caller needs
- * and B682's did not: it is what the second phase attaches to.
- *
- * ## `phase=original`
- *
- * The untouched file, against the item the first phase created, through
- * `attachOriginal`. It climbs in the background while the person writes their
- * words, and `originals/` ends up holding what the photobook prints from.
- *
- * ## Anything that is not media
+ * ## `POST`, anything that is not media
  *
  * Goes to the inbox (`lib/inbox.ts`) rather than being refused. Somebody who
  * picks a bank statement or a Timeline export out of their photo roll has
@@ -179,15 +184,6 @@ export async function POST(
   const tripId = String(form.get("trip") ?? "").trim();
   const ref = tripRef(user, tripId);
   if (!getTrip(ref)) return Response.json({ error: "unknown_trip" }, { status: 404 });
-
-  if (String(form.get("phase") ?? "web") === "original") {
-    const src = String(form.get("src") ?? "");
-    const attached = await attachOriginal(ref, src, file.name, bytes);
-    if (!attached.ok) {
-      return Response.json({ error: "invalid_media", problems: attached.problems }, { status: 400 });
-    }
-    return Response.json({ ok: true, original: attached.stored }, { status: 201 });
-  }
 
   const day = String(form.get("day") ?? "").trim();
   const written = await storeUploads(ref, day, [{ filename: file.name, bytes }]);

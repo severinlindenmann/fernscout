@@ -34,6 +34,7 @@ import { skillDocPath } from "@/lib/api/skillDocMeta";
 import { serverSite } from "@/lib/site";
 import { readTripFile, writeTripFile, writeDayFile } from "@/lib/api/v2/store";
 import { toStoredMedia } from "@/lib/api/v2/days";
+import { daylessTripMediaSrcs } from "@/lib/api/v2/media";
 import { buildTripDoc, notifyNewPeople, tripDays } from "@/lib/api/v2/trips";
 import type { TripFile } from "@/lib/api/v2/documents";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
@@ -211,10 +212,13 @@ export async function PUT(request: Request, { params }: RouteCtx) {
   // carries. On a REPLACE `raw.days` was deleted above (a day changes
   // through its own route), so the media that counts is what is already on
   // disk; on a genuine create the only media that can exist yet is what this
-  // same call is writing inline.
-  const coverMediaSrcs = new Set<string>(
-    (stored ? tripDays(user, trip) : (parsed.data.days ?? [])).flatMap((d) => (d.media ?? []).map((m) => m.src)),
-  );
+  // same call is writing inline. B1503 unions in day-less trip media too — a
+  // cover uploaded before its day exists (T2) is stored with no `day` and
+  // joins no day's own `media` array, so it needs naming here explicitly.
+  const coverMediaSrcs = new Set<string>([
+    ...(stored ? tripDays(user, trip) : (parsed.data.days ?? [])).flatMap((d) => (d.media ?? []).map((m) => m.src)),
+    ...(stored ? daylessTripMediaSrcs(user, trip) : []),
+  ]);
   const coverProblem = checkCover(parsed.data.cover, coverMediaSrcs);
   if (coverProblem) return fail("invalid_cover", coverProblem, undefined, 400);
 
@@ -452,7 +456,10 @@ export async function applyTripPatch(
     return fail("incomplete", ERROR_CODES.incomplete, { missing: localeProblem.missing }, 422);
   }
 
-  const coverMediaSrcs = new Set<string>(tripDays(user, trip).flatMap((d) => (d.media ?? []).map((m) => m.src)));
+  const coverMediaSrcs = new Set<string>([
+    ...tripDays(user, trip).flatMap((d) => (d.media ?? []).map((m) => m.src)),
+    ...daylessTripMediaSrcs(user, trip),
+  ]);
   const coverProblem = checkCover(finalParsed.data.cover, coverMediaSrcs);
   if (coverProblem) return fail("invalid_cover", coverProblem, undefined, 400);
 

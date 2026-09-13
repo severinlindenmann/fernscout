@@ -736,6 +736,69 @@ describe("PATCH /api/v2/{user}/trips/{trip} — cover is checked against the tri
 });
 
 /**
+ * B1503 — a cover before its day. T2's day-less trip write (the v2 media
+ * door, `POST /api/v2/{user}/media` with `trip` and a declined `day`) lands
+ * a photograph directly in the trip's own `media/`, with no day to join its
+ * `media` array. `checkCover` above only ever looked at what days carried,
+ * so a photograph stored this way could be listed (`GET .../media`) but
+ * never set as the trip's own cover — exactly the situation this trip cannot
+ * yet have a day for.
+ */
+describe("PATCH /api/v2/{user}/trips/{trip} — a day-less photo can be the cover (B1503)", () => {
+  async function uploadDaylessPhoto(tripId: string, token: string): Promise<string> {
+    const sharp = (await import("sharp")).default;
+    const bytes = await sharp({ create: { width: 400, height: 400, channels: 3, background: { r: 5, g: 5, b: 5 } } })
+      .jpeg()
+      .toBuffer();
+    const { POST: postMedia } = await import("@/app/api/v2/[user]/media/route");
+    const form = new FormData();
+    form.set(
+      "intent",
+      JSON.stringify({ kind: "photo", trip: tripId, declined: { day: "no day yet", caption: "cover candidate" } }),
+    );
+    form.set("file", new File([new Uint8Array(bytes)], "cover.jpg", { type: "image/jpeg" }));
+    const response = await postMedia(
+      new Request(`https://example.test/api/v2/${OWNER}/media`, {
+        method: "POST",
+        // Not the shared `headers()` helper — it fixes `content-type:
+        // application/json`, which stamps over the multipart boundary a
+        // `FormData` body needs to be readable at all.
+        headers: { authorization: `Bearer ${token}` },
+        body: form,
+      }),
+      { params: Promise.resolve({ user: OWNER }) },
+    );
+    const body = (await response.json()) as { src?: string };
+    expect(response.status, JSON.stringify(body)).toBe(201);
+    return String(body.src);
+  }
+
+  test("is refused before any trip media exists at all", async () => {
+    const token = await ownerToken();
+    const tripId = "cover-dayless-empty-trip";
+    await putTrip(OWNER, tripId, fullTrip(tripId), token);
+
+    const { status, body } = await patchTrip(OWNER, tripId, { cover: `/${OWNER}/media/${tripId}/loose.jpg` }, token);
+    expect(status, JSON.stringify(body)).toBe(400);
+    expect(body.error).toBe("invalid_cover");
+  });
+
+  test("a day-less photo the trip actually stored is accepted as the cover", async () => {
+    const token = await ownerToken();
+    const tripId = "cover-dayless-trip";
+    await putTrip(OWNER, tripId, fullTrip(tripId), token);
+    const src = await uploadDaylessPhoto(tripId, token);
+
+    const { status, body } = await patchTrip(OWNER, tripId, { cover: src }, token);
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.cover).toBe(src);
+
+    const { body: onDisk } = await getTrip(OWNER, tripId, token);
+    expect(onDisk.cover).toBe(src);
+  });
+});
+
+/**
  * D14 (06-contract-deltas.md, owner's decision 2026-09-12) — `null` on a
  * PATCH removes `cover`, `accent`, `tagline` or `intro`, finishing RFC 7386
  * (JSON Merge Patch). Scope is exactly these four plain scalars: a
