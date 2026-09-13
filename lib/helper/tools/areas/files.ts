@@ -5,6 +5,7 @@ import type { Tool } from "../types";
 import { DAY_ARGS } from "../args";
 import { isEnabled } from "../../../capabilities";
 import { listContacts, normaliseEmail } from "../../../contacts";
+import { MAX_IMPORT_ROWS } from "../../../contacts/importRows";
 import { readContactsFile } from "../../../contacts/readImport";
 import { AS_AUTHOR, getEntryBySlug } from "../../../entries";
 import { findInboxFile, listInbox } from "../../../inbox";
@@ -31,10 +32,11 @@ function findCard(
   return "ambiguous";
 }
 
-/** `import_contacts`'s own ceiling — the write route's own `MAX_ROWS`
- *  (`app/api/v1/[user]/contacts/import/route.ts`), matched here so a card
- *  never offers more ticks than a single press can file. */
-const MAX_VCARD_ROWS = 50;
+/** `import_contacts`'s own ceiling — `lib/contacts/importRows`' own
+ *  `MAX_IMPORT_ROWS`, the same bound both the v1 and v2 `contacts/import`
+ *  writers enforce, imported here so a card never offers more ticks than a
+ *  single press can file and a hand-typed "50" cannot drift from it. */
+const MAX_VCARD_ROWS = MAX_IMPORT_ROWS;
 
 /** What kind of thing an inbox entry is, in the words a person reads rather
  *  than the folder name — `INBOX_KINDS` from `lib/inbox.ts`. `media` is not
