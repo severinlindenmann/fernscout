@@ -57,10 +57,17 @@ Check the same path for a **journal** deletion, and for
 `published_day_not_deletable` on a day — anywhere `lib/deletions.ts` resolves
 content, it is resolving it with v1's reader.
 
-Once B1598 lands and `getTrip` itself reads JSON, this stops being reachable
-— but it should be fixed on its own terms rather than waiting, because the
-bug is "two readers disagree", and that is worth removing even when both
-happen to agree.
+**Update, 2026-09-13:** B1598's reader flip fixes this as a side effect —
+`getTrip` reads the v2 JSON, so `requestDeletion` resolves the trip and the
+route answers `202` with the mail. Confirmed on that branch:
+`test/api-v2-trips.test.ts`'s DELETE case, written to pin this bug, now fails
+because the behaviour is correct.
+
+That closes the symptom, and the underlying complaint — *two readers
+disagreeing about what exists* — closes with it, since there is only one
+reader afterwards. What survives is the **test**: the round trip belongs in
+the suite whether or not the bug is reachable, because a shape-only check of
+the delete flow passed throughout.
 
 **Add the round trip to the test suite**: create through v2, delete through
 v2, and assert the 202 and the mail. A test asserting only that DELETE

@@ -7,6 +7,7 @@ complexity: low
 area: helper, room
 found: "2026-09-11T11:11:06Z"
 started: "2026-09-12T19:53:32Z"
+merged: "2026-09-13T06:26:01Z"
 ---
 
 # B1445 — A spent trip-choice card stays a pressable button that does nothing
@@ -41,6 +42,24 @@ states — the control stops being a control.
 Disable or de-emphasise a choice card's buttons once the choice it offered has
 been made, the same way the proposal cards do. Check whether the nudge
 ("pick one") should still render under a card whose options are spent.
+
+## Implementation
+
+`ChooseBlock` records the first non-link option pressed. Once a choice has
+been sent, all of that block's ordinary option rows become muted non-focusable
+summary rows. Links stay links because they still navigate. The nudge is model
+prose outside the choice control and is unchanged by this focused fix.
+
+`test/helper-chat.test.tsx` now proves that choosing a trip sends its label and
+leaves neither of the old trip choices as buttons.
+
+## Verification
+
+`npm run build`, `npx tsc --noEmit`, `npx eslint .`, `npx vitest run
+test/helper-chat.test.tsx`, and `npm run unused` pass with Node 24. The focused
+test drives the actual React choice state with a mocked model response; the
+local browser procedure documents that a live room needs a model credential,
+which is not spent for this state-only UI regression.
 
 ## Acceptance
 

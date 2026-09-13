@@ -2624,7 +2624,7 @@ function FilesStrip({
               }`}
             >
               {file.src ? (
-                <Image src={file.src} loader={mediaLoader} alt="" fill sizes="42px" className="object-cover" />
+                <Image src={file.src} loader={mediaLoader} alt="" width={42} height={42} className="object-cover" />
               ) : (
                 <span className="flex h-full w-full items-center justify-center text-sm" aria-hidden>
                   📄
@@ -2863,8 +2863,8 @@ function Tile({
               src={file.src}
               loader={mediaLoader}
               alt=""
-              fill
-              sizes="96px"
+              width={96}
+              height={96}
               className="object-cover"
             />
           ) : (

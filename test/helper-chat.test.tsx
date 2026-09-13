@@ -345,6 +345,13 @@ describe("the blocks a tool declares", () => {
     expect(field().value).toBe("");
     const sent = calls.filter((call) => call.url.endsWith("/ask")).map((call) => call.body.said);
     expect(sent).toContain("Japan");
+    // B1445: this turn's options now describe the choice that was made; they
+    // must not remain focusable controls whose second press cannot do anything.
+    expect(
+      [...container!.querySelectorAll("button")].some((button) =>
+        ["Japan", "Alps"].some((label) => (button.textContent ?? "").includes(label)),
+      ),
+    ).toBe(false);
   });
 
   test("`preview` draws the thing itself, line by line", async () => {
@@ -373,6 +380,18 @@ describe("the blocks a tool declares", () => {
     // Focus moves to the proposal when one appears — B795's lesson, applied
     // before it is a bug rather than after.
     expect((document.activeElement as HTMLElement)?.textContent).toContain("A trip called Japan.");
+  });
+
+  test("does not repeat a guarded sentence above its card", async () => {
+    const proposal = proposed().blocks[0];
+    answers({
+      ok: true,
+      kind: "read",
+      blocks: [proposal, { shape: "say", text: proposal.text } as Block],
+    });
+    render();
+    await ask("make a trip to japan");
+    expect((container!.textContent ?? "").split(proposal.text).length - 1).toBe(1);
   });
 
   test("pressing posts what the proposal says, where it says, edits and all", async () => {

@@ -6,6 +6,8 @@ priority: medium
 complexity: low
 area: map, trips
 found: "2026-09-11T15:41:38Z"
+started: "2026-09-13T07:02:32Z"
+merged: "2026-09-13T07:05:31Z"
 ---
 
 # B1476 — A trip marked upcoming says Where we have been, because one day names a place
@@ -65,3 +67,27 @@ Check the subtitle and the metadata title too, which follow the same flag, and
 - A finished trip still reads in the past tense, with or without coordinates.
 - B118's empty-trip policy still holds, and a test says so.
 - `npm run verify` clean.
+
+## Revalidated — 2026-09-13
+
+Still valid on current `main`: `MapPageContent` derives the heading from
+`hasPlaces || (over && hasDays)`, so a future `upcoming` trip with a planned
+day location is announced in the past tense. The page metadata already uses the
+date-aware rule, while `WorldMap` independently derives its aria-label from
+`places.length`, leaving the visible and accessible names inconsistent.
+
+## Implemented
+
+Map tense now depends only on a completed trip with at least one written day;
+planned locations no longer force past tense. The same decision is passed to
+`WorldMap` for its aria-label, keeping visible and accessible copy aligned. A
+regression test covers a future trip with a located day and preserves the
+finished-trip and empty-trip cases.
+
+## Verification
+
+- Map/page/world-map tests — 48 passed.
+- `npm run build` — pass (existing 28 Turbopack filesystem warnings remain).
+- `npx tsc --noEmit` — pass.
+- ESLint — pass with no errors.
+- `npm run unused` — pass (existing configuration hints only).

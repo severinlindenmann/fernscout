@@ -38,10 +38,16 @@ export function whatsappCountryCode(): string | undefined {
  * number id `WHATSAPP_PHONE_NUMBER_ID` names is not the dialable number
  * itself.
  */
-export function whatsappDisplayNumber(): string | undefined {
+export function whatsappNumberForUrl(): string | undefined {
   const configured = loadServerConfig().features.whatsapp.number;
   if (typeof configured !== "string" || configured.trim() === "") return undefined;
   return toE164(configured) ?? undefined;
+}
+
+/** The instance number as a person should read and dial it. */
+export function whatsappNumberForDisplay(): string | undefined {
+  const number = whatsappNumberForUrl();
+  return number ? `+${number}` : undefined;
 }
 
 /**

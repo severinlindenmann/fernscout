@@ -6,6 +6,8 @@ priority: medium
 complexity: low
 area: components/HelperRoom.tsx
 found: "2026-09-11T07:09:18Z"
+started: "2026-09-13T07:11:19Z"
+merged: "2026-09-13T07:14:42Z"
 ---
 
 # B1416 — The files-rail chip downloads uncapped photographs for a 42px avatar
@@ -42,3 +44,14 @@ layout with a fixed pixel `sizes` value does not narrow the candidate widths,
 so the loader serves the 320px floor for a thumbnail. Do the two together, and
 grep for any third instance while you are in there — the pattern has now
 recurred twice after being fixed.
+
+## Revalidated — 2026-09-13
+
+Still valid: the files rail still uses `fill sizes="42px"`; the fix is isolated
+to the image layout and has no product decision.
+
+## Implemented / Verification
+
+The 42px rail image now uses explicit dimensions. The paired inbox thumbnails
+were corrected in the same change. Focused inbox/helper tests passed; build,
+typecheck, lint, and knip pass with existing warnings only.

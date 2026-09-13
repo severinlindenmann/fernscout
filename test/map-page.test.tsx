@@ -218,7 +218,7 @@ describe("an upcoming trip: a plan and no days", () => {
 
 describe("a trip with days", () => {
   test("is unchanged: map, statistics and every stop", () => {
-    const html = render({ places: [place], stats: travelled });
+    const html = render({ places: [place], stats: travelled, over: true, hasDays: true });
     expect(mapViewBox(html)).not.toBeNull();
     expect(html).toContain(dictionaryFor("en")["map.days"]);
     expect(html).toContain(dictionaryFor("en")["map.everyStop"]);
@@ -227,10 +227,17 @@ describe("a trip with days", () => {
   });
 
   test("keeps the past tense, which is true of it", () => {
-    const html = text(render({ places: [place], stats: travelled }));
+    const html = text(render({ places: [place], stats: travelled, over: true, hasDays: true }));
     expect(html).toContain(dictionaryFor("en")["map.title"]);
     expect(html).toContain(dictionaryFor("en")["map.subtitle"]);
     expect(html).not.toContain(dictionaryFor("en")["map.titlePlanned"]);
+  });
+
+  test("keeps a future trip in the planned tense even when a day names a place", () => {
+    const html = text(render({ places: [place], stats: travelled, hasDays: true }));
+    expect(html).toContain(dictionaryFor("en")["map.titlePlanned"]);
+    expect(html).not.toContain(dictionaryFor("en")["map.title"]);
+    expect(html).toContain(`aria-label="${dictionaryFor("en")["map.titlePlanned"]}"`);
   });
 });
 

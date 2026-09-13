@@ -28,7 +28,7 @@ import { currencyOptions } from "@/lib/rates";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
-import { whatsappDisplayNumber } from "@/lib/whatsapp/settings";
+import { whatsappNumberForUrl } from "@/lib/whatsapp/settings";
 
 // Reads the identity cookie on every request; there is nothing here to
 // prerender, the same reasoning as `/[user]/me`.
@@ -232,7 +232,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
           // chip that would fail.
           whatsappNumber={
             journal.owner.telProvenAt && isEnabled("whatsappInbound", user)
-              ? whatsappDisplayNumber()
+              ? whatsappNumberForUrl()
               : undefined
           }
           // B1218 (D48) — the follow-up chip after a words write may only
@@ -278,7 +278,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
       {upgradeIdentity && <IdentityUpgrade />}
     <AgentDoor
       docUrl={`${site.url}/documentation.txt`}
-      agentUrl={`${site.url}/agent.md`}
+      agentUrl={`${site.url}/skill/add-a-day.md`}
       codeMinutes={CODE_TTL_MINUTES}
       signedIn={Boolean(identity)}
       identityEmail={identity?.email ?? null}
@@ -287,7 +287,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
       // This instance's own wa.me number, or absent — B1310. Same server-
       // side gate `/` uses; a stranger at this door has no journal to ask
       // a proven-number question about, unlike the room's own chip.
-      whatsappNumber={whatsappDisplayNumber()}
+      whatsappNumber={whatsappNumberForUrl()}
     />
     </>
   );

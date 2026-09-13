@@ -7,7 +7,7 @@ import { publicJournals } from "@/lib/home";
 import { hasLegal } from "@/lib/legal";
 import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
 import { bannerFor, serverSite } from "@/lib/site";
-import { whatsappDisplayNumber } from "@/lib/whatsapp/settings";
+import { whatsappNumberForUrl } from "@/lib/whatsapp/settings";
 
 /**
  * The bare domain is the landing page.
@@ -103,7 +103,7 @@ export default async function Root() {
       <Landing
         siteName={site.name}
         docUrl={`${site.url}/documentation.txt`}
-        agentUrl={`${site.url}/agent.md`}
+        agentUrl={`${site.url}/skill/add-a-day.md`}
         // The advertised list, and nothing personal: this page is the same
         // document for everybody, so it stays cacheable. What one signed-in
         // reader may open arrives separately from `/api/v1/me/home` — see
@@ -128,7 +128,7 @@ export default async function Root() {
         // like every other gate on this page: no client fetch decides
         // whether the link is there, so there is nothing to flash in after
         // the first paint.
-        whatsappNumber={whatsappDisplayNumber()}
+        whatsappNumber={whatsappNumberForUrl()}
         // Rendered here and handed over, because `Landing` is a client
         // component and `Pricing` is a server one: it reads a price from the
         // `server-only` module that charges it rather than having a dozen

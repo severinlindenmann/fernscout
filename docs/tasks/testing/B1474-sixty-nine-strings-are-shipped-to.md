@@ -6,6 +6,8 @@ priority: medium
 complexity: low
 area: locales
 found: "2026-09-11T15:30:25Z"
+started: "2026-09-13T07:16:19Z"
+merged: "2026-09-13T07:23:34Z"
 ---
 
 # B1474 — Sixty-nine strings are shipped to Hungarian readers in English, including the whole of an order's status
@@ -52,8 +54,23 @@ ships and is read by somebody whose language it is. If that person is not
 available, the honest outcome is a shorter list translated properly, not a
 longer one guessed.
 
+## Implementation
+
+Translated the genuinely English values in `site/locales/hu.json`, including
+the photobook receipt, refusal/refund, shipping and status copy, error pages,
+documentation headings and photobook pricing detail. Ten values remain
+identical by design: product names and brands (WhatsApp, TWINT, Fernscout),
+the intentionally multilingual onboarding card, placeholder-only metadata,
+and the Hungarian-standard `e-mail` spelling.
+
 ## Acceptance
 
 The photobook receipt and the postcard order page read entirely in Hungarian
 at `?lang=hu`, with no English left in the head, the status or the refund
 sentence. `npm run verify` green.
+
+## Verification
+
+`npx vitest run test/locales.test.ts` passes (29 tests). The derived comparison
+now reports only the ten intentional shared values listed above; no English
+photobook, error or pricing copy remains in `hu.json`.

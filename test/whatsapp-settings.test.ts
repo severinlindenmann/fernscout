@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { clearConfigCache } from "@/lib/config";
-import { whatsappDisplayNumber } from "@/lib/whatsapp/settings";
+import { whatsappNumberForDisplay, whatsappNumberForUrl } from "@/lib/whatsapp/settings";
 
 /**
  * B1127 — the dialable number a `wa.me` chip needs, and nothing else: no
@@ -32,26 +32,27 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("whatsappDisplayNumber", () => {
+describe("whatsappNumberForUrl", () => {
   test("absent when not configured", () => {
     writeConfig({ enabled: true });
-    expect(whatsappDisplayNumber()).toBeUndefined();
+    expect(whatsappNumberForUrl()).toBeUndefined();
   });
 
   test("the configured number, trimmed", () => {
     writeConfig({ enabled: true, number: " 41782172640 " });
-    expect(whatsappDisplayNumber()).toBe("41782172640");
+    expect(whatsappNumberForUrl()).toBe("41782172640");
   });
 
   test("an empty string is the same as absent", () => {
     writeConfig({ enabled: true, number: "" });
-    expect(whatsappDisplayNumber()).toBeUndefined();
+    expect(whatsappNumberForUrl()).toBeUndefined();
   });
 
   test("a human-formatted number is normalised to bare digits", () => {
     // The live instance's own shape — typed with spaces and a leading +,
     // which a wa.me link cannot use as-is.
     writeConfig({ enabled: true, number: "+41 78 217 26 46" });
-    expect(whatsappDisplayNumber()).toBe("41782172646");
+    expect(whatsappNumberForUrl()).toBe("41782172646");
+    expect(whatsappNumberForDisplay()).toBe("+41782172646");
   });
 });
