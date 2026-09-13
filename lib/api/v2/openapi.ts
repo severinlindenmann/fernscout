@@ -59,6 +59,8 @@ import {
 } from "../../travellers/vocabulary";
 import { BOOK_SIZES, COVER_TYPES } from "../../photobook/spec";
 import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS, POSTCARD_CREDITS } from "../../credits/pricing";
+import { HELPER_PROVIDER, TRAVELLERS_FROM_PHOTO_CREDITS } from "../../helper/model";
+import { IMPORT_KINDS } from "../../gps/api";
 
 /**
  * The generated v2 machine contract — B1596/B1608 onward, this ticket
@@ -477,6 +479,119 @@ const purchasesList = z.strictObject({ purchases: z.array(purchaseDoc), next_cur
 const ledgerList = z.strictObject({ ledger: z.array(ledgerRow), next_cursor: z.string().nullable() });
 const figuresList = z.strictObject({ figures: z.array(figureDoc), next_cursor: z.string().optional() });
 
+// ── the sync surface (B1495) — a journal's own folder, mirrorable ────────
+const syncManifestEntry = z.strictObject({ path: z.string(), size: z.number().int().nonnegative(), hash: z.string() });
+const syncManifest = z.strictObject({
+  user: z.string(),
+  files: z.array(syncManifestEntry),
+  omitted: z.strictObject({
+    originals: z.strictObject({ files: z.number().int().nonnegative(), bytes: z.number().int().nonnegative() }),
+  }),
+  bytes: z.number().int().nonnegative(),
+  next: z.string(),
+});
+
+// ── the identity surface (B411) — an address's own device list, not a
+// journal's; no {user} in either path. ────────────────────────────────────
+const homeDevice = z.strictObject({
+  id: z.string(),
+  publicId: z.string(),
+  createdAt: z.string(),
+  lastSeenAt: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  current: z.boolean(),
+});
+const homeJournal = z.strictObject({
+  username: z.string(),
+  title: z.string(),
+  tagline: z.string(),
+  href: z.string(),
+  role: z.enum(["admin", "owner", "traveller", "guest"]),
+  trips: z.array(z.record(z.string(), z.unknown())),
+});
+const homeDoc = z.strictObject({
+  id: z.string().nullable(),
+  email: z.string().nullable(),
+  admin: z.boolean(),
+  journals: z.array(homeJournal),
+  devices: z.array(homeDevice),
+});
+const deviceRevoked = z.strictObject({ ok: z.literal(true), current: z.boolean() });
+
+// ── importing somebody's own data (B671) — gps and contacts only; a bank
+// statement moved to the media/statements doors in B1624. ────────────────
+const importDoor = z.strictObject({
+  kind: z.enum(IMPORT_KINDS),
+  what: z.string(),
+  formats: z.array(z.strictObject({ id: z.string(), label: z.string() })),
+});
+const importGetDoc = z.strictObject({
+  user: z.string(),
+  kinds: z.array(importDoor),
+  maxBytes: z.number().int().positive(),
+  next: z.string(),
+});
+const gpsImportResult = z.strictObject({
+  kind: z.literal("gps"),
+  format: z.string(),
+  detected: z.boolean(),
+  read: z.number().int().nonnegative(),
+  from: z.string().nullable(),
+  to: z.string().nullable(),
+  stored: z
+    .strictObject({
+      read: z.number().int().nonnegative(),
+      before: z.number().int().nonnegative(),
+      after: z.number().int().nonnegative(),
+      months: z.array(z.string()),
+    })
+    .optional(),
+  dryRun: z.boolean(),
+  next: z.string(),
+});
+const contactsImportResult = z.strictObject({
+  kind: z.literal("contacts"),
+  format: z.string(),
+  detected: z.boolean(),
+  people: z.array(z.strictObject({ name: z.string(), email: z.string().optional(), tel: z.string().optional() })),
+  withEmail: z.number().int().nonnegative(),
+  next: z.string(),
+});
+
+// ── the same photograph twice (B1103) ─────────────────────────────────────
+const duplicateMediaItem = z.strictObject({
+  src: z.string(),
+  day: z.string(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+  bytes: z.number().int().nonnegative(),
+});
+const duplicatesDoc = z.strictObject({
+  ok: z.literal(true),
+  groups: z.array(z.array(duplicateMediaItem)),
+  note: z.string(),
+});
+
+// ── reading a party off a photograph (B1517) — proposed, never written, so
+// this is the figure's appearance alone: no id (nothing is stored), no
+// name and no person (this call never matches a face to somebody). ──────
+const figureAppearance = figureDoc.omit({ id: true, name: true, person: true });
+const fromPhotoResult = z.strictObject({
+  ok: z.literal(true),
+  figures: z.array(
+    z.strictObject({
+      position: z.number().int().nonnegative(),
+      figure: figureAppearance,
+      unanswerable: z.array(z.string()),
+    }),
+  ),
+  party: z.array(figureAppearance),
+  preview: z.string(),
+  spent: z.literal(TRAVELLERS_FROM_PHOTO_CREDITS),
+  provider: z.literal(HELPER_PROVIDER),
+  note: z.string(),
+});
+
 type Operation = {
   summary: string;
   request?: ReturnType<typeof jsonBody>;
@@ -545,6 +660,26 @@ function buildPaths(): Record<string, PathItem> {
     },
   };
 
+  // ── the identity surface — an address, not a journal; no {user} ───────
+  paths["/api/v2/me/home"] = {
+    get: {
+      summary: "What this address may open, and its own device list. No bearer token — an fs_identity cookie, or nobody.",
+      responses: {
+        ...jsonResponse(200, homeDoc, "always 200 — `id: null` is a stranger, not a refusal"),
+        ...noBodyResponse(405, "a verb this route does not answer"),
+      },
+    },
+  };
+  paths["/api/v2/me/devices/{id}"] = {
+    delete: {
+      summary: "End one device's identity. The id is checked against this address's own list.",
+      responses: {
+        ...jsonResponse(200, deviceRevoked, "revoked"),
+        ...refusalResponses([ref("auth_disabled", 404), ref("not_signed_in", 401), ref("no_such_device", 404)]),
+      },
+    },
+  };
+
   paths["/api/v2/geocode"] = {
     post: {
       summary: "A place name into candidate coordinates, never a guess.",
@@ -609,6 +744,63 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(200, storageDoc, "usage, breakdown, what could be reclaimed, and the price of more"),
         ...refusalResponses([...authRefusals, outOfScope(), noSuchJournal()]),
+      },
+    },
+  };
+
+  // ── the sync surface — every refusal the same not_found, deliberately ──
+  const hiddenNotFound = () => ref("not_found", 404, "the same refusal whether the journal is unknown, the token is for a different one, or it is merely trip-scoped");
+  paths["/api/v2/{user}/sync/manifest"] = {
+    get: {
+      summary: "Every file this journal's folder holds, with a hash — the up-to-date check for a local mirror. Owner only.",
+      responses: { ...jsonResponse(200, syncManifest, "path, size and hash of every syncable file"), ...refusalResponses([...authRefusals, hiddenNotFound()]) },
+    },
+  };
+  paths["/api/v2/{user}/sync/file/{path}"] = {
+    get: {
+      summary: "One file's bytes, by the path the manifest named. Read-only, owner only.",
+      responses: {
+        200: { description: "the file's bytes, with a content-type guessed from its name" },
+        ...refusalResponses([...authRefusals, hiddenNotFound()]),
+      },
+    },
+  };
+
+  // ── importing somebody's own data ──────────────────────────────────────
+  paths["/api/v2/{user}/import"] = {
+    get: {
+      summary: "The kinds and formats this door reads, and the ceiling on a request's size. Owner only.",
+      responses: { ...jsonResponse(200, importGetDoc, "kinds, formats and the byte ceiling"), ...refusalResponses(ownerRefusals) },
+    },
+    post: {
+      summary:
+        "Import a location history (`kind: \"gps\"`, stored as read) or a phone's address book " +
+        '(`kind: "contacts"`, read and reported — nothing is written until the agreed rows are ' +
+        "sent to POST .../contacts/import). Send ?dryRun to preview. JSON `{kind, format?, inbox|text}`, or multipart with `file`.",
+      request: jsonBody(
+        z.strictObject({ kind: z.enum(IMPORT_KINDS), format: z.string().optional(), inbox: z.string().optional(), text: z.string().optional() }),
+        "name the kind; give the bytes as inbox, text, or (multipart only) file",
+      ),
+      responses: {
+        ...jsonResponse(
+          200,
+          z.union([gpsImportResult, contactsImportResult]),
+          "a gps import, stored (or previewed under ?dryRun) — or a contacts import, read and reported, never written",
+        ),
+        ...refusalResponses([
+          ...ownerRefusals,
+          ref("unknown_user", 404),
+          ref("invalid_request", 400),
+          ref("body_too_large", 413),
+          ref("expected_file", 400),
+          ref("invalid_body", 400),
+          ref("unknown_inbox_file", 404),
+          ref("no_file", 400),
+          ref("unknown_kind", 400),
+          ref("storage_full", 400),
+          ref("unreadable", 400),
+          ref("contract", 400),
+        ]),
       },
     },
   };
@@ -869,6 +1061,13 @@ function buildPaths(): Record<string, PathItem> {
     },
   };
 
+  paths["/api/v2/{user}/trips/{trip}/media/duplicates"] = {
+    get: {
+      summary: "The same photograph, twice — reports only, never deletes.",
+      responses: { ...jsonResponse(200, duplicatesDoc, "groups of look-alike photographs, largest first"), ...refusalResponses(tripWriteRefusals) },
+    },
+  };
+
   // ── inbox ───────────────────────────────────────────────────────────
   paths["/api/v2/{user}/inbox"] = {
     get: {
@@ -927,6 +1126,29 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...svgResponse(200, "an SVG drawing"),
         ...refusalResponses([noSuchJournal(), ref("nothing_to_draw", 400), ref("invalid_json", 400)]),
+      },
+    },
+  };
+
+  paths["/api/v2/{user}/trips/{trip}/travellers/from-photo"] = {
+    post: {
+      summary:
+        "Read a party off a group photograph — proposed, never written. Multipart `photo`, or JSON `{inbox}`/`{gallery}`.",
+      responses: {
+        ...jsonResponse(200, fromPhotoResult, "a proposed party, ordered left to right in the photograph"),
+        ...refusalResponses([
+          ...tripWriteRefusals,
+          ref("helper_unavailable", 404),
+          ref("too_many_requests", 429),
+          ref("consent_required", 403),
+          ref("expected_photo", 400),
+          ref("invalid_media", 400),
+          ref("invalid_json", 400),
+          ref("unknown_inbox_file", 400),
+          ref("not_this_trip", 400),
+          ref("no_credits", 402),
+          ref("model_failed", 502),
+        ]),
       },
     },
   };

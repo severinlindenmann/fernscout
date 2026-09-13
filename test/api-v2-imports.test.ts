@@ -76,6 +76,11 @@ const LIB_API_ALLOWLIST = [
   // typing the slug is the point: a `next` pointer cannot name a document
   // that does not exist. B1621.
   "lib/api/skillDocMeta",
+  // `findDuplicateMedia` — a real domain function (fingerprints a trip's own
+  // gallery on disk and groups the look-alikes) with no request/response
+  // shaping of its own; v2's `.../media/duplicates` door reuses it verbatim
+  // rather than recomputing the same fingerprint cache a second way.
+  "lib/api/media",
 
 ];
 
