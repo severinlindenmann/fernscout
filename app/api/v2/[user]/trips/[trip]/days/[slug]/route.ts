@@ -274,7 +274,20 @@ export async function applyDayPatch(
   }
   const patch = patchParsed.data as Record<string, unknown>;
 
-  const storedWritable: Record<string, unknown> = { ...(stored as Record<string, unknown>), status: "draft" };
+  // B1656 — `stored` carries `media` in its ON-DISK shape (`type`/`width`/
+  // `height`/`poster` alongside `src`/`caption`/`visibility`, documents.ts's
+  // own comment on `DayFile`), and a patch that leaves `media` untouched
+  // merges straight from this object. Without trimming it first, `merged`
+  // below would carry those disk-only keys into `dayWrite.safeParse` and
+  // refuse them as unrecognised — meaning any day that ever gained a
+  // photograph (through PUT, or through the attach door) could never be
+  // patched for anything else again. `stripMediaEcho` is the same trim the
+  // incoming body already gets a few lines up; applying it to `stored` too
+  // is what makes a photo-carrying day patchable at all.
+  const storedWritable: Record<string, unknown> = {
+    ...stripMediaEcho(stored as unknown as Record<string, unknown>),
+    status: "draft",
+  };
 
   const retracted = retractDeclines(patch, storedWritable.declined as Record<string, string> | undefined, DAY_DECLINABLE_FIELDS);
   const declinedMerged: Record<string, string> = {

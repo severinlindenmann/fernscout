@@ -500,3 +500,62 @@ costs". That is the honest trade for letting a costs visibility and
 preparation spend exist before a budget does — both real states a trip passes
 through rather than edge cases. Tighten it back only by giving
 `costs.visibility` a home outside the section.
+
+### D20 — `POST`/`DELETE /api/v2/{user}/trips/{trip}/days/{slug}/media` (new routes, new schema file)
+
+**What changed.** B1656: v2 had no way to put a photograph's `src` into a
+day's own `media` array at all — `POST /api/v2/{user}/media` only ever
+places bytes and never touches a day document (its own header comment used
+to say so). Two new routes close the gap, backed by a new schema file
+(`lib/api/v2/schemas/dayMedia.ts`, `dayMediaAttachRequest`/
+`dayMediaDetachRequest`): `POST .../days/{slug}/media` appends
+already-stored `{src, caption?, visibility?}` items to the day's gallery and
+retracts a stale `declined.media` (T6); `DELETE .../days/{slug}/media`
+removes items by `src` without touching the underlying bytes (the
+destructive half — deleting the file itself and detaching it from every day
+that names it — is the existing `DELETE /api/v2/{user}/media`, not
+duplicated here).
+
+**Why a new door rather than routing this through `PATCH .../days/{slug}`.**
+A `PATCH` re-validates the whole merged document against `dayWrite`, which
+asks all 14 `DAY_DECLINABLES` at once (B1650's wall, one door over):
+attaching a single photograph to a day that has never answered its other 13
+declinables would refuse on fields nobody just asked about. Attaching a
+photograph is not the same kind of act as correcting a day's content — it is
+closer to `publish`/`unpublish`, which are already their own calls rather
+than a `status` PATCH for exactly this reason. So this door validates and
+writes `media` (and, on attach, the `media` key of `declined`) alone, and
+nothing else on the stored document moves.
+
+**The compare-and-swap is `If-Match`/ETag, not `fileUnchangedSince`.** v1's
+`attachGallery`/`detachGallery` (`lib/api/entries.ts`) guard their
+read-modify-write with `fileUnchangedSince`, because v1 writes have no other
+notion of a document version. v2's whole write path is already built on
+ETags (`etagFor`/`ifMatchStale`, `lib/api/v2/route.ts`) — `lib/api/v2/store.ts`
+keeps no file-mtime equivalent at all — so this door reuses that mechanism
+rather than inventing a second CAS check that could disagree with the first
+about whether a write is stale.
+
+**A `src` refused, not written.** v1's guard against a malformed gallery item
+checked that `width`/`height` arrived as numbers — a check that has nothing
+to catch here, since v2's wire item is only `{src, caption?, visibility?}`.
+What replaces it: a `src` must resolve to a photograph this trip's own
+stored media actually has (`resolveMediaFile`, the same guarded resolve the
+read route and `deleteMediaV2` already use) — an `inbox:` src, one naming a
+different trip, or one that simply does not exist is refused with
+`not_this_trip` rather than written as a dangling reference.
+
+**A known gap this does not close.** `app/[user]/media/[...path]/route.ts`'s
+per-photograph visibility check (`labelOf`) reads a trip's photographs by
+scanning v1 markdown entries (`getAllEntries`/`getEntryBySlug`,
+`lib/entries.ts`) — it has no knowledge of a v2 JSON day's own `media` array
+at all yet. So a photograph attached through this door with
+`visibility: "private"` is stored faithfully and read back correctly by
+every v2 route, but the file-serving route does not yet enforce that label
+for a day that exists only as a v2 document — it falls through to "no label
+found" and is served to anyone who can already read the trip. This is not
+new: it is true of every v2 day's `media` today, predates this ticket, and
+is squarely inside the read-layer replay B1598 already tracks as its own
+piece of work (`lib/api/v2/store.ts`'s own header says as much). Flagged
+here rather than silently left implicit, and captured as its own backlog
+item (see the run's own report) rather than folded into this one.
