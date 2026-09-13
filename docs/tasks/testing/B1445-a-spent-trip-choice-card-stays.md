@@ -7,6 +7,7 @@ complexity: low
 area: helper, room
 found: "2026-09-11T11:11:06Z"
 started: "2026-09-12T19:53:32Z"
+merged: "2026-09-13T06:26:01Z"
 ---
 
 # B1445 — A spent trip-choice card stays a pressable button that does nothing
