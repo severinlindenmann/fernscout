@@ -4,18 +4,20 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
 import { writeTripFixture } from "./fixtures/content";
 
 /**
  * A day's slug catching up with its title — B1276.
  *
  * The wizard creates a day with `title: date`, so `lib/api/entries.ts`'s
- * `slugify` gives it the file `<date>-<date>.md` — a day's address is
- * genuinely its date until somebody says what the day was. The first `PATCH`
- * that supplies a real title is supposed to rename everything a slug names:
- * the entry file, its `media/` and `originals/` directories, its fingerprint
- * cache, and every gallery `src`/`poster` pointing at the old directory —
- * together, or not at all.
+ * `slugify` gives it the file `<date>-<date>.json` (B1598 moved a day's
+ * storage from YAML frontmatter to JSON) — a day's address is genuinely its
+ * date until somebody says what the day was. The first `PATCH` that supplies
+ * a real title is supposed to rename everything a slug names: the entry
+ * file, its `media/` and `originals/` directories, its fingerprint cache,
+ * and every gallery `src`/`poster` pointing at the old directory — together,
+ * or not at all.
  *
  * Forward only: a day already published keeps its slug whatever title
  * arrives later, because that URL may already be in somebody's email.
@@ -81,22 +83,26 @@ afterEach(() => {
 });
 
 /** A day exactly as `POST .../day` would have left it: title === date, so its
- *  file is `<date>-<date>.md`, and — when `withMedia` — a photograph already
- *  sits under `media/<trip>/<date>/` with a gallery entry pointing at it. */
+ *  file is `<date>-<date>.json`, and — when `withMedia` — a photograph
+ *  already sits under `media/<trip>/<date>/` with a gallery entry pointing
+ *  at it. */
 function dateOnlyDay(date: string, withMedia: boolean) {
-  const gallery = withMedia
-    ? [
-        "gallery:",
-        `  - src: "/media/kyoto/${date}/01.jpg"`,
-        "    type: image",
-        "    width: 800",
-        "    height: 600",
-      ]
-    : [];
-  fs.writeFileSync(
-    path.join(TRIP_DIR(), "entries", `${date}-${date}.md`),
-    ["---", `date: "${date}"`, `title: "${date}"`, ...gallery, "status: draft", "---", "", ""].join("\n"),
-  );
+  const day: DayFile = {
+    slug: `${date}-${date}`,
+    date,
+    title: date,
+    content: "",
+    status: "draft",
+    ...(withMedia
+      ? {
+          media: [
+            { src: `/media/kyoto/${date}/01.jpg`, type: "image", width: 800, height: 600 },
+          ],
+        }
+      : {}),
+  };
+  fs.mkdirSync(path.join(TRIP_DIR(), "entries"), { recursive: true });
+  fs.writeFileSync(path.join(TRIP_DIR(), "entries", `${date}-${date}.json`), dayToJson(day));
   if (withMedia) {
     const mediaDir = path.join(TRIP_DIR(), "media", date);
     fs.mkdirSync(mediaDir, { recursive: true });
@@ -130,11 +136,11 @@ describe("a real title renames a still-drafting day", () => {
     expect(body.draft.slug).toBe("kinkaku-ji");
 
     const entries = fs.readdirSync(path.join(TRIP_DIR(), "entries"));
-    expect(entries).toContain("2026-04-02-kinkaku-ji.md");
-    expect(entries).not.toContain("2026-04-02-2026-04-02.md");
+    expect(entries).toContain("2026-04-02-kinkaku-ji.json");
+    expect(entries).not.toContain("2026-04-02-2026-04-02.json");
 
-    const written = fs.readFileSync(path.join(TRIP_DIR(), "entries", "2026-04-02-kinkaku-ji.md"), "utf8");
-    expect(written).toContain('src: "/media/kyoto/kinkaku-ji/01.jpg"');
+    const written = fs.readFileSync(path.join(TRIP_DIR(), "entries", "2026-04-02-kinkaku-ji.json"), "utf8");
+    expect(written).toContain('"/media/kyoto/kinkaku-ji/01.jpg"');
     expect(written).not.toContain("2026-04-02/01.jpg");
 
     expect(fs.existsSync(path.join(TRIP_DIR(), "media", "kinkaku-ji", "01.jpg"))).toBe(true);
@@ -149,15 +155,19 @@ describe("a real title renames a still-drafting day", () => {
     const res = await patch({ trip: "kyoto", slug: "2026-04-03", title: "Arashiyama", content: "Bamboo grove." });
     expect(res.status).toBe(200);
     expect((await res.json()).draft.slug).toBe("arashiyama");
-    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-03-arashiyama.md"))).toBe(true);
+    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-03-arashiyama.json"))).toBe(true);
   });
 
   test("a colliding title refuses outright, and nothing is written at either slug", async () => {
     dateOnlyDay("2026-04-04", false);
-    fs.writeFileSync(
-      path.join(TRIP_DIR(), "entries", "2026-04-05-nara.md"),
-      ["---", 'date: "2026-04-05"', "title: Nara", "status: draft", "---", "", "Deer park."].join("\n"),
-    );
+    const nara: DayFile = {
+      slug: "2026-04-05-nara",
+      date: "2026-04-05",
+      title: "Nara",
+      content: "Deer park.",
+      status: "draft",
+    };
+    fs.writeFileSync(path.join(TRIP_DIR(), "entries", "2026-04-05-nara.json"), dayToJson(nara));
 
     const res = await patch({ trip: "kyoto", slug: "2026-04-04", title: "Nara", content: "Second visit." });
     expect(res.status).toBe(400);
@@ -165,8 +175,8 @@ describe("a real title renames a still-drafting day", () => {
 
     // Nothing moved, and nothing was overwritten on the day already sitting
     // on that slug.
-    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-04-2026-04-04.md"))).toBe(true);
-    const untouched = fs.readFileSync(path.join(TRIP_DIR(), "entries", "2026-04-05-nara.md"), "utf8");
+    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-04-2026-04-04.json"))).toBe(true);
+    const untouched = fs.readFileSync(path.join(TRIP_DIR(), "entries", "2026-04-05-nara.json"), "utf8");
     expect(untouched).toContain("Deer park.");
   });
 
@@ -176,14 +186,22 @@ describe("a real title renames a still-drafting day", () => {
     const res = await patch({ trip: "kyoto", slug: "first-name", title: "Better name" });
     expect(res.status).toBe(200);
     expect((await res.json()).draft.slug).toBe("better-name");
-    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-06-better-name.md"))).toBe(true);
-    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-06-first-name.md"))).toBe(false);
+    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-06-better-name.json"))).toBe(true);
+    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-06-first-name.json"))).toBe(false);
   });
 
   test("a published day never gets renamed, whatever title arrives", async () => {
+    const published: DayFile = {
+      slug: "2026-04-07-2026-04-07",
+      date: "2026-04-07",
+      title: "2026-04-07",
+      content: "Already on the site.",
+      status: "published",
+    };
+    fs.mkdirSync(path.join(TRIP_DIR(), "entries"), { recursive: true });
     fs.writeFileSync(
-      path.join(TRIP_DIR(), "entries", "2026-04-07-2026-04-07.md"),
-      ["---", 'date: "2026-04-07"', 'title: "2026-04-07"', "---", "", "Already on the site."].join("\n"),
+      path.join(TRIP_DIR(), "entries", "2026-04-07-2026-04-07.json"),
+      dayToJson(published),
     );
 
     const res = await patch({ trip: "kyoto", slug: "2026-04-07", title: "Fushimi Inari" });
@@ -192,7 +210,7 @@ describe("a real title renames a still-drafting day", () => {
     // The title itself is still correctable on a published day (B816) — only
     // the address is frozen.
     expect(body.draft.slug).toBe("2026-04-07");
-    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-07-2026-04-07.md"))).toBe(true);
-    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-07-fushimi-inari.md"))).toBe(false);
+    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-07-2026-04-07.json"))).toBe(true);
+    expect(fs.existsSync(path.join(TRIP_DIR(), "entries", "2026-04-07-fushimi-inari.json"))).toBe(false);
   });
 });

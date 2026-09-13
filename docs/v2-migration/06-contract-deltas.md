@@ -422,3 +422,58 @@ covers `lib/api/errorCodes.ts`.
   untouched; only the serializer (`lib/api/v2/markdown.ts` →
   `lib/api/v2/documents.ts`, `dayToJson`/`dayFromJson`/`tripToJson`/
   `tripFromJson`) and the file layout changed.
+
+### D18 — `trip.reminder`, one field where v1 had two scalars
+
+**What changed.** `tripBase` gains `reminder: {channel}`, optional. Presence
+is the switch: absent is off, present carries the channel the evening nudge
+goes out on. Not a declinable — a reminder is a setting, like `listed` and
+`teaser`, not something the journal says about the trip that a reader is owed
+an answer about.
+
+**Why this is a gap being filled, not the contract being bent.** The golden
+contract does not mention `reminder` anywhere — not as a field, and not as
+something retired. The feature itself was never retired either: it has a
+nightly sweep (`scripts/reminders.mts`), a WhatsApp template, translated
+strings in all three languages, and a helper tool people reach by saying
+"erinnere mich abends". The omission reads as an oversight.
+
+**What it cost while the gap was open**, which is the part worth remembering:
+`lib/api/tripReminder.ts` spliced `reminder:` into `trip.md`, and once
+`lib/trips.ts` stopped reading that file the splice wrote into nothing. The
+route still answered, and the helper still told the person **"Saved."** That
+is the sentence this codebase built its whole truthfulness net against, and
+it would have shipped with B1598. B1638.
+
+**Why one field rather than v1's two.** v1 carried `reminder: true` and
+`reminderChannel:` separately, and they could disagree — `lib/trips.ts` still
+has a warning for the case where one is set and the other is not. One field
+cannot express the disagreement. That is this contract's own "one fact, one
+address" rule, so the shape is stricter than what it replaces, not looser.
+
+`REMINDER_CHANNELS` moved from `lib/api/tripReminder.ts` to `lib/tripWrite.ts`
+so the schema can import the same constant the validator uses — the old home
+is `server-only` and would have dragged the server boundary into the contract.
+
+### D19 — `trip.costs.budget` becomes optional
+
+**What changed.** Inside the `costs` section, `budget` is now optional. The
+section still refuses to be empty, and `costs` is still a declinable.
+
+**Why.** The contract required it and production contradicted it in both
+directions. `createTrip` writes `costs: {visibility: "guests"}` the moment
+somebody chooses who sees the money — at trip creation, long before a budget
+exists — and `lib/costs.ts` reads exactly that, treating a section as
+malformed only when it holds nothing usable at all. So the required `budget`
+made the schema disagree with the writer and the reader at once, and the
+writer won every time: the section was written anyway and merely failed to
+typecheck.
+
+**What it costs, stated rather than buried.** `costs` is a declinable whose
+promise reads "every trip carries a budget, or says why costs are not tracked
+here". With an optional budget a trip can satisfy that declinable with a
+section naming no budget, and the promise weakens to "the owner engaged with
+costs". That is the honest trade for letting a costs visibility and
+preparation spend exist before a budget does — both real states a trip passes
+through rather than edge cases. Tighten it back only by giving
+`costs.visibility` a home outside the section.

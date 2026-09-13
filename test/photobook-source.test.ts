@@ -55,7 +55,12 @@ function writeDay(
   slug: string,
   date: string,
   images: { width: number; height: number }[],
-  translation?: { locale: string; title?: string; content?: string },
+  // Both halves required, not optional — R1 in the deltas ledger kept a day
+  // translation as title *and* content, on the ground that a translated day
+  // with a title and no prose (or the reverse) is a half-translated page a
+  // reader meets in two languages at once. The fixture states the same rule
+  // so it cannot set up a day the server would refuse.
+  translation?: { locale: string; title: string; content: string },
 ) {
   const day: DayFile = {
     slug,
@@ -75,11 +80,11 @@ function writeDay(
     })),
     ...(translation
       ? {
+          // Both halves, always — the conditional spreads this replaced could
+          // build a title-only translation, which R1 decided a day may not
+          // have.
           translations: {
-            [translation.locale]: {
-              ...(translation.title ? { title: translation.title } : {}),
-              ...(translation.content ? { content: translation.content } : {}),
-            },
+            [translation.locale]: { title: translation.title, content: translation.content },
           },
         }
       : {}),

@@ -26,7 +26,15 @@ import { readTripJson, writeTripJson } from "./tripFile";
  * before this ticket either.
  */
 
-type CostsBudgetInput = { total: number; days: number; currency?: string };
+/**
+ * `days` is optional, matching the trip document's own `costs.budget` — a
+ * budget can name a total without committing to how many days it is spread
+ * over, and `lib/costs.ts` already treats a missing one as "no per-day
+ * figure" rather than as zero. It was required here while this type was
+ * hand-written beside the schema instead of derived from it, which is the
+ * kind of quiet disagreement the v2 contract exists to stop.
+ */
+type CostsBudgetInput = { total: number; days?: number; currency?: string };
 type CostsItemInput = { label: string; amount: number; category?: string; currency?: string };
 type CostsSection = NonNullable<TripFile["costs"]>;
 

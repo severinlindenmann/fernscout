@@ -149,7 +149,7 @@ import { isEmail } from "./auth";
 function parsePeople(raw: unknown, folder: string): TripPerson[] {
   if (raw === undefined || raw === null) return [];
   if (!Array.isArray(raw)) {
-    console.warn(`[trips] ${folder}/trip.json has a people: block that is not a list — ignoring it.`);
+    console.warn(`[trips] ${folder}/trip.md has a people: block that is not a list — ignoring it.`);
     return [];
   }
   if (raw.length > MAX_TRIP_PEOPLE) {
@@ -164,7 +164,7 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
   const seen = new Set<string>();
   for (const item of raw) {
     if (!item || typeof item !== "object") {
-      console.warn(`[trips] ${folder}/trip.json has a people: entry that is not a mapping.`);
+      console.warn(`[trips] ${folder}/trip.md has a people: entry that is not a mapping.`);
       return [];
     }
     const entry = item as Record<string, unknown>;
@@ -172,20 +172,20 @@ function parsePeople(raw: unknown, folder: string): TripPerson[] {
     const email = String(entry.email ?? "").trim().toLowerCase();
     if (!name || !isEmail(email)) {
       console.warn(
-        `[trips] ${folder}/trip.json has a people: entry needing a name and a valid email ` +
+        `[trips] ${folder}/trip.md has a people: entry needing a name and a valid email ` +
           `(got name "${name}", email "${email}") — ignoring the whole list.`,
       );
       return [];
     }
     if (seen.has(email)) {
-      console.warn(`[trips] ${folder}/trip.json lists ${email} twice — ignoring the whole list.`);
+      console.warn(`[trips] ${folder}/trip.md lists ${email} twice — ignoring the whole list.`);
       return [];
     }
     seen.add(email);
     const rawNickname = entry.nickname;
     if (rawNickname !== undefined && typeof rawNickname !== "string") {
       console.warn(
-        `[trips] ${folder}/trip.json has a people: entry whose nickname is not text — ` +
+        `[trips] ${folder}/trip.md has a people: entry whose nickname is not text — ` +
           `ignoring the whole list.`,
       );
       return [];
@@ -306,7 +306,7 @@ function deriveVisibility(
       return { visibility: "guest", listed: false };
     default:
       console.warn(
-        `[trips] ${folder}/trip.json has visibility "${raw}", which is not one of ` +
+        `[trips] ${folder}/trip.md has visibility "${raw}", which is not one of ` +
           `private/public/guest — treating it as private.`,
       );
       return { visibility: "private", listed: false };
@@ -353,7 +353,7 @@ function parseListed(
   // author was trying to hide.
   if (typeof raw !== "boolean") {
     console.warn(
-      `[trips] ${folder}/trip.json has listed "${raw}", which is not true or false — ` +
+      `[trips] ${folder}/trip.md has listed "${raw}", which is not true or false — ` +
         `ignoring it and reading the trip as ${derived ? "advertised" : "not advertised"}.`,
     );
     return derived;
@@ -362,7 +362,7 @@ function parseListed(
   if (raw && !derived) {
     const word = visibility === undefined || visibility === null ? "public" : String(visibility);
     console.warn(
-      `[trips] ${folder}/trip.json says listed: true, but visibility "${word}" does not ` +
+      `[trips] ${folder}/trip.md says listed: true, but visibility "${word}" does not ` +
         `advertise the trip — ignoring it. listed: can only narrow; write ` +
         `visibility: public to advertise a trip.`,
     );
@@ -387,14 +387,14 @@ function parseTeaser(raw: unknown, visibility: TripVisibility, folder: string): 
 
   if (typeof raw !== "boolean") {
     console.warn(
-      `[trips] ${folder}/trip.json has teaser "${raw}", which is not true or false — ignoring it.`,
+      `[trips] ${folder}/trip.md has teaser "${raw}", which is not true or false — ignoring it.`,
     );
     return false;
   }
 
   if (raw && visibility === "public") {
     console.warn(
-      `[trips] ${folder}/trip.json says teaser: true, but the trip is public — there is ` +
+      `[trips] ${folder}/trip.md says teaser: true, but the trip is public — there is ` +
         `nothing to tease. teaser: advertises a guest or private trip as a locked card; ` +
         `use listed: to decide whether a public trip is advertised.`,
     );
@@ -586,7 +586,7 @@ function figureDocToFigure(doc: FigureDoc): Figure {
  * about to write will read back as, using the reader itself rather than a
  * second normaliser that would disagree about a trimmed or emptied entry.
  */
-function parseTranslations(raw: unknown): TripTranslations | undefined {
+export function parseTranslations(raw: unknown): TripTranslations | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const src = raw as Record<string, { title?: string; tagline?: string; intro?: string } | undefined>;
   const out: TripTranslations = {};
@@ -734,12 +734,8 @@ function readTrip(username: string, dir: string, folder: string): Trip | Malform
     // more. `parseTracks(undefined)` is "all of it", which nothing under
     // `lib/` still enforces against but nothing reads for rendering either.
     tracks: parseTracks(undefined),
-    /**
-     * The evening nudge, D18. Presence is the switch, so there is no second
-     * scalar to disagree with this one — which is why this reads the field
-     * straight through rather than reconciling two the way v1 had to.
-     */
-    reminder: tripFile.reminder ? { channel: tripFile.reminder.channel } : undefined,
+    // v2 has no wire home for the evening reminder — see `06-contract-deltas`.
+    reminder: undefined,
     unknownFields: unknownFields(data),
     costsSection: tripFile.costs,
     planSection: tripFile.plan,

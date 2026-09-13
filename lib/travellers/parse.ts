@@ -67,8 +67,15 @@ function parseAccessories(value: unknown): Accessory[] | undefined {
   return out.length > 0 ? out : undefined;
 }
 
-/** One figure, or `null` when the entry is not a mapping at all. */
-function parseFigure(raw: unknown): Figure | null {
+/** One figure, or `null` when the entry is not a mapping at all.
+ *
+ * Exported so `figureDocToFigure` (lib/trips.ts) can run a figure-library
+ * document through the same enum filtering an inline `travellers:` block
+ * gets — a hand-edited `content/<user>/figures/<id>.json` is exactly as
+ * unvalidated as hand-edited frontmatter used to be, and the renderer draws
+ * `hairStyle`/`outfit`/`build`/`age`/`accessories` from a fixed set of SVG
+ * paths that an out-of-vocabulary value has no path for. */
+export function parseFigure(raw: unknown): Figure | null {
   if (!isRecord(raw)) return null;
   const figure: Figure = {};
 

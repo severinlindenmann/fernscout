@@ -154,7 +154,10 @@ describe("assemble-day: the create press", () => {
     expect(day).not.toBeNull();
     expect(day?.content).toContain("We climbed over the pass and it was cold.");
     expect(day?.gallery).toHaveLength(1);
-    expect(day?.without).toEqual(["costs"]);
+    // v2 stores every decline in one `declined` map and reads it back as
+    // `unrecorded`, not v1's separate `without` — `lib/entries.ts`'s
+    // `declinedTracks` (B1598).
+    expect(day?.unrecorded).toEqual(["costs"]);
     expect(day?.lat).toBe(46.5);
     expect(day?.lng).toBe(8.5);
     expect(day?.draft).toBe(true);

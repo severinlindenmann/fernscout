@@ -17,18 +17,18 @@ import path from "node:path";
  * that writes its own frontmatter without the shared validator fails here
  * rather than being noticed by a person months later.
  *
- * `content/example/` is the one named exception. `scripts/build-demo-content.mjs`
- * writes its frontmatter directly, but it is a fixture — regenerated,
- * committed to git and reviewed there like any other diff, never a real
- * owner's journal — which is the same courtesy the draft rule gives a real
- * owner, just through code review instead of a publish button.
+ * `scripts/build-demo-content.mjs` used to be a named exception here — it
+ * wrote `content/example/`'s frontmatter directly, on the theory that a
+ * fixture reviewed as a diff gets the same courtesy the draft rule gives a
+ * real owner. B1598 retired it: the demo journal is committed JSON now,
+ * read like any other trip rather than regenerated from a script that wrote
+ * markdown, so there is no such exception left to name.
  */
 const root = path.join(import.meta.dirname, "..");
 const SCRIPTS_DIR = path.join(root, "scripts");
 const VALIDATOR = "lib/validate/entry.ts";
 
 const EXEMPT = new Set([
-  "build-demo-content.mjs",
   // A measuring stick for scripts/measure-payload.mjs and test/payload.test.ts
   // — writes a synthetic fixture to a directory the caller names, never into
   // a real journal's content root.
@@ -36,11 +36,11 @@ const EXEMPT = new Set([
 ]);
 
 /** A file that builds a path into an `entries/` directory *and* writes bytes
- * to disk — the shape any content-entry writer takes (`<date>-<slug>.md`
+ * to disk — the shape any content-entry writer takes (`<date>-<slug>.json`
  * under a trip's `entries/`). Requiring both in the same file is what tells
- * apart an actual writer (`lib/ingest/index.ts`, `scripts/build-demo-content.mjs`)
- * from a file that merely defines or re-exports the helper
- * (`lib/ingest/paths.ts`) — the latter has no `writeFileSync` of its own. */
+ * apart an actual writer (`lib/ingest/index.ts`) from a file that merely
+ * defines or re-exports the helper (`lib/ingest/paths.ts`) — the latter has
+ * no `writeFileSync` of its own. */
 const BUILDS_ENTRY_PATH = /entriesDir|entryFileName|"entries"/;
 const WRITES_BYTES = /writeFileSync/;
 

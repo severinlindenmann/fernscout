@@ -58,6 +58,17 @@ export const VISIBILITIES = ["private", "public", "guest"] as const;
 /** Mirrors `CostsVisibility` in lib/types.ts and `parseCostsVisibility` in
  * lib/trips.ts — the two spellings the reader understands. */
 export const COSTS_VISIBILITIES = ["public", "guests"] as const;
+/**
+ * Where an evening reminder goes — B1219, D46, D18.
+ *
+ * Here beside the other contract enums rather than in `lib/api/tripReminder.ts`
+ * where it used to live, because `lib/api/v2/schemas/trip.ts` needs it and
+ * that module is `server-only`: importing it into a schema would drag the
+ * server boundary into the contract. The rule the move keeps is the ordinary
+ * one — the document imports the constant the validator uses, so there is
+ * never a second copy of the list to disagree with the first.
+ */
+export const REMINDER_CHANNELS = ["mail", "whatsapp"] as const;
 
 export type NewTrip = {
   id: string;
@@ -686,6 +697,19 @@ export function eurManualRates(
     baseEur = rates.EUR;
     manual[baseCode] = rates.EUR;
   }
+  // `baseEur` falls back to 1 below for every *other* code's own entry, but
+  // that fallback has to be written down too: `resolveTripRates` (lib/trips.ts)
+  // reads the base currency's own EUR rate back out of this same `manual`
+  // table (via `eurRates[base]` inside `crossRate`) when the ECB archive does
+  // not track it either. Leaving the base's entry unwritten here — as this
+  // did until B1598's readers were tested — means the read path finds no
+  // rate for the base at all, `crossRate` refuses the whole conversion, and
+  // every currency the caller asked for vanishes from `trip.rates`, though a
+  // number was written for each of them.
+  if (baseCode !== "EUR" && baseEur === undefined) {
+    baseEur = 1;
+    manual[baseCode] = 1;
+  }
   for (const [code, basePerCode] of Object.entries(rates)) {
     if (code === "EUR") continue; // handled above — see the docblock
     manual[code] = (baseEur ?? 1) / basePerCode;
@@ -1078,15 +1102,25 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   // but neither's `.lines` is written: travellers become figure-library
   // entries below, and tracks have no v2 home at all any more (every day
   // answers every declinable directly — see `lib/trips.ts`'s own note).
-  for (const block of [
-    peopleResult,
-    travellersBlock(input.travellers),
-    ratesResult,
-    translationsResult,
-    tracksBlock(input.tracks),
-  ]) {
-    if (!block.ok) return { ok: false, error: block.error, message: block.message };
+  /**
+   * Checked one at a time rather than over an array, because three of these
+   * are read again below for their `.value` and narrowing does not survive
+   * an array iteration — TypeScript cannot see that the loop already
+   * returned. The order is the order a caller meets the refusals in, and is
+   * the same one the array had; keep it that way, since which of two bad
+   * blocks is reported first is a thing somebody debugging will notice.
+   */
+  if (!peopleResult.ok) return { ok: false, error: peopleResult.error, message: peopleResult.message };
+  const travellersResult = travellersBlock(input.travellers);
+  if (!travellersResult.ok) {
+    return { ok: false, error: travellersResult.error, message: travellersResult.message };
   }
+  if (!ratesResult.ok) return { ok: false, error: ratesResult.error, message: ratesResult.message };
+  if (!translationsResult.ok) {
+    return { ok: false, error: translationsResult.error, message: translationsResult.message };
+  }
+  const tracksResult = tracksBlock(input.tracks);
+  if (!tracksResult.ok) return { ok: false, error: tracksResult.error, message: tracksResult.message };
 
   const baseCurrency = normalizeCurrency(
     loadUserConfig(username).baseCurrency,

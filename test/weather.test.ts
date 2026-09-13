@@ -267,18 +267,6 @@ describe("filling a day in", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  // B1630 finding, not a fixture issue: `fillDayWeather` (lib/api/weather.ts)
-  // returns `not_asked` for anything other than the literal `true` —
-  // `if (data.weather !== true) return "not_asked";` runs before the
-  // `already_recorded` branch below it ever can, for *any* already-answered
-  // reading, hand-supplied or the server's own. Its own doc comment says the
-  // opposite ("an object is a reading already there... never overwritten"),
-  // and `already_recorded` (line 85, `if (parseWeather(data.weather))
-  // return "already_recorded"`) is dead code post-B1598: `data.weather`
-  // reaching that line is always exactly `true`, on which `parseWeather`
-  // never succeeds. Left red and reported — fixing this is a one-line change
-  // to `lib/api/weather.ts`, not something a fixture repoint should make on
-  // its own.
   test("a reading the author recorded is never overwritten by a lookup", async () => {
     const file = writeDay({
       weather: {

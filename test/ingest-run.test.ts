@@ -4,8 +4,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import matter from "gray-matter";
 import { ingest } from "@/lib/ingest";
+import { dayFromJson, dayToJson } from "@/lib/api/v2/documents";
 import { readExif } from "@/lib/ingest/exif";
 import { geodataAvailable } from "@/lib/ingest/geo";
 import { appendGallery, entryFileName, renderEntry } from "@/lib/ingest/entry";
@@ -27,13 +27,14 @@ function tripDir(): string {
   return path.join(root, USER, "trips", TRIP);
 }
 
-// FINDING (B1630, not a fixture problem — reported alongside this repoint):
-// `lib/ingest/index.ts` (the module under test) checks for a literal
-// `trip.md` on disk before it will fill a trip — `fs.existsSync(path.join(
-// trip, "trip.md"))` — and `lib/ingest/entry.ts` writes its own entries as
-// `.md` too. Neither has been migrated to v2 JSON, so this whole suite
-// resists `writeTripFixture` (which writes `trip.json`): pointing it there
-// makes every `ingest()` call fail with "No trip at …". Left hand-written.
+// B1637: `lib/ingest/index.ts` used to check for a literal `trip.md` on disk
+// before it would fill a trip, and `lib/ingest/entry.ts` wrote its own
+// entries as `.md` too — production bugs, both fixed alongside this repoint,
+// since B1598 moved content to JSON and nothing here had followed. This trip
+// fixture is still hand-written rather than `writeTripFixture` (test/fixtures/
+// content.ts): that helper goes through `createTrip`, which validates and
+// derives far more than the bare id/title/dates ingest actually needs to find
+// a trip, and every case below only needs `trip.json` to exist.
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-ingest-test-"));
   source = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-ingest-src-"));
@@ -47,12 +48,23 @@ beforeEach(() => {
     }),
   );
   fs.writeFileSync(
-    path.join(tripDir(), "trip.md"),
-    `---\nid: "${TRIP}"\ntitle: "A Test Trip"\nstart: "2026-08-01"\nend: "2026-09-01"\n---\n`,
+    path.join(tripDir(), "trip.json"),
+    JSON.stringify({
+      id: TRIP,
+      title: "A Test Trip",
+      dates: { from: "2026-08-01", to: "2026-09-01" },
+    }),
   );
   previousContentDir = process.env.CONTENT_DIR;
   process.env.CONTENT_DIR = root;
 });
+
+/** A day file's bytes → the v2 document, the same way `lib/entries.ts` reads
+ * one — used throughout this file in place of `matter()`, which read the old
+ * YAML frontmatter shape. */
+function readDay(file: string) {
+  return dayFromJson("", fs.readFileSync(file, "utf8"));
+}
 
 afterEach(() => {
   if (previousContentDir === undefined) delete process.env.CONTENT_DIR;
@@ -110,20 +122,20 @@ describe("a day in, an entry out", () => {
 
     const files = fs.readdirSync(path.join(tripDir(), "entries"));
     expect(files).toHaveLength(1);
-    expect(files[0]).toMatch(/^2026-08-14-.*\.md$/);
+    expect(files[0]).toMatch(/^2026-08-14-.*\.json$/);
   });
 
-  test("frontmatter carries date, time, coordinates and sizes", async () => {
+  test("the day carries date, time, coordinates and sizes", async () => {
     await run();
     const file = fs.readdirSync(path.join(tripDir(), "entries"))[0];
-    const { data } = matter(fs.readFileSync(path.join(tripDir(), "entries", file), "utf8"));
+    const day = readDay(path.join(tripDir(), "entries", file));
 
-    expect(data.date).toBe("2026-08-14");
-    expect(data.time).toBe("09:12");
-    expect(data.lat).toBeCloseTo(BANGKOK.lat, 3);
-    expect(data.lng).toBeCloseTo(BANGKOK.lng, 3);
-    expect(data.gallery).toHaveLength(3);
-    for (const item of data.gallery) {
+    expect(day.date).toBe("2026-08-14");
+    expect(day.time).toBe("09:12");
+    expect(day.coordinates?.lat).toBeCloseTo(BANGKOK.lat, 3);
+    expect(day.coordinates?.lng).toBeCloseTo(BANGKOK.lng, 3);
+    expect(day.media).toHaveLength(3);
+    for (const item of day.media!) {
       expect(item.type).toBe("image");
       expect(item.width).toBeGreaterThan(0);
       expect(item.height).toBeGreaterThan(0);
@@ -135,18 +147,18 @@ describe("a day in, an entry out", () => {
     // would come out as /alice/media/alice/… on the page.
     await run();
     const file = fs.readdirSync(path.join(tripDir(), "entries"))[0];
-    const { data } = matter(fs.readFileSync(path.join(tripDir(), "entries", file), "utf8"));
-    for (const item of data.gallery) {
+    const day = readDay(path.join(tripDir(), "entries", file));
+    for (const item of day.media!) {
       expect(item.src).toMatch(new RegExp(`^/media/${TRIP}/`));
       expect(item.src).not.toContain(USER);
     }
   });
 
-  test("the files named in frontmatter are on disk and carry no GPS", async () => {
+  test("the files named on the day are on disk and carry no GPS", async () => {
     await run();
     const file = fs.readdirSync(path.join(tripDir(), "entries"))[0];
-    const { data } = matter(fs.readFileSync(path.join(tripDir(), "entries", file), "utf8"));
-    for (const item of data.gallery) {
+    const day = readDay(path.join(tripDir(), "entries", file));
+    for (const item of day.media!) {
       const onDisk = path.join(tripDir(), "media", item.src.replace(`/media/${TRIP}/`, ""));
       expect(fs.existsSync(onDisk)).toBe(true);
       const exif = readExif(new Uint8Array(fs.readFileSync(onDisk)));
@@ -164,7 +176,7 @@ describe("a day in, an entry out", () => {
   test("what it writes is a draft, and so invisible", async () => {
     const result = await run();
     const file = result.entries[0].file;
-    expect(fs.readFileSync(file, "utf8")).toContain("status: draft");
+    expect(readDay(file).status).toBe("draft");
 
     const { getAllEntries } = await import("@/lib/entries");
     expect(getAllEntries(`${USER}/${TRIP}`)).toEqual([]);
@@ -174,7 +186,10 @@ describe("a day in, an entry out", () => {
     const result = await run();
     const file = result.entries[0].file;
     // What a person does when the words are written.
-    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/^status: draft\n/m, ""));
+    fs.writeFileSync(
+      file,
+      fs.readFileSync(file, "utf8").replace('"status": "draft"', '"status": "published"'),
+    );
 
     const { getAllEntries } = await import("@/lib/entries");
     const entries = getAllEntries(`${USER}/${TRIP}`);
@@ -237,10 +252,9 @@ describe("importing the same folder twice", () => {
 
     // The author has already written the day up by the time the second batch
     // arrives, so their prose and captions have to survive.
-    const edited = fs
-      .readFileSync(file, "utf8")
-      .replace(/^_Write the day.*$/m, "The market smelled of charcoal and lime.");
-    fs.writeFileSync(file, edited);
+    const edited = readDay(file);
+    edited.content = "The market smelled of charcoal and lime.";
+    fs.writeFileSync(file, dayToJson(edited));
 
     fs.rmSync(path.join(source, "a.jpg"));
     fs.rmSync(path.join(source, "b.jpg"));
@@ -250,9 +264,9 @@ describe("importing the same folder twice", () => {
     expect(second.entries).toHaveLength(1);
     expect(second.entries[0].created).toBe(false);
 
-    const after = fs.readFileSync(file, "utf8");
-    expect(after).toContain("The market smelled of charcoal and lime.");
-    expect(matter(after).data.gallery).toHaveLength(3);
+    const after = readDay(file);
+    expect(after.content).toContain("The market smelled of charcoal and lime.");
+    expect(after.media).toHaveLength(3);
   });
 });
 
@@ -301,13 +315,11 @@ describe.runIf(geodataAvailable())("places", () => {
     await photo("a.jpg", 17, "2026-08-14 09:00:00", CHIANG_MAI);
     const result = await run();
     expect(result.entries[0].location).toBe("Chiang Mai");
-    expect(fs.readdirSync(path.join(tripDir(), "entries"))[0]).toBe("2026-08-14-chiang-mai.md");
+    expect(fs.readdirSync(path.join(tripDir(), "entries"))[0]).toBe("2026-08-14-chiang-mai.json");
 
-    const { data } = matter(
-      fs.readFileSync(path.join(tripDir(), "entries", "2026-08-14-chiang-mai.md"), "utf8"),
-    );
-    expect(data.country).toBe("Thailand");
-    expect(data.countryCode).toBe("TH");
+    const day = readDay(path.join(tripDir(), "entries", "2026-08-14-chiang-mai.json"));
+    expect(day.country).toBe("Thailand");
+    expect(day.countryCode).toBe("TH");
   });
 
   test("a flight between two stops is guessed; a bus is not", async () => {
@@ -315,9 +327,9 @@ describe.runIf(geodataAvailable())("places", () => {
     await photo("b.jpg", 19, "2026-08-14 10:00:00", CHIANG_MAI);
     await run();
     const files = fs.readdirSync(path.join(tripDir(), "entries")).sort();
-    const second = matter(fs.readFileSync(path.join(tripDir(), "entries", files[1]), "utf8"));
-    expect(second.data.transportMode).toBe("flight");
-    expect(second.data.transportFrom).toBe("Bangkok");
+    const second = readDay(path.join(tripDir(), "entries", files[1]));
+    expect(second.transportMode).toBe("flight");
+    expect(second.transportFrom).toBe("Bangkok");
   });
 });
 
@@ -409,8 +421,16 @@ describe("a slug already on disk under another date", () => {
     const entries = path.join(tripDir(), "entries");
     fs.mkdirSync(entries, { recursive: true });
     fs.writeFileSync(
-      path.join(entries, "2026-08-10-day-2026-08-14.md"),
-      `---\ntitle: "Squatter"\ndate: "2026-08-10"\nlocation: ""\ncountry: ""\n---\n`,
+      path.join(entries, "2026-08-10-day-2026-08-14.json"),
+      dayToJson({
+        slug: "day-2026-08-14",
+        title: "Squatter",
+        date: "2026-08-10",
+        location: "",
+        country: "",
+        content: "",
+        status: "draft",
+      }),
     );
 
     await photo("a.jpg", 47, "2026-08-14 09:00:00");
@@ -418,7 +438,7 @@ describe("a slug already on disk under another date", () => {
 
     expect(result.entries).toHaveLength(1);
     const written = path.basename(result.entries[0].file);
-    expect(written).not.toBe("2026-08-14-day-2026-08-14.md");
+    expect(written).not.toBe("2026-08-14-day-2026-08-14.json");
     expect(written).toMatch(/^2026-08-14-day-2026-08-14-/);
 
     const { getAllEntries } = await import("@/lib/entries");
@@ -434,8 +454,8 @@ describe("notes", () => {
     fs.writeFileSync(path.join(source, "2026-08-14.md"), "Woke up too early. Worth it.");
     await run();
     const file = fs.readdirSync(path.join(tripDir(), "entries"))[0];
-    const { content } = matter(fs.readFileSync(path.join(tripDir(), "entries", file), "utf8"));
-    expect(content.trim()).toBe("Woke up too early. Worth it.");
+    const day = readDay(path.join(tripDir(), "entries", file));
+    expect(day.content.trim()).toBe("Woke up too early. Worth it.");
   });
 });
 
@@ -538,12 +558,12 @@ describe.runIf(videoToolsAvailable())("video", () => {
     expect(files).toHaveLength(1);
     expect(files[0]).toMatch(/^2026-08-14-/);
 
-    const { data } = matter(fs.readFileSync(path.join(tripDir(), "entries", files[0]), "utf8"));
-    const video = data.gallery.find((g: { type: string }) => g.type === "video");
+    const day = readDay(path.join(tripDir(), "entries", files[0]));
+    const video = day.media!.find((g) => g.type === "video");
     expect(video).toBeDefined();
-    expect(video.src).toMatch(/\.mp4$/);
-    expect(video.poster).toMatch(/\.jpg$/);
-    const onDisk = path.join(tripDir(), "media", video.src.replace(`/media/${TRIP}/`, ""));
+    expect(video!.src).toMatch(/\.mp4$/);
+    expect(video!.poster).toMatch(/\.jpg$/);
+    const onDisk = path.join(tripDir(), "media", video!.src.replace(`/media/${TRIP}/`, ""));
     expect(fs.statSync(onDisk).size).toBeGreaterThan(0);
   }, 20_000);
 
@@ -577,9 +597,9 @@ describe.runIf(videoToolsAvailable())("video", () => {
   }, 20_000);
 });
 
-describe("markdown shaping", () => {
-  test("renders in the same hand-written shape as the rest of content/", () => {
-    const markdown = renderEntry({
+describe("day shaping", () => {
+  test("builds the same shape dayToJson emits everywhere else", () => {
+    const json = renderEntry({
       title: "Hội An",
       date: "2026-08-23",
       time: "15:42",
@@ -592,15 +612,16 @@ describe("markdown shaping", () => {
       tags: ["lanterns"],
       body: "",
     });
-    const { data, content } = matter(markdown);
-    expect(data.title).toBe("Hội An");
+    const day = dayFromJson("hoi-an", json);
+    expect(day.title).toBe("Hội An");
     // Five decimals, because a consumer GPS does not know more than that.
-    expect(String(data.lat)).toBe("15.88012");
-    expect(content).toContain("Write the day here");
+    expect(day.coordinates?.lat).toBe(15.88012);
+    expect(day.content).toContain("Write the day here");
+    expect(day.status).toBe("draft");
   });
 
-  test("quotes survive a title", () => {
-    const markdown = renderEntry({
+  test("a quote in a title survives JSON round-tripping", () => {
+    const json = renderEntry({
       title: 'The "Old" Quarter',
       date: "2026-08-23",
       location: "Hanoi",
@@ -609,7 +630,7 @@ describe("markdown shaping", () => {
       tags: [],
       body: "x",
     });
-    expect(matter(markdown).data.title).toBe('The "Old" Quarter');
+    expect(dayFromJson("hanoi", json).title).toBe('The "Old" Quarter');
   });
 
   // Ingest names an entry file after the place the photographs were taken,
@@ -618,45 +639,63 @@ describe("markdown shaping", () => {
   // whichever door it came in by. Every letter it handles specially is a
   // table in test/slug.test.ts.
   test("an entry file is named with the shared slug rule", () => {
-    expect(entryFileName("2026-08-23", slugify("Zürich"))).toBe("2026-08-23-zuerich.md");
-    expect(entryFileName("2026-08-23", slugify("Hội An"))).toBe("2026-08-23-hoi-an.md");
-    expect(entryFileName("2026-08-23", slugify("Ærøskøbing"))).toBe("2026-08-23-aeroskobing.md");
+    expect(entryFileName("2026-08-23", slugify("Zürich"))).toBe("2026-08-23-zuerich.json");
+    expect(entryFileName("2026-08-23", slugify("Hội An"))).toBe("2026-08-23-hoi-an.json");
+    expect(entryFileName("2026-08-23", slugify("Ærøskøbing"))).toBe("2026-08-23-aeroskobing.json");
   });
 
-  test("appending leaves every other byte of the file alone", () => {
-    const before = [
-      "---",
-      'title: "Hoi An"',
-      "gallery:",
-      '  - src: "/media/t/hoi-an/01.jpg"',
-      '    type: "image"',
-      '    caption: "Lanterns, obviously"',
-      'tags: ["lanterns"]',
-      "---",
-      "",
-      "The tailors work until midnight.",
-      "",
-    ].join("\n");
+  test("appending leaves every other field of the day alone", () => {
+    const before = dayToJson({
+      slug: "hoi-an",
+      title: "Hoi An",
+      date: "2026-08-23",
+      content: "The tailors work until midnight.",
+      status: "draft",
+      media: [{ src: "/media/t/hoi-an/01.jpg", type: "image", caption: "Lanterns, obviously" }],
+      tags: ["lanterns"],
+    });
 
-    const after = appendGallery(before, [
-      { src: "/media/t/hoi-an/02.jpg", type: "image", width: 2000, height: 1333 },
-    ]);
+    const after = appendGallery(
+      before,
+      [{ src: "/media/t/hoi-an/02.jpg", type: "image", width: 2000, height: 1333 }],
+      "hoi-an",
+    );
     expect(after).not.toBeNull();
-    expect(after).toContain('caption: "Lanterns, obviously"');
-    expect(after).toContain("The tailors work until midnight.");
-    const { data } = matter(after!);
-    expect(data.gallery).toHaveLength(2);
-    expect(data.tags).toEqual(["lanterns"]);
+    const day = dayFromJson("hoi-an", after!);
+    expect(day.media?.[0].caption).toBe("Lanterns, obviously");
+    expect(day.content).toContain("The tailors work until midnight.");
+    expect(day.media).toHaveLength(2);
+    expect(day.tags).toEqual(["lanterns"]);
   });
 
   test("appending to an entry with no gallery starts one", () => {
-    const after = appendGallery('---\ntitle: "Nothing yet"\n---\n\nWords.\n', [
-      { src: "/media/t/x/01.jpg", type: "image" },
-    ]);
-    expect(matter(after!).data.gallery).toHaveLength(1);
+    const before = dayToJson({
+      slug: "x",
+      title: "Nothing yet",
+      date: "2026-08-23",
+      content: "Words.",
+      status: "draft",
+    });
+    const after = appendGallery(before, [{ src: "/media/t/x/01.jpg", type: "image" }], "x");
+    expect(dayFromJson("x", after!).media).toHaveLength(1);
   });
 
-  test("a file with no frontmatter is refused rather than mangled", () => {
-    expect(appendGallery("Just some words.\n", [{ src: "/x.jpg", type: "image" }])).toBeNull();
+  test("a photo arriving retracts a media decline", () => {
+    const before = dayToJson({
+      slug: "x",
+      title: "Nothing yet",
+      date: "2026-08-23",
+      content: "Words.",
+      status: "draft",
+      declined: { media: "left the camera at home" },
+    });
+    const after = appendGallery(before, [{ src: "/media/t/x/01.jpg", type: "image" }], "x");
+    const day = dayFromJson("x", after!);
+    expect(day.declined?.media).toBeUndefined();
+    expect(day.media).toHaveLength(1);
+  });
+
+  test("a file that will not parse is refused rather than mangled", () => {
+    expect(appendGallery("not json at all", [{ src: "/x.jpg", type: "image" }])).toBeNull();
   });
 });

@@ -5,6 +5,7 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { paintJpeg } from "./support/pictures";
+import { writeDayFixture } from "./fixtures/content";
 
 /**
  * B720 — a decode of a photograph already on the day used to happen again on
@@ -46,10 +47,14 @@ beforeEach(() => {
   );
   clearConfigCache();
   clearUserCache();
-  fs.writeFileSync(
-    path.join(tripPath(), "entries", "2026-01-01-day-one.md"),
-    ['---', 'title: "Day one"', 'date: "2026-01-01"', 'location: "Hoi An"', 'country: "Vietnam"', '---', '', 'Words.', ''].join("\n"),
-  );
+  writeDayFixture(dir, "alex", "asia-2026", {
+    slug: "day-one",
+    date: "2026-01-01",
+    title: "Day one",
+    location: "Hoi An",
+    country: "Vietnam",
+    content: "Words.",
+  });
   vi.mocked(decodeSource).mockClear();
 });
 

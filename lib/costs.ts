@@ -47,12 +47,6 @@ export function conversionFor(ref: string): { base: string; rates: RateTable } {
   };
 }
 
-/** Where `costs.md` lives for a trip — exported since B295 so the API door
- * that writes and deletes it does not carry a second copy of this path. */
-export function costsFilePath(tripId: string): string {
-  return path.join(tripDir(tripId), "costs.md");
-}
-
 /**
  * The trip's own declared day count, for a `budget:` that omits `days` — the
  * wire made it optional (B1606: "absent means the trip's own day count"),
@@ -91,9 +85,30 @@ export function readCostsFile(
   const trip = getTrip(tripId);
   const section = trip?.costsSection;
   if (!trip || !section) return null;
+
+  const hasBudget = !!section.budget && typeof section.budget === "object";
+  // `budget` is optional inside `costs` (D19) precisely because
+  // `createTrip` itself writes a
+  // `costsVisibility: "guests"` trip as `costs: { visibility: "guests" }`,
+  // budget and all, before an owner has set one (lib/tripWrite.ts). That is
+  // a real, legitimate state — a costs page with a visibility preference and
+  // nothing costed yet — so only a section with *nothing at all* usable
+  // (no budget, no items, no note, no visibility) counts as malformed: a
+  // `trip.json` hand-edited or corrupted into `"costs": {}`, same shape as
+  // an unparseable entry (B236) or a `plan` with no usable `route` (B313).
+  if (!hasBudget && !section.items?.length && !section.note?.trim() && !section.visibility) {
+    console.warn(`[costs] ${tripId}: costs is present with nothing usable in it — treating it as absent.`);
+    return null;
+  }
   return {
     data: {
-      budget: { ...section.budget, days: section.budget.days ?? tripDayCount(trip) },
+      // `section.budget` rather than the `hasBudget` boolean above: a boolean
+      // does not narrow the property it was derived from, and D19 made the
+      // budget genuinely optional, so this is now a real absence rather than
+      // a shape the type merely allowed.
+      budget: section.budget
+        ? { ...section.budget, days: section.budget.days ?? tripDayCount(trip) }
+        : undefined,
       costs: section.items,
     },
     content: (section.note ?? "").trim(),

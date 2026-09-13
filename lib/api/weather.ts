@@ -81,8 +81,17 @@ export async function fillDayWeather(
   // One field on disk (B1598): `true` is asked-and-unanswered, an object is
   // a reading already there — either the server's own earlier fetch or a
   // hand-supplied one, and neither is ever overwritten by a lookup.
-  if (data.weather !== true) return "not_asked";
-  if (parseWeather(data.weather)) return "already_recorded";
+  //
+  // The two cases used to collapse into one check — `data.weather !== true`
+  // returned `not_asked` before the line below it could ever run, since
+  // v2 has no separate `weatherData:` key any more and a recorded reading
+  // reaches here as `data.weather` itself, never as `true`. That silently
+  // cleared the "never overwritten" guarantee this function's own doc
+  // comment promises: nothing here refused a lookup that would have
+  // clobbered an author's own reading, because every already-answered day
+  // reported `not_asked` and fell straight through to the fetch below.
+  if (data.weather === undefined) return "not_asked";
+  if (data.weather !== true) return parseWeather(data.weather) ? "already_recorded" : "not_asked";
 
   const lat = data.coordinates?.lat;
   const lng = data.coordinates?.lng;

@@ -6,7 +6,7 @@ import { isEnabled } from "../../../capabilities";
 import { listContacts } from "../../../contacts";
 import { ALL_TRACKED, TRACKS, type Track } from "../../../tracks";
 import { VISIBILITIES } from "../../../tripWrite";
-import { REMINDER_CHANNELS } from "../../../api/tripReminder";
+import { REMINDER_CHANNELS } from "../../../tripWrite";
 import { getUser } from "../../../users";
 import { reminderTemplate } from "../../../whatsapp/settings";
 import { noTrip, resolveTrip } from "../resolve";

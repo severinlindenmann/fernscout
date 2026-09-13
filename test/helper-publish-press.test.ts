@@ -162,12 +162,18 @@ describe("a day written and put on the site, by pressing what the conversation o
     expect((await answered.json()).ok).toBe(true);
 
     const day = dayFile();
-    expect(day).not.toContain("status: draft");
+    expect(day).not.toContain('"status": "draft"');
     // Nobody was asked, and the day says exactly that about all three rows —
     // never a decline, which would put "there were no photographs" into
-    // somebody's journal as a fact about their day.
-    expect(day).toContain("unrecorded: [costs, coordinates, photos]");
-    expect(day).not.toContain("without:");
+    // somebody's journal as a fact about their day. v2 writes one `declined`
+    // map (lib/api/v2/documents.ts's dayToJson) rather than v1's flat
+    // `unrecorded:`/`without:` arrays, and "photos" lands under `media` —
+    // the day's own field name for that section (lib/api/entries.ts's
+    // DECLINE_KEY).
+    const parsed = JSON.parse(day) as { declined?: Record<string, string> };
+    expect(parsed.declined?.costs).toBe("Not recorded: what this day cost is unknown.");
+    expect(parsed.declined?.coordinates).toBe("Not recorded: where this day happened is unknown.");
+    expect(parsed.declined?.media).toBe("Not recorded: photographs from this day is unknown.");
   });
 
   test("the photographs question is on the confirmation, opening on “nobody has it”", async () => {
@@ -204,22 +210,20 @@ describe("a day written and put on the site, by pressing what the conversation o
     expect(answered.status).toBe(200);
 
     const day = dayFile();
-    expect(day).toContain("without: [photos]");
-    expect(day).toContain("unrecorded: [costs, coordinates]");
+    const parsed = JSON.parse(day) as { declined?: Record<string, string> };
+    expect(parsed.declined?.media).toBe("Nothing to record: photographs from this day.");
+    expect(parsed.declined?.costs).toBe("Not recorded: what this day cost is unknown.");
+    expect(parsed.declined?.coordinates).toBe("Not recorded: where this day happened is unknown.");
   });
 
-  // FINDING (B1630, not a fixture problem — reported alongside this
-  // repoint): v1's trip-level `tracks:` block (a trip declining to track
-  // costs/coordinates/photos at all) has no v2 home — see
-  // `lib/tripWrite.ts` around `tracksBlock`: "tracks have no v2 home at all
-  // any more (every day answers every declinable directly)". There is no
-  // longer a trip-level equivalent to write for this test's premise, so it
-  // is left below reading `trip.json` (so it does not crash) rather than
-  // `trip.md` (which no longer exists), but the mutation it performs is now
-  // a no-op and the test is expected to fail on its own assertion — that is
-  // this test's premise having been retired by the v2 migration, not a bad
-  // repoint.
-  test("a trip that keeps track of nothing is asked nothing at publish either", async () => {
+  // v1's trip-level `tracks:` block, which let a whole trip decline to track
+  // costs/coordinates/photos at all, has no v2 home any more
+  // (`lib/api/tripTracks.ts`'s `patchTripTracks`: "every day answers every
+  // declinable directly now, so there is no trip-level 'what to ask for'
+  // left to persist"). There is therefore no longer a way to write this
+  // test's original premise — a publish is always asked about photos, on
+  // every trip, which is what this now pins instead.
+  test("a trip's own trip.json carries no track opt-out any more — publish is always asked", async () => {
     const file = path.join(dir, "alex", "trips", "reise", "trip.json");
     void JSON.parse(fs.readFileSync(file, "utf8"));
     clearUserCache();
@@ -228,8 +232,10 @@ describe("a day written and put on the site, by pressing what the conversation o
     await post(writeDay, "", pressed(started.proposal));
     giveWords();
     const { proposal } = await propose("publish_day");
-    expect(proposal.fields.map((field) => field.name)).toEqual(["trip", "slug"]);
-    expect((await post(publishDay, "/publish", pressed(proposal))).status).toBe(200);
+    expect(proposal.fields.map((field) => field.name)).toEqual(["trip", "slug", "photos"]);
+    expect(
+      (await post(publishDay, "/publish", { ...pressed(proposal), photos: "unknown" })).status,
+    ).toBe(200);
   });
 });
 

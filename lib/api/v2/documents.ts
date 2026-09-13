@@ -63,6 +63,12 @@ export type DayFile = Omit<DayWriteShape, "status" | "media"> & {
     height?: number;
     /** A still from a clip, for the grid — video items only. */
     poster?: string;
+    /** What the file was called before it was renamed — B527, disk-only
+     * like `type`/`width`/`height`/`poster` above, and absent from
+     * `dayMediaItem` (`strictObject`) for the same reason: it is what
+     * makes resuming a refused batch a comparison rather than arithmetic,
+     * never something the wire asks for. */
+    from?: string;
   })[];
 };
 
@@ -221,6 +227,7 @@ export function tripToJson(trip: TripFile): string {
     visibility: trip.visibility,
     listed: trip.listed,
     teaser: trip.teaser,
+    reminder: trip.reminder,
     test: trip.test,
     accent: trip.accent,
     cover: trip.cover,
@@ -256,6 +263,7 @@ export function tripFromJson(raw: string): TripFile {
   if (data.tagline !== undefined) trip.tagline = data.tagline as TripFile["tagline"];
   if (data.listed !== undefined) trip.listed = data.listed as TripFile["listed"];
   if (data.teaser !== undefined) trip.teaser = data.teaser as TripFile["teaser"];
+  if (data.reminder !== undefined) trip.reminder = data.reminder as TripFile["reminder"];
   if (data.test !== undefined) trip.test = data.test as TripFile["test"];
   if (data.accent !== undefined) trip.accent = data.accent as TripFile["accent"];
   if (data.cover !== undefined) trip.cover = data.cover as TripFile["cover"];
@@ -266,12 +274,18 @@ export function tripFromJson(raw: string): TripFile {
   if (data.plan !== undefined) trip.plan = data.plan as TripFile["plan"];
   if (data.declined !== undefined) trip.declined = data.declined as TripFile["declined"];
 
-  // v1's `travellers`, `tracks`, `status`, `startLocation`, `ratesFrom`,
-  // `costsVisibility`, `reminder` and `reminderChannel` are read by nothing
-  // here and never round-tripped — `travellers` is superseded by the figure
-  // library, `tracks` and `costsVisibility` (now `costs.visibility`) by
-  // their v2 homes, `status` is derived rather than stored, and the rest
-  // never had a v2 home to begin with.
+  // v1's `travellers`, `tracks`, `status`, `startLocation` and `ratesFrom`
+  // are read by nothing here and never round-tripped — `travellers` is
+  // superseded by the figure library, `tracks` and `costsVisibility` (now
+  // `costs.visibility`) by their v2 homes, `status` is derived rather than
+  // stored, and the rest never had a v2 home to begin with.
+  //
+  // v1's `reminder: true` + `reminderChannel:` pair is the exception: it
+  // does have a v2 home, the single `reminder: {channel}` above (D18). The
+  // two scalars are not read here, so a trip still carrying them reads as
+  // reminder-off until something writes the new shape — which is correct,
+  // since the nightly sweep would otherwise act on a setting the owner can
+  // no longer see or change through any door this version serves.
 
   return trip;
 }

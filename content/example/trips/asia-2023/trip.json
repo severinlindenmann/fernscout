@@ -27,7 +27,12 @@
       "THB",
       "VND",
       "EUR"
-    ]
+    ],
+    "manual": {
+      "CHF": 0.9451,
+      "THB": 38.329,
+      "VND": 26344.09
+    }
   },
   "figures": {
     "mode": "custom",

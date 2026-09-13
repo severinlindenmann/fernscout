@@ -28,7 +28,7 @@ import TripListProvider from "@/components/TripListProvider";
 import type { SiteSummary } from "@/lib/site";
 import { writeTripFixture } from "./fixtures/content";
 import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
-import { dayToJson } from "@/lib/api/v2/documents";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
 
 /**
  * B1521 — the budget panel projected a finished trip forward and charged the
@@ -112,9 +112,20 @@ function writeTrip(
   // production serialiser (`dayToJson`) rather than a hand-rolled string,
   // parsing the same handful of fragments every call site here already
   // passes rather than widening the shared fixture for what is, in v2, one
-  // collapsed concept: `without` and `unrecorded` both land on `declined`
-  // now (lib/entries.ts's `declinedTracks`), so the v1 distinction this
-  // file's own B1521 assertions still expect no longer exists to encode.
+  // collapsed mechanism: `declined.costs` is free text, read as "figures
+  // lost" no matter what it says (`declinedTracks`, lib/entries.ts, and its
+  // own docblock on why: a decline's *wording* is for a person, never for
+  // this reader to trust as "definitely zero"). v1's `without: [costs]`
+  // ("nothing spent — a real, countable zero") has no equivalent *decline*
+  // in v2 and needs none, but it is **not** the same thing as absence:
+  // `costs: []` is the author saying nothing was spent, and no `costs` key
+  // at all is nobody having said anything. Both read as a real zero here
+  // (`unrecorded` in lib/costs.ts is only ever true when a decline is
+  // actually present), so the distinction costs this reader nothing — but
+  // excluding the key is right for *unknown* and wrong for *zero*, and a
+  // fixture that spells an authored zero as silence teaches the replay the
+  // wrong mapping. So `without: [costs]` maps to an empty `costs` array;
+  // only `unrecorded: [costs]` becomes a real `declined.costs`.
   fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
   for (const day of days) {
     const costsMatch = day.frontmatter?.match(/costs:\n((?:.|\n)*)/);
@@ -126,9 +137,11 @@ function writeTrip(
           category: m[3],
         }))
       : undefined;
-    const declined = /unrecorded: \[costs\]|without: \[costs\]/.test(day.frontmatter ?? "")
+    const declined = /unrecorded: \[costs\]/.test(day.frontmatter ?? "")
       ? { costs: "declined for this fixture" }
       : undefined;
+    // The authored zero, kept as a statement rather than as silence.
+    const spendFree = /without: \[costs\]/.test(day.frontmatter ?? "");
     fs.writeFileSync(
       // `slug` lets two entries share one date — several updates in a day
       // is normal (lib/types.ts's `Day`), and `d` stays the default so
@@ -140,7 +153,11 @@ function writeTrip(
         date: day.date,
         content: "A day.",
         status: "published",
-        ...(costItems ? { costs: costItems } : {}),
+        ...(costItems
+          ? { costs: costItems as NonNullable<DayFile["costs"]> }
+          : spendFree
+            ? { costs: [] }
+            : {}),
         ...(declined ? { declined } : {}),
       }),
     );

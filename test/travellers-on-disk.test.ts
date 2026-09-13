@@ -22,51 +22,62 @@ import { PRESET_NAMES } from "@/lib/travellers/presets";
 let dir: string;
 
 // Not on writeTripFixture (B1630): every case in this file writes a
-// deliberately malformed `people:` or `travellers:` block (a bad email, an
+// deliberately malformed `people:` or figure attribute (a bad email, an
 // invalid hair colour) to test the fail-closed *reader* — `createTrip`
-// validates both blocks and would refuse to write them at all. Same
-// resistance as test/trip-people.test.ts and test/trip-reparse.test.ts.
+// validates both and would refuse to write them at all. Same resistance as
+// test/trip-people.test.ts and test/trip-reparse.test.ts.
 //
-// B1630 finding, beyond the fixture: this file's whole premise (an inline
-// `travellers:` attribute list, malformed or not, sitting beside `people:`
-// in one trip file) has been superseded by B1609's figure library —
-// `getTrip()`'s `Trip.travellers` is now resolved from `figures:`
-// (`{mode, figures: [ids]}`, `resolveTripFigures` in lib/trips.ts), which
-// references separate `content/<user>/figures/<id>.json` documents rather
-// than carrying attributes inline. `people:` also no longer lives in a
-// `trip.md`'s frontmatter — `getTrip()` reads `trip.json` exclusively
-// (confirmed: every `writeTrip()` call below produces `undefined` from
-// `getTrip`, since there is no trip.json). Making this file's "cosmetics
-// cannot reach write access" and "reading the block" cases malformed *JSON*
-// instead of malformed *markdown* would not restore what they test: an
-// inline `travellers:` block sitting in trip.json is not what a v2 reader
-// looks at any more, so there is no direct translation. The "writing the
-// block" describe below still calls `createTrip` directly (unaffected by
-// this fixture file) and is closer to still working, but the trip.md
-// assertions in it need the same trip.json rename this comment is
-// flagging. Left entirely as found and reported rather than guessed at —
-// this needs someone who understands the figure-library shape to decide
-// what, if anything, replaces "a broken hair colour leaves people:
-// untouched" for the new architecture.
-function writeTrip(id: string, extra: string[]) {
+// B1630 finding: this file's inline `travellers:` attribute list, malformed
+// or not, sitting beside `people:` in one trip file, has been superseded by
+// B1609's figure library — `getTrip()`'s `Trip.travellers` is resolved from
+// `figures:` (`{mode, figures: [ids]}`, `resolveTripFigures` in lib/trips.ts),
+// which references separate `content/<user>/figures/<id>.json` documents
+// rather than carrying attributes inline, and `people:` lives in `trip.json`
+// rather than `trip.md`'s frontmatter now. `writeTrip` below writes both:
+// a `trip.json` with `people` and a `figures: {mode: "custom", figures:
+// [ids]}` reference, plus one `content/alex/figures/<id>.json` per entry in
+// `figures`, malformed exactly the way the old inline attributes were. The
+// property under test is unchanged even though the file layout is not: a
+// figure file `figureDocToFigure` (lib/trips.ts) cannot parse into a valid
+// attribute is dropped on its own — via the same `parseFigure` enum filter an
+// inline block always ran through — while `people:` still fails closed as a
+// whole list, and neither reader can affect the other.
+function writeTrip(
+  id: string,
+  opts: { people?: unknown; figures?: Array<Record<string, unknown>> } = {},
+) {
   const tripDir = path.join(dir, "alex", "trips", id);
   fs.mkdirSync(tripDir, { recursive: true });
+
+  let figuresField: { mode: "custom"; figures: string[] } | undefined;
+  if (opts.figures) {
+    const figuresDir = path.join(dir, "alex", "figures");
+    fs.mkdirSync(figuresDir, { recursive: true });
+    const ids = opts.figures.map((attrs, index) => {
+      const figureId = `${id}-fig-${index + 1}`;
+      fs.writeFileSync(
+        path.join(figuresDir, `${figureId}.json`),
+        JSON.stringify({ id: figureId, ...attrs }, null, 2),
+      );
+      return figureId;
+    });
+    figuresField = { mode: "custom", figures: ids };
+  }
+
   fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    [
-      "---",
-      `id: ${id}`,
-      `title: "${id}"`,
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      "status: past",
-      "visibility: public",
-      ...extra,
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
+    path.join(tripDir, "trip.json"),
+    JSON.stringify(
+      {
+        id,
+        title: id,
+        dates: { from: "2026-01-01", to: "2026-01-05" },
+        visibility: "public",
+        ...(opts.people !== undefined ? { people: opts.people } : {}),
+        ...(figuresField ? { figures: figuresField } : {}),
+      },
+      null,
+      2,
+    ),
   );
 }
 
@@ -115,17 +126,13 @@ describe("cosmetics cannot reach write access", () => {
    * The acceptance criterion, and the whole argument for the separate block.
    */
   test("a broken hair colour leaves people: untouched", () => {
-    writeTrip("kerala", [
-      "people:",
-      "  - name: Ana",
-      "    email: ana@example.test",
-      "  - name: Bo",
-      "    email: bo@example.test",
-      "travellers:",
-      "  - hair: chartreuse-ish",
-      "    hairStyle: nonsense",
-      "  - skin: deep",
-    ]);
+    writeTrip("kerala", {
+      people: [
+        { name: "Ana", email: "ana@example.test" },
+        { name: "Bo", email: "bo@example.test" },
+      ],
+      figures: [{ hair: "chartreuse-ish", hairStyle: "nonsense" }, { skin: "deep" }],
+    });
 
     const t = trip("kerala");
     expect(t.people.map((p) => p.email)).toEqual(["ana@example.test", "bo@example.test"]);
@@ -138,26 +145,30 @@ describe("cosmetics cannot reach write access", () => {
     expect(t.travellers[0].hairStyle).toBeUndefined();
   });
 
-  test("a travellers: block that is not a list drops only itself", () => {
-    writeTrip("nepal", [
-      "people:",
-      "  - name: Ana",
-      "    email: ana@example.test",
-      "travellers: yes please",
-    ]);
+  test("a figures: block that is not a list drops only itself", () => {
+    const tripDir = path.join(dir, "alex", "trips", "nepal");
+    fs.mkdirSync(tripDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(tripDir, "trip.json"),
+      JSON.stringify({
+        id: "nepal",
+        title: "nepal",
+        dates: { from: "2026-01-01", to: "2026-01-05" },
+        visibility: "public",
+        people: [{ name: "Ana", email: "ana@example.test" }],
+        figures: "yes please",
+      }),
+    );
     const t = trip("nepal");
     expect(t.people).toHaveLength(1);
     expect(t.travellers).toEqual([]);
   });
 
   test("a malformed people: block still fails closed — travellers changes nothing", () => {
-    writeTrip("peru", [
-      "people:",
-      "  - name: Ana",
-      "    email: not-an-address",
-      "travellers:",
-      "  - skin: deep",
-    ]);
+    writeTrip("peru", {
+      people: [{ name: "Ana", email: "not-an-address" }],
+      figures: [{ skin: "deep" }],
+    });
     const t = trip("peru");
     // Unchanged behaviour: the whole list drops, because that list is access.
     expect(t.people).toEqual([]);
@@ -167,7 +178,7 @@ describe("cosmetics cannot reach write access", () => {
 
 describe("reading the block", () => {
   test("a trip with no travellers: reads as empty, not as a default party", () => {
-    writeTrip("plain", []);
+    writeTrip("plain", {});
     expect(trip("plain").travellers).toEqual([]);
   });
 
@@ -180,14 +191,14 @@ describe("reading the block", () => {
     expect(getUser("alex")!.travellers).toEqual([{ skin: "deep", hairStyle: "coils" }]);
   });
 
-  test("`travellers` is a known field, so it raises no unknown-field warning", () => {
-    writeTrip("known", ["travellers:", "  - skin: deep"]);
+  test("`figures` is a known field, so it raises no unknown-field warning", () => {
+    writeTrip("known", { figures: [{ skin: "deep" }] });
     expect(trip("known").unknownFields).toBeUndefined();
   });
 });
 
 describe("writing the block", () => {
-  test("round-trips a party through createTrip into trip.md", () => {
+  test("round-trips a party through createTrip into trip.json", () => {
     const made = createTrip("alex", {
       id: "japan-2027",
       title: "Japan",
@@ -285,7 +296,7 @@ describe("writing the block", () => {
     });
     const file = fs.readFileSync(path.join(dir, "alex", "trips", "resolved", "trip.json"), "utf8");
     for (const name of PRESET_NAMES) {
-      expect(file, `trip.md names the ${name} preset`).not.toContain(name);
+      expect(file, `trip.json names the ${name} preset`).not.toContain(name);
     }
   });
 });

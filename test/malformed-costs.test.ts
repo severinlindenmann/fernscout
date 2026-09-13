@@ -27,19 +27,13 @@ const TRIP_BASE = {
   dates: { from: "2024-01-01", to: "2024-01-09" },
 };
 
-// FINDING (B1630, not a fixture problem — reported alongside this repoint):
-// B1606 folded `costs.md` into `trip.json`'s own `costs` section, so there
-// is no longer a *separate* file to malform while the trip itself reads
-// fine. The nearest equivalent — a `costs` section present with the wrong
-// shape (no `budget`, which the write schema requires but `tripFromJson`
-// casts through unchecked on read) — does not degrade the way this test's
-// premise expects: it crashes. `readCostsFile` (lib/costs.ts:96) does
-// `section.budget.days` with no null-check, so `section.budget` undefined
-// throws a TypeError instead of the "reads as null, logs a warning" this
-// suite was written to pin. This is the same crash already documented in
-// test/helper-money.test.ts's "a cost outside the total..." finding —
-// surfaced here from a different angle. Left as a real bug, not something a
-// fixture rewrite can route around.
+// B1606 folded `costs.md` into `trip.json`'s own `costs` section, so there is
+// no longer a *separate* file to malform while the trip itself reads fine.
+// The nearest equivalent is a `costs` section present with the wrong shape —
+// no `budget`, which the write schema requires but `tripFromJson` casts
+// through unchecked on read — and `readCostsFile` (lib/costs.ts) now guards
+// against exactly that, degrading to `null` with a warning rather than
+// throwing out of `section.budget.days`.
 const BROKEN_TRIP = JSON.stringify({ ...TRIP_BASE, costs: {} });
 
 const GOOD_TRIP = JSON.stringify({

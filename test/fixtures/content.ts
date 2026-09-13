@@ -3,6 +3,8 @@ import path from "node:path";
 import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
 import { createTrip } from "@/lib/tripWrite";
 import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
+import { TRANSPORT_MODES } from "@/lib/validate/entry";
+import { COST_CATEGORIES } from "@/lib/costFormat";
 
 /**
  * The one place that knows how a trip and a day are stored on disk — B1630.
@@ -137,14 +139,18 @@ export type DayFixture = {
    * bypass the helper for one of these and reach for `dayToJson` directly,
    * which is exactly the duplication this exists to remove. Each is a real
    * thing a day has, not a frontmatter detail. */
-  costs?: Array<{ label: string; amount: number; category?: string; currency?: string }>;
+  costs?: Array<{ label: string; amount: number; category?: (typeof COST_CATEGORIES)[number]; currency?: string }>;
   translations?: Record<string, { title: string; content: string }>;
   /** `true` asks the server to look it up; an object IS a reading, whose own
-   * `source` says whose it is (open-meteo means this server fetched it). */
-  weather?: true | Record<string, unknown>;
+   * `source` says whose it is (open-meteo means this server fetched it).
+   * Typed off `DayFile` rather than loosely, so the compiler enforces what
+   * the contract enforces: a reading names where it came from and when. A
+   * fixture able to write a sourceless reading could set up a test the
+   * server would refuse. */
+  weather?: DayFile["weather"];
   tags?: string[];
-  transportMode?: string;
-  travelScene?: string;
+  transportMode?: (typeof TRANSPORT_MODES)[number];
+  travelScene?: DayFile["travelScene"];
   /** What this day consciously has none of, and why — the one decline
    * mechanism, replacing v1's `without:`/`unrecorded:`/`costs: false`. */
   declined?: Record<string, string>;

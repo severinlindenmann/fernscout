@@ -61,13 +61,6 @@ export function getPlan(tripId: string, options: ReadOptions = {}): PlanProgress
   return { stops, reachedCount, next: stops.find((s) => !s.reached) };
 }
 
-/** Where `plan.md` lived for a trip before B1606 folded it into
- * `trip.json`'s own `plan` section — kept only for the v1 API door that
- * still splices this path directly. */
-export function planFilePath(tripId: string): string {
-  return path.join(tripDir(tripId), "plan.md");
-}
-
 /**
  * The `plan` section of `trip.json` — `null` when the trip declined it (or
  * predates it). Shaped like the old `plan.md`'s gray-matter parse
@@ -78,7 +71,7 @@ export function planFilePath(tripId: string): string {
  * exactly this, the same object `readPlanFile` below already works from —
  * mirrors `readCostsFile` (lib/costs.ts, B295).
  */
-export function readPlanFileRaw(tripId: string): { data: { route?: unknown }; content: string } | null {
+function readPlanFileRaw(tripId: string): { data: { route?: unknown }; content: string } | null {
   const trip = getTrip(tripId);
   const section = trip?.planSection;
   if (!section) return null;

@@ -129,7 +129,7 @@ describe("the people block", () => {
     [{ name: "Bad", email: "not-an-address" }, "an address that is not one"],
     [{ email: "nameless@e.com" }, "a missing name"],
     ["just a string", "an entry that is not a mapping"],
-  ])("%s is rejected — %s", (entry) => {
+  ] as [unknown, string][])("%s is rejected — %s", (entry) => {
     writeTrip("bad-2026", [entry]);
     expect(trip("bad-2026").people).toEqual([]);
   });

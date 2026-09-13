@@ -8,7 +8,7 @@ import { costsAvailable, hasCostsData } from "@/lib/costs";
 import { siteSummaryFor } from "@/lib/site";
 import { getUser } from "@/lib/users";
 import { tripRef } from "@/lib/trips";
-import { writeTripFixture } from "./fixtures/content";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
 
 /**
  * B267 — a journal with no `costs.md` anywhere had the capability on by
@@ -51,7 +51,6 @@ function writeUser(username: string) {
 }
 
 function writeTrip(username: string, tripId: string, withCosts: boolean) {
-  const tripPath = path.join(dir, username, "trips", tripId);
   writeTripFixture(username, {
     id: tripId,
     title: tripId,
@@ -59,37 +58,22 @@ function writeTrip(username: string, tripId: string, withCosts: boolean) {
     end: "2026-01-31",
     status: "past",
     intro: "Body.",
+    ...(withCosts ? { costs: { budget: { total: 100, days: 10 }, note: "Before we left." } } : {}),
   });
-  if (withCosts) {
-    fs.writeFileSync(
-      path.join(tripPath, "costs.md"),
-      ["---", "budget:", "  total: 100", "  days: 10", "---", "", "Before we left.", ""].join(
-        "\n",
-      ),
-    );
-  }
 }
 
-/** One day, carrying its own `costs:` block and nothing else particular —
- * B328's fixture: the trip that has money logged and no `costs.md` at all. */
+/** One day, carrying its own `costs:` and nothing else particular —
+ * B328's fixture: the trip that has money logged and no costs section on the
+ * trip document at all. */
 function writeDayCostEntry(username: string, tripId: string, draft: boolean) {
-  const entriesDir = path.join(dir, username, "trips", tripId, "entries");
-  fs.mkdirSync(entriesDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(entriesDir, "2026-01-02-a-day.md"),
-    [
-      "---",
-      'title: "A day"',
-      'date: "2026-01-02"',
-      "costs:",
-      '  - { label: "Street food", amount: 20, category: "food" }',
-      ...(draft ? ["status: draft"] : []),
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, username, tripId, {
+    slug: "a-day",
+    date: "2026-01-02",
+    title: "A day",
+    content: "Body.",
+    costs: [{ label: "Street food", amount: 20, category: "food" }],
+    ...(draft ? { status: "draft" } : {}),
+  });
 }
 
 beforeEach(() => {

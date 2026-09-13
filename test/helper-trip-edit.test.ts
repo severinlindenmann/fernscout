@@ -162,12 +162,9 @@ describe("set_visibility", () => {
       pressed(proposal),
     );
     expect(res.status).toBe(200);
-    // FINDING (B1630, not a fixture problem): trips are v2 JSON now, so the
-    // written field reads `"visibility": "guest"` — this literal,
-    // colon-no-quote YAML-shaped assertion can no longer match any
-    // production write. Left as-is per "fix the repoint, never the
-    // assertion" — reported alongside this repoint.
-    expect(tripFile()).toContain("visibility: guest");
+    // Trips are v2 JSON now (B1598) — the written field reads as a quoted
+    // JSON string, not a YAML-shaped `key: value` line.
+    expect(tripFile()).toContain('"visibility": "guest"');
   });
 });
 
@@ -191,15 +188,21 @@ describe("trip_tracks", () => {
     const proposal = await propose("trip_tracks", { costs: "off" });
     const costs = proposal.fields.find((one) => one.name === "costs");
     expect(costs?.value).toBe("false");
+    const before = tripFile();
     const res = await patch(tripTracks, "https://t.test/api/helper/alex/trip/tracks", pressed(proposal));
     expect(res.status).toBe(200);
-    // FINDING (B1630, not a fixture problem — reported alongside this
-    // repoint): v1's trip-level `tracks:` has no v2 home (see
-    // `lib/tripWrite.ts`'s `tracksBlock` comment: "tracks have no v2 home at
-    // all any more"). The route answers 200 but writes nothing to
-    // trip.json's `costs` field, so this assertion can no longer be
-    // satisfied — the capability itself was retired, not the fixture.
-    expect(tripFile()).toContain("costs: false");
+    // v2 retired trip-level tracks (lib/api/tripTracks.ts, B1598): every day
+    // answers every declinable for itself now (DAY_DECLINABLES), so there is
+    // nothing left at the trip level for a row to turn off. The door still
+    // validates the request and answers success, honestly reporting that
+    // everything stayed tracked — and writes nothing to trip.json, which the
+    // capability retiring rather than the fixture being wrong is why no
+    // written line can be asserted here any more.
+    expect(await res.json()).toMatchObject({
+      ok: true,
+      tracks: { costs: true, coordinates: true, photos: true },
+    });
+    expect(tripFile()).toBe(before);
   });
 });
 

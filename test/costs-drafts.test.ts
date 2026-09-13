@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { writeTripFixture } from "./fixtures/content";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
 
 /**
  * B328 — the trap the fix has to avoid, not just the bug it has to fix.
@@ -59,27 +59,17 @@ function writeTrip(username: string, tripId: string) {
   });
 }
 
-// Not on writeDayFixture (B1630): a `costs:` frontmatter block is not a
-// field the fixture writes — no caller so far has needed one on a day (as
-// opposed to a trip's costs.md) — so this stays hand-rolled.
 /** The only day this trip has, and its costs are logged on a day that was
- * never published — the trip has no `costs.md` at all. */
+ * never published — the trip has no `costs` section of its own at all. */
 function writeDraftCostDay(username: string, tripId: string) {
-  fs.writeFileSync(
-    path.join(dir, username, "trips", tripId, "entries", "2026-01-02-a-day.md"),
-    [
-      "---",
-      'title: "A day"',
-      'date: "2026-01-02"',
-      "costs:",
-      '  - { label: "Street food", amount: 20, category: "food" }',
-      "status: draft",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, username, tripId, {
+    slug: "a-day",
+    date: "2026-01-02",
+    title: "A day",
+    content: "Body.",
+    status: "draft",
+    costs: [{ label: "Street food", amount: 20, category: "food" }],
+  });
 }
 
 beforeEach(() => {

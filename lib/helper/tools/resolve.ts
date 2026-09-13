@@ -3,6 +3,7 @@ import { isEnabled } from "../../capabilities";
 import { listContacts } from "../../contacts";
 import { AS_AUTHOR, getAllEntries } from "../../entries";
 import { getTrip, getTrips, tripRef } from "../../trips";
+import { getUser } from "../../users";
 import type { Say } from "../intents";
 
 /**
@@ -207,7 +208,16 @@ export async function readersOf(username: string, tripId: string, say: Say): Pro
       ? say("agent.tool.publishReadersGuestNobody")
       : say("agent.tool.publishReadersGuest", { count: String(approved) });
   }
-  const named = trip.people.map((one) => one.name).filter((name) => name !== "");
+  // The owner is always in `trip.people` now — v2's `createTrip` puts them
+  // there itself when nobody else was named (`lib/tripWrite.ts`), where v1
+  // left the block empty and merged the owner in only at read time
+  // (`peopleOf()`). "Who will be able to read it" is asking who besides the
+  // owner, so the owner's own row here is never one of the names.
+  const ownerEmail = getUser(username)?.owner.email?.toLowerCase();
+  const named = trip.people
+    .filter((one) => one.email.toLowerCase() !== ownerEmail)
+    .map((one) => one.name)
+    .filter((name) => name !== "");
   return named.length === 0
     ? say("agent.tool.publishReadersPrivateNobody")
     : say("agent.tool.publishReadersPrivate", { people: named.join(", ") });

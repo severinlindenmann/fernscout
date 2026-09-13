@@ -359,6 +359,7 @@ function readAllEntries(ref: string): Entry[] {
         // way — the one media path in the file that never got the owner
         // prefixed onto it, so every ingested clip's still was a 404.
         poster: item.poster ? mediaWithOwner(item.poster, owner) : undefined,
+        from: item.from,
         // Fail-closed, like `visibility:` on a trip: a word this code does
         // not know reads as `private` rather than as no label at all. B596.
         visibility: parsePhotoVisibility(item.visibility),

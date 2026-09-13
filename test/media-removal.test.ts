@@ -153,27 +153,32 @@ describe("detachGallery: the library function directly", () => {
     expect(getEntryBySlug(REF, "day-three", AS_AUTHOR)?.gallery).toHaveLength(0);
   });
 
-  test("the prose and unrelated frontmatter survive the removal", async () => {
+  test("the prose and the day's other fields survive the removal", async () => {
     const item = await freshDayWithPhoto(DAY);
     const entryFile = path.join(tripPath(), "entries", `2026-01-01-${DAY}.json`);
-    // FINDING (B1630, not a fixture problem): entries are v2 JSON now, and
-    // `dayFromJson` (lib/api/v2/documents.ts) only carries forward the
-    // fields it names — there is no longer a way to write "unrelated
-    // frontmatter" (a v1 comment line, or a key the parser has never heard
-    // of) and have it survive a round trip the way this test's premise
-    // expects. `location` and the prose are still known fields and do
-    // survive; the comment-line half is left as documented rather than
-    // faked into passing.
+    // The "unrelated frontmatter" half of this test's original premise is
+    // gone on purpose. A day is a closed shape now and `dayFromJson`
+    // (lib/api/v2/documents.ts) carries forward only the fields it names, so
+    // a key the parser has never heard of does not survive a round trip —
+    // which is the decision in `03-build-order.md` ("no unknown-key
+    // preservation"), not an oversight. An unknown key is therefore asserted
+    // to be DROPPED below rather than kept, so that if somebody ever adds
+    // pass-through preservation this test says so.
+    //
+    // What the test was really protecting is untouched: removing a
+    // photograph must not take the day's prose or its other fields with it.
     const before = JSON.parse(fs.readFileSync(entryFile, "utf8"));
-    before.note = "a note nobody else should touch";
+    before.note = "a key the v2 day shape does not define";
     fs.writeFileSync(entryFile, JSON.stringify(before, null, 2) + "\n");
 
     const result = detachGallery(REF, DAY, [item.src]);
     expect(result.ok).toBe(true);
 
     const after = fs.readFileSync(entryFile, "utf8");
-    expect(after).toContain("a note nobody else should touch");
+    expect(after).not.toContain("a key the v2 day shape does not define");
     expect(after).toContain('"location": "Hoi An"');
+    expect(JSON.parse(after).title).toBe("lanterns-of-hoi-an");
+    expect(JSON.parse(after).country).toBe("Vietnam");
     expect(after).not.toContain('"media"');
     expect(JSON.parse(after).content).toBe("Words.");
   });

@@ -175,7 +175,8 @@ describe("writing a day from the wizard", () => {
       .readdirSync(entries)
       .map((file) => fs.readFileSync(path.join(entries, file), "utf8"));
     expect(written).toHaveLength(1);
-    expect(written[0]).toContain("status: draft");
+    // Days are v2 JSON now (B1598) — a quoted JSON pair, not a YAML scalar.
+    expect(written[0]).toContain('"status": "draft"');
   });
 
   test("somebody else's cookie sees nothing at all", async () => {

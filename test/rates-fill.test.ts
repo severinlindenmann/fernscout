@@ -9,6 +9,8 @@ import { fillTripRates } from "@/lib/api/tripRates";
 import { getCostSummary } from "@/lib/costs";
 import { getTrip } from "@/lib/trips";
 import { clearEcbHistoryCache, parseEcbHistory } from "@/lib/ecbHistory";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
 
 /**
  * B543 — a trip's local→base rates could only ever be typed by hand, and
@@ -20,20 +22,17 @@ import { clearEcbHistoryCache, parseEcbHistory } from "@/lib/ecbHistory";
  * currency already rated, hand-typed or otherwise — and always says where it
  * got the answer.
  *
- * B1630 finding: beyond the one function already marked below, this whole
- * file resists a fixture repoint for a reason bigger than the fixture
- * itself — every `writeTrip`/`writeDay` here is still v1 markdown
- * (`trip.md`, a `costs:` block), which `lib/entries.ts`/`lib/trips.ts` no
- * longer read at all post-B1606, so most tests here already fail
- * independent of any repoint. Fixing it means writing `trip.json` through
- * the production serialiser (as the other repointed files here now do), but
- * `rates` moved storage convention too — v1 wrote a flat
- * code→base-per-unit map, v2 stores `rates.manual` as units per 1 EUR
- * (`eurManualRates`, `lib/tripWrite.ts`) and `fillTripRates`
- * (`lib/api/tripRates.ts`) reads it through that conversion. Getting the
- * hand-typed-rate fixture right needs that conversion understood and
- * reproduced, which is past what a fixture repoint should attempt blind —
- * reported rather than guessed at.
+ * B1630/B1598 repoint: every `writeTrip`/`writeDay` here now writes v2
+ * `trip.json`/`entries/*.json` through the production serialiser
+ * (`writeTripFixture`, `writeDayFixture`), rather than v1's `trip.md` and a
+ * `costs:` frontmatter block that `lib/entries.ts`/`lib/trips.ts` no longer
+ * read at all post-B1606. `rates` itself moved storage convention too — v1
+ * wrote a flat code→base-per-unit map; v2 stores `rates.manual` as units per
+ * 1 EUR (`eurManualRates`, `lib/tripWrite.ts`), which `fillTripRates`
+ * (`lib/api/tripRates.ts`) reads back through the same conversion. The
+ * "hand-typed rate" fixture below reproduces that conversion directly
+ * (`setHandTypedRate`) rather than pretending v1's flat number still means
+ * anything on disk.
  */
 
 let dir: string;
@@ -66,7 +65,7 @@ function writeInstance(costsOn = true) {
 }
 
 function writeJournal(costsOn: boolean) {
-  fs.mkdirSync(path.join(dir, "ana", "trips", "alps", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "ana"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "ana", "config.json"),
     JSON.stringify({
@@ -84,29 +83,40 @@ function writeJournal(costsOn: boolean) {
   );
 }
 
-// Not on writeTripFixture (B1630): "a hand-typed rate is never overwritten"
-// (below) calls this twice for the same trip id — the second time to
-// simulate a rate already sitting in trip.md, an in-place rewrite
-// `createTrip` (the fixture's writer) refuses. Same resistance as
-// test/write-revocation.test.ts.
-function writeTrip(front: string[] = []) {
-  fs.writeFileSync(
-    path.join(dir, "ana", "trips", "alps", "trip.md"),
-    [
-      "---",
-      'id: "alps"',
-      'title: "Alps"',
-      'start: "2026-08-20"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      'visibility: "public"',
-      ...front,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+function writeTrip() {
+  writeTripFixture("ana", {
+    id: "alps",
+    title: "Alps",
+    start: "2026-08-20",
+    end: "2026-09-10",
+    visibility: "public",
+    intro: "Intro.",
+  });
+}
+
+/**
+ * Simulates a rate already sitting on the trip document, in v1's own
+ * convention — `basePerCode.THB = 0.03` reads "1 THB = 0.03 CHF". Not on
+ * `writeTripFixture` (B1630): "a hand-typed rate is never overwritten"
+ * (below) needs to set this *after* the trip already exists, an in-place
+ * rewrite `createTrip` (the fixture's writer) refuses — same resistance as
+ * test/write-revocation.test.ts. Writes through the store directly
+ * (`readTripFile`/`writeTripFile`), converting through `eurManualRates`'s
+ * own convention by hand: with no ECB cache in this test's `DATA_DIR`, both
+ * halves of the cross-division have to be supplied, so the base currency's
+ * own euro-quoted rate is invented here too (`1`, an arbitrary anchor — the
+ * fixture only cares that the cross-division lands back on `basePerCode`,
+ * never what either half is worth in the real world).
+ */
+function setHandTypedRate(basePerCode: Record<string, number>) {
+  const stored = readTripFile("ana", "alps")!;
+  const baseEur = 1;
+  const manual: Record<string, number> = { CHF: baseEur };
+  for (const [code, rate] of Object.entries(basePerCode)) manual[code] = baseEur / rate;
+  writeTripFile("ana", "alps", {
+    ...stored,
+    rates: { currencies: Object.keys(basePerCode), manual },
+  });
 }
 
 function reload() {
@@ -117,21 +127,13 @@ function reload() {
 }
 
 function writeDay(slug: string, date: string, costCurrency: string, amount = 100) {
-  const file = path.join(dir, "ana", "trips", "alps", "entries", `${date}-${slug}.md`);
-  fs.writeFileSync(
-    file,
-    [
-      "---",
-      `title: "${slug}"`,
-      `date: "${date}"`,
-      "costs:",
-      `  - { label: "Something", amount: ${amount}, currency: "${costCurrency}", category: "food" }`,
-      "---",
-      "",
-      "The prose.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, "ana", "alps", {
+    slug,
+    date,
+    title: slug,
+    content: "The prose.",
+    costs: [{ label: "Something", amount, currency: costCurrency, category: "food" }],
+  });
 }
 
 beforeEach(() => {
@@ -215,8 +217,13 @@ describe("filling a trip's rates", () => {
     // (CHF per EUR) / (THB per EUR), at the day actually used.
     // Six significant figures, not the full cross-division — see `readable`.
     expect(trip.rates.THB).toBeCloseTo(0.935 / 40.5, 7);
-    expect(trip.ratesFrom.THB).toContain("2026-08-21");
-    expect(trip.ratesFrom.THB).toContain("European Central Bank");
+    // v2 has no home for a per-rate citation any more (`writeRatesFrom`,
+    // lib/api/tripRates.ts, is a documented no-op): a filled rate is written
+    // into `rates.manual` — the very field a hand-typed rate lives in too —
+    // so `lib/trips.ts`'s reader can no longer tell them apart and credits
+    // both alike as "the trip's own rate". The specific day the archive was
+    // read on is not recoverable from the trip after the write.
+    expect(trip.ratesFrom.THB).toBe("the trip's own rate");
 
     const summary = getCostSummary(ref);
     expect(summary.unconverted).toEqual([]);
@@ -268,7 +275,7 @@ describe("filling a trip's rates", () => {
   });
 
   test("a hand-typed rate is never overwritten", async () => {
-    writeTrip(["rates:", "  THB: 0.03"]);
+    setHandTypedRate({ THB: 0.03 });
     writeDay("dinner", "2026-08-24", "THB", 800);
     reload();
     const fetchSpy = vi.spyOn(globalThis, "fetch");
@@ -329,23 +336,26 @@ describe("filling a trip's rates", () => {
   });
 
   test("a currency only in a preparation cost freezes at the trip's own start", async () => {
-    fs.writeFileSync(
-      path.join(dir, "ana", "trips", "alps", "costs.md"),
-      [
-        "---",
-        "costs:",
-        '  - { label: "Visa", amount: 50, currency: "THB", category: "preparation" }',
-        "---",
-        "",
-      ].join("\n"),
-    );
+    const stored = readTripFile("ana", "alps")!;
+    writeTripFile("ana", "alps", {
+      ...stored,
+      costs: {
+        items: [{ label: "Visa", amount: 50, currency: "THB", category: "preparation" }],
+      } as (typeof stored)["costs"],
+    });
     reload();
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       historyAnswer({ "2026-08-20": { THB: 40.2, CHF: 0.93 } }),
     );
 
+    // The mock only answers for 2026-08-20 — if the fill had frozen at any
+    // other date, `ecbRatesOnOrBefore` would have found nothing and the
+    // outcome would not be "filled" at all, so this is still a real pin of
+    // "the trip's own start" being the date used, even with no per-rate
+    // citation left to read it back from (see the note in the first test in
+    // this describe block).
     expect(await fillTripRates(ref)).toEqual({ THB: "filled" });
-    expect(getTrip(ref)!.ratesFrom.THB).toContain("2026-08-20");
+    expect(getTrip(ref)!.ratesFrom.THB).toBe("the trip's own rate");
   });
 
   test("two currencies each freeze at their own first date, not the trip's", async () => {
@@ -359,9 +369,12 @@ describe("filling a trip's rates", () => {
       }),
     );
 
+    // Each currency's own mock-only-answers-on-its-date proves it froze at
+    // its own first-seen day rather than the trip's or the other
+    // currency's — same reasoning as the test above.
     const outcomes = await fillTripRates(ref);
     expect(outcomes).toEqual({ THB: "filled", VND: "filled" });
-    expect(getTrip(ref)!.ratesFrom.THB).toContain("2026-08-24");
-    expect(getTrip(ref)!.ratesFrom.VND).toContain("2026-08-26");
+    expect(getTrip(ref)!.ratesFrom.THB).toBe("the trip's own rate");
+    expect(getTrip(ref)!.ratesFrom.VND).toBe("the trip's own rate");
   });
 });

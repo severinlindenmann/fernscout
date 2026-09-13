@@ -24,7 +24,11 @@
   "rates": {
     "currencies": [
       "JPY"
-    ]
+    ],
+    "manual": {
+      "CHF": 0.9451,
+      "JPY": 178.56
+    }
   },
   "translations": {
     "de": {

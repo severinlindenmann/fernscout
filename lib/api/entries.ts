@@ -294,23 +294,6 @@ function stampCostCurrencies(
  */
 // Exported since B295: the costs door writes a trip's preparation costs in
 // this identical shape, and reuses this renderer rather than a second copy.
-export function costLines(costs: CostInput[] | undefined): string[] {
-  if (!costs?.length) return [];
-  return [
-    "costs:",
-    ...costs.map((cost) => {
-      const fields = [
-        `label: ${quoteScalar(cost.label)}`,
-        `amount: ${cost.amount}`,
-        `category: ${quoteScalar(cost.category?.trim() || "other")}`,
-        ...(cost.currency?.trim()
-          ? [`currency: ${quoteScalar(cost.currency.trim().toUpperCase())}`]
-          : []),
-      ];
-      return `  - { ${fields.join(", ")} }`;
-    }),
-  ];
-}
 
 /**
  * The `translations:` block, rendered as markdown — the same "presentation,
@@ -563,7 +546,13 @@ function buildDayFile(
   }
   if (input.tags?.length) day.tags = input.tags;
   if (input.transportMode) {
-    day.transportMode = input.transportMode;
+    // Cast, like `travelScene` below: both arrive as `string` on the input
+    // type because that is what a caller sends, and both have already been
+    // checked against their closed list by `lib/validate/entry.ts` before
+    // anything reaches here (`transportMode` at its own check there). The
+    // cast records that, rather than re-deciding it in a second place that
+    // could disagree with the first.
+    day.transportMode = input.transportMode as DayFile["transportMode"];
     day.transportFrom = input.transportFrom ?? "";
     day.transportTo = input.transportTo ?? "";
   }
@@ -573,7 +562,7 @@ function buildDayFile(
   // request, since a reading already answers the question the request asked.
   if (input.weatherData) day.weather = input.weatherData;
   else if (input.weather === true) day.weather = true;
-  if (costs?.length) day.costs = costs;
+  if (costs?.length) day.costs = costs as DayFile["costs"];
   if (input.translations && Object.keys(input.translations).length) {
     day.translations = input.translations;
   }
@@ -726,6 +715,7 @@ function toMediaWireItem(item: GalleryItem): NonNullable<DayFile["media"]>[numbe
     ...(item.caption ? { caption: item.caption } : {}),
     ...(item.poster ? { poster: item.poster } : {}),
     ...(item.visibility ? { visibility: item.visibility } : {}),
+    ...(item.from ? { from: item.from } : {}),
   };
 }
 
@@ -775,6 +765,35 @@ export function attachGallery(
       error:
         `"${slug}" cannot be parsed (${said}), so a gallery cannot be written into it. The ` +
         `photographs are on disk under this day; add them to the entry by hand.`,
+    };
+  }
+
+  /**
+   * A malformed item is refused rather than written — B540, and worth a note
+   * because the guard used to be an accident.
+   *
+   * Under v1 this was caught for free: a `width` that was not a number wrote
+   * frontmatter that would not parse, and the `matter()` check after the
+   * splice refused it. JSON has no such accident — `JSON.stringify` is happy
+   * to write `"width": "1: ["` — so the day would take the bad item and the
+   * gallery would render against a string dimension. The check is explicit
+   * now, which is what it should have been all along: a guard nobody wrote
+   * on purpose is a guard that disappears the moment the format changes,
+   * and that is exactly what happened here.
+   */
+  const bad = items.find(
+    (i) =>
+      (i.width !== undefined && typeof i.width !== "number") ||
+      (i.height !== undefined && typeof i.height !== "number"),
+  );
+  if (bad) {
+    return {
+      ok: false,
+      bug: true,
+      error:
+        `A photograph's dimensions came through as something other than numbers ` +
+        `(${JSON.stringify(bad.src)}), so nothing was written to "${slug}". The files ` +
+        `themselves are already stored. This is a bug; please report it.`,
     };
   }
 
@@ -1087,7 +1106,7 @@ function applyEditToDay(day: DayFile, input: EditInput): DayFile {
     else delete next.tags;
   }
   if (input.transportMode !== undefined) {
-    if (input.transportMode) next.transportMode = input.transportMode;
+    if (input.transportMode) next.transportMode = input.transportMode as DayFile["transportMode"];
     else delete next.transportMode;
   }
   if (input.transportFrom !== undefined) {
@@ -1128,7 +1147,7 @@ function applyEditToDay(day: DayFile, input: EditInput): DayFile {
     else if (typeof next.weather === "object") delete next.weather;
   }
   if (input.costs !== undefined) {
-    if (Array.isArray(input.costs) && input.costs.length) next.costs = input.costs;
+    if (Array.isArray(input.costs) && input.costs.length) next.costs = input.costs as DayFile["costs"];
     else delete next.costs;
   }
   /**

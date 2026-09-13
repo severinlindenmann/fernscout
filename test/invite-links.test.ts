@@ -528,8 +528,16 @@ describe("redeeming a buddy link", { shuffle: false }, () => {
 
     await approve(ROBIN);
     expect(await isPersonOn(trips.get("bus-2026")!, ROBIN)).toBe(true);
-    // The trip file still says what it always said. The merge is additive.
-    expect(trips.get("bus-2026")!.people).toEqual([]);
+    // The trip file still says what it always said. The merge is additive:
+    // approving a buddy grant never rewrites `people:` on disk. v1 wrote no
+    // `people:` at all for a trip created without one and let `peopleOf()`
+    // merge the owner in at read time; v2's `people` is `.min(1)` and
+    // `createTrip` states the owner on the document itself when none is
+    // given (lib/tripWrite.ts) — so "unchanged since creation" is now the
+    // owner alone, not an empty list.
+    expect(trips.get("bus-2026")!.people).toEqual([
+      { name: "A B", nickname: "A", email: "ana@example.test" },
+    ]);
   });
 
   test("and can write to that trip, and is refused against another one", async () => {

@@ -103,7 +103,7 @@ describe("writing as an agent", () => {
     if (!result.ok) return;
     expect(result.status).toBe("draft");
     expect(fs.existsSync(result.file)).toBe(true);
-    expect(fs.readFileSync(result.file, "utf8")).toContain("status: draft");
+    expect(fs.readFileSync(result.file, "utf8")).toContain('"status": "draft"');
   });
 
   /** The whole point of G7: an agent cannot put words on the site. */
@@ -122,10 +122,9 @@ describe("writing as an agent", () => {
   test("publishing it makes it appear", () => {
     const result = createDraft("ana/ana-trip", DRAFT);
     if (!result.ok) throw new Error("expected the draft to be written");
-    fs.writeFileSync(
-      result.file,
-      fs.readFileSync(result.file, "utf8").replace("status: draft\n", ""),
-    );
+    const published = JSON.parse(fs.readFileSync(result.file, "utf8"));
+    published.status = "published";
+    fs.writeFileSync(result.file, JSON.stringify(published, null, 2) + "\n");
     expect(getAllEntries("ana/ana-trip")).toHaveLength(1);
     expect(listDrafts("ana/ana-trip")).toHaveLength(0);
   });
@@ -140,7 +139,7 @@ describe("writing as an agent", () => {
 
     const file = path.join(
       dir,
-      "ana/trips/ana-trip/entries/2026-01-05-lanterns-of-hoi-an.md",
+      "ana/trips/ana-trip/entries/2026-01-05-lanterns-of-hoi-an.json",
     );
     expect(fs.readFileSync(file, "utf8")).toContain("The old town hangs with lanterns.");
   });
@@ -154,14 +153,19 @@ describe("writing as an agent", () => {
     expect(listDrafts("bea/bea-trip")).toHaveLength(0);
   });
 
-  test("quotes and backslashes in a title cannot break the frontmatter", () => {
+  test("quotes and backslashes in a title cannot break the file", () => {
     const result = createDraft("ana/ana-trip", {
       ...DRAFT,
       title: 'A "quoted" \\ title',
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(fs.readFileSync(result.file, "utf8")).toContain('title: "A \\"quoted\\" \\\\ title"');
+    // JSON.stringify's own escaping, not the YAML escaper this used to
+    // exercise (dayToJson/lib/api/v2/documents.ts, B1606) — a string is a
+    // string now, and there is no frontmatter delimiter left to break.
+    expect(fs.readFileSync(result.file, "utf8")).toContain(
+      JSON.stringify('A "quoted" \\ title'),
+    );
     expect(listDrafts("ana/ana-trip")[0].title).toBe('A "quoted" \\ title');
   });
 });
@@ -195,7 +199,7 @@ describe("validation", () => {
     if (!result.ok) return;
     expect(result.slug).toBe("rueckfahrt");
     expect(result.slug).toBe(slugify("Rückfahrt"));
-    expect(path.basename(result.file)).toBe("2026-01-02-rueckfahrt.md");
+    expect(path.basename(result.file)).toBe("2026-01-02-rueckfahrt.json");
   });
 
   test("slugs are safe for a filename", () => {
@@ -251,7 +255,7 @@ describe("what a day can actually carry", () => {
   test("travelScene survives into the file", () => {
     const result = createDraft("ana/ana-trip", { ...DRAFT, travelScene: "quick" });
     if (!result.ok) throw new Error("expected the draft to be written");
-    expect(fs.readFileSync(result.file, "utf8")).toContain("travelScene: \"quick\"");
+    expect(fs.readFileSync(result.file, "utf8")).toContain('"travelScene": "quick"');
     const entry = getAllEntries("ana/ana-trip", { includeDrafts: true })[0];
     expect(entry.travelScene).toBe("quick");
   });
@@ -262,7 +266,7 @@ describe("what a day can actually carry", () => {
     // is, and it is the read side that falls back rather than the write.
     const result = createDraft("ana/ana-trip", { ...DRAFT, travelScene: "epic-flyover" });
     if (!result.ok) throw new Error("expected the draft to be written");
-    expect(fs.readFileSync(result.file, "utf8")).toContain("travelScene: \"epic-flyover\"");
+    expect(fs.readFileSync(result.file, "utf8")).toContain('"travelScene": "epic-flyover"');
     const entry = getAllEntries("ana/ana-trip", { includeDrafts: true })[0];
     expect(entry.travelScene).toBeUndefined();
   });
@@ -289,14 +293,14 @@ describe("content nobody lived", () => {
   test("is written into the file, so the page can say so", () => {
     const result = createDraft("ana/ana-trip", { ...DRAFT, test: true });
     if (!result.ok) throw new Error("expected the draft to be written");
-    expect(fs.readFileSync(result.file, "utf8")).toContain("test: true");
+    expect(fs.readFileSync(result.file, "utf8")).toContain('"test": true');
     expect(getAllEntries("ana/ana-trip", { includeDrafts: true })[0].test).toBe(true);
   });
 
   test("is absent from an ordinary day, rather than written as false", () => {
     const result = createDraft("ana/ana-trip", DRAFT);
     if (!result.ok) throw new Error("expected the draft to be written");
-    expect(fs.readFileSync(result.file, "utf8")).not.toContain("test:");
+    expect(fs.readFileSync(result.file, "utf8")).not.toContain('"test"');
     expect(getAllEntries("ana/ana-trip", { includeDrafts: true })[0].test).toBeUndefined();
   });
 

@@ -128,13 +128,14 @@ describe("storing an upload", () => {
     expect(result.items[0].from).toBe("IMG_4821.JPG");
 
     expect(attachGallery(REF, "day-two", result.items).ok).toBe(true);
-    // FINDING (B1630, not a fixture problem — reported alongside this
-    // repoint): the v2 gallery projection in lib/entries.ts maps
-    // src/type/caption/width/height/poster/visibility off `day.media`, but
-    // never `from` — the field this test (and B527's own resumability
-    // guarantee) depends on reading back. `result.items[0].from` above is
-    // still populated (storeUploads' own return value); it is the read-back
-    // through `getEntryBySlug` that silently drops it.
+    // FIXED (B1630): `toMediaWireItem` (lib/api/entries.ts) dropped `from`
+    // when writing the gallery into the day's JSON, and the v2 gallery
+    // projection in lib/entries.ts never read it back off `day.media` —
+    // both silently discarded the one field B527's resumability guarantee
+    // depends on. `DayFile["media"]` (lib/api/v2/documents.ts) is
+    // disk-only and never echoed on the wire (`dayEchoInput` whitelists its
+    // own fields), so carrying `from` through it cannot leak into a v2 API
+    // response.
     expect(getEntryBySlug(REF, "day-two")!.gallery[0].from).toBe("IMG_4821.JPG");
   });
 

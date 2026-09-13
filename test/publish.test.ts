@@ -82,14 +82,12 @@ describe("publishing a draft", () => {
     expect(getEntryBySlug(REF, "erster-tag")?.draft).toBeUndefined();
   });
 
-  // B1630 finding: `publishDraft` now flips the JSON `status` key in place
-  // (dayToJson) rather than deleting a YAML line, so "exactly one line gone"
-  // no longer holds under the current storage format — pre-existing, not
-  // caused by this repoint. Left red and reported rather than rewritten,
-  // since deciding what this test should assert instead (the `status` key
-  // flips value, everything else round-trips byte for byte) is an editorial
-  // call past a fixture repoint.
-  test("removes the status line and nothing else", () => {
+  // v2 stores a day as JSON (dayToJson, B1598) and `publishDraft` rewrites
+  // the whole file from `{ ...day, status: "published" }` rather than
+  // deleting a YAML `status: draft` line, so "one line gone" no longer holds.
+  // The property survives in JSON's own shape instead: same line count, and
+  // the one line that differs is the `status` value.
+  test("changes only the status line, and nothing else", () => {
     const made = createDraft(REF, { ...DRAFT, tags: ["tessin"] });
     if (!made.ok) throw new Error("expected the draft to be written");
     const before = fs.readFileSync(made.file, "utf8");
@@ -97,10 +95,17 @@ describe("publishing a draft", () => {
     publishDraft(REF, "erster-tag");
     const after = fs.readFileSync(made.file, "utf8");
 
-    // Exactly one line gone, and it is the one.
-    expect(before.split("\n").length - after.split("\n").length).toBe(1);
-    expect(after).not.toMatch(/^status:\s*draft$/m);
-    for (const kept of ['title: "Erster Tag"', 'location: "Bellinzona"', "Ankunft am Morgen."]) {
+    const beforeLines = before.split("\n");
+    const afterLines = after.split("\n");
+    expect(afterLines.length).toBe(beforeLines.length);
+    const changed = beforeLines
+      .map((line, i) => (line !== afterLines[i] ? i : -1))
+      .filter((i) => i !== -1);
+    expect(changed).toHaveLength(1);
+    expect(beforeLines[changed[0]]).toMatch(/"status":\s*"draft"/);
+    expect(afterLines[changed[0]]).toMatch(/"status":\s*"published"/);
+
+    for (const kept of ['"title": "Erster Tag"', '"location": "Bellinzona"', "Ankunft am Morgen."]) {
       expect(after).toContain(kept);
     }
   });

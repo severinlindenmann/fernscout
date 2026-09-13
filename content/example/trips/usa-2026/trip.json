@@ -25,7 +25,11 @@
   "rates": {
     "currencies": [
       "USD"
-    ]
+    ],
+    "manual": {
+      "CHF": 0.9451,
+      "USD": 1.1592
+    }
   },
   "figures": {
     "mode": "custom",

@@ -80,19 +80,11 @@ beforeEach(async () => {
     visibility: "private",
     // A costs section has to already exist for `patchCosts` to amend it
     // (PATCH, never PUT — see lib/api/costs.ts); "guests" is a real,
-    // narrower value rather than a fixture-only placeholder.
-    //
-    // FINDING (not a fixture problem — reported alongside this repoint):
-    // this shape — a costs section with `visibility` and no `budget` yet —
-    // is exactly what a costs.md with empty frontmatter used to mean, and
-    // it is also exactly what `createTrip`'s own v1 door writes for
-    // `costsVisibility: "guests"` (lib/tripWrite.ts, the `as TripFile["costs"]`
-    // cast there says as much). `readCostsFile` (lib/costs.ts:96) crashes on
-    // it — `section.budget.days` with `section.budget` undefined — so two
-    // tests below that go through that path ("a cost outside the total
-    // joins it...", "a preparation cost is appended...") fail with a
-    // TypeError, not a wrong assertion. This is a real bug the v2 migration
-    // introduced/exposed, not something this repoint can route around.
+    // narrower value rather than a fixture-only placeholder. This shape — a
+    // costs section with `visibility` and no `budget` yet, exactly what
+    // `createTrip`'s v1 door writes for `costsVisibility: "guests"` — used to
+    // crash `readCostsFile` on `section.budget.days`; that guard now lives in
+    // lib/costs.ts (see test/malformed-costs.test.ts).
     costsVisibility: "guests",
   });
   writeDayFixture(dir, "alex", "reise", {

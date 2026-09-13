@@ -14,7 +14,8 @@ import {
   PATCH as patchRoute,
   PUT as putRoute,
 } from "@/app/api/v1/[user]/trips/[trip]/costs/route";
-import { writeTripFixture } from "./fixtures/content";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
 
 /**
  * B295 — a costs door: a trip's budget could only ever be written by hand,
@@ -22,8 +23,12 @@ import { writeTripFixture } from "./fixtures/content";
  * tests hold the line on what the ticket names explicitly:
  *
  *  - all four verbs work over REST;
- *  - a hand-written costs.md — comments, key order, flow-vs-block style —
- *    survives a PATCH;
+ *  - a field a PATCH does not name keeps the value it already had (v1: a
+ *    hand-written costs.md's comments, key order and flow-vs-block style
+ *    survived; v2 folded the file into `trip.json`'s own `costs` section,
+ *    written wholesale by the one serialiser, so there is no more
+ *    formatting to preserve — only the untouched-fields-stay-untouched
+ *    property that formatting used to stand in for);
  *  - a zero total, an unknown category and an unknown currency are each
  *    refused with a sentence, not written and read back as if nothing had
  *    happened (B263's failure, which this ticket exists to close);
@@ -36,6 +41,23 @@ const OWNER_EMAIL = "alex@example.test";
 
 function tripFile(name: string): string {
   return path.join(dir, "alex", "trips", "reise", name);
+}
+
+/** Sets the trip's `costs` section directly on `trip.json`, through the
+ * production serialiser — B1606 folded `costs.md` into that one document,
+ * so this replaces every hand-rolled `fs.writeFileSync(tripFile("costs.md"))`
+ * a v1 version of this file used. */
+function setCosts(costs: {
+  budget?: { total: number; days?: number; currency?: string };
+  items?: Array<{ label: string; amount: number; category?: string; currency?: string }>;
+  note?: string;
+}) {
+  const stored = readTripFile("alex", "reise")!;
+  writeTripFile("alex", "reise", { ...stored, costs: costs as (typeof stored)["costs"] });
+}
+
+function tripJson(): Record<string, unknown> {
+  return JSON.parse(fs.readFileSync(tripFile("trip.json"), "utf8"));
 }
 
 function writeTrip() {
@@ -125,19 +147,11 @@ describe("GET .../costs", () => {
   });
 
   test("reads back a budget and preparation costs already on disk", async () => {
-    fs.writeFileSync(
-      tripFile("costs.md"),
-      [
-        "---",
-        "budget: { total: 900, days: 4, currency: CHF }",
-        "costs:",
-        '  - { label: "Roof box hire", amount: 60, category: "preparation" }',
-        "---",
-        "",
-        "Short trip, short budget.",
-        "",
-      ].join("\n"),
-    );
+    setCosts({
+      budget: { total: 900, days: 4, currency: "CHF" },
+      items: [{ label: "Roof box hire", amount: 60, category: "preparation" }],
+      note: "Short trip, short budget.",
+    });
     const token = await agentToken();
     const { status, body } = await call(getRoute, "GET", token);
     expect(status).toBe(200);
@@ -235,26 +249,20 @@ describe("PUT .../costs", () => {
   });
 });
 
-describe("PATCH .../costs: a hand-written file survives", () => {
-  test("a comment, key order and flow-vs-block style are untouched by an unrelated change", async () => {
-    fs.writeFileSync(
-      tripFile("costs.md"),
-      [
-        "---",
-        "budget:",
-        "  total: 14800",
-        "  days: 43",
-        "  currency: CHF",
-        "# argued about for a week before anyone agreed",
-        "costs:",
-        '  - { label: "Rail pass, 21 days", amount: 1180, category: "preparation" }',
-        "---",
-        "",
-        "Nothing has been spent on the road yet.",
-        "",
-      ].join("\n"),
-    );
-    const before = fs.readFileSync(tripFile("costs.md"), "utf8");
+describe("PATCH .../costs: a field left out is left alone", () => {
+  // v1's costs.md was hand-edited YAML, and PATCH preserved whatever
+  // formatting — comments, key order, flow-vs-block style — the owner had
+  // written. B1606/B1598 folded it into `trip.json`, written wholesale by
+  // the one serialiser (`tripToJson`) on every write: there is no more
+  // formatting for a caller to hand-edit or a PATCH to disturb. What
+  // survives now is the property that formatting only ever stood for — a
+  // field a PATCH does not name keeps the value it already had.
+  test("an unrelated change leaves the budget and preparation costs alone", async () => {
+    setCosts({
+      budget: { total: 14800, days: 43, currency: "CHF" },
+      items: [{ label: "Rail pass, 21 days", amount: 1180, category: "preparation" }],
+      note: "Nothing has been spent on the road yet.",
+    });
     const token = await agentToken();
 
     const { status } = await call(patchRoute, "PATCH", token, {
@@ -262,87 +270,67 @@ describe("PATCH .../costs: a hand-written file survives", () => {
     });
     expect(status).toBe(200);
 
-    const after = fs.readFileSync(tripFile("costs.md"), "utf8");
-    expect(after).toContain("# argued about for a week before anyone agreed");
-    expect(after).toContain("  total: 14800");
-    expect(after).toContain("  days: 43");
-    expect(after).toContain("  currency: CHF");
-    expect(after).toContain('label: "Rail pass, 21 days"');
-    expect(after).toContain("Updated: the rail pass is booked.");
-    expect(after).not.toContain("Nothing has been spent on the road yet.");
-    // Everything before the prose is untouched, byte for byte.
-    expect(after.slice(0, before.indexOf("---", 4) + 3)).toBe(before.slice(0, before.indexOf("---", 4) + 3));
+    const after = tripJson().costs as Record<string, unknown>;
+    expect(after.budget).toEqual({ total: 14800, days: 43, currency: "CHF" });
+    expect(after.items).toEqual([
+      { label: "Rail pass, 21 days", amount: 1180, category: "preparation" },
+    ]);
+    expect(after.note).toBe("Updated: the rail pass is booked.");
   });
 
-  test("changing only the budget leaves a hand-written costs: list alone", async () => {
-    fs.writeFileSync(
-      tripFile("costs.md"),
-      [
-        "---",
-        "budget: { total: 900, days: 4, currency: CHF }",
-        "costs:",
-        '  - { label: "Vignette and tolls", amount: 90, category: "transport" }',
-        '  - { label: "Roof box hire", amount: 60, category: "preparation" }',
-        "---",
-        "",
-        "Four days is short.",
-        "",
-      ].join("\n"),
-    );
+  test("changing only the budget leaves the preparation-costs list alone", async () => {
+    setCosts({
+      budget: { total: 900, days: 4, currency: "CHF" },
+      items: [
+        { label: "Vignette and tolls", amount: 90, category: "transport" },
+        { label: "Roof box hire", amount: 60, category: "preparation" },
+      ],
+      note: "Four days is short.",
+    });
     const token = await agentToken();
     const { status } = await call(patchRoute, "PATCH", token, {
       budget: { total: 1200, days: 4, currency: "CHF" },
     });
     expect(status).toBe(200);
 
-    const after = fs.readFileSync(tripFile("costs.md"), "utf8");
-    expect(after).toContain("budget: { total: 1200, days: 4, currency: \"CHF\" }");
-    expect(after).toContain('label: "Vignette and tolls"');
-    expect(after).toContain('label: "Roof box hire"');
-    expect(after).toContain("Four days is short.");
+    const after = tripJson().costs as Record<string, unknown>;
+    expect(after.budget).toEqual({ total: 1200, days: 4, currency: "CHF" });
+    expect(after.items).toEqual([
+      { label: "Vignette and tolls", amount: 90, category: "transport" },
+      { label: "Roof box hire", amount: 60, category: "preparation" },
+    ]);
+    expect(after.note).toBe("Four days is short.");
   });
 
   test("budget: null clears the budget and leaves costs in place", async () => {
-    fs.writeFileSync(
-      tripFile("costs.md"),
-      [
-        "---",
-        "budget: { total: 900, days: 4, currency: CHF }",
-        "costs:",
-        '  - { label: "Roof box hire", amount: 60, category: "preparation" }',
-        "---",
-        "",
-        "Body.",
-        "",
-      ].join("\n"),
-    );
+    setCosts({
+      budget: { total: 900, days: 4, currency: "CHF" },
+      items: [{ label: "Roof box hire", amount: 60, category: "preparation" }],
+    });
     const token = await agentToken();
     const { status } = await call(patchRoute, "PATCH", token, { budget: null });
     expect(status).toBe(200);
 
-    const after = fs.readFileSync(tripFile("costs.md"), "utf8");
-    expect(after).not.toContain("budget:");
-    expect(after).toContain('label: "Roof box hire"');
-    // The page is still there — only the budget went, not the file.
+    const after = tripJson().costs as Record<string, unknown>;
+    expect(after.budget).toBeUndefined();
+    expect(after.items).toEqual([{ label: "Roof box hire", amount: 60, category: "preparation" }]);
+    // The page is still there — only the budget went, not the section.
     expect(hasCostsData(REF)).toBe(true);
   });
 
-  test("a zero total is refused on PATCH too, and the file is untouched", async () => {
-    fs.writeFileSync(
-      tripFile("costs.md"),
-      ["---", "budget: { total: 900, days: 4, currency: CHF }", "---", "", "Body.", ""].join("\n"),
-    );
-    const before = fs.readFileSync(tripFile("costs.md"), "utf8");
+  test("a zero total is refused on PATCH too, and the trip is untouched", async () => {
+    setCosts({ budget: { total: 900, days: 4, currency: "CHF" } });
+    const before = fs.readFileSync(tripFile("trip.json"), "utf8");
     const token = await agentToken();
     const { status, body } = await call(patchRoute, "PATCH", token, {
       budget: { total: 0, days: 4 },
     });
     expect(status).toBe(400);
     expect(body.error).toBe("invalid_costs");
-    expect(fs.readFileSync(tripFile("costs.md"), "utf8")).toBe(before);
+    expect(fs.readFileSync(tripFile("trip.json"), "utf8")).toBe(before);
   });
 
-  test("PATCHing a trip with no costs.md yet is refused, naming PUT", async () => {
+  test("PATCHing a trip with no costs section yet is refused, naming PUT", async () => {
     const token = await agentToken();
     const { status, body } = await call(patchRoute, "PATCH", token, { body: "Anything." });
     expect(status).toBe(400);
@@ -350,10 +338,7 @@ describe("PATCH .../costs: a hand-written file survives", () => {
   });
 
   test("an empty body is refused rather than a no-op 200", async () => {
-    fs.writeFileSync(
-      tripFile("costs.md"),
-      ["---", "budget: { total: 900, days: 4 }", "---", "", "Body.", ""].join("\n"),
-    );
+    setCosts({ budget: { total: 900, days: 4 } });
     const token = await agentToken();
     const { status } = await call(patchRoute, "PATCH", token, {});
     expect(status).toBe(400);
@@ -361,18 +346,15 @@ describe("PATCH .../costs: a hand-written file survives", () => {
 });
 
 describe("DELETE .../costs", () => {
-  test("removes costs.md, and the trip has no costs page afterwards", async () => {
-    fs.writeFileSync(
-      tripFile("costs.md"),
-      ["---", "budget: { total: 900, days: 4 }", "---", "", "Body.", ""].join("\n"),
-    );
+  test("removes the costs section, and the trip has no costs page afterwards", async () => {
+    setCosts({ budget: { total: 900, days: 4 } });
     expect(hasCostsData(REF)).toBe(true);
 
     const token = await agentToken();
     const { status, body } = await call(deleteRoute, "DELETE", token);
     expect(status).toBe(200);
     expect(body).toMatchObject({ ok: true, costsPageGone: true });
-    expect(fs.existsSync(tripFile("costs.md"))).toBe(false);
+    expect(tripJson().costs).toBeUndefined();
     expect(hasCostsData(REF)).toBe(false);
   });
 
@@ -388,33 +370,20 @@ describe("DELETE .../costs", () => {
    * page exactly where it was. `costsPageGone` must say so, not `true`.
    */
   test("a day still logging costs keeps the page alive, and the response says so", async () => {
-    fs.writeFileSync(
-      tripFile("costs.md"),
-      ["---", "budget: { total: 900, days: 4 }", "---", "", "Body.", ""].join("\n"),
-    );
-    fs.writeFileSync(
-      tripFile("entries/2026-09-01-day-one.md"),
-      [
-        "---",
-        'title: "Day one"',
-        'date: "2026-09-01"',
-        "costs:",
-        "  - label: Lunch",
-        "    category: food",
-        "    amount: 20",
-        "    currency: CHF",
-        "---",
-        "",
-        "Body.",
-        "",
-      ].join("\n"),
-    );
+    setCosts({ budget: { total: 900, days: 4 } });
+    writeDayFixture(dir, "alex", "reise", {
+      slug: "day-one",
+      date: "2026-09-01",
+      title: "Day one",
+      content: "Body.",
+      costs: [{ label: "Lunch", amount: 20, category: "food", currency: "CHF" }],
+    });
     expect(hasCostsData(REF)).toBe(true);
 
     const token = await agentToken();
     const { status, body } = await call(deleteRoute, "DELETE", token);
     expect(status).toBe(200);
-    expect(fs.existsSync(tripFile("costs.md"))).toBe(false);
+    expect(tripJson().costs).toBeUndefined();
     expect(hasCostsData(REF)).toBe(true);
     expect(body).toMatchObject({ ok: true, costsPageGone: false });
     expect(String(body.note)).not.toMatch(/no longer exists/);

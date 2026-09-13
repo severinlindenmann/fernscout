@@ -16,36 +16,40 @@ import { writeTripFixture } from "./fixtures/content";
  * the entry cache and answered `201 {"status":"draft"}`, so a file no reading
  * path could load was reported to somebody as their day, written and waiting.
  *
- * There is no known input that produces one — both writers share `quoteScalar`
- * now, and it cannot emit invalid YAML whatever it is handed. That is exactly
- * why the failure has to be *forced* here: the guard is the one that does not
- * depend on anybody having thought of the input, so a test that waited for a
- * real one would be testing nothing.
+ * There is no known input that produces one — days are now serialised with
+ * `JSON.stringify` (`dayToJson`, `lib/api/v2/documents.ts`), which cannot emit
+ * invalid JSON or the wrong value for a key whatever it is handed: a string
+ * is a string, quoted once, and there is no delimiter a body can be mistaken
+ * for the way YAML frontmatter had. That is exactly why the failure has to be
+ * *forced* here: the guard is the one that does not depend on anybody having
+ * thought of the input, so a test that waited for a real one would be testing
+ * nothing.
  *
- * The quoter is mocked to a version that escapes nothing at all — the same
- * regression class as the pre-B204 quoter, which escaped no newline, and a
- * little wider so that both shapes of failure are reachable from it. That is
- * the only way to reach the branch without pretending `fs` failed.
+ * `dayToJson` is mocked to misbehave instead — the only way to reach the
+ * branch without pretending `fs` failed.
  */
 
-const broken = vi.hoisted(() => ({ on: false }));
+const broken = vi.hoisted(() => ({ mode: null as null | "corrupt" | "status" }));
 
-vi.mock("@/lib/validate/frontmatter", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/validate/frontmatter")>();
+vi.mock("@/lib/api/v2/documents", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/api/v2/documents")>();
   return {
     ...actual,
-    quoteScalar: (value: string) => (broken.on ? `"${value}"` : actual.quoteScalar(value)),
+    dayToJson: (day: Parameters<typeof actual.dayToJson>[0]) => {
+      // A file that is not valid JSON at all — the read-back can't even parse it.
+      if (broken.mode === "corrupt") return "{ not json";
+      // A file that parses, but reports the wrong status — the one outcome
+      // worse than an invisible file, since it would put a day on the site
+      // that reported itself a draft.
+      if (broken.mode === "status") return actual.dayToJson({ ...day, status: "published" });
+      return actual.dayToJson(day);
+    },
   };
 });
 
 let dir: string;
 const REF = "alex/asia-2026";
 const entriesDir = () => path.join(dir, "alex", "trips", "asia-2026", "entries");
-
-/** A value that closes the frontmatter block from inside itself, once the
- * quoter has stopped escaping newlines. What is left above the early `---` is
- * an unterminated double-quoted scalar, which js-yaml refuses. */
-const BREAKOUT = 'Hoi An\n---\ntitle: "';
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-readback-"));
@@ -81,7 +85,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  broken.on = false;
+  broken.mode = null;
   delete process.env.CONTENT_DIR;
   clearConfigCache();
   clearUserCache();
@@ -91,11 +95,11 @@ afterEach(() => {
 
 describe("a day that does not read back", () => {
   test("is refused, and leaves no file behind", () => {
-    broken.on = true;
+    broken.mode = "corrupt";
     const result = createDraft(REF, {
       title: "Lanterns",
       date: "2026-01-02",
-      location: BREAKOUT,
+      location: "Hội An",
       content: "Words.",
     });
 
@@ -119,13 +123,11 @@ describe("a day that does not read back", () => {
    * covered by the parse error above.
    */
   test("a day whose status line ended up in the prose is refused too", () => {
-    broken.on = true;
+    broken.mode = "status";
     const result = createDraft(REF, {
       title: "Ferry",
       date: "2026-01-03",
-      // Closes its own quote and then the block, so what is above is valid
-      // YAML — and `status: draft` is below it, in the body.
-      location: 'Cat Ba"\n---\nAnything at all.',
+      location: "Cat Ba",
       content: "Words.",
     });
 
