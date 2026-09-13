@@ -1,0 +1,30 @@
+{
+  "title": "The Matsumoto detour",
+  "date": "2027-04-14",
+  "timezone": "Asia/Tokyo",
+  "location": "Matsumoto",
+  "country": "Japan",
+  "countryCode": "JP",
+  "coordinates": {
+    "lat": 36.238,
+    "lng": 137.972
+  },
+  "content": "Not on the plan. Priya's colleague says the castle is worth the two changes it takes to get there, and the pass covers it either way.\n\nNothing booked. If it is raining we carry on to Tokyo the same evening.",
+  "transportMode": "train",
+  "transportFrom": "Kanazawa",
+  "transportTo": "Matsumoto",
+  "tags": [
+    "japan",
+    "trains",
+    "mountains"
+  ],
+  "weather": true,
+  "declined": {
+    "media": "no photographs were taken on this day",
+    "costs": "no figures were kept for this day",
+    "time": "the hour was not noted when this was written",
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "draft"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "agent",
+  "hairStyle": "short",
+  "skin": "light-medium",
+  "hair": "brown",
+  "shirt": "sky",
+  "pants": "slate",
+  "accessories": [
+    "glasses"
+  ],
+  "person": "agent@fernscout.ch",
+  "name": "Alex",
+  "eyes": "brown",
+  "build": "average",
+  "outfit": "trousers",
+  "age": "adult"
+}

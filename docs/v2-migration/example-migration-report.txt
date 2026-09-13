@@ -1,0 +1,340 @@
+# content/example → v2, the migration report (B1643)
+#
+# Produced by scripts/example-to-v2.mts, which writes through the real
+# serializers (dayToJson/tripToJson) so the output cannot drift from the
+# format the server reads. Every line below is one transformation: mapped,
+# declined, dropped, kept, or R1 (a translation title completed, per the
+# R1 row in 06-contract-deltas.md).
+#
+# Read it beside `git diff` on content/example. The only DROPPED keys are
+# trip `status` (derived from the dates now) and the journal's
+# `startLocation`/`defaultLocale` (no v2 address). `features` is KEPT and
+# is the one legacy key left, deliberately — see the ticket.
+#
+# Content added by hand afterwards, not by the script: three trips
+# (lisbon-2025 guest+teaser, a-wedding-2026 private with no days,
+# test-pipeline-2026 test:true+listed:false), four Lisbon days, one test
+# day, cost lines on three existing days, and the figure library's names,
+# eyes, builds and ages. All of it is there to demonstrate a contract
+# field or enum value nothing else demonstrated — test/example-content.test.ts
+# is what says which.
+
+mapped    config.json                                    visibility: public (required and explicit in v2)
+mapped    config.json                                    travellers[2] → /figures library + figures{mode:set}
+kept      config.json                                    features (legacy — code owes decision 5 before this can go)
+DROPPED   config.json                                    startLocation (no v2 address)
+DROPPED   config.json                                    defaultLocale (no v2 address)
+mapped    alps-2024                                      start/end → dates{from,to}
+mapped    alps-2024                                      people absent → the journal's owner (v2 requires at least one)
+mapped    alps-2024                                      rates{EUR} → rates.currencies + rates.manual
+mapped    alps-2024                                      costs.md → trip.costs{budget,items,note,visibility}
+mapped    alps-2024                                      plan.md → trip.plan{route[4],body}
+mapped    alps-2024                                      travellers[1] → /figures library + figures{mode:custom}
+declined  alps-2024                                      buddies (a solo trip says so)
+declined  alps-2024                                      listed
+DROPPED   alps-2024                                      status (derived from the dates now)
+mapped    alps-2024/2024-09-12-over-the-susten           lat+lng → coordinates{lat,lng}
+mapped    alps-2024/2024-09-12-over-the-susten           gallery[3] → media[]
+mapped    alps-2024/2024-09-12-over-the-susten           weather:true + weatherData → weather (the reading itself)
+declined  alps-2024/2024-09-12-over-the-susten           time: "the hour was not noted when this was written"
+declined  alps-2024/2024-09-12-over-the-susten           transportMode: "a day in one place, with no leg to record"
+declined  alps-2024/2024-09-12-over-the-susten           visibility: "shown to everyone the trip already lets in"
+mapped    alps-2024/2024-09-13-grimsel-and-rain          lat+lng → coordinates{lat,lng}
+mapped    alps-2024/2024-09-13-grimsel-and-rain          gallery[4] → media[]
+mapped    alps-2024/2024-09-13-grimsel-and-rain          weather:true + weatherData → weather (the reading itself)
+declined  alps-2024/2024-09-13-grimsel-and-rain          time: "the hour was not noted when this was written"
+declined  alps-2024/2024-09-13-grimsel-and-rain          translations: "this day has not been translated yet"
+declined  alps-2024/2024-09-13-grimsel-and-rain          visibility: "shown to everyone the trip already lets in"
+mapped    alps-2024/2024-09-14-into-italy                lat+lng → coordinates{lat,lng}
+mapped    alps-2024/2024-09-14-into-italy                gallery[3] → media[]
+mapped    alps-2024/2024-09-14-into-italy                weather:true + weatherData → weather (the reading itself)
+declined  alps-2024/2024-09-14-into-italy                translations: "this day has not been translated yet"
+declined  alps-2024/2024-09-14-into-italy                visibility: "shown to everyone the trip already lets in"
+mapped    alps-2024/2024-09-14-we-stayed-for-dinner      lat+lng → coordinates{lat,lng}
+mapped    alps-2024/2024-09-14-we-stayed-for-dinner      weather:true + weatherData → weather (the reading itself)
+declined  alps-2024/2024-09-14-we-stayed-for-dinner      media: "no photographs were taken on this day"
+declined  alps-2024/2024-09-14-we-stayed-for-dinner      transportMode: "a day in one place, with no leg to record"
+declined  alps-2024/2024-09-14-we-stayed-for-dinner      visibility: "shown to everyone the trip already lets in"
+mapped    alps-2024/2024-09-15-the-long-way-home         lat+lng → coordinates{lat,lng}
+mapped    alps-2024/2024-09-15-the-long-way-home         gallery[2] → media[]
+mapped    alps-2024/2024-09-15-the-long-way-home         weather:true + weatherData → weather (the reading itself)
+declined  alps-2024/2024-09-15-the-long-way-home         time: "the hour was not noted when this was written"
+declined  alps-2024/2024-09-15-the-long-way-home         translations: "this day has not been translated yet"
+declined  alps-2024/2024-09-15-the-long-way-home         visibility: "shown to everyone the trip already lets in"
+written   alps-2024                                      trip.json + 5 day files
+mapped    asia-2023                                      start/end → dates{from,to}
+mapped    asia-2023                                      rates{THB,VND,EUR} → rates.currencies + rates.manual
+mapped    asia-2023                                      costs.md → trip.costs{budget,items,note,visibility}
+mapped    asia-2023                                      plan.md → trip.plan{route[5],body}
+mapped    asia-2023                                      travellers[5] → /figures library + figures{mode:custom}
+declined  asia-2023                                      listed
+DROPPED   asia-2023                                      status (derived from the dates now)
+mapped    asia-2023/2023-01-08-leaving-zurich            lat+lng → coordinates{lat,lng}
+mapped    asia-2023/2023-01-08-leaving-zurich            weather:true + weatherData → weather (the reading itself)
+declined  asia-2023/2023-01-08-leaving-zurich            media: "no photographs were taken on this day"
+declined  asia-2023/2023-01-08-leaving-zurich            costs: "no figures were kept for this day"
+declined  asia-2023/2023-01-08-leaving-zurich            transportMode: "a day in one place, with no leg to record"
+declined  asia-2023/2023-01-08-leaving-zurich            translations: "this day has not been translated yet"
+declined  asia-2023/2023-01-08-leaving-zurich            visibility: "shown to everyone the trip already lets in"
+mapped    asia-2023/2023-01-09-bangkok-boat-to-thonburi  lat+lng → coordinates{lat,lng}
+mapped    asia-2023/2023-01-09-bangkok-boat-to-thonburi  gallery[3] → media[]
+mapped    asia-2023/2023-01-09-bangkok-boat-to-thonburi  weather:true + weatherData → weather (the reading itself)
+declined  asia-2023/2023-01-09-bangkok-boat-to-thonburi  transportMode: "a day in one place, with no leg to record"
+declined  asia-2023/2023-01-09-bangkok-boat-to-thonburi  visibility: "shown to everyone the trip already lets in"
+R1        asia-2023/2023-01-09-bangkok-first-morning     translations.de.title: "Erster Morgen in Bangkok"
+R1        asia-2023/2023-01-09-bangkok-first-morning     translations.hu.title: "Első reggel Bangkokban"
+mapped    asia-2023/2023-01-09-bangkok-first-morning     lat+lng → coordinates{lat,lng}
+mapped    asia-2023/2023-01-09-bangkok-first-morning     gallery[4] → media[]
+mapped    asia-2023/2023-01-09-bangkok-first-morning     weather:true + weatherData → weather (the reading itself)
+declined  asia-2023/2023-01-09-bangkok-first-morning     visibility: "shown to everyone the trip already lets in"
+R1        asia-2023/2023-01-09-bangkok-still-awake       translations.hu.title: "Még mindig ébren, még mindig meleg"
+mapped    asia-2023/2023-01-09-bangkok-still-awake       lat+lng → coordinates{lat,lng}
+mapped    asia-2023/2023-01-09-bangkok-still-awake       weather:true + weatherData → weather (the reading itself)
+declined  asia-2023/2023-01-09-bangkok-still-awake       media: "no photographs were taken on this day"
+declined  asia-2023/2023-01-09-bangkok-still-awake       transportMode: "a day in one place, with no leg to record"
+declined  asia-2023/2023-01-09-bangkok-still-awake       visibility: "shown to everyone the trip already lets in"
+mapped    asia-2023/2023-01-24-night-train-north         lat+lng → coordinates{lat,lng}
+mapped    asia-2023/2023-01-24-night-train-north         gallery[3] → media[]
+mapped    asia-2023/2023-01-24-night-train-north         weather:true + weatherData → weather (the reading itself)
+declined  asia-2023/2023-01-24-night-train-north         time: "the hour was not noted when this was written"
+declined  asia-2023/2023-01-24-night-train-north         translations: "this day has not been translated yet"
+declined  asia-2023/2023-01-24-night-train-north         visibility: "shown to everyone the trip already lets in"
+mapped    asia-2023/2023-02-10-chiang-rai-by-car         lat+lng → coordinates{lat,lng}
+declined  asia-2023/2023-02-10-chiang-rai-by-car         media: "no photographs were taken on this day"
+declined  asia-2023/2023-02-10-chiang-rai-by-car         costs: "no figures were kept for this day"
+declined  asia-2023/2023-02-10-chiang-rai-by-car         weather: "the weather was not looked up for this day"
+declined  asia-2023/2023-02-10-chiang-rai-by-car         time: "the hour was not noted when this was written"
+declined  asia-2023/2023-02-10-chiang-rai-by-car         translations: "this day has not been translated yet"
+declined  asia-2023/2023-02-10-chiang-rai-by-car         visibility: "shown to everyone the trip already lets in"
+mapped    asia-2023/2023-02-20-the-slow-bus-to-the-border lat+lng → coordinates{lat,lng}
+declined  asia-2023/2023-02-20-the-slow-bus-to-the-border media: "no photographs were taken on this day"
+declined  asia-2023/2023-02-20-the-slow-bus-to-the-border costs: "no figures were kept for this day"
+declined  asia-2023/2023-02-20-the-slow-bus-to-the-border weather: "the weather was not looked up for this day"
+declined  asia-2023/2023-02-20-the-slow-bus-to-the-border time: "the hour was not noted when this was written"
+declined  asia-2023/2023-02-20-the-slow-bus-to-the-border translations: "this day has not been translated yet"
+declined  asia-2023/2023-02-20-the-slow-bus-to-the-border visibility: "shown to everyone the trip already lets in"
+R1        asia-2023/2023-03-02-mekong-slow-boat          translations.de.title: "Zwei Tage auf dem Mekong"
+R1        asia-2023/2023-03-02-mekong-slow-boat          translations.hu.title: "Két nap a Mekongon"
+mapped    asia-2023/2023-03-02-mekong-slow-boat          lat+lng → coordinates{lat,lng}
+mapped    asia-2023/2023-03-02-mekong-slow-boat          gallery[5] → media[]
+mapped    asia-2023/2023-03-02-mekong-slow-boat          weather:true + weatherData → weather (the reading itself)
+declined  asia-2023/2023-03-02-mekong-slow-boat          time: "the hour was not noted when this was written"
+declined  asia-2023/2023-03-02-mekong-slow-boat          visibility: "shown to everyone the trip already lets in"
+mapped    asia-2023/2023-03-05-up-the-hill-on-foot       lat+lng → coordinates{lat,lng}
+declined  asia-2023/2023-03-05-up-the-hill-on-foot       media: "no photographs were taken on this day"
+declined  asia-2023/2023-03-05-up-the-hill-on-foot       costs: "no figures were kept for this day"
+declined  asia-2023/2023-03-05-up-the-hill-on-foot       weather: "the weather was not looked up for this day"
+declined  asia-2023/2023-03-05-up-the-hill-on-foot       time: "the hour was not noted when this was written"
+declined  asia-2023/2023-03-05-up-the-hill-on-foot       translations: "this day has not been translated yet"
+declined  asia-2023/2023-03-05-up-the-hill-on-foot       visibility: "shown to everyone the trip already lets in"
+mapped    asia-2023/2023-04-18-hue-to-hoi-an             lat+lng → coordinates{lat,lng}
+mapped    asia-2023/2023-04-18-hue-to-hoi-an             gallery[4] → media[]
+mapped    asia-2023/2023-04-18-hue-to-hoi-an             weather:true + weatherData → weather (the reading itself)
+declined  asia-2023/2023-04-18-hue-to-hoi-an             time: "the hour was not noted when this was written"
+declined  asia-2023/2023-04-18-hue-to-hoi-an             translations: "this day has not been translated yet"
+declined  asia-2023/2023-04-18-hue-to-hoi-an             visibility: "shown to everyone the trip already lets in"
+mapped    asia-2023/2023-04-25-over-to-da-nang           lat+lng → coordinates{lat,lng}
+declined  asia-2023/2023-04-25-over-to-da-nang           media: "no photographs were taken on this day"
+declined  asia-2023/2023-04-25-over-to-da-nang           costs: "no figures were kept for this day"
+declined  asia-2023/2023-04-25-over-to-da-nang           weather: "the weather was not looked up for this day"
+declined  asia-2023/2023-04-25-over-to-da-nang           time: "the hour was not noted when this was written"
+declined  asia-2023/2023-04-25-over-to-da-nang           translations: "this day has not been translated yet"
+declined  asia-2023/2023-04-25-over-to-da-nang           visibility: "shown to everyone the trip already lets in"
+mapped    asia-2023/2023-05-30-last-week-hanoi           lat+lng → coordinates{lat,lng}
+mapped    asia-2023/2023-05-30-last-week-hanoi           gallery[3] → media[]
+mapped    asia-2023/2023-05-30-last-week-hanoi           weather:true + weatherData → weather (the reading itself)
+declined  asia-2023/2023-05-30-last-week-hanoi           time: "the hour was not noted when this was written"
+declined  asia-2023/2023-05-30-last-week-hanoi           translations: "this day has not been translated yet"
+declined  asia-2023/2023-05-30-last-week-hanoi           visibility: "shown to everyone the trip already lets in"
+written   asia-2023                                      trip.json + 12 day files
+mapped    japan-2027                                     start/end → dates{from,to}
+mapped    japan-2027                                     rates{JPY} → rates.currencies + rates.manual
+mapped    japan-2027                                     costs.md → trip.costs{budget,items,note,visibility}
+mapped    japan-2027                                     plan.md → trip.plan{route[8],body}
+declined  japan-2027                                     cover: "no photograph has been chosen for the card yet"
+declined  japan-2027                                     figures: "nobody has been drawn for this trip yet"
+declined  japan-2027                                     listed
+DROPPED   japan-2027                                     status (derived from the dates now)
+mapped    japan-2027/2027-04-14-matsumoto-detour         lat+lng → coordinates{lat,lng}
+declined  japan-2027/2027-04-14-matsumoto-detour         media: "no photographs were taken on this day"
+declined  japan-2027/2027-04-14-matsumoto-detour         costs: "no figures were kept for this day"
+declined  japan-2027/2027-04-14-matsumoto-detour         time: "the hour was not noted when this was written"
+declined  japan-2027/2027-04-14-matsumoto-detour         translations: "this day has not been translated yet"
+declined  japan-2027/2027-04-14-matsumoto-detour         visibility: "shown to everyone the trip already lets in"
+mapped    japan-2027/2027-04-30-hakodate-before-sapporo  lat+lng → coordinates{lat,lng}
+declined  japan-2027/2027-04-30-hakodate-before-sapporo  media: "no photographs were taken on this day"
+declined  japan-2027/2027-04-30-hakodate-before-sapporo  costs: "no figures were kept for this day"
+declined  japan-2027/2027-04-30-hakodate-before-sapporo  time: "the hour was not noted when this was written"
+declined  japan-2027/2027-04-30-hakodate-before-sapporo  translations: "this day has not been translated yet"
+declined  japan-2027/2027-04-30-hakodate-before-sapporo  visibility: "shown to everyone the trip already lets in"
+written   japan-2027                                     trip.json + 2 day files
+mapped    parks-2025                                     start/end → dates{from,to}
+mapped    parks-2025                                     people absent → the journal's owner (v2 requires at least one)
+mapped    parks-2025                                     rates{USD} → rates.currencies + rates.manual
+mapped    parks-2025                                     costs.md → trip.costs{budget,items,note,visibility}
+mapped    parks-2025                                     plan.md → trip.plan{route[18],body}
+mapped    parks-2025                                     travellers[4] → /figures library + figures{mode:custom}
+declined  parks-2025                                     buddies (a solo trip says so)
+declined  parks-2025                                     listed
+DROPPED   parks-2025                                     status (derived from the dates now)
+R1        parks-2025/2025-09-05-vegas-and-a-cooler       translations.de.title: "Las Vegas, und eine Kühlbox"
+mapped    parks-2025/2025-09-05-vegas-and-a-cooler       lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-05-vegas-and-a-cooler       gallery[2] → media[]
+mapped    parks-2025/2025-09-05-vegas-and-a-cooler       weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-05-vegas-and-a-cooler       time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-05-vegas-and-a-cooler       visibility: "shown to everyone the trip already lets in"
+R1        parks-2025/2025-09-06-zion-narrows             translations.hu.title: "Felfelé a Narrowsban"
+mapped    parks-2025/2025-09-06-zion-narrows             lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-06-zion-narrows             gallery[3] → media[]
+mapped    parks-2025/2025-09-06-zion-narrows             weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-06-zion-narrows             time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-06-zion-narrows             visibility: "shown to everyone the trip already lets in"
+R1        parks-2025/2025-09-07-bryce-at-six             translations.de.title: "Bryce um sechs Uhr morgens"
+mapped    parks-2025/2025-09-07-bryce-at-six             lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-07-bryce-at-six             gallery[3] → media[]
+mapped    parks-2025/2025-09-07-bryce-at-six             weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-07-bryce-at-six             time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-07-bryce-at-six             visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-08-escalante-backroad       lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-08-escalante-backroad       gallery[2] → media[]
+mapped    parks-2025/2025-09-08-escalante-backroad       weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-08-escalante-backroad       time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-08-escalante-backroad       translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-08-escalante-backroad       visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-09-capitol-reef-orchard     lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-09-capitol-reef-orchard     gallery[3] → media[]
+mapped    parks-2025/2025-09-09-capitol-reef-orchard     weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-09-capitol-reef-orchard     time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-09-capitol-reef-orchard     translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-09-capitol-reef-orchard     visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-10-goblin-valley            lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-10-goblin-valley            gallery[2] → media[]
+mapped    parks-2025/2025-09-10-goblin-valley            weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-10-goblin-valley            time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-10-goblin-valley            translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-10-goblin-valley            visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-11-arches-at-dusk           lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-11-arches-at-dusk           gallery[3] → media[]
+mapped    parks-2025/2025-09-11-arches-at-dusk           weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-11-arches-at-dusk           time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-11-arches-at-dusk           translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-11-arches-at-dusk           visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-12-needles-district         lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-12-needles-district         gallery[2] → media[]
+mapped    parks-2025/2025-09-12-needles-district         weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-12-needles-district         time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-12-needles-district         translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-12-needles-district         visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-13-monument-valley-after-dark lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-13-monument-valley-after-dark weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-13-monument-valley-after-dark media: "no photographs were taken on this day"
+declined  parks-2025/2025-09-13-monument-valley-after-dark costs: "no figures were kept for this day"
+declined  parks-2025/2025-09-13-monument-valley-after-dark transportMode: "a day in one place, with no leg to record"
+declined  parks-2025/2025-09-13-monument-valley-after-dark translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-13-monument-valley-after-dark visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-13-monument-valley          lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-13-monument-valley          gallery[2] → media[]
+mapped    parks-2025/2025-09-13-monument-valley          weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-13-monument-valley          translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-13-monument-valley          visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-14-mesa-verde-ladders       lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-14-mesa-verde-ladders       gallery[3] → media[]
+mapped    parks-2025/2025-09-14-mesa-verde-ladders       weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-14-mesa-verde-ladders       time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-14-mesa-verde-ladders       translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-14-mesa-verde-ladders       visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-15-great-sand-dunes         lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-15-great-sand-dunes         gallery[2] → media[]
+mapped    parks-2025/2025-09-15-great-sand-dunes         weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-15-great-sand-dunes         time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-15-great-sand-dunes         translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-15-great-sand-dunes         visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-16-black-canyon             lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-16-black-canyon             gallery[2] → media[]
+mapped    parks-2025/2025-09-16-black-canyon             weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-16-black-canyon             time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-16-black-canyon             translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-16-black-canyon             visibility: "shown to everyone the trip already lets in"
+R1        parks-2025/2025-09-17-independence-pass        translations.hu.title: "Át az Independence-hágón"
+mapped    parks-2025/2025-09-17-independence-pass        lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-17-independence-pass        gallery[2] → media[]
+mapped    parks-2025/2025-09-17-independence-pass        weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-17-independence-pass        time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-17-independence-pass        visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-18-trail-ridge-road         lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-18-trail-ridge-road         gallery[3] → media[]
+mapped    parks-2025/2025-09-18-trail-ridge-road         weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-18-trail-ridge-road         time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-18-trail-ridge-road         translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-18-trail-ridge-road         visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-19-wyoming-nothing          lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-19-wyoming-nothing          gallery[2] → media[]
+mapped    parks-2025/2025-09-19-wyoming-nothing          weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-19-wyoming-nothing          time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-19-wyoming-nothing          translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-19-wyoming-nothing          visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-20-badlands-loop            lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-20-badlands-loop            gallery[3] → media[]
+mapped    parks-2025/2025-09-20-badlands-loop            weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-20-badlands-loop            time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-20-badlands-loop            translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-20-badlands-loop            visibility: "shown to everyone the trip already lets in"
+mapped    parks-2025/2025-09-21-wind-cave                lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-21-wind-cave                gallery[2] → media[]
+mapped    parks-2025/2025-09-21-wind-cave                weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-21-wind-cave                time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-21-wind-cave                translations: "this day has not been translated yet"
+declined  parks-2025/2025-09-21-wind-cave                visibility: "shown to everyone the trip already lets in"
+R1        parks-2025/2025-09-22-back-to-denver           translations.de.title: "Zurück nach Denver"
+mapped    parks-2025/2025-09-22-back-to-denver           lat+lng → coordinates{lat,lng}
+mapped    parks-2025/2025-09-22-back-to-denver           gallery[2] → media[]
+mapped    parks-2025/2025-09-22-back-to-denver           weather:true + weatherData → weather (the reading itself)
+declined  parks-2025/2025-09-22-back-to-denver           time: "the hour was not noted when this was written"
+declined  parks-2025/2025-09-22-back-to-denver           visibility: "shown to everyone the trip already lets in"
+written   parks-2025                                     trip.json + 19 day files
+mapped    usa-2026                                       start/end → dates{from,to}
+mapped    usa-2026                                       rates{USD} → rates.currencies + rates.manual
+mapped    usa-2026                                       costs.md → trip.costs{budget,items,note,visibility}
+mapped    usa-2026                                       plan.md → trip.plan{route[6],body}
+mapped    usa-2026                                       travellers[3] → /figures library + figures{mode:custom}
+declined  usa-2026                                       listed
+DROPPED   usa-2026                                       status (derived from the dates now)
+mapped    usa-2026/2026-06-03-denver-and-a-truck         lat+lng → coordinates{lat,lng}
+mapped    usa-2026/2026-06-03-denver-and-a-truck         gallery[3] → media[]
+mapped    usa-2026/2026-06-03-denver-and-a-truck         weather:true + weatherData → weather (the reading itself)
+declined  usa-2026/2026-06-03-denver-and-a-truck         time: "the hour was not noted when this was written"
+declined  usa-2026/2026-06-03-denver-and-a-truck         transportMode: "a day in one place, with no leg to record"
+declined  usa-2026/2026-06-03-denver-and-a-truck         translations: "this day has not been translated yet"
+declined  usa-2026/2026-06-03-denver-and-a-truck         visibility: "shown to everyone the trip already lets in"
+mapped    usa-2026/2026-06-03-denver-money               lat+lng → coordinates{lat,lng}
+declined  usa-2026/2026-06-03-denver-money               media: "no photographs were taken on this day"
+declined  usa-2026/2026-06-03-denver-money               costs: "no figures were kept for this day"
+declined  usa-2026/2026-06-03-denver-money               weather: "the weather was not looked up for this day"
+declined  usa-2026/2026-06-03-denver-money               timezone: "the zone was not recorded when this was written"
+declined  usa-2026/2026-06-03-denver-money               transportMode: "a day in one place, with no leg to record"
+R1        usa-2026/2026-06-19-utah-red-country           translations.de.title: "Rotes Land"
+R1        usa-2026/2026-06-19-utah-red-country           translations.hu.title: "Vörös vidék"
+mapped    usa-2026/2026-06-19-utah-red-country           lat+lng → coordinates{lat,lng}
+mapped    usa-2026/2026-06-19-utah-red-country           gallery[4] → media[]
+mapped    usa-2026/2026-06-19-utah-red-country           weather:true + weatherData → weather (the reading itself)
+declined  usa-2026/2026-06-19-utah-red-country           time: "the hour was not noted when this was written"
+declined  usa-2026/2026-06-19-utah-red-country           visibility: "shown to everyone the trip already lets in"
+mapped    usa-2026/2026-07-28-sierra-smoke               lat+lng → coordinates{lat,lng}
+mapped    usa-2026/2026-07-28-sierra-smoke               gallery[3] → media[]
+mapped    usa-2026/2026-07-28-sierra-smoke               weather:true + weatherData → weather (the reading itself)
+declined  usa-2026/2026-07-28-sierra-smoke               time: "the hour was not noted when this was written"
+declined  usa-2026/2026-07-28-sierra-smoke               timezone: "the zone was not recorded when this was written"
+declined  usa-2026/2026-07-28-sierra-smoke               translations: "this day has not been translated yet"
+mapped    usa-2026/2026-08-24-oregon-coast-evening       lat+lng → coordinates{lat,lng}
+mapped    usa-2026/2026-08-24-oregon-coast-evening       weather:true + weatherData → weather (the reading itself)
+declined  usa-2026/2026-08-24-oregon-coast-evening       media: "no photographs were taken on this day"
+declined  usa-2026/2026-08-24-oregon-coast-evening       transportMode: "a day in one place, with no leg to record"
+mapped    usa-2026/2026-08-24-oregon-coast               lat+lng → coordinates{lat,lng}
+mapped    usa-2026/2026-08-24-oregon-coast               gallery[4] → media[]
+mapped    usa-2026/2026-08-24-oregon-coast               weather:true + weatherData → weather (the reading itself)
+declined  usa-2026/2026-08-24-oregon-coast               translations: "this day has not been translated yet"
+declined  usa-2026/2026-08-24-oregon-coast               visibility: "shown to everyone the trip already lets in"
+written   usa-2026                                       trip.json + 6 day files
+written   figures/                                       15 figure documents
+
+317 transformations.

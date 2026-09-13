@@ -1,0 +1,92 @@
+{
+  "title": "Red country",
+  "date": "2026-06-19",
+  "timezone": "America/Denver",
+  "location": "Moab",
+  "country": "United States",
+  "countryCode": "US",
+  "coordinates": {
+    "lat": 38.5733,
+    "lng": -109.5498
+  },
+  "content": "The truck made it, loudly. Four nights on a bluff outside town with nobody else on it, which cost twenty dollars a night and felt like theft.\n\nIt is hard to photograph and we tried anyway, several hundred times.",
+  "media": [
+    {
+      "src": "/media/usa-2026/utah-red-country/01.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1067
+    },
+    {
+      "src": "/media/usa-2026/utah-red-country/02.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1067
+    },
+    {
+      "src": "/media/usa-2026/utah-red-country/03.jpg",
+      "type": "image",
+      "visibility": "guest",
+      "width": 1067,
+      "height": 1600
+    },
+    {
+      "src": "/media/usa-2026/utah-red-country/04.jpg",
+      "type": "image",
+      "width": 1400,
+      "height": 1400
+    }
+  ],
+  "costs": [
+    {
+      "label": "Fuel",
+      "amount": 96,
+      "category": "transport",
+      "currency": "USD"
+    },
+    {
+      "label": "Campground, four nights",
+      "amount": 80,
+      "category": "accommodation",
+      "currency": "USD"
+    },
+    {
+      "label": "Groceries",
+      "amount": 143,
+      "category": "food",
+      "currency": "USD"
+    }
+  ],
+  "transportMode": "car",
+  "transportFrom": "Denver",
+  "transportTo": "Moab",
+  "tags": [
+    "utah",
+    "desert",
+    "camping"
+  ],
+  "translations": {
+    "de": {
+      "content": "Der Pick-up hat es geschafft, laut. Vier Nächte auf einem Felsvorsprung außerhalb der Stadt, ganz allein — zwanzig Dollar die Nacht, und es fühlte sich an wie Diebstahl.\n\nEs lässt sich schlecht fotografieren. Wir haben es trotzdem versucht, mehrere hundert Mal.\n",
+      "title": "Rotes Land"
+    },
+    "hu": {
+      "content": "A pickup megcsinálta, hangosan. Négy éjszaka egy dombon a városon kívül, rajtunk kívül senki, húsz dollár egy éjszaka — lopásnak éreztük.\n\nNehéz lefényképezni, és mi mégis megpróbáltuk, több százszor.\n",
+      "title": "Vörös vidék"
+    }
+  },
+  "weather": {
+    "tempMin": 21.5,
+    "tempMax": 38,
+    "code": 3,
+    "precipitation": 0,
+    "windMax": 19.6,
+    "source": "open-meteo",
+    "recordedAt": "2026-09-06T08:32:18.715Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}
