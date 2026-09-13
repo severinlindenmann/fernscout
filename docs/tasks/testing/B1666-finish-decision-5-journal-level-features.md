@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: v2-migration
 found: "2026-09-13T13:07:39Z"
+merged: "2026-09-13T18:32:49Z"
 ---
 
 # B1666 — Finish decision 5: journal-level features and manualRates are still read by live code

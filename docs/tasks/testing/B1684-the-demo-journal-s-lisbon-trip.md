@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: content
 found: "2026-09-13T14:43:44Z"
+merged: "2026-09-13T18:32:50Z"
 ---
 
 # B1684 — The demo journal's Lisbon trip names photographs that do not exist, and nothing checks that a media src resolves

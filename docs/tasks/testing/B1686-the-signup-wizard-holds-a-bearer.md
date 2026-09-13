@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: Auth
 found: "2026-09-13T18:08:19Z"
+merged: "2026-09-13T18:32:51Z"
 ---
 
 # B1686 — The signup wizard holds a bearer token in a browser

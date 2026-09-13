@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: Credits
 found: "2026-09-13T18:15:12Z"
+merged: "2026-09-13T18:32:51Z"
 ---
 
 # B1687 — The publish route sends the day letter with no channel claim, so two concurrent publishes mail it twice

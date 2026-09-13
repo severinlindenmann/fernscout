@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: Credits
 found: "2026-09-13T12:22:30Z"
+merged: "2026-09-13T18:32:48Z"
 ---
 
 # B1663 — Five credit-spending paths mint a fresh ref per call, so a retry charges again
