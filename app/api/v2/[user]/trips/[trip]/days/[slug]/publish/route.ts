@@ -33,6 +33,7 @@ import { readTripFile, readDayFile, writeDayFile } from "@/lib/api/v2/store";
 import { mailSummary } from "@/lib/api/dayMail";
 import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { stripMediaEcho, v1Slug } from "@/lib/api/v2/days";
+import { claimChannel, releaseChannelClaim } from "@/lib/digest/dayNotify";
 import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@/lib/digest/dayWhatsapp";
 import type { Trip } from "@/lib/types";
@@ -164,7 +165,26 @@ export async function POST(
   }
   let whatsapp: Record<string, unknown> | undefined;
   if (sendWhatsappRequested) {
-    whatsapp = whatsappSummary(await sendDayWhatsapp(user, ref, v1Slug(slug)));
+    /**
+     * The double-press guard, at the door that triggers automatically —
+     * B1663. `writeDayFile` above is what flips this day out of `draft`, and
+     * a genuinely concurrent publish call (a retried request the client
+     * sent not knowing the first had already landed) can read the old status
+     * before that write commits and reach here a second time. Claiming the
+     * channel first is `lib/digest/dayNotify.ts`'s own guard — the same one
+     * the owner's manual resend button already uses — so only the request
+     * that wins the claim ever calls `sendDayWhatsapp`; the loser sends
+     * nothing rather than reaching the whole readership twice. AGENTS.md is
+     * plain about which side of that trade is worse.
+     */
+    if (await claimChannel(user, tripId, v1Slug(slug), "whatsapp")) {
+      const outcome = await sendDayWhatsapp(user, ref, v1Slug(slug));
+      if (!outcome.ok) await releaseChannelClaim(user, tripId, v1Slug(slug), "whatsapp");
+      whatsapp = whatsappSummary(outcome);
+    }
+    // A lost claim reports nothing rather than inventing an outcome for a
+    // send this call never made — the same silence `notify/route.ts` gives
+    // for a channel already spoken for.
   }
 
   const test = isTestContent(tripLike(user, tripId, trip.people), day) || trip.test === true || day.test === true;

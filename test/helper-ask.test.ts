@@ -7,6 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { balanceOf, grant, ledgerFor } from "@/lib/credits";
+import { clearIdempotencyStore } from "@/lib/idempotency";
 import type { Say } from "@/lib/helper/intents";
 import { runTool } from "@/lib/helper/tools";
 import { history } from "@/lib/helper/thread";
@@ -97,6 +98,7 @@ beforeEach(async () => {
   process.env.ANTHROPIC_API_KEY = "not-a-real-key";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
   answerInThread.mockReset();
+  clearIdempotencyStore();
 
   fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
@@ -322,6 +324,33 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       // Three turns, none of which pressed the proposal — pressing (and its
       // own price) is a separate route this file never calls.
       expect(await balanceOf("alex")).toBeCloseTo(9.94, 5);
+    });
+
+    /**
+     * B1663 — a double-tap, a flaky connection or a client retry must not
+     * spend the credit or run the model twice. `write-day`'s own idempotency
+     * test is the model for this one: a supplied key that repeats gets the
+     * first turn's answer back, verbatim, and the model is asked once.
+     */
+    test("a retry under the same idempotency key is answered once, not charged again", async () => {
+      answerInThread.mockImplementation(turnCalling("account", {}, "Ten credits."));
+      const call = async () =>
+        read(
+          await POST(
+            post("https://t.test/api/helper/alex/ask", {
+              said: "how much storage do I have",
+              today: "2026-09-07",
+              idempotency_key: "same-tap",
+            }),
+            params,
+          ),
+        );
+      const first = await call();
+      const again = await call();
+      expect(again.status).toBe(200);
+      expect(again.body).toEqual(first.body);
+      expect(answerInThread).toHaveBeenCalledTimes(1);
+      expect(await balanceOf("alex")).toBeCloseTo(9.98, 5);
     });
   });
 
