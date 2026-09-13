@@ -87,4 +87,18 @@ describe("the v2 openapi document covers every route on disk", () => {
       }
     }
   });
+  /**
+   * B1675. `/docs/api` is the one page a person reads to learn this API, and
+   * it rendered `lib/api/openapi.ts` — the **v1** document — through the whole
+   * migration and past the end of it, so the human-facing contract described
+   * doors that had been deleted. Nothing caught it: every other check asks
+   * whether the *document* is right, and this page's fault was which document
+   * it asked. So the assertion is about the import, which is the thing that
+   * was wrong.
+   */
+  test("/docs/api renders the v2 document, not v1", () => {
+    const page = readFileSync(join(process.cwd(), "app/docs/api/page.tsx"), "utf8");
+    expect(page).toContain("openApiDocumentV2");
+    expect(page).not.toMatch(/from "@\/lib\/api\/openapi"/);
+  });
 });

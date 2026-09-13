@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import DocsNav from "@/components/DocsNav";
-import { openApiDocument } from "@/lib/api/openapi";
+import { openApiDocumentV2 } from "@/lib/api/v2/openapi";
 import EntryContent from "@/components/EntryContent";
 import { docsNavEntries } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
@@ -27,11 +27,18 @@ type Operation = {
 const METHOD_ORDER = ["get", "post", "patch", "delete", "put"];
 
 /**
- * `/docs/api` renders the same document `/openapi.json` serves — see
- * `openApiDocument` for why they share one source. A person reading the API
+ * `/docs/api` renders the same document `/api/v2/openapi.json` serves — see
+ * `openApiDocumentV2` for why they share one source. A person reading the API
  * gets a page instead of a JSON blob; an agent still wants the raw file.
  * Moved here from `/api/docs` (B305), beside the rest of the guide —
  * `/api/docs` still answers, as a redirect.
+ *
+ * **It renders v2, and B1675 is why that is written down.** It rendered
+ * `lib/api/openapi.ts` — the v1 document — for the whole of the migration and
+ * after it, so the one page a person reads to learn this API described doors
+ * that had been deleted. `lib/api/openapi.ts` survives only to document the
+ * three v1 routes that still stand, and a reader who wants those has
+ * `/openapi.json`; the contract is v2.
  *
  * No client JS: `<details>` does the collapsing, and this is a reading
  * surface rather than a request sender (see B299) — nothing here needs a
@@ -39,7 +46,7 @@ const METHOD_ORDER = ["get", "post", "patch", "delete", "put"];
  */
 export default async function ApiDocsPage() {
   const locale = await requestLocale();
-  const doc = openApiDocument();
+  const doc = openApiDocumentV2();
   const paths = Object.entries(doc.paths) as [string, Record<string, Operation>][];
 
   return (
@@ -55,8 +62,8 @@ export default async function ApiDocsPage() {
         >
           /documentation.txt
         </a>{" "}
-        · <a href="/openapi.json" className="underline decoration-line-quiet hover:decoration-line-prominent">
-          /openapi.json
+        · <a href="/api/v2/openapi.json" className="underline decoration-line-quiet hover:decoration-line-prominent">
+          /api/v2/openapi.json
         </a>
       </p>
       <h1 className="mt-2 font-display text-3xl font-semibold text-ink-strong">{doc.info.title}</h1>
