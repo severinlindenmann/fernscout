@@ -13,6 +13,7 @@ import {
   applyNullClears,
   checkCover,
   checkTranslations,
+  clearDeclinedSections,
   reconcileVisibility,
   retractAnsweredDeclines,
   retractDeclines,
@@ -315,6 +316,11 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   const merged: Record<string, unknown> = { ...storedWritable, ...patch };
   if (Object.keys(declinedMerged).length > 0) merged.declined = declinedMerged;
   else delete merged.declined;
+
+  // B1631 — T6's mirror: a section this patch DECLINES loses its stored
+  // value in the same call, so the merged document is never asked to hold
+  // both at once.
+  clearDeclinedSections(merged, patch.declined as Record<string, string> | undefined);
 
   // D11 — a patch's `null` on `cover`/`accent`/`tagline`/`intro` removes the
   // field. Applied to the MERGED document, after the spread above (which

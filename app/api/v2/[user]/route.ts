@@ -8,7 +8,7 @@ import type { ZodType } from "zod";
 import { journalDoc, journalPatch, journalWrite, JOURNAL_DECLINABLES } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
-import { JOURNAL_IMMUTABLE_FIELDS, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
+import { JOURNAL_IMMUTABLE_FIELDS, clearDeclinedSections, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
 import { mayActAsOwner, ownerOnlyRefusal, outOfScopeRefusal, ownsUser, resolveBearer } from "@/lib/api/v2/auth";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { journalV2Fields, setJournalV2Fields } from "@/lib/journals";
@@ -116,6 +116,11 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/
   const merged: Record<string, unknown> = { ...storedWritable, ...patch };
   if (Object.keys(declinedMerged).length > 0) merged.declined = declinedMerged;
   else delete merged.declined;
+
+  // B1631 — T6's mirror: a section this patch DECLINES loses its stored
+  // value in the same call, so the merged document is never asked to hold
+  // both at once.
+  clearDeclinedSections(merged, patch.declined as Record<string, string> | undefined);
 
   const finalParsed = journalWrite.safeParse(merged);
   if (!finalParsed.success) {
