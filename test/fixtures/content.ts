@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createTrip } from "@/lib/tripWrite";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
 
 /**
  * The one place that knows how a trip and a day are stored on disk — B1630.
@@ -104,15 +105,13 @@ export type DayFixture = {
   content?: string;
 };
 
-const quote = (s: string): string => JSON.stringify(s);
-
 /**
- * Write a day's markdown directly.
+ * Write a day's JSON directly (B1598).
  *
- * Not routed through `createDraft` — see the module comment for why. This
- * writes exactly the v1 frontmatter `lib/entries.ts` reads today; when
- * B1598 flips the reader, this function's body is the one thing that needs
- * to change.
+ * Not routed through `createDraft` — see the module comment for why. Writes
+ * exactly the v2 shape `lib/entries.ts` reads (`dayToJson`, the production
+ * serialiser) so a fixture cannot drift from what it emits, even though the
+ * object is assembled here rather than passed through the write API.
  */
 export function writeDayFixture(
   root: string,
@@ -122,38 +121,34 @@ export function writeDayFixture(
 ): { file: string } {
   const entriesDir = path.join(root, username, "trips", tripId, "entries");
   fs.mkdirSync(entriesDir, { recursive: true });
-  const file = path.join(entriesDir, `${day.date}-${day.slug}.md`);
+  const file = path.join(entriesDir, `${day.date}-${day.slug}.json`);
 
-  const lines = [
-    "---",
-    `title: ${quote(day.title ?? day.slug)}`,
-    `date: ${quote(day.date)}`,
-    ...(day.time ? [`time: ${quote(day.time)}`] : []),
-    ...(day.timezone ? [`timezone: ${quote(day.timezone)}`] : []),
-    ...(day.location ? [`location: ${quote(day.location)}`] : []),
-    ...(day.country ? [`country: ${quote(day.country)}`] : []),
-    ...(day.countryCode ? [`countryCode: ${quote(day.countryCode)}`] : []),
-    ...(day.coordinates ? [`lat: ${day.coordinates.lat}`, `lng: ${day.coordinates.lng}`] : []),
+  const doc: DayFile = {
+    slug: day.slug,
+    title: day.title ?? day.slug,
+    date: day.date,
+    content: day.content ?? "Something happened.",
+    status: day.status === "draft" ? "draft" : "published",
+    ...(day.time ? { time: day.time } : {}),
+    ...(day.timezone ? { timezone: day.timezone } : {}),
+    ...(day.location ? { location: day.location } : {}),
+    ...(day.country ? { country: day.country } : {}),
+    ...(day.countryCode ? { countryCode: day.countryCode } : {}),
+    ...(day.coordinates ? { coordinates: day.coordinates } : {}),
     ...(day.media?.length
-      ? [
-          "gallery:",
-          ...day.media.flatMap((m) => [
-            `  - src: ${quote(m.src)}`,
-            `    type: ${quote(m.type ?? "image")}`,
-            ...(m.caption ? [`    caption: ${quote(m.caption)}`] : []),
-            ...(m.visibility ? [`    visibility: ${quote(m.visibility)}`] : []),
-          ]),
-        ]
-      : []),
-    ...(day.visibility ? [`visibility: ${quote(day.visibility)}`] : []),
-    ...(day.test ? ["test: true"] : []),
-    ...(day.status === "draft" ? ['status: "draft"'] : []),
-    "---",
-    "",
-    day.content ?? "Something happened.",
-    "",
-  ];
+      ? {
+          media: day.media.map((m) => ({
+            src: m.src,
+            type: m.type ?? "image",
+            ...(m.caption ? { caption: m.caption } : {}),
+            ...(m.visibility ? { visibility: m.visibility } : {}),
+          })),
+        }
+      : {}),
+    ...(day.visibility ? { visibility: day.visibility } : {}),
+    ...(day.test ? { test: true } : {}),
+  };
 
-  fs.writeFileSync(file, lines.join("\n"));
+  fs.writeFileSync(file, dayToJson(doc));
   return { file };
 }

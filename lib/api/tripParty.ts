@@ -1,38 +1,36 @@
 import "server-only";
-import fs from "node:fs";
-import path from "node:path";
-import matter from "gray-matter";
-import { getTrip, tripDir, tripRef, type TripRef } from "../trips";
+import { fileUnchangedSince } from "../entries";
+import { getTrip, parseTripRef, tripRef, type TripRef } from "../trips";
 import type { TripPerson } from "../types";
 import type { Figure } from "../travellers/vocabulary";
-import { peopleBlock, travellersBlock, type BlockResult } from "../tripWrite";
-import { spliceBlock } from "./tripFile";
+import { peopleBlock, travellersBlock, writeTravellersAsFigures, type BlockResult } from "../tripWrite";
+import { readTripJson, writeTripJson } from "./tripFile";
 import { authenticate, errorResponse, mayActAsOwner, ownsUser } from "./auth";
 
 /**
- * Amending a trip's `people:` and `travellers:` blocks after it has been
- * created — B524.
+ * Amending a trip's `people:` and `figures:` (v1: `travellers:`) after it has
+ * been created — B524.
  *
  * The third and fourth doors of the same set: `.../rates` (B352) and
  * `.../visibility` (B396) opened first, and these were the two fields left
  * that `createTrip` could write once and nothing could ever write again. The
  * guide's own advice — "a trip that already exists takes the same block
- * written into its `trip.md`" — has nowhere to go on a hosted instance where
+ * written into its file" — has nowhere to go on a hosted instance where
  * nobody has a shell, and the only remaining route was to delete the trip and
  * rewrite every day and every photograph in it.
  *
- * Built the same way as its two siblings and for the same reasons: a textual
- * splice that leaves every other byte of the file alone, validated by the
- * *same* block builders `createTrip` uses, and `matter()`-parsed before
- * anything is written so an edit that would corrupt the file writes nothing.
+ * Built the same way as its two siblings and for the same reasons: a
+ * read-modify-write of `trip.json` (B1598) that leaves every other key alone,
+ * validated by the *same* block builders `createTrip` uses, and guarded by
+ * `fileUnchangedSince` so a concurrent edit is refused rather than erased.
  *
  * **Wholesale, not merged**, which is the one place this differs from
  * `.../rates`. A rate table is a set of independent facts and merging a single
  * currency into it is obviously right. A party is a list whose *order* and
- * whose *membership* both mean something — `travellers[n].for` ties a figure
- * to an address in `people:` — so a call that named one person and left the
- * rest implied would have to guess whether the others were being kept or
- * dropped. Send the whole list; send `[]` to clear it.
+ * whose *membership* both mean something — a figure's `for` ties it to an
+ * address in `people:` — so a call that named one person and left the rest
+ * implied would have to guess whether the others were being kept or dropped.
+ * Send the whole list; send `[]` to clear it.
  */
 
 export type PartyWriteResult =
@@ -73,53 +71,58 @@ export function patchTripParty(
 
   // The same validator the create call uses, so a body refused here would
   // have been refused at creation and one accepted reads back identically.
-  // An empty list is `{ok: true, lines: []}` from both, which `spliceBlock`
-  // then reads as "remove the key".
   const block: BlockResult = key === "people" ? peopleBlock(raw) : travellersBlock(raw);
   if (!block.ok) return { ok: false, error: block.error, message: block.message };
 
-  const file = path.join(tripDir(ref), "trip.md");
-  const text = fs.readFileSync(file, "utf8");
-  const spliced = spliceBlock(text, key, block.lines);
-  if (spliced === null) {
+  const read = readTripJson(ref);
+  if (!read) {
     return {
       ok: false,
       error: "no_frontmatter",
-      message: "trip.md has no frontmatter block to edit. Edit the file by hand.",
+      message: "trip.json could not be read. Edit the file by hand.",
     };
   }
 
-  try {
-    matter(spliced);
-  } catch (err) {
-    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+  const parsed = parseTripRef(ref);
+  const next =
+    key === "people"
+      ? { ...read.trip, people: (block.value as TripPerson[]) }
+      : {
+          ...read.trip,
+          ...(() => {
+            const figures =
+              parsed && raw.length > 0
+                ? writeTravellersAsFigures(parsed.username, parsed.tripId, raw)
+                : undefined;
+            return { figures };
+          })(),
+        };
+
+  if (!fileUnchangedSince(read.file, read.raw)) {
     return {
       ok: false,
-      bug: true,
-      error: `The edit would leave trip.md unparseable (${said}), so nothing was written. This is a bug; please report it.`,
+      error: "conflict",
+      message:
+        "trip.json changed while this was being written — something else wrote to this trip at " +
+        "the same time. Nothing was written; read the trip back and send this change again.",
     };
   }
-
-  fs.writeFileSync(file, spliced);
+  writeTripJson(read.file, next);
 
   const after = readTripParty(ref);
   if (!after) {
     return {
       ok: false,
       bug: true,
-      error: "trip.md was written and the trip no longer reads. This is a bug; please report it.",
+      error: "trip.json was written and the trip no longer reads. This is a bug; please report it.",
     };
   }
-  // Written but not read back is the failure worth naming out loud: both
-  // parsers fail *open* on a bad entry (`parsePeople` drops the whole list,
-  // `parseTravellers` substitutes defaults), so a silent disagreement between
-  // this writer and those readers would otherwise look like success.
   if (after[key].length !== raw.length) {
     return {
       ok: false,
       bug: true,
       error:
-        `trip.md was written with ${raw.length} ${key} but reads back with ` +
+        `trip.json was written with ${raw.length} ${key} but reads back with ` +
         `${after[key].length}. This is a bug; please report it.`,
     };
   }

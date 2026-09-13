@@ -1,82 +1,50 @@
 import "server-only";
-import fs from "node:fs";
-import path from "node:path";
-import matter from "gray-matter";
 import { isEnabled } from "../capabilities";
+import { loadUserConfig } from "../config";
 import { conversionFor, getAllCosts } from "../costs";
-import { crossRate, type RateTable } from "../currency";
+import { crossRate, normalizeCurrency, type RateTable } from "../currency";
+import { fileUnchangedSince } from "../entries";
 import { ecbRatesOnOrBefore, fetchEcbHistory } from "../ecbHistory";
-import { getTrip, parseTripRef, tripDir, type TripRef } from "../trips";
-import { quoteScalar } from "../validate/frontmatter";
-import { ratesBlock } from "../tripWrite";
+import { getTrip, parseTripRef, type TripRef } from "../trips";
+import { eurManualRates, ratesBlock } from "../tripWrite";
+import { readTripJson, writeTripJson } from "./tripFile";
 
 /**
- * Amending a trip's `rates:` block after it has been created — B352.
+ * Amending a trip's rates after it has been created — B352.
  *
- * `createTrip` (lib/tripWrite.ts) could only ever write `rates:` once, at the
- * moment the folder is made, because nothing edited `trip.md` afterwards
- * (B207). The costs page then tells an owner with an unrated currency to "add
- * the missing rates to the trip's trip.md" — advice with nowhere to go on a
- * hosted instance, where nobody has a shell. This is the door that instruction
- * was missing.
+ * `createTrip` (lib/tripWrite.ts) could only ever write rates once, at the
+ * moment the folder is made, because nothing edited the trip's own file
+ * afterwards (B207). The costs page then tells an owner with an unrated
+ * currency to "add the missing rates to the trip's file" — advice with
+ * nowhere to go on a hosted instance, where nobody has a shell. This is the
+ * door that instruction was missing.
  *
  * Merges rather than replaces: a currency already in the table keeps its rate
  * unless this call names it again, so filling in the one THB rate a trip is
  * missing does not require resending every rate already on it. `ratesBlock`
  * — the same validator `createTrip` uses — both checks the merged table and
- * renders it, so a rate this writes reads back exactly as one written at
- * creation would.
- */
-
-const INDENTED_RE = /^\s+\S/;
-
-/** Where `key:` starts and ends inside the frontmatter, or -1 if absent. */
-function frontmatterLineOf(lines: string[], closing: number, key: string): number {
-  const pattern = new RegExp(`^${key}:(\\s|$)`);
-  return lines.findIndex((line, i) => i > 0 && i < closing && pattern.test(line));
-}
-
-/**
- * Replace one top-level frontmatter key and everything indented under it.
- * Mirrors `spliceBlock` in lib/api/costs.ts — kept as its own small copy
- * rather than shared, the same call that module's own comment makes: the two
- * touch different files, so importing across would only couple them for a
- * dozen lines.
+ * hands back the plain code→number map, in the direction a caller sends it
+ * (base units per one unit of the keyed currency); this file is what turns
+ * that into `trip.json`'s `rates.manual` (units per 1 EUR, the ECB table's
+ * own convention — `eurManualRates` in lib/tripWrite.ts, a B1598 finding).
  *
- * Takes `key` rather than being `rates:`'s alone since B543: `ratesFrom:` is
- * spliced the same way, right beside it.
+ * **Merges onto the stored `manual` table, not onto `getTrip()`'s resolved
+ * `rates`.** The resolved table (what `lib/trips.ts` hands every reader)
+ * blends the ECB's own daily rates in for every currency a ledger uses, not
+ * only the ones an owner set by hand — merging a request into *that* would
+ * freeze every ECB default into a permanent manual override the moment
+ * anybody touched one currency. The stored `trip.json` is read directly
+ * (`readTripJson`) for exactly the value that must be merged onto: what an
+ * owner actually asked to pin.
  */
-function spliceKeyBlock(markdown: string, key: string, newLines: string[]): string | null {
-  const lines = markdown.split("\n");
-  if (lines[0]?.trim() !== "---") return null;
-  const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0) return null;
-
-  const at = frontmatterLineOf(lines, closing, key);
-  let end = at;
-  if (at >= 0) {
-    end = at + 1;
-    while (end < closing && INDENTED_RE.test(lines[end])) end++;
-    lines.splice(at, end - at, ...newLines);
-  } else if (newLines.length > 0) {
-    lines.splice(closing, 0, ...newLines);
-  }
-  return lines.join("\n");
-}
 
 export type RatesWriteResult =
   | { ok: true; rates: RateTable }
   | { ok: false; error: string; message?: string; bug?: true };
 
-/** Read the `rates:` table currently on disk, `{}` when there is none. */
-function readTripRates(ref: TripRef): RateTable {
-  const trip = getTrip(ref);
-  return trip?.rates ?? {};
-}
-
 /**
  * Merge `raw` (a currency-code → number map, same shape `createTrip` takes)
- * into the trip's existing rates and write the result back to `trip.md`.
+ * into the trip's own stored manual rates and write the result back.
  */
 export function patchTripRates(ref: TripRef, raw: unknown): RatesWriteResult {
   const trip = getTrip(ref);
@@ -99,73 +67,97 @@ export function patchTripRates(ref: TripRef, raw: unknown): RatesWriteResult {
     };
   }
 
-  const merged = { ...trip.rates, ...(raw as Record<string, unknown>) };
-  const block = ratesBlock(merged);
-  if (!block.ok) return { ok: false, error: block.error, message: block.message };
-
-  const file = path.join(tripDir(ref), "trip.md");
-  const text = fs.readFileSync(file, "utf8");
-  const spliced = spliceKeyBlock(text, "rates", block.lines);
-  if (spliced === null) {
+  const read = readTripJson(ref);
+  if (!read) {
     return {
       ok: false,
       error: "no_frontmatter",
-      message: "trip.md has no frontmatter block to edit. Edit the file by hand.",
+      message: "trip.json could not be read. Edit the file by hand.",
     };
   }
 
-  try {
-    matter(spliced);
-  } catch (err) {
-    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+  // v1's own "base per one unit of code" convention — merged as such, then
+  // converted once, below.
+  const storedManual = storedBasePerCode(ref, read.trip.rates?.manual);
+  const merged = { ...storedManual, ...(raw as Record<string, unknown>) };
+  const block = ratesBlock(merged);
+  if (!block.ok) return { ok: false, error: block.error, message: block.message };
+
+  const username = parseTripRef(ref)?.username ?? "";
+  const baseCurrency = normalizeCurrency(loadUserConfig(username).baseCurrency, loadUserConfig(username).baseCurrency.toUpperCase());
+  const manual = eurManualRates(baseCurrency, block.value as Record<string, number>);
+  const currencies = Array.from(
+    new Set([...(read.trip.rates?.currencies ?? []), ...Object.keys(manual ?? {})]),
+  );
+  const next = {
+    ...read.trip,
+    ...(manual ? { rates: { currencies, manual } } : { rates: undefined }),
+  };
+
+  // B643 — see `fileUnchangedSince` in lib/entries.ts.
+  if (!fileUnchangedSince(read.file, read.raw)) {
     return {
       ok: false,
-      bug: true,
-      error: `The edit would leave trip.md unparseable (${said}), so nothing was written. This is a bug; please report it.`,
+      error: "conflict",
+      message:
+        "trip.json changed while these rates were being written — something else wrote to this " +
+        "trip at the same time. Nothing was written; read the trip back and send this change again.",
     };
   }
+  writeTripJson(read.file, next);
 
-  fs.writeFileSync(file, spliced);
-
-  const rates = readTripRates(ref);
+  const rates = getTrip(ref)?.rates ?? {};
   if (
     Object.keys(raw as Record<string, unknown>).some((code) => !(code.trim().toUpperCase() in rates))
   ) {
     return {
       ok: false,
       bug: true,
-      error: "trip.md was written but the new rates do not read back. This is a bug; please report it.",
+      error: "trip.json was written but the new rates do not read back. This is a bug; please report it.",
     };
   }
   return { ok: true, rates };
 }
 
 /**
- * Merge citations into the trip's `ratesFrom:` block, right beside `rates:`.
- *
- * Not validated the way `patchTripRates` validates a caller's numbers — this
- * is only ever called by `fillTripRates` below with a string it just built
- * itself, never with anything a request handed in, so there is nothing here
- * for a person to get wrong.
+ * The trip's stored manual rates (EUR convention), converted back to v1's
+ * "base per code" convention so a merge with a caller's request — which
+ * still speaks that convention — is comparing like with like. The inverse of
+ * `eurManualRates`.
  */
-function writeRatesFrom(ref: TripRef, citations: Record<string, string>): void {
-  if (Object.keys(citations).length === 0) return;
-  const merged = { ...(getTrip(ref)?.ratesFrom ?? {}), ...citations };
-  const lines = ["ratesFrom:", ...Object.entries(merged).map(([code, note]) => `  ${code}: ${quoteScalar(note)}`)];
+function storedBasePerCode(
+  ref: TripRef,
+  manual: Record<string, number> | undefined,
+): Record<string, number> {
+  if (!manual) return {};
+  const username = parseTripRef(ref)?.username ?? "";
+  const baseCurrency = normalizeCurrency(loadUserConfig(username).baseCurrency, loadUserConfig(username).baseCurrency.toUpperCase());
+  const baseEur = baseCurrency === "EUR" ? undefined : manual[baseCurrency];
+  const out: Record<string, number> = {};
+  for (const [code, eurPerCode] of Object.entries(manual)) {
+    out[code] = (baseEur ?? 1) / eurPerCode;
+  }
+  return out;
+}
 
-  const file = path.join(tripDir(ref), "trip.md");
-  const spliced = spliceKeyBlock(fs.readFileSync(file, "utf8"), "ratesFrom", lines);
-  // Same refusal `patchTripRates` makes for a hand-shaped file with no
-  // frontmatter block — but `rates:` itself will already have failed to
-  // write in that case, so this is only ever reached on a file that parses.
-  if (spliced === null) return;
-  fs.writeFileSync(file, spliced);
+/**
+ * v2 has no home for a per-rate citation (`ratesFrom:` never had one — see
+ * `lib/api/v2/documents.ts`'s own note on `tripFromJson`): `lib/trips.ts`'s
+ * reader already synthesises an equivalent label from whether a rate is in
+ * `manual` at all ("the trip's own rate") or came from the ECB's daily table
+ * ("European Central Bank, <date>"), which is what every reader has always
+ * been shown. So there is nothing left for this to persist; it is kept as a
+ * no-op rather than deleted so `fillTripRates` below needs no change of its
+ * own shape.
+ */
+function writeRatesFrom(_ref: TripRef, _citations: Record<string, string>): void {
+  // Intentionally empty — see the docblock above.
 }
 
 /**
  * Six significant figures, which is four more than any of this matters to and
  * still a number a person can read. A cross-division lands on the full float —
- * `0.024556709684188438` — and `trip.md` is a file somebody opens.
+ * `0.024556709684188438` — and the trip's own file is one somebody opens.
  *
  * The original is kept whenever the shorter form would be written in exponent
  * notation, because `ratesBlock` refuses that: a rate is either legible or it

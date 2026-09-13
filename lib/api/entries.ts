@@ -1,30 +1,24 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
 import { isTestContent } from "../access";
 import { loadUserConfig } from "../config";
 import { CURRENCY_FOR_COUNTRY } from "../countryCurrency";
 import { normalizeCurrency } from "../currency";
 import {
   AS_AUTHOR,
-  clearMatterCache,
   entrySlugFromFile,
   fileUnchangedSince,
   forgetEntries,
   getAllEntries,
   getDays,
   getEntryBySlug,
-  isDraft,
 } from "../entries";
+import { dayFromJson, dayToJson, type DayFile } from "./v2/documents";
 import { countryCodeFor } from "../flags";
 import type { TranslationKey } from "../i18n";
 import { translateIn } from "../locales";
 import { getUser } from "../users";
-// The same splicer ingest uses. One way of writing a gallery into an entry
-// that already exists, so the two doors cannot drift apart in how they format
-// it or in what they preserve of a file somebody has since edited.
-import { appendGallery } from "../ingest/entry";
 import { reverseGeocode } from "../ingest/geo";
 // One slugify for the whole codebase (B77). This module used to carry its
 // own, which stripped a German umlaut down to its bare vowel and disagreed
@@ -38,16 +32,12 @@ import type { Problem } from "../validate/media";
 import {
   UNKNOWN,
   TRACKS,
-  parseUnrecorded,
-  parseWithout,
-  unrecordedLine,
-  withoutLine,
-  type DayFacts,
   type Track,
+  type DayFacts,
 } from "../tracks";
 import { tripGaps } from "./tripGaps";
 import { quoteScalar } from "../validate/frontmatter";
-import { type DayWeather, weatherLine } from "../weather";
+import { type DayWeather } from "../weather";
 import { timezoneForCoordinates } from "../timezone";
 
 /**
@@ -60,9 +50,10 @@ import { timezoneForCoordinates } from "../timezone";
  * catches one is a person reading the day back before anybody else can. Two
  * calls is what makes that moment exist.
  *
- * Writes go straight to markdown files, because markdown files are the content
- * model. There is no second representation to keep in step, and anything an
- * agent writes can be read, corrected or reverted with a text editor.
+ * Writes go straight to a day's JSON file (`entries/YYYY-MM-DD-slug.json`,
+ * B1606/B1598) through `lib/api/v2/documents.ts`'s `dayFromJson`/`dayToJson` —
+ * the one serialiser the readers use too, so a day this file writes is a day
+ * `lib/entries.ts` can read back.
  */
 
 /** One logged cost, as a caller sends it. Named because `DraftInput["costs"]`
@@ -142,8 +133,9 @@ export type DraftInput = {
    * this and nobody has it*, which is not `false` and is the commonest truth
    * about a trip that finished a while ago.
    *
-   * `false` is written to the entry as `without: [...]`, `"unknown"` as
-   * `unrecorded: [...]`, and never as the field itself.
+   * Both land in the day's one `declined` map (v2, B1598) rather than in
+   * v1's separate `without:`/`unrecorded:` lines — see `DECLINE_KEY` and
+   * `declineText` below.
    */
   coordinates?: false | typeof UNKNOWN;
   photos?: false | typeof UNKNOWN;
@@ -233,17 +225,6 @@ export type DeleteResult =
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
 
-/**
- * YAML-safe double-quoted scalar — shared with the trip writer.
- *
- * It was a private copy of the same two escapes, and neither copy escaped a
- * newline, so a `location` or a `transportFrom` containing one closed the
- * frontmatter block from inside the value and wrote an entry that no reading
- * path could parse. Same bug as B204, one file over; the fix is the one
- * quoter both writers call.
- */
-const quote = quoteScalar;
-
 /** `loadUserConfig`'s `baseCurrency`, normalised — the same fallback
  * `lib/entries.ts`'s read-time default uses, so the two never disagree about
  * what "unknown" means. */
@@ -306,13 +287,10 @@ function stampCostCurrencies(
 }
 
 /**
- * The `costs:` block, in the flow style the hand-written entries use.
- *
- * `currency` is omitted when absent rather than guessed: a cost with no
- * currency is read as the journal's base currency, which is the right default
- * and not a value this should bake into the file. `category` falls back to
- * "other", which is what `lib/costs.ts` would read anyway — written out so the
- * file says what it means.
+ * The `costs:` block, in the flow style the hand-written entries used to
+ * carry — kept only for `lib/api/markdownTwin.ts`'s `.md` rendering of a day
+ * that already lives as JSON on disk. Nothing under this file writes markdown
+ * any more; this is presentation, not storage.
  */
 // Exported since B295: the costs door writes a trip's preparation costs in
 // this identical shape, and reuses this renderer rather than a second copy.
@@ -322,11 +300,11 @@ export function costLines(costs: CostInput[] | undefined): string[] {
     "costs:",
     ...costs.map((cost) => {
       const fields = [
-        `label: ${quote(cost.label)}`,
+        `label: ${quoteScalar(cost.label)}`,
         `amount: ${cost.amount}`,
-        `category: ${quote(cost.category?.trim() || "other")}`,
+        `category: ${quoteScalar(cost.category?.trim() || "other")}`,
         ...(cost.currency?.trim()
-          ? [`currency: ${quote(cost.currency.trim().toUpperCase())}`]
+          ? [`currency: ${quoteScalar(cost.currency.trim().toUpperCase())}`]
           : []),
       ];
       return `  - { ${fields.join(", ")} }`;
@@ -335,14 +313,9 @@ export function costLines(costs: CostInput[] | undefined): string[] {
 }
 
 /**
- * The `translations:` block — B294.
- *
- * Block style rather than flow, unlike `costs:` one function up, because the
- * values are prose: a day's content in another language is a paragraph, and
- * `{ title: …, content: … }` on one line would be a line hundreds of
- * characters long that no owner opening the file could read. `content` goes
- * out as a literal block scalar (`|-`) for the same reason and so that a
- * newline inside somebody's writing survives a round trip.
+ * The `translations:` block, rendered as markdown — the same "presentation,
+ * not storage" role as `costLines` above. `lib/api/markdownTwin.ts` is its
+ * only caller now that the day itself is stored as JSON.
  */
 export function translationLines(
   translations: DraftInput["translations"],
@@ -353,7 +326,7 @@ export function translationLines(
   for (const code of codes) {
     const tr = translations![code];
     lines.push(`  ${code}:`);
-    lines.push(`    title: ${quote(tr.title)}`);
+    lines.push(`    title: ${quoteScalar(tr.title)}`);
     lines.push("    content: |-");
     // Indented under the block scalar, every line of it. A blank line inside
     // the prose stays blank rather than becoming six spaces, which YAML reads
@@ -390,6 +363,16 @@ export function validateDraft(input: Partial<DraftInput>): string | null {
   return null;
 }
 
+/** The entries directory for a trip. */
+function entriesDirOf(ref: string): string {
+  return path.join(tripDir(ref), "entries");
+}
+
+/** Where one day's JSON file lives. */
+function dayFileOf(ref: string, slug: string): string {
+  return path.join(entriesDirOf(ref), `${slug}.json`);
+}
+
 /**
  * The entry file in this trip already holding `slug`, or null.
  *
@@ -401,7 +384,7 @@ export function validateDraft(input: Partial<DraftInput>): string | null {
 function entryFileWithSlug(dir: string, slug: string): string | null {
   let files: string[];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
   } catch {
     // No entries directory yet — the first day in a trip collides with nothing.
     return null;
@@ -418,51 +401,41 @@ function entryFileWithSlug(dir: string, slug: string): string | null {
  * re-reads and re-parses *every* entry in the trip. On the commonest write in
  * the system, on a trip with two hundred days, that is two hundred file reads
  * to check one file. So this reads the one file and parses it with the same
- * `matter` the reader uses, which is the only step in `readAllEntries` that
- * can fail on a file this function wrote.
+ * `dayFromJson` the reader uses, which is the only step here that can fail on
+ * a file this function wrote.
  *
- * Three questions, and the last two matter as much as the first. A frontmatter
- * block that ends early does not always fail to parse — it can parse into
- * something *else*, with the rest of the block landing in the prose. So the
- * title and date are asserted to read back as they were written, and the day
- * is asserted to still be a draft: an entry that reported `status: draft` and
+ * Three questions, and the last two matter as much as the first: the title
+ * and date are asserted to read back as they were written, and the day is
+ * asserted to still be a draft — a day that reported `status: draft` and
  * reads back as published is the one failure here that is worse than an
  * invisible file.
  */
 function draftDoesNotReadBack(file: string, input: DraftInput): string | null {
-  let data: Record<string, unknown>;
+  let raw: string;
   try {
-    data = matter(fs.readFileSync(file, "utf8")).data;
+    raw = fs.readFileSync(file, "utf8");
   } catch (err) {
-    const said =
-      err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return `its frontmatter does not parse (${said})`;
+    return `it could not be read back (${err instanceof Error ? err.message : String(err)})`;
   }
-  if (String(data.title ?? "") !== input.title) {
+  let day: DayFile;
+  try {
+    day = dayFromJson("", raw);
+  } catch (err) {
+    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    return `its JSON does not parse (${said})`;
+  }
+  if (day.title !== input.title) {
     return "its title does not read back as it was written";
   }
-  if (String(data.date ?? "") !== input.date) {
+  if (day.date !== input.date) {
     return "its date does not read back as it was written";
   }
-  if (!isDraft(data)) {
+  if (day.status !== "draft") {
     return 'it does not read back as "status: draft"';
   }
   return null;
 }
 
-/**
- * Create a draft entry.
- *
- * Refuses to overwrite: an agent retrying a request must not silently replace
- * yesterday's writing. The caller gets the existing slug back and can decide.
- */
-/**
- * The rows this call declines — B531.
- *
- * One place, because a write and an edit have to agree about it, and because
- * `costs: false` living in the same field as a list of costs is the sort of
- * thing that is read wrong once per reader otherwise.
- */
 /** The cost lines, when `costs` carries lines at all — `false` and
  * `"unknown"` are answers *about* the list rather than members of it. */
 function costLinesOf(input: Partial<DraftInput>): CostInput[] | undefined {
@@ -523,6 +496,99 @@ export function factsOfEntry(entry: Entry): DayFacts {
   };
 }
 
+/**
+ * A `Track` and the key it lands under in a day's one `declined` map — v2's
+ * single mechanism (B1598) replacing v1's separate `without:`/`unrecorded:`
+ * lines. `photos` is the track's own name; `media` is what the day itself
+ * calls the section it is declining, matching `dayWrite`'s own field name.
+ */
+const DECLINE_KEY: Record<Track, "costs" | "coordinates" | "media"> = {
+  costs: "costs",
+  coordinates: "coordinates",
+  photos: "media",
+};
+
+/**
+ * A decline is free text for the next reader (`declineReason` in
+ * `lib/api/v2/schemas/shared.ts`) rather than a checkbox — but `DraftInput`
+ * only ever hands this writer a boolean-shaped answer (`false` or
+ * `"unknown"`), with no reason of its own to carry forward. These are that
+ * reason, synthesised from the answer rather than invented about the day.
+ */
+function declineText(track: Track, why: "no" | "unknown"): string {
+  const about: Record<Track, string> = {
+    costs: "what this day cost",
+    coordinates: "where this day happened",
+    photos: "photographs from this day",
+  };
+  return why === "no"
+    ? `Nothing to record: ${about[track]}.`
+    : `Not recorded: ${about[track]} is unknown.`;
+}
+
+/** The `declined` map a fresh draft carries, from its three boolean-shaped
+ * answers — `undefined` when nothing was declined. */
+function buildDeclined(input: Partial<DraftInput>): DayFile["declined"] {
+  const declined: Record<string, string> = {};
+  for (const track of TRACKS) {
+    const answer = answerFor(input, track);
+    if (answer === false) declined[DECLINE_KEY[track]] = declineText(track, "no");
+    else if (answer === UNKNOWN) declined[DECLINE_KEY[track]] = declineText(track, "unknown");
+  }
+  return Object.keys(declined).length ? (declined as DayFile["declined"]) : undefined;
+}
+
+/** A fresh `DayFile` from a validated `DraftInput` — the create half of the
+ * mapping `applyEditToDay` is the edit half of. */
+function buildDayFile(
+  slug: string,
+  input: DraftInput,
+  costs: CostInput[] | undefined,
+  timezone: string | undefined,
+): DayFile {
+  const day: DayFile = {
+    slug,
+    title: input.title,
+    date: input.date,
+    content: input.content.trim(),
+    status: "draft",
+  };
+  if (input.time) day.time = input.time;
+  if (timezone) day.timezone = timezone;
+  if (input.location) day.location = input.location;
+  if (input.country) day.country = input.country;
+  if (input.countryCode) day.countryCode = input.countryCode.toUpperCase();
+  if (input.lat !== undefined && input.lng !== undefined) {
+    day.coordinates = { lat: input.lat, lng: input.lng };
+  }
+  if (input.tags?.length) day.tags = input.tags;
+  if (input.transportMode) {
+    day.transportMode = input.transportMode;
+    day.transportFrom = input.transportFrom ?? "";
+    day.transportTo = input.transportTo ?? "";
+  }
+  if (input.travelScene) day.travelScene = input.travelScene as DayFile["travelScene"];
+  if (input.visibility) day.visibility = input.visibility;
+  // One field on disk (B1598): a real reading always wins over a bare
+  // request, since a reading already answers the question the request asked.
+  if (input.weatherData) day.weather = input.weatherData;
+  else if (input.weather === true) day.weather = true;
+  if (costs?.length) day.costs = costs;
+  if (input.translations && Object.keys(input.translations).length) {
+    day.translations = input.translations;
+  }
+  if (input.test === true) day.test = true;
+  const declined = buildDeclined(input);
+  if (declined) day.declined = declined;
+  return day;
+}
+
+/**
+ * Create a draft entry.
+ *
+ * Refuses to overwrite: an agent retrying a request must not silently replace
+ * yesterday's writing. The caller gets the existing slug back and can decide.
+ */
 export function createDraft(ref: string, input: DraftInput): WriteResult {
   const problem = validateDraft(input);
   if (problem) return { ok: false, error: problem };
@@ -531,8 +597,8 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   if (!trip) return { ok: false, error: "unknown_trip" };
 
   const slug = slugify(input.title);
-  const dir = path.join(tripDir(ref), "entries");
-  const file = path.join(dir, `${input.date}-${slug}.md`);
+  const dir = entriesDirOf(ref);
+  const file = path.join(dir, `${input.date}-${slug}.json`);
 
   if (fs.existsSync(file)) {
     return {
@@ -592,56 +658,10 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
       ? timezoneForCoordinates(input.lat, input.lng)
       : undefined);
 
-  const lines = [
-    "---",
-    `title: ${quote(input.title)}`,
-    `date: ${quote(input.date)}`,
-    ...(input.time ? [`time: ${quote(input.time)}`] : []),
-    ...(timezone ? [`timezone: ${quote(timezone)}`] : []),
-    ...(input.location ? [`location: ${quote(input.location)}`] : []),
-    ...(input.country ? [`country: ${quote(input.country)}`] : []),
-    ...(input.countryCode
-      ? [`countryCode: ${quote(input.countryCode.toUpperCase())}`]
-      : []),
-    ...(input.lat !== undefined ? [`lat: ${input.lat}`] : []),
-    ...(input.lng !== undefined ? [`lng: ${input.lng}`] : []),
-    ...(input.tags?.length
-      ? [`tags: [${input.tags.map(quote).join(", ")}]`]
-      : []),
-    ...(input.transportMode
-      ? [
-          `transportMode: ${quote(input.transportMode)}`,
-          `transportFrom: ${quote(input.transportFrom ?? "")}`,
-          `transportTo: ${quote(input.transportTo ?? "")}`,
-        ]
-      : []),
-    ...(input.travelScene ? [`travelScene: ${quote(input.travelScene)}`] : []),
-    // B632, the entry's own label — see the field's doc comment on DraftInput.
-    ...(input.visibility ? [`visibility: ${quote(input.visibility)}`] : []),
-    // The request, written only when it is one — a `weather: false` line on
-    // every day would be noise in a file people read and edit by hand.
-    ...(input.weather === true ? ["weather: true"] : []),
-    // A hand-supplied reading. The lookup writes this line too, from the
-    // route, once the fetch comes back.
-    ...(input.weatherData ? [weatherLine(input.weatherData)] : []),
-    ...translationLines(input.translations),
-    ...costLines(stampedCosts),
-    // What this day says it deliberately does not have. B531 — the line that
-    // makes "nothing was spent" different from "nobody asked".
-    ...withoutLine(declinedIn(input)),
-    ...unrecordedLine(unrecordedIn(input)),
-    // Written only when true — see the note on NewTrip.test.
-    ...(input.test === true ? ["test: true"] : []),
-    // The line that keeps a person in the loop. Removing it publishes.
-    "status: draft",
-    "---",
-    "",
-    input.content.trim(),
-    "",
-  ];
+  const day = buildDayFile(slug, input, stampedCosts, timezone);
 
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(file, lines.join("\n"));
+  fs.writeFileSync(file, dayToJson(day));
   // A new draft is invisible to readers, but not to the owner's own view of
   // their site (W31) — and to the API that is about to be asked whether it
   // exists. Same reason as the delete below.
@@ -650,7 +670,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   /**
    * Read it back rather than trusting the write — B208, the day half of B204.
    *
-   * `quoteScalar` means there is no known input that produces a file this
+   * `dayToJson` means there is no known input that produces a file this
    * cannot parse, so this is the guard that does not depend on anybody having
    * thought of the input. Without it a day that no reading path can load is
    * answered `201 {"status":"draft"}`, and the agent tells somebody their day
@@ -678,7 +698,7 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
         `The day was written but ${unreadable}, so nothing was kept` +
         (removed
           ? `; the slug "${slug}" is still free.`
-          : ` — and the file could not be removed, so "${slug}" is taken until somebody deletes ${input.date}-${slug}.md on the server.`) +
+          : ` — and the file could not be removed, so "${slug}" is taken until somebody deletes ${input.date}-${slug}.json on the server.`) +
         " This is a bug; please report it.",
     };
   }
@@ -689,6 +709,23 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
     file,
     status: "draft",
     ...(costCurrency ? { costCurrency } : {}),
+  };
+}
+
+/** `GalleryItem` (the API's own vocabulary) → a `media` entry, the shape
+ * `lib/api/v2/documents.ts` writes and `lib/entries.ts` reads back. Optional
+ * fields are omitted rather than written as `undefined` — `JSON.stringify`
+ * would drop them anyway, but being explicit here means the object this
+ * function returns is already what a test can compare against. */
+function toMediaWireItem(item: GalleryItem): NonNullable<DayFile["media"]>[number] {
+  return {
+    src: item.src,
+    type: item.type,
+    ...(item.width !== undefined ? { width: item.width } : {}),
+    ...(item.height !== undefined ? { height: item.height } : {}),
+    ...(item.caption ? { caption: item.caption } : {}),
+    ...(item.poster ? { poster: item.poster } : {}),
+    ...(item.visibility ? { visibility: item.visibility } : {}),
   };
 }
 
@@ -705,10 +742,9 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
  * It knows the day: `day=<slug>` is already required to decide *where on disk*
  * the files go, so the entry that should point at them is not in doubt.
  *
- * The splice is textual, and `appendGallery` is the one ingest uses for the
- * same job — the frontmatter is not parsed and re-emitted, because by the time
- * a second batch arrives somebody may have fixed the title, written the prose
- * and added captions, and a YAML round-trip would restyle all of it.
+ * Read-modify-write of the one JSON file (B1598) — appended to whatever
+ * `media` the day already carries, so a second batch after somebody has fixed
+ * the title or added captions loses nothing of that.
  *
  * Drafts and published days both — the media route no longer refuses a
  * published day (B393): the same reasoning that lets `PATCH` correct a
@@ -723,56 +759,34 @@ export function attachGallery(
   { ok: true; attached: number } | { ok: false; error: string; bug?: boolean } {
   if (items.length === 0) return { ok: true, attached: 0 };
 
-  const dir = path.join(tripDir(ref), "entries");
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
-  } catch {
-    return { ok: false, error: `no entry "${slug}" in this trip` };
-  }
-  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  const dir = entriesDirOf(ref);
+  const match = entryFileWithSlug(dir, slug);
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
   const file = path.join(dir, match);
   const raw = fs.readFileSync(file, "utf8");
-  const spliced = appendGallery(raw, items);
-  if (spliced === null) {
-    // A file with no frontmatter block is one somebody wrote by hand in a shape
-    // this cannot edit safely. Say so; do not guess.
+  let day: DayFile;
+  try {
+    day = dayFromJson(slug, raw);
+  } catch (err) {
+    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
     return {
       ok: false,
       error:
-        `"${slug}" has no frontmatter block to write a gallery into. The photographs ` +
-        `are on disk under this day; add them to the entry by hand.`,
+        `"${slug}" cannot be parsed (${said}), so a gallery cannot be written into it. The ` +
+        `photographs are on disk under this day; add them to the entry by hand.`,
     };
   }
 
-  // B528 — the same guard `editEntry` runs before every write: a splice that
-  // produces text `gray-matter` cannot parse back would be written silently
-  // otherwise, and a day written unparseable is invisible at every reading
-  // path and undeletable through the API (see B204). The photographs are
-  // already on disk by this point, so the refusal below can say so.
-  try {
-    void matter(spliced).data;
-  } catch (err) {
-    const said =
-      err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return {
-      ok: false,
-      bug: true,
-      error:
-        `Attaching these photographs would leave "${slug}" unparseable (${said}), so nothing ` +
-        `was written. The photographs are already stored (see \`kept\`) — this is a bug; ` +
-        "please report it.",
-    };
-  }
+  const media = [...(day.media ?? []), ...items.map(toMediaWireItem)];
+  const next: DayFile = { ...day, media };
 
   // B643 — see `fileUnchangedSince`. The photographs themselves are already
   // on disk by this point (`storeUploads` wrote them before this was ever
   // called), so refusing here does not lose them: it only refuses to write a
-  // gallery block computed from a copy of the day that a second writer has
-  // since moved past, which would otherwise silently take that writer's
-  // change down with it.
+  // gallery computed from a copy of the day that a second writer has since
+  // moved past, which would otherwise silently take that writer's change
+  // down with it.
   if (!fileUnchangedSince(file, raw)) {
     console.warn(
       `[entries] ${ref}/${slug}: refused a gallery write — the day changed under it.`,
@@ -787,69 +801,9 @@ export function attachGallery(
     };
   }
 
-  fs.writeFileSync(file, spliced);
+  fs.writeFileSync(file, dayToJson(next));
   forgetEntries(ref);
   return { ok: true, attached: items.length };
-}
-
-/**
- * Remove whole items from a `gallery:` block, keyed by `mediaKey` — the
- * removal counterpart to `spliceGalleryField` below, which only ever
- * rewrites one line inside an item that survives. This one drops the item
- * outright: `src`, `width`, `caption` and all.
- *
- * Walked backwards for the same reason `spliceGalleryField` is: each splice
- * moves every line after it, and starting from the end leaves the indices
- * still ahead of the cursor valid. The `gallery:` key itself is dropped too
- * once nothing is left under it — the same rule `spliceCosts` and
- * `spliceTranslations` apply to an emptied block.
- *
- * `null` only for "no frontmatter block at all" or "no gallery: key at all"
- * — `detachGallery` below has already matched `keys` against a gallery this
- * same file's `getEntryBySlug` read back, so reaching either case here would
- * be a bug in that match, not a caller mistake to explain to an agent.
- */
-function removeGalleryItems(
-  markdown: string,
-  keys: Set<string>,
-): string | null {
-  const lines = markdown.split("\n");
-  if (lines[0]?.trim() !== "---") return null;
-  let closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0) return null;
-
-  const galleryAt = lines.findIndex(
-    (line, i) => i > 0 && i < closing && /^gallery:\s*$/.test(line),
-  );
-  if (galleryAt < 0) return null;
-
-  let end = galleryAt + 1;
-  while (end < closing && /^\s+\S/.test(lines[end])) end++;
-
-  const starts: number[] = [];
-  for (let i = galleryAt + 1; i < end; i++)
-    if (/^\s*-\s/.test(lines[i])) starts.push(i);
-
-  for (let n = starts.length - 1; n >= 0; n--) {
-    const from = starts[n];
-    const to = n + 1 < starts.length ? starts[n + 1] : end;
-    const item = lines.slice(from, to);
-    const srcAt = item.findIndex((line) => /^\s*-?\s*src:/.test(line));
-    if (srcAt < 0) continue;
-    const src = item[srcAt]
-      .replace(/^\s*-?\s*src:\s*/, "")
-      .trim()
-      .replace(/^["']|["']$/g, "");
-    if (!keys.has(mediaKey(src))) continue;
-    lines.splice(from, to - from);
-    closing -= to - from;
-    end -= to - from;
-  }
-
-  // Nothing left under `gallery:` — drop the key line too.
-  if (end === galleryAt + 1) lines.splice(galleryAt, 1);
-
-  return lines.join("\n");
 }
 
 /**
@@ -865,12 +819,12 @@ function removeGalleryItems(
  * refuses the whole call rather than deleting the rest and leaving the
  * caller to notice which one silently did not land.
  *
- * The files are deleted before the frontmatter is rewritten, on purpose: a
- * request that dies between the two steps leaves a `gallery:` line pointing
- * at a file that is already gone — answering 404, which is safe — never the
- * other order, which would leave the file reachable at its old, guessable
- * URL after the day says it is not there. Same reasoning `app/[user]/media/
- * [...path]/route.ts` gives the photoVisibility label.
+ * The files are deleted before the day's own `media` is rewritten, on
+ * purpose: a request that dies between the two steps leaves an entry
+ * pointing at a file that is already gone — answering 404, which is safe —
+ * never the other order, which would leave the file reachable at its old,
+ * guessable URL after the day says it is not there. Same reasoning
+ * `app/[user]/media/[...path]/route.ts` gives the photoVisibility label.
  *
  * A photobook or postcard order already referencing one of these files is
  * left untouched. Both resolve the photograph live, at send/print time
@@ -912,30 +866,32 @@ export function detachGallery(
 
   for (const item of matched) deleteMediaFiles(ref, item);
 
-  const dir = path.join(tripDir(ref), "entries");
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
-  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  const dir = entriesDirOf(ref);
+  const match = entryFileWithSlug(dir, slug);
   if (match) {
     const file = path.join(dir, match);
     const raw = fs.readFileSync(file, "utf8");
-    const spliced = removeGalleryItems(
-      raw,
-      new Set(matched.map((item) => mediaKey(item.src))),
-    );
-    // B643 — see `fileUnchangedSince`. The files themselves are already
-    // deleted by `deleteMediaFiles` above regardless (on purpose, see the
-    // comment on this function), so a refusal here only means the entry
-    // still names a file that is now 404 — safe, and the caller can retry
-    // the removal against whatever the day looks like now.
-    if (spliced !== null) {
+    try {
+      const day = dayFromJson(slug, raw);
+      const keys = new Set(matched.map((item) => mediaKey(item.src)));
+      const remaining = (day.media ?? []).filter((item) => !keys.has(mediaKey(item.src)));
+      const next: DayFile = { ...day, media: remaining.length ? remaining : undefined };
+      // B643 — see `fileUnchangedSince`. The files themselves are already
+      // deleted above regardless (on purpose, see the comment on this
+      // function), so a refusal here only means the entry still names a file
+      // that is now 404 — safe, and the caller can retry the removal against
+      // whatever the day looks like now.
       if (fileUnchangedSince(file, raw)) {
-        fs.writeFileSync(file, spliced);
+        fs.writeFileSync(file, dayToJson(next));
       } else {
         console.warn(
           `[entries] ${ref}/${slug}: refused a gallery-removal write — the day changed under it. ` +
             "The deleted files still stay deleted.",
         );
       }
+    } catch (err) {
+      const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+      console.warn(`[entries] ${ref}/${slug}: could not rewrite media after a delete: ${said}`);
     }
   }
 
@@ -946,37 +902,7 @@ export function detachGallery(
 /**
  * Every field `PATCH .../days/<slug>` may change. Deliberately not `status`
  * — see `editEntry` below, which is the whole point of B266.
- *
- * `coordinates` and `photos` joined this list in B599, `"unknown"` only —
- * `false` stays create-only, refused by `checkDeclines` in
- * lib/validate/entry.ts with a message that says why, rather than by simply
- * never reaching a validator at all. Before this a day could be told *the
- * money is gone* after the fact and not *the pictures are gone*, though
- * `openapi.json` had documented the second as the whole point of the third
- * answer — "they can be added later; the day does not have to wait" said
- * nothing about a day already written not being allowed to say it.
  */
-/**
- * The journal's declared languages, for B294's completeness refusal.
- *
- * `locales` is what a reader may switch into and `writtenLocale` is the
- * language the prose itself is in — so a day owes a translation for every
- * locale except that one. Read per request rather than cached: an owner can
- * change both with one `PATCH .../config` (B220), and a day written a minute
- * later must be judged against what the journal says now.
- *
- * Here rather than in the route that first needed it, because B980 gave the
- * owner's own browser a second door onto `editEntry` and the two must judge a
- * day by the same languages.
- */
-export function journalLanguages(
-  user: string,
-): { locales: readonly string[]; writtenLocale: string } | undefined {
-  const journal = getUser(user);
-  if (!journal) return undefined;
-  return { locales: journal.locales, writtenLocale: journal.defaultLocale };
-}
-
 export const EDITABLE_DAY_FIELDS = [
   "title",
   "date",
@@ -1005,22 +931,43 @@ export const EDITABLE_DAY_FIELDS = [
   "weatherData",
 ] as const;
 
+/**
+ * The journal's declared languages, for B294's completeness refusal.
+ *
+ * `locales` is what a reader may switch into and `writtenLocale` is the
+ * language the prose itself is in — so a day owes a translation for every
+ * locale except that one. Read per request rather than cached: an owner can
+ * change both with one `PATCH .../config` (B220), and a day written a minute
+ * later must be judged against what the journal says now.
+ *
+ * Here rather than in the route that first needed it, because B980 gave the
+ * owner's own browser a second door onto `editEntry` and the two must judge a
+ * day by the same languages.
+ */
+export function journalLanguages(
+  user: string,
+): { locales: readonly string[]; writtenLocale: string } | undefined {
+  const journal = getUser(user);
+  if (!journal) return undefined;
+  return { locales: journal.locales, writtenLocale: journal.defaultLocale };
+}
+
 /** A partial `DraftInput` — every field optional, since a PATCH names only
  * what it is changing. `idempotency_key` is not among them: an edit is
  * naturally safe to repeat, since resending the same fields just writes the
  * same file again. */
 export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
   /**
-   * A caption per photograph, keyed by the item's `src` — the one part of a
-   * `gallery:` block a PATCH may change (B522).
+   * A caption per photograph, keyed by the item's `src` — the one part of the
+   * day's `media` a PATCH may change (B522).
    *
-   * The rest of the block is the server's: `src`, `width` and `height` are
+   * The rest of each item is the server's: `src`, `width` and `height` are
    * measured off the file, and rewriting them from a request body is how a
    * day comes to point at photographs that are not there. So this edits the
-   * `caption:` line inside items that already exist and touches nothing else
-   * — a `src` the day does not carry is refused rather than added (B540: it
-   * used to be ignored, which made a typo look exactly like success), and an
-   * empty string removes the caption it names.
+   * `caption` of items that already exist and touches nothing else — a `src`
+   * the day does not carry is refused rather than added (B540: it used to be
+   * ignored, which made a typo look exactly like success), and an empty
+   * string removes the caption it names.
    *
    * The key is forgiving about the owner prefix: a day read back over the API
    * carries `/<user>/media/…` while the file on disk carries `/media/…`, and
@@ -1031,7 +978,7 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
    * A photograph held back from readers the trip otherwise lets in — B596,
    * keyed by `src` exactly as `captions` is, and `null` to clear a label.
    *
-   * The same narrow rule applies: this edits one line inside items that
+   * The same narrow rule applies: this edits one field inside items that
    * already exist. A `src` the day does not carry is refused rather than
    * added, because a label on a photograph nobody has is not a photograph.
    *
@@ -1055,368 +1002,201 @@ export type EditInput = Partial<Omit<DraftInput, "idempotency_key">> & {
   weatherData?: DayWeather | null;
 };
 
-/**
- * The line naming `key` inside the frontmatter block (`lines[1..closing)`),
- * or -1. Only scanned inside the block, the same discipline `publishDraft`
- * uses for `status: draft` — a `title:` inside the prose is a day about
- * titles, not a target.
- */
-function frontmatterLineOf(
-  lines: string[],
-  closing: number,
-  key: string,
-): number {
-  const pattern = new RegExp(`^${key}:(\\s|$)`);
-  return lines.findIndex(
-    (line, i) => i > 0 && i < closing && pattern.test(line),
-  );
-}
-
-/**
- * Replace, insert or remove one scalar frontmatter line, leaving every other
- * byte untouched — new fields are appended just above the closing `---`,
- * same as `appendGallery` appends a fresh `gallery:` block. Returns the
- * closing marker's index, which moves when a line is added or removed.
- */
-function spliceScalar(
-  lines: string[],
-  closing: number,
-  key: string,
-  rendered: string | null,
-): number {
-  const at = frontmatterLineOf(lines, closing, key);
-  if (rendered === null) {
-    if (at < 0) return closing;
-    lines.splice(at, 1);
-    return closing - 1;
-  }
-  if (at >= 0) {
-    lines[at] = rendered;
-    return closing;
-  }
-  lines.splice(closing, 0, rendered);
-  return closing + 1;
-}
-
-/**
- * `costs:` is a list, not one line — replaced wholesale rather than
- * diffed item by item, the same choice `appendGallery` makes for `gallery:`.
- * An empty array clears it: no manual costs recorded any more.
- */
-function spliceCosts(
-  lines: string[],
-  closing: number,
-  costs: CostInput[] | undefined,
-): number {
-  const at = frontmatterLineOf(lines, closing, "costs");
-  let end = closing;
-  if (at >= 0) {
-    end = at + 1;
-    while (end < closing && /^\s+\S/.test(lines[end])) end++;
-    lines.splice(at, end - at);
-    closing -= end - at;
-  }
-  const block = costLines(costs);
-  if (block.length === 0) return closing;
-  lines.splice(at >= 0 ? at : closing, 0, ...block);
-  return closing + block.length;
-}
-
-/**
- * `translations:` is a nested block, so it is replaced wholesale like
- * `costs:` — the same reasoning, and the same consequence: an edit that
- * names it must carry every language, which is exactly what
- * `validateEntryEdit` already refuses to let through half-done.
- */
-function spliceTranslations(
-  lines: string[],
-  closing: number,
-  translations: DraftInput["translations"],
-): number {
-  const at = frontmatterLineOf(lines, closing, "translations");
-  if (at >= 0) {
-    let end = at + 1;
-    // Anything indented belongs to the block, blank lines inside a literal
-    // scalar included — a paragraph break in somebody's prose must not be
-    // read as the end of the key.
-    while (end < closing && (/^\s+/.test(lines[end]) || lines[end] === ""))
-      end++;
-    lines.splice(at, end - at);
-    closing -= end - at;
-  }
-  const block = translationLines(translations);
-  if (block.length === 0) return closing;
-  lines.splice(at >= 0 ? at : closing, 0, ...block);
-  return closing + block.length;
-}
-
-/**
- * Rewrite one line inside the `gallery:` block, leaving every other byte of it
- * alone — B522 for `caption:`, B596 for `visibility:`.
- *
- * Wholesale replacement (what `spliceCosts` does) is the wrong shape here: an
- * edit carrying the whole gallery would let a partial payload delete
- * photographs, and the `src`, `width` and `height` the server measured off
- * the file are not the caller's to restate. So this walks the block item by
- * item and touches only the one line each item may own.
- *
- * `field` is the name of that line, and there are exactly two: the caption a
- * person wrote, and whether the picture is held back. Parameterised rather
- * than copied, because the walk is the difficult half — finding each item's
- * bounds, matching its `src` past the owner prefix, splicing backwards so the
- * indices ahead of the cursor stay valid. A second copy of that with one word
- * changed is a second copy of every bug in it.
- *
- * An empty string removes the line, which is how a caller clears a label as
- * well as how they clear a caption.
- */
-function spliceGalleryField(
-  lines: string[],
-  closing: number,
-  field: "caption" | "visibility",
-  values: Record<string, string>,
-): number {
-  const at = frontmatterLineOf(lines, closing, "gallery");
-  if (at < 0) return closing;
-
-  // `/alex/media/trip/day/01.jpg` on the way in, `/media/trip/day/01.jpg` on
-  // disk — the owner is prefixed at read time (`mediaWithOwner`), so compare
-  // what follows `/media/` and nothing before it. `mediaKey` is that rule,
-  // and it is shared now rather than written out here (lib/photos.ts).
-  const wanted = new Map(
-    Object.entries(values).map(([src, text]) => [mediaKey(src), text.trim()]),
-  );
-
-  let end = at + 1;
-  while (end < closing && /^\s+\S/.test(lines[end])) end++;
-
-  const starts: number[] = [];
-  for (let i = at + 1; i < end; i++)
-    if (/^\s*-\s/.test(lines[i])) starts.push(i);
-
-  // Walked backwards: each splice moves everything after it, and going from
-  // the end leaves the indices still ahead of the cursor valid.
-  for (let n = starts.length - 1; n >= 0; n--) {
-    const from = starts[n];
-    const to = n + 1 < starts.length ? starts[n + 1] : end;
-    const item = lines.slice(from, to);
-    const srcAt = item.findIndex((line) => /^\s*-?\s*src:/.test(line));
-    if (srcAt < 0) continue;
-    const src = item[srcAt]
-      .replace(/^\s*-?\s*src:\s*/, "")
-      .trim()
-      .replace(/^["']|["']$/g, "");
-    const text = wanted.get(mediaKey(src));
-    if (text === undefined) continue;
-
-    const fieldAt = item.findIndex((line) =>
-      new RegExp(`^\\s+${field}:`).test(line),
-    );
-    if (text === "") {
-      if (fieldAt >= 0) {
-        lines.splice(from + fieldAt, 1);
-        closing -= 1;
-      }
-      continue;
+/** `Record<src, caption|"">`/`Record<src, PhotoVisibility|null>` applied to
+ * a day's `media` — the one part of an edit that touches items rather than
+ * scalar fields. Matched by `mediaKey`, forgiving of the owner prefix a
+ * caller may send back exactly as it was given (see `EditInput.captions`). A
+ * `src` the day does not carry has already been refused upstream
+ * (`lib/validate/entry.ts`'s `checkCaptions`), so this only ever applies
+ * matches it finds. */
+function applyMediaFieldEdits(
+  media: DayFile["media"],
+  captions: Record<string, string> | undefined,
+  photoVisibility: Record<string, PhotoVisibility | null> | undefined,
+): DayFile["media"] {
+  if (!media || (!captions && !photoVisibility)) return media;
+  const captionMap = captions
+    ? new Map(Object.entries(captions).map(([src, text]) => [mediaKey(src), text.trim()]))
+    : undefined;
+  const visMap = photoVisibility
+    ? new Map(Object.entries(photoVisibility).map(([src, v]) => [mediaKey(src), v]))
+    : undefined;
+  return media.map((item) => {
+    const key = mediaKey(item.src);
+    const next = { ...item };
+    if (captionMap?.has(key)) {
+      const text = captionMap.get(key)!;
+      if (text) next.caption = text;
+      else delete next.caption;
     }
-    const rendered = `    ${field}: ${quote(text)}`;
-    if (fieldAt >= 0) {
-      lines[from + fieldAt] = rendered;
-    } else {
-      lines.splice(to, 0, rendered);
-      closing += 1;
+    if (visMap?.has(key)) {
+      const v = visMap.get(key);
+      if (v) next.visibility = v;
+      else delete next.visibility;
+    }
+    return next;
+  });
+}
+
+/**
+ * `input`'s fields, applied onto `day` — the read-modify-write half of an
+ * edit, shared between `editEntry` (object in, object out) and
+ * `spliceEntryFields` below (raw JSON string in and out, for the two other
+ * callers that still speak in file bytes: `lib/api/weather.ts` and
+ * `lib/api/timezoneBackfill.ts`). A field present in `input` replaces
+ * whatever the day already had for it; an empty/falsy value (`""`, `null`,
+ * an empty list) clears it, mirroring the old textual splice's "rendered
+ * line, or none" choice.
+ */
+function applyEditToDay(day: DayFile, input: EditInput): DayFile {
+  const next: DayFile = { ...day };
+
+  if (input.title !== undefined) next.title = input.title;
+  if (input.date !== undefined) next.date = input.date;
+  if (input.time !== undefined) {
+    if (input.time) next.time = input.time;
+    else delete next.time;
+  }
+  if (input.timezone !== undefined) {
+    if (input.timezone) next.timezone = input.timezone;
+    else delete next.timezone;
+  }
+  if (input.location !== undefined) {
+    if (input.location) next.location = input.location;
+    else delete next.location;
+  }
+  if (input.country !== undefined) {
+    if (input.country) next.country = input.country;
+    else delete next.country;
+  }
+  if (input.countryCode !== undefined) {
+    if (input.countryCode) next.countryCode = input.countryCode.toUpperCase();
+    else delete next.countryCode;
+  }
+  // `coordinates` is one object on disk (v2) where `lat`/`lng` used to be two
+  // independent scalar lines — an edit naming only one of them now merges
+  // onto whatever the day already had for the other, rather than writing a
+  // pair that no longer agrees with each other.
+  if (input.lat !== undefined || input.lng !== undefined) {
+    const lat = input.lat !== undefined ? input.lat : next.coordinates?.lat;
+    const lng = input.lng !== undefined ? input.lng : next.coordinates?.lng;
+    if (lat !== undefined && lng !== undefined) next.coordinates = { lat, lng };
+  }
+  if (input.tags !== undefined) {
+    if (input.tags.length) next.tags = input.tags;
+    else delete next.tags;
+  }
+  if (input.transportMode !== undefined) {
+    if (input.transportMode) next.transportMode = input.transportMode;
+    else delete next.transportMode;
+  }
+  if (input.transportFrom !== undefined) {
+    if (input.transportFrom) next.transportFrom = input.transportFrom;
+    else delete next.transportFrom;
+  }
+  if (input.transportTo !== undefined) {
+    if (input.transportTo) next.transportTo = input.transportTo;
+    else delete next.transportTo;
+  }
+  if (input.travelScene !== undefined) {
+    if (input.travelScene) next.travelScene = input.travelScene as DayFile["travelScene"];
+    else delete next.travelScene;
+  }
+  // B632. `null`/`""` clears the label, same as `photoVisibility`'s.
+  if (input.visibility !== undefined) {
+    if (input.visibility) next.visibility = input.visibility;
+    else delete next.visibility;
+  }
+  if (input.test !== undefined) {
+    if (input.test === true) next.test = true;
+    else delete next.test;
+  }
+  // Weather: one field on disk (B1598), two independent requests on the way
+  // in. A bare `true` never overwrites a real reading — the reading already
+  // answers the question a repeated ask raises. Withdrawing the request
+  // (`weather: false`) never erases a reading either; there is nothing left
+  // to withdraw once one exists.
+  if (input.weather !== undefined) {
+    if (input.weather === true) {
+      if (typeof next.weather !== "object") next.weather = true;
+    } else if (next.weather === true) {
+      delete next.weather;
     }
   }
-  return closing;
+  if (input.weatherData !== undefined) {
+    if (input.weatherData) next.weather = input.weatherData;
+    else if (typeof next.weather === "object") delete next.weather;
+  }
+  if (input.costs !== undefined) {
+    if (Array.isArray(input.costs) && input.costs.length) next.costs = input.costs;
+    else delete next.costs;
+  }
+  /**
+   * The three declines, on an edit — B531, folded into v2's one `declined`
+   * map (B1598).
+   *
+   * An edit that *supplies* what a day was missing has to clear the decline
+   * as well, or the day would say both "here is what it cost" and "this day
+   * has no money on it" at once.
+   */
+  {
+    const declined: Record<string, string> = { ...(day.declined ?? {}) };
+    for (const track of TRACKS) {
+      const said = track === "costs" ? input.costs : input[track as "coordinates" | "photos"];
+      if (said === undefined) continue;
+      const key = DECLINE_KEY[track];
+      // Three answers, and each one retracts the other two: a day cannot
+      // sensibly say both that it had none of something and that nobody
+      // knows how much of it there was. B560.
+      delete declined[key];
+      if (said === false) declined[key] = declineText(track, "no");
+      else if (said === UNKNOWN) declined[key] = declineText(track, "unknown");
+    }
+    // Coordinates arrive as two fields rather than one, so they are the one
+    // row an edit can answer without naming the row.
+    if (input.lat !== undefined && input.lng !== undefined) {
+      delete declined[DECLINE_KEY.coordinates];
+    }
+    next.declined = Object.keys(declined).length ? (declined as DayFile["declined"]) : undefined;
+  }
+  if (input.translations !== undefined) {
+    const codes = Object.keys(input.translations ?? {});
+    next.translations = codes.length ? input.translations : undefined;
+  }
+  if (input.captions !== undefined || input.photoVisibility !== undefined) {
+    next.media = applyMediaFieldEdits(next.media, input.captions, input.photoVisibility);
+  }
+  if (input.content !== undefined) {
+    next.content = input.content.trim();
+  }
+
+  return next;
 }
 
 /**
- * Splice `input`'s fields into `markdown`, textually — parsed and re-emitted
- * for nothing. A field the day already has is replaced in place, so a
- * comment or a hand-chosen key order two lines away survives; a field new to
- * this day is appended just above the closing `---`. `content`, which is not
- * frontmatter, replaces everything from the closing marker to the end of the
- * file.
+ * Splice `input`'s fields into a day's raw JSON text — the same
+ * `applyEditToDay` `editEntry` uses below, wrapped for the two callers that
+ * still speak in file bytes rather than in `DayFile` objects:
+ * `lib/api/weather.ts` and `lib/api/timezoneBackfill.ts`. Neither had to
+ * change when storage moved from markdown to JSON (B1598) — this is the
+ * "flip the body, not the interface" trick applied to its own smallest
+ * caller.
  *
- * Returns null when there is no frontmatter block to splice into — the
- * caller's cue to leave a hand-shaped file alone and say so, same as
- * `attachGallery`.
+ * Returns null when `markdown` (despite the name — it is JSON now) will not
+ * parse — the caller's cue to leave a hand-shaped file alone and say so, same
+ * as `attachGallery`.
  */
 export function spliceEntryFields(
   markdown: string,
   input: EditInput,
 ): string | null {
-  const lines = markdown.split("\n");
-  if (lines[0]?.trim() !== "---") return null;
-  let closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0) return null;
-
-  const set = (key: string, rendered: string | null) => {
-    closing = spliceScalar(lines, closing, key, rendered);
-  };
-
-  if (input.title !== undefined) set("title", `title: ${quote(input.title)}`);
-  if (input.date !== undefined) set("date", `date: ${quote(input.date)}`);
-  if (input.time !== undefined)
-    set("time", input.time ? `time: ${quote(input.time)}` : null);
-  if (input.timezone !== undefined)
-    set("timezone", input.timezone ? `timezone: ${quote(input.timezone)}` : null);
-  if (input.location !== undefined)
-    set(
-      "location",
-      input.location ? `location: ${quote(input.location)}` : null,
-    );
-  if (input.country !== undefined)
-    set("country", input.country ? `country: ${quote(input.country)}` : null);
-  if (input.countryCode !== undefined) {
-    set(
-      "countryCode",
-      input.countryCode
-        ? `countryCode: ${quote(input.countryCode.toUpperCase())}`
-        : null,
-    );
+  let day: DayFile;
+  try {
+    day = dayFromJson("", markdown);
+  } catch {
+    return null;
   }
-  if (input.lat !== undefined) set("lat", `lat: ${input.lat}`);
-  if (input.lng !== undefined) set("lng", `lng: ${input.lng}`);
-  if (input.tags !== undefined) {
-    set(
-      "tags",
-      input.tags.length ? `tags: [${input.tags.map(quote).join(", ")}]` : null,
-    );
-  }
-  if (input.transportMode !== undefined) {
-    set(
-      "transportMode",
-      input.transportMode
-        ? `transportMode: ${quote(input.transportMode)}`
-        : null,
-    );
-  }
-  if (input.transportFrom !== undefined) {
-    set(
-      "transportFrom",
-      input.transportFrom
-        ? `transportFrom: ${quote(input.transportFrom)}`
-        : null,
-    );
-  }
-  if (input.transportTo !== undefined) {
-    set(
-      "transportTo",
-      input.transportTo ? `transportTo: ${quote(input.transportTo)}` : null,
-    );
-  }
-  if (input.travelScene !== undefined) {
-    set(
-      "travelScene",
-      input.travelScene ? `travelScene: ${quote(input.travelScene)}` : null,
-    );
-  }
-  // B632. `null` clears the label, same as `photoVisibility`'s.
-  if (input.visibility !== undefined) {
-    set(
-      "visibility",
-      input.visibility ? `visibility: ${quote(input.visibility)}` : null,
-    );
-  }
-  // Written only when true, like every other flag here — see the note on
-  // NewTrip.test. `test: false` unsets it rather than writing a line nobody
-  // wants to read.
-  if (input.test !== undefined)
-    set("test", input.test === true ? "test: true" : null);
-  // Same "written only when true" rule as `test` above, and for the same
-  // reason. `weatherData: null` clears a reading; `weather: false` only
-  // withdraws the request.
-  if (input.weather !== undefined)
-    set("weather", input.weather === true ? "weather: true" : null);
-  if (input.weatherData !== undefined) {
-    set(
-      "weatherData",
-      input.weatherData ? weatherLine(input.weatherData) : null,
-    );
-  }
-  if (input.costs !== undefined) {
-    closing = spliceCosts(lines, closing, costLinesOf(input));
-  }
-  /**
-   * The declines, on an edit — B531.
-   *
-   * An edit that *supplies* what a day was missing has to clear the decline
-   * as well, or the file would say both "here is what it cost" and "this day
-   * has no money on it". So the block is rewritten from what the edit says
-   * plus what the file already said, minus anything the edit has now
-   * answered.
-   */
-  {
-    const front = matter(markdown).data;
-    const declined = new Set<Track>(parseWithout(front.without));
-    const unknown = new Set<Track>(parseUnrecorded(front.unrecorded));
-    for (const key of TRACKS) {
-      const said =
-        key === "costs" ? input.costs : input[key as "coordinates" | "photos"];
-      if (said === undefined) continue;
-      // Three answers, and each one retracts the other two: a day cannot
-      // sensibly say both that it had none of something and that nobody knows
-      // how much of it there was. B560.
-      declined.delete(key);
-      unknown.delete(key);
-      if (said === false) declined.add(key);
-      else if (said === UNKNOWN) unknown.add(key);
-    }
-    // Coordinates arrive as two fields rather than one, so they are the one
-    // row an edit can answer without naming the row.
-    if (input.lat !== undefined && input.lng !== undefined) {
-      declined.delete("coordinates");
-      unknown.delete("coordinates");
-    }
-    closing = spliceScalar(
-      lines,
-      closing,
-      "without",
-      withoutLine([...declined])[0] ?? null,
-    );
-    closing = spliceScalar(
-      lines,
-      closing,
-      "unrecorded",
-      unrecordedLine([...unknown])[0] ?? null,
-    );
-  }
-  if (input.translations !== undefined) {
-    closing = spliceTranslations(lines, closing, input.translations);
-  }
-  if (input.captions !== undefined) {
-    closing = spliceGalleryField(lines, closing, "caption", input.captions);
-  }
-  if (input.photoVisibility !== undefined) {
-    closing = spliceGalleryField(
-      lines,
-      closing,
-      "visibility",
-      // `null` clears the label, and the splice reads an empty string as
-      // "remove the line" — so the two spellings a caller might reach for,
-      // `null` and `""`, mean the same thing here rather than one of them
-      // writing `visibility: ""` into somebody's file.
-      Object.fromEntries(
-        Object.entries(input.photoVisibility).map(([src, level]) => [
-          src,
-          level ?? "",
-        ]),
-      ),
-    );
-  }
-
-  if (input.content !== undefined) {
-    lines.splice(
-      closing + 1,
-      lines.length - (closing + 1),
-      "",
-      input.content.trim(),
-      "",
-    );
-  }
-
-  return lines.join("\n");
+  return dayToJson(applyEditToDay(day, input));
 }
 
 /** The two checks `validateEntryEdit` cannot make on its own: a field that is
@@ -1444,18 +1224,10 @@ function validateEditPresence(input: EditInput): string | null {
  * one file that matters — this write — rather than trusting the type alone.
  *
  * **Published stays published, draft stays draft — whatever the body asks
- * for.** Decided by the file's own `status` line before this function
- * touches anything, and asserted again after: if splicing `input`'s fields
- * ever changed that answer, nothing is written and the caller is told it hit
- * a bug, rather than a published day silently reverting to a draft or a
- * draft silently going up. That is the property this whole ticket is about,
- * so it is checked here even though nothing in `spliceEntryFields` should be
- * able to move it — the same "verify what you just wrote" instinct as
- * `draftDoesNotReadBack` above.
- *
- * The parse-and-check happens on the *string* `spliceEntryFields` returns,
- * before anything reaches disk — an edit that would leave the file unparseable
- * is refused rather than written and then noticed.
+ * for.** `applyEditToDay` never touches `status`, and this asserts that
+ * afterwards anyway — if it ever did, nothing is written and the caller is
+ * told it hit a bug, rather than a published day silently reverting to a
+ * draft or a draft silently going up.
  */
 export function editEntry(
   ref: string,
@@ -1472,19 +1244,20 @@ export function editEntry(
   const problem = validateEditPresence(input);
   if (problem) return { ok: false, error: problem };
 
-  const dir = path.join(tripDir(ref), "entries");
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
-  } catch {
-    return { ok: false, error: "unknown_day" };
-  }
-  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  const dir = entriesDirOf(ref);
+  const match = entryFileWithSlug(dir, slug);
   if (!match) return { ok: false, error: "unknown_day" };
 
   const file = path.join(dir, match);
-  const raw = fs.readFileSync(file, "utf8");
-  const wasDraft = isDraft(matter(raw).data);
+  let raw: string;
+  let day: DayFile;
+  try {
+    raw = fs.readFileSync(file, "utf8");
+    day = dayFromJson(slug, raw);
+  } catch {
+    return { ok: false, error: "unknown_day" };
+  }
+  const wasDraft = day.status === "draft";
 
   /**
    * The same stamp `createDraft` applies, on a day that already exists — a
@@ -1494,20 +1267,12 @@ export function editEntry(
    */
   let costCurrency: string | undefined;
   if (Array.isArray(input.costs) && input.costs.length > 0) {
-    const existing = matter(raw).data;
     const place = {
-      country:
-        input.country !== undefined
-          ? input.country
-          : String(existing.country ?? ""),
-      lat: input.lat !== undefined ? input.lat : Number(existing.lat),
-      lng: input.lng !== undefined ? input.lng : Number(existing.lng),
+      country: input.country !== undefined ? input.country : day.country,
+      lat: input.lat !== undefined ? input.lat : day.coordinates?.lat,
+      lng: input.lng !== undefined ? input.lng : day.coordinates?.lng,
     };
-    const stamped = stampCostCurrencies(
-      input.costs,
-      place,
-      journalBaseCurrency(ref),
-    );
+    const stamped = stampCostCurrencies(input.costs, place, journalBaseCurrency(ref));
     input = { ...input, costs: stamped.costs };
     costCurrency = stamped.applied;
   }
@@ -1516,39 +1281,18 @@ export function editEntry(
   // finds) coordinates and names no zone of its own gets one worked out —
   // unless the day already carries one, which is never overwritten.
   if (input.timezone === undefined) {
-    const existing = matter(raw).data;
-    const hasZone =
-      typeof existing.timezone === "string" && existing.timezone.length > 0;
-    const lat = input.lat !== undefined ? input.lat : Number(existing.lat);
-    const lng = input.lng !== undefined ? input.lng : Number(existing.lng);
-    if (!hasZone && Number.isFinite(lat) && Number.isFinite(lng)) {
+    const hasZone = typeof day.timezone === "string" && day.timezone.length > 0;
+    const lat = input.lat !== undefined ? input.lat : day.coordinates?.lat;
+    const lng = input.lng !== undefined ? input.lng : day.coordinates?.lng;
+    if (!hasZone && lat !== undefined && lng !== undefined) {
       const zone = timezoneForCoordinates(lat, lng);
       if (zone) input = { ...input, timezone: zone };
     }
   }
 
-  const spliced = spliceEntryFields(raw, input);
-  if (spliced === null) {
-    return {
-      ok: false,
-      error: `"${slug}" has no frontmatter block to edit. Edit the file by hand.`,
-    };
-  }
+  const next = applyEditToDay(day, input);
 
-  let after: Record<string, unknown>;
-  try {
-    after = matter(spliced).data;
-  } catch (err) {
-    const said =
-      err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return {
-      ok: false,
-      bug: true,
-      error: `The edit would leave "${slug}" unparseable (${said}), so nothing was written. This is a bug; please report it.`,
-    };
-  }
-
-  if (isDraft(after) !== wasDraft) {
+  if (next.status !== day.status) {
     return {
       ok: false,
       bug: true,
@@ -1560,8 +1304,8 @@ export function editEntry(
 
   // B643 — see `fileUnchangedSince`. `raw` was read at the top of this
   // function and every check above was made against it; if the file has
-  // moved since, writing `spliced` now would silently erase whatever wrote
-  // it, because `spliced` was built from a copy that predates that change.
+  // moved since, writing `next` now would silently erase whatever wrote it,
+  // because `next` was built from a copy that predates that change.
   if (!fileUnchangedSince(file, raw)) {
     console.warn(
       `[entries] ${ref}/${slug}: refused an edit — the day changed under it.`,
@@ -1575,7 +1319,7 @@ export function editEntry(
     };
   }
 
-  fs.writeFileSync(file, spliced);
+  fs.writeFileSync(file, dayToJson(next));
   forgetEntries(ref);
   return {
     ok: true,
@@ -1593,16 +1337,15 @@ export function editEntry(
  * `createDraft`'s own `slug_taken` refusal already has.
  */
 export function slugAvailable(ref: string, candidateSlug: string): boolean {
-  const dir = path.join(tripDir(ref), "entries");
-  return entryFileWithSlug(dir, candidateSlug) === null;
+  return entryFileWithSlug(entriesDirOf(ref), candidateSlug) === null;
 }
 
 /**
  * Rename a draft's slug to match a real title — B1276.
  *
  * The wizard writes a day with `title: date`, so its file is literally
- * `<date>-<date>.md` until somebody actually says what the day was. The first
- * time a real title arrives this gives the day the address its content
+ * `<date>-<date>.json` until somebody actually says what the day was. The
+ * first time a real title arrives this gives the day the address its content
  * deserves, instead of leaving every day permanently reachable only by date.
  *
  * **Forward only, and draft only.** The caller (`app/api/helper/[user]/day/
@@ -1630,7 +1373,7 @@ export function renameEntrySlug(
   oldSlug: string,
   newSlug: string,
 ): { ok: true; slug: string } | { ok: false; error: string } {
-  const dir = path.join(tripDir(ref), "entries");
+  const dir = entriesDirOf(ref);
   const match = entryFileWithSlug(dir, oldSlug);
   if (!match) return { ok: false, error: "unknown_day" };
   // Not the literal string "slug_taken" here — that code already exists
@@ -1647,7 +1390,7 @@ export function renameEntrySlug(
 
   const oldFile = path.join(dir, match);
   const date = match.slice(0, 10);
-  const newFile = path.join(dir, `${date}-${newSlug}.md`);
+  const newFile = path.join(dir, `${date}-${newSlug}.json`);
 
   const raw = fs.readFileSync(oldFile, "utf8");
   const prefix = `/media/${parsed.tripId}/${oldSlug}/`;
@@ -1790,7 +1533,7 @@ export function publishNotice(input: {
 }
 
 /**
- * Publish a draft: remove the one line that was holding it back.
+ * Publish a draft: flip its `status` from `"draft"` to `"published"`.
  *
  * Until B28 the only way to do this was to open the file in a text editor and
  * delete `status: draft` by hand. That is fine for the author on their own
@@ -1805,55 +1548,35 @@ export function publishNotice(input: {
  * confirmation handshake that used to guard the second call went in B224 — it
  * never established that anybody consented, since the agent held both codes.
  *
- * Textual, like `attachGallery`: the file is not parsed and re-emitted, so
- * comments, key order and hand-written formatting survive. Only the status line
- * goes.
+ * Read-modify-write of the one JSON file: every other field the day carries
+ * survives untouched, since only `status` changes.
  */
 export function publishDraft(
   ref: string,
   slug: string,
 ): { ok: true; slug: string } | { ok: false; error: string } {
-  const dir = path.join(tripDir(ref), "entries");
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
-  } catch {
-    return { ok: false, error: `no entry "${slug}" in this trip` };
-  }
-  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  const dir = entriesDirOf(ref);
+  const match = entryFileWithSlug(dir, slug);
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
   const file = path.join(dir, match);
   const raw = fs.readFileSync(file, "utf8");
-  const { data } = matter(raw);
-  if (!isDraft(data)) {
+  let day: DayFile;
+  try {
+    day = dayFromJson(slug, raw);
+  } catch (err) {
+    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    return { ok: false, error: `"${slug}" cannot be parsed (${said})` };
+  }
+  if (day.status !== "draft") {
     // Not an error worth a 500, and not silently fine either: an agent that
     // publishes twice should be told the second call did nothing rather than
     // reporting success to somebody.
     return { ok: false, error: `"${slug}" is already published` };
   }
 
-  const lines = raw.split("\n");
-  if (lines[0].trim() !== "---") {
-    return { ok: false, error: `"${slug}" has no frontmatter block to change` };
-  }
-  const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0)
-    return { ok: false, error: `"${slug}" has no frontmatter block to change` };
+  const next: DayFile = { ...day, status: "published" };
 
-  // Only inside the frontmatter, and only the status line. A `status: draft`
-  // in the prose is somebody writing about drafts.
-  const at = lines.findIndex(
-    (line, i) =>
-      i > 0 && i < closing && /^status:\s*draft\s*$/i.test(line.trim()),
-  );
-  if (at < 0)
-    return {
-      ok: false,
-      error: `"${slug}" has no "status: draft" line to remove`,
-    };
-
-  lines.splice(at, 1);
   // B643 — see `fileUnchangedSince`. Publishing is the one call in this file
   // an owner waits for and means as final; writing it from a copy a second
   // writer has since moved past would be the worst place of all for this to
@@ -1870,7 +1593,7 @@ export function publishDraft(
         "written; read the day back and publish it again.",
     };
   }
-  fs.writeFileSync(file, lines.join("\n"));
+  fs.writeFileSync(file, dayToJson(next));
   forgetEntries(ref);
   return { ok: true, slug };
 }
@@ -1884,43 +1607,32 @@ export function publishDraft(
  * every photograph on the day. A takedown a person can undo is the right shape
  * for a request made on somebody else's behalf — the day goes back to being a
  * draft, off the site, and publishing it again is the undo.
- *
- * Textual for the same reason `publishDraft` is: the file is not parsed and
- * re-emitted, so key order, comments and anything hand-written survive. The
- * line goes back where `createDraft` writes it, last inside the frontmatter.
  */
 export function unpublishEntry(
   ref: string,
   slug: string,
 ): { ok: true; slug: string } | { ok: false; error: string } {
-  const dir = path.join(tripDir(ref), "entries");
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
-  } catch {
-    return { ok: false, error: `no entry "${slug}" in this trip` };
-  }
-  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  const dir = entriesDirOf(ref);
+  const match = entryFileWithSlug(dir, slug);
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
   const file = path.join(dir, match);
   const raw = fs.readFileSync(file, "utf8");
-  const { data } = matter(raw);
-  if (isDraft(data)) {
+  let day: DayFile;
+  try {
+    day = dayFromJson(slug, raw);
+  } catch (err) {
+    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
+    return { ok: false, error: `"${slug}" cannot be parsed (${said})` };
+  }
+  if (day.status === "draft") {
     // Not an error worth a 500, and not silently fine either — the same
     // reasoning as publishing something already published.
     return { ok: false, error: `"${slug}" is not on the site` };
   }
 
-  const lines = raw.split("\n");
-  if (lines[0].trim() !== "---") {
-    return { ok: false, error: `"${slug}" has no frontmatter block to change` };
-  }
-  const closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0)
-    return { ok: false, error: `"${slug}" has no frontmatter block to change` };
+  const next: DayFile = { ...day, status: "draft" };
 
-  lines.splice(closing, 0, "status: draft");
   // B643 — the same guard publishing has, and for the same reason: writing
   // from a copy a second writer has since moved past would erase their change.
   if (!fileUnchangedSince(file, raw)) {
@@ -1934,7 +1646,7 @@ export function unpublishEntry(
         "the same time. Nothing was written; read the day back and take it down again.",
     };
   }
-  fs.writeFileSync(file, lines.join("\n"));
+  fs.writeFileSync(file, dayToJson(next));
   forgetEntries(ref);
   return { ok: true, slug };
 }
@@ -1950,8 +1662,8 @@ export function unpublishEntry(
  * them are inventions hands somebody a decision without the fact that decides
  * it.
  *
- * The trip is read once, here, rather than per file: this function reads
- * frontmatter with `matter` directly instead of going through `getAllEntries`,
+ * The trip is read once, here, rather than per file: this function reads each
+ * file directly with `dayFromJson` instead of going through `getAllEntries`,
  * so it has to fetch the trip itself, and `getTrip` is a memoised read of the
  * same folder either way.
  *
@@ -1960,10 +1672,10 @@ export function unpublishEntry(
 export function listDrafts(
   ref: string,
 ): { slug: string; title: string; date: string; test?: true }[] {
-  const dir = path.join(tripDir(ref), "entries");
+  const dir = entriesDirOf(ref);
   let files: string[] = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
   } catch {
     return [];
   }
@@ -1972,30 +1684,26 @@ export function listDrafts(
   const drafts: { slug: string; title: string; date: string; test?: true }[] =
     [];
   for (const file of files) {
-    let parsed: ReturnType<typeof matter>;
+    const slug = entrySlugFromFile(file);
+    let day: DayFile;
     try {
-      parsed = matter(fs.readFileSync(path.join(dir, file), "utf8"));
+      day = dayFromJson(slug, fs.readFileSync(path.join(dir, file), "utf8"));
     } catch (err) {
       // Same failure `readAllEntries` guards against (B236): a file that
       // will not parse must not blank out the review queue for every other
-      // draft in the trip. Skipped and logged rather than thrown; see
-      // `clearMatterCache` in lib/matterCache.ts for why that call is needed too.
-      clearMatterCache();
-      const why =
-        err instanceof Error ? err.message.split("\n")[0] : String(err);
+      // draft in the trip. Skipped and logged rather than thrown.
+      const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
       console.warn(
-        `[entries] ${ref}/entries/${file}: its frontmatter could not be parsed: ${why}`,
+        `[entries] ${ref}/entries/${file}: could not be parsed: ${why}`,
       );
       continue;
     }
-    if (parsed.data.status !== "draft") continue;
+    if (day.status !== "draft") continue;
     drafts.push({
-      slug: entrySlugFromFile(file),
-      title: String(parsed.data.title ?? ""),
-      date: String(parsed.data.date ?? ""),
-      ...(isTestContent(trip, { test: parsed.data.test === true })
-        ? { test: true as const }
-        : {}),
+      slug,
+      title: day.title,
+      date: day.date,
+      ...(isTestContent(trip, { test: day.test === true }) ? { test: true as const } : {}),
     });
   }
   return drafts.sort((a, b) => a.date.localeCompare(b.date));
@@ -2087,7 +1795,7 @@ export function entrySummary(entry: Entry, trip: Trip | undefined) {
 }
 
 /**
- * Removes one day's markdown file.
+ * Removes one day's JSON file.
  *
  * A published day may be deleted, but only by a caller that has said so — the
  * route asks `lib/agentConfirm.ts` for a `delete_published` confirmation
@@ -2106,20 +1814,21 @@ export function deleteEntry(
   const trip = getTrip(ref);
   if (!trip) return { ok: false, error: "unknown_trip" };
 
-  const dir = path.join(tripDir(ref), "entries");
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
-  } catch {
-    return { ok: false, error: `no entry "${slug}" in this trip` };
-  }
-
-  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  const dir = entriesDirOf(ref);
+  const match = entryFileWithSlug(dir, slug);
   if (!match) return { ok: false, error: `no entry "${slug}" in this trip` };
 
   const file = path.join(dir, match);
-  const { data } = matter(fs.readFileSync(file, "utf8"));
-  const published = !isDraft(data);
+  let published: boolean;
+  try {
+    published = dayFromJson(slug, fs.readFileSync(file, "utf8")).status !== "draft";
+  } catch {
+    // A file that will not parse carries no readable status — treated as
+    // published, the safer side of the same asymmetry `dayFromJson` itself
+    // applies (a file this cannot read confidently must not act as a draft
+    // nobody need confirm deleting).
+    published = true;
+  }
   if (published && !options.allowPublished) {
     return {
       ok: false,
@@ -2144,29 +1853,20 @@ export function deleteEntry(
  * asked the milder question on the way there.
  */
 export function isPublished(ref: string, slug: string): boolean {
-  const dir = path.join(tripDir(ref), "entries");
-  let files: string[] = [];
-  try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
-  } catch {
-    return false;
-  }
-  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  const dir = entriesDirOf(ref);
+  const match = entryFileWithSlug(dir, slug);
   if (!match) return false;
   try {
-    return !isDraft(
-      matter(fs.readFileSync(path.join(dir, match), "utf8")).data,
-    );
+    return dayFromJson(slug, fs.readFileSync(path.join(dir, match), "utf8")).status !== "draft";
   } catch (err) {
-    // A file that will not parse carries no readable `status: draft` line,
-    // and `isDraft` already treats anything other than exactly that line as
-    // published (see its own comment) — so "cannot be read" is answered the
-    // same way "read, and not a draft" is, rather than thrown. B236. See
-    // `clearMatterCache` in lib/matterCache.ts for why that call is needed too.
-    clearMatterCache();
+    // A file that will not parse carries no readable `status`, and
+    // `dayFromJson` already treats anything other than exactly "published"
+    // as a draft on a successful parse — but a parse failure itself is
+    // answered the other way here, the same asymmetry `deleteEntry` applies:
+    // "cannot be read" must not be mistaken for "safe to delete as a draft".
     const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
     console.warn(
-      `[entries] ${ref}/entries/${match}: its frontmatter could not be parsed: ${why}`,
+      `[entries] ${ref}/entries/${match}: could not be parsed: ${why}`,
     );
     return true;
   }

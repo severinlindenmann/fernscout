@@ -1,31 +1,34 @@
 import "server-only";
-import fs from "node:fs";
-import path from "node:path";
-import matter from "gray-matter";
-import { costsFilePath } from "../costs";
 import { parseBudget } from "../costFormat";
 import { getTrip } from "../trips";
-import { quoteScalar } from "../validate/frontmatter";
-import { costLines, type CostInput } from "./entries";
+import type { TripFile } from "./v2/documents";
+import { readTripJson, writeTripJson } from "./tripFile";
 
 /**
- * Writing costs.md through the API — B295.
+ * Writing a trip's costs section through the API — B295.
  *
- * `lib/costs.ts` reads this file and never wrote it; the only ways a budget
- * existed were the `add-a-trip` skill on a local checkout and editing the
- * file over SSH, which is exactly the shape AGENTS.md treats as a defect:
- * "if an agent will not do a thing on the owner's behalf, the thing cannot
- * be done at all." This is the write half.
+ * `lib/costs.ts` reads this and, before B1598, this module wrote a separate
+ * `costs.md`; since B1606/B1598 a trip's preparation budget, its items and
+ * its note are the `costs` section of the one `trip.json` (`readCostsFile`
+ * in lib/costs.ts already reads `trip.costsSection`, which is exactly this
+ * field). `PUT` replaces the whole section (short of the `visibility` a
+ * different door owns — see below); `PATCH` merges onto what is there,
+ * mirroring `editEntry`'s read-modify-write for a day.
  *
  * `budget` and `costs` are validated by `lib/validate/costs.ts` before
- * anything here runs — this module only renders and splices what already
- * passed. `PUT` replaces the whole file; `PATCH` splices textually, the same
- * discipline `editEntry` (lib/api/entries.ts, B266) uses for a day, so a
- * hand-written `costs.md` keeps its formatting, comments and key order.
+ * anything here runs — this module only reshapes what already passed into
+ * `trip.json`'s own field names.
+ *
+ * **`visibility` is untouched by either call here.** It is `PATCH
+ * .../trips/{trip}` (`lib/api/tripDetails.ts`'s `costsVisibility`) that owns
+ * who may see the numbers; this module only ever carries forward whatever is
+ * already stored for it, the same way `putCosts` never touched `visibility:`
+ * before this ticket either.
  */
 
 type CostsBudgetInput = { total: number; days: number; currency?: string };
 type CostsItemInput = { label: string; amount: number; category?: string; currency?: string };
+type CostsSection = NonNullable<TripFile["costs"]>;
 
 /** The body of `PUT .../costs` — the whole file. `budget` is required there
  * (see `validateCostsPut`); this type does not enforce that, the validator
@@ -48,135 +51,50 @@ export type CostsWriteResult =
   | { ok: true }
   | { ok: false; error: string; bug?: true };
 
-/**
- * The `budget:` block, one line, flow style — the same shape
- * `content/example/**\/costs.md` and the ticket's own on-disk reference use.
- * `undefined`/`null` writes nothing: no budget, no line.
- */
-function budgetLines(budget: CostsBudgetInput | null | undefined): string[] {
-  if (!budget) return [];
-  const fields = [
-    `total: ${budget.total}`,
-    `days: ${budget.days}`,
-    ...(budget.currency ? [`currency: ${quoteScalar(budget.currency.trim().toUpperCase())}`] : []),
-  ];
-  return [`budget: { ${fields.join(", ")} }`];
-}
-
-/**
- * The `costs:` list rendered by `lib/api/entries.ts`'s `costLines` — a
- * trip's preparation costs are the identical shape as a day's, so this
- * reuses the one writer rather than a second copy that could drift from it.
- */
-function costsLines(costs: CostsItemInput[] | undefined): string[] {
-  return costLines(costs as CostInput[] | undefined);
-}
-
-/**
- * The line naming `key` inside the frontmatter block, or -1. Mirrors
- * `frontmatterLineOf` in lib/api/entries.ts (B266) — kept local rather than
- * shared, since the two writers touch different files and importing across
- * would only couple them for a five-line function.
- */
-function frontmatterLineOf(lines: string[], closing: number, key: string): number {
-  const pattern = new RegExp(`^${key}:(\\s|$)`);
-  return lines.findIndex((line, i) => i > 0 && i < closing && pattern.test(line));
-}
-
-/**
- * Replace, insert or remove one top-level frontmatter key and everything
- * indented under it. Works whether the key is written flow style on one
- * line (`budget: { ... }`, what this writer emits) or block style, spread
- * over several indented lines (what `add-a-trip`'s own example shows, and
- * what a person is just as likely to have typed) — the extent is found by
- * indentation, the same way `spliceCosts` (lib/api/entries.ts) finds the
- * end of a day's `costs:` list, so a `PATCH` does not care which style the
- * file already uses.
- *
- * `newLines` empty removes the key entirely. Returns the closing marker's
- * new index, since a block of a different size moves it.
- */
-function spliceBlock(lines: string[], closing: number, key: string, newLines: string[]): number {
-  const at = frontmatterLineOf(lines, closing, key);
-  if (at >= 0) {
-    let end = at + 1;
-    while (end < closing && /^\s+\S/.test(lines[end])) end++;
-    lines.splice(at, end - at);
-    closing -= end - at;
-  }
-  if (newLines.length === 0) return closing;
-  lines.splice(at >= 0 ? at : closing, 0, ...newLines);
-  return closing + newLines.length;
-}
-
-/**
- * Splice `input` into `markdown`, textually — parsed and re-emitted for
- * nothing. A field present in `input` replaces the corresponding block in
- * place; a field new to the file is appended just above the closing `---`.
- * `body`, which is not frontmatter, replaces everything from the closing
- * marker to the end of the file. Returns `null` when there is no
- * frontmatter block to splice into, the caller's cue to leave a hand-shaped
- * file alone and say so.
- */
-function spliceCostsFields(markdown: string, input: CostsEditInput): string | null {
-  const lines = markdown.split("\n");
-  if (lines[0]?.trim() !== "---") return null;
-  let closing = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
-  if (closing < 0) return null;
-
-  if (input.budget !== undefined) {
-    closing = spliceBlock(lines, closing, "budget", budgetLines(input.budget));
-  }
-  if (input.costs !== undefined) {
-    closing = spliceBlock(lines, closing, "costs", costsLines(input.costs));
-  }
-  if (input.body !== undefined) {
-    lines.splice(closing + 1, lines.length - (closing + 1), "", input.body.trim(), "");
-  }
-  return lines.join("\n");
+/** The `costs` section to write, carrying forward whatever `visibility` was
+ * already stored (a different door's field, see the module docblock). */
+function costsSectionOf(
+  existingVisibility: CostsSection["visibility"] | undefined,
+  budget: CostsBudgetInput | null | undefined,
+  costs: CostsItemInput[] | undefined,
+  body: string | undefined,
+): CostsSection | undefined {
+  const section: Partial<CostsSection> = {
+    ...(budget ? { budget: budget as CostsSection["budget"] } : {}),
+    ...(costs?.length ? { items: costs as CostsSection["items"] } : {}),
+    ...(body?.trim() ? { note: body.trim() } : {}),
+    ...(existingVisibility ? { visibility: existingVisibility } : {}),
+  };
+  return Object.keys(section).length ? (section as CostsSection) : undefined;
 }
 
 /**
  * The write just made, read back — or a sentence saying what is wrong with
- * it. Same instinct as `draftDoesNotReadBack` (lib/api/entries.ts, B208):
- * `quoteScalar` cannot emit YAML that fails to parse, but a budget can still
- * fail to parse as a *budget* — a zero total is exactly B263's failure, one
- * layer up from the validator that is supposed to have already refused it.
+ * it. Same instinct as `draftDoesNotReadBack` (lib/api/entries.ts, B208): a
+ * budget can fail to parse as a *budget* even from valid JSON — a zero total
+ * is exactly B263's failure, one layer up from the validator that is
+ * supposed to have already refused it.
  */
-function costsDoesNotReadBack(file: string, budgetWritten: CostsBudgetInput | null | undefined): string | null {
-  let data: Record<string, unknown>;
-  try {
-    data = matter(fs.readFileSync(file, "utf8")).data;
-  } catch (err) {
-    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return `its frontmatter does not parse (${said})`;
-  }
-  if (budgetWritten && !parseBudget(data.budget)) {
+function costsDoesNotReadBack(ref: string, budgetWritten: CostsBudgetInput | null | undefined): string | null {
+  const section = getTrip(ref)?.costsSection;
+  if (budgetWritten && !parseBudget(section?.budget)) {
     return "its budget does not read back — check that the total and days are both positive numbers";
   }
   return null;
 }
 
-/** Create or wholly replace a trip's costs.md — `PUT .../costs`. */
+/** Create or wholly replace a trip's costs section — `PUT .../costs`. */
 export function putCosts(ref: string, input: CostsFileInput): CostsWriteResult {
   const trip = getTrip(ref);
   if (!trip) return { ok: false, error: "unknown_trip" };
 
-  const file = costsFilePath(ref);
-  const lines = [
-    "---",
-    ...budgetLines(input.budget),
-    ...costsLines(input.costs),
-    "---",
-    "",
-    (input.body ?? "").trim(),
-    "",
-  ];
+  const read = readTripJson(ref);
+  if (!read) return { ok: false, error: "unknown_trip" };
 
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, lines.join("\n"));
+  const costs = costsSectionOf(read.trip.costs?.visibility, input.budget, input.costs, input.body);
+  writeTripJson(read.file, { ...read.trip, costs });
 
-  const unreadable = costsDoesNotReadBack(file, input.budget);
+  const unreadable = costsDoesNotReadBack(ref, input.budget);
   if (unreadable) {
     return {
       ok: false,
@@ -187,41 +105,33 @@ export function putCosts(ref: string, input: CostsFileInput): CostsWriteResult {
   return { ok: true };
 }
 
-/** Amend a trip's costs.md without resending the whole thing — `PATCH .../costs`. */
+/** Amend a trip's costs section without resending the whole thing — `PATCH
+ * .../costs`. */
 export function patchCosts(ref: string, input: CostsEditInput): CostsWriteResult {
   const trip = getTrip(ref);
   if (!trip) return { ok: false, error: "unknown_trip" };
 
-  const file = costsFilePath(ref);
-  if (!fs.existsSync(file)) {
+  const existing = trip.costsSection;
+  if (!existing) {
     return {
       ok: false,
       error:
-        `${ref} has no costs.md yet, so there is nothing to amend. PUT to this same URL to ` +
+        `${ref} has no costs section yet, so there is nothing to amend. PUT to this same URL to ` +
         "create one.",
     };
   }
 
-  const raw = fs.readFileSync(file, "utf8");
-  const spliced = spliceCostsFields(raw, input);
-  if (spliced === null) {
-    return { ok: false, error: "costs.md has no frontmatter block to edit. Edit the file by hand." };
-  }
+  const read = readTripJson(ref);
+  if (!read) return { ok: false, error: "unknown_trip" };
 
-  try {
-    matter(spliced);
-  } catch (err) {
-    const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
-    return {
-      ok: false,
-      bug: true,
-      error: `The edit would leave costs.md unparseable (${said}), so nothing was written. This is a bug; please report it.`,
-    };
-  }
+  const budget = input.budget === undefined ? existing.budget : (input.budget ?? undefined);
+  const costs = input.costs === undefined ? existing.items : input.costs;
+  const body = input.body === undefined ? existing.note : input.body;
 
-  fs.writeFileSync(file, spliced);
+  const nextCosts = costsSectionOf(existing.visibility, budget, costs, body);
+  writeTripJson(read.file, { ...read.trip, costs: nextCosts });
 
-  const unreadable = costsDoesNotReadBack(file, input.budget);
+  const unreadable = costsDoesNotReadBack(ref, budget);
   if (unreadable) {
     return {
       ok: false,
@@ -233,23 +143,23 @@ export function patchCosts(ref: string, input: CostsEditInput): CostsWriteResult
 }
 
 /**
- * Remove a trip's costs.md entirely — `DELETE .../costs`.
+ * Remove a trip's costs section entirely — `DELETE .../costs`.
  *
- * Whole-file, not just the `budget:` line: `hasCostsData` (lib/costs.ts,
- * B267) is what decides whether the costs page exists at all, and it asks
- * whether the file is there, not what is in it. Removing only the budget
- * would leave the file — and the page — behind with just preparation costs
- * on it, which is not what "the page is now gone" promises.
+ * Whole section, not just the `budget`: `hasCostsData` (lib/costs.ts, B267)
+ * is what decides whether the costs page exists at all, and it asks whether
+ * the section is there, not what is in it. Removing only the budget would
+ * leave preparation costs behind and the page reachable, which is not what
+ * "the page is now gone" promises.
  */
 export function deleteCosts(ref: string): { ok: true } | { ok: false; error: string } {
   const trip = getTrip(ref);
   if (!trip) return { ok: false, error: "unknown_trip" };
-
-  const file = costsFilePath(ref);
-  if (!fs.existsSync(file)) {
-    return { ok: false, error: `${ref} has no costs.md — there is nothing to delete.` };
+  if (!trip.costsSection) {
+    return { ok: false, error: `${ref} has no costs section — there is nothing to delete.` };
   }
 
-  fs.rmSync(file);
+  const read = readTripJson(ref);
+  if (!read) return { ok: false, error: "unknown_trip" };
+  writeTripJson(read.file, { ...read.trip, costs: undefined });
   return { ok: true };
 }

@@ -2,7 +2,15 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { contentRoot } from "./contentRoot";
+import { loadUserConfig } from "./config";
 import { normalizeCurrency } from "./currency";
+import { loadEcbRates } from "./rates";
+import { writeFigureDoc } from "./figures";
+import type { FigureDoc } from "./api/v2/schemas/figures";
+import { parseTravellers } from "./travellers/parse";
+import type { Figure } from "./travellers/vocabulary";
+import { writeTripFile } from "./api/v2/store";
+import type { TripFile } from "./api/v2/documents";
 import { LOCALE_TAG_RE } from "./locales";
 import {
   ACCESSORIES,
@@ -18,7 +26,6 @@ import {
 } from "./travellers/vocabulary";
 import { TRACKS, parseTracks, tracksLines } from "./tracks";
 import { getTrip, MAX_TRIP_PEOPLE, isPersonEmail, tripRef } from "./trips";
-import { calendarStatus } from "./tripTime";
 import { getUser } from "./users";
 import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
 
@@ -149,9 +156,19 @@ export type NewTrip = {
    */
 };
 
-/** A frontmatter block that validated, or the refusal to hand back. */
+/**
+ * A frontmatter block that validated, or the refusal to hand back.
+ *
+ * `lines` is markdown — kept only because it is cheap to keep and nothing
+ * downstream of a successful validation needs deleting on that basis alone.
+ * `value` (B1598) is the same fact as a plain JS value, for the JSON writers
+ * (`createTrip` and the trip-field patchers) that build a `TripFile` rather
+ * than frontmatter text. Not every block bothers: `travellersBlock` has no
+ * `.value` because its caller reuses `parseTravellers` on the same
+ * already-validated input instead (see there for why).
+ */
 export type BlockResult =
-  | { ok: true; lines: string[] }
+  | { ok: true; lines: string[]; value?: unknown }
   | { ok: false; error: string; message: string };
 
 const NO_LINES: BlockResult = { ok: true, lines: [] };
@@ -251,7 +268,7 @@ export function tracksBlock(raw: unknown): BlockResult {
 const PEOPLE_FIELDS: ReadonlySet<string> = new Set(["name", "email", "nickname"]);
 
 export function peopleBlock(raw: unknown): BlockResult {
-  if (raw === undefined || raw === null) return NO_LINES;
+  if (raw === undefined || raw === null) return { ok: true, lines: [], value: [] };
   if (!Array.isArray(raw)) {
     return {
       ok: false,
@@ -262,7 +279,7 @@ export function peopleBlock(raw: unknown): BlockResult {
         "the whole trip, so it is who was there rather than who might like to read it.",
     };
   }
-  if (raw.length === 0) return NO_LINES;
+  if (raw.length === 0) return { ok: true, lines: [], value: [] };
   if (raw.length > MAX_TRIP_PEOPLE) {
     return {
       ok: false,
@@ -275,6 +292,7 @@ export function peopleBlock(raw: unknown): BlockResult {
   }
 
   const lines = ["people:"];
+  const value: { name: string; email: string; nickname?: string }[] = [];
   const seen = new Set<string>();
   for (const [index, item] of raw.entries()) {
     const at = `people[${index}]`;
@@ -350,8 +368,9 @@ export function peopleBlock(raw: unknown): BlockResult {
     lines.push(`  - name: ${quoteScalar(name)}`);
     lines.push(`    email: ${quoteScalar(email)}`);
     if (nickname) lines.push(`    nickname: ${quoteScalar(nickname)}`);
+    value.push({ name, email, ...(nickname ? { nickname } : {}) });
   }
-  return { ok: true, lines };
+  return { ok: true, lines, value };
 }
 
 /**
@@ -568,7 +587,7 @@ export function travellersBlock(raw: unknown): BlockResult {
  * one has a small number.
  */
 export function ratesBlock(raw: unknown): BlockResult {
-  if (raw === undefined || raw === null) return NO_LINES;
+  if (raw === undefined || raw === null) return { ok: true, lines: [], value: {} };
   if (typeof raw !== "object" || Array.isArray(raw)) {
     return {
       ok: false,
@@ -580,10 +599,15 @@ export function ratesBlock(raw: unknown): BlockResult {
   }
 
   const entries = Object.entries(raw as Record<string, unknown>);
-  if (entries.length === 0) return NO_LINES;
+  if (entries.length === 0) return { ok: true, lines: [], value: {} };
 
   const lines = ["rates:"];
-  for (const [key, value] of entries) {
+  /** code → units of the journal's base currency for one unit of that
+   * currency — v1's own convention, unchanged. The v2 `manual` map wants the
+   * opposite direction (units per 1 EUR); `eurManualRates` below is where
+   * that conversion happens, at the one call site that knows the base. */
+  const value: Record<string, number> = {};
+  for (const [key, rawValue] of entries) {
     const code = normalizeCurrency(key);
     if (!code) {
       return {
@@ -592,13 +616,13 @@ export function ratesBlock(raw: unknown): BlockResult {
         message: `rates has key "${key}"; each key is a three-letter currency code, like "THB".`,
       };
     }
-    const n = typeof value === "string" ? Number(value) : value;
+    const n = typeof rawValue === "string" ? Number(rawValue) : rawValue;
     if (typeof n !== "number" || !Number.isFinite(n) || n <= 0) {
       return {
         ok: false,
         error: "invalid_rates",
         message:
-          `rates.${code} must be a positive number, got ${JSON.stringify(value)}. It is how ` +
+          `rates.${code} must be a positive number, got ${JSON.stringify(rawValue)}. It is how ` +
           `many units of the base currency one ${code} was worth on this trip — 0.0245, not 40.8, ` +
           `for a currency worth less than the base one.`,
       };
@@ -609,14 +633,44 @@ export function ratesBlock(raw: unknown): BlockResult {
         ok: false,
         error: "invalid_rates",
         message:
-          `rates.${code} is ${JSON.stringify(value)}, which can only be written in exponent ` +
+          `rates.${code} is ${JSON.stringify(rawValue)}, which can only be written in exponent ` +
           `form — and the file would then read it back as text rather than as a rate. Write it ` +
           `as a plain decimal, or key the table by the larger unit.`,
       };
     }
     lines.push(`  ${code}: ${written}`);
+    value[code] = n;
   }
-  return { ok: true, lines };
+  return { ok: true, lines, value };
+}
+
+/**
+ * v1's `rates: {code: base-per-code}` → v2's `rates.manual: {code:
+ * eur-per-code}` — the ECB table's own convention (B1598 finding: the two
+ * schemas name the same fact in opposite directions).
+ *
+ * `baseEur` is how many units of the journal's base currency one EUR buys.
+ * When the base itself is not in the ECB table (an uncommon base currency
+ * the archive does not track), there is no honest conversion to make from
+ * inside this function — the caller is treated as though the base were EUR,
+ * which is exact only in that case and an approximation otherwise.
+ *
+ * ponytail: an approximation rather than a refusal, so a trip whose base
+ * currency the ECB does not track still gets *a* number instead of a failed
+ * create. Upgrade path: refuse instead, once an owner actually hits this.
+ */
+export function eurManualRates(
+  baseCode: string,
+  rates: Record<string, number>,
+): Record<string, number> | undefined {
+  if (Object.keys(rates).length === 0) return undefined;
+  const ecb = loadEcbRates()?.rates;
+  const baseEur = baseCode === "EUR" ? 1 : ecb?.[baseCode];
+  const manual: Record<string, number> = {};
+  for (const [code, basePerCode] of Object.entries(rates)) {
+    manual[code] = (baseEur ?? 1) / basePerCode;
+  }
+  return manual;
 }
 
 /**
@@ -636,7 +690,7 @@ export function ratesBlock(raw: unknown): BlockResult {
  * version of the same bug.
  */
 export function translationsBlock(raw: unknown, locales: string[]): BlockResult {
-  if (raw === undefined || raw === null) return NO_LINES;
+  if (raw === undefined || raw === null) return { ok: true, lines: [], value: {} };
   if (typeof raw !== "object" || Array.isArray(raw)) {
     return {
       ok: false,
@@ -648,10 +702,11 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
   }
 
   const entries = Object.entries(raw as Record<string, unknown>);
-  if (entries.length === 0) return NO_LINES;
+  if (entries.length === 0) return { ok: true, lines: [], value: {} };
 
   const lines = ["translations:"];
-  for (const [locale, value] of entries) {
+  const value: Record<string, { title?: string; tagline?: string; intro?: string }> = {};
+  for (const [locale, rawEntry] of entries) {
     if (!LOCALE_TAG_RE.test(locale)) {
       return {
         ok: false,
@@ -669,15 +724,16 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
           `first with PATCH /api/v1/<user>/config {"locales": [...]}, or leave it out.`,
       };
     }
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
+    if (!rawEntry || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
       return {
         ok: false,
         error: "invalid_translations",
         message: `translations.${locale} must be an object with a title, a tagline, an intro, or a combination of them.`,
       };
     }
-    const entry = value as Record<string, unknown>;
+    const entry = rawEntry as Record<string, unknown>;
     const out: string[] = [];
+    const entryValue: { title?: string; tagline?: string; intro?: string } = {};
     for (const field of ["title", "tagline", "intro"] as const) {
       const v = entry[field];
       if (v === undefined || v === null) continue;
@@ -695,6 +751,7 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
         if (problem) return { ok: false, error: "invalid_translations", message: problem };
       }
       out.push(`    ${field}: ${quoteScalar(trimmed)}`);
+      entryValue[field] = trimmed;
     }
     if (out.length === 0) {
       return {
@@ -706,8 +763,9 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
       };
     }
     lines.push(`  ${locale}:`, ...out);
+    value[locale] = entryValue;
   }
-  return { ok: true, lines };
+  return { ok: true, lines, value };
 }
 
 export type CreateTripResult =
@@ -717,6 +775,68 @@ export type CreateTripResult =
 /** Exported for the same reason `ID_RE` above is — `test/content-model.test.ts`
  * checks `content-model.json`'s `start`/`end` pattern against this. */
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * v1's inline `travellers:` attribute list → v2's `figures:` reference into
+ * the journal's own figure library — B1598 finding (see the "Found
+ * 2026-09-13" section of the migration ticket): the two schemas describe a
+ * party in genuinely different ways, not just under different names. v1
+ * described each figure's attributes inline, per trip; v2 names a *mode* and,
+ * for a custom party, a list of ids into `content/<user>/figures/<id>.json`
+ * (`lib/figures.ts`, B1609) — a figure is drawn the same on every trip that
+ * references it rather than re-described each time.
+ *
+ * So an old-shape `travellers:` list is provisioned into the library here,
+ * under stable, trip-scoped ids, rather than dropped or half-represented.
+ * `travellersBlock` has already refused anything `parseTravellers` would
+ * otherwise have to drop, so reusing it on the same, now-validated input is
+ * exactly the same shape `lib/journals.ts` already relies on for the
+ * journal-level default party.
+ *
+ * ponytail: ids are regenerated deterministically (`<tripId>-traveller-<n>`)
+ * on every write rather than reused/diffed against what the library already
+ * holds, so a shorter list on a later edit leaves the trailing figure files
+ * on disk, unreferenced. Nothing else in the journal can reach them by name,
+ * and cleaning them up is a `lib/figures.ts` upgrade if it is ever worth
+ * doing, not something a trip writer should carry.
+ */
+export function writeTravellersAsFigures(
+  username: string,
+  tripId: string,
+  raw: unknown,
+): TripFile["figures"] | undefined {
+  const figures = parseTravellers(raw, `${username}/trips/${tripId}`);
+  if (figures.length === 0) return undefined;
+  const ids = figures.map((figure, index) => {
+    const id = `${tripId}-traveller-${index + 1}`;
+    writeFigureDoc(username, figureDocFrom(id, figure));
+    return id;
+  });
+  return { mode: "custom", figures: ids };
+}
+
+/** A render-layer `Figure` (lib/travellers/vocabulary.ts) → a library
+ * `FigureDoc` (lib/api/v2/schemas/figures.ts) — the field names already
+ * match one to one; only `for` (an address into `people:`) is renamed to
+ * `person`, the figure library's own word for the same fact. */
+function figureDocFrom(id: string, figure: Figure): FigureDoc {
+  return {
+    id,
+    ...(figure.for ? { person: figure.for } : {}),
+    ...(figure.hairStyle ? { hairStyle: figure.hairStyle } : {}),
+    ...(figure.outfit ? { outfit: figure.outfit } : {}),
+    ...(figure.build ? { build: figure.build } : {}),
+    ...(figure.age ? { age: figure.age } : {}),
+    ...(figure.skin ? { skin: figure.skin } : {}),
+    ...(figure.hair ? { hair: figure.hair } : {}),
+    ...(figure.eyes ? { eyes: figure.eyes } : {}),
+    ...(figure.shirt ? { shirt: figure.shirt } : {}),
+    ...(figure.pants ? { pants: figure.pants } : {}),
+    ...(figure.pack ? { pack: figure.pack } : {}),
+    ...(figure.headscarf ? { headscarf: figure.headscarf } : {}),
+    ...(figure.accessories?.length ? { accessories: figure.accessories } : {}),
+  };
+}
 
 export function createTrip(username: string, input: NewTrip): CreateTripResult {
   const user = getUser(username);
@@ -794,24 +914,10 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     };
   }
 
-  /**
-   * Unstated, the status comes from the dates — not from a hardcoded
-   * `upcoming`.
-   *
-   * That default is what B72 was: a trip created with dates a week in the past
-   * was written as `upcoming`, and the site then hid all three days published
-   * into it behind a countdown. Reading now derives `past`/`upcoming` from
-   * `start` (lib/tripTime.ts), so the word here is a snapshot rather than the
-   * authority — but a trip.md whose own frontmatter contradicts its dates from
-   * the minute it is written is a file nobody can read straight, and a person
-   * opening it in an editor is meant to be the point.
-   *
-   * An explicit value is still written as asked. `current` is the one the
-   * calendar cannot settle, and the other two cost nothing to record.
-   */
-  const status = STATUSES.includes(input.status as never)
-    ? input.status!
-    : calendarStatus({ start: input.start });
+  // v2 stores no `status` at all — every read derives past/upcoming/current
+  // from the dates (`calendarStatus`, lib/tripTime.ts), so `input.status`,
+  // once written as a snapshot that could contradict its own dates (B72), is
+  // now accepted and quietly ignored rather than round-tripped.
   /**
    * Written only when the caller named one — B346, and the same rule
    * `listed:` already follows below.
@@ -944,60 +1050,62 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
    * frontmatter array: a refusal that has already made the folder is the B204
    * failure again, and these are the fields with the most ways to be wrong.
    */
-  const blocks: BlockResult[] = [
-    peopleBlock(input.people),
+  const peopleResult = peopleBlock(input.people);
+  const ratesResult = ratesBlock(input.rates);
+  const translationsResult = translationsBlock(input.translations, user.locales);
+  // `travellersBlock` and `tracksBlock` still validate — an agent sending a
+  // malformed figure or an unknown track name is refused exactly as before —
+  // but neither's `.lines` is written: travellers become figure-library
+  // entries below, and tracks have no v2 home at all any more (every day
+  // answers every declinable directly — see `lib/trips.ts`'s own note).
+  for (const block of [
+    peopleResult,
     travellersBlock(input.travellers),
-    ratesBlock(input.rates),
-    translationsBlock(input.translations, user.locales),
+    ratesResult,
+    translationsResult,
     tracksBlock(input.tracks),
-  ];
-  for (const block of blocks) {
+  ]) {
     if (!block.ok) return { ok: false, error: block.error, message: block.message };
   }
 
-  const front: string[] = [
-    "---",
-    `id: ${id}`,
-    `title: ${quoteScalar(title)}`,
-    ...(input.tagline?.trim() ? [`tagline: ${quoteScalar(input.tagline.trim())}`] : []),
-    `start: ${quoteScalar(input.start)}`,
-    `end: ${quoteScalar(input.end)}`,
-    `status: ${status}`,
-    ...(accent ? [`accent: ${accent}`] : []),
-    `visibility: ${visibility}`,
-    // Written only when it says something `visibility:` has not already said,
-    // for the same reason `test:` is. Every trip carrying `listed: true` made
-    // the key look like a routine part of a trip file, and it was the one key
-    // the reader ignored — so the line most often present was also the line
-    // least often true.
-    ...(input.listed === false ? ["listed: false"] : []),
-    // Written only when true, on the same reasoning: a closed trip that says
-    // nothing about itself is the default, and the file should not carry a
-    // line for the default.
-    ...(input.teaser === true ? ["teaser: true"] : []),
-    // Written only when it narrows, on the same reasoning as `listed:` above:
-    // an absent key reads as `public`, so `costsVisibility: public` in every
-    // file would be a line that never says anything, in a file a person is
-    // meant to be able to open and read straight. B178.
-    ...(costsVisibility === "guests" ? ["costsVisibility: guests"] : []),
-    // Written only when true. Every trip carrying `test: false` would make the
-    // flag look like a routine part of a trip file rather than the unusual
-    // thing it is.
-    ...(input.test === true ? ["test: true"] : []),
-    // Each is written only when it says something, on the same reasoning as
-    // `listed:` and `test:` above: `people:` with nothing under it, or an
-    // empty `rates:`, is a key a person opening the file has to decide to
-    // ignore. `blocks` is empty-safe — an absent or empty field yields no
-    // lines at all.
-    ...blocks.flatMap((b) => (b.ok ? b.lines : [])),
-    "---",
-    "",
-    input.intro?.trim() ? input.intro.trim() : "",
-    "",
-  ];
+  const baseCurrency = normalizeCurrency(
+    loadUserConfig(username).baseCurrency,
+    loadUserConfig(username).baseCurrency.toUpperCase(),
+  );
+  const rates = ratesResult.value as Record<string, number>;
+  const manualRates = eurManualRates(baseCurrency, rates);
+
+  const trip: TripFile = {
+    id,
+    title,
+    ...(input.tagline?.trim() ? { tagline: input.tagline.trim() } : {}),
+    dates: { from: input.start, to: input.end },
+    visibility,
+    people: peopleResult.value as TripFile["people"],
+    ...(input.listed === false ? { listed: false } : {}),
+    ...(input.teaser === true ? { teaser: true } : {}),
+    ...(input.test === true ? { test: true } : {}),
+    ...(accent ? { accent } : {}),
+    ...(manualRates ? { rates: { currencies: Object.keys(manualRates), manual: manualRates } } : {}),
+    // v2's `costs` section normally requires a `budget` (B1597) — this v1
+    // door has never asked for one, so a caller narrowing visibility here
+    // gets exactly that key and nothing invented beside it. The cast is
+    // honest about the gap: `lib/trips.ts`'s reader only ever looks at
+    // `costs?.visibility`, tolerant of a missing budget, the same way it is
+    // tolerant of a missing `costs` section at all.
+    ...(costsVisibility === "guests" ? { costs: { visibility: "guests" } as TripFile["costs"] } : {}),
+    ...(Object.keys(translationsResult.value as object).length
+      ? { translations: translationsResult.value as TripFile["translations"] }
+      : {}),
+    ...(input.intro?.trim() ? { intro: input.intro.trim() } : {}),
+    ...(() => {
+      const figures = writeTravellersAsFigures(username, id, input.travellers);
+      return figures ? { figures } : {};
+    })(),
+  };
 
   fs.mkdirSync(path.join(dir, "entries"), { recursive: true });
-  fs.writeFileSync(path.join(dir, "trip.md"), front.join("\n"), "utf8");
+  writeTripFile(username, id, trip);
 
   // No cache to clear: `getTrips` fingerprints the trip folders with a stat
   // per trip and re-reads when that changes, so a new folder is picked up on

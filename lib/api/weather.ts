@@ -1,9 +1,9 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import matter from "gray-matter";
 import { isEnabled } from "../capabilities";
-import { clearMatterCache, entrySlugFromFile, fileUnchangedSince, forgetEntries } from "../entries";
+import { entrySlugFromFile, fileUnchangedSince, forgetEntries } from "../entries";
+import { dayFromJson } from "./v2/documents";
 import { parseTripRef, tripDir } from "../trips";
 import { parseWeather, type DayWeather } from "../weather";
 import { fetchDayWeather } from "../weatherFetch";
@@ -37,7 +37,7 @@ export type FillOutcome =
   | "unwritable";
 
 /**
- * Look up one day's weather and write it into the day's own frontmatter.
+ * Look up one day's weather and write it into the day's own JSON file.
  *
  * The four refusals before the fetch are the ticket's hard edges, in order:
  *
@@ -63,7 +63,7 @@ export async function fillDayWeather(
   const dir = path.join(tripDir(ref), "entries");
   let files: string[] = [];
   try {
-    files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
+    files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
   } catch {
     return "unwritable";
   }
@@ -71,24 +71,22 @@ export async function fillDayWeather(
   if (!match) return "unwritable";
 
   const file = path.join(dir, match);
-  let raw: string;
-  let data: Record<string, unknown>;
+  let data: ReturnType<typeof dayFromJson>;
   try {
-    raw = fs.readFileSync(file, "utf8");
-    data = matter(raw).data;
+    data = dayFromJson(slug, fs.readFileSync(file, "utf8"));
   } catch {
-    // See `clearMatterCache` in lib/matterCache.ts for why a failed parse has to
-    // forget itself.
-    clearMatterCache();
     return "unwritable";
   }
 
+  // One field on disk (B1598): `true` is asked-and-unanswered, an object is
+  // a reading already there — either the server's own earlier fetch or a
+  // hand-supplied one, and neither is ever overwritten by a lookup.
   if (data.weather !== true) return "not_asked";
-  if (parseWeather(data.weatherData)) return "already_recorded";
+  if (parseWeather(data.weather)) return "already_recorded";
 
-  const lat = typeof data.lat === "number" ? data.lat : undefined;
-  const lng = typeof data.lng === "number" ? data.lng : undefined;
-  const date = typeof data.date === "string" ? data.date : String(data.date ?? "");
+  const lat = data.coordinates?.lat;
+  const lng = data.coordinates?.lng;
+  const date = data.date;
   if (lat === undefined || lng === undefined || !date) return "no_coordinates";
 
   // The dry run stops exactly here — after every rule, before the only line
@@ -100,31 +98,28 @@ export async function fillDayWeather(
   const reading = await fetchDayWeather(lat, lng, date, options);
   if (!reading) return "no_answer";
 
-  return writeWeather(file, ref, reading) ? "filled" : "unwritable";
+  return writeWeather(file, ref, slug, reading) ? "filled" : "unwritable";
 }
 
 /**
- * Splice one `weatherData:` line into a file that is already there.
+ * Splice one weather reading into a file that is already there.
  *
  * `spliceEntryFields` rather than a rewrite, for the same reason every other
  * edit goes through it: the file is a folder the author owns, and a comment or
  * a hand-chosen key order two lines away has to survive a lookup nobody asked
  * to have reformat their day.
  */
-function writeWeather(file: string, ref: string, reading: DayWeather): boolean {
+function writeWeather(file: string, ref: string, slug: string, reading: DayWeather): boolean {
   try {
     const raw = fs.readFileSync(file, "utf8");
     const spliced = spliceEntryFields(raw, { weatherData: reading });
-    // A hand-shaped file with no frontmatter block is left alone and said
-    // nothing about, same as `attachGallery` leaves one alone.
+    // A file that will not parse is left alone and said nothing about, same
+    // as `attachGallery` leaves one alone.
     if (spliced === null) return false;
-    // Read back before it counts: a line this software cannot parse is worse
-    // than no weather, because `parseWeather` would drop it silently and the
-    // sweep would fetch it again every time it ran.
-    if (!parseWeather(matter(spliced).data.weatherData)) {
-      clearMatterCache();
-      return false;
-    }
+    // Read back before it counts: a reading this software cannot parse is
+    // worse than no weather, because `parseWeather` would drop it silently
+    // and the sweep would fetch it again every time it ran.
+    if (!parseWeather(dayFromJson(slug, spliced).weather)) return false;
     // B643 — see `fileUnchangedSince` in lib/entries.ts. This function's own
     // read is already the last thing before this write, which is safe against
     // anything else in *this* process; it is not safe against a second
@@ -143,7 +138,6 @@ function writeWeather(file: string, ref: string, reading: DayWeather): boolean {
     forgetEntries(ref);
     return true;
   } catch {
-    clearMatterCache();
     return false;
   }
 }
@@ -162,4 +156,3 @@ function writeWeather(file: string, ref: string, reading: DayWeather): boolean {
 export function fillDayWeatherQuietly(ref: string, slug: string): Promise<unknown> {
   return fillDayWeather(ref, slug).catch(() => undefined);
 }
-
