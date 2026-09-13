@@ -50,3 +50,43 @@ running instance whose deliverable is findings; this is a thing to fix.
 The filing follows the type, so it moves to `backlog/security/` and is now
 caught by both halves of the roadmap filter — the folder check and the
 frontmatter check.
+
+
+## Waiting on the owner — 2026-09-13
+
+**What only you can do:** generate a new `ANTHROPIC_API_KEY` in the Anthropic
+console and revoke the old one. No agent can reach that console, and nothing
+here should hold a credential that could.
+
+**What I checked, so the rest of the acceptance is already closed:**
+
+- **The repository is clean.** The three `sk-ant-` matches are placeholders —
+  `sk-ant-admin`, `sk-ant-test-`, `sk-ant-local`, 12 to 33 characters, in the
+  credential skill, a completed task file and a test fixture. `git log -S`
+  across all branches shows no real key was ever committed.
+- **On the box the key is set in `/etc/fernscout/env`**, as expected.
+
+**What I found that the ticket did not know about, and it matters for the
+rotation:**
+
+`/etc/fernscout/env.bak-b1125-20260909-202540` is a **full copy of 32 secrets,
+including an Anthropic key**, written 9 September. There is a second,
+`env.bak-20260831-212314`, with 11 secrets and no Anthropic key.
+
+After you rotate, that backup still holds the **old** key. A revoked key is
+harmless, so this is not urgent — but a stale full secret dump sitting beside
+the live one is how a future rotation quietly fails to be a rotation, and the
+next secret rotated may not be revoked as promptly.
+
+**So there are two decisions, not one:**
+
+1. Rotate the key (console, then `/etc/fernscout/env`, then restart). Tell me
+   when it is done and I will confirm the app still answers and grep the box
+   for the old value.
+2. **Say whether I may delete the two `env.bak-*` files.** I have not touched
+   them: deleting is the one action no later commit can undo, and these are
+   the operator's own files. If a rotation is coming anyway, removing them
+   afterwards is the tidier order.
+
+Nothing else is blocked by this. The key being possibly-exposed does not stop
+any other work.
