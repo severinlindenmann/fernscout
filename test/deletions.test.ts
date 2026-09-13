@@ -18,6 +18,7 @@ import { createTrip } from "@/lib/tripWrite";
 import { writeDayFixture } from "./fixtures/content";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { journalTombstone, tripTombstone } from "@/lib/tombstones";
+import { resetRateLimitsForTests } from "@/lib/rateLimit";
 import {
   confirmDeletion,
   DELETION_TTL_MS,
@@ -90,6 +91,7 @@ beforeEach(async () => {
   serverConfig();
   clearConfigCache();
   clearUserCache();
+  resetRateLimitsForTests();
   await migrateToLatest(await getDatabase());
 });
 
@@ -285,6 +287,48 @@ describe("asking to delete", () => {
 
     const asked = await requestDeletion({ kind: "journal", username: user });
     expect(asked).toMatchObject({ ok: false, error: "no_owner_address" });
+  });
+
+  test("B1491: a fourth ask in the window is refused, not mailed", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+
+    for (let i = 0; i < 3; i++) {
+      const asked = await requestDeletion({ kind: "journal", username: user });
+      expect(asked.ok).toBe(true);
+    }
+
+    const refused = await requestDeletion({ kind: "journal", username: user });
+    expect(refused).toMatchObject({ ok: false, error: "too_many_requests", status: 429 });
+
+    // Nothing deleted, mail-bombed or otherwise — this is a refusal to ask
+    // again, not a fourth confirmation link.
+    expect(userExists(user)).toBe(true);
+  });
+
+  test("B1491: the limit is shared across all three callers, keyed on the mailed address", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    const token = await tokenFor(user, OWNER);
+
+    // Two through the bearer-token API routes, one through the owner's own
+    // cookie-only page — all three mail the same address, so all three spend
+    // the one bucket.
+    const first = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`, token), {
+      params: Promise.resolve({ user }),
+    });
+    expect(first.status).toBe(202);
+
+    const second = await deleteTripRoute(request(`https://t.test/api/v2/${user}/trips/${trip}`, token), {
+      params: Promise.resolve({ user, trip }),
+    });
+    expect(second.status).toBe(202);
+
+    const third = await requestDeletion({ kind: "journal", username: user });
+    expect(third.ok).toBe(true);
+
+    const fourth = await requestDeletion({ kind: "journal", username: user });
+    expect(fourth).toMatchObject({ ok: false, error: "too_many_requests", status: 429 });
   });
 
   test("with mail switched off the endpoint is absent, not broken", async () => {

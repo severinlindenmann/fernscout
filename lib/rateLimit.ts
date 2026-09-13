@@ -127,9 +127,47 @@ export function trackedBuckets(): number {
   return hits.size;
 }
 
+/**
+ * Every path that sends mail on an unauthenticated or cookie-only request,
+ * with the bucket that limits it — B1491's sweep. The question each of these
+ * answers is not "does this route have a limit" but "which mail can a
+ * stranger, or an owner's own cookie session run wild, make this server
+ * send": every one below mails somebody who did not themselves make the
+ * call that triggered it.
+ *
+ * | Bucket | Keyed on | Caller |
+ * | --- | --- | --- |
+ * | `email-code-address` / `email-code-instance` | address / instance | `emailCodeAllowed` — every mailed sign-in, identity and signup code |
+ * | `contact-resend` | contact id | resending an invite or a buddy link |
+ * | `export-request` | requester's IP | `/[user]/me/export` — a copy of the journal |
+ * | `deletion-request` | owner's address | `requestDeletion` — journal DELETE, trip DELETE, `/[user]/me/delete` |
+ * | `deletion-confirm` | requester's IP | opening the confirmation link itself |
+ * | `owner-tel-verify-number` / `-owner` / `phone-verify-instance` | phone / owner / instance | phone verification codes |
+ * | `journals-create*` | requester's IP | the welcome mail a new journal gets |
+ * | `storage-<level>` | username | a storage-ceiling warning |
+ *
+ * A bearer-authenticated write that can still name an arbitrary third-party
+ * address — `notifyNewPeople` in `lib/api/v2/trips.ts`, adding somebody to
+ * `people:` — is a different shape (the caller already holds write access to
+ * the trip) and is out of this sweep; B1689 is the capture for it.
+ */
+
 /** Hashed so raw addresses never sit in memory or in a log line. */
 function key(ip: string) {
   return createHash("sha256").update(ip).digest("hex").slice(0, 16);
+}
+
+/**
+ * Test-only: drop every bucket.
+ *
+ * The map is module-level and outlives a single test, which is fine for a
+ * file whose subject *is* the limiter — see `journals-rate-limit.test.ts` —
+ * but a fixture-heavy suite that reuses one address across many unrelated
+ * cases (`test/deletions.test.ts`'s `OWNER`) would otherwise trip a bucket it
+ * never meant to exercise. Nothing in the application calls this.
+ */
+export function resetRateLimitsForTests(): void {
+  hits.clear();
 }
 
 /**

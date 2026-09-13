@@ -122,6 +122,22 @@ describe("the two pages that carry addresses and credentials (B287)", () => {
   });
 });
 
+describe("the credit-approval page carries no-referrer (B1635)", () => {
+  test("/:user/payment/:id/approve overrides the baseline referrer policy", async () => {
+    const all = await rules();
+    const rule = all.find((r) => r.source === "/:user/payment/:id/approve");
+    expect(rule, "next.config.ts must declare a rule for the approval page").toBeDefined();
+    const referrer = rule!.headers.find((h) => h.key.toLowerCase() === "referrer-policy")?.value;
+    expect(referrer).toBe("no-referrer");
+
+    // It must actually win — declared after the baseline rule, so Next's
+    // last-rule-wins ordering applies it.
+    const baselineIndex = all.findIndex((r) => anyPath(r.source));
+    const approveIndex = all.findIndex((r) => r.source === "/:user/payment/:id/approve");
+    expect(approveIndex).toBeGreaterThan(baselineIndex);
+  });
+});
+
 describe("an SVG served out of somebody's content folder", () => {
   let dir: string;
 

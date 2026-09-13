@@ -216,6 +216,20 @@ const nextConfig: NextConfig = {
         source: "/:user/me",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
+      {
+        // B1635: the approval token rides in this page's URL fragment, which
+        // a browser never sends to a server on its own — but the baseline
+        // above still lets the *origin* leave in a cross-origin `Referer`,
+        // and this page's only job is to be safe to open from a mail client
+        // that may load its own remote assets. `no-referrer` here means
+        // nothing this page loads carries any part of its URL onward, fragment
+        // included.
+        source: "/:user/payment/:id/approve",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "no-store" },
+        ],
+      },
       // B1087: every /api/v1 route is authenticated and `force-dynamic`, and the
       // auth flows carry codes and session state — none of it belongs in any
       // cache. Pinned here (not just relied on from `force-dynamic`) so a shared

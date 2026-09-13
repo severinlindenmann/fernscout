@@ -31,6 +31,8 @@
   "approve.accept": "Freigeben und Credits hinzufügen",
   "approve.done": "Freigegeben — {credits} Credits zu {user} hinzugefügt.",
   "approve.failed": "Das hat nicht geklappt. Der Link wurde vielleicht schon benutzt.",
+  "approve.invalid": "Dieser Link ist ungültig. Er ist vielleicht abgelaufen, schon benutzt worden oder wurde ohne seine vollständige Adresse geöffnet.",
+  "approve.loading": "Der Link wird geprüft…",
   "approve.prompt": "{credits} {unit} ({amount}) für {user} freigeben? Beim Annehmen werden die Credits dem Guthaben hinzugefügt.",
   "approve.title": "Einen Credit-Kauf freigeben",
   "approve.working": "Wird freigegeben…",
