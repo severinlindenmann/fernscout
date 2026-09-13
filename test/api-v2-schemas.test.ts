@@ -375,7 +375,7 @@ describe("status", () => {
       journalStatus.safeParse({
         journal: "example",
         credits: 12,
-        drafts: [{ trip: "alps-2026", slug: "2026-09-21-grindelwald" }],
+        drafts: [{ trip: "alps-2026", slug: "2026-09-21-grindelwald", title: "Grindelwald" }],
         trips: [{ id: "alps-2026", title: "Alps by rail" }],
         storage: { usedBytes: 123_456, maxBytes: 5_000_000_000 },
         inbox: { media: 4, files: 1 },

@@ -231,15 +231,15 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
      * which is the whole reason the header is checked separately.
      */
     test("a bearer token is refused, and nothing is charged", async () => {
-      const { POST } = await import("@/app/api/v1/[user]/storage/route");
+      const { PUT } = await import("@/app/api/web/[user]/storage/purchases/[id]/route");
       await grant(who, EXTRA_STORAGE_CREDITS);
 
-      const response = await POST(
-        new Request("https://example.test/api/v1/x/storage", {
-          method: "POST",
+      const response = await PUT(
+        new Request("https://example.test/api/web/x/storage/purchases/one", {
+          method: "PUT",
           headers: { authorization: "Bearer fs_agent_whatever" },
         }),
-        { params: Promise.resolve({ user: who }) },
+        { params: Promise.resolve({ user: who, id: "one" }) },
       );
 
       expect(response.status).toBe(403);

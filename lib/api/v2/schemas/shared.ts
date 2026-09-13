@@ -79,6 +79,16 @@ export function checkRequiredOrDeclined(
  * declined in the same patch is a contradiction, and — the T6 invariant,
  * enforced in the write path — a patch that supplies what was previously
  * declined clears the stored decline.
+ *
+ * `null` is not "brought" (D14, 06-contract-deltas.md): on the four scalars
+ * the patch shape marks nullable, `null` means REMOVE the field, so pairing
+ * it with a decline of the same name in one call — "take my chosen accent
+ * away and decline the question instead" — is the ordinary way to swap from
+ * an answered value to a declined one, not a contradiction. A key no schema
+ * ever marks nullable can never actually hold `null` here (Zod's own type
+ * check refuses it before this runs), so this changes nothing for a
+ * declinable section (`costs`, `plan`, …), which stays an ordinary object
+ * type with no null spelling at all.
  */
 export function checkPatchConflicts(
   doc: Record<string, unknown>,
@@ -87,7 +97,7 @@ export function checkPatchConflicts(
 ): void {
   const declined = (doc.declined ?? {}) as Record<string, string>;
   for (const key of keys) {
-    if (doc[key] !== undefined && declined[key] !== undefined) {
+    if (doc[key] !== undefined && doc[key] !== null && declined[key] !== undefined) {
       ctx.addIssue({
         code: "custom",
         path: [key],

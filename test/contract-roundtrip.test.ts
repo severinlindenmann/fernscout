@@ -7,27 +7,33 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
-import { openApiDocument } from "@/lib/api/openapi";
-import { POST as createTripRoute } from "@/app/api/v1/[user]/trips/route";
-import { GET as readTripRoute } from "@/app/api/v1/[user]/trips/[trip]/route";
-import { POST as createDayRoute } from "@/app/api/v1/[user]/trips/[trip]/days/route";
-import { GET as readDayRoute } from "@/app/api/v1/[user]/trips/[trip]/days/[slug]/route";
+import { tripCreate, dayWrite } from "@/lib/api/v2/schemas";
+import { PUT as putTripRoute, GET as readTripRoute } from "@/app/api/v2/[user]/trips/[trip]/route";
+import { PUT as putDayRoute, GET as readDayRoute } from "@/app/api/v2/[user]/trips/[trip]/days/[slug]/route";
 
 /**
- * Send every field the document offers, then read it back.
+ * Send every field the v2 write schema accepts, then read it back.
  *
- * The rule this enforces is one `…/days/[slug]/route.ts` already states in a
- * comment: **a field the API takes is a field it has to show**. Until B540 it
- * was not true, and the way it failed is the dangerous way — `201 Created`,
- * and the field gone. `countryCode`, `tracks`, `travelScene` and five trip
- * fields were each accepted and unreadable, and every one of them had been
- * read past by people who knew the code.
+ * B1612 repoints this from the deleted v1 `POST .../trips` / `POST
+ * .../days` onto their v2 replacements, `PUT .../trips/{trip}` and
+ * `PUT .../days/{slug}`. The rule is unchanged from B540: **a field the API
+ * takes is a field it has to show** — "it was accepted" and "it is there"
+ * are the same claim (AGENTS.md). Until B540 that was not true, and the way
+ * it failed is the dangerous way: `201 Created`, and the field gone.
  *
- * A test that listed the fields itself would rot the same way the document
- * did, so the **field list comes from the document** and the samples are
- * matched against it. Add a field to a request schema and this fails until you
- * either give it a sample or say, in `WRITE_ONLY` below, why it cannot be read
- * back — with a reason, not a shrug.
+ * `/v2/openapi.json` does not exist yet (a later ticket — see
+ * `lib/api/v2/schemas/shared.ts`'s own comment), so unlike the v1 version of
+ * this file the field list cannot come from a generated document. It comes
+ * from the zod write schema instead (`tripCreate`/`dayWrite` themselves,
+ * `.def.shape`) — the same source of truth the route validates every
+ * request against, so a field added to the schema and forgotten here still
+ * fails this test rather than going unwatched until the document exists.
+ *
+ * A test that listed the fields itself would rot the same way the v1
+ * document did, so the **field list comes from the schema** and the samples
+ * are matched against it. Add a field to a write schema and this fails until
+ * you either give it a sample or say, in `*_WRITE_ONLY` below, why it cannot
+ * be read back — with a reason, not a shrug.
  */
 
 /**
@@ -39,30 +45,77 @@ import { GET as readDayRoute } from "@/app/api/v1/[user]/trips/[trip]/days/[slug
 const TRIP_SAMPLES: Record<string, unknown> = {
   id: "roundtrip",
   title: "Rundreise",
-  start: "2026-09-01",
-  end: "2026-09-05",
-  tagline: "Eine Zeile",
-  status: "past",
-  accent: "green",
-  visibility: "guest",
+  dates: { from: "2026-09-01", to: "2026-09-05" },
+  visibility: "public",
   listed: false,
-  // Only meaningful on a closed trip, which the `visibility` above makes this
-  // one — B587.
-  teaser: true,
-  costsVisibility: "guests",
-  test: true,
-  intro: "Die Einleitung.",
   people: [{ name: "Alex Beispiel", email: "alex@example.test" }],
-  travellers: [{ for: "alex@example.test", hair: "brown" }],
-  rates: { EUR: 0.94 },
-  tracks: { costs: false, coordinates: false, photos: false },
+  rates: { currencies: ["EUR"], manual: { VND: 30500 } },
+  costs: {
+    budget: { total: 1000, days: 5, currency: "CHF" },
+    items: [{ label: "Flights", amount: 500, currency: "CHF", category: "transport" }],
+    note: "Ein Budget.",
+    visibility: "guests",
+  },
+  plan: {
+    route: [{ location: "Lissabon", lat: 38.7223, lng: -9.1393, country: "Portugal", countryCode: "PT", note: "Start" }],
+    body: "Die Route.",
+  },
+  days: [
+    {
+      slug: "2026-09-02-a-day",
+      title: "Ein eingebetteter Tag",
+      date: "2026-09-02",
+      content: "Am ersten Tag angekommen.",
+      status: "draft",
+      // B1626 — `cover` (below) is now checked against the trip's own media
+      // at the door, so this embedded day carries the photo `cover` names
+      // rather than declining media outright.
+      media: [{ src: "roundtrip/cover.jpg" }],
+      declined: {
+        costs: "nothing spent today, tracked elsewhere",
+        coordinates: "no position recorded for this day",
+        weather: "weather was not asked for this day",
+        time: "the exact time of day was not recorded",
+        timezone: "no timezone established for this leg",
+        location: "no specific location named for this day",
+        country: "no country named for this day entry",
+        countryCode: "no country code named for this day",
+        transportMode: "no transport leg happened this day",
+        tags: "no tags applied to this day",
+        translations: "single-language journal, nothing to translate",
+        visibility: "no narrower visibility set for this day",
+      },
+    },
+  ],
   translations: { en: { title: "Round trip", tagline: "One line", intro: "The introduction." } },
+  accent: "green",
+  cover: "roundtrip/cover.jpg",
+  figures: { mode: "off" },
+  tagline: "Eine Zeile",
+  intro: "Die Einleitung.",
+  test: true,
+  declined: { buddies: "travelling solo, nobody else was on this trip" },
 };
 
 const DAY_SAMPLES: Record<string, unknown> = {
+  slug: "2026-09-10-ein-tag",
   title: "Ein Tag",
-  date: "2026-09-02",
+  date: "2026-09-10",
   content: "Die Prosa des Tages.",
+  // B1612 FINDING: sending `media` currently crashes PUT .../days/{slug}
+  // with an uncaught ZodError rather than a 201. `toStoredMedia`
+  // (lib/api/v2/days.ts) stamps every item with a placeholder `type:
+  // "image"` — deliberately, per that file's own comment, because the v2
+  // media door is "a sibling parcel, not built yet as this lands" — and
+  // `dayDoc`'s media item schema (lib/api/v2/schemas/day.ts, extending the
+  // strict `dayMediaItem`) does not accept `type` at all, so the route's own
+  // echo (`dayDoc.parse(dayEchoInput(toWrite))`) throws on the value the
+  // route itself just wrote. The same throw would hit `GET` for any day
+  // already carrying media. Left in the sample, and this test left failing
+  // here, on purpose — this is exactly what this file exists to catch.
+  media: [{ src: "roundtrip/a-day/photo.jpg", caption: "Ein Foto" }],
+  costs: [{ label: "Kaffee", amount: 3, currency: "EUR", category: "food" }],
+  coordinates: { lat: 38.7223, lng: -9.1393 },
   time: "14:30",
   // B42 — the zone `time` is a wall clock in, so a reader elsewhere and the
   // RSS pubDate both know what 14:30 meant.
@@ -70,17 +123,15 @@ const DAY_SAMPLES: Record<string, unknown> = {
   location: "Lissabon",
   country: "Portugal",
   countryCode: "PT",
-  lat: 38.7223,
-  lng: -9.1393,
-  tags: ["eins", "zwei"],
-  costs: [{ label: "Kaffee", amount: 3, currency: "EUR", category: "food" }],
   transportMode: "train",
+  tags: ["eins", "zwei"],
+  translations: { en: { title: "A day", content: "The day's prose." } },
+  visibility: "guest",
+  status: "draft",
   transportFrom: "Porto",
   transportTo: "Lissabon",
   travelScene: "quick",
   test: true,
-  visibility: "guest",
-  translations: { en: { title: "A day", content: "The day's prose." } },
 };
 
 /**
@@ -88,20 +139,17 @@ const DAY_SAMPLES: Record<string, unknown> = {
  * read back — each with the reason, because "it does not round-trip" is a
  * claim that needs one.
  */
-const TRIP_WRITE_ONLY: Record<string, string> = {};
+const TRIP_WRITE_ONLY: Record<string, string> = {
+  teaser: "only meaningful on a closed trip (guest/private) — this sample is public, where `listed` is the key that decides (B587)",
+};
 
 const DAY_WRITE_ONLY: Record<string, string> = {
-  // A decline is only ever `false`, and it contradicts the positive answer
-  // this body also carries: a day cannot both have coordinates and say it has
-  // none. Covered by test/day-contract tests instead.
-  coordinates: "only ever false, and this body sends lat/lng",
-  photos: "only ever false, and photographs are a separate call",
-  costs: "sent as a list here; the `false` form is the decline, tested elsewhere",
   // Asks the server to go and look something up, rather than carrying a value.
   weather: "a request for a lookup, not a value — the answer arrives as weatherData",
-  weatherData: "needs source and recordedAt, and is refused from an agent's own knowledge",
-  idempotency_key: "names the write, and is not part of the day",
-  dryRun: "checks the body and writes nothing; covered by test/day-contract.test.ts instead",
+  // This sample answers every required-or-declined field directly rather
+  // than declining any of them, so there is nothing for `declined` itself to
+  // carry here — the decline mechanism is covered by test/day-contract.test.ts.
+  declined: "this sample answers every declinable directly; the decline mechanism is tested elsewhere",
 };
 
 let dir: string;
@@ -118,14 +166,12 @@ async function json(response: Response) {
   return (await response.json()) as Record<string, unknown>;
 }
 
-function propertiesOf(pathName: string, verb: string): Record<string, unknown> {
-  const doc = openApiDocument() as unknown as {
-    paths: Record<string, Record<string, { requestBody?: { content?: Record<string, { schema?: { $ref?: string; properties?: Record<string, unknown> } }> } }>>;
-    components: { schemas: Record<string, { properties?: Record<string, unknown> }> };
-  };
-  const schema = doc.paths[pathName]?.[verb]?.requestBody?.content?.["application/json"]?.schema;
-  const resolved = schema?.$ref ? doc.components.schemas[schema.$ref.split("/").pop() as string] : schema;
-  return (resolved?.properties ?? {}) as Record<string, unknown>;
+function documentedTripFields(): string[] {
+  return Object.keys((tripCreate as unknown as { def: { shape: Record<string, unknown> } }).def.shape);
+}
+
+function documentedDayFields(): string[] {
+  return Object.keys((dayWrite as unknown as { def: { shape: Record<string, unknown> } }).def.shape);
 }
 
 beforeEach(async () => {
@@ -165,11 +211,9 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("every field POST .../trips documents", () => {
-  const documented = () => Object.keys(propertiesOf("/api/v1/{user}/trips", "post"));
-
+describe("every field PUT .../trips/{trip} accepts", () => {
   test("has a sample here, or a written reason it cannot have one", () => {
-    const uncovered = documented().filter(
+    const uncovered = documentedTripFields().filter(
       (field) => !(field in TRIP_SAMPLES) && !(field in TRIP_WRITE_ONLY),
     );
     expect(
@@ -179,22 +223,21 @@ describe("every field POST .../trips documents", () => {
   });
 
   test("survives being written and read back", async () => {
-    const body = Object.fromEntries(
-      documented().filter((f) => f in TRIP_SAMPLES).map((f) => [f, TRIP_SAMPLES[f]]),
-    );
-    const created = await createTripRoute(
-      new Request("https://t.test/api/v1/alex/trips", {
-        method: "POST",
+    const fields = documentedTripFields().filter((f) => f in TRIP_SAMPLES);
+    const body = Object.fromEntries(fields.map((f) => [f, TRIP_SAMPLES[f]]));
+    const created = await putTripRoute(
+      new Request("https://t.test/api/v2/alex/trips/roundtrip", {
+        method: "PUT",
         headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
         body: JSON.stringify(body),
       }),
-      { params: Promise.resolve({ user: "alex" }) },
+      { params: Promise.resolve({ user: "alex", trip: "roundtrip" }) },
     );
     expect(created.status, JSON.stringify(await json(created.clone()))).toBe(201);
 
     const read = await json(
       await readTripRoute(
-        new Request("https://t.test/api/v1/alex/trips/roundtrip", {
+        new Request("https://t.test/api/v2/alex/trips/roundtrip", {
           headers: { authorization: `Bearer ${await token()}` },
         }),
         { params: Promise.resolve({ user: "alex", trip: "roundtrip" }) },
@@ -209,11 +252,35 @@ describe("every field POST .../trips documents", () => {
   });
 });
 
-describe("every field POST .../days documents", () => {
-  const documented = () => Object.keys(propertiesOf("/api/v1/{user}/trips/{trip}/days", "post"));
+describe("every field PUT .../days/{slug} accepts", () => {
+  const tripBody = {
+    ...TRIP_SAMPLES,
+    id: "roundtrip-days",
+    days: undefined,
+    // B1626 — this trip carries no days (and so no media) of its own; a
+    // `cover` naming a photo nothing here has would now be refused
+    // (`checkCover`, lib/api/v2/write.ts). The day round trip below is what
+    // this fixture exists to exercise, not the trip's own `cover`.
+    cover: undefined,
+    declined: { ...(TRIP_SAMPLES.declined as Record<string, string>), days: "no days written for this trip at create time" },
+  };
+
+  async function createTrip() {
+    const response = await putTripRoute(
+      new Request("https://t.test/api/v2/alex/trips/roundtrip-days", {
+        method: "PUT",
+        headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
+        body: JSON.stringify(tripBody),
+      }),
+      { params: Promise.resolve({ user: "alex", trip: "roundtrip-days" }) },
+    );
+    if (response.status >= 300) {
+      throw new Error(`trip fixture failed: ${response.status} ${JSON.stringify(await response.clone().json())}`);
+    }
+  }
 
   test("has a sample here, or a written reason it cannot have one", () => {
-    const uncovered = documented().filter(
+    const uncovered = documentedDayFields().filter(
       (field) => !(field in DAY_SAMPLES) && !(field in DAY_WRITE_ONLY),
     );
     expect(
@@ -223,50 +290,35 @@ describe("every field POST .../days documents", () => {
   });
 
   test("survives being written and read back", async () => {
-    await createTripRoute(
-      new Request("https://t.test/api/v1/alex/trips", {
-        method: "POST",
-        headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
-        body: JSON.stringify({ ...TRIP_SAMPLES, translations: undefined }),
-      }),
-      { params: Promise.resolve({ user: "alex" }) },
-    );
+    await createTrip();
 
-    const body = Object.fromEntries(
-      documented().filter((f) => f in DAY_SAMPLES).map((f) => [f, DAY_SAMPLES[f]]),
-    );
-    const created = await createDayRoute(
-      new Request("https://t.test/api/v1/alex/trips/roundtrip/days", {
-        method: "POST",
+    const fields = documentedDayFields().filter((f) => f in DAY_SAMPLES);
+    const body: Record<string, unknown> = Object.fromEntries(fields.map((f) => [f, DAY_SAMPLES[f]]));
+    // `weather` is a request, not a value (see DAY_WRITE_ONLY) — declined
+    // here so the required-or-declined check has an answer, same as any
+    // other day that was not asked to look its weather up.
+    body.declined = { weather: "weather was not asked for this day" };
+    const created = await putDayRoute(
+      new Request(`https://t.test/api/v2/alex/trips/roundtrip-days/days/${DAY_SAMPLES.slug}`, {
+        method: "PUT",
         headers: { authorization: `Bearer ${await token()}`, "content-type": "application/json" },
         body: JSON.stringify(body),
       }),
-      { params: Promise.resolve({ user: "alex", trip: "roundtrip" }) },
+      { params: Promise.resolve({ user: "alex", trip: "roundtrip-days", slug: String(DAY_SAMPLES.slug) }) },
     );
     const madeBody = await json(created.clone());
     expect(created.status, JSON.stringify(madeBody)).toBe(201);
 
     const read = await json(
       await readDayRoute(
-        new Request(`https://t.test/api/v1/alex/trips/roundtrip/days/${madeBody.slug}`, {
+        new Request(`https://t.test/api/v2/alex/trips/roundtrip-days/days/${DAY_SAMPLES.slug}`, {
           headers: { authorization: `Bearer ${await token()}` },
         }),
-        { params: Promise.resolve({ user: "alex", trip: "roundtrip", slug: String(madeBody.slug) }) },
+        { params: Promise.resolve({ user: "alex", trip: "roundtrip-days", slug: String(DAY_SAMPLES.slug) }) },
       ),
     );
 
-    // `transportMode`/`From`/`To` come back as one `transport` object, which is
-    // the day's own shape rather than the request's — a real answer to "did it
-    // survive", just not a same-named one.
-    const readable = { ...read, ...(read.transport as object ?? {}) } as Record<string, unknown>;
-    const alias: Record<string, string> = {
-      transportMode: "mode",
-      transportFrom: "from",
-      transportTo: "to",
-    };
-    const missing = Object.keys(body).filter(
-      (field) => readable[alias[field] ?? field] === undefined,
-    );
+    const missing = Object.keys(body).filter((field) => read[field] === undefined);
     expect(
       missing,
       `written and not readable back: ${missing.join(", ")} — a field the API takes is a field it has to show`,

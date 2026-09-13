@@ -65,7 +65,7 @@ export function getPlan(tripId: string, options: ReadOptions = {}): PlanProgress
 
 /** Where `plan.md` lives for a trip — exported since B909 so the API door
  * that reads and writes it does not carry a second copy of this path. */
-export function planFilePath(tripId: string): string {
+function planFilePath(tripId: string): string {
   return path.join(tripDir(tripId), "plan.md");
 }
 
@@ -75,7 +75,7 @@ export function planFilePath(tripId: string): string {
  * `readPlanFile` below already does, rather than a second one — mirrors
  * `readCostsFile` (lib/costs.ts, B295).
  */
-export function readPlanFileRaw(tripId: string): ReturnType<typeof matter> | null {
+function readPlanFileRaw(tripId: string): ReturnType<typeof matter> | null {
   const file = planFilePath(tripId);
   if (!fs.existsSync(file)) return null;
   // A plan.md whose frontmatter will not parse must not take the trip page,

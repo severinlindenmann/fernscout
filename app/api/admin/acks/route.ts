@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
  * all — there is nothing to acknowledge — and says so rather than writing a
  * row that would suppress the entry the first time it appears.
  *
- * Outside `/api/v1/` deliberately, like `/api/admin/grants`: it takes the
+ * Outside `/api/v1/` deliberately, like `/api/web/admin/grants`: it takes the
  * operator's cookie only, there is no bearer-token path to it, and to anybody
  * who is not the operator this route does not exist.
  */

@@ -31,12 +31,8 @@ export default function ApproveButton({
   async function approve() {
     setState("busy");
     const response = await fetch(
-      `/api/v1/${username}/payments/${paymentId}/approve`,
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token }),
-      },
+      `/api/web/${username}/purchases/${paymentId}/approve/${token}`,
+      { method: "POST" },
     ).catch(() => null);
     setState(response?.ok ? "done" : "failed");
   }

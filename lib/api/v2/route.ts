@@ -31,6 +31,7 @@ export const V2_STATUS: Record<string, number> = {
   invalid_request: 400,
   incomplete: 422,
   stale_document: 409,
+  conflict: 409,
   missing_token: 401,
   invalid_token: 401,
   out_of_scope: 403,

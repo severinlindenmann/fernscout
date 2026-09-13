@@ -1,6 +1,9 @@
 import "server-only";
 import crypto from "node:crypto";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
+import { discountLabel, formatChf, isBuyerMethod, priceRappen } from "./credits/pricing";
+
+export { isBuyerMethod };
 
 /**
  * The mock payment ledger — B405.
@@ -55,14 +58,6 @@ export type Payment = {
 const METHODS: readonly PaymentMethod[] = ["twint", "card", "admin"];
 const STATUSES: readonly PaymentStatus[] = ["pending", "requested", "paid", "refunded"];
 
-/** What a buyer may choose. `admin` is deliberately absent: it is the
- *  operator's own method, and a request that could name it would be a way to
- *  file a zero-franc purchase for any number of credits. `/api/v1/.../pay`
- *  validates against this, `/admin` sets `admin` itself. */
-const BUYER_METHODS: readonly PaymentMethod[] = ["twint", "card"];
-export function isBuyerMethod(v: unknown): v is PaymentMethod {
-  return typeof v === "string" && (BUYER_METHODS as readonly string[]).includes(v);
-}
 function isPaymentMethod(v: unknown): v is PaymentMethod {
   return typeof v === "string" && (METHODS as readonly string[]).includes(v);
 }
@@ -550,4 +545,134 @@ export async function claimProviderPayment(
     return { ok: false, reason: "not_requested" };
   }
   return { ok: true, credits: payment.credits };
+}
+
+/** ── v2 ─────────────────────────────────────────────────────────────────
+ *
+ * B1622, phase 2 step 4 (money.md §2.2). `createPayment` above stays exactly
+ * as it is — v1's counterpart, and the `newId()`-shape three other test
+ * files still exercise — and everything below is new surface built beside
+ * it, never a rewrite of it.
+ */
+
+export type CreatePurchaseResult =
+  | { ok: true; payment: Payment; created: boolean }
+  /** `payment` is the STORED document when the conflict is this owner's own
+   *  (a retried create naming a different amount) — the current one goes in
+   *  the refusal so a caller can read what is actually on file, the same
+   *  shape `stale_document` uses elsewhere in v2. It is `null` when the id
+   *  belongs to a DIFFERENT owner: `payments.id` is one instance-wide primary
+   *  key rather than one scoped per journal, so two journals can pick the
+   *  same client-chosen id, and this journal is never shown another
+   *  journal's purchase to prove that. */
+  | { ok: false; reason: "conflict"; payment: Payment | null }
+  | { ok: false; reason: "no_database" };
+
+/**
+ * Start a purchase with a CALLER-CHOSEN id — S2/V10, PUT-shaped semantics: a
+ * retry with the same id and the same amount is a no-op re-read (`created:
+ * false`, no second mail); the same id with a DIFFERENT amount is a
+ * `conflict`, because the id was already spent on a different purchase and
+ * overwriting it would let a caller change what an already-mailed link
+ * promises.
+ *
+ * **Mails nobody and computes nothing but the price.** Exactly like
+ * `createPayment`, this function only touches the `payments` row; the caller
+ * (the route) sends the "a purchase is waiting" mail once, only when
+ * `created` comes back `true` and the call was not a dry run.
+ *
+ * `opts.dryRun` answers the same question `createPayment` never had to: T1
+ * says every v2 write previews before it commits. On the CREATE path (no row
+ * yet) a dry run returns a `Payment` shaped exactly like the one that would
+ * be inserted, without inserting it — `id` is real, `createdAt` is the
+ * instant of the preview rather than of a write that never happened. The two
+ * READ paths (idempotent match, conflict) are already pure reads, so
+ * `dryRun` changes nothing about them.
+ */
+export async function createPurchase(
+  owner: string,
+  id: string,
+  credits: number,
+  opts?: { dryRun?: boolean },
+): Promise<CreatePurchaseResult> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return { ok: false, reason: "no_database" };
+
+  // Global, not owner-scoped — `id` is the table's whole primary key
+  // (018-payments.ts), so this has to look regardless of whose row it is.
+  const row = await handle.db.selectFrom("payments").selectAll().where("id", "=", id).executeTakeFirst();
+  if (row) {
+    if (row.owner_id !== owner) return { ok: false, reason: "conflict", payment: null };
+    const existing = toPayment(row);
+    if (existing.credits === credits) return { ok: true, payment: existing, created: false };
+    return { ok: false, reason: "conflict", payment: existing };
+  }
+
+  const newRow = {
+    id,
+    owner_id: owner,
+    credits,
+    amount_rappen: priceRappen(credits),
+    status: "pending",
+    method: null as string | null,
+    created_at: nowIso(),
+    paid_at: null as string | null,
+  };
+  if (opts?.dryRun) return { ok: true, payment: toPayment(newRow), created: true };
+
+  await handle.db.insertInto("payments").values(newRow).execute();
+  return { ok: true, payment: toPayment(newRow), created: true };
+}
+
+export type PurchasePage = { items: Payment[]; nextCursor?: string };
+
+/**
+ * A page of one journal's own purchases, newest first — V12's `?limit=&
+ * cursor=`/`next_cursor` shape, over `listPayments` above. In-memory
+ * slice-after-cursor rather than a second SQL query shape: `listFiguresPage`
+ * (`lib/figures.ts`) set the precedent for a list this size (a journal's own
+ * purchase history is dozens of rows, never the kind of table a cursor
+ * exists to keep off one page of a database).
+ */
+export async function listPurchasesPage(
+  owner: string,
+  { limit, cursor }: { limit: number; cursor?: string },
+): Promise<PurchasePage> {
+  const all = await listPayments(owner, 1000);
+  const idx = cursor ? all.findIndex((p) => p.id === cursor) : -1;
+  const from = idx >= 0 ? idx + 1 : 0;
+  const items = all.slice(from, from + limit);
+  const nextCursor = from + limit < all.length ? items[items.length - 1]?.id : undefined;
+  return { items, nextCursor };
+}
+
+/**
+ * A `Payment` row → the v2 `purchaseDoc` shape (money.md §2.2's read table).
+ * `mailedTo` and `baseUrl` are handed in rather than looked up here, so this
+ * stays a pure formatter over data the caller already holds (the journal's
+ * `owner.email`, `serverSite().url`) rather than a second place that reaches
+ * into `lib/users`/`lib/site`.
+ *
+ * `paymentUrl` is `null` once there is nothing left to open — `paid` or
+ * `refunded` — matching the read table exactly. `method` never surfaces
+ * `"admin"`: an admin grant is never a document a buyer's own purchase can
+ * carry (money.md §3), so it reads as absent here rather than as a value
+ * `PURCHASE_METHODS` does not even list.
+ */
+export function toPurchaseDoc(payment: Payment, mailedTo: string, baseUrl: string) {
+  const open = payment.status === "pending" || payment.status === "requested";
+  return {
+    id: payment.id,
+    credits: payment.credits,
+    priceRappen: payment.amountRappen,
+    price: formatChf(payment.amountRappen),
+    discount: discountLabel(payment.credits),
+    status: payment.status,
+    method: payment.method === "admin" ? null : payment.method,
+    paymentUrl: open ? `${baseUrl}/${payment.owner}/payment/${payment.id}` : null,
+    mailedTo,
+    createdAt: payment.createdAt,
+    requestedAt: payment.requestedAt,
+    paidAt: payment.paidAt,
+  };
 }

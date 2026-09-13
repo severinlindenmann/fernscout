@@ -85,6 +85,21 @@ export function discountLabel(credits: number): string {
  * from somewhere else, and the honest answer to a request nothing in the
  * product can make is to refuse it rather than to price it.
  */
+/**
+ * Methods a BUYER may choose — `lib/payments.ts`'s own `PaymentMethod` also
+ * carries `"admin"`, the operator's own way of granting by hand from
+ * `/admin`, deliberately absent here: a request naming it would file a
+ * zero-franc purchase for any number of credits. This is also the wire enum
+ * for a purchase's `method` field (money.md §2.2) — an admin grant never
+ * reaches a document a buyer's own purchase list can carry. Here rather than
+ * in `lib/payments.ts` because that file is `server-only` and both a v2
+ * schema and the account page's client component need this same list.
+ */
+export const BUYER_METHODS = ["twint", "card"] as const;
+export function isBuyerMethod(v: unknown): v is (typeof BUYER_METHODS)[number] {
+  return typeof v === "string" && (BUYER_METHODS as readonly string[]).includes(v);
+}
+
 export function isBuyableAmount(credits: unknown): credits is number {
   return (
     typeof credits === "number" &&

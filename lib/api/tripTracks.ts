@@ -25,7 +25,7 @@ export type TracksWriteResult =
   | { ok: true; tracks: Tracks; turnedOff: string[]; turnedOn: string[] }
   | { ok: false; error: string; message?: string; bug?: true };
 
-export function readTripTracks(ref: TripRef): Tracks | null {
+function readTripTracks(ref: TripRef): Tracks | null {
   return getTrip(ref)?.tracks ?? null;
 }
 

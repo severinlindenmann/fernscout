@@ -1,71 +1,101 @@
-// POST /api/v2/{user}/trips/{trip}/days/{slug}/send — B1623, phase 2 step 4.
-//
-// One door replaces v1's send-mail and send-whatsapp (S1): the only thing
-// that differed between them was which array of recipients was walked, and
-// a caller wanting both made two round trips for one intention.
-import { daySend } from "@/lib/api/v2/schemas";
-import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { fail, ok, readDryRun } from "@/lib/api/v2/route";
-import { mailSendSummary, whatsappSendSummary } from "@/lib/api/v2/social";
+// POST .../days/{slug}/send — S1, the ONE send door. `send-mail` and
+// `send-whatsapp` die into this — B1612 (phase 2 step 3, parcel B).
+import { sendRequest } from "@/lib/api/v2/schemas";
+import { problemsFrom } from "@/lib/api/v2/incomplete";
+import { fail, ok, readJson } from "@/lib/api/v2/route";
+import { resolveBearer, ownsUser } from "@/lib/api/v2/auth";
+import { mayActAsOwner, mayWriteTrip, refuseWrite } from "@/lib/api/auth";
 import { isTestContent } from "@/lib/access";
-import { sendDayLetter } from "@/lib/digest/dayLetter";
-import { sendDayWhatsapp } from "@/lib/digest/dayWhatsapp";
-import { getEntryBySlug } from "@/lib/entries";
-import { getTrip, tripRef } from "@/lib/trips";
+import { balanceOf } from "@/lib/credits";
+import { formatCredits } from "@/lib/credits/format";
+import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { readTripFile, readDayFile } from "@/lib/api/v2/store";
+// v1's own summaries, not a second copy — B1620. The inline pair this
+// replaces dropped the per-recipient `errors` list, so a publish that failed
+// for one reader reported a count and not which address, which is the half a
+// person can act on. Shared rather than reimplemented for the reason the
+// whole contract layer is shared: two summaries of one outcome disagree.
+import { mailSummary } from "@/lib/api/dayMail";
+import { whatsappSummary } from "@/lib/api/dayWhatsapp";
+import { v1Slug } from "@/lib/api/v2/days";
+import { sendDayLetter, type DayLetterOutcome } from "@/lib/digest/dayLetter";
+import { sendDayWhatsapp, whatsappWouldCost, type DayWhatsappOutcome } from "@/lib/digest/dayWhatsapp";
+import type { Trip } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+function tripLike(user: string, tripId: string, people: { name: string; email: string }[]): Trip {
+  return { username: user, id: tripId, ref: `${user}/${tripId}`, people } as unknown as Trip;
+}
 
 export async function POST(
   request: Request,
   { params }: RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]/send">,
 ) {
-  const { user, trip, slug } = await params;
-  const auth = await requireJournalOwner(request, user);
-  if (!auth.ok) return auth.response;
+  const { user, trip: tripId, slug } = await params;
 
-  const ref = tripRef(user, trip);
-  const found = getTrip(ref);
-  if (!found) return fail("unknown_trip", `"${user}" has no trip called "${trip}".`, undefined, 404);
+  const bearer = await resolveBearer(request);
+  if (!bearer.ok) return bearer.response;
+  if (!ownsUser(bearer.session, user)) {
+    return fail("out_of_scope", ERROR_CODES.out_of_scope, undefined, 403);
+  }
 
-  const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
-  if (!entry) return fail("unknown_day", `No day "${slug}" in this trip.`, undefined, 404);
-  if (entry.draft) {
+  const trip = readTripFile(user, tripId);
+  if (!trip) return fail("unknown_trip", ERROR_CODES.unknown_trip, undefined, 404);
+
+  const gate = await mayWriteTrip(bearer.session, tripLike(user, tripId, trip.people));
+  if (!gate.ok) return refuseWrite(gate);
+
+  if (!mayActAsOwner(bearer.session, user)) {
     return fail(
-      "not_published",
-      `"${slug}" is still a draft. Publish it first — there is no letter for a day nobody can read yet.`,
+      "out_of_scope",
+      "This token is scoped to one trip and cannot send anybody a copy of a day. Only the " +
+        "journal's owner decides what leaves the journal.",
       undefined,
-      409,
+      403,
     );
   }
-  if (isTestContent(found, entry)) {
-    return fail("test_content", `"${slug}" is marked test: true — content nobody lived — so it sends nothing.`, undefined, 400);
+
+  const day = readDayFile(user, tripId, slug);
+  if (!day) return fail("unknown_day", ERROR_CODES.unknown_day, undefined, 404);
+  if (day.status !== "published") {
+    return fail("not_published", ERROR_CODES.not_published, undefined, 409);
+  }
+  if (isTestContent(tripLike(user, tripId, trip.people), day) || trip.test === true || day.test === true) {
+    return fail("test_content", ERROR_CODES.test_content, undefined, 409);
   }
 
-  const parsed = await request.json().catch(() => null);
-  const result = daySend.safeParse(parsed);
-  if (!result.success) {
-    return fail("invalid_request", 'Send { "channels": ["mail" | "whatsapp", ...] }, at least one.');
+  const body = await readJson(request);
+  if (!body.ok) return body.response;
+  const parsed = sendRequest.safeParse(body.value);
+  if (!parsed.success) {
+    return fail("invalid_request", ERROR_CODES.invalid_request, problemsFrom(parsed.error), 400);
   }
-  const { channels } = result.data;
+  const { channels } = parsed.data;
 
-  const dryRun = readDryRun(request);
-  if (dryRun === null) return fail("invalid_request", "dryRun must be true, false, or absent.");
-  if (dryRun) {
-    const preview: Record<string, unknown> = {};
-    if (channels.includes("mail")) preview.mail = { attempted: false, sent: 0, failed: 0, dryRun: true };
-    if (channels.includes("whatsapp")) preview.whatsapp = { attempted: false, sent: 0, failed: 0, dryRun: true };
-    return ok({ ok: true, resend: true, results: preview });
+  if (channels.includes("whatsapp")) {
+    const balance = await balanceOf(user);
+    if (balance !== null) {
+      const needed = await whatsappWouldCost(user, `${user}/${tripId}`, v1Slug(slug)).catch(() => 1);
+      if (needed > balance) {
+        return fail(
+          "no_credits",
+          `Sending this day would take ${needed} credit(s); this journal has ${formatCredits(balance)} left. Nothing was sent.`,
+          { needed, balance },
+          402,
+        );
+      }
+    }
   }
 
-  const results: Record<string, unknown> = {};
+  const ref = `${user}/${tripId}`;
+  const result: Record<string, unknown> = { ok: true, slug };
   if (channels.includes("mail")) {
-    const outcome = await sendDayLetter(user, ref, slug, { resend: true });
-    results.mail = mailSendSummary(outcome);
+    result.mail = mailSummary(await sendDayLetter(user, ref, v1Slug(slug), { resend: true }));
   }
   if (channels.includes("whatsapp")) {
-    const outcome = await sendDayWhatsapp(user, ref, slug, { resend: true });
-    results.whatsapp = whatsappSendSummary(outcome);
+    result.whatsapp = whatsappSummary(await sendDayWhatsapp(user, ref, v1Slug(slug), { resend: true }));
   }
 
-  return ok({ ok: true, resend: true, results });
+  return ok(result);
 }

@@ -39,7 +39,16 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   };
 }
 
-function writeTrip(id: string, people: string[]) {
+/**
+ * Writes both stores a v2 day-write has to agree with: `trip.md`, the
+ * shape `mayRequestAgentToken` and this file's own `letIn`/`tripToken`
+ * fixtures still read (B1598 — the read layer has not flipped yet), and
+ * `trip.json`, which `PUT .../days/{slug}` reads through
+ * `lib/api/v2/store.ts`. Revocation-by-hand mutates `people:` in place, so
+ * both copies have to carry the same list or the write gate this file is
+ * about would be checked against a file the route never opens.
+ */
+async function writeTrip(id: string, people: string[]) {
   const root = path.join(dir, OWNER, "trips", id);
   fs.mkdirSync(path.join(root, "entries"), { recursive: true });
   fs.writeFileSync(
@@ -61,6 +70,15 @@ function writeTrip(id: string, people: string[]) {
       "",
     ].join("\n"),
   );
+
+  const { writeTripFile } = await import("@/lib/api/v2/store");
+  writeTripFile(OWNER, id, {
+    id,
+    title: id,
+    dates: { from: "2026-08-25", to: "2026-08-26" },
+    visibility: "private",
+    people: people.map((email) => ({ name: "R", email })),
+  });
 }
 
 /** A token scoped to one trip, as `/api/auth/verify` mints for somebody on it. */
@@ -104,30 +122,61 @@ async function ownerToken(): Promise<string> {
   return result.token;
 }
 
+/** A slug in the `YYYY-MM-DD-slug` shape the v2 route requires, derived from
+ * the title so each call in this file gets a slug of its own. */
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Every declinable this file's day is not actually about, answered rather
+ * than left to fail the v2 completeness contract (B531/DAY_DECLINABLES) —
+ * this file is about revocation, and these declines satisfy the contract
+ * rather than arguing with it. */
+function declineTheRest(): Record<string, string> {
+  return {
+    media: "not this file's subject",
+    costs: "not this file's subject",
+    coordinates: "not this file's subject",
+    weather: "not this file's subject",
+    time: "not this file's subject",
+    timezone: "not this file's subject",
+    location: "not this file's subject",
+    country: "not this file's subject",
+    countryCode: "not this file's subject",
+    transportMode: "not this file's subject",
+    tags: "not this file's subject",
+    translations: "not this file's subject",
+    visibility: "not this file's subject",
+  };
+}
+
 /** Write a day through the real route, the way an agent would. */
 async function writeDay(
   token: string,
   trip: string,
-  slug: string,
+  title: string,
 ): Promise<{ status: number; body: { error?: string; message?: string } }> {
-  const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/days/route");
-  const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/trips/${trip}/days`, {
-      method: "POST",
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const date = "2026-08-25";
+  const slug = `${date}-${slugify(title)}`;
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/${OWNER}/trips/${trip}/days/${slug}`, {
+      method: "PUT",
       headers: headers({ authorization: `Bearer ${token}` }),
       body: JSON.stringify({
-        date: "2026-08-25",
-        title: slug,
+        date,
+        title,
         content: "Something happened.",
-        // This file is about revocation. The declines satisfy B531's
-        // completeness contract rather than arguing with it.
-        costs: false,
-        coordinates: false,
+        status: "draft",
+        declined: declineTheRest(),
       }),
     }),
-    { params: Promise.resolve({ user: OWNER, trip }) },
+    { params: Promise.resolve({ user: OWNER, trip, slug }) },
   );
-  return { status: response.status, body: (await response.json()) as { error?: string } };
+  return { status: response.status, body: (await response.json()) as { error?: string; message?: string } };
 }
 
 beforeAll(async () => {
@@ -164,8 +213,8 @@ beforeAll(async () => {
 
   // Written before anything reads them: `lib/trips.ts` memoises per content
   // root, so a trip created after the first read is invisible.
-  writeTrip("named-2026", [ROBIN]);
-  writeTrip("owner-only-2026", []);
+  await writeTrip("named-2026", [ROBIN]);
+  await writeTrip("owner-only-2026", []);
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
@@ -201,7 +250,7 @@ describe("a name removed from people: by hand", () => {
     // The owner opens the file and deletes the block. No cache to clear:
     // `loadTrips` fingerprints trip.md by mtime and size, precisely so a
     // visibility change does not wait for a restart.
-    writeTrip("named-2026", []);
+    await writeTrip("named-2026", []);
 
     const after = await writeDay(token, "named-2026", "After being removed");
     expect(after.status).toBe(403);

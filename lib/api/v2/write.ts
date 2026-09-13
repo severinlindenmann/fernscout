@@ -8,9 +8,17 @@
 //
 //   - V2 — echo-tolerant server-owned/immutable fields (`stripEchoedFields`)
 //   - T6 — decline retraction (`retractDeclines`)
+//   - D14 — `null` clears a scalar back to absent (`applyNullClears`)
 //
 // Plus T5: one writable-fields list per resource, shared by /api/web and
 // /api/v2, so the two doors cannot drift about what a caller may set.
+//
+// Plus two conditional checks that need something a Zod schema cannot see —
+// the journal's own config, or the trip's own media — and so belong at the
+// door rather than in ./schemas/ (00-decisions.md): `checkTranslations`
+// (B1625) and `checkCover` (B1626, the immediately-buildable half).
+import { ERROR_CODES } from "../errorCodes";
+import type { MissingRow, ProblemRow } from "./incomplete";
 
 /** A field this resource never actually lets a caller change, described by
  * where it lives in the document and what to say if somebody tries. */
@@ -155,6 +163,117 @@ export function retractDeclines(
 }
 
 /**
+ * B1616 — a decline answered by a DIFFERENT field, not by a field of the
+ * same name.
+ *
+ * T6 above only clears a stored decline when the incoming document supplies
+ * a field CALLED that. `buddies` never is one: a solo trip declines it at
+ * create (`tripCreate`'s own bespoke check in `trip.ts`, not
+ * `checkRequiredOrDeclined`, because there is no `buddies` field to be
+ * required-or-declined about), and the fact that answers it is
+ * `people.length > 1` on `people`, a field that already exists for its own
+ * reason. Supplying `people` is not "supplying `buddies`", so T6 could never
+ * see it — a solo trip's `declined.buddies` was permanent: any later PATCH
+ * that grew the party kept the stale decline, and `tripCreate`'s own
+ * superRefine then refused the merged document as claiming buddies both ways
+ * (listed in `people` AND declined).
+ *
+ * The schema is right to refuse that combination — a decline that no longer
+ * describes the document is exactly what T6 exists to prevent everywhere
+ * else. What was missing is this doing the same job for the one decline key
+ * that is not itself a field. Written as a map, not an `if` in the route,
+ * because `buddies` is very unlikely to be the last decline key with this
+ * shape — the next one is a row here, not a second special case.
+ */
+const DECLINE_ANSWERED_BY: Readonly<Record<string, (doc: Record<string, unknown>) => boolean>> = {
+  buddies: (doc) => Array.isArray(doc.people) && doc.people.length > 1,
+};
+
+/**
+ * Applies `DECLINE_ANSWERED_BY` to a document about to be validated —
+ * mutates `doc.declined` in place (dropping the key entirely once it is
+ * empty), the same "operate on the document you are about to hand the
+ * schema" style the route already uses for `days`/`cover` above it.
+ *
+ * `patch` is the raw body THIS call sent — needed so a caller who explicitly
+ * re-declines `buddies` in the very call that also grows `people` past one
+ * is still refused for the contradiction, rather than having it silently
+ * cleaned up out from under them: only a decline that merely SURVIVED from
+ * the stored document is retracted, never one the caller just asked for.
+ * Safe to call unconditionally: a document with no matching decline, or no
+ * `declined` at all, is left untouched.
+ */
+export function retractAnsweredDeclines(doc: Record<string, unknown>, patch: Record<string, unknown>): void {
+  const declined = doc.declined as Record<string, string> | undefined;
+  if (!declined) return;
+  const patchDeclined = (patch.declined as Record<string, string> | undefined) ?? {};
+  let changed = false;
+  const next = { ...declined };
+  for (const [key, answered] of Object.entries(DECLINE_ANSWERED_BY)) {
+    if (next[key] !== undefined && patchDeclined[key] === undefined && answered(doc)) {
+      delete next[key];
+      changed = true;
+    }
+  }
+  if (!changed) return;
+  if (Object.keys(next).length > 0) doc.declined = next;
+  else delete doc.declined;
+}
+
+/**
+ * B1616 — the other dead end. v1's dedicated `.../visibility` route dropped
+ * a stale `listed` (or `teaser`) whenever narrowing/widening crossed the
+ * public/closed line; v2 folded that route into the trip document and
+ * nothing took the job over. `listed` is required-or-declined on a public
+ * trip and refused outright on a closed one; `teaser` is the mirror. Both
+ * are ordinary fields, so once one is stored it survives an unrelated PATCH
+ * merge untouched — a public trip's stored `listed` is still there after
+ * `PATCH {visibility: "private"}`, and `tripCreate`'s revalidation of the
+ * merged document then refuses it as "a closed trip is never advertised,
+ * remove listed", forever, because a caller cannot un-send a key by omitting
+ * it under merge-patch semantics.
+ *
+ * The schema's refusal is correct — the two questions really are mutually
+ * exclusive. This is the route doing the merge properly, per
+ * `00-decisions.md`: a conditional rule that needs the stored document
+ * (what visibility USED to be, so the route knows which question just
+ * stopped applying) belongs at the door, not in the schema, which only ever
+ * sees one document and cannot tell an old value from a new one.
+ *
+ * Drops only the question that stopped existing — `listed` (and any
+ * `declined.listed`) on narrowing to `private`/`guest`, `teaser` on widening
+ * to `public`. The question that now DOES apply (`teaser` on narrowing,
+ * `listed` on widening) is deliberately left for `tripCreate`'s own
+ * required-or-declined refusal to ask for, exactly as it already does at
+ * create — this function does not invent an answer for a question the
+ * caller has not answered.
+ *
+ * `patch` is the raw body THIS call sent, for the same reason
+ * `retractAnsweredDeclines` above takes one: a caller who explicitly sends
+ * `listed` (or `declined.listed`) on an already-closed trip is asking for a
+ * refusal, not a cleanup, and `test/trip-visibility-api.test.ts`'s
+ * "listed: true is refused on a trip whose visibility does not advertise
+ * it" depends on that surviving. Only a value that merely CARRIED OVER from
+ * the stored document — the caller never touched it this call — is dropped.
+ */
+export function reconcileVisibility(doc: Record<string, unknown>, patch: Record<string, unknown>): void {
+  if (doc.visibility === "public") {
+    if (patch.teaser === undefined) delete doc.teaser;
+  } else if (doc.visibility === "private" || doc.visibility === "guest") {
+    if (patch.listed === undefined) delete doc.listed;
+    const patchDeclined = (patch.declined as Record<string, string> | undefined) ?? {};
+    if (patchDeclined.listed === undefined) {
+      const declined = doc.declined as Record<string, string> | undefined;
+      if (declined && declined.listed !== undefined) {
+        const { listed: _listed, ...rest } = declined;
+        if (Object.keys(rest).length > 0) doc.declined = rest;
+        else delete doc.declined;
+      }
+    }
+  }
+}
+
+/**
  * T5 — one writable-fields list per resource, shared by the `/api/web`
  * cookie door and the `/api/v2` bearer door (a later ticket builds the
  * former; this is the one place both will read from). The journal's own
@@ -209,3 +328,217 @@ export const JOURNAL_IMMUTABLE_FIELDS: readonly Immutable[] = [
     remove: true,
   },
 ];
+
+/**
+ * A trip's echo-tolerant fields — B1612 (phase 2 step 3, parcel B). `id` is a
+ * genuine `tripCreate`/`tripPatch` field (unlike a journal's `username`), so
+ * an echo needs no `remove` — the schema already accepts it, and this only
+ * refuses a caller trying to rename the trip out from under its own folder.
+ *
+ * `status` and `track` need `remove: true` for the same reason a day's own
+ * `status` does (see `DAY_IMMUTABLE_FIELDS` below): `tripDoc` adds both on
+ * every read, and `tripBase` — the `z.strictObject` `tripCreate`/`tripPatch`
+ * are built from — declares neither, so a caller that GETs a trip and PUTs
+ * or PATCHes the whole thing back would be refused for two keys it never
+ * chose to send, on every echo, always. Both are server-derived (`status`
+ * from the dates, `track` from the gps store) and never writable regardless
+ * of value, so there is nothing to compare an echo against — either field
+ * present is simply dropped before the schema ever sees it.
+ */
+export const TRIP_IMMUTABLE_FIELDS: readonly Immutable[] = [
+  {
+    path: ["id"],
+    refusal:
+      "id is not writable after a trip exists. It is the trip's folder name and the URL segment " +
+      "that addresses it. Send it back exactly as GET returned it, or leave it out of the patch.",
+  },
+  {
+    path: ["status"],
+    refusal: "status is not writable. It is derived from the trip's dates on every read.",
+    remove: true,
+  },
+  {
+    path: ["track"],
+    refusal: "track is not writable. It is derived from the gps store, which no route can write to.",
+    remove: true,
+  },
+];
+
+/**
+ * A day's echo-tolerant fields — same ticket. `status` is NOT here despite
+ * being server-influenced too: unlike a trip's `id` or `track`, a day's
+ * `status` has exactly one value the write schema can represent
+ * (`z.literal("draft")`), and that value is also the one `DAY_DECLINABLES`
+ * requires present-or-declined at CREATE — so a generic byte-identical-echo
+ * removal would strip `status: "draft"` off every ordinary PUT replace of a
+ * still-draft day (the obvious GET → edit one field → PUT the whole thing
+ * back) and turn it into a 422 for a field the schema never stopped wanting.
+ * `resolveStatusEcho` (./days.ts) is the value-aware version this needs
+ * instead: "draft" always reaches the schema untouched, and only "published"
+ * — the one value the literal can never accept at all — is dropped when it
+ * merely echoes what's already stored.
+ */
+export const DAY_IMMUTABLE_FIELDS: readonly Immutable[] = [
+  {
+    path: ["slug"],
+    refusal:
+      "slug is not writable after a day exists. It is the day's filename and the URL segment that " +
+      "addresses it. Send it back exactly as GET returned it, or leave it out of the patch.",
+  },
+];
+
+/** What `checkTranslations` answers — the two remaining gaps split by kind
+ * (B1619), on top of B1625's original refusal:
+ *
+ *   - `invalid` — the caller sent something wrong: a locale the journal does
+ *     not declare, or the day's own written language duplicated under
+ *     `translations` (it is already IN the day's own title/content; a second
+ *     copy under its own key is two answers to one question with no way to
+ *     tell which wins). A `problems` row, same shape `invalid_translations`
+ *     already used.
+ *   - `incomplete` — the caller has not finished answering: the journal
+ *     declares a language `translations` does not cover. A 422 `missing`
+ *     entry, the same asked-or-declined shape every other open section uses
+ *     — a silent gap here is a reader getting no page rather than a wrong
+ *     one, which is worse.
+ *
+ * The specific language names live in these detail rows, built per request
+ * from the journal's own locales — NOT in `DAY_DECLINABLES`' static
+ * `whyRequired` (00-decisions.md: that string is part of the schema, and a
+ * per-journal fact does not belong there).
+ */
+export type TranslationsCheck =
+  | { kind: "invalid"; message: string; problems: ProblemRow[] }
+  | { kind: "incomplete"; missing: MissingRow[] };
+
+/**
+ * B1625/B1619 — a translation naming a locale the journal does not declare,
+ * the day's own language duplicated under `translations`, or a translations
+ * map that covers only some of what the journal is owed.
+ *
+ * `schemas/trip.ts` and `schemas/day.ts` both carry the same comment on their
+ * own `translations` field: the route refuses a locale the journal does not
+ * declare, since it would be written and never rendered. A Zod schema cannot
+ * make any of these checks — it never sees the journal's config — so they
+ * live here, called from both the trip and the day write paths, on create
+ * and on patch alike (T5's shape: one shared function so the two resources
+ * and the two doors cannot drift about what "declared" and "owed" mean).
+ *
+ * Names every offending or missing locale at once, not the first —
+ * `problemsFrom`'s own convention (./incomplete.ts): a caller fixes every bad
+ * key, or answers every open language, in one round trip rather than being
+ * told about them one at a time.
+ *
+ * `writtenLocale` is the journal's own `defaultLocale` — the language a
+ * day's or trip's own title/content/tagline/intro is already written in, and
+ * so the one language `translations` must never repeat a key for. Owed
+ * languages (every OTHER locale the journal declares) are only checked once
+ * every key given is confirmed valid — a `translations` map with a bad key
+ * in it is reported as that, not additionally as missing the language it
+ * should have used instead.
+ *
+ * `translations` is read as `unknown` because it arrives before or after
+ * `schema.parse()` depending on the caller's own shape — a non-object value
+ * is not this function's problem (the schema's own shape check already
+ * refuses it) and is silently passed as "nothing to check" rather than
+ * duplicating that refusal here. Likewise: `translations` entirely absent is
+ * schema territory too — `DAY_DECLINABLES`/`TRIP_DECLINABLES` already require
+ * it present-or-declined, so a genuinely single-language journal (`owed` is
+ * empty) never reaches the incomplete check below at all.
+ */
+export function checkTranslations(
+  translations: unknown,
+  locales: readonly string[],
+  writtenLocale: string,
+): TranslationsCheck | null {
+  if (translations === undefined || translations === null) return null;
+  if (typeof translations !== "object" || Array.isArray(translations)) return null;
+
+  const keys = Object.keys(translations);
+  const bad = keys.filter((code) => !locales.includes(code));
+  const duplicated = keys.filter((code) => code === writtenLocale);
+
+  if (bad.length > 0 || duplicated.length > 0) {
+    return {
+      kind: "invalid",
+      message: ERROR_CODES.invalid_translations,
+      problems: [
+        ...bad.map((code) => ({
+          field: `translations.${code}`,
+          problem: `"${code}" is not a locale this journal declares (${locales.join(", ") || "none"}).`,
+        })),
+        ...duplicated.map((code) => ({
+          field: `translations.${code}`,
+          problem:
+            `"${code}" is this journal's own written language — the day's (or trip's) own title ` +
+            `and content already hold it. A second copy under translations.${code} is the same ` +
+            `thing said twice with no way to tell which one wins; delete it, or move it here if ` +
+            `it actually holds different words.`,
+        })),
+      ],
+    };
+  }
+
+  const owed = locales.filter((code) => code !== writtenLocale && !keys.includes(code));
+  if (owed.length === 0) return null;
+
+  return {
+    kind: "incomplete",
+    missing: owed.map((code) => ({
+      field: `translations.${code}`,
+      why_required: `this journal is read in ${locales.join(", ")}, so this carries "${code}" too, or the whole translations section declines`,
+      to_decline: "declined.translations: <reason>",
+    })),
+  };
+}
+
+/**
+ * B1626 (the immediately-buildable half) — `cover` must name a `src` this
+ * trip's own gallery already carries. No Zod schema can check this either —
+ * it needs the trip's own stored media, not just the shape of one string —
+ * so it lives here, called from the trip write path with the set of `src`
+ * values `tripDays()` (lib/api/v2/trips.ts) actually has.
+ *
+ * `cover` is a plain optional string with no floor on length, so an absent
+ * value and an empty string are different questions: this function is not
+ * where "clear the cover back to absent" gets decided (that is the rest of
+ * B1626 — a contract change needing the owner's agreement, not a build
+ * decision — and is deliberately left alone). `""` is left un-judged for the
+ * same reason `invalid_cover`'s own error text already names it as the way
+ * to clear: refusing it here would be this ticket quietly deciding the
+ * question it says it is not deciding.
+ */
+export function checkCover(cover: string | undefined, mediaSrcs: ReadonlySet<string>): string | null {
+  if (cover === undefined) return null;
+  if (mediaSrcs.has(cover)) return null;
+  return `${ERROR_CODES.invalid_cover} Got "${cover}".`;
+}
+
+/**
+ * D14 (06-contract-deltas.md, the owner's decision of 2026-09-12) — a PATCH
+ * may send `null` for `cover`, `accent`, `tagline` or `intro` to remove the
+ * field outright, finishing RFC 7386 (JSON Merge Patch), which the contract
+ * already names as v2's patch semantics and where `null` already means
+ * exactly this. `""` was considered and rejected as the spelling (same
+ * reasoning as R1 above: an absent value and an empty one are different
+ * claims), so `checkCover` no longer carves it out either — an empty string
+ * is now an ordinary invalid `src`.
+ *
+ * Applied ONCE here, in the shared write path, on the MERGED document a
+ * route is about to hand to its create schema for full revalidation — never
+ * on the schema shape itself (only `tripPatch`'s four fields are ever
+ * `.nullable()`) and never on the raw incoming patch, because a caller's own
+ * `null` still has to survive long enough for `retractDeclines`/
+ * `checkPatchConflicts` to see it as "this field is being answered, not
+ * silently omitted" before it is deleted for good.
+ */
+const NULLABLE_PATCH_FIELDS = ["cover", "accent", "tagline", "intro"] as const;
+
+export function applyNullClears(
+  merged: Record<string, unknown>,
+  fields: readonly string[] = NULLABLE_PATCH_FIELDS,
+): void {
+  for (const field of fields) {
+    if (merged[field] === null) delete merged[field];
+  }
+}
