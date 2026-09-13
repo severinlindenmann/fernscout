@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (240)
+## backlog (239)
 
 ### security (4)
 
@@ -172,12 +172,11 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (13)
+### chore (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1146](backlog/chore/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
-| [B1622](backlog/chore/B1622-v2-long-tail-money-purchases-ledger.md) | v2 long tail: money — purchases, ledger, storage | CHORE | high | high |
 | [B1623](backlog/chore/B1623-v2-long-tail-social-invites-contacts.md) | v2 long tail: social — invites, contacts, channels | CHORE | high | high |
 | [B1624](backlog/chore/B1624-v2-long-tail-print-and-inbox.md) | v2 long tail: print and inbox — postcards, photobooks, statements, inbox, journals | CHORE | high | high |
 | [B1630](backlog/chore/B1630-fifty-test-files-hand-write-the.md) | Fifty test files hand-write the storage format; there is no shared content fixture | CHORE | high | high |
@@ -354,7 +353,7 @@ _Nothing here._
 | [B1445](in-development/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (32)
+## testing (33)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -379,6 +378,7 @@ _Nothing here._
 | [B1617](testing/B1617-the-v2-day-route-never-checked.md) | The v2 day route never checked the weather capability, so a journal with it off stored the request anyway | SECURITY | high | low | — |
 | [B1618](testing/B1618-v2-publish-send-routes-call-senddayletter.md) | v2 publish/send routes call sendDayLetter/sendDayWhatsapp with the wrong slug shape, so a requested send always answers unknown_day | ISSUE | high | medium | — |
 | [B1621](testing/B1621-v2-creates-stopped-telling-an-agent.md) | v2 creates stopped telling an agent what comes next — B311's chain was broken by the migration | ISSUE | high | low | — |
+| [B1622](testing/B1622-v2-long-tail-money-purchases-ledger.md) | v2 long tail: money — purchases, ledger, storage | CHORE | high | high | — |
 | [B1625](testing/B1625-a-trip-or-day-accepts-translations.md) | A trip or day accepts translations in a locale the journal does not declare — the schema says the route refuses it and no route does | ISSUE | high | low | — |
 | [B1628](testing/B1628-day-translations-accept-a-duplicated-written.md) | Day translations accept a duplicated written language and a partial locale set | ISSUE | high | medium | — |
 | [B1629](testing/B1629-b560-s-zero-spend-day-reads.md) | B560's zero-spend day reads as unrecorded, overstating the costs average | ISSUE | high | low | — |
