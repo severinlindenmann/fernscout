@@ -27,6 +27,7 @@ import { defaultLocaleFor, localesFor, requestLocale } from "@/lib/locales";
 import { pickLocale } from "@/lib/contacts/locale";
 import { formatDigestDate } from "@/lib/digest/content";
 import { orderPrintPhoto } from "@/lib/postcard/send";
+import { postcardsLive } from "@/lib/postcard/stannp";
 import { getTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import PostcardCropper from "@/components/PostcardCropper";
@@ -165,6 +166,11 @@ export default async function PostcardOrderPage({
    *  B1479. The stepper is for an order somebody can still change. */
   const settled = !isPending(order) || expired;
   const short = balance !== null && balance < cost;
+  // B1287 — whether pressing the button actually posts anything. `dry-run`
+  // never does; `stannp` only does when the operator has set
+  // `features.postcards.live`. Read once, here, so the confirm step, the
+  // result banner and the settled receipt all say the same true thing.
+  const real = order.provider !== "dry-run" && postcardsLive();
 
   // B474. `payload.day` is a slug — a URL segment, not a name — and the page
   // was printing it at a reader ("Vom sierra-smoke"). The day has a title, and
@@ -237,6 +243,7 @@ export default async function PostcardOrderPage({
     order,
     t,
     dayName,
+    real,
     sentWhen: formatDigestDate(locale, order.updatedAt.slice(0, 10)),
     recipients: live.map((id) => {
       const to = people.get(id)!.to;
@@ -542,7 +549,11 @@ export default async function PostcardOrderPage({
                   results={Object.fromEntries(
                     Object.entries(RESULTS).map(([word, key]) => [
                       word,
-                      t(key),
+                      // B1287 — "sent" said the cards had gone to the printer
+                      // whether or not this instance ever posts one for real.
+                      word === "sent" && !real
+                        ? t("postcard.result.sentSample")
+                        : t(key),
                     ]),
                   )}
                   ledger={view.ledger}
@@ -566,19 +577,32 @@ export default async function PostcardOrderPage({
                       : null,
                     buy: t("postcard.page.buy"),
                     heading: t("postcard.confirm.heading"),
+                    // B1287 — the confirm step is the one screen this rule
+                    // cares about: what it says here has to match what
+                    // pressing "yes" actually does, on this instance, today.
                     body:
                       live.length === 1 && live[0]
-                        ? t("postcard.confirm.bodyOne", {
-                            name: people.get(live[0])!.to.name,
-                          })
-                        : t("postcard.confirm.bodyMany", {
-                            count: String(live.length),
-                          }),
+                        ? t(
+                            real
+                              ? "postcard.confirm.bodyOne"
+                              : "postcard.confirm.bodyOneSample",
+                            { name: people.get(live[0])!.to.name },
+                          )
+                        : t(
+                            real
+                              ? "postcard.confirm.bodyMany"
+                              : "postcard.confirm.bodyManySample",
+                            { count: String(live.length) },
+                          ),
                     confirmCost: t("postcard.confirm.cost", {
                       total: String(cost),
                       rest: String((balance ?? cost) - cost),
                     }),
-                    undone: t("postcard.confirm.undone"),
+                    undone: t(
+                      real
+                        ? "postcard.confirm.undone"
+                        : "postcard.confirm.undoneSample",
+                    ),
                     yes:
                       live.length === 1
                         ? t("postcard.confirm.yesOne")

@@ -286,6 +286,15 @@ export async function sendOrder(owner: string, id: string): Promise<SendOutcome>
 
   if (!(await claimForSend(owner, id))) return { ok: false, reason: "already_sent" };
 
+  // B1287 — deliberately unconditional. A `dry-run` provider, or `stannp`
+  // with `features.postcards.live` unset, still renders a full card, still
+  // occupies a recipient slot for the day, and still costs this instance a
+  // request to whichever provider is configured — the credit is the price
+  // of *sending the order through the pipeline*, not a receipt for a stamp.
+  // Waiving it for a sample would also mean nothing here ever notices an
+  // operator who never flips `live` and expects postcards to work for free
+  // forever. The owner is told which world they are in before this runs
+  // (`postcard.confirm.undoneSample`) so the charge is never a surprise.
   const charge = order.payload.creditsEach * recipients.length;
   if (!(await spend(owner, charge, "postcard", id))) {
     // Sendable again once they have bought credits. An order stuck in

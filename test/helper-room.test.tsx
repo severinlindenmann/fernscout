@@ -641,6 +641,51 @@ test("the account sheet shows balance, not a list of keys", async () => {
 });
 
 /**
+ * B1358 — an installed PWA resumes from the OS suspending it with its
+ * network interface not yet back, and the sheet's one fetch on mount can
+ * land in that gap and fail. Without a retry the sheet is stuck on
+ * "Looking…" forever, which is what "shows no numbers" turned out to mean.
+ */
+test("the account sheet asks again once the network comes back on resume", async () => {
+  let networkUp = false;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.endsWith("/account")) {
+        if (!networkUp) throw new Error("offline");
+        return {
+          ok: true,
+          json: async () => ({
+            credits: 77,
+            monthSpent: 0,
+            storage: { usedBytes: 0, ceilingBytes: null },
+          }),
+        } as Response;
+      }
+      return { ok: true, json: async () => ({ ok: true, blocks: [] }) } as Response;
+    }),
+  );
+  const box = render(null, FILES, undefined, undefined, 42);
+  const chip = [...box.querySelector("header")!.querySelectorAll("button")].find(
+    (button) => button.getAttribute("aria-label") === "Credits",
+  )!;
+  await act(async () => {
+    chip.click();
+    await Promise.resolve();
+  });
+  const sheet = document.querySelector('dialog[aria-label="Credits"]')!;
+  expect(sheet.textContent).not.toContain("77");
+
+  networkUp = true;
+  Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+  await act(async () => {
+    document.dispatchEvent(new Event("visibilitychange"));
+    await Promise.resolve();
+  });
+  expect(sheet.textContent).toContain("77");
+});
+
+/**
  * The preview sheet appears only when asked for — B1170, deleting B1121's
  * self-peeking two-height sheet. It rose by itself the moment the
  * conversation named a day, inserted 112px into the layout flow under the
