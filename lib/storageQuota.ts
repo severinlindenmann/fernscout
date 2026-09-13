@@ -208,12 +208,12 @@ function withLock<T>(username: string, fn: () => Promise<T>): Promise<T> {
  * interleave its own check between this one's check and its write.
  *
  * Every caller that used to do `if (await storageRefusal(...)) return;` and
- * then write independently should call this instead: `storeUploads` and
- * `attachOriginal` in `lib/api/media.ts`, `receiveInboxUpload`, the WhatsApp
- * media handler, and the GPS import route. The photobook order route checks
- * a nominal one byte before generating a PDF whose real size it cannot know
- * up front, so it is a plain read of `storageRefusal` rather than a write this
- * function could serialise around.
+ * then write independently should call this instead: `storeUploads` in
+ * `lib/api/media.ts`, `receiveInboxUpload`, the WhatsApp media handler, and
+ * the GPS import route. The photobook order route checks a nominal one byte
+ * before generating a PDF whose real size it cannot know up front, so it is a
+ * plain read of `storageRefusal` rather than a write this function could
+ * serialise around.
  */
 export async function withStorageQuota<T>(
   username: string,
@@ -221,12 +221,14 @@ export async function withStorageQuota<T>(
   write: () => Promise<T> | T,
 ): Promise<{ ok: true; value: T } | { ok: false; problem: string }> {
   return withLock(username, async () => {
-    // A function rather than a plain number is for the one caller whose
-    // "incoming" figure depends on what is currently on disk (`attachOriginal`
-    // nets off the bytes it is about to replace) — computed here, inside the
-    // lock, rather than by the caller before it ever queued, so that number is
-    // fresh at the moment it is checked rather than possibly stale by the time
-    // this call's turn comes.
+    // A function rather than a plain number is for a caller whose "incoming"
+    // figure depends on what is currently on disk (the now-removed
+    // `attachOriginal` used to net off the bytes it was about to replace this
+    // way — no caller uses this shape today, but the signature is kept for
+    // the next one that needs it rather than narrowed and widened again)
+    // — computed here, inside the lock, rather than by the caller before it
+    // ever queued, so that number is fresh at the moment it is checked rather
+    // than possibly stale by the time this call's turn comes.
     const bytes = typeof incomingBytes === "function" ? await incomingBytes() : incomingBytes;
     const refusal = await storageRefusal(username, bytes);
     if (refusal) return { ok: false, problem: refusal };

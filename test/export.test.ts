@@ -81,6 +81,12 @@ function seedSource() {
     path.join(srcDir, "traveller", "trips", "open-2026", "media", "alpha", "photo.jpg"),
     "not really a jpeg, just bytes to round-trip",
   );
+  // B1603 — the untouched print master a photobook prints from, kept whole
+  // beside the derivative the site serves.
+  write(
+    path.join(srcDir, "traveller", "trips", "open-2026", "originals", "alpha", "photo.heic"),
+    "the untouched original, an order of magnitude larger",
+  );
 
   // A real export pulled from a scratch journal turned these up — B1387.
   // `.DS_Store` at the trip root *and* under `media/`, plus the internal
@@ -229,6 +235,69 @@ describe("buildUserExportZipBuffer — scope 'all'", () => {
   });
 });
 
+/**
+ * B1603 — an export used to skip `originals/` outright, on the theory that a
+ * hosted owner would "back it up with the filesystem" — not an option they
+ * have. The deletion export is the last chance to get a copy of anything
+ * before it is gone for good, so it has to carry the print master too.
+ */
+describe("buildUserExportZipBuffer — originals", () => {
+  test("scope 'all', whole journal: carries the original", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "all-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("scope 'open-to-link': carries the original for a trip anyone could already read", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "open-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("narrowed to one trip (the deletion export's own shape): carries the original", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("MEDIA_ORIGINALS_DIR pointed at another disk: the original still ends up in the zip", async () => {
+    const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-export-originals-"));
+    process.env.MEDIA_ORIGINALS_DIR = externalRoot;
+    write(
+      path.join(externalRoot, "traveller", "open-2026", "alpha", "photo-external.heic"),
+      "kept on another disk entirely",
+    );
+    try {
+      process.env.CONTENT_DIR = srcDir;
+      const buffer = await buildUserExportZipBuffer("traveller", "all");
+      const extracted = unzipInto(buffer, "external-originals");
+      expect(
+        fs.existsSync(
+          path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo-external.heic"),
+        ),
+      ).toBe(true);
+    } finally {
+      delete process.env.MEDIA_ORIGINALS_DIR;
+      fs.rmSync(externalRoot, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
   /**
    * The scope means "what an anonymous visitor could already see", and a draft
@@ -334,5 +403,77 @@ describe("buildUserExportZipBuffer — narrowed to one trip", () => {
       "open-2026",
       "secret-2026",
     ]);
+  });
+});
+
+describe("buildUserExportZipBuffer — a held-back photograph", () => {
+  /**
+   * B596/B632, one filter over from the draft mistake this file already
+   * records. "open-to-link" means, in exportZip's own words, what an
+   * anonymous visitor could already see — and such a visitor cannot see a
+   * photograph a day or an item marks guest or private: visible() strips it
+   * from every reading path and the media route refuses the file.
+   *
+   * The trip-level filter is not enough, because the narrowing can sit on one
+   * day or one photograph inside a trip anybody may read. An export carrying
+   * it would be the second half of that pair failing, which AGENTS.md calls
+   * worse than having no protection at all.
+   */
+  test("a private photograph in a public trip is not in an open-to-link export", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    writeTripFixture("traveller", {
+      id: "seen-2026",
+      start: "2026-03-01",
+      end: "2026-03-02",
+      visibility: "public",
+      listed: true,
+    });
+    const mediaDir = path.join(srcDir, "traveller", "trips", "seen-2026", "media", "a-day");
+    write(path.join(mediaDir, "open.jpg"), "open bytes");
+    write(path.join(mediaDir, "held.jpg"), "held bytes");
+    writeDayFixture(srcDir, "traveller", "seen-2026", {
+      slug: "a-day",
+      date: "2026-03-01",
+      title: "A day",
+      media: [
+        { src: "/media/seen-2026/a-day/open.jpg" },
+        { src: "/media/seen-2026/a-day/held.jpg", visibility: "private" },
+      ],
+    });
+
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "held-back");
+    const at = (name: string) =>
+      path.join(extracted, "trips", "seen-2026", "media", "a-day", name);
+
+    expect(fs.existsSync(at("open.jpg"))).toBe(true);
+    expect(fs.existsSync(at("held.jpg"))).toBe(false);
+  });
+
+  test("scope all still carries it — the owner's own export is whole", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    writeTripFixture("traveller", {
+      id: "whole-2026",
+      start: "2026-04-01",
+      end: "2026-04-02",
+      visibility: "public",
+      listed: true,
+    });
+    const mediaDir = path.join(srcDir, "traveller", "trips", "whole-2026", "media", "a-day");
+    write(path.join(mediaDir, "held.jpg"), "held bytes");
+    writeDayFixture(srcDir, "traveller", "whole-2026", {
+      slug: "a-day",
+      date: "2026-04-01",
+      title: "A day",
+      media: [{ src: "/media/whole-2026/a-day/held.jpg", visibility: "private" }],
+    });
+
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "whole-export");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "whole-2026", "media", "a-day", "held.jpg"),
+      ),
+    ).toBe(true);
   });
 });

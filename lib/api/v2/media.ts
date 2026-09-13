@@ -391,6 +391,20 @@ export function forgetInboxUpload(username: string, id: string): void {
 export type MediaListResult = { items: MediaItemOut[]; nextCursor?: string };
 
 /**
+ * The `src`s a trip's own day-less media already holds — B1503. A cover is
+ * checked against what a day's `media` array names (`checkCover` in
+ * `lib/api/v2/write.ts`), which a photograph stored with no `day` never
+ * joins: T2 lets that upload happen, but nothing it lands in ever made the
+ * photograph eligible to be the trip's own cover. Unioned into the same
+ * check rather than replacing it, so a cover still has to name something
+ * this trip actually stored.
+ */
+export function daylessTripMediaSrcs(username: string, tripId: string): Set<string> {
+  const { items } = listTripMediaV2(username, tripId, { limit: Number.MAX_SAFE_INTEGER });
+  return new Set(items.filter((item) => item.day === undefined).map((item) => item.src));
+}
+
+/**
  * One trip's stored media, in the address order `frontmatterSrc` gives them
  * — day-less items (directly under the trip's `media/` root) sort before
  * any day's own subfolder, which is incidental rather than promised: cursor
