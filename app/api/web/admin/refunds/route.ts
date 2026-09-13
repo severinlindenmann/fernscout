@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 /**
  * The operator records a refund — B878.
  *
- * **It acts immediately, unlike `/api/admin/grants` beside it, and the
+ * **It acts immediately, unlike `/api/web/admin/grants` beside it, and the
  * asymmetry is the whole safety argument.** `lib/credits.ts`'s property 1 is
  * that nothing reachable over HTTP *raises* a balance; a refund lowers one, so
  * the mailed single-use link that protects a grant would buy nothing here. The
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
  * postcard send route refusing to take an address: the irreversible half stays
  * where a person is already standing.
  *
- * Outside `/api/v1/` and cookie-only, exactly as the grant route is.
+ * Under `/api/web/` and cookie-only, exactly as the grant route is.
  */
 export async function POST(request: Request) {
   if (!(await isInstanceAdmin())) {

@@ -262,7 +262,12 @@ describe("the grant path is not reachable over HTTP", () => {
   // property 1 in the module comment. Anything else importing grant still
   // fails, which keeps a third, unreviewed grant path from appearing.
   const GRANT_ALLOWED = [
-    "app/api/v1/[user]/payments/[id]/approve/route.ts",
+    // B1622: moved from app/api/v1/[user]/payments/[id]/approve/route.ts —
+    // same file, same behaviour, a cosmetic path change under the v2
+    // four-prefix scheme (the single-use token is a path segment now
+    // instead of a body field). Still exactly one of the three sanctioned
+    // grant callers.
+    "app/api/web/[user]/purchases/[id]/approve/[token]/route.ts",
     "app/api/v1/journals/route.ts",
     // B792. Stripe's signed webhook, behind a once-only claim — the same two
     // guarantees the approve route above rests on, from a credential this

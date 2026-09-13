@@ -415,8 +415,19 @@ describe("every error code a route answers with is published", () => {
    * answering with it — so "documented and never returned" was true of the
    * window and false of the codebase. A published word vanished while live
    * routes still said it.
+   *
+   * `app/api/web` joined this list for the same reason, B1622: it is the
+   * v2 migration's own cookie-only prefix (decisions.md §6), and moving
+   * `bad_method`/`bad_token` from the v1 payment routes (scanned) to their
+   * `/api/web` replacements (not scanned for `answered`, since they are not
+   * part of the published bearer contract either) made both look dead the
+   * moment the move landed, though live routes still speak them.
    */
-  for (const file of [...routeFiles("app/api/helper"), ...routeFiles("app/[user]")]) {
+  for (const file of [
+    ...routeFiles("app/api/helper"),
+    ...routeFiles("app/[user]"),
+    ...routeFiles("app/api/web"),
+  ]) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);
   }

@@ -34,7 +34,7 @@ export default function AdminRefund({
   async function refund() {
     setBusy(true);
     try {
-      const response = await fetch("/api/admin/refunds", {
+      const response = await fetch("/api/web/admin/refunds", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ user: username, payment }),

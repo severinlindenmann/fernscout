@@ -255,6 +255,25 @@ changes (a GET never returns `null` for these four — the key is either
 present or absent), and nothing that validated before this row stops
 validating now.
 
+### D15 — `schemas/money.ts` (new file)
+**What:** a new schema module — `purchaseCreate`, `purchaseDoc`,
+`PURCHASE_STATUSES`, `ledgerRow`, `LEDGER_REASONS` — exported from
+`schemas/index.ts` alongside the rest.
+**Why:** not a change to a frozen schema. The golden-contract review
+(`01-golden-contract.md`) covered day/trip/journal/figures/media/status;
+money (`docs/plans/2026-09-12-api-v2/money.md` §2.2-2.3, B1622 phase 2 step
+4) never had a Zod module before this ticket, so there is nothing here that
+bends back — this is the area's first schema, not its second.
+**Drift:** none to record against a prior shape. Two fields are hand-kept
+rather than imported from their source of truth (`PURCHASE_STATUSES`
+mirrors `PaymentStatus` in `lib/payments.ts`; `LEDGER_REASONS` mirrors the
+private `LedgerReason` union in `lib/credits.ts`) because both source
+modules are `server-only` and a schema file may not pull a runtime array out
+of one — the same constraint every other schema file already respects by
+importing enums from *plain* modules only (`lib/costFormat.ts`,
+`lib/validate/entry.ts`). Keep these two lists matching their source unions
+by hand; there is no third copy to disagree with either of them.
+
 ---
 
 ## Considered and REJECTED — the contract stands
