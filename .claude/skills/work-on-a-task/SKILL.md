@@ -261,6 +261,10 @@ end — `npx vitest run test/thing.test.ts`. The full gate is two minutes and a
 change is usually wrong in one file at a time. `npm run verify -- --quick`
 skips the build once you have built here and touched no route since.
 
+If the owning tests are unclear, run `npm run check:changed -- <changed-path>`.
+It adds dependency-related tests and static keepers, says why each was chosen,
+and broadens rather than returning an empty green run.
+
 Then the task's **Acceptance** section, line by line. Each line either has
 evidence — a command and its output, a test that failed before and passes now
 — or it does not.

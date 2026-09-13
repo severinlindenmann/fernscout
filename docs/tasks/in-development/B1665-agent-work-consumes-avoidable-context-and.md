@@ -206,6 +206,13 @@ verbatim in five `docs/agents/` references and load only when relevant. A new
 keeper enforces the 28 KiB ceiling, resolves every local link and refuses an
 unlinked scoped reference; its three focused tests pass.
 
+`npm run check:changed -- <paths>` now unions Vitest's dependency-related
+tests with an explicit registry for instruction, task, skill, locale, API,
+brand/colour, browser-dialog, depersonalisation and capability keepers. It
+prints every reason, and runs the full suite when neither the graph nor the
+registry finds evidence. The `lib/theme.ts` trial selected five dependency
+files plus three otherwise invisible source-scan keepers; 92 tests passed.
+
 ## Acceptance
 
 - A committed baseline report and command reproduce measurements across at

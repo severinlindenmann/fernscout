@@ -110,7 +110,12 @@ single relevant test file while iterating, for example:
 
 ```bash
 npx vitest run test/thing.test.ts
+npm run check:changed -- path/to/changed-file.ts
 ```
+
+`check:changed` combines Vitest's dependency graph with declared source-scan
+keepers, prints why each check was selected, and broadens to the full suite
+when neither source has evidence.
 
 Use `npm run verify -- --quick` only after this worktree has built and no route
 was added, moved or deleted since. Next generates route types during the build;

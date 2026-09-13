@@ -58,6 +58,11 @@ files, and the build is under a minute; a full `npm run verify` is closer to
 five. A change is usually wrong in one file at a time, which is what makes the
 single-file run worth the habit.
 
+When ownership is unclear, `npm run check:changed -- path/to/file.ts` unions
+Vitest's dependency-related tests with declared static keepers, explains every
+selection and broadens when it has no evidence. It is an iteration aid, never
+a replacement for the final `npm run verify`.
+
 **Why the build goes first, since the script no longer makes you think about
 it.** Next generates the typed-route definitions in `.next/types` during a
 build, and `PageProps`, `LayoutProps` and `RouteContext` resolve against them.
@@ -156,4 +161,3 @@ said "there are five endpoints" while describing thirty. The
 `keep-the-contract` skill is the procedure for the parts a test cannot reach —
 including driving a real journal onto a running instance, which is how B540
 found two fields that were accepted, answered `201`, and thrown away.
-
