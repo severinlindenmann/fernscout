@@ -193,7 +193,6 @@ function JournalProfileFields({
 }) {
   const { t } = useI18n();
   const router = useRouter();
-  const [startLocation, setStartLocation] = useState(journal.startLocation);
   const [units, setUnits] = useState(journal.units);
   const [defaultLocale, setDefaultLocale] = useState(journal.defaultLocale);
   // Every maintained locale but the default — `defaultLocale` is never one
@@ -202,7 +201,6 @@ function JournalProfileFields({
     journal.locales.filter((code) => code !== journal.defaultLocale),
   );
   const [currencies, setCurrencies] = useState(journal.displayCurrencies.join(", "));
-  const [ownerTel, setOwnerTel] = useState(journal.ownerTel);
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<"idle" | "saved" | "failed">("idle");
   const [error, setError] = useState<string | undefined>();
@@ -211,12 +209,10 @@ function JournalProfileFields({
     extraLocales.length === journal.locales.length - 1 &&
     extraLocales.every((code) => journal.locales.includes(code));
   const dirty =
-    startLocation.trim() !== journal.startLocation ||
     units !== journal.units ||
     defaultLocale !== journal.defaultLocale ||
     !sameLocales ||
-    currencies.trim() !== journal.displayCurrencies.join(", ") ||
-    ownerTel.trim() !== journal.ownerTel;
+    currencies.trim() !== journal.displayCurrencies.join(", ");
 
   // The same swap `SignupWizard` makes (B838): choosing a new default drops
   // it from the extras, since it cannot be both.
@@ -229,13 +225,15 @@ function JournalProfileFields({
     setBusy(true);
     setState("idle");
     setError(undefined);
-    // v2's journal document has no `startLocation` and no `ownerTel` —
-    // "rendered and computed by nothing" (owner review, 2026-09-12, see
+    // v2's journal document has no `startLocation` and no `ownerTel` — dropped
+    // deliberately, owner review 2026-09-12 (see
     // lib/api/v2/schemas/journal.ts) — and no separate `defaultLocale`: the
     // first entry of `locales` IS the default, which `[defaultLocale,
-    // ...extraLocales]` below already produces. Those three inputs stay on
-    // the panel (v1 still reads them back for display) but nothing here
-    // saves them any more; see B1595's report for the gap.
+    // ...extraLocales]` below already produces. B1653 removed both inputs
+    // from this panel rather than leave them silently unsaved: `startLocation`
+    // is read by nothing, and `ownerTel` is set at signup (phone
+    // verification) or by an agent's own `PATCH /api/v1/{user}/config`, never
+    // from this cookie-only page — see the read-only row below.
     const response = await fetch(`/api/web/${encodeURIComponent(username)}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -261,17 +259,6 @@ function JournalProfileFields({
 
   return (
     <div className="space-y-4">
-      <label className="block">
-        <span className={FIELD_LABEL}>{t("me.journalStartLocation")}</span>
-        <input
-          type="text"
-          value={startLocation}
-          maxLength={120}
-          onChange={(event) => setStartLocation(event.target.value)}
-          className={FIELD_INPUT}
-        />
-      </label>
-
       <label className="block">
         <span className={FIELD_LABEL}>{t("me.journalUnits")}</span>
         <select
@@ -352,19 +339,22 @@ function JournalProfileFields({
         </span>
       </label>
 
-      <label className="block">
-        <span className={FIELD_LABEL}>{t("me.journalOwnerTel")}</span>
-        <input
-          type="tel"
-          value={ownerTel}
-          onChange={(event) => setOwnerTel(event.target.value)}
-          placeholder="+41 76 000 00 00"
-          className={FIELD_INPUT}
-        />
-        <span className="mt-1 block text-xs leading-5 text-navy-500">
+      {/* Read-only — B1653. The v2 journal document has no `ownerTel`, and
+          this page writes through the v2-backed cookie proxy
+          (`/api/web/{user}`), so an input here could accept a value it would
+          never store. The number is still real: it is set once, at signup
+          (phone verification), or later by an agent's own
+          `PATCH /api/v1/{user}/config` — the door `JOURNAL_PROFILE_FIELDS`
+          (`lib/journals.ts`) still keeps open for exactly this field. */}
+      <div className="rounded-xl border border-navy-200 bg-cream-50 p-3.5">
+        <p className={FIELD_LABEL}>{t("me.journalOwnerTel")}</p>
+        <p className="mt-1 text-sm leading-6 text-navy-900">
+          {journal.ownerTel || t("me.journalOwnerTelNone")}
+        </p>
+        <p className="mt-1 text-sm leading-6 text-navy-600">
           {t("me.journalOwnerTelHint")}
-        </span>
-      </label>
+        </p>
+      </div>
 
       {/* Refused, always — see the module comment on `JournalSettings`. */}
       <div className="rounded-xl border border-navy-200 bg-cream-50 p-3.5">
@@ -710,13 +700,12 @@ export type JournalPanel = {
    *  /api/v1/{user}/config` reads, so this panel can never show a field
    *  that call would disagree about — B852. */
   visibility: "public" | "guest";
-  startLocation: string;
   units: "metric" | "imperial";
   locales: string[];
   defaultLocale: string;
   displayCurrencies: string[];
-  /** `""` when none is set; clearing the box turns the owner's own WhatsApp
-   *  copy of a published day off again. */
+  /** `""` when none is set. Read-only here — B1653; see the panel that shows
+   *  it. Still writable via an agent's `PATCH /api/v1/{user}/config`. */
   ownerTel: string;
   /** Read-only — shown so the refusal on the screen names the value rather
    *  than only the rule. */
