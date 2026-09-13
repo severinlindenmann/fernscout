@@ -63,7 +63,7 @@ export default async function TripLayout({
       canSignIn={isEnabled("auth", user)}
       canAsk={isEnabled("contacts", user)}
       codeMinutes={CODE_TTL_MINUTES}
-      whatsappSignIn={whatsappSignInOffered(user)}
+      whatsappSignIn={await whatsappSignInOffered(user)}
       guestBlockedByPrivate={await guestBlockedByPrivateTrip(trip)}
       waiting={await awaitingApproval(user)}
     />

@@ -12,6 +12,7 @@ import { getTrips, type TripRef } from "../trips";
 import type { ReminderChannel, Trip } from "../types";
 import { getUser, getUsernames, userDir } from "../users";
 import type { UserConfig } from "../config";
+import { getOwnerTel } from "../ownerTel";
 import { sendWhatsapp } from "../whatsapp";
 import { reminderTemplate } from "../whatsapp/settings";
 
@@ -129,10 +130,11 @@ async function sendReminder(username: string, user: UserConfig, trip: Trip): Pro
   // carrying this channel should always be able to send; checked again here
   // rather than trusted, since either can have been withdrawn since.
   const template = reminderTemplate();
-  if (!template || !user.owner.tel) return { sent: false, reason: "whatsapp_unavailable" };
+  const ownerTel = template ? await getOwnerTel(username) : null;
+  if (!template || !ownerTel?.tel) return { sent: false, reason: "whatsapp_unavailable" };
   try {
     const result = await sendWhatsapp({
-      to: user.owner.tel,
+      to: ownerTel.tel,
       template: template.name,
       language: template.language,
       body: [trip.title],

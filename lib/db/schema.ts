@@ -681,6 +681,21 @@ type WhatsappSendsTable = {
   sent_at: string;
 };
 
+/**
+ * The owner's own telephone number, one row per journal — B1654, and see
+ * `034-owner-tel` for the shape and why `tel` is nullable rather than the
+ * row being absent.
+ */
+type OwnerTelTable = {
+  owner_id: string;
+  tel: string | null;
+  proven_at: string | null;
+  /** `sms` | `operator` | `whatsapp-inbound` | `agent` — the closed list is
+   * `OWNER_TEL_PROVEN_METHODS` in lib/ownerTel.ts. */
+  proven_method: string | null;
+  updated_at: string;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -707,6 +722,7 @@ export type Database = {
   admin_acks: AdminAcksTable;
   sms_messages: SmsMessagesTable;
   whatsapp_sends: WhatsappSendsTable;
+  owner_tel: OwnerTelTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -737,4 +753,5 @@ export const TABLE_NAMES = [
   "admin_acks",
   "sms_messages",
   "whatsapp_sends",
+  "owner_tel",
 ] as const satisfies readonly (keyof Database)[];

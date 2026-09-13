@@ -21,6 +21,7 @@ import { authTemplateFor } from "@/lib/whatsapp/settings";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
+import { getOwnerTel } from "@/lib/ownerTel";
 import { getTrip, tripRef } from "@/lib/trips";
 import { isPersonOn } from "@/lib/tripPeople";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -283,7 +284,8 @@ async function handleJournal(
     const ownersAddress =
       typeof user.owner.email === "string" &&
       user.owner.email.trim().toLowerCase() === req.email.trim().toLowerCase();
-    const tel = user.owner.tel && user.owner.telProvenAt ? toE164(user.owner.tel) : null;
+    const ownerTel = await getOwnerTel(username);
+    const tel = ownerTel?.tel && ownerTel.provenAt ? toE164(ownerTel.tel) : null;
     if (!ownersAddress || !tel) return accepted();
     const day = 24 * 60 * 60 * 1000;
     const perNumber = rateLimitFor("whatsapp-code-number", tel, { max: 10, windowMs: day });

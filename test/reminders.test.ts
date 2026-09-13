@@ -120,18 +120,18 @@ afterEach(() => {
 });
 
 describe("the on/off switch (lib/api/tripReminder.ts)", () => {
-  test("turns on with a channel, and reads back", () => {
+  test("turns on with a channel, and reads back", async () => {
     writeJournal("ana");
     writeTrip("ana", "spain", YESTERDAY, TOMORROW);
-    const result = patchTripReminder("ana/spain", { enabled: true, channel: "mail" });
+    const result = await patchTripReminder("ana/spain", { enabled: true, channel: "mail" });
     expect(result).toMatchObject({ ok: true, enabled: true, channel: "mail" });
     expect(readTripReminder("ana/spain")).toEqual({ enabled: true, channel: "mail" });
   });
 
-  test("turns off, clearing the channel too", () => {
+  test("turns off, clearing the channel too", async () => {
     writeJournal("ana");
     writeTrip("ana", "spain", YESTERDAY, TOMORROW, "mail");
-    const result = patchTripReminder("ana/spain", { enabled: false });
+    const result = await patchTripReminder("ana/spain", { enabled: false });
     expect(result).toMatchObject({ ok: true, enabled: false, channel: null });
     expect(readTripReminder("ana/spain")).toEqual({ enabled: false, channel: null });
     expect(readTripFile("ana", "spain")?.reminder).toBeUndefined();
@@ -143,17 +143,17 @@ describe("the on/off switch (lib/api/tripReminder.ts)", () => {
     expect(onDisk).not.toContain("reminder");
   });
 
-  test("refuses whatsapp on an instance with no reminder template configured", () => {
+  test("refuses whatsapp on an instance with no reminder template configured", async () => {
     writeJournal("ana");
     writeTrip("ana", "spain", YESTERDAY, TOMORROW);
-    const result = patchTripReminder("ana/spain", { enabled: true, channel: "whatsapp" });
+    const result = await patchTripReminder("ana/spain", { enabled: true, channel: "whatsapp" });
     expect(result).toMatchObject({ ok: false, error: "channel_unavailable" });
     expect(readTripReminder("ana/spain")).toEqual({ enabled: false, channel: null });
   });
 
-  test("refuses an unknown trip", () => {
+  test("refuses an unknown trip", async () => {
     writeJournal("ana");
-    expect(patchTripReminder("ana/nowhere", { enabled: true })).toMatchObject({
+    await expect(patchTripReminder("ana/nowhere", { enabled: true })).resolves.toMatchObject({
       ok: false,
       error: "unknown_trip",
     });

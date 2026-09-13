@@ -9,6 +9,7 @@ import { AS_AUTHOR, getEntryBySlug } from "../entries";
 import { contactsWithReadGrant } from "../grants";
 import { maySeePhoto, type ReaderLevel } from "../photos";
 import { serverSite } from "../site";
+import { getOwnerTel } from "../ownerTel";
 import { peopleOf } from "../tripPeople";
 import { getTrip } from "../trips";
 import type { Locale, Trip } from "../types";
@@ -103,10 +104,11 @@ function chargeable(recipients: { free: boolean }[]): number {
  */
 async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappRecipient[]> {
   const owner = trip.username;
-  const [contacts, granted, travellers] = await Promise.all([
+  const [contacts, granted, travellers, ownerTel] = await Promise.all([
     listContacts(owner),
     contactsWithReadGrant(owner, new Date()),
     peopleOf(trip),
+    getOwnerTel(owner),
   ]);
   const travellerSet = new Set(travellers.map((e) => e.toLowerCase()));
   const countryCode = whatsappCountryCode();
@@ -130,10 +132,10 @@ async function recipientsFor(trip: Trip, user: UserConfig): Promise<WhatsappReci
   // Into `seen` as well as into the list, so a contact who shares the number
   // (an owner also in their own guestbook, a household phone) gets the free
   // copy rather than a second message and a charge.
-  if (user.owner.tel) {
-    seen.add(user.owner.tel);
+  if (ownerTel?.tel) {
+    seen.add(ownerTel.tel);
     out.push({
-      to: user.owner.tel,
+      to: ownerTel.tel,
       name: user.owner.nickname || user.owner.name,
       locale: pickLocale(user.defaultLocale),
       free: true,

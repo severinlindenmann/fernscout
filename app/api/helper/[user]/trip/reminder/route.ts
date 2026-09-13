@@ -61,7 +61,7 @@ export async function PATCH(
     refused(user, "set_reminder", "bad_request");
     return Response.json({ error: "bad_request" }, { status: 400 });
   }
-  const result = patchTripReminder(ref, { enabled, channel: body.channel });
+  const result = await patchTripReminder(ref, { enabled, channel: body.channel });
   if (!result.ok) {
     refused(user, "set_reminder", result.error);
     const status = result.bug
