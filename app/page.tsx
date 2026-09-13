@@ -103,7 +103,7 @@ export default async function Root() {
       <Landing
         siteName={site.name}
         docUrl={`${site.url}/documentation.txt`}
-        agentUrl={`${site.url}/agent.md`}
+        agentUrl={`${site.url}/skill/add-a-day.md`}
         // The advertised list, and nothing personal: this page is the same
         // document for everybody, so it stays cacheable. What one signed-in
         // reader may open arrives separately from `/api/v1/me/home` — see

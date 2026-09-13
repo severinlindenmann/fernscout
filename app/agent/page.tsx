@@ -278,7 +278,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
       {upgradeIdentity && <IdentityUpgrade />}
     <AgentDoor
       docUrl={`${site.url}/documentation.txt`}
-      agentUrl={`${site.url}/agent.md`}
+      agentUrl={`${site.url}/skill/add-a-day.md`}
       codeMinutes={CODE_TTL_MINUTES}
       signedIn={Boolean(identity)}
       identityEmail={identity?.email ?? null}
