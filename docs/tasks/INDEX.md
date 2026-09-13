@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (243)
+## backlog (242)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (64)
+### issue (63)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -92,7 +92,6 @@ Do not edit them by hand; run the script.
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
 | [B1308](backlog/issue/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
 | [B1431](backlog/issue/B1431-a-model-turn-that-throws-says.md) | A model turn that throws says nothing, on every ordinary WhatsApp reply | ISSUE | medium | low |
-| [B1474](backlog/issue/B1474-sixty-nine-strings-are-shipped-to.md) | Sixty-nine strings are shipped to Hungarian readers in English, including the whole of an order's status | ISSUE | medium | low |
 | [B1493](backlog/issue/B1493-the-landing-page-lists-no-journals.md) | The landing page lists no journals for a reader holding only a journal cookie | ISSUE | medium | low |
 | [B1503](backlog/issue/B1503-a-media-file-belonging-to-no.md) | A media file belonging to no day cannot be written through any door | ISSUE | medium | low |
 | [B1508](backlog/issue/B1508-a-scratch-journal-named-test-something.md) | A scratch journal named test-something poisons the depersonalised guard with common words | ISSUE | medium | low |
@@ -339,9 +338,11 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (0)
+## open (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B1474](open/B1474-sixty-nine-strings-are-shipped-to.md) | Sixty-nine strings are shipped to Hungarian readers in English, including the whole of an order's status | ISSUE | medium | low |
 
 ## in-development (8)
 
