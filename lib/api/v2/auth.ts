@@ -85,3 +85,23 @@ export async function requireJournalOwner(request: Request, username: string): P
   if (!mayActAsOwner(session, username)) return { ok: false, response: ownerOnlyRefusal() };
   return { ok: true, session };
 }
+
+/**
+ * The sync surface's own gate — every refusal the same `not_found`, copied
+ * from `app/[user]/export.zip/route.ts`'s reasoning (see the v1
+ * `sync/manifest` and `sync/file` route comments this replaces). This
+ * answers the same question that export does — what is in this journal,
+ * drafts and private trips included — so an unknown journal, a token for a
+ * different journal, and a trip-scoped token must be indistinguishable from
+ * outside: what leaks otherwise is which journals exist on an instance whose
+ * landing page may advertise none of them.
+ */
+export async function requireHiddenOwner(request: Request, username: string): Promise<OwnerAuth> {
+  const hidden = { ok: false as const, response: fail("not_found", ERROR_CODES.not_found, undefined, 404) };
+  const auth = await resolveBearer(request);
+  if (!auth.ok) return hidden;
+  const { session } = auth;
+  if (!ownsUser(session, username)) return hidden;
+  if (!mayActAsOwner(session, username)) return hidden;
+  return { ok: true, session };
+}
