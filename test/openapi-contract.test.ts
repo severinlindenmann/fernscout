@@ -413,18 +413,20 @@ describe("every error code a route answers with is published", () => {
    * part of the published bearer contract either) made both look dead the
    * moment the move landed, though live routes still speak them.
    *
-   * `app/api/trip` (and its sibling `app/api/journal`, already cookie-only
-   * and outside the contract) joined for the same reason again, B1632:
-   * retiring `PATCH /api/v1/{user}/config` took `mixed_change` out of the
-   * v1 scan, but `app/api/trip/route.ts` — the cookie-side door that copied
-   * the same one-change-per-call rule — still answers with it.
+   * `app/api/trip` and `app/api/journal` used to be scanned here for the
+   * same reason. Both are **gone** — B1595 replaced them with `/api/web`
+   * cookie proxies, which this list already covers — so scanning them now
+   * throws `ENOENT` rather than finding anything. Removed with them.
+   *
+   * The `mixed_change` worry that put them here in the first place is also
+   * moot: `PATCH /api/v1/{user}/config` was restored (B1654 — it is the only
+   * post-signup writer of `ownerTel`), so the code that speaks that refusal
+   * is back inside the v1 scan where it always was.
    */
   for (const file of [
     ...routeFiles("app/api/helper"),
     ...routeFiles("app/[user]"),
     ...routeFiles("app/api/web"),
-    ...routeFiles("app/api/trip"),
-    ...routeFiles("app/api/journal"),
   ]) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);
