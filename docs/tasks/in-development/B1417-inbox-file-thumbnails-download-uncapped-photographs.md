@@ -43,3 +43,9 @@ together, and grep for a third instance while you are in there.
 
 Still valid: inbox file tiles still use `fill sizes="96px"`; the fix is
 isolated to the image layout and has no product decision.
+
+## Implemented / Verification
+
+Inbox image tiles now use explicit 96px dimensions, preventing oversized
+candidate requests. Focused inbox/helper tests passed; build, typecheck, lint,
+and knip pass with existing warnings only.

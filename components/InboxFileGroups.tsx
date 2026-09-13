@@ -243,8 +243,8 @@ export function InboxFileGroups({
                         src={file.src}
                         loader={mediaLoader}
                         alt=""
-                        fill
-                        sizes="96px"
+                        width={96}
+                        height={96}
                         className="object-cover"
                       />
                     ) : (
