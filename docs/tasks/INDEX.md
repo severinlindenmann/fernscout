@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (247)
+## backlog (249)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (63)
+### issue (65)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -129,6 +129,8 @@ Do not edit them by hand; run the script.
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 | [B1648](backlog/issue/B1648-openapi-json-day-write-schema-omits.md) | openapi.json day write schema omits status from required though the server demands it | ISSUE | low | low |
 | [B1649](backlog/issue/B1649-trip-put-s-missing-buddies-message.md) | trip PUT's missing-buddies message gives no schema and no pointer to the invites endpoint | ISSUE | low | low |
+| [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
+| [B1659](backlog/issue/B1659-helper-buy-room-spends-with-no.md) | helper buy_room spends with no idempotency ref, unlike the v2/web storage purchase door | ISSUE | low | low |
 
 ### big-feature (18)
 
