@@ -7,8 +7,7 @@ complexity: low
 area: helper
 found: "2026-09-12T07:31:35Z"
 started: "2026-09-12T07:38:15Z"
-session: 47912984-b51b-4d11-b25e-5b026ba593de
-claimed: "2026-09-12T07:38:15Z"
+merged: "2026-09-13T19:08:49Z"
 ---
 
 # B1562 — Asking for a preview is answered with a publish_day proposal
@@ -46,3 +45,14 @@ A turn whose user sentence is "vorschau" (and nothing publish-like) never
 carries a `publish_day` proposal; the day is shown instead. A sentence that
 asks to publish still gets the card. A test in `test/` covers the three
 languages' preview words; `npm run verify` green.
+
+
+## Verified 2026-09-13 — already merged, and the guard proven by reverting
+
+The fix was on `main` already and the task file had simply not been moved. An
+agent confirmed the code, and flagged honestly that it could not run the
+"fails when reverted" check because there was no local diff to revert.
+
+That check has now been done directly against `main`: reverting the `isPreviewOnly` intercept in `run.ts` fails `helper-preview-intent` in all three languages (de, en, hu).
+
+So the guard is real rather than a test that would pass either way.
