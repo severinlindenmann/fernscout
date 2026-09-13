@@ -647,3 +647,68 @@ reason — D19 genuinely weakens the `costs` declinable's promise.
   write what the files contain.
 - **Phase 4** — AGENTS.md and the README still open by saying the content is
   markdown.
+
+## 2026-09-13 — the migration closes, with three v1 routes left standing
+
+**Deployed `c4bc5bf2`. `npm run verify` green. 52 v2 routes, 15 `/api/web`
+cookie proxies, and `app/api/v1` down from 20 route files to three.**
+
+### The three that survive, and why each is deliberate
+
+| Route | Why it stays |
+|---|---|
+| `[user]/config` | `lib/capabilities.ts` still reads a journal's own `features` block **as a gate**, and `lib/rates.ts` still reads `manualRates` for the journal-wide currency picker. Decision 5 is decided and **not implemented**. B1666 |
+| `[user]/deletions/[token]` | Authenticates by a single-use token mailed to the owner — no cookie, no bearer. It is not an instance of the credential split, and filing it under `/api/web`'s cookie-`isOwner` convention would misrepresent its auth model |
+| `[user]/trips/[trip]/track` | Touches the GPS store. Left alone on purpose |
+
+An empty `app/api/v1` was available at any point today by deleting these. It
+would have been bought by removing capability somebody depends on, and that is
+the trade this migration has refused five times.
+
+### What the helper half of step 5 turned out to be
+
+Not a refactor. Three agents investigated and **correctly refused**, and the
+root cause is the same each time: the wizard authenticates by **cookie**, every
+v2 door is **bearer-only**, and decision 24 forbids a browser holding a bearer
+token. The helper routes *are* the cookie door. They already call the shared
+domain functions that B1598 unified, so there was never a second format — only
+a second door, and for cookie callers that door has to exist.
+
+Where a door was genuinely missing it was built: five `/api/web` proxies for
+the browser's writes, five more for invites and channels, and
+`POST/DELETE …/days/{slug}/media`, which v2 had **no** equivalent of at all.
+
+### The faults this migration surfaced
+
+Found by doing the work, not by looking for them:
+
+- `fillDayWeather` reported `not_asked` for every already-recorded reading, so
+  an archive lookup could overwrite a reading the author took themselves.
+- A trip-scoped token could read a whole journal document, `owner.email`
+  included — `GET /api/v2/{user}` checked only `ownsUser` (B1652).
+- An owner-scoped agent token could set an **unproved** phone number, and
+  `dayWhatsapp.ts` sends the owner their day content to whatever number is on
+  file (B1654).
+- The deletion inventory a person reads **before an irreversible delete**
+  under-counted: a three-day trip reported one day, and the two it omitted
+  were the most private they had.
+- `exportZip` still checked `.md`, so **every draft went into an
+  open-to-link export**.
+- Two storage-quota bypasses, including one in v2's own media door.
+- `buy_room` charged twice on a retry.
+- Any day that had ever held a photograph could never again be patched.
+- Two brand-new v2 doors reintroduced B1103's leak — `403` where v1 answered
+  `404`, letting a probe tell "wrong trip" from "no such trip".
+
+### What is left
+
+- **B1666** — audit deployed journals' `features`/`manualRates`, then finish
+  decision 5. `config` and `test/api-route-schemas.test.ts` go with it.
+- **B1650's siblings** — B1658 (verified *not* unblocked by B1660), B1661.
+- **B1663** — five credit paths with no idempotency.
+- **B1656's remainder**, B1655 (parked by the owner), B1657/B1659 done.
+- `lib/api/openapi.ts` survives while three v1 routes do.
+
+**Not yet done: an independent check.** Everything above was verified by the
+agents that wrote it and by the lead who merged it. A fresh reader who did not
+watch it being built should test the result against `01-golden-contract.md`.
