@@ -393,6 +393,20 @@ const inviteCreated = z.object({
   note: z.string().optional(),
 });
 
+/**
+ * `next` is not a field of `tripDoc`/`dayDoc` themselves — a plain `GET`
+ * never carries it — but the first `PUT` of a journal's first trip, and the
+ * first `PUT` of a trip's first day, echo one alongside the document: B311's
+ * chain, journal → trip → day → photographs, so an agent that has just
+ * created its first of either is told where the next step is written down
+ * rather than left to guess (`app/api/v2/[user]/trips/[trip]/route.ts`,
+ * `.../days/[slug]/route.ts`). Documented here as its own response shape,
+ * wrapping the frozen document rather than adding an unconditional field to
+ * it, the same pattern `inviteCreated` above already uses.
+ */
+const tripCreatedFirst = z.object({ ...tripDoc.shape, next: z.string().optional() });
+const dayCreatedFirst = z.object({ ...dayDoc.shape, next: z.string().optional() });
+
 // ── pagination-wrapped list responses — every "GET a collection" route in
 // v2, so a list is `{ items..., next_cursor }`. Wrapping the frozen document
 // schemas rather than retyping their contents. ────────────────────────────
@@ -584,7 +598,7 @@ function buildPaths(): Record<string, PathItem> {
       summary: "Create a trip at a client-chosen id, or replace one (with a matching If-Match).",
       request: jsonBody(tripCreate, "the whole trip document"),
       responses: {
-        ...jsonResponse(201, tripDoc, "created"),
+        ...jsonResponse(201, tripCreatedFirst, "created — carries `next` when this is the journal's first trip"),
         ...jsonResponse(200, tripDoc, "replaced (If-Match matched the stored ETag)"),
         ...refusalResponses([
           ...ownerRefusals,
@@ -645,7 +659,7 @@ function buildPaths(): Record<string, PathItem> {
       summary: "Create a day at a client-chosen slug, or replace a draft (with a matching If-Match).",
       request: jsonBody(dayWrite, "the whole day document"),
       responses: {
-        ...jsonResponse(201, dayDoc, "created"),
+        ...jsonResponse(201, dayCreatedFirst, "created — carries `next` when this is the trip's first day"),
         ...jsonResponse(200, dayDoc, "replaced"),
         ...refusalResponses([
           ...tripWriteRefusals,

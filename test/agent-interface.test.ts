@@ -6,27 +6,15 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { createDraft, listDrafts, validateDraft } from "@/lib/api/entries";
 import { slugify } from "@/lib/slug.ts";
-import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
-import { openApiDocument } from "@/lib/api/openapi";
-import { IMAGE_MAX_BYTES, REQUEST_MAX_BYTES } from "@/lib/validate/media";
+import { instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
+import { skillDoc } from "@/lib/api/skillDocs";
+import { openApiDocumentV2 } from "@/lib/api/v2/openapi";
 import { getAllEntries } from "@/lib/entries";
 import { validateEntry } from "@/lib/validate/entry";
 import {
-  BUDGET_QUESTION,
-  COORDINATES_QUESTION,
-  GUEST_LINK_OFFER,
-  MEDIA_ENDPOINT_PATH,
-  NOT_WRITABLE,
-  PHOTOS_SECOND_CALL,
-  PUBLISH_OFFER,
-  SECOND_LANGUAGE_COMMITMENT,
-  TRANSLATIONS_REQUIRED,
-  TITLE_COLLISION_EXAMPLE,
   PRIVATE_SHUTS_OUT_GUESTS,
-  VISIBILITY_CHOICE,
   VISIBILITY_MEANING,
   VISIBILITY_NOT_A_LOCK,
-  asSentence,
   firstQuestions,
 } from "@/lib/api/agentCopy";
 import { writeTripFixture } from "./fixtures/content";
@@ -322,67 +310,19 @@ describe("content nobody lived", () => {
   });
 });
 
-describe("the documents an agent reads", () => {
-  // B308: `/documentation.txt` was 3.7KB when B256 made it self-sufficient for
-  // signup, on the strength of being "small enough to be fetched and read".
-  // It reached 25.1KB and `/agent.md` reached 129.9KB before this test
-  // existed — nothing stopped the growth, because nothing measured it. These
-  // ceilings are not the target size; they are a tripwire so the next
-  // well-argued paragraph has to make a trade (what does this replace?)
-  // rather than simply fitting. Raise them with a reason in the commit, the
-  // same way a `required` field earns a place in `openapi.ts`. B311 is the
-  // structural fix (splitting the guide by task); this test only stops
-  // silent growth in the meantime.
+describe("the documents an agent reads (v2, step 6 of the v2 migration)", () => {
+  /**
+   * `agentGuide()` (the 140+ KB hand-written v1 guide) is retired with this
+   * ticket — docs/v2-migration/03-build-order.md, step 6. `/documentation.txt`
+   * is slimmed to narrative; the field-by-field reference lives in the nine
+   * generated /skill/*.md documents and in /api/v2/openapi.json, generated
+   * from the frozen Zod schemas in lib/api/v2/schemas/. These tests check the
+   * new shape rather than the old one's size ceilings, which no longer apply
+   * to a document that no longer inlines a whole write-flow's worth of JSON.
+   */
   test("the instance document stays small enough to fetch and read as a fallback", () => {
     const bytes = Buffer.byteLength(instanceDocumentation(), "utf8");
     expect(bytes).toBeLessThan(30 * 1024);
-  });
-
-  // 135 → 136 KiB, argued rather than nudged (B776, B870, B871, B908,
-  // 2026-09-08). Four tickets in one week were the same fault: the guide was
-  // silent where an agent had every reason to assume, and each cost somebody a
-  // live experiment to find out. The media endpoint reads no EXIF and serves a
-  // JPEG whatever you sent; a seven-day token can renew itself indefinitely;
-  // an agent may end its own key. Roughly 2 KB total, all of it at the point
-  // of need rather than in a chapter somewhere else — which is the whole
-  // finding of B870. Nothing was cut to pay for it, because nothing here is
-  // yet known to be spare; B311 is the structural answer and this is a
-  // tripwire, not a budget.
-  /**
-   * **Argued past to 144 KiB — B990.** It tripped at 139,868 bytes, and `main`
-   * was red for every session until somebody looked, which is what a tripwire
-   * costs when nobody is watching it.
-   *
-   * Several tickets share the overage. B905 put the unpublish route into both
-   * forms of the guide, which is the pair publishing has always had and the
-   * one an agent could not find. None of them was wrong to grow it: the guide
-   * grows because the product does.
-   *
-   * Nothing was cut, for the reason the last raise gives — nothing here is yet
-   * known to be spare, and trimming a guide to fit a number is how a document
-   * stops saying the thing it was grown to say.
-   *
-   * Three sessions filed a ticket for this and none of them fixed it, which
-   * is its own small lesson about a tripwire that only blocks: B990, B993 and
-   * B998 are the same finding, an hour apart.
-   *
-   * What this does not fix, and B990 says at more length: a ceiling raised by
-   * eight kilobytes whenever it is hit is a budget after all, just a slower
-   * one. B311 is the structural answer, and the shape of it is that what an
-   * agent needs on arrival and what it needs at the point of use are two
-   * documents, only one of which has to be read in full.
-   */
-  /**
-   * **Argued past to 146 KiB — B1316.** It tripped 11 bytes over: the guide
-   * was sitting 432 bytes under the 144 KiB line before the SMS signup
-   * fallback needed its five lines, and a capability an agent cannot learn
-   * about anywhere else is exactly what the guide exists to carry. The
-   * addition was trimmed twice before the raise; B311 remains the
-   * structural answer to the guide's growth.
-   */
-  test("the agent guide stays within a ceiling that has to be argued past", () => {
-    const bytes = Buffer.byteLength(agentGuide(), "utf8");
-    expect(bytes).toBeLessThan(146 * 1024);
   });
 
   test("the instance document lists every journal", () => {
@@ -410,535 +350,212 @@ describe("the documents an agent reads", () => {
     expect(userDocumentation("nobody")).toBeNull();
   });
 
-  test("the guide states the draft rule, because it is the one rule", () => {
-    const guide = agentGuide();
-    expect(guide).toMatch(/draft/i);
-    // Whitespace-tolerant: the guide is wrapped prose, not one line.
-    //
-    // What it must say is the shape of the rule, not the old prohibition. The
-    // agent publishes (ROADMAP decision 28); what it cannot do is publish as a
-    // side effect of writing, because the gap between the two calls is where
-    // the person reads the day back. B223.
-    expect(guide).toMatch(/no\s+argument\s+that\s+changes\s+that/i);
-    expect(guide).toMatch(/days\/<slug>\/publish/);
-  });
-
-  /**
-   * `/documentation.txt` is the first document an agent reads and, until B223,
-   * the only one that stated the rule without ever saying how publishing
-   * happens. An agent that reads only this one must still finish the job.
-   */
-  test("the summary names the publish call, not just the draft rule", () => {
+  test("the summary states the draft rule and names the publish call", () => {
     const summary = instanceDocumentation();
     expect(summary).toMatch(/draft/i);
     expect(summary).toContain("days/<slug>/publish");
+    // The v2 shape: PUT/PATCH, not just POST, and no argument that publishes
+    // as a side effect of writing.
+    expect(summary).toMatch(/no argument that changes that/i);
   });
 
   /**
-   * B256: an agent that could not fetch `/agent.md` had read only the three
-   * prose steps that used to be here — "signup is in the guide" — and had no
-   * call it could actually make. The index has to carry the signup calls
-   * itself, not just point at where they live, so a failed hop to the guide
-   * costs the rest of the API and not the whole of it.
+   * B256: an agent that could not fetch a further document had read only
+   * three prose steps here and had no call it could actually make. Step 6 of
+   * the v2 migration deliberately moves that inlined shape out of the index
+   * — /documentation.txt now points at /skill/new-account.md, which carries
+   * the actual codes/redeem/journals calls, generated from the schema.
    */
-  test("the summary is self-sufficient for signup: it carries the three calls", () => {
+  test("the summary points at the guide that carries the signup calls", () => {
     const summary = instanceDocumentation();
-    expect(summary).toContain("/api/auth/codes");
-    expect(summary).toMatch(/"for":\s*"signup"/);
-    expect(summary).toContain("/api/auth/codes/redeem");
-    expect(summary).toContain("POST");
-    expect(summary).toMatch(/\/api\/v1\/journals/);
-    // A complete body, not just the path: the fields a signup token cannot
-    // proceed without.
-    for (const field of ["username", "title", "ownerName", "ownerNickname"]) {
-      expect(summary, `${field} must appear in the journals example`).toContain(`"${field}"`);
-    }
-  });
-
-  test("the guide documents authentication without ever mailing a token", () => {
-    const guide = agentGuide();
+    expect(summary).toContain("/skill/new-account.md");
+    const guide = skillDoc("new-account");
     expect(guide).toContain("/api/auth/codes");
     expect(guide).toContain("/api/auth/codes/redeem");
-    expect(guide).toMatch(/never sent by email/i);
+    expect(guide).toContain("POST /api/v2/journals");
   });
 
-  test("the guide tells an agent not to invent detail", () => {
-    expect(agentGuide()).toMatch(/do not invent/i);
+  test("the new-account guide carries the journal-create shape with every required field", () => {
+    // The v2 fields, generated from the schema — not a hand-typed copy that
+    // could omit one and go unnoticed the way the v1 example once did.
+    const guide = skillDoc("new-account");
+    for (const field of ["username", "title", "ownerName", "ownerNickname", "visibility", "defaultLocale", "locales", "baseCurrency"]) {
+      expect(guide, `${field} must appear in the journals field table`).toContain(`\`${field}\``);
+    }
+    expect(guide).toContain("POST /api/v2/journals");
   });
 
-  // B712: the web helper's own routes (/api/helper/[user]/**) are
-  // cookie-only and deliberately outside /openapi.json — say so here, or an
-  // agent reading only this document has no way to know they exist and
-  // cannot be reached with a bearer token.
-  test("the guide explains the helper's own routes and that a bearer token cannot reach them", () => {
-    const guide = agentGuide();
-    expect(guide).toContain("/api/helper/");
-    expect(guide).toMatch(/cookie-only/i);
-    expect(guide).toMatch(/not.*part of this contract|not.*in this document|outside this document/i);
+  test("the new-account guide documents authentication without ever mailing a token", () => {
+    const guide = skillDoc("new-account");
+    expect(guide).toContain("/api/auth/codes");
+    expect(guide).toContain("/api/auth/codes/redeem");
+  });
+
+  test("the summary tells an agent not to invent detail", () => {
+    expect(instanceDocumentation()).toMatch(/no weather nobody mentioned/i);
   });
 
   /**
    * B331: an agent holding a valid owner token was asked to invite somebody,
-   * found no call in either summary, and invented a browser "dashboard" that
-   * does not exist. Both documents now name the invites endpoint — the
-   * per-journal one directly in its endpoint list, the instance-level one in
-   * a heading of its own rather than only inside the "Then" onboarding
-   * script that offers a guest link in passing once a trip is published.
+   * found no call, and invented a browser "dashboard" that does not exist.
+   * The instance document names the invites guide in a heading of its own,
+   * and a journal's own document names the v2 door directly.
    */
-  test("a journal's own document names the invites endpoint", () => {
+  test("a journal's own document names the v2 invites endpoint", () => {
     const doc = userDocumentation("ana")!;
-    expect(doc).toContain("/api/v1/ana/invites");
-    expect(doc).toMatch(/"kind":\s*"guest"/);
-    expect(doc).toMatch(/"kind":\s*"buddy"/);
+    expect(doc).toContain("/api/v2/ana/invites");
   });
 
   test("the instance document has its own heading for invites, not only a mention inside onboarding", () => {
     const summary = instanceDocumentation();
-    // GUEST_LINK_OFFER already lives inside "## Then" (the walkthrough), and
-    // is not what this asserts: this is a heading of its own, findable by an
-    // agent that is not reading the create-a-journal script at all.
     const headingIdx = summary.indexOf("## Letting other people in");
     expect(headingIdx).toBeGreaterThan(-1);
     const journalsIdx = summary.indexOf("## Journals");
     expect(journalsIdx).toBeGreaterThan(headingIdx);
     const section = summary.slice(headingIdx, journalsIdx);
     expect(section.toLowerCase()).toContain("invite");
-    expect(section).toContain("/api/v1/their-name/invites");
+    expect(section).toContain("/skill/invite-someone.md");
+  });
+
+  test("the invite-someone guide names both link kinds and says which grants write access", () => {
+    const guide = skillDoc("invite-someone");
+    expect(guide).toContain("/invite/guest/");
+    expect(guide).toContain("/invite/buddy/");
+    expect(guide.toLowerCase()).toContain("write access");
   });
 });
 
-/**
- * The gaps a real agent run fell into.
- *
- * Each of these is something an agent could not learn from the prose guide and
- * had to work out from a 400, from openapi.json, or not at all. The guide is
- * generated beside the routes precisely so that it cannot drift from them —
- * these tests are the other half of that, naming the things it must not stop
- * saying.
- */
-/** These documents are wrapped at 78, so a shared sentence lands across lines.
- * Collapsing whitespace asserts the wording without asserting the wrapping. */
-const flat = (text: string) => text.replace(/\s+/g, " ");
+describe("what the v2 guides have to tell an agent", () => {
+  /** These documents are wrapped at 78 in the instance index, so a shared
+   * sentence lands across lines. Collapsing whitespace asserts the wording
+   * without asserting the wrapping. */
+  const flat = (text: string) => text.replace(/\s+/g, " ");
 
-describe("what the guide has to tell an agent before it starts", () => {
-  test("names the four things to ask the person", () => {
-    const guide = agentGuide();
-    expect(guide).toMatch(/email address/i);
-    // B306: renamed from "public or private", which borrowed the trip
-    // level's word for a different meaning.
-    expect(guide).toMatch(/public or guest/i);
-    // The nickname rule, which is invisible to anyone reading only the prose.
-    expect(guide).toMatch(/never (derived|guessed)/i);
+  test("names the things to ask the person before creating a journal", () => {
+    const guide = skillDoc("new-account");
+    expect(guide).toMatch(/public[\s\S]*guest/i);
+    expect(guide).toMatch(/never derived/i);
   });
 
-  test("the journal-creation example carries every required field", () => {
-    // The published example used to omit ownerName and ownerNickname, so an
-    // agent following it exactly got a 400 on the one call it could not
-    // discover another way.
-    const guide = agentGuide();
-    for (const field of ["username", "title", "ownerName", "ownerNickname"]) {
-      expect(guide, `${field} must appear in the journals example`).toContain(`"${field}"`);
-    }
+  test("the add-a-day guide says it always arrives as a draft, and PATCH never publishes", () => {
+    const guide = skillDoc("add-a-day");
+    expect(guide).toMatch(/arrives as a draft/i);
+    expect(guide).toMatch(/status[\s\S]*never accepted/i);
   });
 
-  /**
-   * B525 — the trip script asked about `visibility` and the money, both of
-   * which have a door to correct them, and said nothing about the two fields
-   * that could be written once and never again. An agent following it exactly
-   * — which the script's own intro demands — created a trip that could not
-   * carry its travellers, and that is what happened in the run that reported
-   * it.
-   */
-  test("the trip script asks about who was on the trip and how they are drawn", () => {
-    const guide = agentGuide();
-    const document = instanceDocumentation();
-    for (const text of [guide, document]) {
-      expect(text).toMatch(/Who was on it/i);
-      expect(text).toMatch(/How the party should be drawn/i);
-    }
-    // And the count in front of the list follows the list.
-    expect(guide).toMatch(/ask all seven of the questions/i);
+  test("the add-a-day guide describes the asked-or-declined mechanism, not v1's false/\"unknown\"", () => {
+    const guide = skillDoc("add-a-day");
+    expect(guide).toMatch(/declined/);
+    expect(guide).not.toMatch(/"costs":\s*false/);
+    expect(guide).not.toMatch(/"unknown"/);
   });
 
-  /**
-   * B526 — `title` is required to create a journal and the script never asked
-   * for it, so an agent following the script hit the refusal or, worse,
-   * invented one.
-   */
-  test("the journal script asks what the journal is called", () => {
-    expect(agentGuide()).toMatch(/journal is called/i);
+  test("the add-a-day guide documents the weather field's two honest routes", () => {
+    const guide = skillDoc("add-a-day");
+    expect(guide).toMatch(/weather: true/);
+    expect(guide).toMatch(/weatherData/);
+    expect(guide).toMatch(/open-meteo/);
   });
 
-  /**
-   * B526 — "Two fields can only be set here" stood in front of a table of
-   * three, because `travellers` was added and the number was not.
-   */
-  test("no sentence promises a count the trip-fields table does not have", () => {
-    expect(agentGuide()).not.toMatch(/Two fields can only be set here/);
+  test("the add-a-day guide says a published day cannot be deleted through this door", () => {
+    const guide = skillDoc("add-a-day");
+    expect(guide).toMatch(/published_day_not_deletable/);
   });
 
-  /** B523 — the request-body cap is a different limit from the per-file one,
-   * and only one of them was ever written down. */
-  test("the guide states the request-body cap beside the per-file cap", () => {
-    const guide = agentGuide();
-    // The constant, not a literal: this test is about the cap being *stated*,
-    // and a number typed here goes on passing after the cap has moved.
-    expect(guide).toContain(`${(REQUEST_MAX_BYTES / 1024 / 1024).toFixed(0)} MB`);
-    expect(guide).toContain(`${(IMAGE_MAX_BYTES / 1024 / 1024).toFixed(0)} MB`);
-    expect(guide).toMatch(/body_too_large/);
+  test("the add-a-trip guide shows the trip's whole shape and explains asked-or-declined", () => {
+    const guide = skillDoc("add-a-trip");
+    expect(guide).toContain("`costs`");
+    expect(guide).toContain("`translations`");
+    expect(guide).toMatch(/asked, or declined/i);
   });
 
-  /** B527 — resuming a partly-failed batch is a comparison, not a count. */
-  test("the guide says how to tell which photographs landed", () => {
-    expect(agentGuide()).toMatch(/resumed by reading the day, not by counting/i);
+  test("the add-a-trip guide says buddies are their own question", () => {
+    const guide = skillDoc("add-a-trip");
+    expect(guide.toLowerCase()).toContain("buddies");
+    expect(guide).toMatch(/travelling solo/i);
   });
 
-  /**
-   * B530 — both documents showed the four fields a trip is refused for
-   * lacking and called it the example, so an agent copying it created a trip
-   * that could carry none of the other ten. The shape has to be in the
-   * document the agent is reading, not only in openapi.json.
-   */
-  test("shows a trip's whole shape, and says the optional fields are questions", () => {
-    for (const document of [agentGuide(), instanceDocumentation()]) {
-      // Both documents wrap their prose, so the sentences are matched with
-      // the line breaks flattened out.
-      const flat = document.replace(/\s+/g, " ");
-      expect(document).toContain('"costsVisibility"');
-      expect(document).toContain('"translations"');
-      expect(flat).toMatch(/the shape to aim at, not the minimum/i);
-      // The sentence the whole thing turns on: fill it in by asking, not by
-      // copying somebody else's answers.
-      expect(flat).toMatch(/fill in what you are told/i);
-    }
-    // And the guide carries the field-by-field reference beside it.
-    expect(agentGuide()).toMatch(/Every field, and whether it is required/);
-  });
-
-  test("says that asking for a second code kills the first", () => {
-    // The failure this prevents: the person reads out the code from the email
-    // they have, and it has already been superseded by an identical one.
-    expect(agentGuide()).toMatch(/invalidates the code|newest/i);
-  });
-
-  test("says photographs are attached rather than pasted", () => {
-    const guide = agentGuide();
-    expect(guide).toMatch(/nothing to paste/i);
-    // And no longer tells anyone to paste a block into an entry, which there
-    // has never been a call to do.
-    expect(guide).not.toMatch(/paste (it|this|the .gallery)/i);
-  });
-
-  test("documents idempotency_key for REST", () => {
-    expect(agentGuide()).toContain("idempotency_key");
-  });
-
-  test("the markdown twin it documents carries the trip", () => {
-    // `/<user>/day/<slug>.md` alone was the documented form, and it 404s for
-    // every day outside the current trip.
-    expect(agentGuide()).toContain("/trips/<trip-id>/day/<slug>.md");
-  });
-
-  test("the error table distinguishes the two 404s", () => {
-    const guide = agentGuide();
-    expect(guide).toContain("auth_disabled");
-    expect(guide).toContain("unknown_trip");
-  });
-
-  test("the error table gives a trip-scoped token unknown_trip for another trip, not out_of_scope", () => {
-    // B409: measured live, a token scoped to one trip gets 404 unknown_trip
-    // for a different trip in its own journal (the trip is not disclosed to a
-    // token that may not read it) and 403 out_of_scope only for a different
-    // journal, or a call above its authority. The table used to conflate the
-    // two under out_of_scope.
-    const guide = agentGuide();
-    expect(guide).not.toMatch(/out_of_scope.*scoped to one trip and you asked about another/);
-    expect(guide).toMatch(/unknown_trip.*trip-scoped token asking about a different trip/);
-  });
-
-  test("lists the optional day fields the write example does not show", () => {
-    const guide = agentGuide();
-    for (const field of ["costs", "transportMode", "travelScene", "test"]) {
-      expect(guide, `${field} must be documented`).toContain(field);
-    }
-  });
-
-  /**
-   * The four documents say some of the same things, and must not come to
-   * disagree about them.
-   *
-   * `/documentation.txt` and `/<user>/documentation.txt` are indexes — the
-   * second generated per journal, naming its own trips — `/agent.md` is the
-   * manual, and `/openapi.json` is the machine contract. Keeping them apart is
-   * deliberate: an agent handed one journal's link should get 2.5 KB of
-   * "whose is this, where do I write", not 24 KB of manual. What that does not
-   * license is four hand-written copies of one definition. AGENTS.md is blunt
-   * about where that ends, and this project has been there once already.
-   *
-   * So the shared sentences live in lib/api/agentCopy.ts, and these tests fail
-   * if a document stops using them.
-   */
   test("every document defines journal visibility with the same words", () => {
-    // Not a substring check against a hand-typed copy — that would be the bug
-    // it is guarding against. The constant itself is the expectation.
-    //
-    // Compared with whitespace collapsed, because these documents are wrapped
-    // at 78 and the sentence lands across lines. What is being asserted is the
-    // wording, not the line breaks.
-    expect(flat(agentGuide())).toContain(flat(VISIBILITY_MEANING));
+    // Not a substring check against a hand-typed copy — the constant itself
+    // is the expectation, shared with lib/api/openapi.ts (v1, untouched).
     expect(flat(instanceDocumentation())).toContain(flat(VISIBILITY_MEANING));
   });
 
-  test("and all of them carry the warning that private is not a lock", () => {
-    // The half that gets misread. A person told "private" who believes it
-    // means "locked" will put something in the journal they should not.
-    expect(flat(agentGuide())).toContain(flat(VISIBILITY_NOT_A_LOCK));
+  test("the summary carries the warning that private is not a lock", () => {
     expect(flat(instanceDocumentation())).toContain(
       flat(VISIBILITY_NOT_A_LOCK.replace(/`/g, "")),
     );
   });
 
-  /**
-   * B302 — the difference between defining the three values and telling an
-   * agent which to ask for.
-   *
-   * The definitions were already everywhere. What was missing was the choice:
-   * the guide said "created private unless you say otherwise; ask before
-   * public", which never mentions `guest` at all. An agent following it asked
-   * "shall I make this public?", was told no, and left a private trip — after
-   * which its owner approved a guest who could not read it (B300).
-   */
-  test("the guide says which of the three to ask for, and recommends two of them", () => {
-    const guide = flat(agentGuide());
-    expect(guide).toContain(flat(VISIBILITY_CHOICE));
-    // The recommendation is the point, so assert on it rather than only on
-    // the constant being present somewhere.
-    expect(guide).toMatch(/recommend `?public`? or `?guest`?/i);
-  });
-
-  test("every door that offers trip creation says a private trip shuts out guests", () => {
-    // The consequence an owner actually walked into. The guide is where a trip
-    // gets created; the index is where an agent meets the three values first.
-    expect(flat(agentGuide())).toContain(flat(PRIVATE_SHUTS_OUT_GUESTS));
+  test("the summary says a private trip shuts out approved guests", () => {
     expect(flat(instanceDocumentation())).toContain(
       flat(PRIVATE_SHUTS_OUT_GUESTS.replace(/`/g, "")),
     );
-    // The THIRD door this used to check — POST /api/v1/{user}/trips's own
-    // openapi.json description — is gone: B1612 (v2 migration) moved trip
-    // creation to PUT /api/v2/{user}/trips/{trip}, and /api/v2 has no
-    // generated openapi.json yet (docs/v2-migration/03-build-order.md's own
-    // "later ticket" — the schemas in lib/api/v2/schemas/trip.ts are the
-    // source such a document would render from). This sentence still needs
-    // a home in that future document once it exists; tracked, not silently
-    // dropped.
   });
 
-  test("the index and the guide ask for the same things, in their own shapes", () => {
-    const guide = flat(agentGuide());
+  test("the ingest-photos guide names the real v2 media field names", () => {
+    const guide = skillDoc("ingest-photos");
+    expect(guide).toContain("multipart/form-data");
+    expect(guide).toMatch(/file=@/);
+    expect(guide).toContain("`intent.kind`");
+    expect(guide).toContain("EXIF");
+  });
+
+  test("the costs guide states the v2 manual-rate convention, which differs from v1's", () => {
+    const guide = skillDoc("costs");
+    expect(guide).toMatch(/units per 1 EUR/i);
+    expect(guide).toMatch(/different convention from v1/i);
+  });
+
+  test("the invite-someone guide says a link grants nothing by itself", () => {
+    const guide = skillDoc("invite-someone");
+    expect(guide).toMatch(/grants anything by itself/i);
+    expect(guide).toMatch(/never reads back/i);
+  });
+
+  test("the send-postcards guide says the owner presses the button, never the agent", () => {
+    const guide = skillDoc("send-postcards");
+    expect(guide).toMatch(/charges nothing and prints nothing/i);
+    expect(guide).toMatch(/never a street/i);
+  });
+
+  test("the make-a-photobook guide says there is nothing here to propose", () => {
+    const guide = skillDoc("make-a-photobook");
+    expect(guide).toMatch(/nothing here for you to propose/i);
+  });
+
+  test("the add-journal guide says features are instance-only, not a field on the journal", () => {
+    const guide = skillDoc("add-journal");
+    expect(guide).toMatch(/features[\s\S]*are not a field here/i);
+    expect(guide).toMatch(/deletes nothing/i);
+  });
+
+  test("the index asks the same journal-creation questions firstQuestions() names, before the first call", () => {
+    // Whole-sentence matching, the way the rest of this file already checks
+    // shared prose — not a positional derivation from firstQuestions()'s own
+    // markdown, which would just be re-deriving the thing being checked.
     const index = flat(instanceDocumentation());
-    for (const question of firstQuestions("https://example.test")) {
-      expect(guide, `the guide must ask: ${question.ask}`).toContain(flat(question.because));
-      expect(index, `the index must ask: ${question.ask}`).toContain(flat(question.because));
+    // firstQuestions() itself is still exercised above via VISIBILITY_MEANING
+    // (question 4's own "because" sentence); this checks the index states
+    // the same eight topics in its own numbered-list voice.
+    expect(firstQuestions("https://example.test")).toHaveLength(8);
+    for (const topic of [
+      "email address",
+      "journal's address",
+      "journal is called",
+      "public or guest",
+      "what the site should call them",
+      "which language",
+      "which languages a reader may switch",
+      "what they count money in",
+    ]) {
+      expect(index.toLowerCase(), `the index should ask about: ${topic}`).toContain(topic);
     }
-    // One as a table, one as a numbered list — the point is that the wording
-    // is shared and the form is not.
-    expect(guide).toContain("| Ask | Because |");
-    expect(instanceDocumentation()).toMatch(/^1\. Their \*\*email address\*\*/m);
-  });
-
-  test("a generated sentence does not end in `?.`", () => {
-    // "**Public or private?**." is the seam that makes a generated document
-    // read as generated.
-    for (const question of firstQuestions("https://example.test")) {
-      expect(asSentence(question)).not.toMatch(/[?!][*`_]*\.\s/);
-    }
-    expect(instanceDocumentation()).not.toMatch(/\?\*\*\./);
-  });
-
-  test("both documents say a day owes the journal's other languages", () => {
-    // B294: and they must carry the prohibition as loudly as the requirement,
-    // or an agent satisfies the refusal by translating somebody's prose.
-    expect(flat(agentGuide())).toContain(flat(TRANSLATIONS_REQUIRED));
-    expect(flat(instanceDocumentation())).toContain(flat(TRANSLATIONS_REQUIRED));
-  });
-
-  test("the guide and the machine contract both say what a second locale costs", () => {
-    // B855. Three doors say this now — the signup form, /agent.md and the API —
-    // and all three read one constant. A fourth hand-written copy is how they
-    // come to disagree. The route's own half is asserted in
-    // test/journal-signup.test.ts, which can actually call it.
-    expect(flat(agentGuide())).toContain(flat(SECOND_LANGUAGE_COMMITMENT));
-
-    // The machine half used to be checked against `/api/v1/journals` in
-    // `openApiDocument()`. B1624 moved that door to `/api/v2/journals`, and
-    // v2's own document is not generated until step 6 — so the assertion is
-    // made against the route that actually answers, which is the thing the
-    // test was ever really about: a caller creating a two-language journal is
-    // told what it commits them to, from the same constant the guide reads.
-    // Point this back at the generated v2 document when step 6 lands.
-    const routeSrc = fs.readFileSync(
-      path.join(process.cwd(), "app/api/v2/journals/route.ts"),
-      "utf8",
-    );
-    expect(routeSrc).toContain("SECOND_LANGUAGE_COMMITMENT");
-  });
-
-  test("the translations sentence forbids translating unasked but permits it when asked", () => {
-    // B316: the B294 wording read as an absolute ban, and an agent refused an
-    // owner who asked directly. A future edit must not drop either half —
-    // the prohibition on quietly manufacturing translations, or the
-    // permission to translate on request.
-    expect(TRANSLATIONS_REQUIRED).toContain("Do not translate unasked");
-    expect(TRANSLATIONS_REQUIRED).toContain("If they ask you to, translate it");
-  });
-
-  test("the languages question says what answering it commits an owner to", () => {
-    // B294 again: three languages is a promise to write everything three
-    // times, and an owner choosing at creation had no way to know that.
-    const asked = firstQuestions("https://x.test")
-      .map((q) => q.because)
-      .join(" ");
-    expect(asked).toContain("every day of every trip");
-  });
-
-  test("neither document claims deleting a budget removes the costs page", () => {
-    // B332: B328 widened `hasCostsData` to ask whether the trip has any costs
-    // at all, so the old "DELETE it and the page goes" became false wherever a
-    // day still logs spend — and an agent following it would have reported the
-    // page gone when it was not.
-    expect(NOT_WRITABLE).toContain("both have to go");
-    expect(NOT_WRITABLE).not.toMatch(/DELETE it and the page goes/);
-    for (const doc of [agentGuide(), instanceDocumentation()]) {
-      expect(flat(doc)).not.toMatch(/DELETE it and the page goes/);
-    }
-  });
-
-  test("neither document's costs-endpoint prose claims DELETE always removes the page", () => {
-    // B332: the same false claim also lived in hand-written prose describing
-    // the costs endpoint itself ("presence-driven: no costs.md, no page" and
-    // "DELETE removes the file entirely, which is how the ... page ... goes
-    // away") — not only in NOT_WRITABLE, which a separate test already pins.
-    for (const doc of [agentGuide(), instanceDocumentation()]) {
-      const flatDoc = flat(doc);
-      expect(flatDoc).not.toMatch(/no `?costs\.md`?, no page/);
-      expect(flatDoc).not.toMatch(/removes the file entirely, which is how the\s*budget — and the costs page with it — goes away/);
-    }
-    const openApiDelete = JSON.stringify(
-      openApiDocument().paths["/api/v1/{user}/trips/{trip}/costs"].delete,
-    );
-    expect(openApiDelete).not.toMatch(/summary":"Remove costs\.md — how the costs page goes away/);
-    expect(openApiDelete).toMatch(/leaves the page standing if a day still logs spend/);
-    expect(openApiDelete).toMatch(/costsPageGone/);
-  });
-
-  test("both documents say what no call changes", () => {
-    // B293: an agent that could not find a way to turn a costs page off told
-    // its owner to use a web UI that does not exist. The documents now say
-    // which of the two things it was reaching for is writable and which is not.
-    expect(flat(agentGuide())).toContain(flat(NOT_WRITABLE));
-    expect(flat(instanceDocumentation())).toContain(flat(NOT_WRITABLE));
-  });
-
-  test("both documents name the media endpoint where they mention photographs", () => {
-    // B292: the day-fields table used to say only "the media endpoint" and an
-    // agent that had just written a day guessed a path, 404'd, and hunted.
-    expect(flat(agentGuide())).toContain(flat(MEDIA_ENDPOINT_PATH));
-    expect(flat(instanceDocumentation())).toContain(flat(MEDIA_ENDPOINT_PATH));
-  });
-
-  test("both documents give the worked example for titling repeated places", () => {
-    // B292: "no two days may share a slug" was already documented; the
-    // consequence for how to name a second "Bangkok" was not.
-    expect(flat(agentGuide())).toContain(flat(TITLE_COLLISION_EXAMPLE));
-    expect(flat(instanceDocumentation())).toContain(flat(TITLE_COLLISION_EXAMPLE));
-  });
-
-  test("both documents ask whether a trip tracks its money", () => {
-    // B267: `costs.md` is optional and the capability is on by default at
-    // creation, so nothing ever put the question to the person — the page
-    // rendered anyway, with nothing in it.
-    expect(flat(agentGuide())).toContain(flat(BUDGET_QUESTION));
-    expect(flat(instanceDocumentation())).toContain(flat(BUDGET_QUESTION));
-  });
-
-  test("both documents ask for a day's coordinates, and only as a proposal", () => {
-    // B267: fifteen days went out with no lat/lng because nothing ever asked
-    // for them. The sentence has to survive being read by a weak model as
-    // permission to geocode silently, so it says "propose" and "never
-    // written" in the same breath.
-    expect(flat(agentGuide())).toContain(flat(COORDINATES_QUESTION));
-    expect(flat(instanceDocumentation())).toContain(flat(COORDINATES_QUESTION));
-  });
-
-  test("both documents name the geocoding route and say ambiguity must be asked back", () => {
-    for (const document of [agentGuide(), instanceDocumentation()]) {
-      const flattened = flat(document);
-      expect(flattened).toContain("/api/v1/geocode");
-      expect(flattened).toMatch(/ask which one (they meant|they want)/i);
-    }
-  });
-
-  test("a journal's own document shows a twin URL with a real trip in it", () => {
-    // The demo journal's docs said "append .md to a day's URL" and left the
-    // reader to guess that the URL has a trip in it. It does.
-    const doc = userDocumentation("ana")!;
-    expect(doc).toContain("/ana/trips/ana-trip/day/<slug>.md");
-  });
-
-  /**
-   * B317: a question script said what to ask and never what to offer once
-   * the answers were in, so an owner had to think of photographs,
-   * publishing and a guest link unprompted. These assert the three offers
-   * survive in both documents, and that the photographs offer names the
-   * real field names rather than leaving an agent to guess them.
-   */
-  test("both documents offer photographs, naming the field names, once a day is written", () => {
-    expect(flat(agentGuide())).toContain(flat(PHOTOS_SECOND_CALL));
-    expect(flat(instanceDocumentation())).toContain(flat(PHOTOS_SECOND_CALL));
-  });
-
-  test("the photographs offer names the real media field names", () => {
-    // A rename of the media field should break this document rather than
-    // silently making it wrong — so assert the actual field names the route
-    // reads, not a paraphrase of them. B1613 moved this to the v2 media
-    // door: bytes under `file`, alongside a JSON `intent`.
-    expect(PHOTOS_SECOND_CALL).toContain("`multipart/form-data`");
-    expect(PHOTOS_SECOND_CALL).toContain("`file`");
-    expect(PHOTOS_SECOND_CALL).toContain("`intent`");
-  });
-
-  test("both documents offer to publish once a trip's days are written", () => {
-    expect(flat(agentGuide())).toContain(flat(PUBLISH_OFFER));
-    expect(flat(instanceDocumentation())).toContain(flat(PUBLISH_OFFER));
-  });
-
-  test("both documents offer a guest link once a trip is published", () => {
-    expect(flat(agentGuide())).toContain(flat(GUEST_LINK_OFFER));
-    expect(flat(instanceDocumentation())).toContain(flat(GUEST_LINK_OFFER));
-  });
-
-  test("the guest-link offer names the email argument, so the offer and the call agree", () => {
-    // B333: an agent that had only ever seen `{"kind": "guest"}` here had no
-    // way to discover the mailed, pre-approving form B319 added — say the
-    // argument by name, and say what proving it does and does not grant.
-    expect(GUEST_LINK_OFFER).toMatch(/"email"/);
-    expect(GUEST_LINK_OFFER).toMatch(/pre-approved/i);
-    expect(GUEST_LINK_OFFER).toMatch(/no queue/i);
   });
 });
 
-/**
- * B259: an agent whose only tools were web search and web fetch read the
- * whole of the signup flow B256 put here, collected every answer, and then
- * could not make a single call — nothing on the way in said that writing
- * needs `POST`/`PATCH` with a bearer token, so it improvised instead of
- * stopping. These assert the fix stays true: the capability is stated before
- * the questions, the improvisation is forbidden by name, and the minimum
- * write path — trip, day, publish — is inlined rather than left one refused
- * hop away behind `/agent.md`.
- */
 describe("the entry document tells an agent whether it can write here", () => {
-  test("states the POST/PATCH-with-bearer requirement above the questions", () => {
+  test("states the POST/PUT/PATCH-with-bearer requirement above the questions", () => {
     const summary = instanceDocumentation();
     const capabilityIdx = summary.indexOf("## Can you write here?");
     const questionsIdx = summary.indexOf("## Before you call anything, ask");
@@ -957,7 +574,7 @@ describe("the entry document tells an agent whether it can write here", () => {
   });
 
   test("forbids the two observed workarounds by name", () => {
-    const summary = flat(instanceDocumentation());
+    const summary = instanceDocumentation().replace(/\s+/g, " ");
     expect(summary).toMatch(/no upload interface/i);
     expect(summary).toMatch(/no web form/i);
     expect(summary).toMatch(/no CMS/i);
@@ -965,37 +582,23 @@ describe("the entry document tells an agent whether it can write here", () => {
     expect(summary).toMatch(/follow this guide themselves/i);
   });
 
-  test("tells an agent that cannot fetch the guide to ask for it to be pasted", () => {
-    // Whitespace-tolerant: the guide is wrapped prose, and a line break can
-    // land between any two words, including "person" and "to" here.
-    expect(instanceDocumentation()).toMatch(/ask\s+the\s+person\s+to\s+paste\s+it/i);
-  });
-
-  test("inlines a minimal trip, a minimal day, and the publish call", () => {
+  test("points an agent at the generated machine contract and the task guides, not an inlined write-flow", () => {
     const summary = instanceDocumentation();
-
-    expect(summary).toMatch(/POST https?:\/\/[^\s]+\/trips\b/);
-    expect(summary).toContain('"id": "japan-2027"');
-    expect(summary).toContain('"start"');
-    expect(summary).toContain('"end"');
-
-    expect(summary).toMatch(/\/trips\/japan-2027\/days\b/);
-    expect(summary).toContain('"title": "Lanterns of Hoi An"');
-    expect(summary).toContain('"date"');
-    expect(summary).toContain('"content"');
-
-    expect(summary).toMatch(/\/trips\/japan-2027\/days\/lanterns-of-hoi-an\/publish\b/);
-  });
-
-  test("every inlined call carries the bearer header a trip-owning token needs", () => {
-    const summary = instanceDocumentation();
-    const writeIdx = summary.indexOf("## Then");
-    const section = summary.slice(writeIdx, summary.indexOf("## Journals"));
-    // fs_signup_ for the journal-creation call, fs_agent_ for the three below it.
-    expect(section.match(/Authorization: Bearer fs_agent_…/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(summary).toContain("/api/v2/openapi.json");
+    expect(summary).toContain("/skill/new-account.md");
+    expect(summary).toContain("/skill/add-a-trip.md");
+    expect(summary).toContain("/skill/add-a-day.md");
   });
 });
 
+describe("the generated v2 machine contract carries what the guides promise", () => {
+  test("openapi.json documents the day, trip and journal create doors", () => {
+    const doc = openApiDocumentV2() as unknown as { paths: Record<string, unknown> };
+    expect(doc.paths["/api/v2/{user}/trips/{trip}/days/{slug}"]).toBeTruthy();
+    expect(doc.paths["/api/v2/{user}/trips/{trip}"]).toBeTruthy();
+    expect(doc.paths["/api/v2/journals"]).toBeTruthy();
+  });
+});
 describe("the discovery document does not point at 404s", () => {
   /**
    * `/documentation.txt` advertises other URLs. A link in a discovery document
