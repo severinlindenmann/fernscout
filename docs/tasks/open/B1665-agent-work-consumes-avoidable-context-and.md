@@ -10,6 +10,16 @@ found: "2026-09-13T12:56:53Z"
 
 # B1665 — Agent work consumes avoidable context and verification time without measured quality feedback
 
+## Revalidation
+
+Valid on 2026-09-13. The root `AGENTS.md` is still 73,665 bytes, while the
+supported Codex default is 32 KiB; `lib/photobook/print.ts:174-195` still makes
+settlement tests wait against a real 20-second window in four-second steps;
+and the repository still has no changed-path command that combines Vitest's
+dependency graph with the static keepers that read source files as data. The
+measured causes recorded in the research plan therefore still exist on current
+`main`.
+
 ## Why
 
 Fernscout has invested heavily in making agent work safe, but it has not
