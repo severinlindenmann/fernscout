@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { POST } from "@/app/api/v1/journals/route";
+import { POST } from "@/app/api/v2/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser, listedUsernames } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -58,7 +58,7 @@ async function signupToken(email: string): Promise<string> {
 function create(token: string, body: Record<string, unknown>) {
   caller += 1;
   return POST(
-    new Request("https://example.test/api/v1/journals", {
+    new Request("https://example.test/api/v2/journals", {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
@@ -124,10 +124,11 @@ describe("visibility is required", () => {
     const token = await signupToken("silent-visibility@example.test");
     const response = await create(token, { ...BASE, username: "silent-a", defaultLocale: "en" });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error?: string; message?: string };
+    const body = (await response.json()) as { error?: string; details?: { field: string; problem: string }[] };
     expect(body.error).toBe("invalid_request");
-    expect(body.message).toMatch(/visibility is required/i);
-    expect(body.message).toMatch(/ask/i);
+    const problem = (body.details?.find((p) => p.field === "visibility")?.problem ?? "");
+    expect(problem).toMatch(/visibility is required/i);
+    expect(problem).toMatch(/ask/i);
     expect(getUser("silent-a")).toBeNull();
   });
 
@@ -140,18 +141,19 @@ describe("visibility is required", () => {
       defaultLocale: "en",
     });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { message?: string };
+    const body = (await response.json()) as { details?: { field: string; problem: string }[] };
     // B306: renamed from "public or private" — the trip level already has a
     // narrower `private`, and reusing the word here is the bug this refusal
     // used to walk an agent straight into.
-    expect(body.message).toMatch(/visibility must be "public" or "guest"/i);
+    const problem = (body.details?.find((p) => p.field === "visibility")?.problem ?? "");
+    expect(problem).toMatch(/visibility must be "public" or "guest"/i);
     // B856: this refusal used to explain only what a value listed, and left
     // out that it also sets a new trip's default — a half a tester learned
     // three screens later, from a different message. It also used to name
     // "the sitemap", a word a tester who picked "public" then asked what it
     // meant.
-    expect(body.message).toMatch(/new trip('|’)s default/i);
-    expect(body.message).not.toMatch(/sitemap/i);
+    expect(problem).toMatch(/new trip('|’)s default/i);
+    expect(problem).not.toMatch(/sitemap/i);
   });
 });
 
@@ -160,9 +162,9 @@ describe("defaultLocale is required", () => {
     const token = await signupToken("silent-locale@example.test");
     const response = await create(token, { ...BASE, username: "silent-c", visibility: "public" });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error?: string; message?: string };
+    const body = (await response.json()) as { error?: string; details?: { field: string; problem: string }[] };
     expect(body.error).toBe("invalid_request");
-    expect(body.message).toMatch(/defaultLocale is required/i);
+    expect((body.details?.find((p) => p.field === "defaultLocale")?.problem ?? "")).toMatch(/defaultLocale is required/i);
     expect(getUser("silent-c")).toBeNull();
   });
 
@@ -175,9 +177,10 @@ describe("defaultLocale is required", () => {
       defaultLocale: "Deutsch",
     });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { message?: string };
-    expect(body.message).toContain("Deutsch");
-    expect(body.message).toContain("de");
+    const body = (await response.json()) as { details?: { field: string; problem: string }[] };
+    const problem = (body.details?.find((p) => p.field === "defaultLocale")?.problem ?? "");
+    expect(problem).toContain("Deutsch");
+    expect(problem).toContain("de");
     expect(getUser("silent-d")).toBeNull();
   });
 
@@ -191,8 +194,8 @@ describe("defaultLocale is required", () => {
       locales: ["en", "German"],
     });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { message?: string };
-    expect(body.message).toContain("German");
+    const body = (await response.json()) as { details?: { field: string; problem: string }[] };
+    expect((body.details?.find((p) => p.field === "locales")?.problem ?? "")).toContain("German");
     expect(getUser("silent-e")).toBeNull();
   });
 });
@@ -247,9 +250,9 @@ describe("locales is required", () => {
       defaultLocale: "en",
     });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error?: string; message?: string };
+    const body = (await response.json()) as { error?: string; details?: { field: string; problem: string }[] };
     expect(body.error).toBe("invalid_request");
-    expect(body.message).toMatch(/locales is required/i);
+    expect((body.details?.find((p) => p.field === "locales")?.problem ?? "")).toMatch(/locales is required/i);
     expect(getUser("silent-h")).toBeNull();
   });
 
@@ -263,8 +266,8 @@ describe("locales is required", () => {
       locales: ["en", "hu"],
     });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { message?: string };
-    expect(body.message).toMatch(/locales must contain defaultLocale/i);
+    const body = (await response.json()) as { details?: { field: string; problem: string }[] };
+    expect((body.details?.find((p) => p.field === "locales")?.problem ?? "")).toMatch(/locales must contain defaultLocale/i);
     expect(getUser("silent-i")).toBeNull();
   });
 });
@@ -390,9 +393,10 @@ describe("B839 — the currency nobody can change is the currency everybody is a
       locales: ["en"],
     });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { message?: string };
-    expect(body.message).toMatch(/baseCurrency is required/i);
-    expect(body.message).toMatch(/never be changed/i);
+    const body = (await response.json()) as { details?: { field: string; problem: string }[] };
+    const problem = (body.details?.find((p) => p.field === "baseCurrency")?.problem ?? "");
+    expect(problem).toMatch(/baseCurrency is required/i);
+    expect(problem).toMatch(/never be changed/i);
     expect(getUser("silent-cur")).toBeNull();
   });
 

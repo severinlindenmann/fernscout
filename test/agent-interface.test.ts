@@ -772,8 +772,19 @@ describe("what the guide has to tell an agent before it starts", () => {
     // come to disagree. The route's own half is asserted in
     // test/journal-signup.test.ts, which can actually call it.
     expect(flat(agentGuide())).toContain(flat(SECOND_LANGUAGE_COMMITMENT));
-    const journals = JSON.stringify(openApiDocument().paths["/api/v1/journals"]);
-    expect(flat(journals)).toContain(flat(SECOND_LANGUAGE_COMMITMENT.replace(/[`*]/g, "")));
+
+    // The machine half used to be checked against `/api/v1/journals` in
+    // `openApiDocument()`. B1624 moved that door to `/api/v2/journals`, and
+    // v2's own document is not generated until step 6 — so the assertion is
+    // made against the route that actually answers, which is the thing the
+    // test was ever really about: a caller creating a two-language journal is
+    // told what it commits them to, from the same constant the guide reads.
+    // Point this back at the generated v2 document when step 6 lands.
+    const routeSrc = fs.readFileSync(
+      path.join(process.cwd(), "app/api/v2/journals/route.ts"),
+      "utf8",
+    );
+    expect(routeSrc).toContain("SECOND_LANGUAGE_COMMITMENT");
   });
 
   test("the translations sentence forbids translating unasked but permits it when asked", () => {

@@ -651,3 +651,165 @@ describe("PATCH /api/v2/{user}/trips/{trip} — cover is checked against the tri
     expect(onDisk.cover).toBe(photoSrc);
   });
 });
+
+/**
+ * D14 (06-contract-deltas.md, owner's decision 2026-09-12) — `null` on a
+ * PATCH removes `cover`, `accent`, `tagline` or `intro`, finishing RFC 7386
+ * (JSON Merge Patch). Scope is exactly these four plain scalars: a
+ * declinable SECTION keeps `declined` as its only "not answered" spelling,
+ * a derived/conditional field keeps B1616's reconciliation, and a PUT
+ * (decision 7 — a full replace already expresses absence by omission)
+ * refuses `null` outright.
+ */
+describe("PATCH /api/v2/{user}/trips/{trip} — null clears a scalar back to absent (D14)", () => {
+  async function setupWithPhoto(tripId: string, token: string): Promise<string> {
+    await putTrip(OWNER, tripId, fullTrip(tripId), token);
+    const photoSrc = `/${OWNER}/media/${tripId}/day-one/01.jpg`;
+    const declined = { ...(fullDayBody("2026-06-01-arrival").declined as Record<string, string>) };
+    delete declined.media;
+    const { PUT: putDay } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+    const dayWritten = await putDay(
+      new Request(`https://example.test/api/v2/${OWNER}/trips/${tripId}/days/2026-06-01-arrival`, {
+        method: "PUT",
+        headers: headers({ authorization: `Bearer ${token}` }),
+        body: JSON.stringify(fullDayBody("2026-06-01-arrival", { media: [{ src: photoSrc }], declined })),
+      }),
+      { params: Promise.resolve({ user: OWNER, trip: tripId, slug: "2026-06-01-arrival" }) },
+    );
+    expect(dayWritten.status, JSON.stringify(await dayWritten.clone().json())).toBe(201);
+    return photoSrc;
+  }
+
+  test("null clears tagline, intro and accent, and the document reads back without the keys", async () => {
+    const token = await ownerToken();
+    const tripId = "null-clears-scalars-trip";
+    await putTrip(
+      OWNER,
+      tripId,
+      fullTrip(tripId, {
+        tagline: "A slow week",
+        intro: "Four passes, taken slowly.",
+        accent: "coral",
+        declined: {
+          rates: "no foreign currency tracked on this trip at all",
+          costs: "no budget tracked for this trip currently",
+          plan: "no planned route recorded for this trip",
+          days: "no days written for this trip at create time",
+          translations: "single-language journal, nothing to translate",
+          figures: "no walking figures drawn for this trip",
+          buddies: "travelling solo, nobody else was on this trip",
+        },
+      }),
+      token,
+    );
+
+    // Clearing a required-or-declined field returns it to the state before
+    // it was ever answered — which still needs an answer, so the same call
+    // declines each one it clears (D14's own `checkPatchConflicts` change:
+    // `null` paired with a decline of the same field is a deliberate swap,
+    // not a contradiction).
+    const { status, body } = await patchTrip(
+      OWNER,
+      tripId,
+      {
+        tagline: null,
+        intro: null,
+        accent: null,
+        declined: {
+          tagline: "no one-line subtitle after all",
+          intro: "no opening prose after all",
+          accent: "reverted to the renderer's default",
+        },
+      },
+      token,
+    );
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.tagline).toBeUndefined();
+    expect(body.intro).toBeUndefined();
+    expect(body.accent).toBeUndefined();
+
+    const { body: read } = await getTrip(OWNER, tripId, token);
+    expect(read.tagline).toBeUndefined();
+    expect(read.intro).toBeUndefined();
+    expect(read.accent).toBeUndefined();
+
+    const { readTripFile } = await import("@/lib/api/v2/store");
+    const stored = readTripFile(OWNER, tripId);
+    expect(stored && "tagline" in stored).toBe(false);
+    expect(stored && "intro" in stored).toBe(false);
+    expect(stored && "accent" in stored).toBe(false);
+  });
+
+  test("cover: null makes the auto-pick take over again — the thing \"\" could never reach", async () => {
+    const token = await ownerToken();
+    const tripId = "null-clears-cover-trip";
+    const photoSrc = await setupWithPhoto(tripId, token);
+
+    const set = await patchTrip(OWNER, tripId, { cover: photoSrc }, token);
+    expect(set.status, JSON.stringify(set.body)).toBe(200);
+
+    // The trip now has media, so clearing `cover` alone would re-raise the
+    // "this trip now has photographs — pick one, or decline" question; the
+    // same call declines it, letting the newest photo (the only one here)
+    // stand in.
+    const cleared = await patchTrip(
+      OWNER,
+      tripId,
+      { cover: null, declined: { cover: "let the newest photo stand in" } },
+      token,
+    );
+    expect(cleared.status, JSON.stringify(cleared.body)).toBe(200);
+    expect(cleared.body.cover).toBe(photoSrc);
+
+    const { readTripFile } = await import("@/lib/api/v2/store");
+    expect(readTripFile(OWNER, tripId)?.cover).toBeUndefined();
+
+    const { body: read } = await getTrip(OWNER, tripId, token);
+    expect(read.cover).toBe(photoSrc);
+  });
+
+  test('cover: "" is still refused by checkCover — only null clears', async () => {
+    const token = await ownerToken();
+    const tripId = "empty-cover-refused-trip";
+    await putTrip(OWNER, tripId, fullTrip(tripId), token);
+
+    const { status, body } = await patchTrip(OWNER, tripId, { cover: "" }, token);
+    expect(status, JSON.stringify(body)).toBe(400);
+    expect(body.error).toBe("invalid_cover");
+  });
+
+  test('{"costs": null} is still refused — declinable sections use `declined`, not null', async () => {
+    const token = await ownerToken();
+    const tripId = "null-costs-refused-trip";
+    await putTrip(OWNER, tripId, fullTrip(tripId), token);
+
+    const { status, body } = await patchTrip(OWNER, tripId, { costs: null }, token);
+    expect(status, JSON.stringify(body)).toBe(400);
+    expect(body.error).toBe("invalid_request");
+  });
+
+  test('{"listed": null} is still refused — B1616 reconciles the derived visibility fields', async () => {
+    const token = await ownerToken();
+    const tripId = "null-listed-refused-trip";
+    await putTrip(OWNER, tripId, fullTrip(tripId, { visibility: "public", teaser: undefined, listed: true }), token);
+
+    const { status, body } = await patchTrip(OWNER, tripId, { listed: null }, token);
+    expect(status, JSON.stringify(body)).toBe(400);
+    expect(body.error).toBe("invalid_request");
+  });
+
+  test("null on a PUT is still refused — a replace already expresses absence by omission", async () => {
+    const token = await ownerToken();
+    const tripId = "null-on-put-refused-trip";
+    await putTrip(OWNER, tripId, fullTrip(tripId), token);
+
+    const replaced = await putTrip(
+      OWNER,
+      tripId,
+      fullTrip(tripId, { accent: null }),
+      token,
+      { ifMatch: "*" },
+    );
+    expect(replaced.status, JSON.stringify(replaced.body)).toBe(400);
+  });
+});

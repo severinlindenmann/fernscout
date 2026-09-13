@@ -10,6 +10,7 @@ import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import {
   TRIP_IMMUTABLE_FIELDS,
+  applyNullClears,
   checkCover,
   checkTranslations,
   reconcileVisibility,
@@ -175,11 +176,18 @@ export async function PUT(request: Request, { params }: RouteCtx) {
     return fail("invalid_trip", ERROR_CODES.invalid_trip, problems, 400);
   }
 
-  // B1625 — a translation naming a locale this journal does not declare. A
-  // Zod schema cannot see the journal's config, so this check lives at the
-  // door (00-decisions.md), shared with the day route below.
-  const localeProblem = checkTranslations(parsed.data.translations, journal.locales);
-  if (localeProblem) return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+  // B1625/B1619 — a translation naming a locale this journal does not
+  // declare, the journal's own language duplicated under translations, or a
+  // translations map missing a language the journal is owed. A Zod schema
+  // cannot see the journal's config, so this check lives at the door
+  // (00-decisions.md), shared with the day route below.
+  const localeProblem = checkTranslations(parsed.data.translations, journal.locales, journal.defaultLocale);
+  if (localeProblem?.kind === "invalid") {
+    return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+  }
+  if (localeProblem?.kind === "incomplete") {
+    return fail("incomplete", ERROR_CODES.incomplete, { missing: localeProblem.missing }, 422);
+  }
 
   // B1626 — `cover` must name a `src` this trip's own gallery already
   // carries. On a REPLACE `raw.days` was deleted above (a day changes
@@ -308,6 +316,15 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
   if (Object.keys(declinedMerged).length > 0) merged.declined = declinedMerged;
   else delete merged.declined;
 
+  // D11 — a patch's `null` on `cover`/`accent`/`tagline`/`intro` removes the
+  // field. Applied to the MERGED document, after the spread above (which
+  // would otherwise leave the literal `null` sitting in place of the stored
+  // value) and after `retractDeclines`/`checkPatchConflicts` have already
+  // seen the incoming `null` as "this field is being answered" — deleting it
+  // any earlier would make a `{field: null, declined: {field: "…"}}` patch
+  // look like a silent omission instead of a deliberate swap.
+  applyNullClears(merged);
+
   // B1616 — two dead ends this merge alone cannot avoid. `buddies` has no
   // real field of its own for T6 above to key on, so a solo trip's
   // `declined.buddies` survives a patch that grows `people` past one unless
@@ -376,11 +393,16 @@ export async function PATCH(request: Request, { params }: RouteCtx) {
     return fail("invalid_request", ERROR_CODES.invalid_request, problems, 400);
   }
 
-  // B1625/B1626 — the same two door checks the PUT route runs, against the
+  // B1625/B1619/B1626 — the same door checks the PUT route runs, against the
   // merged document a patch produces. Media is whatever the trip already has
   // on disk: a PATCH never writes `days` (see above).
-  const localeProblem = checkTranslations(finalParsed.data.translations, journal.locales);
-  if (localeProblem) return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+  const localeProblem = checkTranslations(finalParsed.data.translations, journal.locales, journal.defaultLocale);
+  if (localeProblem?.kind === "invalid") {
+    return fail("invalid_translations", localeProblem.message, localeProblem.problems, 400);
+  }
+  if (localeProblem?.kind === "incomplete") {
+    return fail("incomplete", ERROR_CODES.incomplete, { missing: localeProblem.missing }, 422);
+  }
 
   const coverMediaSrcs = new Set<string>(tripDays(user, trip).flatMap((d) => (d.media ?? []).map((m) => m.src)));
   const coverProblem = checkCover(finalParsed.data.cover, coverMediaSrcs);

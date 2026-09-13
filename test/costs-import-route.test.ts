@@ -4,11 +4,16 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 
 /**
- * A statement, over the network, the way an agent does it — B677.
+ * A statement, over the network, the way an agent does it — B677, moved to
+ * v2 in B1624 (docs/plans/2026-09-12-api-v2/content.md §3).
  *
  * The properties worth asserting are the ones that keep a person in the loop:
- * reading a statement writes **nothing**, the kind must be named, and the
- * second call is the only thing that puts money on a day.
+ * reading a statement writes **nothing**, and the second call
+ * (`costs/apply`) is the only thing that puts money on a day. Staging is now
+ * the shared media door (`POST /api/v2/{user}/media`,
+ * `intent.kind: "bank_export"`) rather than a door of its own — that half is
+ * covered by `test/api-v2-print-inbox.test.ts`; this file keeps the deeper
+ * cases the statement importer and `applyCosts` themselves have always had.
  *
  * Every amount and merchant is invented.
  */
@@ -44,23 +49,42 @@ const STATEMENT = [
   "Total,,,,,",
 ].join("\n");
 
-async function importCall(token: string, body: unknown) {
-  const { POST } = await import("@/app/api/v1/[user]/import/route");
+/** Stage a statement through the v2 media door and answer with the `src` it
+ * was filed under. `format` left undeclared so the real importer detects it
+ * from the bytes, the same as before this moved off `/import`. */
+async function stageStatement(token: string, text = STATEMENT) {
+  const { POST } = await import("@/app/api/v2/[user]/media/route");
+  const form = new FormData();
+  form.append("file", new File([text], "statement.csv", { type: "text/csv" }));
+  form.append("intent", JSON.stringify({ kind: "bank_export", trip: TRIP, declined: { format: "let the server detect it" } }));
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/import`, {
+    new Request(`https://example.test/api/v2/${OWNER}/media`, {
       method: "POST",
-      headers: headers({ authorization: `Bearer ${token}`, "content-type": "application/json" }),
-      body: JSON.stringify(body),
+      headers: headers({ authorization: `Bearer ${token}` }),
+      body: form,
     }),
     { params: Promise.resolve({ user: OWNER }) },
+  );
+  const body = await response.json();
+  if (response.status !== 201) throw new Error(`stage refused: ${JSON.stringify(body)}`);
+  return body.src as string;
+}
+
+async function readStatementCall(token: string, src: string) {
+  const { GET } = await import("@/app/api/v2/[user]/statements/[src]/route");
+  const response = await GET(
+    new Request(`https://example.test/api/v2/${OWNER}/statements/${encodeURIComponent(src)}`, {
+      headers: headers({ authorization: `Bearer ${token}` }),
+    }),
+    { params: Promise.resolve({ user: OWNER, src }) },
   );
   return { status: response.status, body: await response.json() };
 }
 
 async function applyCall(token: string, body: unknown, trip = TRIP) {
-  const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/costs/import/route");
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/costs/apply/route");
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/trips/${trip}/costs/import`, {
+    new Request(`https://example.test/api/v2/${OWNER}/trips/${trip}/costs/apply`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}`, "content-type": "application/json" }),
       body: JSON.stringify(body),
@@ -159,73 +183,46 @@ afterAll(async () => {
 
 describe("the whole file, kept in written order", { shuffle: false }, () => {
   describe("reading a statement", () => {
-    test("the kind must be named, now that there are two", async () => {
-      // Reading somebody's bank statement as positions is not a mistake to make
-      // quietly, and it was one word away while `gps` was the only kind.
-      const token = await ownerToken();
-      const { status, body } = await importCall(token, { text: STATEMENT });
-      expect(status).toBe(400);
-      expect(body.error).toBe("unknown_kind");
-      expect(body.message).toMatch(/gps, costs/);
-    });
-
     test("reads the statement and writes nothing", async () => {
       const token = await ownerToken();
-      const before = fs.readdirSync(path.join(tripPath(), "entries")).map(dayOf);
-      const { status, body } = await importCall(token, { kind: "costs", text: STATEMENT });
+      const before = fs.readdirSync(path.join(tripPath(), "entries"));
+      const src = await stageStatement(token);
+      const { status, body } = await readStatementCall(token, src);
       expect(status).toBe(200);
-      expect(body.format).toBe("revolut");
-      expect(body.spending.payments).toBe(3);
+      expect(body.payments).toHaveLength(3);
+      expect(body.src).toBe(src);
+      expect(body.trip).toBe(TRIP);
       // Nothing on disk moved: no day gained a cost, and no costs.md appeared.
-      expect(fs.readdirSync(path.join(tripPath(), "entries")).map(dayOf)).toEqual(before);
+      expect(fs.readdirSync(path.join(tripPath(), "entries"))).toEqual(before);
       expect(fs.existsSync(path.join(tripPath(), "costs.md"))).toBe(false);
     });
 
-    test("the trip's own window drops the rent a fortnight later", async () => {
+    test("merchants are sorted biggest first, and carry no category", async () => {
       const token = await ownerToken();
-      const { body } = await importCall(token, {
-        kind: "costs",
-        text: STATEMENT,
-        from: "2026-06-22",
-        to: "2026-06-24",
-      });
-      expect(body.spending.days.map((d: { date: string }) => d.date)).toEqual([
-        "2026-06-22",
-        "2026-06-23",
-      ]);
-      expect(JSON.stringify(body)).not.toContain("Rent");
+      const src = await stageStatement(token);
+      const { body } = await readStatementCall(token, src);
+      const totals = body.merchants.map((m: { total: number }) => m.total);
+      expect(totals).toEqual([...totals].sort((a, b) => b - a));
+      expect(JSON.stringify(body.merchants)).not.toContain("category");
     });
 
-    test("no category comes back, and the answer says why", async () => {
+    test("an unknown src is refused", async () => {
       const token = await ownerToken();
-      const { body } = await importCall(token, { kind: "costs", text: STATEMENT });
-      expect(JSON.stringify(body.spending)).not.toContain("category");
-      expect(body.next).toMatch(/never what it was for/i);
+      const { status, body } = await readStatementCall(token, "inbox:nothing-here.csv");
+      expect(status).toBe(404);
+      expect(body.error).toBe("unknown_statement");
     });
 
-    test("a dryRun is answered rather than silently ignored", async () => {
-      // B690. The route's own comment said saying so was more honest than
-      // accepting it silently, and then the answer said nothing at all: a
-      // caller who sent the flag got an ordinary 200 and could read their whole
-      // statement as a no-op. Found by a subagent reviewing the route.
+    test("a trip-scoped token cannot read the journal's statement", async () => {
       const token = await ownerToken();
-      const { status, body } = await importCall(token, {
-        kind: "costs",
-        text: STATEMENT,
-        dryRun: true,
-      });
-      expect(status).toBe(200);
-      expect(body.dryRun).toBe(false);
-      expect(body.note).toMatch(/never writes/);
-      // And it is a full read, not a shortened one.
-      expect(body.spending.payments).toBe(3);
-    });
-
-    test("a costs import with no dryRun says nothing about it", async () => {
-      const token = await ownerToken();
-      const { body } = await importCall(token, { kind: "costs", text: STATEMENT });
-      expect(body.note).toBeUndefined();
-      expect(body.dryRun).toBeUndefined();
+      const src = await stageStatement(token);
+      const { issueCode, verifyCode } = await import("@/lib/auth");
+      const { tripWriteScope } = await import("@/lib/tripPeople");
+      const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent", { trip: TRIP });
+      const scoped = await verifyCode(OWNER, OWNER_EMAIL, code, "agent", tripWriteScope(TRIP));
+      if (!scoped.ok) throw new Error("no scoped token");
+      const { status } = await readStatementCall(scoped.token, src);
+      expect(status).toBe(403);
     });
   });
 
@@ -272,18 +269,16 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     test("every bad field comes back at once", async () => {
       const token = await ownerToken();
       const { status, body } = await applyCall(token, {
-        rows: [
-          { date: "Jun 22, 2026", label: "", amount: -5, currency: "€", category: "dinner" },
-        ],
+        rows: [{ date: "Jun 22, 2026", label: "", amount: -5, currency: "€", category: "dinner" }],
       });
       expect(status).toBe(400);
       expect(body.error).toBe("invalid_costs");
-      expect(body.problems.map((p: { field: string }) => p.field).sort()).toEqual([
-        "amount",
-        "category",
-        "currency",
-        "date",
-        "label",
+      expect(body.details.map((p: { field: string }) => p.field).sort()).toEqual([
+        "rows.0.amount",
+        "rows.0.category",
+        "rows.0.currency",
+        "rows.0.date",
+        "rows.0.label",
       ]);
     });
 
@@ -292,7 +287,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const { body } = await applyCall(token, {
         rows: [{ date: "2026-06-22", label: "Refund", amount: -12, currency: "CHF", category: "food" }],
       });
-      expect(body.problems[0]).toMatchObject({ field: "amount" });
+      expect(body.details[0]).toMatchObject({ field: "rows.0.amount" });
     });
 
     test("an unknown trip is a 404", async () => {
@@ -305,10 +300,4 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(status).toBe(404);
     });
   });
-
-  /** The date part of an entry filename, for comparing the folder before and
-   * after a call that should not have touched it. */
-  function dayOf(file: string): string {
-    return file;
-  }
 });

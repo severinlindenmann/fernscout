@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { POST as journalsPOST } from "@/app/api/v1/journals/route";
+import { POST as journalsPOST } from "@/app/api/v2/journals/route";
 import { POST as phoneRequestPOST } from "@/app/api/auth/signup/phone/route";
 import { POST as phoneVerifyPOST } from "@/app/api/auth/signup/phone/redeem/route";
 import { clearConfigCache } from "@/lib/config";
@@ -89,7 +89,7 @@ const GOOD = {
 
 function createJournalCall(token: string, extra: Record<string, unknown>) {
   return journalsPOST(
-    new Request("https://example.test/api/v1/journals", {
+    new Request("https://example.test/api/v2/journals", {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
       body: JSON.stringify({ ...GOOD, ...extra }),

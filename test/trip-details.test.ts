@@ -600,34 +600,33 @@ describe("the fifth field, cover", () => {
   });
 
   /**
-   * B1612 finding: v2's merge-patch has no way to clear a scalar field back
-   * to absent once it is set. v1 treated `cover: ""` as "take the key out";
-   * v2's `cover` schema accepts an empty string as a perfectly ordinary
-   * value (`z.string().optional()` puts no floor on length) and
-   * `dataToTripFile` (lib/api/v2/documents.ts) assigns it verbatim — so the
-   * stored `cover` becomes `""` rather than disappearing, and `trip.cover ??
-   * pickCover(days)` (lib/api/v2/trips.ts) never falls through to the
-   * auto-pick because `??` only treats `null`/`undefined` as absent, not an
-   * empty string. Left failing rather than asserting the empty string
-   * sticks: "clearing removes the key" is the property that matters (an
-   * agent correcting a mistaken cover expects the newest photo to stand in
-   * again, not a trip card pointing at `""`), and it does not hold. See this
-   * ticket's report.
+   * B1612 finding, resolved by D11 (06-contract-deltas.md, owner's decision
+   * 2026-09-12): `null` on a PATCH clears a scalar back to absent, finishing
+   * RFC 7386 (JSON Merge Patch) — v2's own patch semantics already named,
+   * which had no spelling for "remove this" until now. `""` was considered
+   * and rejected as that spelling (an absent value and an empty one are
+   * different claims, same reasoning as R1 for a day's `translations`), so
+   * `checkCover` (lib/api/v2/write.ts) no longer carves it out either — an
+   * empty string is an ordinary invalid `src` now, refused like any other.
+   * The trip here has exactly one photo, so clearing `cover` and letting the
+   * auto-pick stand in reads back the same `photoSrc` either way — proving
+   * the fall-through, not merely that nothing changed.
    */
-  // Skipped against B1626, not deleted. `cover: ""` is stored as a valid
-  // string and nothing falls through to the auto-pick, because v2's
-  // merge-patch has no agreed spelling for "make this absent again" —
-  // omitting a key means "unchanged". Deciding that convention (RFC 7386's
-  // `null` is the obvious candidate) is a CONTRACT change, needs a row in
-  // 06-contract-deltas.md and the owner's agreement, and is deliberately not
-  // a build decision. Unskip when B1626 lands.
-  test.skip("clearing a cover removes the key rather than writing an empty one", async () => {
+  test("clearing a cover removes the key rather than writing an empty one", async () => {
     const tripId = "cover-clear-trip";
     const { token, photoSrc } = await setup(tripId);
     await patchTripV2(tripId, { cover: photoSrc }, token);
 
-    const saved = await patchTripV2(tripId, { cover: "" }, token);
+    // The trip has media, so clearing `cover` alone would re-raise "this
+    // trip now has photographs — pick one, or decline"; declining it in the
+    // same call is what lets the newest photo stand in instead.
+    const saved = await patchTripV2(
+      tripId,
+      { cover: null, declined: { cover: "let the newest photo stand in" } },
+      token,
+    );
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    expect(saved.body.cover).toBe(photoSrc);
     const read = await getTripV2(tripId, token);
     expect(read.body.cover).toBe(photoSrc);
   });
@@ -710,31 +709,21 @@ describe("B907's three fields: accent, costsVisibility, intro", () => {
   });
 
   /**
-   * B1612 finding, same shape as the cover-clearing gap above: once `accent`
-   * carries a value, there is no way back to "declined". `TRIP_DECLINABLES`
-   * (lib/api/v2/schemas/trip.ts) makes `accent` required-or-declined, and
-   * `checkRequiredOrDeclined` refuses a document that both supplies AND
-   * declines the same field — but a PATCH that sends only
-   * `declined: {accent: "…"}` merges over a document whose stored `accent`
-   * survives untouched (`merged = {...storedWritable, ...patch}`,
-   * `lib/api/v2/write.ts`'s T6 only clears a decline when the field is newly
-   * SUPPLIED, never the reverse), so the merged document then has `accent`
-   * present AND declined at once and `tripCreate`'s revalidation refuses it
-   * (observed: 400 `invalid_request`, "both provided and declined"). Left
-   * failing rather than asserting the refusal is correct here: the property
-   * is "an owner may change their mind back to no explicit accent", and v2
-   * currently has no route to it at all.
+   * B1612 finding, same shape as the cover-clearing gap above, resolved the
+   * same way by D11: `accent: null` removes the stored value, so it can be
+   * paired with `declined.accent` in one call rather than colliding with it.
+   * `checkPatchConflicts` (lib/api/v2/schemas/shared.ts) treats `null` as
+   * "not brought" for exactly this reason — pairing it with a decline of the
+   * same field is a deliberate swap, not the contradiction the check exists
+   * to catch.
    */
-  // The same gap as the cover case above, seen on a second field: declining
-  // an already-set `accent` collides with "both provided and declined",
-  // because nothing clears the stored value when a decline arrives. B1626.
-  test.skip("clearing accent removes the key", async () => {
+  test("clearing accent removes the key", async () => {
     const tripId = "b907-clear-accent-trip";
     const token = await setup(tripId);
     await patchTripV2(tripId, { accent: "coral" }, token);
     const saved = await patchTripV2(
       tripId,
-      { declined: { accent: "reverted to the renderer's default" } },
+      { accent: null, declined: { accent: "reverted to the renderer's default" } },
       token,
     );
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
@@ -903,17 +892,42 @@ describe("the eleventh field, translations", () => {
    * undefined" half does not, so this asserts what the route actually
    * returns rather than the v1 shape.
    */
-  test("an empty object clears the block and leaves no orphaned children", async () => {
+  /**
+   * This used to assert that `{}` cleared the block, which is v1's spelling
+   * and was only ever accepted because nothing checked coverage. B1619 closed
+   * that: this journal is read in `en` and `de`, so a map covering neither is
+   * not "no translations", it is an unanswered question — and v2 has exactly
+   * one way to say a section has none, which is to decline it.
+   *
+   * Asserted as the refusal AND the honest alternative in one test, because
+   * the pair is the point: the door does not merely say no, it says what to
+   * send instead.
+   */
+  test("an empty block is incomplete on a two-language journal, and declining is how to say there are none", async () => {
     const token = await tokenFor(OWNER_EMAIL);
     const tripId = "empty-translations-trip";
     await putTripV2(tripId, createTyped(tripId), token);
 
-    const saved = await patchTripV2(tripId, { translations: {} }, token);
-    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
-    expect(saved.body.translations).toEqual({});
+    const refused = await patchTripV2(tripId, { translations: {} }, token);
+    expect(refused.status, JSON.stringify(refused.body)).toBe(422);
+    expect(refused.body.error).toBe("incomplete");
+    const missing = (refused.body.details as { missing: { field: string }[] }).missing;
+    expect(missing.map((m) => m.field)).toContain("translations.de");
 
-    const read = await getTripV2(tripId, token);
-    expect(read.body.translations).toEqual({});
+    // Declining it instead is refused too, and that is B1632 rather than
+    // anything this test should paper over: the trip already HAS a
+    // translations block, so the merged document carries both the value and
+    // the decline, and `checkRequiredOrDeclined` refuses the pair. T6 says
+    // supplying a section retracts its decline; the symmetric rule —
+    // declining a section removes its value — was never built, so a section
+    // with a value cannot be declined at all.
+    const declined = await patchTripV2(
+      tripId,
+      { declined: { translations: "this trip is only ever read in English" } },
+      token,
+    );
+    expect(declined.status, JSON.stringify(declined.body)).toBe(400);
+    expect((declined.body.details as { field: string }[])[0].field).toBe("translations");
   });
 
   /**
@@ -934,15 +948,28 @@ describe("the eleventh field, translations", () => {
     expect(refused.body.error).toBe("invalid_request");
   });
 
-  test("the block replaces rather than merges, so a locale left out is gone", async () => {
+  /**
+   * Replace-not-merge still holds; what changed is how it can be shown. The
+   * old version demonstrated it by dropping a locale from the map, which
+   * B1619 now refuses as incomplete — and its setup carried `en`, the
+   * journal's own written language, which B1619 also refuses as a duplicate.
+   * Both refusals are the point of that ticket, so the property is shown
+   * WITHIN a locale instead: a second patch replaces `de` wholesale, and the
+   * `tagline` the first one wrote is gone rather than surviving underneath.
+   */
+  test("the block replaces rather than merges, so a field left out is gone", async () => {
     const token = await tokenFor(OWNER_EMAIL);
     const tripId = "replace-not-merge-trip";
     await putTripV2(tripId, fullTripV2(tripId), token);
-    await patchTripV2(tripId, { translations: { de: { title: "A" }, en: { title: "B" } } }, token);
+    await patchTripV2(
+      tripId,
+      { translations: { de: { title: "Erster", tagline: "Ein Untertitel" } } },
+      token,
+    );
 
-    const saved = await patchTripV2(tripId, { translations: { en: { title: "B" } } }, token);
+    const saved = await patchTripV2(tripId, { translations: { de: { title: "Zweiter" } } }, token);
     expect(saved.status, JSON.stringify(saved.body)).toBe(200);
-    expect(saved.body.translations).toEqual({ en: { title: "B" } });
+    expect(saved.body.translations).toEqual({ de: { title: "Zweiter" } });
   });
 
   test("an invalid block is refused and writes nothing", async () => {

@@ -49,6 +49,7 @@ export const ERROR_CODES = {
   unknown_trip: "No trip of that id in this journal — or none this token may write to. The two answer alike on purpose, so this cannot be used to ask which trips exist. GET the trips list first.",
   unknown_day: "No day of that slug in this trip. The slug is made from the title and is in the answer to the call that wrote it; GET the days list to see them.",
   unknown_invite: "No invite of that id, or it has been revoked.",
+  unknown_contact: "No contact of that id in this journal.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
   unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
   unknown_payment: "No payment of that id.",
@@ -78,7 +79,7 @@ export const ERROR_CODES = {
   invalid_title: "The title is not usable — it must be one line. A line break would end the frontmatter block early, so it is refused rather than folded; put the longer version in the prose.",
   invalid_date: "A date is not a real calendar date, or `end` is before `start`. Dates are `2026-09-01`.",
   invalid_tagline: "The subtitle is not usable — it must be one line, like the title. Send `\"\"` to remove it entirely.",
-  invalid_cover: "`cover` must be a `src` this trip's own gallery already carries — read GET .../trips/{trip}/media for the list. `null` or `\"\"` clears it.",
+  invalid_cover: "`cover` must be a `src` this trip's own gallery already carries — read GET .../trips/{trip}/media for the list. `null` on a PATCH clears it back to absent.",
   invalid_accent: "`accent` must be one of the five named colours. `null` or `\"\"` clears it back to no preference.",
   invalid_intro: "`intro` must be text — the trip's own prose, not a frontmatter line.",
   invalid_trip_id: "The trip id must be lowercase letters, digits and single hyphens. It is the URL segment and the folder name.",
@@ -113,6 +114,7 @@ export const ERROR_CODES = {
   expected_photo: "Name one photograph — multipart bytes under `photo`, or `inbox` or `gallery` in a JSON body.",
   not_this_trip: "That `gallery` src is not a photograph on this trip's own media — either it names a different trip, or it does not exist. Give a src exactly as a day's gallery already carries it.",
   idempotency_conflict: "That `idempotency_key` was already used for a different call. Nothing was written this time either; send a new key for a new request.",
+  conflict: "That id is already in use for something else — a different amount, or another journal's own purchase. Nothing was written. `details.current` carries the stored document when it is yours to see; pick a different id.",
 
   // ── the day is not wrong, it is incomplete ─────────────────────────────
   incomplete_day: "The trip keeps track of something this day says nothing about. `missing` names each one, how to send it, **and how to decline it** — `\"costs\": false` means there was none. Ask the person; never invent a value to get past this.",
@@ -162,6 +164,21 @@ export const ERROR_CODES = {
   address_lookup_disabled:
     "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
 
+  contact_exists: "This address is already a contact of this journal — or it is blocked, and re-adding it that way is refused. GET the contacts list to see the existing row.",
+  not_confirmed: "This address has not proved it can be read yet, so approving it would let somebody in nobody has confirmed. It has to redeem its own invite or ask itself first.",
+  self_authored: "This row was written by its own address, through the traveller self-registration door, and the owner cannot rewrite it — only revoke or delete it.",
+  capability_unavailable: "This server does not offer that capability, so a journal cannot switch it on. /api/health says what is missing; switching it off is always allowed.",
+
   // ── v2 only ─────────────────────────────────────────────────────────────
   incomplete: "The document is missing an answer to something this journal keeps track of. `details.missing` lists every open section at once — each with why it is asked, a schema excerpt of what to send, and how to decline it instead. Ask the person; never invent a value to get past this.",
+  unknown_recipient: "One or more of `recipients` is not a contact id this journal may post to — not an approved contact who asked for a real postcard and left an address. `details.unknown` names which. Nothing was written. GET .../postcards/recipients for the ones that are.",
+  unknown_photo: "That photo is not a file in the named trip's media, and not a photograph staged in this journal's inbox. Give a `src` a trip's own media already carries, or an id GET .../inbox answered with.",
+  unknown_statement: "No media item of that `src`, or it is not a `bank_export` — send the `src` a `POST .../media` upload with `intent.kind: \"bank_export\"` answered with.",
+  unreadable_statement: "The bytes at that `src` could not be read as a bank statement by any known importer. `problems` says what came out and why it does not hold up.",
+  invalid_username: "A username is 2–31 characters of lowercase letters, digits and dashes, starting with a letter or digit. It becomes the address of the journal.",
+  username_taken: "That username already belongs to a journal on this server. Pick another.",
+  reserved_username: "That username would shadow a route this server serves, or the operator has reserved it. Pick another.",
+  deleted_username: "A journal used to live at that name and was deleted; its name is not coming back on this server. Pick another.",
+  invalid_owner: "The owner's name or the name this journal calls them by is missing or empty. Both are asked, and neither is guessed from the other.",
+  tel_taken: "That phone number already proves a different journal. One number, one journal.",
 } as const satisfies Record<string, string>;

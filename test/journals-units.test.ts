@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-import { POST } from "@/app/api/v1/journals/route";
+import { POST } from "@/app/api/v2/journals/route";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -46,7 +46,7 @@ async function signupToken(email: string): Promise<string> {
 function create(token: string, body: Record<string, unknown>) {
   caller += 1;
   return POST(
-    new Request("https://example.test/api/v1/journals", {
+    new Request("https://example.test/api/v2/journals", {
       method: "POST",
       headers: {
         authorization: `Bearer ${token}`,
@@ -108,9 +108,9 @@ describe("units is refused rather than coerced", () => {
     const token = await signupToken("typo-units@example.test");
     const response = await create(token, { ...BASE, username: "typo-units-a", units: "Metric" });
     expect(response.status).toBe(400);
-    const body = (await response.json()) as { error?: string; message?: string };
+    const body = (await response.json()) as { error?: string; details?: { field: string; problem: string }[] };
     expect(body.error).toBe("invalid_request");
-    expect(body.message).toMatch(/units must be "metric" or "imperial"/i);
+    expect(body.details?.some((p) => p.field === "units")).toBe(true);
     expect(getUser("typo-units-a")).toBeNull();
   });
 

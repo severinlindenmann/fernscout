@@ -155,7 +155,7 @@ describe("GET /api/v2/{user}/status", () => {
     const trips = (body.trips as { id: string }[]).map((t) => t.id).sort();
     expect(trips).toEqual(["owner-only-trip", "shared-trip"]);
     const drafts = body.drafts as { trip: string; slug: string }[];
-    expect(drafts).toEqual([{ trip: "shared-trip", slug: "arrival" }]);
+    expect(drafts).toEqual([{ trip: "shared-trip", slug: "arrival", title: "arrival" }]);
     expect((body.token as { scope: string }).scope).toBe("owner");
   });
 
@@ -166,7 +166,7 @@ describe("GET /api/v2/{user}/status", () => {
     const trips = (body.trips as { id: string }[]).map((t) => t.id);
     expect(trips).toEqual(["shared-trip"]);
     const drafts = body.drafts as { trip: string; slug: string }[];
-    expect(drafts).toEqual([{ trip: "shared-trip", slug: "arrival" }]);
+    expect(drafts).toEqual([{ trip: "shared-trip", slug: "arrival", title: "arrival" }]);
     expect((body.token as { scope: string; trip?: string }).scope).toBe("trip");
     expect((body.token as { scope: string; trip?: string }).trip).toBe("shared-trip");
   });

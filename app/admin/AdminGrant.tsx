@@ -31,7 +31,7 @@ export default function AdminGrant({ journal }: { journal: string }) {
     setBusy(true);
     setSaid(null);
     try {
-      const response = await fetch("/api/admin/grants", {
+      const response = await fetch("/api/web/admin/grants", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ user: journal, credits: Number(credits) }),
