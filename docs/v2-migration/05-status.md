@@ -367,3 +367,84 @@ not, and the replay rewrites that content.
 **NEXT:** finish B1612's test repointing, merge C and B, deploy, then B1598 —
 the render layer and the example conversion, which **must be one merge**
 (readers and content flip together or the site renders nothing).
+
+## 2026-09-13 — step 4 merged and deployed; the render layer is one landing with step 5
+
+### Merged and live
+
+Steps 3 and 4 are on `main` and deployed — `ae0c69fa29d9`. Validated over TLS
+with a real token minted through the new door:
+
+| | |
+|---|---|
+| `/api/v2/status`, `/api/v2/{u}/status`, `/api/v2/{u}`, `/trips`, `/figures`, `/inbox` | all 200 |
+| `/api/v1/{u}/trips`, `/journals`, `/inbox`, `/postcards`, `/credits/purchase` | 404/405 — gone |
+| instance status | `off: signup, fulfilmentRelay, fulfilmentAccept`; bank_export and gps_history formats served |
+| journal status | D13's widened drafts serving `title`; token scope `owner` |
+
+Four parcels merged this session: money (B1622), social (B1623), print and
+inbox (B1624), and step 1 of the fixture helper (B1630).
+
+### Three things the merges taught, worth carrying
+
+**A subagent cannot run a build, so it cannot see a bundling fault.** B1624
+shipped two syntax errors that `tsc` was perfectly happy with — a template
+literal with nested unescaped quotes, and a single-quoted string carrying
+backtick escapes. Both broke the route's *bundle*. The full `verify` before a
+merge is doing real work; a subagent's green suite is not a substitute for it.
+
+**Conflicts in `lib/api/openapi.ts` do not resolve by hunk.** Both sides of
+every conflict documented routes the *other* side had deleted, and the hunk
+boundaries did not line up with whole entries — resolving by eye produced a
+file that parsed as nothing. Reset to one side and remove paths by walking
+the document and asking whether each route file exists. Watch for catch-all
+segments (`[...path]`), which a naive existence check reads as missing.
+
+**D numbers collide when two lanes run at once.** Two branches independently
+claimed D11; another claimed D6, which was already taken. The ledger cannot
+prevent this by itself — check `grep '^### D' 06-contract-deltas.md` before
+writing a row, and renumber the later arrival across every code reference.
+
+### The render layer: not mergeable alone, and that is the headline
+
+`b1598-readers` flips the readers and converts `content/example`. It does not
+flip the **writers**, and that turns out not to be a leftover — it is the
+rest of the same change.
+
+`createTrip`, `createDraft`/`editEntry` and the `spliceBlock` patchers all
+still emit markdown, and their callers are `/api/helper/**`, the browser edit
+and photos routes, `lib/ingest/entry.ts`, and the last two v1 write routes.
+So merging the readers alone is a **split brain**: v2 routes write JSON, the
+helper and the browser write markdown, readers read only JSON. **Every day
+written through `/agent` would vanish from the site.**
+
+Measured on the branch: 171 files / 1091 tests red. 143 hand-write markdown
+fixtures; the other 28 go through `createTrip`/`createDraft` — including
+`test/fixtures/content.ts` itself, which is built on `createTrip`. The
+fixture helper cannot answer the fixture problem until the writer underneath
+it emits JSON.
+
+**So B1598 and step 5 are one landing**, in this order: flip the writers'
+bodies (interfaces unchanged, so the helper and browser callers follow for
+free) → the fixture helper emits JSON for free → repoint or retire the
+remaining hand-written fixtures → merge readers, writers and content
+together. In flight now.
+
+### Open, and one is a class rather than a bug
+
+- **B1631** — T6 has no mirror: a section that already has a value can never
+  be declined. **Third** appearance of "a stored answer no patch can
+  retract", after B1616 and the D14 half of B1626. In flight.
+- **B1633** — `/status`'s drafts hand out a bare slug the v2 day route cannot
+  address. B1618's cousin, the other way round. In flight.
+- **B1632** — the v1 invites/channels/contacts/reactions routes are still
+  live; B1623 added the v2 doors beside them rather than replacing them,
+  because 13+ tests assert the cookie-shaped v1 behaviour.
+- **B1621's open half** — a v2 route that sends `next` documents it, checked
+  against `/api/v2/openapi.json` when step 6 generates it. The filter in
+  `test/skill-docs.test.ts` now asserts the v1 side is *empty*, which is the
+  honest statement until then.
+
+**Not started:** step 5 proper (`/api/web`, the helper, the webapp), step 6
+(docs generation), phase 3 (the replay), phase 4 (the finish line —
+`AGENTS.md` and the README still say the content is markdown).
