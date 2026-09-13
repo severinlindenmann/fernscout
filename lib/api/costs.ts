@@ -5,25 +5,28 @@ import type { TripFile } from "./v2/documents";
 import { readTripJson, writeTripJson } from "./tripFile";
 
 /**
- * Writing a trip's costs section through the API — B295.
+ * Amending a trip's costs section through the API — B295.
  *
  * `lib/costs.ts` reads this and, before B1598, this module wrote a separate
  * `costs.md`; since B1606/B1598 a trip's preparation budget, its items and
  * its note are the `costs` section of the one `trip.json` (`readCostsFile`
  * in lib/costs.ts already reads `trip.costsSection`, which is exactly this
- * field). `PUT` replaces the whole section (short of the `visibility` a
- * different door owns — see below); `PATCH` merges onto what is there,
- * mirroring `editEntry`'s read-modify-write for a day.
+ * field). `patchCosts` merges onto what is there, mirroring `editEntry`'s
+ * read-modify-write for a day — the same writer both `PATCH
+ * /api/v1/{user}/trips/{trip}/costs` used and `app/api/helper/[user]/trip
+ * /budget/route.ts` still calls. Creating or wholly replacing the section is
+ * `PATCH /api/v2/{user}/trips/{trip}` now (B1632 retired the v1 `PUT`/
+ * `DELETE` on this door once the trip document's own `costs` field covered
+ * create, replace and decline).
  *
  * `budget` and `costs` are validated by `lib/validate/costs.ts` before
  * anything here runs — this module only reshapes what already passed into
  * `trip.json`'s own field names.
  *
- * **`visibility` is untouched by either call here.** It is `PATCH
+ * **`visibility` is untouched by this call.** It is `PATCH
  * .../trips/{trip}` (`lib/api/tripDetails.ts`'s `costsVisibility`) that owns
  * who may see the numbers; this module only ever carries forward whatever is
- * already stored for it, the same way `putCosts` never touched `visibility:`
- * before this ticket either.
+ * already stored for it.
  */
 
 /**
@@ -37,15 +40,6 @@ import { readTripJson, writeTripJson } from "./tripFile";
 type CostsBudgetInput = { total: number; days?: number; currency?: string };
 type CostsItemInput = { label: string; amount: number; category?: string; currency?: string };
 type CostsSection = NonNullable<TripFile["costs"]>;
-
-/** The body of `PUT .../costs` — the whole file. `budget` is required there
- * (see `validateCostsPut`); this type does not enforce that, the validator
- * does. */
-export type CostsFileInput = {
-  budget?: CostsBudgetInput;
-  costs?: CostsItemInput[];
-  body?: string;
-};
 
 /** The body of `PATCH .../costs` — every field optional, and `budget: null`
  * an explicit clear rather than "leave it alone". */
@@ -91,28 +85,6 @@ function costsDoesNotReadBack(ref: string, budgetWritten: CostsBudgetInput | nul
   return null;
 }
 
-/** Create or wholly replace a trip's costs section — `PUT .../costs`. */
-export function putCosts(ref: string, input: CostsFileInput): CostsWriteResult {
-  const trip = getTrip(ref);
-  if (!trip) return { ok: false, error: "unknown_trip" };
-
-  const read = readTripJson(ref);
-  if (!read) return { ok: false, error: "unknown_trip" };
-
-  const costs = costsSectionOf(read.trip.costs?.visibility, input.budget, input.costs, input.body);
-  writeTripJson(read.file, { ...read.trip, costs });
-
-  const unreadable = costsDoesNotReadBack(ref, input.budget);
-  if (unreadable) {
-    return {
-      ok: false,
-      bug: true,
-      error: `The costs page was written but ${unreadable}. This is a bug; please report it.`,
-    };
-  }
-  return { ok: true };
-}
-
 /** Amend a trip's costs section without resending the whole thing — `PATCH
  * .../costs`. */
 export function patchCosts(ref: string, input: CostsEditInput): CostsWriteResult {
@@ -124,8 +96,8 @@ export function patchCosts(ref: string, input: CostsEditInput): CostsWriteResult
     return {
       ok: false,
       error:
-        `${ref} has no costs section yet, so there is nothing to amend. PUT to this same URL to ` +
-        "create one.",
+        `${ref} has no costs section yet, so there is nothing to amend. PATCH ` +
+        "/api/v2/{user}/trips/{trip} with a costs object to create one.",
     };
   }
 
@@ -147,27 +119,5 @@ export function patchCosts(ref: string, input: CostsEditInput): CostsWriteResult
       error: `The edit was written but ${unreadable}. This is a bug; please report it.`,
     };
   }
-  return { ok: true };
-}
-
-/**
- * Remove a trip's costs section entirely — `DELETE .../costs`.
- *
- * Whole section, not just the `budget`: `hasCostsData` (lib/costs.ts, B267)
- * is what decides whether the costs page exists at all, and it asks whether
- * the section is there, not what is in it. Removing only the budget would
- * leave preparation costs behind and the page reachable, which is not what
- * "the page is now gone" promises.
- */
-export function deleteCosts(ref: string): { ok: true } | { ok: false; error: string } {
-  const trip = getTrip(ref);
-  if (!trip) return { ok: false, error: "unknown_trip" };
-  if (!trip.costsSection) {
-    return { ok: false, error: `${ref} has no costs section — there is nothing to delete.` };
-  }
-
-  const read = readTripJson(ref);
-  if (!read) return { ok: false, error: "unknown_trip" };
-  writeTripJson(read.file, { ...read.trip, costs: undefined });
   return { ok: true };
 }

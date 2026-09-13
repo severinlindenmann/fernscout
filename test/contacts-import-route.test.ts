@@ -55,10 +55,15 @@ async function readCall(token: string, body: unknown) {
   return { status: response.status, body: await response.json() };
 }
 
+/** B1632 repoint: v1's `POST .../contacts/import` retired in favour of
+ * `POST /api/v2/{user}/contacts/import` — same `importContactRows` internals,
+ * same response shape (`filed`, `invalid`, `results`). One refusal differs:
+ * a trip-scoped token is `requireJournalOwner`'s generic `forbidden` (403)
+ * rather than v1's own `out_of_scope`. */
 async function importCall(token: string, body: unknown) {
-  const { POST } = await import("@/app/api/v1/[user]/contacts/import/route");
+  const { POST } = await import("@/app/api/v2/[user]/contacts/import/route");
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/contacts/import`, {
+    new Request(`https://example.test/api/v2/${OWNER}/contacts/import`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}`, "content-type": "application/json" }),
       body: JSON.stringify(body),
@@ -170,6 +175,6 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       rows: [{ name: "Someone Else", email: "someone@example.test" }],
     });
     expect(status).toBe(403);
-    expect(body.error).toBe("out_of_scope");
+    expect(body.error).toBe("forbidden");
   });
 });

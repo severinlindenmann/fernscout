@@ -23,13 +23,13 @@ export const dynamic = "force-dynamic";
  * `POST /api/v1/<user>/trips/<trip>/travellers/from-photo` — read a party off
  * a group photograph, instead of asking forty questions about it — B1517.
  *
- * **Proposed, never written.** The response is a party in the same shape
- * `GET .../travellers` reads back, plus the preview `GET .../figures/preview`
- * already draws — an owner looks at the picture and decides whether to `PATCH
- * .../travellers` with it. This call cannot write that block itself, on
- * purpose: an inferred face becoming a written fact about a person is exactly
- * what AGENTS.md's rule on invented memory covers, and a good guess is still
- * a guess.
+ * **Proposed, never written.** The response is a party of figures, plus the
+ * preview `GET .../figures/preview` already draws — an owner looks at the
+ * picture and decides whether to `PUT /api/v2/<user>/figures/<id>` each one
+ * and reference the ids from `PATCH /api/v2/<user>/trips/<trip>`. This call
+ * cannot write anything itself, on purpose: an inferred face becoming a
+ * written fact about a person is exactly what AGENTS.md's rule on invented
+ * memory covers, and a good guess is still a guess.
  *
  * **The photograph has to already belong to this journal.** Three doors, the
  * same three `POST .../media` takes: multipart bytes under `photo`, an
@@ -265,9 +265,10 @@ export async function POST(
       spent: TRAVELLERS_FROM_PHOTO_CREDITS,
       provider: HELPER_PROVIDER,
       note:
-        "Nothing was written. Show this to the owner and, if they agree it looks like " +
-        `them, PATCH /api/v1/${user}/trips/${trip}/travellers with \`party\` as the whole ` +
-        "travellers block. Fields not listed in a figure were not answered by the " +
+        "Nothing was written. Show this to the owner and, for each figure they agree " +
+        `looks like somebody, PUT /api/v2/${user}/figures/<id> with its appearance, then ` +
+        `PATCH /api/v2/${user}/trips/${trip} with figures: {mode: "custom", figures: [ids]}. ` +
+        "Fields not listed in a figure were not answered by the " +
         "photograph — see that figure's own `unanswerable` — and are left for a person to " +
         "fill in rather than guessed.",
     };

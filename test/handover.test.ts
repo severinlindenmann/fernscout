@@ -330,9 +330,9 @@ describe("a handover credential is refused everywhere else", () => {
 
   test("on status, which is the first thing an agent would try it on", async () => {
     const handover = await fresh();
-    const { GET } = await import("@/app/api/v1/[user]/status/route");
+    const { GET } = await import("@/app/api/v2/[user]/status/route");
     const response = await GET(
-      new Request(`https://example.test/api/v1/${OWNER}/status`, {
+      new Request(`https://example.test/api/v2/${OWNER}/status`, {
         headers: headers({ authorization: `Bearer ${handover}` }),
       }),
       { params: Promise.resolve({ user: OWNER }) },

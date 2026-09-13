@@ -715,45 +715,6 @@ export function openApiDocument() {
             },
           },
         },
-        Budget: {
-          type: "object",
-          required: ["total", "days"],
-          description:
-            "A trip's planned total, in `components.schemas.Costs`. Both fields are required " +
-            "and must be positive — a zero or missing total is refused with a `problems` entry " +
-            "rather than written and read back as no budget at all, which is what " +
-            "lib/costFormat.ts's parseBudget does silently for a page render (B263).",
-          properties: {
-            total: { type: "number", description: "Planned total for the whole trip." },
-            days: { type: "number", description: "How many days the budget was drawn up for." },
-            currency: {
-              type: "string",
-              description: "ISO-4217, e.g. CHF. Omit it and the journal's own base currency is used.",
-            },
-          },
-        },
-        Costs: {
-          type: "object",
-          description:
-            "The body of PUT and PATCH " +
-            "/api/v1/{user}/trips/{trip}/costs — a trip's planned budget, its preparation " +
-            "spending, and the owner's own prose about the money. On PUT, `budget` is " +
-            "required; on PATCH every field is optional, and `budget: null` clears the " +
-            "budget alone without touching `costs` or `body`.",
-          properties: {
-            budget: { $ref: "#/components/schemas/Budget" },
-            costs: {
-              type: "array",
-              items: { $ref: "#/components/schemas/Cost" },
-              description:
-                "Preparation costs — visas, gear, the rail pass bought before leaving. Same " +
-                "shape as a day's `costs`, and refused the same way: an unknown category, or " +
-                "an amount that is zero or negative, is a `problems` entry rather than a silent " +
-                "drop. Replaces the whole list when sent; an empty array clears it.",
-            },
-            body: { type: "string", description: "The trip's own prose about the money." },
-          },
-        },
         RouteStop: {
           type: "object",
           required: ["location", "lat", "lng"],
@@ -990,41 +951,6 @@ export function openApiDocument() {
             "401": { description: "`link_spent` — never followed, already spent, or expired; one answer for all three" },
             "404": { description: "No such journal, or authentication is off" },
             "429": { description: "Too many attempts" },
-          },
-        },
-      },
-      /**
-       * Deletion is two calls in two places, and the OpenAPI document has to
-       * say so or an agent reads `202` as success.
-       */
-      "/api/v1/{user}": {
-        delete: {
-          summary: "Ask to delete a journal (deletes nothing; mails the owner)",
-          description:
-            "**This deletes nothing.** It answers 202 and mails the address that owns the " +
-            "journal a link to a page with a button; only that button deletes. The link is " +
-            "single-use, expires in an hour, and the caller cannot follow it — that is the " +
-            "point, because the confirmation for something irreversible must not be " +
-            "completable by the same agent that asked for it. Report that a mail is waiting, " +
-            "never that the journal is gone. Owner only: a trip-scoped token is refused.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "202": {
-              description:
-                "A confirmation was mailed. The body names the address and what would go, " +
-                "and carries `\"deleted\": false`.",
-            },
-            "401": { description: "Missing or invalid token" },
-            "403": {
-              description:
-                "The token belongs to a different journal, or is scoped to one trip. Writing " +
-                "to a trip and deleting the journal around it are different authorities.",
-            },
-            "404": { description: "No such journal, or this server cannot send mail" },
-            "409": { description: "The journal's config.json has no owner.email to mail" },
-            "410": { description: "This journal was already deleted" },
           },
         },
       },
@@ -1313,182 +1239,6 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/v1/geocode": {
-        post: {
-          summary: "Turn a place name into candidate coordinates",
-          description:
-            "A helper for writing a day's `lat`/`lng` when the person named a place but did not " +
-            "know the numbers. **Returns a shortlist, never one silent answer**: if several " +
-            "candidates fit, ask which one they meant rather than picking one on their behalf. " +
-            "A `200` with `results: []` means the provider found nothing; it is not an error.\n\n" +
-            "Needs the journal's `addressLookup` capability. `countryHint` and `regionHint` " +
-            "narrow the search when the person gave them, and `contextCoordinates` biases the " +
-            "ranking towards where the surrounding days already were.",
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: { $ref: "#/components/schemas/GeocodeRequest" },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description:
-                "Ranked candidates. Empty `results` is a genuine no-match; read non-empty ones back to the person and ask which they meant.",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    required: ["results"],
-                    properties: {
-                      results: {
-                        type: "array",
-                        items: { $ref: "#/components/schemas/GeocodeCandidate" },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            "400": {
-              description:
-                "The request body is not usable — most often `query` missing, too short, too long, or `contextCoordinates` not an array of `{lat,lng}` objects",
-            },
-            "401": { description: "Missing or invalid token" },
-            "404": { description: "This journal does not have place lookup switched on" },
-            "429": { description: "Too many lookups too quickly — wait `Retry-After` seconds" },
-            "502": { description: "The upstream geocoder could not be reached or answered something unusable" },
-          },
-        },
-      },
-      "/api/v1/{user}/trips/{trip}/costs": {
-        get: {
-          summary: "A trip's budget and preparation costs, as stored",
-          description:
-            "The whole of `costs.md` — the budget, the preparation costs, the base currency " +
-            "they default into, and the trip's own prose about the money. `exists: false` " +
-            "means there is no `costs.md` yet, which is not an error: it is the same answer " +
-            "an empty drafts list gives. This is how you read back what PUT or PATCH just " +
-            "wrote, before telling the owner it is there.\n\n" +
-            "Same authority as writing a day: whoever may write to this trip may read its " +
-            "budget, trip-scoped tokens included.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "trip", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": { description: "The trip's costs.md, parsed" },
-            "401": { description: "Missing or invalid token" },
-            "403": { description: "The token belongs to a different journal" },
-            "404": { description: "No such trip" },
-          },
-        },
-        put: {
-          summary: "Write the whole costs.md",
-          description:
-            "Creates or wholly replaces a trip's budget, preparation costs and prose about " +
-            "the money, in one call — the write half of B295: before it, a budget could only " +
-            "be written by hand, over SSH or with the `add-a-trip` skill on a local checkout, " +
-            "and there was no way over the network to give a trip its costs page at all.\n\n" +
-            "**`budget` is required.** A zero or missing total is refused here with a " +
-            "`problems` entry, rather than written and read back as no budget at all — " +
-            "`lib/costFormat.ts`'s `parseBudget` drops one silently for a page render, and a " +
-            "door cannot repeat that (B263).\n\n" +
-            "Same authority as writing a day: whoever may `POST` a day into this trip may " +
-            "`PUT` its costs, trip-scoped tokens included — a budget is trip content, and the " +
-            "people on a trip are the people who spent the money.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "trip", in: "path", required: true, schema: { type: "string" } },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": { schema: { $ref: "#/components/schemas/Costs" } },
-            },
-          },
-          responses: {
-            "200": { description: "Written. GET this same URL to read it back." },
-            "400": {
-              description:
-                "Invalid costs (a `problems` list, same shape as a day's — field, what " +
-                "arrived, what was expected), invalid JSON, or a field this endpoint does " +
-                "not write.",
-            },
-            "401": { description: "Missing or invalid token" },
-            "403": { description: "The token belongs to a different journal" },
-            "404": { description: "No such trip" },
-          },
-        },
-        patch: {
-          summary: "Amend part of costs.md without resending the whole thing",
-          description:
-            "Textual, like PATCH .../days/{slug} (B266): a field this omits, and the file's " +
-            "own formatting — comments, key order, flow or block YAML style — are left " +
-            "exactly as they were, because this may well be a file the owner wrote by hand.\n\n" +
-            "`budget`, `costs` and `body` each replace their own block wholesale when sent. " +
-            "`budget: null` clears the budget alone and leaves `costs` and `body` untouched; " +
-            "`costs: []` clears the preparation-costs list the same way. Neither removes " +
-            "`costs.md` itself — that is DELETE, below, and it is the only call that makes " +
-            "the costs page disappear.\n\n" +
-            "Same authority as writing a day: whoever may `POST` a day into this trip may " +
-            "`PATCH` its costs, trip-scoped tokens included.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "trip", in: "path", required: true, schema: { type: "string" } },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": { schema: { $ref: "#/components/schemas/Costs" } },
-            },
-          },
-          responses: {
-            "200": { description: "Amended. `changed` lists the fields that were sent." },
-            "400": {
-              description:
-                "Invalid costs, an empty body, or a field this endpoint does not write — " +
-                "named in `unsupported_field` rather than silently dropped.",
-            },
-            "401": { description: "Missing or invalid token" },
-            "403": { description: "The token belongs to a different journal" },
-            "404": {
-              description:
-                "No such trip, or this trip has no costs.md yet — PUT to this same URL to " +
-                "create one first.",
-            },
-          },
-        },
-        delete: {
-          summary: "Remove costs.md — not always how the costs page goes away",
-          description:
-            "Whole file, not just the `budget:` line: the costs page is presence-driven " +
-            "(B293) and `hasCostsData` (B267, widened B328) is what decides it exists, by " +
-            "asking whether `costs.md` is there **or** any day carries its own `costs:` " +
-            "block — so removing the file takes the budget away but leaves the page " +
-            "standing if a day still logs spend (B332). The response's `costsPageGone` " +
-            "says whether the page actually went, rather than leaving that to be inferred.\n\n" +
-            "Not idempotent in status: calling this on a trip with no costs.md answers 404, " +
-            "since there was nothing here to remove.\n\n" +
-            "Same authority as writing a day: whoever may write to this trip may remove its " +
-            "budget, trip-scoped tokens included.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-            { name: "trip", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": {
-              description:
-                "Removed. `costsPageGone` says whether the trip's costs page is actually " +
-                "gone — false if a day still carries its own `costs:` block.",
-            },
-            "401": { description: "Missing or invalid token" },
-            "403": { description: "The token belongs to a different journal" },
-            "404": { description: "No such trip, or this trip has no costs.md" },
-          },
-        },
-      },
       "/api/v1/{user}/sync/manifest": {
         get: {
           summary: "Every file in this journal, with a hash — the call a sync makes first",
@@ -1710,69 +1460,6 @@ export function openApiDocument() {
             "403": { description: "A different journal's token, or one scoped to a trip" },
             "404": { description: "No such journal, or no such file in the inbox" },
             "413": { description: "The whole request is too big to buffer" },
-          },
-        },
-      },
-      "/api/v1/{user}/contacts/import": {
-        post: {
-          summary: "File the vCard rows a person agreed are actually contacts",
-          description:
-            "The second half of a `contacts` import. `POST /api/v1/{user}/import` (kind " +
-            "`contacts`) read a vCard and wrote nothing; this takes back the entries a " +
-            "person has agreed and files each as a `pending` request — the same row shape " +
-            "and the same confirmation mail the public request form produces. Nothing is " +
-            "pre-approved, and nobody is a reader, a postcard recipient or anything else " +
-            "until the address itself confirms.\n\n" +
-            "**One decision happens in between, and it is not yours.** A phone's own " +
-            "address book is mostly people who have nothing to do with this journal; " +
-            "*which rows are actually contacts* is a person's call, made against the " +
-            "`people` the import reported.\n\n" +
-            "A row with no `email` cannot be filed — `lib/contacts` keys every row on one, " +
-            "the same reason a phone-only contact is shown but not importable.\n\n" +
-            "**Owner only.** A trip-scoped token is refused: an address book belongs to " +
-            "the whole journal, not to the days a trip covers.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["rows"],
-                  properties: {
-                    rows: {
-                      type: "array",
-                      maxItems: 50,
-                      items: {
-                        type: "object",
-                        required: ["name", "email"],
-                        properties: {
-                          name: { type: "string" },
-                          email: { type: "string" },
-                          tel: {
-                            type: "string",
-                            description:
-                              "Carried through from the card if it had one. Never a postal " +
-                              "address — a vCard's own is not imported here.",
-                          },
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description:
-                "`filed` and `invalid` counts, plus `results` naming the outcome per row: " +
-                "`created`, `updated`, `ignored` (a blocked address) or `invalid`",
-            },
-            "400": { description: "No `rows`, an empty array, or more than 50 of them" },
-            "401": { description: "No live token — authenticate" },
-            "403": { description: "A token scoped to a trip rather than the whole journal" },
-            "404": { description: "No such journal, or contacts are off on it" },
           },
         },
       },
@@ -2046,60 +1733,20 @@ export function openApiDocument() {
           },
         },
       },
-      "/api/v1/{user}/trips/{trip}/travellers": {
-        get: {
-          summary: "How this trip's party is drawn",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }, { name: "trip", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            "200": { description: "The travellers block" },
-            "404": { description: "No such trip" },
-          },
-        },
-        patch: {
-          summary: "Replace how this trip's party is drawn",
-          description:
-            "The whole list at once. Cosmetic — it changes the walking figures and nothing " +
-            "about who may read or write anything, which is why it is not owner-only the " +
-            "way `people` is. Ask GET /api/v2/{user}/figures/presets for the vocabulary " +
-            "first; an unknown key inside a figure is refused rather than dropped.",
-          parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }, { name: "trip", in: "path", required: true, schema: { type: "string" } }],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["travellers"],
-                  properties: {
-                    travellers: {
-                      type: "array",
-                      maxItems: 10,
-                      items: { $ref: "#/components/schemas/Traveller" },
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": { description: "The list as it now stands" },
-            "400": { description: "A figure is not usable" },
-            "404": { description: "No such trip" },
-          },
-        },
-      },
       "/api/v1/{user}/trips/{trip}/travellers/from-photo": {
         post: {
           summary: "Read a proposed party off a group photograph — B1517",
           description:
             "Forty questions about what a family of four looks like is worse than reading " +
             "two of their own photographs. This sends **one photograph already in this " +
-            "journal** to a vision model and returns a proposed `travellers` party in the " +
-            "same shape `PATCH …/travellers` writes — **and writes nothing itself.** " +
+            "journal** to a vision model and returns a proposed party, one figure per " +
+            "person in the frame — **and writes nothing itself.** " +
             "`figures` names, per figure, which fields the photograph actually answered and " +
             "which it did not (`unanswerable`) — a field the picture cannot show comes back " +
-            "absent rather than guessed. `party` is the same figures alone, ready to send " +
-            "straight to `PATCH …/travellers` once a person has agreed it looks like them. " +
+            "absent rather than guessed. `party` is the same figures alone. To use one: " +
+            "`PUT /api/v2/{user}/figures/{id}` with its appearance, once per figure a person " +
+            "agrees looks like them, then `PATCH /api/v2/{user}/trips/{trip}` with " +
+            "`figures: {mode: \"custom\", figures: [ids]}`. " +
             "`preview` is the SVG `GET …/figures/preview` would draw for that party, so " +
             "there is something to show before anything is written.\n\n" +
             "Every value is one of the closed vocabulary `GET …/figures/presets` " +
@@ -2180,7 +1827,8 @@ export function openApiDocument() {
                       party: {
                         type: "array",
                         items: { $ref: "#/components/schemas/Traveller" },
-                        description: "The figures alone, in the shape PATCH …/travellers takes.",
+                        description:
+                          "The figures alone, each usable as the body of PUT /api/v2/{user}/figures/{id}.",
                       },
                       preview: { type: "string", description: "The party, as SVG markup." },
                       spent: { type: "number" },
@@ -2290,8 +1938,10 @@ export function openApiDocument() {
         post: {
           summary: "Turn this journal's mail or WhatsApp on or off (owner only)",
           description:
-            "The narrow door for the two channels a published day can go out on. The wider " +
-            "one is PATCH …/config with `features`; this exists so a person can say \"stop " +
+            "The narrow door for the two channels a published day can go out on. v1's wider " +
+            "PATCH …/config (the whole `features` block) is retired (B1632); `features` is " +
+            "instance-only in v2 and unwritable by any journal there, so this is now the only " +
+            "surviving way to flip a feature bit — this exists so a person can say \"stop " +
             "mailing me\" without a call that could change anything else.",
           parameters: [{ name: "user", in: "path", required: true, schema: { type: "string" } }],
           requestBody: {
@@ -2315,283 +1965,6 @@ export function openApiDocument() {
             "403": { description: "Owner only" },
             "404": { description: "No such journal" },
             "429": { description: "Too many changes too quickly; `retryAfter` says when" },
-          },
-        },
-      },
-      "/api/v1/{user}/status": {
-        get: {
-          summary: "Where you stand, in one call",
-          description:
-            "The first call to make, and the cheapest credential check there is: `401` " +
-            "means go and get a code, `200` means you are in. Carries the journal, the " +
-            "drafts waiting for a person to approve them — each with the call that " +
-            "publishes it — the trips this token may write to, which capabilities are on " +
-            "for this journal and why any is off, and a `next` saying what to do. " +
-            "\n\n**`features` here is deliberately only the four an agent can act on** — " +
-            "mail, push, postcards, photobook — plus `credits` where this server bills. " +
-            "It is *not* the journal's whole capability list, and a name missing from it " +
-            "is not a name that is off: `GET .../config` carries all of them and " +
-            "`/api/health` says what this server can offer at all. The two fields share a " +
-            "name and answer different questions, which has misled a reader of this " +
-            "document before.\n\n" +
-            "`scope` says whether you are holding the whole journal or one trip's slice; " +
-            "do not report a slice as the journal's total.\n\n" +
-            "**`credits`** is here when this server charges for sends (B366): `balance`, " +
-            "and what each channel costs. Read it before publishing with `send_mail` or " +
-            "`send_whatsapp` — a balance too small refuses the whole publish with 402 and " +
-            "writes nothing. Absent means this server does not bill, not that the account " +
-            "is empty; it is also absent for a trip-scoped token, which can neither " +
-            "publish nor send.\n\n" +
-            "**`storage`** is how full the journal is — `usedBytes`, `limitBytes`, " +
-            "`remainingBytes` and `purchasedBytes`. Read it before uploading a batch: a " +
-            "batch that would go past `limitBytes` is refused whole and nothing is " +
-            "written. It counts every byte under the journal's folder, photobook PDFs " +
-            "included, not only its photographs. A `limitBytes` of `null` means this " +
-            "instance sets no ceiling — never that the answer is unknown. Present for a " +
-            "trip-scoped token too, because the whole journal's ceiling is what refuses a " +
-            "trip's photographs. `PUT /api/web/{user}/storage/purchases/{id}` is how the owner raises it.\n\n" +
-            "**`inbox`** counts what is staged and belongs to no day yet (B663), with the " +
-            "call that lists it. A non-zero count is the first thing to act on for a trip " +
-            "somebody has just come back from — the photographs are already here. Absent for " +
-            "a trip-scoped token, which the inbox route refuses.\n\n" +
-            "**`malformed`** names a trip on disk with a `trip.md` too broken to parse (B83) — " +
-            "the same list `GET .../trips` carries, so writing a trip and reading this back " +
-            "cannot disagree about whether it took. `next` puts fixing one ahead of the draft " +
-            "queue: a broken file is a thing you may have just caused and can fix yourself, " +
-            "where the drafts are a person's decision. Present for an owner token only — a " +
-            "trip-scoped token learns nothing about the rest of the journal, malformed or not " +
-            "— and absent entirely when there is nothing broken.\n\n" +
-            "**`suggestions`** is the moment nobody would otherwise notice — a published, " +
-            "non-`test` day from the last week with a photograph, on a journal where " +
-            "`postcards`, `credits` and `contacts` are all on, at least one contact has " +
-            "asked for a postcard and given an address, and no order has been made for " +
-            "that trip in the last week either. Each entry carries `kind: \"postcard\"`, " +
-            "the `day` and `trip` it is about, a `reason` in words, and the `recipients` " +
-            "it would go to (the same shape as `GET .../postcards/recipients`). Absent — " +
-            "never an empty array — the moment any one of those conditions fails; the " +
-            "same function backs the card on `/{user}/me`, so the two can never disagree. " +
-            "`POST .../postcards` is the call that turns a suggestion into a proposal.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": { description: "Status" },
-            "401": { description: "No live token — authenticate" },
-            "403": { description: "This token belongs to a different journal" },
-          },
-        },
-      },
-      "/api/v1/{user}/config": {
-        get: {
-          summary: "What this journal asks for, and what it says about itself",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": {
-              description:
-                "One boolean per capability under `features`, and the writable half of " +
-                "config.json under `journal` — plus the two read-only fields a caller " +
-                "needs and cannot otherwise learn: the `baseCurrency` a " +
-                "`displayCurrencies` must contain, and the `media` block this journal " +
-                "actually runs under, so a client syncing a folder up can tell whether " +
-                "its local copy differs (B1504). `owner.email` is deliberately not here: " +
-                "a token that reads a journal's config is not permission to collect its " +
-                "owner's address.",
-            },
-            "401": { description: "Missing or invalid token" },
-            "403": { description: "The token belongs to a different journal" },
-          },
-        },
-        patch: {
-          summary: "Change a capability, or what this journal says about itself",
-          description:
-            "Send only what you are changing: `{\"features\": {\"contacts\": true}}`, or one " +
-            "or more of `title`, `tagline`, `visibility`, `startLocation`, `units`, " +
-            "`locales`, `defaultLocale`, `displayCurrencies`, `manualRates`, `ownerTel`, " +
-            "`travellers`. " +
-            "Before this " +
-            "there was no endpoint, tool or page that wrote a journal's config at all, so it " +
-            "was fixed at creation and only an operator with a shell could change it — which " +
-            "left journals unable to invite anybody (B182) and a title typoed at signup " +
-            "permanent (B220).\n\nCapabilities can only ask for what the server already " +
-            "provides: the server's own config is a ceiling, and asking to exceed it is " +
-            "refused with the reason rather than written and silently ignored. Switching a " +
-            "capability *off* always works, except for the four the server decides alone: " +
-            "`photobook` and `postcards` cost the operator money at a printer, and `logging` " +
-            "and `credits` are the instance's own. All four are whatever the server says for " +
-            "every journal on it, and either direction is refused with `capability_not_yours`.\n\n**Capabilities and the rest are two calls.** " +
-            "A body naming `features` alongside another field is `400 mixed_change` and " +
-            "writes nothing: each call rewrites config.json whole, reads it back, and " +
-            "restores the previous bytes if it does not load, so a request doing that twice " +
-            "is one that can succeed halfway.\n\nThree keys are never writable, each with " +
-            "its own reason in the refusal. The `owner` block is not writable as a " +
-            "whole, and `owner.email` in particular never is: it decides who can obtain a " +
-            "token for this journal, so a token must not be able to move it. The telephone " +
-            "number inside it is the exception, reached as the flat field `ownerTel`. `baseCurrency` is not a " +
-            "display setting — a cost written without a `currency` IS a cost in the base " +
-            "currency, so changing it re-reads every amount already recorded rather than " +
-            "reconverting it. `media` is the operator's, and the server's limits are already " +
-            "a ceiling over it. Owner only.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    features: {
-                      type: "object",
-                      // Named one by one rather than left as free-form booleans:
-                      // "which capabilities are there" is exactly the question an
-                      // agent cannot answer from prose, and a misspelled name was
-                      // being refused with no list to correct it against. B540.
-                      properties: Object.fromEntries(
-                        FEATURE_NAMES.map((name) => [name, { type: "boolean" }]),
-                      ),
-                      additionalProperties: false,
-                      description:
-                        `Capability name to true or false — one of ${FEATURE_NAMES.join(", ")}. ` +
-                        "Omitted ones are left alone, and an unknown name is refused rather " +
-                        "than ignored. A journal can only ever switch on what this server " +
-                        "already offers: /api/health says which those are, and asking for one " +
-                        "it cannot do is refused. `logging` and `credits` are never a journal's " +
-                        "own opt-in — they are the operator's alone, for the whole server — so " +
-                        "the response echoes the server's own answer for those two regardless " +
-                        "of what is sent here. Not combinable with the fields below — send it " +
-                        "in a call of its own.",
-                    },
-                    title: { type: "string" },
-                    tagline: {
-                      type: "string",
-                      description: "Empty string removes it rather than writing one.",
-                    },
-                    visibility: {
-                      type: "string",
-                      // `"private"` — the word before B306 — is still accepted
-                      // and normalised to `guest` (normalizeJournalVisibility),
-                      // but is not offered here.
-                      enum: ["public", "guest"],
-                      description: `Whether this server advertises the journal: ${VISIBILITY_MEANING}`,
-                    },
-                    startLocation: {
-                      type: "string",
-                      description: "Empty string removes it rather than writing one.",
-                    },
-                    units: { type: "string", enum: ["metric", "imperial"] },
-                    locales: {
-                      type: "array",
-                      items: { type: "string", enum: [...MAINTAINED_LOCALES] },
-                      description:
-                        "Language codes, most preferred first. Must contain `defaultLocale`; " +
-                        "a pair that disagrees is refused rather than written, because the " +
-                        "resulting config would take the journal off the site entirely. " +
-                        `Each entry must be one of ${LOCALE_LIST}, the same set creation ` +
-                        "refuses outside of — B777: a field checked when a journal is made " +
-                        "and unchecked when it is corrected is the same field with two " +
-                        "meanings.",
-                    },
-                    defaultLocale: {
-                      type: "string",
-                      enum: [...MAINTAINED_LOCALES],
-                      description:
-                        `One of ${LOCALE_LIST}. The language the site's own chrome is in; a ` +
-                        "code this build ships no strings for is refused here exactly as it " +
-                        "is at creation.",
-                    },
-                    displayCurrencies: {
-                      type: "array",
-                      items: { type: "string" },
-                      description:
-                        "Which currencies a reader may see totals in. Must include the " +
-                        "journal's `baseCurrency`, which this endpoint cannot change — `GET` " +
-                        "returns it under `journal`.",
-                    },
-                    ownerTel: {
-                      type: "string",
-                      description:
-                        "The owner's own telephone number — `owner.tel` in config.json, and " +
-                        "the only part of the `owner` block a token may write. It is where " +
-                        "the owner's own WhatsApp copy of a published day goes, and that copy " +
-                        "costs no credits; without it the owner is the one person the channel " +
-                        "cannot reach. Include the country code — `+41 76 000 00 00`, " +
-                        "`0041 76 000 00 00` or `41760000000`. A national number like " +
-                        "`076 000 00 00` is refused rather than guessed at, because it means " +
-                        "a different telephone in every country. Stored and returned as E.164 " +
-                        "digits, whatever form it was sent in. Empty string removes it, which " +
-                        "is also how the owner stops their own messages.",
-                    },
-                    manualRates: {
-                      type: "object",
-                      additionalProperties: { type: ["number", "null"] },
-                      description:
-                        "Rates for what the ECB does not publish, MERGED into what is there. " +
-                        "The ECB's direction: `{\"VND\": 30500}` is \"1 EUR = 30 500 VND\", " +
-                        "the opposite of a trip's own `rates`. `null` removes a code.",
-                    },
-                    travellers: {
-                      type: "array",
-                      maxItems: 10,
-                      items: { $ref: "#/components/schemas/Traveller" },
-                      description:
-                        "The journal's own default party — how a trip draws its walking " +
-                        "figures when it carries no `travellers:` block of its own. Replaced " +
-                        "wholesale, the same as `.../trips/{trip}/travellers`: send the whole " +
-                        "list, and `[]` to go back to having no default (one neutral figure). " +
-                        "Ask GET /api/v2/{user}/figures/presets for the vocabulary first; " +
-                        "an unknown key inside a figure is `400 invalid_travellers` rather " +
-                        "than dropped. Read back with GET /api/v1/{user}/travellers.",
-                    },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description:
-                "The journal's features or profile afterwards, and what changed",
-            },
-            "400": {
-              description:
-                "An unknown capability, a non-boolean, an unwritable field (`owner`, " +
-                "`baseCurrency`, `media`), a capability this server does not provide, one " +
-                "the server decides for every journal (`capability_not_yours`: `photobook`, " +
-                "`postcards`, `logging`, `credits`), `features` sent together with a " +
-                "profile field (`mixed_change`), or a `travellers` figure with an unknown " +
-                "field (`invalid_travellers`)",
-            },
-            "401": { description: "Missing or invalid token" },
-            "403": {
-              description:
-                "The token belongs to a different journal, or is scoped to one trip",
-            },
-            "404": { description: "No such journal" },
-          },
-        },
-      },
-      "/api/v1/{user}/travellers": {
-        get: {
-          summary: "The journal's own default party",
-          description:
-            "How this journal draws its landing page's walking figures when a trip does not " +
-            "say for itself — B1526. `PATCH /api/v1/{user}/config` with `{\"travellers\": " +
-            "[...]}` is where it is written; `.../trips/{trip}/travellers` is the same door " +
-            "one trip down. Owner only, the same gate `GET .../config` uses.",
-          parameters: [
-            { name: "user", in: "path", required: true, schema: { type: "string" } },
-          ],
-          responses: {
-            "200": { description: "The journal's default travellers block" },
-            "401": { description: "Missing or invalid token" },
-            "403": {
-              description:
-                "The token belongs to a different journal, or is scoped to one trip",
-            },
-            "404": { description: "No such journal" },
           },
         },
       },

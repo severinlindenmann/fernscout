@@ -11,8 +11,13 @@ export const dynamic = "force-dynamic";
  *
  * ## Why this exists next to a balance and not as a settings page
  *
- * `PATCH /api/v1/<user>/config` already writes `features`, and its own comment
- * says there is no settings page and will not be one. This is not that: it is
+ * `PATCH /api/v1/<user>/config` used to write the whole `features` block, and
+ * its own comment said there is no settings page and will not be one. B1632
+ * retired that route once v2's journal document (`PATCH /api/v2/<user>`)
+ * covered its profile fields — but `features` is instance-only in v2
+ * (00-decisions.md, decision 5) and unwritable by any journal there, so this
+ * route is now the *only* surviving way to flip a feature bit at all, for
+ * the two bits that matter here. Still not a settings page: it is
  * two capabilities, the two that spend the balance the credits card is about,
  * reachable by the person already signed in as the owner and looking at that
  * balance going down. Nothing else about the journal is writable here — the

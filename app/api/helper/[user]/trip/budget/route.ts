@@ -13,10 +13,11 @@ export const dynamic = "force-dynamic";
  * A trip's planned budget, and one thing paid for before leaving —
  * `costs.md`'s own two fields, from the wizard's `set_budget` (B1042).
  *
- * Both are amended with `patchCosts`, the same writer `PATCH
- * /api/v1/<user>/trips/<trip>/costs` calls, and never the `PUT` that would
- * replace the whole file. `budget` is sent whole — it always is, the same
- * rule `PATCH .../costs` follows — but a preparation cost is **appended**
+ * Both are amended with `patchCosts` (`lib/api/costs.ts`), the merge-only
+ * writer that is now the sole way to change a trip's costs section short of
+ * `PATCH /api/v2/{user}/trips/{trip}` replacing it whole. `budget` is sent
+ * whole — it always is, the same rule `patchCosts` follows — but a
+ * preparation cost is **appended**
  * rather than sent alone: `patchCosts` replaces the whole `costs:` list
  * wholesale when the field is present, so sending only the new line would
  * silently delete every one already on the file. The route reads what is

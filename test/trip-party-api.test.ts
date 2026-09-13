@@ -8,8 +8,6 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { tripWriteScope } from "@/lib/tripPeople";
-import { getTrip } from "@/lib/trips";
-import { PATCH as patchTravellers } from "@/app/api/v1/[user]/trips/[trip]/travellers/route";
 import { writeTripFixture } from "./fixtures/content";
 
 /**
@@ -20,13 +18,20 @@ import { writeTripFixture } from "./fixtures/content";
  *
  * B1612 repoint: `people` is no longer a route of its own — it is a section
  * of the one v2 trip document (`PATCH /api/v2/{user}/trips/{trip}`), folded
- * in the way `.../visibility` and `.../rates` were. `travellers` still has
- * its own v1 route (`.../trips/{trip}/travellers`), but B1598 moved what it
- * writes onto too: `lib/api/tripParty.ts` now does a `readTripJson`/
- * `writeTripJson` round-trip like every other trip patcher, not the
- * `trip.md` splice this comment used to describe — the "changing the party
- * leaves the prose and every other field alone" case below is fixed onto
- * `trip.json` for that reason (B1630 finding, corrected here).
+ * in the way `.../visibility` and `.../rates` were.
+ *
+ * B1632 retired `travellers`'s own v1 route too (`.../trips/{trip}/
+ * travellers`) — not folded onto the trip document the way `people` was,
+ * but replaced outright by the figure library: a trip now says WHICH
+ * figures walk (`figures: {mode: "custom", figures: [ids]}`, a section of
+ * the same trip document), and each figure's actual appearance — the
+ * `hairStyle`, `skin`, an invented attribute refused — lives on
+ * `PUT /api/v2/{user}/figures/{id}` instead. That is a different shape, not
+ * a renamed door, so the four "PATCH .../travellers" tests this file used
+ * to carry are not repointed here; the same properties (draw a party,
+ * refuse an invented attribute, leave the rest of the document alone) are
+ * `test/api-v2-figures.test.ts`'s own coverage of the figure and its trip
+ * reference.
  *
  * What v2's fold changes, beyond the address:
  *  - the trip is a v2-native `trip.json` document (`lib/api/v2/store.ts`),
@@ -56,10 +61,6 @@ import { writeTripFixture } from "./fixtures/content";
 let dir: string;
 const OWNER_EMAIL = "alex@example.test";
 
-function tripFile(): string {
-  return path.join(dir, "alex", "trips", "reise", "trip.json");
-}
-
 function writeTrip() {
   writeTripFixture("alex", {
     id: "reise",
@@ -84,30 +85,6 @@ async function scopedToken(email: string, tripId: string): Promise<string> {
   const session = await verifyCode("alex", email, code, "agent", tripWriteScope(tripId));
   if (!session.ok) throw new Error(`could not mint a trip token: ${session.reason}`);
   return session.token;
-}
-
-/** Both routes take the same two params, and TypeScript's `RouteContext` is
- * keyed by the literal path — so one helper needs the shape rather than either
- * route's own type. */
-type PartyRoute = (
-  request: Request,
-  context: { params: Promise<{ user: string; trip: string }> },
-) => Promise<Response>;
-
-async function call(route: PartyRoute, method: string, token: string, body?: unknown) {
-  const response = await route(
-    new Request("https://t.test/api/v1/alex/trips/reise/travellers", {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        ...(body !== undefined ? { "content-type": "application/json" } : {}),
-      },
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
-    }),
-    { params: Promise.resolve({ user: "alex", trip: "reise" }) },
-  );
-  const parsed = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  return { status: response.status, body: parsed };
 }
 
 /** A v2 trip document with every declinable answered, two people already on
@@ -376,48 +353,5 @@ describe("PATCH /api/v2/{user}/trips/{trip} — the people section", () => {
 
     const { body: onDisk } = await getV2Trip("reise-v2", token);
     expect((onDisk.declined as Record<string, string> | undefined)?.buddies).toBeUndefined();
-  });
-});
-
-describe("PATCH .../travellers", () => {
-  const REF = "alex/reise";
-
-  test("draws a party onto a trip created without one", async () => {
-    const token = await ownerToken();
-    const { status, body } = await call(patchTravellers, "PATCH", token, {
-      travellers: [{ skin: "medium", hair: "black", hairStyle: "coils" }],
-    });
-    expect(status).toBe(200);
-    expect(getTrip(REF)!.travellers).toHaveLength(1);
-    expect(getTrip(REF)!.travellers[0].hairStyle).toBe("coils");
-    // Cosmetic, and the response says so — nothing about access changed.
-    expect(String(body.note)).toMatch(/Nothing about who may read or write/);
-  });
-
-  test("an invented attribute is refused rather than drawn as a default", async () => {
-    const before = fs.readFileSync(tripFile(), "utf8");
-    const token = await ownerToken();
-    const { status, body } = await call(patchTravellers, "PATCH", token, {
-      travellers: [{ hair: "aubergine" }],
-    });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_travellers");
-    expect(fs.readFileSync(tripFile(), "utf8")).toBe(before);
-  });
-
-  test("changing the party leaves the prose and every other field alone", async () => {
-    const token = await ownerToken();
-    await call(patchTravellers, "PATCH", token, { travellers: [{ skin: "deep" }] });
-    const written = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
-    expect(written.title).toBe("Reise");
-    expect(written.visibility).toBe("private");
-    expect(written.intro).toBe("Body.");
-  });
-
-  test("a body that names neither field is refused with the shape to send", async () => {
-    const token = await ownerToken();
-    const { status, body } = await call(patchTravellers, "PATCH", token, { figures: [] });
-    expect(status).toBe(400);
-    expect(String(body.message)).toMatch(/travellers/);
   });
 });

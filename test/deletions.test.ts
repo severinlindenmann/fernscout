@@ -25,7 +25,7 @@ import {
   resolveDeletionToken,
   summarise,
 } from "@/lib/deletions";
-import { DELETE as deleteJournalRoute, PATCH as patchJournalRoute } from "@/app/api/v1/[user]/route";
+import { DELETE as deleteJournalRoute } from "@/app/api/v2/[user]/route";
 import { DELETE as deleteTripRoute, PATCH as patchTripRoute } from "@/app/api/v2/[user]/trips/[trip]/route";
 import * as confirmRoute from "@/app/api/v1/[user]/deletions/[token]/route";
 import DeletePage from "@/app/[user]/delete/[token]/page";
@@ -216,7 +216,7 @@ describe("asking to delete", () => {
     writeDay(user, trip, "kyoto-in-the-rain");
     const token = await tokenFor(user, OWNER);
 
-    const response = await deleteJournalRoute(request(`https://t.test/api/v1/${user}`, token), {
+    const response = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`, token), {
       params: Promise.resolve({ user }),
     });
     const body = (await response.json()) as Record<string, unknown>;
@@ -313,18 +313,20 @@ describe("who may ask", () => {
     // What somebody listed in a trip's `people:` gets from /api/auth/request.
     const scoped = await tokenFor(user, GUEST, tripWriteScope(trip));
 
-    const journal = await deleteJournalRoute(request(`https://t.test/api/v1/${user}`, scoped), {
+    // v2's owner-only gate (`lib/api/v2/auth.ts`'s `ownerOnlyRefusal`)
+    // answers "forbidden" here, on the journal itself, the same as it does
+    // on the trip below: this token IS in scope for the journal (`ownsUser`
+    // passes) — it is the wrong *authority* within it (`mayActAsOwner`
+    // fails) — where v1's `[user]` route said "out_of_scope" instead. Still
+    // 403, still refused outright either way.
+    const journal = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`, scoped), {
       params: Promise.resolve({ user }),
     });
     expect(journal.status).toBe(403);
-    expect((await journal.json()).error).toBe("out_of_scope");
+    expect((await journal.json()).error).toBe("forbidden");
 
     // Refused on the very trip the token may write days into: writing to a
-    // journey and ending it are different authorities. v2's owner-only gate
-    // (`lib/api/v2/auth.ts`'s `ownerOnlyRefusal`) answers "forbidden" here
-    // rather than v1's "out_of_scope" — a deliberate rename (this token IS
-    // in scope for the journal; it is the wrong *authority* within it), not
-    // a change to what is refused: still 403, still refused outright.
+    // journey and ending it are different authorities.
     const tripResponse = await deleteTripRoute(
       request(`https://t.test/api/v2/${user}/trips/${trip}`, scoped),
       { params: Promise.resolve({ user, trip }) },
@@ -341,7 +343,7 @@ describe("who may ask", () => {
     makeJournal("bruno", "bruno@example.test");
     const brunosToken = await tokenFor("bruno", "bruno@example.test");
 
-    const response = await deleteJournalRoute(request(`https://t.test/api/v1/${anna}`, brunosToken), {
+    const response = await deleteJournalRoute(request(`https://t.test/api/v2/${anna}`, brunosToken), {
       params: Promise.resolve({ user: anna }),
     });
     expect(response.status).toBe(403);
@@ -350,7 +352,7 @@ describe("who may ask", () => {
 
   test("no token at all is a 401", async () => {
     const user = makeJournal();
-    const response = await deleteJournalRoute(request(`https://t.test/api/v1/${user}`), {
+    const response = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`), {
       params: Promise.resolve({ user }),
     });
     expect(response.status).toBe(401);
@@ -614,7 +616,7 @@ describe("deleting a journal", () => {
     await requestDeletion({ kind: "journal", username: user });
     await confirmDeletion(user, takeToken(user));
 
-    const response = await deleteJournalRoute(request(`https://t.test/api/v1/${user}`, token), {
+    const response = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`, token), {
       params: Promise.resolve({ user }),
     });
     expect(response.status).toBe(410);
@@ -851,18 +853,20 @@ describe("credits are named before they are lost", () => {
  * these two route modules.
  */
 describe("a verb these routes do not have", () => {
-  test("PATCH on a journal points at the config door", async () => {
-    const response = await patchJournalRoute(new Request("https://x.test/api/v1/alex"), {
-      params: Promise.resolve({ user: "alex" }),
+  test("PATCH on a journal is a door now, not a signpost — B1632", async () => {
+    // v1's `PATCH /api/v1/{user}` was the 405 signpost this describe is
+    // named for, pointing an agent at `.../config`. B1632 retired both:
+    // `PATCH /api/v2/{user}` is a real operation now (the journal document),
+    // so a caller with no token gets the ordinary refusal of a real call
+    // rather than a signpost to a route that no longer exists either.
+    const user = makeJournal("alex", "alex@example.test");
+    const { PATCH: patchV2JournalRoute } = await import("@/app/api/v2/[user]/route");
+    const response = await patchV2JournalRoute(new Request(`https://x.test/api/v2/${user}`), {
+      params: Promise.resolve({ user }),
     } as never);
-    expect(response.status).toBe(405);
-    expect(response.headers.get("Allow")).toBe("DELETE");
-    const body = (await response.json()) as { error: string; message: string };
-    expect(body.error).toBe("method_not_allowed");
-    expect(body.message).toContain("/api/v1/alex/config");
-    // B293 gave features a door, so the message must not still say they have none.
-    expect(body.message).not.toMatch(/features are not writable through any door/i);
-    expect(body.message).toMatch(/features/i);
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).not.toBe("method_not_allowed");
   });
 
   test("PATCH on a trip is a door now, not a signpost — B622", async () => {

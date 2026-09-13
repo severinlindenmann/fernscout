@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { POST } from "@/app/api/v1/geocode/route";
+import { POST } from "@/app/api/v2/geocode/route";
 import { openAgentSession } from "@/lib/auth";
 import { clearConfigCache } from "@/lib/config";
 import { closeDatabase, getDatabase } from "@/lib/db";
@@ -15,7 +15,7 @@ let OWNER_EMAIL: string;
 let SECOND_OWNER: string;
 let SECOND_OWNER_EMAIL: string;
 
-function writeUserConfig(username: string, email: string, addressLookup: Record<string, unknown>) {
+function writeUserConfig(username: string, email: string) {
   fs.mkdirSync(path.join(dir, username), { recursive: true });
   fs.writeFileSync(
     path.join(dir, username, "config.json"),
@@ -24,11 +24,13 @@ function writeUserConfig(username: string, email: string, addressLookup: Record<
       tagline: "t",
       owner: { name: `${username} Example`, nickname: username, email },
       baseCurrency: "CHF",
-      features: { addressLookup },
     }),
   );
 }
 
+// v2 asks the INSTANCE, never the journal (00-decisions.md, decision 5) —
+// `addressLookup` lives on the server's own config.json and nowhere else,
+// unlike v1's per-journal `features.addressLookup` override.
 function writeConfigs(addressLookup: Record<string, unknown>) {
   fs.writeFileSync(
     path.join(dir, "config.json"),
@@ -40,8 +42,8 @@ function writeConfigs(addressLookup: Record<string, unknown>) {
       },
     }),
   );
-  writeUserConfig(OWNER, OWNER_EMAIL, addressLookup);
-  writeUserConfig(SECOND_OWNER, SECOND_OWNER_EMAIL, addressLookup);
+  writeUserConfig(OWNER, OWNER_EMAIL);
+  writeUserConfig(SECOND_OWNER, SECOND_OWNER_EMAIL);
   clearConfigCache();
   clearUserCache();
 }
@@ -58,7 +60,7 @@ async function call(token: string, body: unknown, ip = "203.0.113.90") {
   });
   headers.set("authorization", ["Bearer", token].join(" "));
   const response = await POST(
-    new Request("https://t.test/api/v1/geocode", {
+    new Request("https://t.test/api/v2/geocode", {
       method: "POST",
       headers,
       body: JSON.stringify(body),
@@ -93,7 +95,7 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("POST /api/v1/geocode", () => {
+describe("POST /api/v2/geocode", () => {
   test("returns ranked candidates and biases the provider query with trip context", async () => {
     const fetchMock = vi.fn(
       async () =>
@@ -192,7 +194,7 @@ describe("POST /api/v1/geocode", () => {
     expect((await call(accessToken, { query: "Hausen" }, "203.0.113.96")).status).toBe(200);
   });
 
-  test("answers 404 when the journal has place lookup switched off", async () => {
+  test("answers 404 when this server has place lookup switched off", async () => {
     writeConfigs({ enabled: false, provider: "photon" });
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

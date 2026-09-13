@@ -4,7 +4,6 @@ import { describe, expect, test } from "vitest";
 import { openApiDocument } from "@/lib/api/openapi";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
 import { COST_CATEGORIES } from "@/lib/costFormat";
-import { FEATURE_NAMES } from "@/lib/config";
 import { TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "@/lib/validate/entry";
 import { IMAGE_FORMATS, VIDEO_FORMATS } from "@/lib/validate/media";
 
@@ -233,20 +232,11 @@ describe("enums match their source", () => {
   // completeness checks; only these two document assertions retire with
   // their routes.
 
-  // FEATURE_NAMES is not an enum either — `features` is a map from
-  // capability name to boolean, so the document names the capabilities the
-  // same way it names tracks: one boolean property per name. An
-  // `additionalProperties: boolean` with nothing else is indistinguishable,
-  // to an agent, from "any string works" — which is not true, and is
-  // exactly the gap checkFeatures refuses on the server side.
-  test("PATCH .../config names exactly FEATURE_NAMES as features.properties", () => {
-    const operation = document.paths["/api/v1/{user}/config"]?.patch;
-    const body = operation?.requestBody?.content?.["application/json"]?.schema as
-      | { properties?: { features?: { properties?: Record<string, unknown> } } }
-      | undefined;
-    const properties = body?.properties?.features?.properties ?? {};
-    expect(sorted(Object.keys(properties))).toEqual(sorted(FEATURE_NAMES));
-  });
+  // PATCH /api/v1/{user}/config is gone: B1632 deleted it under the v2
+  // migration's decided cut (00-decisions.md, decision 5) — `features` is
+  // instance-only in v2 and unwritable by any journal, so there is no
+  // longer a route whose `features.properties` this test could name against
+  // FEATURE_NAMES.
 
   /**
    * What may be uploaded is published on /api/health rather than on the media
@@ -422,11 +412,19 @@ describe("every error code a route answers with is published", () => {
    * `/api/web` replacements (not scanned for `answered`, since they are not
    * part of the published bearer contract either) made both look dead the
    * moment the move landed, though live routes still speak them.
+   *
+   * `app/api/trip` (and its sibling `app/api/journal`, already cookie-only
+   * and outside the contract) joined for the same reason again, B1632:
+   * retiring `PATCH /api/v1/{user}/config` took `mixed_change` out of the
+   * v1 scan, but `app/api/trip/route.ts` — the cookie-side door that copied
+   * the same one-change-per-call rule — still answers with it.
    */
   for (const file of [
     ...routeFiles("app/api/helper"),
     ...routeFiles("app/[user]"),
     ...routeFiles("app/api/web"),
+    ...routeFiles("app/api/trip"),
+    ...routeFiles("app/api/journal"),
   ]) {
     const source = readFileSync(file, "utf8");
     for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);

@@ -64,13 +64,16 @@ describe("every /api/v1 route that reads a body", () => {
     // would pass by describing an empty world.
     //
     // The floor was 10 and v1 has been shrinking past it as the v2 migration
-    // moves doors across — trips, days, media, journals, postcards, inbox and
-    // the money routes have all gone. Lowered rather than removed: the guard
-    // is against a broken walk, not a claim about how much v1 is left, and it
-    // has to keep working right down to the last v1 route. It reaches zero
-    // legitimately at the end of the migration, and whoever deletes the last
-    // one should delete this file with it rather than lower the number again.
-    expect(readsABody.length).toBeGreaterThan(3);
+    // moves doors across — trips, days, media, journals, postcards, inbox,
+    // the money routes, and (B1632) invites, channels, config, contacts
+    // import, costs and travellers have all gone. Lowered rather than
+    // removed: the guard is against a broken walk, not a claim about how
+    // much v1 is left, and it has to keep working right down to the last v1
+    // route. It reaches zero legitimately at the end of the migration, and
+    // whoever deletes the last one should delete this file with it rather
+    // than lower the number again. Two remain today: `import` and
+    // `trips/{trip}/travellers/from-photo`.
+    expect(readsABody.length).toBeGreaterThan(1);
   });
 
   test("either publishes a request schema, or is on B536's list", () => {

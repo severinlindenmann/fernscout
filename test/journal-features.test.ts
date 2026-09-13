@@ -5,37 +5,39 @@ import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
-import { issueCode, verifyCode } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
 import { setJournalFeatures } from "@/lib/journals";
-import { writeTripFixture } from "./fixtures/content";
 
 /**
- * B182 — a journal's capabilities after the day it was created.
+ * B182 — a journal's capabilities after the day it was created, at the
+ * `setJournalFeatures` layer.
  *
- * `createJournal` wrote a `features` block once and nothing anywhere ever wrote
- * one again: no endpoint, no tool, no page. So every journal made before a
- * default changed was frozen as it was, and the only cure was a shell on the
- * server — for a product whose whole premise is that the owner has never seen
- * the folder. On the live instance that left eight journals with contacts off
- * and no way to turn them on, which since B39 means no way to let anybody in
- * at all.
+ * B1632 retired `PATCH /api/v1/{user}/config` — the whole per-journal
+ * `features` block is instance-only in v2 and unwritable by any journal
+ * there (00-decisions.md, decision 5) — and with it the route-level tests
+ * this file used to carry: `GET`/`PATCH .../config`'s own field-by-field
+ * behaviour (title, tagline, locales, visibility, manualRates, media,
+ * owner.email, baseCurrency, mixed_change) and the journal's own default
+ * party (`.../travellers`, B1526 — the figure library replaced the inline
+ * block, see `PUT /api/v2/{user}/figures/{id}`). None of those routes
+ * exist any more; `PATCH /api/v2/{user}` (`test/api-v2-journal.test.ts`)
+ * covers the surviving profile-field writes in v2's own document shape,
+ * and the figure library has its own coverage (`test/api-v2-figures.test.ts`).
  *
- * What must stay true, and is what these are for:
+ * What is left here is `setJournalFeatures` itself, called directly rather
+ * than through a route: `channels` (kept, `app/api/v1/[user]/channels/
+ * route.ts`) still calls it for `mail`/`whatsapp`, and helper journal tools
+ * call it too, so the function is not dead even though its general-purpose
+ * door is gone. What must stay true, and is what these are for:
  *
  *  - the server is still a ceiling, and a journal cannot climb over it;
- *  - `owner.email` is never writable here — it is the address that decides who
- *    can obtain a token for this journal (decision 24), and a token must not
- *    be able to move the boundary that issued it;
  *  - nothing else in config.json is touched, including keys this code has
  *    never heard of.
  */
 
-const KEY = "44".repeat(32);
 const SITE = "https://features.test";
 
 let dir: string;
-let token: string;
 
 /** `site/config.json` — what this server is able to offer. */
 function writeServerConfig(features: Record<string, unknown>) {
@@ -82,48 +84,19 @@ function rawConfig(): Record<string, unknown> {
   >;
 }
 
-async function get(bearer = token) {
-  const { GET } = await import("@/app/api/v1/[user]/config/route");
-  const response = await GET(
-    new Request(`${SITE}/api/v1/ana/config`, {
-      headers: { Authorization: `Bearer ${bearer}` },
-    }),
-    { params: Promise.resolve({ user: "ana" }) },
-  );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
-}
-
-async function patch(body: unknown, bearer = token) {
-  const { PATCH } = await import("@/app/api/v1/[user]/config/route");
-  const response = await PATCH(
-    new Request(`${SITE}/api/v1/ana/config`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${bearer}` },
-      body: JSON.stringify(body),
-    }),
-    { params: Promise.resolve({ user: "ana" }) },
-  );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
-}
-
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-features-"));
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "features.db")}`;
   process.env.SESSION_SECRET = "features-test-secret-features-te";
   process.env.AUTH_DEV_CODE = "123456";
-  process.env.CONTACTS_ENCRYPTION_KEY = KEY;
+  process.env.CONTACTS_ENCRYPTION_KEY = "44".repeat(32);
 
   writeServerConfig({ contacts: { enabled: true } });
   writeUserConfig();
 
   const { migrateToLatest } = await import("@/lib/db/migrate");
   await migrateToLatest(await getDatabase());
-
-  await issueCode("ana", "ana@example.test", "agent");
-  const verified = await verifyCode("ana", "ana@example.test", "123456", "agent");
-  if (!verified.ok) throw new Error("could not mint a token");
-  token = verified.token;
 });
 
 afterEach(async () => {
@@ -138,30 +111,6 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("B408 — config agrees with status and health about server-only capabilities", () => {
-  test("credits enabled on the server reads true here though the journal never opted in", async () => {
-    writeServerConfig({ contacts: { enabled: true }, credits: { enabled: true } });
-    const { body } = await get();
-    expect((body.features as Record<string, boolean>).credits).toBe(true);
-  });
-
-  test("credits off on the server reads false, matching /api/health", async () => {
-    const { body } = await get();
-    expect((body.features as Record<string, boolean>).credits).toBe(false);
-  });
-
-  // B607: `view()` (GET) got the B408 fix; `setJournalFeatures` (PATCH's
-  // response) did not, so the two disagreed about the same journal in the
-  // same second — observed live as PATCH saying `credits: false` right after
-  // GET said `true`.
-  test("B607: PATCHing an unrelated capability still reports credits from the server", async () => {
-    writeServerConfig({ contacts: { enabled: true }, credits: { enabled: true } });
-    const { status, body } = await patch({ features: { contacts: true } });
-    expect(status).toBe(200);
-    expect((body.features as Record<string, boolean>).credits).toBe(true);
-  });
-});
-
 describe("switching a capability on", () => {
   test("an existing journal can reach contacts without anybody touching the server", () => {
     // The state B153 describes, still true for every journal already on disk.
@@ -172,14 +121,7 @@ describe("switching a capability on", () => {
     expect(isEnabled("contacts", "ana")).toBe(true);
   });
 
-  test("through the endpoint, which is the point of it", async () => {
-    const { status, body } = await patch({ features: { contacts: true } });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: ["contacts"] });
-    expect(isEnabled("contacts", "ana")).toBe(true);
-  });
-
-  test("saying the same thing twice changes nothing and is not an error", async () => {
+  test("saying the same thing twice changes nothing and is not an error", () => {
     setJournalFeatures("ana", { contacts: true });
     const again = setJournalFeatures("ana", { contacts: true });
     expect(again).toMatchObject({ ok: true, changed: [] });
@@ -246,22 +188,6 @@ describe("the server is still the ceiling", () => {
 });
 
 describe("what it will not touch", () => {
-  test("owner.email is not writable through it", async () => {
-    const before = rawConfig();
-    const { status, body } = await patch({
-      features: { contacts: true },
-      owner: { email: "someone-else@example.test" },
-    });
-
-    expect(status).toBe(400);
-    expect(body.error).toBe("unsupported_field");
-    expect(String(body.message)).toContain("owner.email");
-    // Refused whole: the features half did not land either, so a caller
-    // cannot smuggle a change past by attaching one that is accepted.
-    expect(rawConfig()).toEqual(before);
-    expect(isEnabled("contacts", "ana")).toBe(false);
-  });
-
   test("everything else in the file survives a change", () => {
     // Including a key this code has never heard of: the file is edited, not
     // regenerated from what the parser understood.
@@ -296,366 +222,5 @@ describe("what it will not touch", () => {
   test("a value that is not a boolean is refused", () => {
     const result = setJournalFeatures("ana", { contacts: "yes" });
     expect(result).toMatchObject({ ok: false, error: "invalid_feature" });
-  });
-});
-
-describe("who may call it", () => {
-  test("a token for another journal cannot", async () => {
-    fs.mkdirSync(path.join(dir, "bea", "trips"), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, "bea", "config.json"),
-      JSON.stringify({
-        title: "Bea",
-        owner: { name: "Bea", nickname: "Bea", email: "bea@example.test" },
-      }),
-    );
-    clearUserCache();
-    await issueCode("bea", "bea@example.test", "agent");
-    const bea = await verifyCode("bea", "bea@example.test", "123456", "agent");
-    if (!bea.ok) throw new Error("no token");
-
-    const { status } = await patch({ features: { contacts: true } }, bea.token);
-    expect(status).toBe(403);
-    expect(isEnabled("contacts", "ana")).toBe(false);
-  });
-
-  test("an empty body says what to send rather than reporting success", async () => {
-    const { status, body } = await patch({ features: {} });
-    expect(status).toBe(400);
-    expect(body.error).toBe("nothing_to_change");
-  });
-});
-
-/**
- * B220 — the rest of the file, after B182 opened the `features` block.
- *
- * The decision the ticket asked for is per field, and these are where it is
- * written down. What a journal *says about itself* is writable: title,
- * tagline, visibility, startLocation, units, locales, defaultLocale,
- * displayCurrencies, manualRates. Three things are not, each for its own
- * reason, and there is a test for each refusal because a refusal nobody
- * asserts is a refusal that quietly becomes an oversight:
- *
- *  - `owner.email` — the address deciding who can get a token here (B182's,
- *    unchanged);
- *  - `baseCurrency` — a cost with no `currency:` IS a cost in the base
- *    currency, so changing it re-reads money rather than reconverting it;
- *  - `media` — the server is already a ceiling over it, so the only reachable
- *    effect is inert or a self-narrowing nobody asked for.
- */
-describe("what a journal says about itself", () => {
-  test("a title typoed at signup can be fixed", async () => {
-    const { status, body } = await patch({ title: "Ana's Slow Loop" });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: ["title"] });
-    // Read back off disk, not echoed: the point is the file.
-    expect(rawConfig().title).toBe("Ana's Slow Loop");
-    expect(getUser("ana")?.title).toBe("Ana's Slow Loop");
-  });
-
-  test("a tagline can be cleared, and clearing it removes the key rather than emptying it", async () => {
-    // `readString` in lib/config.ts refuses an empty tagline, so `"tagline": ""`
-    // would be a journal that will not load at all.
-    const { status, body } = await patch({ tagline: "" });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: ["tagline"] });
-    expect("tagline" in rawConfig()).toBe(false);
-    expect(getUser("ana")).not.toBeNull();
-  });
-
-  test("the languages a journal offers can be changed, both fields at once", async () => {
-    const { status, body } = await patch({ locales: ["de", "en"], defaultLocale: "de" });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true });
-    expect(getUser("ana")?.locales).toEqual(["de", "en"]);
-    expect(getUser("ana")?.defaultLocale).toBe("de");
-  });
-
-  test("a defaultLocale outside locales is refused rather than written", async () => {
-    // Written, it is a config problem, and a config problem takes the whole
-    // journal off the site. The caller hears which half was wrong instead.
-    const { status, body } = await patch({ defaultLocale: "de" });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_locales");
-    expect(getUser("ana")?.defaultLocale).toBe("en");
-  });
-
-  test("displayCurrencies must contain the base currency, which this cannot change", async () => {
-    const { status, body } = await patch({ displayCurrencies: ["EUR"] });
-    expect(status).toBe(400);
-    expect(String(body.message)).toContain("CHF");
-    expect(getUser("ana")?.displayCurrencies).toEqual(["CHF"]);
-
-    const ok = await patch({ displayCurrencies: ["chf", "eur"] });
-    expect(ok.status).toBe(200);
-    // Normalised on the way in, so the file holds what the reader expects.
-    expect(getUser("ana")?.displayCurrencies).toEqual(["CHF", "EUR"]);
-  });
-
-  test("manualRates merges and a null removes one, so a wrong rate can be taken out", async () => {
-    writeUserConfig({ manualRates: { VND: 30500 } });
-    await patch({ manualRates: { CUP: 26 } });
-    expect(getUser("ana")?.manualRates).toEqual({ VND: 30500, CUP: 26 });
-
-    await patch({ manualRates: { CUP: null } });
-    expect(getUser("ana")?.manualRates).toEqual({ VND: 30500 });
-  });
-
-  test("a rate that is not a positive number is refused, naming the currency", async () => {
-    const { status, body } = await patch({ manualRates: { VND: -1 } });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_manualRates");
-    expect(String(body.message)).toContain("VND");
-  });
-
-  test("a language name instead of a language code is refused", async () => {
-    const { status, body } = await patch({ locales: ["german"] });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_locales");
-  });
-
-  // B306: renamed this level's closed value from `private` to `guest`.
-  test("visibility can be set to guest, and read back as guest", async () => {
-    const { status, body } = await patch({ visibility: "guest" });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: ["visibility"] });
-    expect(rawConfig().visibility).toBe("guest");
-    expect(getUser("ana")?.visibility).toBe("guest");
-  });
-
-  test("the old word `private` is still accepted, and written as `guest`", async () => {
-    const { status, body } = await patch({ visibility: "private" });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: ["visibility"] });
-    // Never the old word on disk, even though it was accepted as input.
-    expect(rawConfig().visibility).toBe("guest");
-    expect(getUser("ana")?.visibility).toBe("guest");
-  });
-
-  test("an unrecognised visibility is refused, naming public and guest", async () => {
-    const { status, body } = await patch({ visibility: "hidden" });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_visibility");
-    expect(String(body.message)).toMatch(/"public" or "guest"/);
-    expect(getUser("ana")?.visibility).toBe("public");
-  });
-
-  test("saying the same thing twice changes nothing and is not an error", async () => {
-    const { status, body } = await patch({ title: "Ana" });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: [] });
-  });
-
-  test("everything else in the file survives, including a key nothing parses", async () => {
-    writeUserConfig({ somethingNobodyParsed: { keep: true } });
-    await patch({ title: "Renamed" });
-    const after = rawConfig();
-    expect(after.somethingNobodyParsed).toEqual({ keep: true });
-    expect(after.owner).toEqual({
-      name: "Ana Meyer",
-      nickname: "Ana",
-      email: "ana@example.test",
-    });
-    expect(after.features).toEqual({ reactions: { enabled: true } });
-  });
-
-  test("GET reads back what PATCH writes, including the base currency it cannot change", async () => {
-    const { GET } = await import("@/app/api/v1/[user]/config/route");
-    const response = await GET(
-      new Request(`${SITE}/api/v1/ana/config`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      { params: Promise.resolve({ user: "ana" }) },
-    );
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { journal: Record<string, unknown> };
-    expect(body.journal).toMatchObject({ title: "Ana", baseCurrency: "CHF", visibility: "public" });
-  });
-
-  /**
-   * B1504 — the read that makes the refusal honest.
-   *
-   * `media` is refused by `PATCH` on purpose and that is not in question. What
-   * was missing is that a client syncing a local `config.json` up had no way
-   * to tell whether the block in the folder was the one the site is running
-   * under, so a person who edited it got a clean run and a line that never
-   * arrived. The assertion is on the journal's *own* narrowing rather than on
-   * the shipped defaults: the two are only distinguishable when the journal
-   * asked for something smaller, which is exactly the case a diff has to see.
-   */
-  test("GET reads back this journal's own media block, narrowed below the server's", async () => {
-    writeUserConfig({ media: { imageBytes: 1_000_000, itemsPerDay: 3 } });
-    const { GET } = await import("@/app/api/v1/[user]/config/route");
-    const response = await GET(
-      new Request(`${SITE}/api/v1/ana/config`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      { params: Promise.resolve({ user: "ana" }) },
-    );
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as {
-      journal: { media?: Record<string, number>; baseCurrency?: string };
-      owner: Record<string, unknown>;
-    };
-    expect(body.journal.media).toMatchObject({ imageBytes: 1_000_000, itemsPerDay: 3 });
-    // The address stays out — reading a journal's config is not permission to
-    // collect its owner's email, and the whole point of the scope line the
-    // client prints is that this one field can never be compared.
-    expect(body.owner).not.toHaveProperty("email");
-  });
-});
-
-/**
- * B1526 — a hosted journal had no file to fall back on, and no API call
- * wrote its landing page's default party either. Validated the same way
- * `.../trips/{trip}/travellers` is: figures that route refuses are refused
- * here too.
- */
-describe("the journal's own default party — B1526", () => {
-  async function getTravellers() {
-    const { GET } = await import("@/app/api/v1/[user]/travellers/route");
-    const response = await GET(
-      new Request(`${SITE}/api/v1/ana/travellers`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      { params: Promise.resolve({ user: "ana" }) },
-    );
-    return { status: response.status, body: (await response.json()) as Record<string, unknown> };
-  }
-
-  test("absent by default, and GET says so", async () => {
-    const { status, body } = await getTravellers();
-    expect(status).toBe(200);
-    expect(body.travellers).toEqual([]);
-  });
-
-  test("PATCH …/config writes it, and GET …/travellers reads it back", async () => {
-    const { status, body } = await patch({
-      travellers: [{ skin: "medium", hair: "black", hairStyle: "braids" }],
-    });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: ["travellers"] });
-    expect(rawConfig().travellers).toEqual([
-      { skin: "medium", hair: "black", hairStyle: "braids" },
-    ]);
-
-    const read = await getTravellers();
-    expect(read.body.travellers).toEqual([{ skin: "medium", hair: "black", hairStyle: "braids" }]);
-  });
-
-  test("an unknown figure field is refused by name, the same message the trip route gives", async () => {
-    const { status, body } = await patch({ travellers: [{ preset: "west-african" }] });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_travellers");
-    expect(String(body.message)).toContain("preset");
-    expect(getUser("ana")?.travellers).toEqual([]);
-  });
-
-  test("sending [] clears an existing default, removing the key rather than writing an empty list", async () => {
-    await patch({ travellers: [{ skin: "medium" }] });
-    expect("travellers" in rawConfig()).toBe(true);
-
-    const { status, body } = await patch({ travellers: [] });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: ["travellers"] });
-    expect("travellers" in rawConfig()).toBe(false);
-  });
-
-  test("clearing an already-empty default changes nothing", async () => {
-    const { status, body } = await patch({ travellers: [] });
-    expect(status).toBe(200);
-    expect(body).toMatchObject({ ok: true, changed: [] });
-  });
-
-  test("a trip-scoped token cannot read or write the journal's own default", async () => {
-    // The same authority split `GET`/`PATCH …/config` already enforce.
-    const { issueCode, verifyCode, tripWriteScope } = await import("@/lib/auth");
-    const { code } = await issueCode("ana", "ana@example.test", "agent", { trip: "loop" });
-    const session = await verifyCode("ana", "ana@example.test", code, "agent", tripWriteScope("loop"));
-    if (!session.ok) throw new Error("could not mint a trip token");
-    const scoped = session.token;
-
-    const denied = await patch({ travellers: [] }, scoped);
-    expect(denied.status).toBe(403);
-
-    const { GET } = await import("@/app/api/v1/[user]/travellers/route");
-    const deniedRead = await GET(
-      new Request(`${SITE}/api/v1/ana/travellers`, {
-        headers: { Authorization: `Bearer ${scoped}` },
-      }),
-      { params: Promise.resolve({ user: "ana" }) },
-    );
-    expect(deniedRead.status).toBe(403);
-  });
-});
-
-describe("the three fields it will not write", () => {
-  test("owner.email is still refused, and the whole body with it", async () => {
-    const before = rawConfig();
-    const { status, body } = await patch({
-      title: "Renamed",
-      owner: { email: "someone-else@example.test" },
-    });
-    expect(status).toBe(400);
-    expect(body.error).toBe("unsupported_field");
-    expect(String(body.message)).toContain("owner.email");
-    // The accepted half did not land either: a caller cannot smuggle a change
-    // past by attaching one this does write.
-    expect(rawConfig()).toEqual(before);
-  });
-
-  test("baseCurrency is refused, and says why rather than only that", async () => {
-    const { status, body } = await patch({ baseCurrency: "EUR" });
-    expect(status).toBe(400);
-    expect(body.error).toBe("unsupported_field");
-    // The reason is the point: a cost with no currency IS a cost in the base
-    // currency, so this would re-read money rather than reconvert it.
-    expect(String(body.message)).toContain("without a currency");
-    expect(getUser("ana")?.baseCurrency).toBe("CHF");
-  });
-
-  test("media is refused: the server is already the ceiling over it", async () => {
-    const { status, body } = await patch({ media: { maxBytes: 1 } });
-    expect(status).toBe(400);
-    expect(body.error).toBe("unsupported_field");
-    expect(String(body.message)).toContain("operator");
-  });
-
-});
-
-describe("one kind of change per call", () => {
-  test("a body naming both a capability and a field is refused rather than half-applied", async () => {
-    const before = rawConfig();
-    const { status, body } = await patch({ features: { contacts: true }, title: "Renamed" });
-    expect(status).toBe(400);
-    expect(body.error).toBe("mixed_change");
-    expect(rawConfig()).toEqual(before);
-    expect(isEnabled("contacts", "ana")).toBe(false);
-  });
-
-  test("a trip-scoped token cannot change what the journal says about itself", async () => {
-    writeTripFixture("ana", {
-      id: "japan-2027",
-      title: "Japan",
-      start: "2027-04-01",
-      end: "2027-04-10",
-      people: [{ name: "Bea", email: "bea@example.test" }],
-    });
-    clearUserCache();
-
-    const { tripWriteScope } = await import("@/lib/auth");
-    await issueCode("ana", "bea@example.test", "agent");
-    const buddy = await verifyCode(
-      "ana",
-      "bea@example.test",
-      "123456",
-      "agent",
-      tripWriteScope("japan-2027"),
-    );
-    if (!buddy.ok) throw new Error("no trip token");
-
-    const { status } = await patch({ title: "Bea's journal now" }, buddy.token);
-    expect(status).toBe(403);
-    expect(getUser("ana")?.title).toBe("Ana");
   });
 });

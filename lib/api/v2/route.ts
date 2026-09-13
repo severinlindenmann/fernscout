@@ -37,7 +37,6 @@ export const V2_STATUS: Record<string, number> = {
   out_of_scope: 403,
   forbidden: 403,
   not_found: 404,
-  method_not_allowed: 405,
   body_too_large: 413,
   too_many_requests: 429,
 };
