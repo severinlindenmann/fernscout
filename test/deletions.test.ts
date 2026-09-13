@@ -678,6 +678,58 @@ describe("deleting a journal", () => {
   });
 });
 
+describe("the inventory a person reads before the button", () => {
+  /**
+   * The count is the last thing somebody sees before an irreversible delete,
+   * and it has to be the whole truth — the doc comment on `summarise` says as
+   * much: the number exists "to be recognised" before the button.
+   *
+   * It read at `reader: "public"`, so a day narrowed to `guest` or `private`
+   * (B596/B632) was left out of it. The person was shown fewer days than the
+   * button would take, and the ones missing were the most private ones they
+   * had. Same root cause as B1647.
+   */
+  test("counts days the owner narrowed to guest or private", () => {
+    const user = makeJournal();
+    const trip = makeTrip(user, "japan-2027");
+    writeDay(user, trip, "an-open-day");
+    writeDayFixture(dir, user, trip, {
+      slug: "a-guarded-day",
+      date: "2027-04-03",
+      title: "a-guarded-day",
+      content: "Words.",
+      visibility: "private",
+    });
+    writeDayFixture(dir, user, trip, {
+      slug: "a-guest-day",
+      date: "2027-04-04",
+      title: "a-guest-day",
+      content: "Words.",
+      visibility: "guest",
+    });
+
+    const summary = summarise({ kind: "trip", username: user, tripId: trip });
+    expect(summary?.days).toBe(3);
+  });
+
+  test("counts them for a whole journal too, across its trips", () => {
+    const user = makeJournal();
+    const one = makeTrip(user, "japan-2027");
+    const two = makeTrip(user, "peru-2028");
+    writeDay(user, one, "an-open-day");
+    writeDayFixture(dir, user, two, {
+      slug: "a-guarded-day",
+      date: "2028-01-05",
+      title: "a-guarded-day",
+      content: "Words.",
+      visibility: "private",
+    });
+
+    const summary = summarise({ kind: "journal", username: user });
+    expect(summary?.days).toBe(2);
+  });
+});
+
 describe("deleting a trip", () => {
   test("takes its media, and leaves the rest of the journal alone", async () => {
     const user = makeJournal();

@@ -329,7 +329,11 @@ export async function storeUploads(
   // folder of public files attached to nothing, discoverable by anyone who
   // guessed the path and cleaned up by nobody. Drafts count: attaching
   // photographs to a day still awaiting approval is the normal way round.
-  const entry = getEntryBySlug(ref, slug, { includeDrafts: true });
+  // AS_AUTHOR: the caller's write access is already established above, and a
+  // bare `{includeDrafts: true}` reads as a stranger — so a day the owner
+  // narrowed to `guest` or `private` came back absent and their own
+  // photographs were refused for a day that plainly exists. B1647's shape.
+  const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
   if (!entry) {
     return {
       ok: false,
