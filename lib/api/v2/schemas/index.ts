@@ -6,6 +6,8 @@ export { tripCreate, tripPatch, tripDoc, TRIP_DECLINABLES, DECLINABLE_KEYS as TR
 export { publishRequest, sendRequest } from "./publish";
 export { journalDoc, journalWrite, journalPatch, JOURNAL_DECLINABLES } from "./journal";
 export { mediaIntent, mediaItem, MEDIA_KINDS } from "./media";
+export { dayMediaAttachRequest, dayMediaDetachRequest } from "./dayMedia";
+export type { DayMediaAttachRequest, DayMediaDetachRequest } from "./dayMedia";
 export { instanceStatus, journalStatus } from "./status";
 export { figureDoc, journalFigures, tripFigures } from "./figures";
 export type { FigureDoc } from "./figures";

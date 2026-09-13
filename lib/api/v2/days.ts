@@ -1,19 +1,30 @@
 // Domain assembly for a v2 day document — B1612 (phase 2 step 3, parcel B).
 //
-// The seam with the media door (a sibling parcel, not built yet as this
-// lands): a day's `media` items on the wire are `{src, caption?,
-// visibility?}` (dayWrite) and on disk additionally carry `type`/`width`/
-// `height`/`poster`, derived once at upload by the media subsystem
-// (documents.ts's own comment on `DayFile`). Until that door exists there is
-// nothing here that can derive them, so this file fills them with the
-// smallest honest placeholder (`type: "image"`, `url` = `src`) rather than
-// inventing dimensions — flagged everywhere it happens so the next reader
-// finds it before trusting a width or a served URL that were never measured.
+// The seam with the media door: a day's `media` items on the wire are
+// `{src, caption?, visibility?}` (dayWrite) and on disk additionally carry
+// `type`/`width`/`height`/`poster`, derived once at upload by the media
+// subsystem (documents.ts's own comment on `DayFile`). This file fills them
+// with the smallest honest placeholder (`type: "image"`, `url` = `src`)
+// rather than inventing dimensions — flagged everywhere it happens so the
+// next reader finds it before trusting a width or a served URL that were
+// never measured.
+//
+// `attachDayMedia`/`detachDayMedia` (bottom of this file, B1656) are the
+// other half of that seam: `storeMediaV2`/`storeTripPhoto` (./media.ts)
+// place bytes and decide where on disk they live, but never touch a day
+// document — a day references a photograph by `src` afterwards, and that
+// reference is this file's business. Deliberately their own narrow write,
+// not a `dayPatch` — see their own doc comments for why.
+import "server-only";
 import type { DayWrite } from "./schemas/day";
 import { isEnabled } from "@/lib/capabilities";
 import { isTestContent } from "@/lib/access";
+import { mediaKey } from "@/lib/photos";
+import { resolveMediaFile } from "@/lib/media";
 import type { Trip } from "@/lib/types";
 import type { DayFile, TripFile } from "./documents";
+import { readDayFile, writeDayFile } from "./store";
+import type { ProblemRow } from "./incomplete";
 
 type WireMediaItem = NonNullable<DayWrite["media"]>[number];
 
@@ -228,4 +239,152 @@ export function weatherLookupRefused(body: { weather?: unknown }): string | null
     "reading somebody actually took goes in `weather` as an object with its own source — " +
     "never one you believe."
   );
+}
+
+/** ── attach/detach: the narrow media door — B1656 ───────────────────── */
+
+type WireItem = { src: string; caption?: string; visibility?: "guest" | "private" };
+
+/**
+ * Whether `src` names a photograph actually stored inside THIS trip's own
+ * media directory — the check that stands in for the width/height-must-be-
+ * numbers guard `attachGallery` (lib/api/entries.ts, v1) needed for a reason
+ * that no longer applies here: v2's wire item is only `{src, caption?,
+ * visibility?}`, so there is no dimension to arrive malformed. What a v2
+ * item CAN get wrong that the schema cannot catch is `src` itself — a string
+ * this server never stored, or one belonging to a different trip — and
+ * writing that into a day would be exactly B540's failure: an attach that
+ * answers success while the day now names a photograph that resolves to
+ * nothing. `resolveMediaFile` is the same guarded resolve the read route and
+ * `deleteMediaV2` (./media.ts) already use; an `inbox:` src is refused
+ * outright, since a photo has to be placed inside a trip before a day may
+ * point at it (the same order v1's own attach required — the media route
+ * writes the bytes first, and only then can a day be told where they are).
+ */
+function srcStoredInTrip(username: string, tripId: string, src: string): boolean {
+  if (src.startsWith("inbox:")) return false;
+  const segments = mediaKey(src).split("/");
+  if (segments[0] !== tripId) return false;
+  return resolveMediaFile(username, segments) !== null;
+}
+
+function existingWireItems(day: DayFile): WireItem[] {
+  return (day.media ?? []).map((m) => ({
+    src: m.src,
+    ...(m.caption !== undefined ? { caption: m.caption } : {}),
+    ...(m.visibility !== undefined ? { visibility: m.visibility } : {}),
+  }));
+}
+
+/** `declined.media` off the document, or the document unchanged if it was
+ * never there — T6's retraction rule, applied to the one field this door
+ * ever touches rather than the whole `declined` map a full patch handles. */
+function withoutDeclinedMedia(day: DayFile): DayFile["declined"] {
+  if (!day.declined || day.declined.media === undefined) return day.declined;
+  const { media: _media, ...rest } = day.declined;
+  return Object.keys(rest).length > 0 ? rest : undefined;
+}
+
+export type DayMediaAttachOutcome =
+  | { ok: true; day: DayFile }
+  | { ok: false; error: "unknown_day" }
+  | { ok: false; error: "not_this_trip"; problems: ProblemRow[] };
+
+/**
+ * Append already-stored photographs to a day's own gallery — the gap this
+ * ticket exists to close: nothing before this wrote a `src` into a v2 day's
+ * `media` array at all (./media.ts's own header comment used to say so in
+ * as many words).
+ *
+ * Deliberately NOT `dayWrite.safeParse` on the merged document — see D20,
+ * 06-contract-deltas.md, for why: a day that has never answered its other 13
+ * declinables must still be able to take a photograph, and re-running full
+ * completeness here would refuse that with fields nobody just asked about
+ * (B1650's wall, one door over). This only ever touches `media` and, when
+ * photographs arrive, retracts a stale `declined.media` (T6) — every other
+ * field on the stored document passes through untouched.
+ *
+ * A `src` already on the day is left alone rather than duplicated — the
+ * ordinary retry-safety this whole contract promises elsewhere (a second
+ * call with the same body changes nothing further), not a feature of v1's
+ * `attachGallery`, which this replaces for v2-native days.
+ *
+ * The compare-and-swap that keeps this safe against a second writer is the
+ * caller's `If-Match` (checked at the route, against the same ETag every
+ * other day write already uses) — not `fileUnchangedSince`, which has no v2
+ * equivalent (`lib/api/v2/store.ts` keeps none): v2's whole write path is
+ * built on ETags, and a second CAS mechanism beside it would be a second
+ * thing that could disagree with the first about whether a write is stale.
+ */
+export function attachDayMedia(
+  username: string,
+  tripId: string,
+  slug: string,
+  items: readonly WireItem[],
+): DayMediaAttachOutcome {
+  const stored = readDayFile(username, tripId, slug);
+  if (!stored) return { ok: false, error: "unknown_day" };
+
+  const problems = items
+    .filter((item) => !srcStoredInTrip(username, tripId, item.src))
+    .map((item) => ({
+      field: "src",
+      problem:
+        `"${item.src}" is not a photograph this trip's own stored media has — upload it first ` +
+        `with POST /api/v2/${username}/media, then attach the src it answers with.`,
+    }));
+  if (problems.length > 0) return { ok: false, error: "not_this_trip", problems };
+
+  const already = new Set((stored.media ?? []).map((m) => m.src));
+  const toAdd = items.filter((item) => !already.has(item.src));
+  const media = toStoredMedia([...existingWireItems(stored), ...toAdd], stored.media);
+
+  const next: DayFile = { ...stored, media, declined: withoutDeclinedMedia(stored) };
+  writeDayFile(username, tripId, slug, next);
+  return { ok: true, day: next };
+}
+
+export type DayMediaDetachOutcome =
+  | { ok: true; day: DayFile }
+  | { ok: false; error: "unknown_day" }
+  | { ok: false; error: "unknown_media"; problems: ProblemRow[] };
+
+/**
+ * Take photographs off a day's own gallery, by the `src` they were attached
+ * with. Deliberately does not delete the underlying bytes or the sidecar —
+ * that is `DELETE /api/v2/{user}/media` (./media.ts's `deleteMediaV2`,
+ * which already best-effort-detaches from every day that names the removed
+ * src): this door is the reversible half, for a photograph moving to
+ * another day or coming off a gallery that named it by mistake, and the
+ * destructive half already exists and is not duplicated here.
+ *
+ * `declined.media` is left untouched either way — detaching the day's last
+ * photograph leaves `media` absent with no decline recorded, which is
+ * exactly the state `dayWrite`'s own completeness check already knows how
+ * to ask about the next time this day goes through a full write (PATCH or
+ * publish): this door does not need to anticipate that question itself.
+ */
+export function detachDayMedia(
+  username: string,
+  tripId: string,
+  slug: string,
+  srcs: readonly string[],
+): DayMediaDetachOutcome {
+  const stored = readDayFile(username, tripId, slug);
+  if (!stored) return { ok: false, error: "unknown_day" };
+
+  const have = new Set((stored.media ?? []).map((m) => m.src));
+  const problems = srcs
+    .filter((src) => !have.has(src))
+    .map((src) => ({
+      field: "src",
+      problem: `"${src}" is not a photograph this day's own gallery has — see GET .../days/${slug}.`,
+    }));
+  if (problems.length > 0) return { ok: false, error: "unknown_media", problems };
+
+  const remove = new Set(srcs);
+  const remaining = (stored.media ?? []).filter((m) => !remove.has(m.src));
+  const next: DayFile = { ...stored, media: remaining.length > 0 ? remaining : undefined };
+  writeDayFile(username, tripId, slug, next);
+  return { ok: true, day: next };
 }

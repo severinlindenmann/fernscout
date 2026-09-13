@@ -22,6 +22,8 @@ import {
   mediaIntent,
   mediaItem,
   MEDIA_KINDS,
+  dayMediaAttachRequest,
+  dayMediaDetachRequest,
   instanceStatus,
   journalStatus,
   figureDoc,
@@ -945,6 +947,41 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(200, dayDeleted, "deleted; its media is kept on disk"),
         ...refusalResponses([...tripWriteRefusals, ref("unknown_day", 404), ref("published_day_not_deletable", 409)]),
+      },
+    },
+  };
+
+  paths["/api/v2/{user}/trips/{trip}/days/{slug}/media"] = {
+    post: {
+      summary:
+        "Attach already-stored photographs to this day's gallery — never uploads bytes itself " +
+        "(POST /api/v2/{user}/media does that first). Retracts a stale declined.media.",
+      request: jsonBody(dayMediaAttachRequest, "the srcs an earlier upload already answered with"),
+      responses: {
+        ...jsonResponse(200, dayDoc, "the day, with the photographs attached"),
+        ...refusalResponses([
+          ...tripWriteRefusals,
+          ref("unknown_day", 404),
+          ref("stale_document", 409),
+          ref("invalid_request", 400),
+          ref("not_this_trip", 400),
+        ]),
+      },
+    },
+    delete: {
+      summary:
+        "Take photographs off this day's gallery by src — the reversible half; the bytes stay " +
+        "on disk (DELETE /api/v2/{user}/media removes those, and detaches from every day too).",
+      request: jsonBody(dayMediaDetachRequest, "the srcs to remove, exactly as the day carries them"),
+      responses: {
+        ...jsonResponse(200, dayDoc, "the day, with the photographs detached"),
+        ...refusalResponses([
+          ...tripWriteRefusals,
+          ref("unknown_day", 404),
+          ref("stale_document", 409),
+          ref("invalid_request", 400),
+          ref("unknown_media", 404),
+        ]),
       },
     },
   };
