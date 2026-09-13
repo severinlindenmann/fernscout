@@ -8,6 +8,7 @@ import { createDraft, publishDraft } from "@/lib/api/entries";
 import { createTrip } from "@/lib/tripWrite";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { slugify } from "@/lib/slug.ts";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * Two days in one trip cannot hold the same slug (B119).
@@ -47,27 +48,19 @@ beforeEach(() => {
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: {} }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "vietnam-2026", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({ title: "Alex", owner: { name: "A B", nickname: "A" } }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "vietnam-2026", "trip.md"),
-    [
-      "---",
-      "id: vietnam-2026",
-      'title: "Vietnam"',
-      'start: "2026-01-01"',
-      'end: "2026-01-31"',
-      "status: current",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "vietnam-2026",
+    title: "Vietnam",
+    start: "2026-01-01",
+    end: "2026-01-31",
+    status: "current",
+    visibility: "public",
+  });
   clearConfigCache();
   clearUserCache();
 });
@@ -83,7 +76,7 @@ afterEach(() => {
 function filesOnDisk(): string[] {
   return fs
     .readdirSync(path.join(dir, "alex", "trips", "vietnam-2026", "entries"))
-    .filter((f) => f.endsWith(".md"))
+    .filter((f) => f.endsWith(".json"))
     .sort();
 }
 
@@ -104,7 +97,7 @@ describe("a second day claiming a taken slug", () => {
     if (second.ok) throw new Error("unreachable");
     expect(second.error).toContain('slug "da-lat"');
     // The file, so the caller can go and look at what it collided with.
-    expect(second.error).toContain("2026-01-11-da-lat.md");
+    expect(second.error).toContain("2026-01-11-da-lat.json");
     // The prefix the REST route maps to 409 rather than 400.
     expect(second.error.startsWith("an entry already exists")).toBe(true);
     // The stable identifier the helper turns into a translated sentence
@@ -117,7 +110,7 @@ describe("a second day claiming a taken slug", () => {
     createDraft(REF, day());
     createDraft(REF, day({ title: ETH, date: "2026-01-12" }));
 
-    expect(filesOnDisk()).toEqual(["2026-01-11-da-lat.md"]);
+    expect(filesOnDisk()).toEqual(["2026-01-11-da-lat.json"]);
     // The bug in one line: this used to be the first of two files, with the
     // second unreachable for ever.
     expect(getAllEntries(REF, { includeDrafts: true }).map((e) => e.slug)).toEqual(["da-lat"]);
@@ -141,7 +134,7 @@ describe("a second day claiming a taken slug", () => {
     expect(publishDraft(REF, "da-lat").ok).toBe(true);
 
     expect(createDraft(REF, day({ title: ETH, date: "2026-01-12" })).ok).toBe(false);
-    expect(filesOnDisk()).toEqual(["2026-01-11-da-lat.md"]);
+    expect(filesOnDisk()).toEqual(["2026-01-11-da-lat.json"]);
   });
 });
 
@@ -156,7 +149,7 @@ describe("what still works", () => {
   test("a genuinely different title on the same date is fine", () => {
     expect(createDraft(REF, day()).ok).toBe(true);
     expect(createDraft(REF, day({ title: "Nha Trang" })).ok).toBe(true);
-    expect(filesOnDisk()).toEqual(["2026-01-11-da-lat.md", "2026-01-11-nha-trang.md"]);
+    expect(filesOnDisk()).toEqual(["2026-01-11-da-lat.json", "2026-01-11-nha-trang.json"]);
   });
 
   /** The narrower check that was already there, kept: an agent retrying a

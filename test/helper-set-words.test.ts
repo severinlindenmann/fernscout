@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * The empty box no press could accept — B942, and the correction it made
@@ -49,8 +50,7 @@ beforeEach(() => {
   process.env.CONTENT_DIR = dir;
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  const entries = path.join(dir, "alex", "trips", "tokyo", "entries");
-  fs.mkdirSync(entries, { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -70,14 +70,20 @@ beforeEach(() => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "tokyo", "trip.md"),
-    ["---", "id: tokyo", "title: Tokyo", 'start: "2026-03-01"', 'end: "2026-03-08"', "visibility: private", "---", "", "Intro."].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(entries, "2026-03-02-abend.md"),
-    ["---", 'date: "2026-03-02"', "slug: abend", "title: Der Abend", "status: draft", "---", "", PROSE].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "tokyo",
+    title: "Tokyo",
+    start: "2026-03-01",
+    end: "2026-03-08",
+    visibility: "private",
+  });
+  writeDayFixture(dir, "alex", "tokyo", {
+    slug: "abend",
+    date: "2026-03-02",
+    title: "Der Abend",
+    status: "draft",
+    content: PROSE,
+  });
   clearConfigCache();
   clearUserCache();
 });
@@ -89,7 +95,7 @@ afterEach(() => {
 
 /** Straight off disk — this is asserting that a file was not rewritten. */
 function words() {
-  return fs.readFileSync(path.join(dir, "alex", "trips", "tokyo", "entries", "2026-03-02-abend.md"), "utf-8");
+  return fs.readFileSync(path.join(dir, "alex", "trips", "tokyo", "entries", "2026-03-02-abend.json"), "utf-8");
 }
 
 describe("proposing a day's words", () => {
@@ -175,10 +181,13 @@ describe("a correction is not a cost", () => {
  */
 describe("a day nobody named", () => {
   function secondDay(slug: string, date: string, content: string) {
-    fs.writeFileSync(
-      path.join(dir, "alex", "trips", "tokyo", "entries", `${date}-${slug}.md`),
-      ["---", `date: "${date}"`, `slug: ${slug}`, "title: Ein Tag", "status: draft", "---", "", content].join("\n"),
-    );
+    writeDayFixture(dir, "alex", "tokyo", {
+      slug,
+      date,
+      title: "Ein Tag",
+      status: "draft",
+      content,
+    });
     clearUserCache();
   }
 

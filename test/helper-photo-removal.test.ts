@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { tripMediaDir } from "@/lib/media";
 import { paintJpeg } from "./support/pictures";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B851 — a photograph could not be taken out of a day from a browser.
@@ -60,25 +61,28 @@ function remove(src: string[]) {
 
 /** Two photographs, real files on disk, exactly as an upload leaves them. */
 async function writeDay() {
+  writeTripFixture("alex", {
+    id: TRIP,
+    title: "Over the pass",
+    start: "2026-05-01",
+    end: "2026-05-31",
+    visibility: "public",
+  });
   const media = tripMediaDir(REF);
   fs.mkdirSync(path.join(media, SLUG), { recursive: true });
-  const gallery: string[] = [];
+  const gallery: { src: string }[] = [];
   for (const name of ["01.jpg", "02.jpg"]) {
     fs.writeFileSync(path.join(media, SLUG, name), await paintJpeg(400, 300, 1));
-    gallery.push(
-      `  - src: "/media/${TRIP}/${SLUG}/${name}"\n    type: image\n    width: 400\n    height: 300`,
-    );
+    gallery.push({ src: `/media/${TRIP}/${SLUG}/${name}` });
   }
-  const tripDir = path.join(dir, "alex", "trips", TRIP);
-  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tripDir, "entries", `2026-05-04-${SLUG}.md`),
-    ["---", 'title: "The pass"', 'date: "2026-05-04"', "status: draft", "gallery:", ...gallery, "---", "", "Words.", ""].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    ["---", `id: ${TRIP}`, 'title: "Over the pass"', 'start: "2026-05-01"', 'end: "2026-05-31"', "visibility: public", "---", "", "Trip.", ""].join("\n"),
-  );
+  writeDayFixture(dir, "alex", TRIP, {
+    slug: SLUG,
+    date: "2026-05-04",
+    title: "The pass",
+    status: "draft",
+    content: "Words.",
+    media: gallery,
+  });
 }
 
 beforeEach(async () => {

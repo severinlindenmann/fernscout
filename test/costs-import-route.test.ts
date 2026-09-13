@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * A statement, over the network, the way an agent does it — B677, moved to
@@ -95,26 +96,20 @@ async function applyCall(token: string, body: unknown, trip = TRIP) {
 }
 
 function writeDay(date: string, slug: string, time?: string) {
-  fs.writeFileSync(
-    path.join(tripPath(), "entries", `${date}-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      `date: "${date}"`,
-      ...(time ? [`time: "${time}"`] : []),
-      'location: "Lagos"',
-      'country: "Portugal"',
-      "status: draft",
-      "---",
-      "",
-      "Words.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, TRIP, {
+    slug,
+    date,
+    title: slug,
+    ...(time ? { time } : {}),
+    location: "Lagos",
+    country: "Portugal",
+    status: "draft",
+    content: "Words.",
+  });
 }
 
 function dayText(date: string, slug: string): string {
-  return fs.readFileSync(path.join(tripPath(), "entries", `${date}-${slug}.md`), "utf8");
+  return fs.readFileSync(path.join(tripPath(), "entries", `${date}-${slug}.json`), "utf8");
 }
 
 beforeAll(async () => {
@@ -131,7 +126,7 @@ beforeAll(async () => {
       features: { auth: { enabled: true }, costs: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -143,22 +138,15 @@ beforeAll(async () => {
       features: { auth: { enabled: true }, costs: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(tripPath(), "trip.md"),
-    [
-      "---",
-      `id: "${TRIP}"`,
-      'title: "The Algarve"',
-      'start: "2026-06-22"',
-      'end: "2026-06-24"',
-      'status: "past"',
-      'visibility: "private"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: "The Algarve",
+    start: "2026-06-22",
+    end: "2026-06-24",
+    status: "past",
+    visibility: "private",
+    intro: "Intro.",
+  });
   writeDay("2026-06-22", "arriving", "18:00");
   writeDay("2026-06-22", "the-flight", "07:00");
   writeDay("2026-06-23", "the-cliffs");

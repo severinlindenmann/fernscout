@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * "vorschau" drew a `publish_day` card whose only button publishes, and the
@@ -19,7 +20,7 @@ const say: Say = ((key: string, vars?: Record<string, string>) =>
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-preview-intent-"));
   process.env.CONTENT_DIR = dir;
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -31,16 +32,14 @@ beforeEach(() => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join(
-      "\n",
-    ),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-one.md"),
-    ["---", "title: Der erste Tag", 'date: "2026-05-01"', "status: draft", "---", "", "Worte."].join("\n"),
-  );
+  writeTripFixture("alex", { id: "reise", title: "Die Reise", start: "2026-05-01", end: "2026-05-10" });
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "one",
+    date: "2026-05-01",
+    title: "Der erste Tag",
+    status: "draft",
+    content: "Worte.",
+  });
 });
 
 afterEach(() => {

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * The sessions route's trip picker split — B1573.
@@ -40,28 +41,20 @@ const USER_CFG =
   OWNER_EMAIL +
   '"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{}}';
 
-function trip(id: string, title: string, start: string) {
-  return `---\nid: ${id}\ntitle: "${title}"\nstart: "${start}"\nend: "${start}"\nstatus: past\n---\n\nx\n`;
-}
-
-const ENTRY = `---
-title: "Tuesday"
-date: "2024-01-02"
----
-
-It happened.
-`;
-
 function journal() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "helper-sessions-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
-  fs.mkdirSync(path.join(dir, "ux", "trips", "older", "entries"), { recursive: true });
-  fs.mkdirSync(path.join(dir, "ux", "trips", "newer", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "ux"), { recursive: true });
   fs.writeFileSync(path.join(dir, "ux", "config.json"), USER_CFG);
-  fs.writeFileSync(path.join(dir, "ux", "trips", "older", "trip.md"), trip("older", "Older Trip", "2020-01-01"));
-  fs.writeFileSync(path.join(dir, "ux", "trips", "newer", "trip.md"), trip("newer", "Newer Trip", "2026-01-01"));
-  fs.writeFileSync(path.join(dir, "ux", "trips", "older", "entries", "2024-01-02-tuesday.md"), ENTRY);
   process.env.CONTENT_DIR = dir;
+  writeTripFixture("ux", { id: "older", title: "Older Trip", start: "2020-01-01", end: "2020-01-01", status: "past" });
+  writeTripFixture("ux", { id: "newer", title: "Newer Trip", start: "2026-01-01", end: "2026-01-01", status: "past" });
+  writeDayFixture(dir, "ux", "older", {
+    slug: "tuesday",
+    date: "2024-01-02",
+    title: "Tuesday",
+    content: "It happened.",
+  });
 }
 
 afterEach(() => {

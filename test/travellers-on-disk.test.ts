@@ -26,6 +26,28 @@ let dir: string;
 // invalid hair colour) to test the fail-closed *reader* — `createTrip`
 // validates both blocks and would refuse to write them at all. Same
 // resistance as test/trip-people.test.ts and test/trip-reparse.test.ts.
+//
+// B1630 finding, beyond the fixture: this file's whole premise (an inline
+// `travellers:` attribute list, malformed or not, sitting beside `people:`
+// in one trip file) has been superseded by B1609's figure library —
+// `getTrip()`'s `Trip.travellers` is now resolved from `figures:`
+// (`{mode, figures: [ids]}`, `resolveTripFigures` in lib/trips.ts), which
+// references separate `content/<user>/figures/<id>.json` documents rather
+// than carrying attributes inline. `people:` also no longer lives in a
+// `trip.md`'s frontmatter — `getTrip()` reads `trip.json` exclusively
+// (confirmed: every `writeTrip()` call below produces `undefined` from
+// `getTrip`, since there is no trip.json). Making this file's "cosmetics
+// cannot reach write access" and "reading the block" cases malformed *JSON*
+// instead of malformed *markdown* would not restore what they test: an
+// inline `travellers:` block sitting in trip.json is not what a v2 reader
+// looks at any more, so there is no direct translation. The "writing the
+// block" describe below still calls `createTrip` directly (unaffected by
+// this fixture file) and is closer to still working, but the trip.md
+// assertions in it need the same trip.json rename this comment is
+// flagging. Left entirely as found and reported rather than guessed at —
+// this needs someone who understands the figure-library shape to decide
+// what, if anything, replaces "a broken hair colour leaves people:
+// untouched" for the new architecture.
 function writeTrip(id: string, extra: string[]) {
   const tripDir = path.join(dir, "alex", "trips", id);
   fs.mkdirSync(tripDir, { recursive: true });
@@ -197,7 +219,7 @@ describe("writing the block", () => {
       end: "2027-04-02",
       travellers: [],
     });
-    const file = fs.readFileSync(path.join(dir, "alex", "trips", "quiet", "trip.md"), "utf8");
+    const file = fs.readFileSync(path.join(dir, "alex", "trips", "quiet", "trip.json"), "utf8");
     expect(file).not.toContain("travellers:");
   });
 
@@ -261,7 +283,7 @@ describe("writing the block", () => {
       // What an agent writes after resolving `west-african`: attributes only.
       travellers: [{ skin: "deep", hair: "black", hairStyle: "coils" }],
     });
-    const file = fs.readFileSync(path.join(dir, "alex", "trips", "resolved", "trip.md"), "utf8");
+    const file = fs.readFileSync(path.join(dir, "alex", "trips", "resolved", "trip.json"), "utf8");
     for (const name of PRESET_NAMES) {
       expect(file, `trip.md names the ${name} preset`).not.toContain(name);
     }

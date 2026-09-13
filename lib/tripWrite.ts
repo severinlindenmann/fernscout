@@ -655,9 +655,24 @@ export function ratesBlock(raw: unknown): BlockResult {
  * inside this function — the caller is treated as though the base were EUR,
  * which is exact only in that case and an approximation otherwise.
  *
- * ponytail: an approximation rather than a refusal, so a trip whose base
- * currency the ECB does not track still gets *a* number instead of a failed
- * create. Upgrade path: refuse instead, once an owner actually hits this.
+ * **A rate for "EUR" itself needs its own case** (a second B1598 finding,
+ * caught only once this was tested against real numbers): `crossRate`
+ * (lib/currency.ts) always resolves the currency literally named `"EUR"` to
+ * `1` on the side being converted *from*, whatever `manual.EUR` says — that
+ * is what makes EUR the table's fixed reference point in the first place.
+ * So `manual.EUR` is not merely unnecessary, it is **unreachable**: nothing
+ * ever reads it back. The only way to express "this trip's own EUR rate
+ * against its base" is to override the *base* currency's own entry instead
+ * — `manual[baseCode]` — since every other conversion already divides
+ * through exactly that number. Once it is set, every other code's own
+ * `manual` entry has to be computed from the same overridden `baseEur`
+ * rather than from the ECB's raw figure, or the two would disagree about
+ * what a euro is worth on this trip.
+ *
+ * ponytail: an approximation rather than a refusal when the base itself is
+ * untracked, so a trip whose base currency the ECB does not track still
+ * gets *a* number instead of a failed create. Upgrade path: refuse instead,
+ * once an owner actually hits this.
  */
 export function eurManualRates(
   baseCode: string,
@@ -665,12 +680,17 @@ export function eurManualRates(
 ): Record<string, number> | undefined {
   if (Object.keys(rates).length === 0) return undefined;
   const ecb = loadEcbRates()?.rates;
-  const baseEur = baseCode === "EUR" ? 1 : ecb?.[baseCode];
+  let baseEur = baseCode === "EUR" ? 1 : ecb?.[baseCode];
   const manual: Record<string, number> = {};
+  if (baseCode !== "EUR" && rates.EUR !== undefined) {
+    baseEur = rates.EUR;
+    manual[baseCode] = rates.EUR;
+  }
   for (const [code, basePerCode] of Object.entries(rates)) {
+    if (code === "EUR") continue; // handled above — see the docblock
     manual[code] = (baseEur ?? 1) / basePerCode;
   }
-  return manual;
+  return Object.keys(manual).length ? manual : undefined;
 }
 
 /**
@@ -1086,7 +1106,11 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
     ...(input.teaser === true ? { teaser: true } : {}),
     ...(input.test === true ? { test: true } : {}),
     ...(accent ? { accent } : {}),
-    ...(manualRates ? { rates: { currencies: Object.keys(manualRates), manual: manualRates } } : {}),
+    // `currencies` names what a cost may actually be spent in — the v1-style
+    // codes the caller sent (`rates`'s own keys) — not `manualRates`'s own
+    // keys, which for a declared EUR rate is the trip's base currency
+    // instead (see `eurManualRates`'s docblock).
+    ...(manualRates ? { rates: { currencies: Object.keys(rates), manual: manualRates } } : {}),
     // v2's `costs` section normally requires a `budget` (B1597) — this v1
     // door has never asked for one, so a caller narrowing visibility here
     // gets exactly that key and nothing invented beside it. The cast is

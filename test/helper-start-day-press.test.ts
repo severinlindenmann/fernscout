@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * The press that failed every time — B917.
@@ -50,7 +51,7 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "helper-start-day-secret-b917";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -69,20 +70,13 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      "title: Die Reise",
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: private",
-      "---",
-      "",
-      "Intro.",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -153,6 +147,14 @@ describe("pressing the proposal the conversation offered", () => {
     );
     // Nobody has been asked, and the day says exactly that — never a decline,
     // which would put "nothing was spent" into somebody's journal as fact.
+    //
+    // FINDING (B1630, not a fixture problem): v1's flat `unrecorded: [...]`/
+    // `without: [...]` frontmatter arrays are retired — v2 writes a
+    // `declined` map instead (see `lib/api/v2/documents.ts`'s `dayToJson`),
+    // so this literal-string assertion can no longer match, on any
+    // production write, regardless of how the fixture is built. Left as-is
+    // per "fix the repoint, never the assertion" — reported alongside this
+    // repoint.
     expect(day).toContain("unrecorded: [costs, coordinates]");
     expect(day).not.toContain("without:");
   });
@@ -180,6 +182,7 @@ describe("pressing the proposal the conversation offered", () => {
       path.join(dir, "alex", "trips", "reise", "entries", entries()[0]),
       "utf8",
     );
+    // FINDING (B1630, same as above): `declined` map, not flat arrays.
     expect(day).toContain("without: [costs]");
     expect(day).toContain("unrecorded: [coordinates]");
   });
@@ -240,14 +243,17 @@ describe("pressing the proposal the conversation offered", () => {
     ).toEqual(bytesBeforeSecondPress);
   });
 
+  // FINDING (B1630, not a fixture problem — reported alongside this
+  // repoint): v1's trip-level `tracks:` block has no v2 home — see
+  // `lib/tripWrite.ts` around `tracksBlock`: "tracks have no v2 home at all
+  // any more (every day answers every declinable directly)". There is no
+  // longer a way to write this test's premise (a trip declining to track
+  // costs/coordinates at all), so the mutation below is a no-op and this
+  // test is expected to fail on its own assertion — the premise was retired
+  // by the v2 migration, not a bad repoint.
   test("a trip that keeps track of nothing is asked nothing", async () => {
-    const file = path.join(dir, "alex", "trips", "reise", "trip.md");
-    fs.writeFileSync(
-      file,
-      fs
-        .readFileSync(file, "utf8")
-        .replace("visibility: private", "visibility: private\ntracks:\n  costs: false\n  coordinates: false"),
-    );
+    const file = path.join(dir, "alex", "trips", "reise", "trip.json");
+    void JSON.parse(fs.readFileSync(file, "utf8"));
     clearUserCache();
     const proposal = await propose();
     expect(proposal.fields.map((f) => f.name)).toEqual(["trip", "date"]);

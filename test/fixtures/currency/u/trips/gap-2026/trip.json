@@ -9,7 +9,7 @@
   "rates": {
     "currencies": ["EUR"],
     "manual": {
-      "EUR": 0.9961702127659575
+      "CHF": 0.94
     }
   },
   "intro": "No THB rate, though THB was spent.",

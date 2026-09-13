@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B903 — the rows that only exist where a capability is on.
@@ -40,6 +41,7 @@ let dir = "";
 
 beforeAll(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-search-helper-"));
+  process.env.CONTENT_DIR = dir;
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -47,7 +49,7 @@ beforeAll(() => {
       users: { reserved: [] },
     }),
   );
-  fs.mkdirSync(path.join(dir, OWNER, "trips", "open-2026", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -58,22 +60,15 @@ beforeAll(() => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", "open-2026", "trip.md"),
-    [
-      "---",
-      "id: open-2026",
-      'title: "An Open Trip"',
-      'start: "2026-08-24"',
-      'end: "2026-08-26"',
-      "status: past",
-      "visibility: public",
-      "---",
-      "",
-      "An open trip.",
-    ].join("\n"),
-  );
-  process.env.CONTENT_DIR = dir;
+  writeTripFixture(OWNER, {
+    id: "open-2026",
+    title: "An Open Trip",
+    start: "2026-08-24",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "public",
+    intro: "An open trip.",
+  });
 });
 
 afterAll(() => {

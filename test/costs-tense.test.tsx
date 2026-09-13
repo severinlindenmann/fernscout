@@ -65,6 +65,8 @@ import CurrencyProvider from "@/components/CurrencyProvider";
 import TripListProvider from "@/components/TripListProvider";
 import type { CostSummary } from "@/lib/costFormat";
 import type { SiteSummary } from "@/lib/site";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
 
 const LOCALES = ["en", "de", "hu"] as const;
 
@@ -77,6 +79,7 @@ const SERVER_CFG =
  */
 function journal(opts: { locale: string; withTrip: boolean }): void {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "costs-tense-"));
+  process.env.CONTENT_DIR = dir;
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
   fs.mkdirSync(path.join(dir, "alex", "trips"), { recursive: true });
   fs.writeFileSync(
@@ -94,24 +97,38 @@ function journal(opts: { locale: string; withTrip: boolean }): void {
       features: {},
     }),
   );
+  clearConfigCache();
+  clearUserCache();
   if (opts.withTrip) {
-    const trip = path.join(dir, "alex", "trips", "ridge-2025");
-    fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
-    fs.writeFileSync(
-      path.join(trip, "trip.md"),
-      '---\nid: ridge-2025\ntitle: "Along the ridge"\nstart: "2025-05-01"\nend: "2025-05-10"\n' +
-        "status: current\nvisibility: public\n---\n\nSomething.\n",
-    );
-    fs.writeFileSync(
-      path.join(trip, "entries", "2025-05-02-first.md"),
-      '---\ntitle: "First"\ndate: "2025-05-02"\nlocation: "Chur"\n---\n\nA day.\n',
-    );
-    // Without this the page 404s on its own missing budget (B267) before
-    // this file's tense assertions ever get to run.
-    fs.writeFileSync(
-      path.join(trip, "costs.md"),
-      "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
-    );
+    writeTripFixture("alex", {
+      id: "ridge-2025",
+      title: "Along the ridge",
+      start: "2025-05-01",
+      end: "2025-05-10",
+      status: "current",
+      visibility: "public",
+      intro: "Something.",
+    });
+    writeDayFixture(dir, "alex", "ridge-2025", {
+      slug: "first",
+      date: "2025-05-02",
+      title: "First",
+      location: "Chur",
+      content: "A day.",
+    });
+    // Not on writeTripFixture (B1630): `createTrip` has no way to write a
+    // trip's `costs` budget at all — `costs.md` is dead once a trip is
+    // written as v2 `trip.json` (`hasCostsData`/`readCostsFile` read
+    // `trip.costsSection`, never the file). Merge it onto the trip document
+    // directly, the same door `writeTripFile` is for
+    // `test/api-v2-figures.test.ts`'s figure reference. Without this the
+    // page 404s on its own missing budget (B267) before this file's tense
+    // assertions ever run.
+    const written = readTripFile("alex", "ridge-2025");
+    writeTripFile("alex", "ridge-2025", {
+      ...written!,
+      costs: { budget: { total: 100, days: 10 }, note: "Before we left." },
+    });
   }
   process.env.CONTENT_DIR = dir;
   clearConfigCache();
@@ -234,9 +251,9 @@ describe.each(LOCALES)("a journal reading in %s", (locale) => {
 describe("the flag the description and the page share", () => {
   test("a current trip with a future start reads as begun on both sides", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "costs-tense-ahead-"));
+    process.env.CONTENT_DIR = dir;
     fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
-    const trip = path.join(dir, "alex", "trips", "ridge-2099");
-    fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
     fs.writeFileSync(
       path.join(dir, "alex", "config.json"),
       JSON.stringify({
@@ -252,15 +269,23 @@ describe("the flag the description and the page share", () => {
         features: {},
       }),
     );
-    fs.writeFileSync(
-      path.join(trip, "trip.md"),
-      '---\nid: ridge-2099\ntitle: "Ahead"\nstart: "2099-05-01"\nend: "2099-05-10"\n' +
-        "status: current\nvisibility: public\n---\n\nSomething.\n",
-    );
-    fs.writeFileSync(
-      path.join(trip, "costs.md"),
-      "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
-    );
+    clearConfigCache();
+    clearUserCache();
+    writeTripFixture("alex", {
+      id: "ridge-2099",
+      title: "Ahead",
+      start: "2099-05-01",
+      end: "2099-05-10",
+      status: "current",
+      visibility: "public",
+      intro: "Something.",
+    });
+    // Not on writeTripFixture (B1630) — see the note above.
+    const written2099 = readTripFile("alex", "ridge-2099");
+    writeTripFile("alex", "ridge-2099", {
+      ...written2099!,
+      costs: { budget: { total: 100, days: 10 }, note: "Before we left." },
+    });
     process.env.CONTENT_DIR = dir;
     clearConfigCache();
     clearUserCache();

@@ -7,6 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { createDraft, publishDraft } from "@/lib/api/entries";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { confirmationMatches, issueConfirmation } from "@/lib/agentConfirm";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * Publishing, and what survives of the draft rule around it.
@@ -37,27 +38,19 @@ beforeEach(() => {
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: {} }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({ title: "Alex", owner: { name: "A B", nickname: "A" } }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Reise",
+    start: "2026-09-01",
+    end: "2026-09-05",
+    status: "current",
+    visibility: "public",
+  });
   clearConfigCache();
   clearUserCache();
 });
@@ -89,6 +82,13 @@ describe("publishing a draft", () => {
     expect(getEntryBySlug(REF, "erster-tag")?.draft).toBeUndefined();
   });
 
+  // B1630 finding: `publishDraft` now flips the JSON `status` key in place
+  // (dayToJson) rather than deleting a YAML line, so "exactly one line gone"
+  // no longer holds under the current storage format — pre-existing, not
+  // caused by this repoint. Left red and reported rather than rewritten,
+  // since deciding what this test should assert instead (the `status` key
+  // flips value, everything else round-trips byte for byte) is an editorial
+  // call past a fixture repoint.
   test("removes the status line and nothing else", () => {
     const made = createDraft(REF, { ...DRAFT, tags: ["tessin"] });
     if (!made.ok) throw new Error("expected the draft to be written");

@@ -20,7 +20,10 @@
   "rates": {
     "currencies": [
       "EUR"
-    ]
+    ],
+    "manual": {
+      "CHF": 0.94
+    }
   },
   "figures": {
     "mode": "custom",

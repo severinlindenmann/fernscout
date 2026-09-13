@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { TOOLS, runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * The press she could never make — B929.
@@ -51,7 +52,7 @@ beforeEach(async () => {
   process.env.SESSION_SECRET = "helper-publish-press-secret-b929";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -70,20 +71,13 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      "title: Die Reise",
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: private",
-      "---",
-      "",
-      "Intro.",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -143,12 +137,15 @@ function dayFile() {
  * one of these tests about what it was already testing.
  */
 function giveWords(text = "Ein Tag am See.") {
+  // Days are v2 JSON (B1598) — `content` is a plain field, not markdown
+  // prose to regex against.
   const dayDir = path.join(dir, "alex", "trips", "reise", "entries");
   for (const name of fs.readdirSync(dayDir)) {
     const file = path.join(dayDir, name);
-    const raw = fs.readFileSync(file, "utf8");
-    if (/\n…\n*$/.test(raw)) {
-      fs.writeFileSync(file, raw.replace(/\n…\n*$/, `\n${text}\n`));
+    const doc = JSON.parse(fs.readFileSync(file, "utf8")) as { content: string };
+    if (doc.content === "…") {
+      doc.content = text;
+      fs.writeFileSync(file, JSON.stringify(doc, null, 2) + "\n");
     }
   }
 }
@@ -211,17 +208,20 @@ describe("a day written and put on the site, by pressing what the conversation o
     expect(day).toContain("unrecorded: [costs, coordinates]");
   });
 
+  // FINDING (B1630, not a fixture problem — reported alongside this
+  // repoint): v1's trip-level `tracks:` block (a trip declining to track
+  // costs/coordinates/photos at all) has no v2 home — see
+  // `lib/tripWrite.ts` around `tracksBlock`: "tracks have no v2 home at all
+  // any more (every day answers every declinable directly)". There is no
+  // longer a trip-level equivalent to write for this test's premise, so it
+  // is left below reading `trip.json` (so it does not crash) rather than
+  // `trip.md` (which no longer exists), but the mutation it performs is now
+  // a no-op and the test is expected to fail on its own assertion — that is
+  // this test's premise having been retired by the v2 migration, not a bad
+  // repoint.
   test("a trip that keeps track of nothing is asked nothing at publish either", async () => {
-    const file = path.join(dir, "alex", "trips", "reise", "trip.md");
-    fs.writeFileSync(
-      file,
-      fs
-        .readFileSync(file, "utf8")
-        .replace(
-          "visibility: private",
-          "visibility: private\ntracks:\n  costs: false\n  coordinates: false\n  photos: false",
-        ),
-    );
+    const file = path.join(dir, "alex", "trips", "reise", "trip.json");
+    void JSON.parse(fs.readFileSync(file, "utf8"));
     clearUserCache();
 
     const started = await propose("start_day");
@@ -368,11 +368,13 @@ describe("what the publish card says about who can read it", () => {
   });
 
   test("named people are named", async () => {
-    const file = path.join(dir, "alex", "trips", "reise", "trip.md");
-    fs.writeFileSync(
-      file,
-      fs.readFileSync(file, "utf8").replace("visibility: private", "visibility: private\npeople:\n  - name: Mara\n    email: mara@example.test"),
-    );
+    // Trips are v2 JSON (B1598) — `trip.md` no longer exists; mutate the
+    // existing trip.json's `people` field directly (there is no fixture
+    // helper for editing an already-created trip).
+    const file = path.join(dir, "alex", "trips", "reise", "trip.json");
+    const trip = JSON.parse(fs.readFileSync(file, "utf8"));
+    trip.people = [{ name: "Mara", email: "mara@example.test" }];
+    fs.writeFileSync(file, JSON.stringify(trip, null, 2) + "\n");
     clearUserCache();
 
     const started = await propose("start_day");
@@ -384,8 +386,12 @@ describe("what the publish card says about who can read it", () => {
   });
 
   test("a public trip says anybody", async () => {
-    const file = path.join(dir, "alex", "trips", "reise", "trip.md");
-    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace("visibility: private", "visibility: public"));
+    // Trips are v2 JSON (B1598) — `trip.md` no longer exists; mutate the
+    // existing trip.json's `visibility` field directly.
+    const file = path.join(dir, "alex", "trips", "reise", "trip.json");
+    const trip = JSON.parse(fs.readFileSync(file, "utf8"));
+    trip.visibility = "public";
+    fs.writeFileSync(file, JSON.stringify(trip, null, 2) + "\n");
     clearUserCache();
 
     const started = await propose("start_day");

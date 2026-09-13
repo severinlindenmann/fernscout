@@ -15,6 +15,7 @@ import { issueCode, verifyCode, type Session } from "@/lib/auth";
 import { tripWriteScope } from "@/lib/tripPeople";
 import { createJournal } from "@/lib/journals";
 import { createTrip } from "@/lib/tripWrite";
+import { writeDayFixture } from "./fixtures/content";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
 import { journalTombstone, tripTombstone } from "@/lib/tombstones";
 import {
@@ -127,12 +128,15 @@ function makeTrip(username: string, id = "japan-2027", visibility?: "public" | "
 /** A day with a photograph beside it, so "the media goes too" is testable. */
 function writeDay(username: string, tripId: string, slug: string) {
   const trip = path.join(dir, username, "trips", tripId);
-  fs.mkdirSync(path.join(trip, "entries"), { recursive: true });
   fs.mkdirSync(path.join(trip, "media"), { recursive: true });
-  fs.writeFileSync(
-    path.join(trip, "entries", `2027-04-02-${slug}.md`),
-    ['---', `title: "${slug}"`, 'date: "2027-04-02"', 'location: "Kyoto"', 'country: "Japan"', '---', '', 'Words.', ''].join("\n"),
-  );
+  writeDayFixture(dir, username, tripId, {
+    slug,
+    date: "2027-04-02",
+    title: slug,
+    location: "Kyoto",
+    country: "Japan",
+    content: "Words.",
+  });
   fs.writeFileSync(path.join(trip, "media", `${slug}.jpg`), Buffer.alloc(2048, 7));
 }
 

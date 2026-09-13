@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { createInvite } from "@/lib/contacts/invites";
 import { runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * Four capabilities let onto the wizard's own door — B1051.
@@ -54,7 +55,7 @@ beforeEach(async () => {
   process.env.ANTHROPIC_API_KEY = "sk-ant-test-helper-readers";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -80,20 +81,13 @@ beforeEach(async () => {
       },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      "title: Die Reise",
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      "visibility: public",
-      "---",
-      "",
-      "Intro.",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "public",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -141,13 +135,16 @@ async function writeAndPublishADay(): Promise<{ trip: string; slug: string }> {
   await post(writeDay, "https://t.test/api/helper/alex/day", pressed(started.proposal));
 
   // `publish_day` refuses a day that is still `NO_PROSE` with no gallery
-  // (B1561) — give it real words so this fixture publishes as before.
+  // (B1561) — give it real words so this fixture publishes as before. Days
+  // are v2 JSON (B1598) — `content` is a plain field, not markdown prose to
+  // regex against.
   const dayDir = path.join(dir, "alex", "trips", "reise", "entries");
   for (const name of fs.readdirSync(dayDir)) {
     const file = path.join(dayDir, name);
-    const raw = fs.readFileSync(file, "utf8");
-    if (/\n…\n*$/.test(raw)) {
-      fs.writeFileSync(file, raw.replace(/\n…\n*$/, "\nEin Tag am See.\n"));
+    const doc = JSON.parse(fs.readFileSync(file, "utf8")) as { content: string };
+    if (doc.content === "…") {
+      doc.content = "Ein Tag am See.";
+      fs.writeFileSync(file, JSON.stringify(doc, null, 2) + "\n");
     }
   }
 

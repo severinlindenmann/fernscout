@@ -30,6 +30,20 @@ import { validateEntryEdit } from "@/lib/validate/entry";
  *    byte, because a caption edit that could drop a photograph is a worse
  *    thing than no caption edit at all;
  *  - text from a request body cannot break the frontmatter it lands in.
+ *
+ * Not on writeTripFixture/writeDayFixture (B1630): this file's whole subject
+ * is the YAML-frontmatter escaping `lib/api/entries.ts` used to need
+ * (`quoteScalar`, `galleryLines`, the "unparseable YAML" `bug` refusal) —
+ * retired now that a day is a JSON file (`dayToJson`, B1606), where a string
+ * is a string and there is no escaping left to get wrong. Several
+ * assertions here (`matter(onDisk())`, the byte-for-byte `onDisk()` splice
+ * check, the "unparseable YAML" `bug` case) test that retired mechanism
+ * directly and fail against the current JSON serialiser regardless of how
+ * the fixture is written — a fixture repoint cannot fix an assertion about a
+ * format that no longer exists. Reported rather than silently rewritten,
+ * since deciding whether these tests still have something to say (rewritten
+ * for JSON) or should be deleted is an editorial call past this ticket's
+ * scope.
  */
 
 let dir: string;

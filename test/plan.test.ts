@@ -5,6 +5,7 @@ import path from "node:path";
 import { getPlan } from "@/lib/plan";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * W33 — a future-dated draft becomes a planned stop, merged with plan.md's
@@ -26,21 +27,19 @@ function entry(
   data: { date: string; location: string; country: string; lat?: number; lng?: number },
   draft = true,
 ) {
-  const lines = [
-    "---",
-    `title: "${data.location}"`,
-    `date: "${data.date}"`,
-    `location: "${data.location}"`,
-    `country: "${data.country}"`,
-    ...(data.lat !== undefined ? [`lat: ${data.lat}`] : []),
-    ...(data.lng !== undefined ? [`lng: ${data.lng}`] : []),
-    ...(draft ? ["status: draft"] : []),
-    "---",
-    "",
-    "Notes.",
-    "",
-  ];
-  write(`p/trips/route-2028/entries/${file}`, lines.join("\n"));
+  const day: DayFile = {
+    slug: file.replace(/^\d{4}-\d{2}-\d{2}-/, "").replace(/\.json$/, ""),
+    title: data.location,
+    date: data.date,
+    location: data.location,
+    country: data.country,
+    ...(data.lat !== undefined && data.lng !== undefined
+      ? { coordinates: { lat: data.lat, lng: data.lng } }
+      : {}),
+    content: "Notes.",
+    status: draft ? "draft" : "published",
+  };
+  write(`p/trips/route-2028/entries/${file.replace(/\.md$/, ".json")}`, dayToJson(day));
 }
 
 beforeEach(() => {
@@ -67,23 +66,25 @@ beforeEach(() => {
     }),
   );
 
-  write(
-    "p/trips/route-2028/plan.md",
-    [
-      "---",
-      "route:",
-      '  - location: "Lisbon"',
-      '    country: "Portugal"',
-      "    lat: 38.7223",
-      "    lng: -9.1393",
-      '  - location: "Porto"',
-      '    country: "Portugal"',
-      "    lat: 41.1579",
-      "    lng: -8.6291",
-      "---",
-      "",
-    ].join("\n"),
-  );
+  // Not on writeTripFixture (B1630): `plan` (the intended route) is a real
+  // trip field (lib/api/v2/documents.ts's `TripFile`), not a frontmatter
+  // detail, but the shared fixture does not expose it yet. Written through
+  // the production serialiser so it cannot drift from what the reader parses.
+  const trip: TripFile = {
+    id: "route-2028",
+    title: "route-2028",
+    dates: { from: "2028-01-01", to: "2028-12-31" },
+    visibility: "private",
+    people: [],
+    intro: "Intro.",
+    plan: {
+      route: [
+        { location: "Lisbon", country: "Portugal", lat: 38.7223, lng: -9.1393 },
+        { location: "Porto", country: "Portugal", lat: 41.1579, lng: -8.6291 },
+      ],
+    },
+  };
+  write("p/trips/route-2028/trip.json", tripToJson(trip));
 
   // Deduped against the Porto plan.md stop — same coordinates, so it must
   // not draw twice.

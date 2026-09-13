@@ -12,6 +12,7 @@ import { appendWords, readDayReadiness, writeDayReadiness } from "@/lib/dayReadi
 import { ALL_TRACKED } from "@/lib/tracks";
 import { dayInboxDir, findDayInboxFile, findInboxFile, inboxDir, moveInboxFileToDay, storeInboxFile } from "@/lib/inbox";
 import { paintJpeg } from "./support/pictures";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * `POST /api/helper/<user>/assemble-day` — its "create it" press, Task 3 of
@@ -70,7 +71,7 @@ beforeEach(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", TRIP, "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -82,12 +83,13 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", TRIP, "trip.md"),
-    ["---", `id: ${TRIP}`, 'title: "Die Reise"', 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro.", ""].join(
-      "\n",
-    ),
-  );
+  writeTripFixture("alex", {
+    id: TRIP,
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    intro: "Intro.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

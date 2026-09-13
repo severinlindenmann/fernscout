@@ -480,15 +480,18 @@ describe("the review queue says which drafts nobody lived — repointed onto dra
 
 describe("v2's status endpoint — GET /api/v2/{user}/status (B1620 #2: drafts widened)", () => {
   test("its drafts list carries title and test, resolved from listDrafts", async () => {
-    // `buildJournalStatus` reads through `listDrafts` — the v1 markdown
-    // reader — regardless of anything v2-native, so the already-fixtured
-    // "proving-2026" trip (whole-trip `test: true`, beforeEach above) and a
-    // hand-written draft inside it are enough; no v2 JSON document is
-    // involved in this endpoint at all.
-    fs.writeFileSync(
-      path.join(dir, "alex", "trips", "proving-2026", "entries", "2026-01-09-queueday.md"),
-      ["---", 'title: "queueday"', 'date: "2026-01-09"', "status: draft", "---", "", "MARKER-QUEUEDAY", ""].join("\n"),
-    );
+    // `buildJournalStatus` reads through `listDrafts` (`lib/entries.ts`),
+    // which is the same JSON reader as everything else post-B1606 — so the
+    // already-fixtured "proving-2026" trip (whole-trip `test: true`,
+    // beforeEach above) and a draft inside it are enough; no v2-route write
+    // is involved in this endpoint at all.
+    writeDayFixture(dir, "alex", "proving-2026", {
+      slug: "queueday",
+      date: "2026-01-09",
+      title: "queueday",
+      status: "draft",
+      content: "MARKER-QUEUEDAY",
+    });
 
     const status = await v2Status(await agentToken());
     // The full stem — B1633 made every drafts slug addressable by the day

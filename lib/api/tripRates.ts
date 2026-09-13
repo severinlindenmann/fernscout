@@ -86,8 +86,14 @@ export function patchTripRates(ref: TripRef, raw: unknown): RatesWriteResult {
   const username = parseTripRef(ref)?.username ?? "";
   const baseCurrency = normalizeCurrency(loadUserConfig(username).baseCurrency, loadUserConfig(username).baseCurrency.toUpperCase());
   const manual = eurManualRates(baseCurrency, block.value as Record<string, number>);
+  // `currencies` names the currencies a cost may actually be spent in —
+  // "EUR", say — not the keys `manual` stores under, which for an EUR rate
+  // is the trip's own base currency instead (see `eurManualRates`'s
+  // docblock). So this comes from `block.value`'s own keys, the v1-style
+  // currency codes the caller named, merged with whatever the trip already
+  // listed.
   const currencies = Array.from(
-    new Set([...(read.trip.rates?.currencies ?? []), ...Object.keys(manual ?? {})]),
+    new Set([...(read.trip.rates?.currencies ?? []), ...Object.keys(block.value as object)]),
   );
   const next = {
     ...read.trip,
@@ -132,9 +138,15 @@ function storedBasePerCode(
   if (!manual) return {};
   const username = parseTripRef(ref)?.username ?? "";
   const baseCurrency = normalizeCurrency(loadUserConfig(username).baseCurrency, loadUserConfig(username).baseCurrency.toUpperCase());
+  // The base currency's own entry (if present) IS a stored "EUR" rate — see
+  // `eurManualRates`'s docblock for why it has to live there rather than
+  // under a `manual.EUR` nothing ever reads. Reconstructed as "EUR" here so
+  // a merge that leaves an existing EUR rate untouched still sees it.
   const baseEur = baseCurrency === "EUR" ? undefined : manual[baseCurrency];
   const out: Record<string, number> = {};
+  if (baseEur !== undefined) out.EUR = baseEur;
   for (const [code, eurPerCode] of Object.entries(manual)) {
+    if (code === baseCurrency) continue;
     out[code] = (baseEur ?? 1) / eurPerCode;
   }
   return out;

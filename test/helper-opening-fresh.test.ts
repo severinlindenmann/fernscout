@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test } from "vitest";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { openingFor } from "@/lib/helper/opening";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * A trip with no days is `fresh`, never `clear` — B1188.
@@ -24,9 +25,7 @@ beforeEach(() => {
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test" } }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "alpine-crossing-2026", "entries"), {
-    recursive: true,
-  });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -38,19 +37,13 @@ beforeEach(() => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "alpine-crossing-2026", "trip.md"),
-    [
-      "---",
-      "id: alpine-crossing-2026",
-      'title: "Alpine crossing"',
-      'start: "2026-09-09"',
-      'end: "2026-09-14"',
-      "visibility: private",
-      "---",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "alpine-crossing-2026",
+    title: "Alpine crossing",
+    start: "2026-09-09",
+    end: "2026-09-14",
+    visibility: "private",
+  });
   clearConfigCache();
   clearUserCache();
 });
@@ -66,10 +59,12 @@ test("a trip with no days opens fresh, named, with no NaN anywhere", () => {
 });
 
 test("one written day moves it out of fresh", () => {
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "alpine-crossing-2026", "entries", "2026-09-09-pass.md"),
-    ["---", 'title: "Pass"', "date: 2026-09-09", "---", "", "Walked.", ""].join("\n"),
-  );
+  writeDayFixture(dir, "alex", "alpine-crossing-2026", {
+    slug: "pass",
+    date: "2026-09-09",
+    title: "Pass",
+    content: "Walked.",
+  });
   const opening = openingFor("alex", "2026-09-20");
   expect(opening.state).not.toBe("fresh");
 });

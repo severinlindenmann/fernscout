@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B1622, phase 2 step 4 — the money long tail: the purchase door, the
@@ -134,28 +135,7 @@ beforeEach(async () => {
       },
     }),
   );
-  fs.mkdirSync(path.join(dir, OWNER, "trips", TRIP, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, OWNER, "trips", TRIP, "trip.md"),
-    [
-      "---",
-      `id: "${TRIP}"`,
-      'title: "Alps"',
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      'status: "past"',
-      'visibility: "private"',
-      "people:",
-      '  - name: "Robin"',
-      `    email: "${OWNER_EMAIL}"`,
-      '  - name: "Traveller"',
-      `    email: "${TRAVELLER_EMAIL}"`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -167,6 +147,19 @@ beforeEach(async () => {
       features: { auth: { enabled: true } },
     }),
   );
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: "Alps",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "private",
+    people: [
+      { name: "Robin", email: OWNER_EMAIL },
+      { name: "Traveller", email: TRAVELLER_EMAIL },
+    ],
+    intro: "Intro.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -388,26 +381,16 @@ describe("GET /api/v2/{user}/storage — real numbers, narrowed by scope", () =>
   });
 
   test("a trip-scoped token sees its own trip and an `other` catch-all, never another trip's row", async () => {
-    fs.mkdirSync(path.join(dir, OWNER, "trips", "other-trip", "entries"), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, OWNER, "trips", "other-trip", "trip.md"),
-      [
-        "---",
-        'id: "other-trip"',
-        'title: "Other"',
-        'start: "2026-02-01"',
-        'end: "2026-02-05"',
-        'status: "past"',
-        'visibility: "private"',
-        "people:",
-        '  - name: "Robin"',
-        `    email: "${OWNER_EMAIL}"`,
-        "---",
-        "",
-        "Some prose so the file is not zero bytes.",
-        "",
-      ].join("\n"),
-    );
+    writeTripFixture(OWNER, {
+      id: "other-trip",
+      title: "Other",
+      start: "2026-02-01",
+      end: "2026-02-05",
+      status: "past",
+      visibility: "private",
+      people: [{ name: "Robin", email: OWNER_EMAIL }],
+      intro: "Some prose so the file is not zero bytes.",
+    });
     const token = await tripToken();
     const { GET } = await import("@/app/api/v2/[user]/storage/route");
     const response = await GET(req(`https://example.test/api/v2/${OWNER}/storage`, { token }), {

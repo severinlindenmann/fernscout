@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, expect, test, vi } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * `GET /api/helper/<user>/trip-files?trip=<id>` — B1573.
@@ -32,32 +33,27 @@ const USER_CFG =
   OWNER_EMAIL +
   '"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{}}';
 
-const TRIP =
-  '---\nid: a-trip\ntitle: "A Trip"\nstart: "2024-01-01"\nend: "2024-01-09"\nstatus: past\n---\n\nx\n';
-
-const ENTRY = `---
-title: "Tuesday"
-date: "2024-01-02"
-location: "Somewhere"
-gallery:
-  - src: "/media/a-trip/tuesday/01.jpg"
-    type: "image"
-    width: 100
-    height: 100
-    caption: "The harbour"
----
-
-It happened.
-`;
-
 function journal() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "helper-trip-files-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
-  fs.mkdirSync(path.join(dir, "ux", "trips", "a-trip", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "ux"), { recursive: true });
   fs.writeFileSync(path.join(dir, "ux", "config.json"), USER_CFG);
-  fs.writeFileSync(path.join(dir, "ux", "trips", "a-trip", "trip.md"), TRIP);
-  fs.writeFileSync(path.join(dir, "ux", "trips", "a-trip", "entries", "2024-01-02-tuesday.md"), ENTRY);
   process.env.CONTENT_DIR = dir;
+  writeTripFixture("ux", {
+    id: "a-trip",
+    title: "A Trip",
+    start: "2024-01-01",
+    end: "2024-01-09",
+    status: "past",
+  });
+  writeDayFixture(dir, "ux", "a-trip", {
+    slug: "tuesday",
+    date: "2024-01-02",
+    title: "Tuesday",
+    location: "Somewhere",
+    media: [{ src: "/media/a-trip/tuesday/01.jpg", caption: "The harbour" }],
+    content: "It happened.",
+  });
 }
 
 afterEach(() => {

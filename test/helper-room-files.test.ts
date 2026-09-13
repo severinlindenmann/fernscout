@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, expect, test } from "vitest";
 import { describeSelection, filesForRoom, tripFilesForRoom } from "@/lib/helper/server";
 import { moveInboxFileToDay, storeInboxFile } from "@/lib/inbox";
+import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * The files pane, and what a selection means — B902.
@@ -21,34 +22,36 @@ const SERVER_CFG =
 const USER_CFG =
   '{"title":"F","tagline":"t","owner":{"name":"A B","nickname":"A"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{}}';
 
-const TRIP =
-  '---\nid: a-trip\ntitle: "A Trip"\nstart: "2024-01-01"\nend: "2024-01-09"\nstatus: past\n---\n\nx\n';
-
-const ENTRY = `---
-title: "Tuesday"
-date: "2024-01-02"
-location: "Somewhere"
-gallery:
-  - src: "/media/a-trip/tuesday/01.jpg"
-    type: "image"
-    width: 100
-    height: 100
-    caption: "The harbour"
----
-
-It happened.
-`;
-
+// B1630: username "u" is one character — `isValidUsername` refuses it, so
+// `writeTripFixture` (which goes through `createTrip`) fails with
+// `no_such_journal`. Writes the v2 JSON directly instead, through the same
+// production serialisers (`tripToJson`/`dayToJson`) the fixture helper uses
+// internally, since reading a trip by directory never validates the
+// username the way writing one does.
 function journal(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "helper-room-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
-  fs.mkdirSync(path.join(dir, "u", "trips", "a-trip", "entries"), { recursive: true });
+  const tripDir = path.join(dir, "u", "trips", "a-trip");
+  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
   fs.writeFileSync(path.join(dir, "u", "config.json"), USER_CFG);
-  fs.writeFileSync(path.join(dir, "u", "trips", "a-trip", "trip.md"), TRIP);
-  fs.writeFileSync(
-    path.join(dir, "u", "trips", "a-trip", "entries", "2024-01-02-tuesday.md"),
-    ENTRY,
-  );
+  const trip: TripFile = {
+    id: "a-trip",
+    title: "A Trip",
+    dates: { from: "2024-01-01", to: "2024-01-09" },
+    visibility: "private",
+    people: [],
+  };
+  fs.writeFileSync(path.join(tripDir, "trip.json"), tripToJson(trip));
+  const day: DayFile = {
+    slug: "tuesday",
+    title: "Tuesday",
+    date: "2024-01-02",
+    location: "Somewhere",
+    media: [{ src: "/media/a-trip/tuesday/01.jpg", type: "image", caption: "The harbour" }],
+    content: "It happened.",
+    status: "published",
+  };
+  fs.writeFileSync(path.join(tripDir, "entries", "2024-01-02-tuesday.json"), dayToJson(day));
   process.env.CONTENT_DIR = dir;
   return dir;
 }

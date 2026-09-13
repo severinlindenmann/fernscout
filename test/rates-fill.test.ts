@@ -19,6 +19,21 @@ import { clearEcbHistoryCache, parseEcbHistory } from "@/lib/ecbHistory";
  * compatible with that rule is that it only ever fills a gap — never a
  * currency already rated, hand-typed or otherwise — and always says where it
  * got the answer.
+ *
+ * B1630 finding: beyond the one function already marked below, this whole
+ * file resists a fixture repoint for a reason bigger than the fixture
+ * itself — every `writeTrip`/`writeDay` here is still v1 markdown
+ * (`trip.md`, a `costs:` block), which `lib/entries.ts`/`lib/trips.ts` no
+ * longer read at all post-B1606, so most tests here already fail
+ * independent of any repoint. Fixing it means writing `trip.json` through
+ * the production serialiser (as the other repointed files here now do), but
+ * `rates` moved storage convention too — v1 wrote a flat
+ * code→base-per-unit map, v2 stores `rates.manual` as units per 1 EUR
+ * (`eurManualRates`, `lib/tripWrite.ts`) and `fillTripRates`
+ * (`lib/api/tripRates.ts`) reads it through that conversion. Getting the
+ * hand-typed-rate fixture right needs that conversion understood and
+ * reproduced, which is past what a fixture repoint should attempt blind —
+ * reported rather than guessed at.
  */
 
 let dir: string;

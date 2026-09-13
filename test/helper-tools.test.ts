@@ -5,6 +5,7 @@ import path from "node:path";
 import { SHAPES, type Shape } from "@/lib/helper/blocks";
 import { TOOLS, runTool, toolList, toolSchemas, writeTool } from "@/lib/helper/tools";
 import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B906 — the catalogue and the model behind `find_day` are mocked the same

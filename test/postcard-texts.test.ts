@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { createDraft } from "@/lib/api/entries";
 import { GET as textsRoute } from "@/app/api/v2/[user]/postcards/texts/route";
+import { writeTripFixture } from "./fixtures/content";
 
 // No browser here: every caller below arrives as an agent bearer token, which
 // is the other door `isOwner` opens. Without this the cookie jar throws for
@@ -84,7 +85,7 @@ beforeEach(async () => {
       },
     }),
   );
-  fs.mkdirSync(path.join(dir, "viki", "trips", "asien", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "viki"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "viki", "config.json"),
     JSON.stringify({
@@ -96,22 +97,14 @@ beforeEach(async () => {
       features: { postcards: { enabled: true }, contacts: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "viki", "trips", "asien", "trip.md"),
-    [
-      "---",
-      "id: asien",
-      'title: "Asien"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("viki", {
+    id: "asien",
+    title: "Asien",
+    start: "2026-09-01",
+    end: "2026-09-05",
+    status: "current",
+    visibility: "public",
+  });
   clearConfigCache();
   clearUserCache();
   const { migrateToLatest } = await import("@/lib/db/migrate");

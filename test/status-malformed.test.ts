@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { tripWriteScope } from "@/lib/tripPeople";
 import { GET as statusRoute } from "@/app/api/v1/[user]/status/route";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B288 — `/status` did not carry a broken `trip.md`, though `GET .../trips`
@@ -50,34 +51,24 @@ function journal() {
 }
 
 function writeGoodTrip(id: string, people: string[] = []) {
-  fs.mkdirSync(path.join(dir, "robin", "trips", id, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "robin", "trips", id, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      "status: past",
-      "visibility: public",
-      ...(people.length
-        ? ["people:", ...people.flatMap((email) => [`  - name: "B"`, `    email: "${email}"`])]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("robin", {
+    id,
+    title: id,
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "public",
+    people: people.map((email) => ({ name: "B", email })),
+  });
 }
 
+// Malformed JSON rather than malformed markdown (B1630): `getTrip` reads
+// `trip.json` exclusively now (lib/trips.ts), so a broken `trip.md` is
+// simply invisible rather than a parse failure — the fixture has to break
+// the file the reader actually opens.
 function writeBrokenTrip(folder: string) {
   fs.mkdirSync(path.join(dir, "robin", "trips", folder), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "robin", "trips", folder, "trip.md"),
-    ["---", "id: [unterminated", "---", "", "x", ""].join("\n"),
-  );
+  fs.writeFileSync(path.join(dir, "robin", "trips", folder, "trip.json"), "{ this is not json");
 }
 
 async function ownerToken(): Promise<string> {

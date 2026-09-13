@@ -9,8 +9,8 @@
   "rates": {
     "currencies": ["THB", "EUR"],
     "manual": {
-      "THB": 38.220408163265306,
-      "EUR": 0.9961702127659575
+      "CHF": 0.94,
+      "THB": 38.36734693877551
     }
   },
   "intro": "Three currencies in one trip.",
