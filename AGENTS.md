@@ -528,6 +528,24 @@ because nothing filled that field in. The feature was inert everywhere it
 mattered and no test could have said so. B1090. `work-on-a-task` step 5,
 `test-in-a-browser` and `check-a-drawing` each carry the procedure.
 
+**Run `verify` in the foreground, and give it a real timeout.** It takes about
+five minutes; a tool call that defaults to a two-minute limit kills it
+mid-suite and hands back something that looks like a failure and is not. The
+fix is the timeout — `timeout: 900000` on the call — **not** backgrounding it.
+
+Backgrounding a verify and then ending your turn is the single most common way
+an agent loses a session here: **five did it in one day**, each stopping with
+some version of *"waiting for the verify to finish, will report back"*. Nothing
+wakes you. Your turn is over, the run completes into a file nobody reads, and
+the work sits finished-but-unreported until somebody prods the session. The
+instruction to pass a timeout had been in every one of those briefs; it is the
+backgrounding that is the trap, not the ignorance of the flag, which is why
+this is a rule rather than a note.
+
+Background a build only when you have something else to do while it runs *in
+the same turn*, and come back to it before you stop. If you have nothing else
+to do, that is exactly when to run it in the foreground.
+
 **While you are iterating, run the one test file** — `npx vitest run
 test/thing.test.ts` — and keep `verify` for the end. Measured on this
 checkout: `npx vitest run` alone is well over four minutes across 500-odd
