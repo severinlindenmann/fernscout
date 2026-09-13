@@ -57,17 +57,30 @@ export function stripMediaEcho(body: Record<string, unknown>): Record<string, un
  * already attached keeps whatever `type`/`width`/`height`/`poster` it had;
  * a `src` new to this write gets the placeholder described at the top of
  * this file, since nothing here can measure real bytes.
+ *
+ * Matched by `mediaKey`, not by exact string, and the STORED src wins on a
+ * match (B1586) — the page a caller like `EditDay` reads from renders each
+ * photo through `mediaWithOwner`, which prefixes `/media/...` with the
+ * owner (`lib/trips.ts`) for the `<img>` tag; a correction sent straight
+ * back from that page therefore carries `/{owner}/media/...`, not the
+ * trip-relative `src` this day's file actually has. Matching on the bare
+ * key — the same normalisation `detachGallery` already uses — finds the
+ * existing item either way, and keeping its own `src` is what stops every
+ * other photograph on the day from being silently re-stored under a
+ * browser-shaped path (and losing its measured `width`/`height` with it)
+ * the moment one caption changes.
  */
 export function toStoredMedia(
   items: readonly WireMediaItem[] | undefined,
   existing: DayFile["media"],
 ): DayFile["media"] | undefined {
   if (!items) return undefined;
-  const bySrc = new Map((existing ?? []).map((m) => [m.src, m]));
+  const bySrc = new Map((existing ?? []).map((m) => [mediaKey(m.src), m]));
   return items.map((item) => {
-    const prior = bySrc.get(item.src);
+    const prior = bySrc.get(mediaKey(item.src));
     return {
       ...item,
+      src: prior?.src ?? item.src,
       type: prior?.type ?? "image",
       ...(prior?.width !== undefined ? { width: prior.width } : {}),
       ...(prior?.height !== undefined ? { height: prior.height } : {}),

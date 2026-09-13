@@ -383,6 +383,38 @@ describe("PATCH /api/web/{user}/trips/{trip}/days/{slug} — a day's own correct
     expect(written).toContain("private");
     expect(written).toContain('"title": "Arrival"');
   });
+
+  // B1586 — the panel's own `entry.gallery[].src` is owner-prefixed
+  // (`mediaWithOwner`, lib/trips.ts, for the `<img>` tag), not the
+  // trip-relative `src` the day file actually stores. A patch built from
+  // that page model — exactly what `EditDay.tsx` sends — must still land
+  // on the day's own src, not fork a second, browser-shaped entry that
+  // orphans the real one.
+  test("a caption sent back with the browser's owner-prefixed src still lands on the day's own src", async () => {
+    writeDayFixture(dir, OWNER, TRIP, {
+      slug: SLUG,
+      date: "2026-09-02",
+      title: "A day",
+      location: "Somewhere",
+      country: "Nowhere",
+      content: "Something happened.",
+      media: [{ src: `/media/${TRIP}/${SLUG}/01.jpg`, type: "image" }],
+      declined: DAY_DECLINED_MINUS_MEDIA,
+    });
+    const ownerPrefixedSrc = `/${OWNER}/media/${TRIP}/${SLUG}/01.jpg`;
+    const { PATCH } = await import("@/app/api/web/[user]/trips/[trip]/days/[slug]/route");
+    const response = await PATCH(
+      req(`https://t.test/api/web/${OWNER}/trips/${TRIP}/days/${FULL_SLUG}`, "PATCH", {
+        media: [{ src: ownerPrefixedSrc, caption: "Lanterns" }],
+      }),
+      dayParams,
+    );
+    expect(response.status).toBe(200);
+    const written = JSON.parse(fs.readFileSync(entryFile(), "utf8"));
+    expect(written.media).toHaveLength(1);
+    expect(written.media[0].src).toBe(`/media/${TRIP}/${SLUG}/01.jpg`);
+    expect(written.media[0].caption).toBe("Lanterns");
+  });
 });
 
 describe("POST /api/web/{user}/trips/{trip}/days/{slug}/unpublish", { shuffle: false }, () => {

@@ -159,14 +159,31 @@ export default function Landing({
 
   useEffect(() => {
     let live = true;
-    fetch("/api/v2/me/home", { headers: { accept: "application/json" } })
-      .then(async (res) => (res.ok ? ((await res.json()) as Home) : null))
+    const fetchHome = () =>
+      fetch("/api/v2/me/home", { headers: { accept: "application/json" } }).then(
+        async (res) => (res.ok ? ((await res.json()) as Home) : null),
+      );
+    fetchHome()
+      .then(async (data) => {
+        // `id: null` from a stranger, a switched-off `auth`, or an identity
+        // that was actually revoked stays `id: null` below. But it is also
+        // what a reader signed into a journal before B410 sees: they hold
+        // `fs_session` and no `fs_identity`, and `/me/home` answers from the
+        // identity alone (`lib/auth/handshake.ts`'s own reasoning — a journal
+        // cookie must not answer an instance-wide question by itself). B1493
+        // — the fix already built for a journal's own page (B459's
+        // `IdentityUpgrade`) is the same one this probe needs: mint the
+        // identity a live journal session already earns, once, and re-ask
+        // before concluding nobody is signed in.
+        if (!live || data?.id) return data;
+        const upgraded = await fetch("/api/auth/identity/upgrade", { method: "POST" })
+          .then((res) => (res.ok ? (res.json() as Promise<{ issued?: boolean }>) : null))
+          .catch(() => null);
+        if (!live || !upgraded?.issued) return data;
+        return fetchHome().catch(() => data);
+      })
       .then((data) => {
         if (!live) return;
-        // `id: null` is a stranger, a revoked identity, or auth switched off,
-        // and all three mean one thing here and to the remembered flag: not
-        // signed in. It arrives as a 200 so that the ordinary case of nobody
-        // does not print an error in every visitor's console — B443.
         if (!data?.id) {
           window.localStorage.removeItem(SEEN_KEY);
           setPhase("out");
