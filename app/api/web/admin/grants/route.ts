@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
  * 1 stands: nothing reachable over HTTP raises a balance. What this does is
  * file a zero-franc transaction and mail the operator the same single-use
  * approval link an ordinary purchase mints; opening that link is what grants,
- * through `app/api/web/[user]/purchases/[id]/approve/[token]/route.ts`, which remains
+ * through `app/api/web/[user]/purchases/[id]/approve/route.ts`, which remains
  * the only file in the codebase that imports `grant`.
  *
  * So somebody holding an admin cookie can cause an email to arrive in the

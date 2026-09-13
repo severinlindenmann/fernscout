@@ -267,7 +267,7 @@ describe("the grant path is not reachable over HTTP", () => {
     // four-prefix scheme (the single-use token is a path segment now
     // instead of a body field). Still exactly one of the three sanctioned
     // grant callers.
-    "app/api/web/[user]/purchases/[id]/approve/[token]/route.ts",
+    "app/api/web/[user]/purchases/[id]/approve/route.ts",
     // B1624: the journals create moved to /api/v2 with the four-prefix
     // scheme. Same file, same one-off SIGNUP_CREDIT_GRANT, same authority —
     // a path change, not a new grant caller. The list is still four.
