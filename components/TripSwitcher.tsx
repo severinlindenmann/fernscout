@@ -80,7 +80,7 @@ export default function TripSwitcher() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("trips.switch")}
-        className="flex min-h-11 items-center gap-1 rounded-full border border-navy-200 bg-white px-3 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500 sm:w-[14rem] sm:justify-between"
+        className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-3 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent sm:w-[14rem] sm:justify-between"
       >
         {/* What it does, not which trip is open — B886.
 
@@ -121,7 +121,7 @@ export default function TripSwitcher() {
              no way to scroll it back. The width cap is for the narrowest
              phones, where 15rem plus the header's padding still would not
              fit. */
-          className="absolute left-0 right-auto z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-navy-200 bg-white shadow-lg sm:left-auto sm:right-0"
+          className="absolute left-0 right-auto z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-lg sm:left-auto sm:right-0"
         >
           {GROUPS.map(({ status, key }) => {
             const group = trips.filter((tr) => tr.status === status);
@@ -129,9 +129,9 @@ export default function TripSwitcher() {
             return (
               <div
                 key={status}
-                className="border-b border-navy-200 last:border-b-0"
+                className="border-b border-line-quiet last:border-b-0"
               >
-                <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-navy-600">
+                <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-ink-secondary">
                   {t(key)}
                 </p>
                 {group.map((tr) => {
@@ -150,13 +150,13 @@ export default function TripSwitcher() {
                       className={`block px-3 py-2 text-sm transition-colors ${
                         isActive
                           ? "bg-yellow-400 font-semibold text-yellow-950"
-                          : "text-navy-700 hover:bg-cream-100"
+                          : "text-ink-body hover:bg-surface-subtle"
                       }`}
                     >
                       <span className="block truncate">
                         {localizedTrip(tr).title}
                       </span>
-                      <span className="block text-[11px] text-navy-600">
+                      <span className="block text-[11px] text-ink-secondary">
                         {tr.start.slice(0, 4)}
                         {tr.end.slice(0, 4) !== tr.start.slice(0, 4)
                           ? `–${tr.end.slice(0, 4)}`
@@ -172,7 +172,7 @@ export default function TripSwitcher() {
             href={`${userBase}/trips`}
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-3 py-2.5 text-sm font-semibold text-navy-700 transition-colors hover:bg-cream-100"
+            className="block px-3 py-2.5 text-sm font-semibold text-ink-body transition-colors hover:bg-surface-subtle"
           >
             {t("trips.allTrips")} →
           </Link>

@@ -62,9 +62,9 @@ const ICON = { public: Eye, guest: Users, private: EyeOff } as const;
  * kept out" colour and belongs only where somebody is.
  */
 const TONE: Record<Audience, string> = {
-  public: "border-navy-200 bg-cream-100 text-navy-700",
-  guest: "border-navy-300 bg-cream-200 text-navy-900",
-  private: "border-coral-600 bg-coral-100 text-navy-900",
+  public: "border-line-quiet bg-surface-subtle text-ink-body",
+  guest: "border-line-strong bg-surface-muted text-ink-strong",
+  private: "border-coral-600 bg-coral-100 text-on-bright",
 };
 
 /** The word alone. `overlay` is the corner of a photograph, `inline` is beside a heading. */
@@ -98,7 +98,7 @@ export function VisibilityBadge({
         // missed. Dimming the ordinary case keeps the word (absence is what
         // the ticket was about) while letting the exception carry the weight.
         className={`absolute right-1.5 top-1.5 z-10 inline-flex items-center gap-1 rounded-full
-                    bg-navy-900/80 px-2 py-0.5 text-[10px] font-semibold text-white
+                    bg-overlay-strong/80 px-2 py-0.5 text-[10px] font-semibold text-overlay-ink
                     ${inherited ? "opacity-50" : ""}`}
         title={note}
       >
@@ -163,11 +163,11 @@ function VisibilityHelp({ journal = false }: { journal?: boolean }) {
         aria-label={t("visibility.help")}
         aria-expanded={open}
         onClick={() => setOpen((was) => !was)}
-        className={`${TRIGGER} w-8 justify-center text-navy-400 active:scale-[0.88]`}
+        className={`${TRIGGER} w-8 justify-center text-ink-faint active:scale-[0.88]`}
       >
         <span
           className={`flex h-5 w-5 items-center justify-center rounded-full text-xs font-bold
-                      transition-colors ${open ? "bg-navy-200 text-navy-900" : "hover:bg-navy-100 hover:text-navy-800"}`}
+                      transition-colors ${open ? "bg-surface-selected text-ink-strong" : "hover:bg-surface-neutral-strong hover:text-ink-strong"}`}
         >
           ?
         </span>
@@ -178,15 +178,15 @@ function VisibilityHelp({ journal = false }: { journal?: boolean }) {
         label={t("visibility.help")}
         onClose={() => setOpen(false)}
       >
-        <h4 className="font-display text-sm font-semibold text-navy-900">{t("me.tripWho")}</h4>
-        <p className="mt-1.5 text-sm leading-6 text-navy-600">
+        <h4 className="font-display text-sm font-semibold text-ink-strong">{t("me.tripWho")}</h4>
+        <p className="mt-1.5 text-sm leading-6 text-ink-secondary">
           {journal ? t("visibility.journalHint") : t("visibility.hint")}
         </p>
         {/* The one place the two vocabularies are told apart. At journal level
             `guest` means only *not advertised* and grants nobody anything; at
             trip level it is a population. Saying the trip sentence here would
             be the exact mistake AGENTS.md spends four paragraphs on. */}
-        <p className="mt-2.5 border-t border-navy-100 pt-2.5 text-sm leading-6 text-navy-600">
+        <p className="mt-2.5 border-t border-line-faint pt-2.5 text-sm leading-6 text-ink-secondary">
           {journal ? (
             t("visibility.journalNote")
           ) : (
@@ -309,7 +309,7 @@ function VisibilityControl({
         label={t("visibility.change")}
         onClose={close}
       >
-        <h4 className="font-display text-sm font-semibold text-navy-900">{title}</h4>
+        <h4 className="font-display text-sm font-semibold text-ink-strong">{title}</h4>
 
         <div className="mt-1.5">
           {options.map((option) => {
@@ -318,7 +318,7 @@ function VisibilityControl({
               <label
                 key={option.value}
                 className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-2.5
-                            ${picked ? "border-navy-300 bg-cream-100" : "border-transparent hover:bg-navy-50"}`}
+                            ${picked ? "border-line-strong bg-surface-subtle" : "border-transparent hover:bg-surface-neutral"}`}
               >
                 <input
                   type="radio"
@@ -333,7 +333,7 @@ function VisibilityControl({
                   className="mt-1 h-4 w-4 shrink-0"
                 />
                 <span className="min-w-0">
-                  <span className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-navy-900">
+                  <span className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-ink-strong">
                     {option.badge ? (
                       <VisibilityBadge audience={option.badge} />
                     ) : (
@@ -341,7 +341,7 @@ function VisibilityControl({
                     )}
                   </span>
                   {option.hint && (
-                    <span className="mt-0.5 block text-xs leading-5 text-navy-600">
+                    <span className="mt-0.5 block text-xs leading-5 text-ink-secondary">
                       {option.hint}
                     </span>
                   )}
@@ -683,28 +683,28 @@ export function TripVisibilityFor({
       {(chosen) =>
         // Under a rule, because these answer a different question from the
         // three rows above: not *who may read it* but *is it advertised*.
-        <div className="mt-3 border-t border-navy-100 pt-3">
+        <div className="mt-3 border-t border-line-faint pt-3">
         {chosen === "public" ? (
-          <label className="flex items-start gap-2.5 text-sm text-navy-700">
+          <label className="flex items-start gap-2.5 text-sm text-ink-body">
             <input
               type="checkbox"
               checked={nowListed}
               onChange={(event) => setListed(event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-navy-300 text-navy-900"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-line-strong text-ink-strong"
             />
             {t("edit.tripListed")}
           </label>
         ) : (
-          <label className="flex items-start gap-2.5 text-sm text-navy-700">
+          <label className="flex items-start gap-2.5 text-sm text-ink-body">
             <input
               type="checkbox"
               checked={nowTeaser}
               onChange={(event) => setTeaser(event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-navy-300 text-navy-900"
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-line-strong text-ink-strong"
             />
             <span>
               {t("visibility.teaser")}
-              <span className="block text-xs text-navy-500">{t("visibility.teaserHint")}</span>
+              <span className="block text-xs text-ink-muted">{t("visibility.teaserHint")}</span>
             </span>
           </label>
         )}

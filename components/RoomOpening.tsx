@@ -56,7 +56,7 @@ export default function RoomOpening({
   const { t, tn, formatLongDate } = useI18n();
 
   const chip =
-    "min-h-11 rounded-full border border-navy-300 bg-white px-4 text-sm text-navy-800 transition-colors hover:bg-navy-50";
+    "min-h-11 rounded-full border border-line-strong bg-surface-raised px-4 text-sm text-ink-strong transition-colors hover:bg-surface-neutral";
   const bright =
     "min-h-11 rounded-full border border-yellow-600 bg-yellow-400 px-4 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300";
 
@@ -79,9 +79,9 @@ export default function RoomOpening({
      */
     const when = formatLongDate(day.date);
     return (
-      <div className="rounded-xl border border-navy-200 bg-white p-4 shadow-sm">
-        <p className="font-display text-base font-semibold text-navy-900">{when}</p>
-        <p className="mt-0.5 text-sm text-navy-500">{missing}</p>
+      <div className="rounded-xl border border-line-quiet bg-surface-raised p-4 shadow-sm">
+        <p className="font-display text-base font-semibold text-ink-strong">{when}</p>
+        <p className="mt-0.5 text-sm text-ink-muted">{missing}</p>
         <button
           type="button"
           onClick={() => onSay(t("agent.open.sayFinish", { date: when }))}
@@ -98,7 +98,7 @@ export default function RoomOpening({
 
   return (
     <div className="space-y-3">
-      <p className="rounded-xl border border-navy-200 bg-white px-4 py-3 shadow-sm text-base leading-6 text-navy-800">
+      <p className="rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 shadow-sm text-base leading-6 text-ink-strong">
         {opening.state === "days" &&
           (opening.days.length + opening.more === 1
             ? t("agent.open.oneDay")
@@ -119,7 +119,7 @@ export default function RoomOpening({
           trip's untold days matter whatever else the opening is about. */}
       {opening.progress && (
         <div className="space-y-2">
-          <p className="text-sm text-navy-600">
+          <p className="text-sm text-ink-secondary">
             {t("agent.open.progressDay", {
               day: String(opening.progress.day),
               total: String(opening.progress.total),
@@ -141,7 +141,7 @@ export default function RoomOpening({
               </button>
             ))}
             {opening.progress.missing.length > 5 && (
-              <span className="self-center text-sm text-navy-500">
+              <span className="self-center text-sm text-ink-muted">
                 {tn("agent.open.more", opening.progress.missing.length - 5, {
                   count: String(opening.progress.missing.length - 5),
                 })}
@@ -157,7 +157,7 @@ export default function RoomOpening({
             <Day key={`${day.trip}/${day.slug}`} day={day} first={n === 0} />
           ))}
           {opening.more > 0 && (
-            <p className="text-sm text-navy-500">
+            <p className="text-sm text-ink-muted">
               {tn("agent.open.more", opening.more, { count: String(opening.more) })}
             </p>
           )}
@@ -226,7 +226,7 @@ export default function RoomOpening({
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-11 items-center rounded-full border border-green-700 bg-green-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-green-500"
+            className="inline-flex min-h-11 items-center rounded-full border border-green-700 bg-green-600 px-4 text-sm font-semibold text-on-deep transition-colors hover:bg-green-500"
           >
             {t("agent.open.whatsapp")}
           </a>

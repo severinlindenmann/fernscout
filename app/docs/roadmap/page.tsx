@@ -24,9 +24,9 @@ const COLLAPSED_LANES = new Set(["backlog", "completed"]);
 /** Badge classes per priority — reusing the API page's palette rather than
  * inventing a second one. */
 const PRIORITY_STYLE: Record<string, string> = {
-  high: "bg-coral-600 text-white",
+  high: "bg-coral-600 text-on-deep",
   medium: "bg-yellow-400 text-yellow-950",
-  low: "border border-navy-700 text-navy-900",
+  low: "border border-line-ink text-ink-strong",
 };
 
 /**
@@ -56,8 +56,8 @@ export default async function RoadmapPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Roadmap</h1>
-      <p className="mt-3 text-lg leading-relaxed text-navy-700">
+      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">Roadmap</h1>
+      <p className="mt-3 text-lg leading-relaxed text-ink-body">
         What this software is built on top of: every task tracked in this
         checkout&apos;s own `docs/tasks/`, read fresh off the files and grouped by
         the lane it sits in — the lane is the status; there is no separate
@@ -82,7 +82,7 @@ export default async function RoadmapPage() {
           #roadmap:has(#roadmap-show-all:checked) tr[data-type]:not([data-type="FEATURE"]) [data-context] { display: block; }
         `}</style>
 
-        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-navy-700">
+        <label className="flex w-fit cursor-pointer items-center gap-2 text-sm text-ink-body">
           <input id="roadmap-show-all" type="checkbox" className="h-4 w-4 accent-coral-600" />
           Also show issues, chores, ops and docs tasks
         </label>
@@ -90,17 +90,17 @@ export default async function RoadmapPage() {
         <div className="mt-6 space-y-8">
           {lanes.map(({ lane, tasks }) => (
             <details key={lane} open={!COLLAPSED_LANES.has(lane)}>
-              <summary className="cursor-pointer select-none font-display text-xl font-semibold text-navy-900">
+              <summary className="cursor-pointer select-none font-display text-xl font-semibold text-ink-strong">
                 {LANE_LABEL[lane] ?? lane}{" "}
-                <span className="text-base font-normal text-navy-500">({tasks.length})</span>
+                <span className="text-base font-normal text-ink-muted">({tasks.length})</span>
               </summary>
               {tasks.length === 0 ? (
-                <p className="mt-2 text-sm text-navy-500">Nothing here.</p>
+                <p className="mt-2 text-sm text-ink-muted">Nothing here.</p>
               ) : (
-                <div className="mt-3 overflow-x-auto rounded-2xl border border-navy-200">
+                <div className="mt-3 overflow-x-auto rounded-2xl border border-line-quiet">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-navy-200 bg-cream-100 font-bold uppercase text-navy-500">
+                      <tr className="border-b border-line-quiet bg-surface-subtle font-bold uppercase text-ink-muted">
                         <th className="px-3 py-1.5">Id</th>
                         <th className="px-3 py-1.5">Title</th>
                         <th data-type-col className="px-3 py-1.5">
@@ -114,24 +114,24 @@ export default async function RoadmapPage() {
                         <tr
                           key={task.id}
                           data-type={task.type}
-                          className="border-b border-navy-100 last:border-0"
+                          className="border-b border-line-faint last:border-0"
                         >
-                          <td className="whitespace-nowrap px-3 py-1 font-mono text-navy-500">{task.id}</td>
-                          <td className="px-3 py-1 text-navy-900">
+                          <td className="whitespace-nowrap px-3 py-1 font-mono text-ink-muted">{task.id}</td>
+                          <td className="px-3 py-1 text-ink-strong">
                             {task.title}
                             {task.area && (
-                              <div data-context className="text-navy-500">
+                              <div data-context className="text-ink-muted">
                                 {task.area}
                               </div>
                             )}
                           </td>
-                          <td data-type-col className="whitespace-nowrap px-3 py-1 text-navy-700">
+                          <td data-type-col className="whitespace-nowrap px-3 py-1 text-ink-body">
                             {task.type}
                           </td>
                           <td className="whitespace-nowrap px-3 py-1">
                             <span
                               className={`rounded-md px-1.5 py-0.5 text-[0.65rem] font-bold uppercase ${
-                                PRIORITY_STYLE[task.priority] ?? "bg-navy-200 text-navy-900"
+                                PRIORITY_STYLE[task.priority] ?? "bg-surface-selected text-ink-strong"
                               }`}
                             >
                               {task.priority}

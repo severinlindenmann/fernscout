@@ -41,10 +41,10 @@ export default async function HelperPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
         Making content
       </h1>
-      <p className="mt-3 text-lg leading-relaxed text-navy-700">
+      <p className="mt-3 text-lg leading-relaxed text-ink-body">
         There is still no CMS, and there will not be one. Photographs and words
         arrive through an agent — this instance can host one for you at{" "}
         <Link
@@ -67,11 +67,11 @@ export default async function HelperPage() {
         <DocsNav locale={locale} entries={docsNavEntries()} current="/docs/helper" />
       </div>
 
-      <div className="mt-8 border-t border-navy-200 pt-8">
-        <pre className="overflow-x-auto rounded-xl bg-navy-900 p-4 text-sm text-cream-50">
+      <div className="mt-8 border-t border-line-quiet pt-8">
+        <pre className="overflow-x-auto rounded-xl bg-overlay-strong p-4 text-sm text-overlay-ink">
           <code>{`git clone ${HELPER_REPO}\ncd fernscout-helper\nclaude`}</code>
         </pre>
-        <p className="mt-3 text-sm text-navy-600">
+        <p className="mt-3 text-sm text-ink-secondary">
           MIT, no dependencies to install, and nothing it produces depends on it
           afterwards.
         </p>
@@ -81,28 +81,28 @@ export default async function HelperPage() {
         <EntryContent markdown={fix(section(doc, "What it is for"))} />
       </div>
 
-      <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">
+      <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">
         Extracting photographs
       </h2>
       <div className="mt-3">
         <EntryContent markdown={fix(section(doc, "Extracting photographs"))} />
       </div>
 
-      <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">
+      <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">
         Extracting costs
       </h2>
       <div className="mt-3">
         <EntryContent markdown={fix(section(doc, "Extracting costs"))} />
       </div>
 
-      <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">
+      <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">
         The costs a statement cannot see
       </h2>
       <div className="mt-3">
         <EntryContent markdown={fix(section(doc, "The costs a statement cannot see"))} />
       </div>
 
-      <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">What comes out</h2>
+      <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">What comes out</h2>
       <div className="mt-3">
         <EntryContent markdown={fix(section(doc, "What comes out"))} />
       </div>

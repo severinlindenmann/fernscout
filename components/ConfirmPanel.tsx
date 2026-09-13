@@ -82,9 +82,9 @@ export default function ConfirmPanel({
       onKeyDown={(event) => {
         if (event.key === "Escape" && !busy) onCancel();
       }}
-      className="max-w-md rounded-2xl border border-navy-200 bg-cream-50 p-4 focus:outline-none"
+      className="max-w-md rounded-2xl border border-line-quiet bg-surface-base p-4 focus:outline-none"
     >
-      <p className="text-sm leading-6 text-navy-700">{question}</p>
+      <p className="text-sm leading-6 text-ink-body">{question}</p>
       {details && <Why>{details}</Why>}
       {children}
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -100,7 +100,7 @@ export default function ConfirmPanel({
           busy={busy}
           type="button"
           onClick={onCancel}
-          className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-50"
+          className="min-h-11 rounded-full border border-line-strong px-5 text-base font-semibold text-ink-body transition-colors hover:bg-surface-subtle disabled:opacity-50"
         >
           {t("me.cancel")}
         </BusyButton>

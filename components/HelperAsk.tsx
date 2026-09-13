@@ -286,19 +286,19 @@ function TurnLoader({
     return (
       <div
         aria-hidden
-        className="mb-2 space-y-2 rounded-xl border border-navy-200 bg-white p-4"
+        className="mb-2 space-y-2 rounded-xl border border-line-quiet bg-surface-raised p-4"
       >
-        <div className="fs-assemble-in h-3 w-24 rounded bg-navy-200" style={{ animationDelay: "0ms" }} />
+        <div className="fs-assemble-in h-3 w-24 rounded bg-surface-selected" style={{ animationDelay: "0ms" }} />
         <div
-          className="fs-assemble-in h-11 w-full rounded-xl bg-navy-100"
+          className="fs-assemble-in h-11 w-full rounded-xl bg-surface-neutral-strong"
           style={{ animationDelay: "90ms" }}
         />
         <div
-          className="fs-assemble-in h-11 w-full rounded-xl bg-navy-100"
+          className="fs-assemble-in h-11 w-full rounded-xl bg-surface-neutral-strong"
           style={{ animationDelay: "180ms" }}
         />
         <div
-          className="fs-assemble-in h-11 w-28 rounded-full bg-navy-200"
+          className="fs-assemble-in h-11 w-28 rounded-full bg-surface-selected"
           style={{ animationDelay: "270ms" }}
         />
       </div>
@@ -306,7 +306,7 @@ function TurnLoader({
   }
   return (
     <div aria-hidden className="mb-2 flex items-center gap-2 px-1">
-      {status && <span className="text-sm text-navy-600">{status}</span>}
+      {status && <span className="text-sm text-ink-secondary">{status}</span>}
       <span className="flex gap-2">
         {[0, 150, 300].map((delay) => (
           <span
@@ -1086,7 +1086,7 @@ export default function HelperAsk({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="mt-4 min-h-11 text-base text-navy-700 underline underline-offset-4 transition-colors hover:text-navy-900"
+        className="mt-4 min-h-11 text-base text-ink-body underline underline-offset-4 transition-colors hover:text-ink-strong"
       >
         {t("agent.askOpen")}
       </button>
@@ -1137,7 +1137,7 @@ export default function HelperAsk({
                    opening: somebody who pressed a link on a day is not here
                    about whatever else is unfinished. */
                 <div className="space-y-2">
-                  <p className="rounded-2xl border border-navy-200 bg-white px-4 py-3 text-base leading-6 text-navy-800">
+                  <p className="rounded-2xl border border-line-quiet bg-surface-raised px-4 py-3 text-base leading-6 text-ink-strong">
                     {t("agent.about.offer")}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -1161,7 +1161,7 @@ export default function HelperAsk({
                         className={`min-h-11 rounded-full px-4 text-sm transition-colors ${
                           n === 0
                             ? "border border-yellow-600 bg-yellow-400 font-semibold text-yellow-950 hover:bg-yellow-300"
-                            : "border border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
+                            : "border border-line-strong bg-surface-raised text-ink-strong hover:bg-surface-neutral"
                         }`}
                       >
                         {t(`agent.about.${what}`)}
@@ -1172,7 +1172,7 @@ export default function HelperAsk({
               ) : (
                 opening && <RoomOpening opening={opening} onSay={go} whatsappNumber={whatsappNumber} />
               )}
-              <p className="mt-3 text-sm leading-6 text-navy-500">{t("agent.room.kept")}</p>
+              <p className="mt-3 text-sm leading-6 text-ink-muted">{t("agent.room.kept")}</p>
             </>
           )}
           {/* When the conversation was drawn from storage, say when it
@@ -1180,7 +1180,7 @@ export default function HelperAsk({
               a moment earlier; the conversation itself should not lose it
               on the way in. Once, quietly, and only for reopened turns. */}
           {opened.length > 0 && opened[0].created_at && (
-            <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
               {formatLongDate(opened[0].created_at.slice(0, 10))}
             </p>
           )}
@@ -1216,7 +1216,7 @@ export default function HelperAsk({
                 }
               >
                 {gapBefore && (
-                  <p aria-hidden className="text-center text-xs text-navy-400">
+                  <p aria-hidden className="text-center text-xs text-ink-faint">
                     {new Date(turn.at as number).toLocaleTimeString(undefined, {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -1227,7 +1227,7 @@ export default function HelperAsk({
                   /* The person's own sentence as a quiet bubble on the
                      right — B1212 (D02): scannable without avatars or a
                      voice on the other side; the answer stays plain text. */
-                  <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-cream-100 px-3.5 py-2 text-base leading-6 text-navy-800">
+                  <p className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-surface-subtle px-3.5 py-2 text-base leading-6 text-ink-strong">
                     <span className="sr-only">{t("agent.chat.you")}: </span>
                     {turn.said}
                     {/* Only a turn that came over WhatsApp is marked — B1344
@@ -1328,7 +1328,7 @@ export default function HelperAsk({
                   }
                   onProposal?.(one.tool, one.args);
                 }}
-                className="min-h-9 rounded-full border border-navy-300 bg-white px-3.5 text-sm text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
+                className="min-h-9 rounded-full border border-line-strong bg-surface-raised px-3.5 text-sm text-ink-strong transition-colors hover:bg-surface-neutral disabled:opacity-50"
               >
                 {label}
               </button>
@@ -1343,7 +1343,7 @@ export default function HelperAsk({
           right corner — see `RecordButton`'s `compact`. `sticky` so the field
           stays under the thread as it grows rather than being scrolled off
           the end of it. */}
-      <div className="sticky bottom-0 rounded-xl border border-navy-200 bg-white p-2 shadow-sm">
+      <div className="sticky bottom-0 rounded-xl border border-line-quiet bg-surface-raised p-2 shadow-sm">
         {/**
          * The field on its own row, full width, so it is legible to read
          * from and to type into on a phone — B1252. Files, the microphone
@@ -1376,7 +1376,7 @@ export default function HelperAsk({
               }
             }}
             placeholder={t("agent.askPlaceholder")}
-            className="max-h-[152px] min-h-11 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-navy-900 placeholder:text-navy-500 focus:outline-none"
+            className="max-h-[152px] min-h-11 w-full resize-none rounded-2xl bg-transparent px-3 py-2.5 text-base leading-6 text-ink-strong placeholder:text-ink-muted focus:outline-none"
           />
           {/* `flex-wrap` — B1378. Voice mode adds a language select to this
               row (see `RecordButton`'s compact form); at 6rem and shrink-0
@@ -1389,7 +1389,7 @@ export default function HelperAsk({
                 type="button"
                 onClick={onOpenFiles}
                 aria-label={t("agent.room.files")}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900 lg:hidden"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-body transition-colors hover:bg-surface-neutral hover:text-ink-strong lg:hidden"
               >
                 <Paperclip className="h-5 w-5" aria-hidden />
               </button>
@@ -1399,7 +1399,7 @@ export default function HelperAsk({
                 type="button"
                 onClick={onShareLocation}
                 aria-label={t("agent.room.shareLocation")}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-body transition-colors hover:bg-surface-neutral hover:text-ink-strong"
               >
                 <MapPin className="h-5 w-5" aria-hidden />
               </button>
@@ -1413,7 +1413,7 @@ export default function HelperAsk({
                 compact
                 // Static in the row rather than pinned to a corner — B1211
                 // (D15): the microphone is a full-size control beside send.
-                compactClassName="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-navy-300 bg-white"
+                compactClassName="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-line-strong bg-surface-raised"
                 onText={(spoken) => {
                   // Added to what is already there rather than replacing it —
                   // B893. A turn is often spoken in two goes, or typed and then
@@ -1434,7 +1434,7 @@ export default function HelperAsk({
               disabled={said.trim() === ""}
               onClick={() => go()}
               aria-label={t("agent.askGo")}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-navy-900 transition-colors hover:bg-yellow-300 disabled:opacity-40"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-on-bright transition-colors hover:bg-yellow-300 disabled:opacity-40"
               busyLabel={null}
             >
               <ArrowUp className="h-5 w-5" aria-hidden />
@@ -1447,7 +1447,7 @@ export default function HelperAsk({
             box is where it gets corrected; the field itself announces
             nothing when its value changes. */}
         {heard !== "" && (
-          <p role="status" className="mt-2 px-3 text-sm leading-6 text-navy-600">
+          <p role="status" className="mt-2 px-3 text-sm leading-6 text-ink-secondary">
             {t("agent.speechHeard", { said: heard })}
           </p>
         )}
@@ -1470,7 +1470,7 @@ export default function HelperAsk({
       {lapsed && (
         <p
           role="status"
-          className="mt-3 rounded-xl bg-navy-50 p-3 text-base leading-6 text-navy-800"
+          className="mt-3 rounded-xl bg-surface-neutral p-3 text-base leading-6 text-ink-strong"
         >
           {t("agent.askLapsed")}{" "}
           <a
@@ -1532,9 +1532,9 @@ function DayChip({
     <button
       type="button"
       onClick={onPress}
-      className="flex min-h-11 items-center gap-2 rounded-full border border-navy-300 bg-white py-1 pl-1 pr-3 text-sm text-navy-800 transition-colors hover:bg-navy-50"
+      className="flex min-h-11 items-center gap-2 rounded-full border border-line-strong bg-surface-raised py-1 pl-1 pr-3 text-sm text-ink-strong transition-colors hover:bg-surface-neutral"
     >
-      <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-full bg-cream-200" aria-hidden>
+      <span className="relative block h-8 w-8 shrink-0 overflow-hidden rounded-full bg-surface-muted" aria-hidden>
         {photoSrc ? (
           // `width`/`height`, not `fill` — B1298. `fill` plus a fixed
           // `sizes` string left next/image's 1x/2x/3x candidates uncapped,
@@ -1594,13 +1594,13 @@ function ChooseBlock({
   const [chosen, setChosen] = useState<string | null>(null);
   const shown = expanded ? options : options.slice(0, CHOOSE_ROWS_SHOWN);
   const rowClass =
-    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-navy-300 bg-white px-4 py-2 text-left text-base text-navy-800 transition-colors hover:bg-navy-50";
+    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-line-strong bg-surface-raised px-4 py-2 text-left text-base text-ink-strong transition-colors hover:bg-surface-neutral";
   const spentRowClass =
-    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-navy-200 bg-cream-50 px-4 py-2 text-left text-base text-navy-700";
+    "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl border border-line-quiet bg-surface-base px-4 py-2 text-left text-base text-ink-body";
 
   return (
     <div>
-      <p className="text-base leading-6 text-navy-800">{text}</p>
+      <p className="text-base leading-6 text-ink-strong">{text}</p>
       <ul className="mt-2 space-y-2">
         {shown.map((option) => {
           const untitled = option.label === "" || option.label === option.detail;
@@ -1608,7 +1608,7 @@ function ChooseBlock({
             <>
               <span>{untitled ? t("agent.chat.noTitle") : option.label}</span>
               {option.detail && (
-                <span className="shrink-0 text-sm text-navy-600">{option.detail}</span>
+                <span className="shrink-0 text-sm text-ink-secondary">{option.detail}</span>
               )}
             </>
           );
@@ -1642,7 +1642,7 @@ function ChooseBlock({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="mt-2 min-h-11 px-2 text-sm text-navy-600 underline underline-offset-4 transition-colors hover:text-navy-900"
+          className="mt-2 min-h-11 px-2 text-sm text-ink-secondary underline underline-offset-4 transition-colors hover:text-ink-strong"
         >
           {t("agent.chat.showMore")}
         </button>
@@ -1684,8 +1684,8 @@ function BlockView({
 
   if (block.shape === "preview") {
     return (
-      <div className="rounded-xl border border-navy-200 bg-white p-3">
-        <p className="text-sm text-navy-600">{block.text}</p>
+      <div className="rounded-xl border border-line-quiet bg-surface-raised p-3">
+        <p className="text-sm text-ink-secondary">{block.text}</p>
         {/**
          * Through `AnswerText`, like every other line the model writes —
          * B1162.
@@ -1713,11 +1713,11 @@ function BlockView({
 
   if (block.shape === "files") {
     return (
-      <div className="rounded-xl border border-navy-200 bg-white p-3">
-        <p className="text-sm text-navy-600">{block.text}</p>
+      <div className="rounded-xl border border-line-quiet bg-surface-raised p-3">
+        <p className="text-sm text-ink-secondary">{block.text}</p>
         <ul className="mt-1 space-y-1">
           {block.files.map((file) => (
-            <li key={file.id} className="text-base leading-6 text-navy-900">
+            <li key={file.id} className="text-base leading-6 text-ink-strong">
               {file.name}
             </li>
           ))}
@@ -1729,10 +1729,10 @@ function BlockView({
   if (block.shape === "link") {
     return (
       <div>
-        <p className="text-base leading-6 text-navy-800">{block.text}</p>
+        <p className="text-base leading-6 text-ink-strong">{block.text}</p>
         <a
           href={block.href}
-          className="mt-1 inline-block min-h-11 text-base font-semibold text-navy-800 underline underline-offset-4"
+          className="mt-1 inline-block min-h-11 text-base font-semibold text-ink-strong underline underline-offset-4"
         >
           {block.label}
         </a>
@@ -1745,9 +1745,9 @@ function BlockView({
       // A proposal the server did not attach one to cannot be pressed, and
       // saying so is better than a button that does nothing.
       return (
-        <div className="rounded-xl border border-navy-200 bg-white p-4">
-          <p className="text-base leading-6 text-navy-900">{block.text}</p>
-          <p className="mt-2 text-sm leading-6 text-navy-600">
+        <div className="rounded-xl border border-line-quiet bg-surface-raised p-4">
+          <p className="text-base leading-6 text-ink-strong">{block.text}</p>
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
             {t("agent.chat.nothingWritten")}
           </p>
         </div>
@@ -1909,9 +1909,9 @@ function ProposalView({
 
   if (settled !== "") {
     return (
-      <div className="rounded-xl border border-navy-200 bg-white p-4">
-        <p className="text-base leading-6 text-navy-900">{proposal.sentence}</p>
-        <p className="mt-2 text-sm leading-6 text-navy-600">
+      <div className="rounded-xl border border-line-quiet bg-surface-raised p-4">
+        <p className="text-base leading-6 text-ink-strong">{proposal.sentence}</p>
+        <p className="mt-2 text-sm leading-6 text-ink-secondary">
           {settled === "accepted" ? proposal.done : t("agent.chat.leftIt")}
         </p>
       </div>
@@ -1951,7 +1951,7 @@ function ProposalView({
         busy={busy || pressing}
         type="button"
         onClick={needsSecondPress ? () => setConfirming(true) : press}
-        className="min-h-11 rounded-full bg-navy-800 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-900 disabled:opacity-50"
+        className="min-h-11 rounded-full bg-action-strong px-5 text-base font-semibold text-on-action transition-colors hover:bg-action-strong-hover disabled:opacity-50"
         busyLabel={t("agent.chat.writing")}
       >
         {proposal.accept}
@@ -1959,7 +1959,7 @@ function ProposalView({
       <button
         type="button"
         onClick={() => setSettled("left")}
-        className="min-h-11 px-2 text-sm text-navy-600 underline underline-offset-4 transition-colors hover:text-navy-900"
+        className="min-h-11 px-2 text-sm text-ink-secondary underline underline-offset-4 transition-colors hover:text-ink-strong"
       >
         {t("agent.chat.leaveIt")}
       </button>
@@ -1975,17 +1975,17 @@ function ProposalView({
          its header ruled off from the sentence below. `scroll-mt-24` —
          B1253 — matches the sticky page header's height so scrolling this
          card's top into view lands it below the header, not under it. */
-      className={`scroll-mt-24 rounded-xl border bg-white p-4 shadow-sm focus:outline-none ${
-        kind === "edit" ? "border-navy-200" : "border-navy-200 border-t-4 border-t-coral-400"
+      className={`scroll-mt-24 rounded-xl border bg-surface-raised p-4 shadow-sm focus:outline-none ${
+        kind === "edit" ? "border-line-quiet" : "border-line-quiet border-t-4 border-t-coral-400"
       }`}
     >
       {/* An icon and a short title naming the kind of decision, above the
           sentence — B1122. The colour is the warning; this is the words. */}
-      <p className="-mx-4 flex items-center gap-2 border-b border-navy-100 px-4 pb-2 text-sm font-semibold text-navy-700">
+      <p className="-mx-4 flex items-center gap-2 border-b border-line-faint px-4 pb-2 text-sm font-semibold text-ink-body">
         <span aria-hidden>{DECISION_ICON[kind]}</span>
         {t(`agent.card.${kind}`)}
       </p>
-      <p className="mt-1 text-base leading-6 text-navy-900">{proposal.sentence}</p>
+      <p className="mt-1 text-base leading-6 text-ink-strong">{proposal.sentence}</p>
 
       {checkboxFields.length > 0 && (
         <div className="mt-3">
@@ -1994,14 +1994,14 @@ function ProposalView({
               <button
                 type="button"
                 onClick={() => setAllRows(true)}
-                className="text-sm font-semibold text-navy-700 underline underline-offset-4"
+                className="text-sm font-semibold text-ink-body underline underline-offset-4"
               >
                 {t("agent.chat.selectAll")}
               </button>
               <button
                 type="button"
                 onClick={() => setAllRows(false)}
-                className="text-sm font-semibold text-navy-700 underline underline-offset-4"
+                className="text-sm font-semibold text-ink-body underline underline-offset-4"
               >
                 {t("agent.chat.selectNone")}
               </button>
@@ -2010,10 +2010,10 @@ function ProposalView({
           {/* Scrollable rather than a tower that swallows the card — B1394's
               own acceptance names twenty entries as the case that decides
               whether this is usable at all. */}
-          <ul className="mt-2 max-h-72 space-y-1 overflow-y-auto rounded-xl border border-navy-200 bg-cream-50 p-2">
+          <ul className="mt-2 max-h-72 space-y-1 overflow-y-auto rounded-xl border border-line-quiet bg-surface-base p-2">
             {checkboxFields.map((field) => (
               <li key={field.name}>
-                <label className="flex min-h-11 cursor-pointer items-start gap-2 rounded-lg px-2 py-1 hover:bg-white">
+                <label className="flex min-h-11 cursor-pointer items-start gap-2 rounded-lg px-2 py-1 hover:bg-surface-raised">
                   <input
                     type="checkbox"
                     checked={values[field.name] === "1"}
@@ -2023,12 +2023,12 @@ function ProposalView({
                         [field.name]: event.target.checked ? "1" : "",
                       }))
                     }
-                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-navy-300 text-navy-900"
+                    className="mt-0.5 h-5 w-5 shrink-0 rounded border-line-strong text-ink-strong"
                   />
-                  <span className="text-base leading-6 text-navy-900">
+                  <span className="text-base leading-6 text-ink-strong">
                     {field.label ?? field.name}
                     {field.detail && (
-                      <span className="block text-xs text-navy-500">{field.detail}</span>
+                      <span className="block text-xs text-ink-muted">{field.detail}</span>
                     )}
                   </span>
                 </label>
@@ -2060,7 +2060,7 @@ function ProposalView({
               <div key={field.name} className={field.long ? "sm:col-span-2" : undefined}>
                 <label
                   htmlFor={`${id}-${field.name}`}
-                  className="block text-sm font-semibold text-navy-800"
+                  className="block text-sm font-semibold text-ink-strong"
                 >
                   {t(`agent.slot.${field.name}` as TranslationKey)}
                 </label>
@@ -2074,7 +2074,7 @@ function ProposalView({
                         [field.name]: event.target.value,
                       }))
                     }
-                    className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+                    className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
                   >
                     {field.options.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -2094,7 +2094,7 @@ function ProposalView({
                       }))
                     }
                     enterKeyHint={last ? "done" : "next"}
-                    className="mt-1 w-full rounded-xl border border-navy-300 bg-white p-3 text-base leading-6 text-navy-900"
+                    className="mt-1 w-full rounded-xl border border-line-strong bg-surface-raised p-3 text-base leading-6 text-ink-strong"
                   />
                 ) : (
                   <input
@@ -2109,7 +2109,7 @@ function ProposalView({
                         [field.name]: event.target.value,
                       }))
                     }
-                    className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+                    className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
                   />
                 )}
               </div>
@@ -2137,14 +2137,14 @@ function ProposalView({
       </div>
       {pinBottom !== null && (
         <div
-          className="fixed inset-x-0 z-40 border-t border-navy-200 bg-white p-3 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]"
+          className="fixed inset-x-0 z-40 border-t border-line-quiet bg-surface-raised p-3 shadow-[0_-4px_12px_rgba(0,0,0,0.12)]"
           style={{ bottom: pinBottom }}
         >
           {actions}
         </div>
       )}
 
-      <p className="mt-2 text-sm leading-6 text-navy-600">
+      <p className="mt-2 text-sm leading-6 text-ink-secondary">
         {t("agent.chat.orSayWhatIsWrong")}
       </p>
     </div>
@@ -2160,7 +2160,7 @@ function WhatsAppMark({ label }: { label: string }) {
       viewBox="0 0 24 24"
       role="img"
       aria-label={label}
-      className="ml-1.5 inline-block h-3.5 w-3.5 align-[-2px] fill-navy-500"
+      className="ml-1.5 inline-block h-3.5 w-3.5 align-[-2px] fill-ink-muted"
     >
       <title>{label}</title>
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />

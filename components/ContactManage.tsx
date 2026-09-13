@@ -46,8 +46,8 @@ export type ManageContact = {
 // surface a control sits on. sky-500 is 2.73:1 on white and 2.63:1 on cream,
 // so as a focus indicator it failed everywhere it was drawn.
 const FIELD =
-  "mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg text-navy-900";
-const LABEL = "block text-base font-medium text-navy-700";
+  "mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg text-ink-strong";
+const LABEL = "block text-base font-medium text-ink-body";
 
 const STATUS_KEY: Record<ManageContact["status"], TranslationKey> = {
   pending: "contact.statusPending",
@@ -168,7 +168,7 @@ export default function ContactManage({
   if (deleted) {
     return (
       <div className={className} lang={locale}>
-        <h1 className="font-display text-3xl text-navy-900">
+        <h1 className="font-display text-3xl text-ink-strong">
           {t("contact.deleted")}
         </h1>
       </div>
@@ -177,16 +177,16 @@ export default function ContactManage({
 
   return (
     <div className={className} lang={locale}>
-      <h1 className="font-display text-3xl leading-tight text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl leading-tight text-ink-strong sm:text-4xl">
         {t("contact.manageTitle")}
       </h1>
-      <p className="mt-3 text-lg leading-relaxed text-navy-700">
+      <p className="mt-3 text-lg leading-relaxed text-ink-body">
         {t("contact.manageIntro")}
       </p>
-      <p className="mt-2 text-base text-navy-600">
+      <p className="mt-2 text-base text-ink-secondary">
         {`${contact.email} — ${t(STATUS_KEY[contact.status])}`}
       </p>
-      <p className="mt-2 text-sm text-navy-500">
+      <p className="mt-2 text-sm text-ink-muted">
         {t("contact.manageLinkCaption")}
       </p>
 
@@ -254,14 +254,14 @@ export default function ContactManage({
             noMatches={t("contact.telNoMatches")}
             locale={locale}
           />
-          <p className="mt-2 text-base text-navy-600">{t("contact.telHint")}</p>
+          <p className="mt-2 text-base text-ink-secondary">{t("contact.telHint")}</p>
         </div>
 
-        <fieldset className="mt-8 rounded-2xl border border-navy-200 bg-cream-100 p-5">
-          <legend className="px-2 font-display text-xl text-navy-900">
+        <fieldset className="mt-8 rounded-2xl border border-line-quiet bg-surface-subtle p-5">
+          <legend className="px-2 font-display text-xl text-ink-strong">
             {t("contact.address")}
           </legend>
-          <p className="text-base text-navy-700">{t("contact.addressHint")}</p>
+          <p className="text-base text-ink-body">{t("contact.addressHint")}</p>
           <div className="mt-4">
             <label className={LABEL} htmlFor="manage-name">
               {t("contact.addrName")}
@@ -350,7 +350,7 @@ export default function ContactManage({
         </fieldset>
 
         <div className="mt-8 space-y-4">
-          <label className="flex items-start gap-3 text-lg text-navy-900">
+          <label className="flex items-start gap-3 text-lg text-ink-strong">
             <input
               type="checkbox"
               className="mt-1.5 size-5"
@@ -359,7 +359,7 @@ export default function ContactManage({
             />
             <span>{t("contact.wantsDigest")}</span>
           </label>
-          <label className="flex items-start gap-3 text-lg text-navy-900">
+          <label className="flex items-start gap-3 text-lg text-ink-strong">
             <input
               type="checkbox"
               className="mt-1.5 size-5"
@@ -368,7 +368,7 @@ export default function ContactManage({
             />
             <span>{t("contact.wantsPostcard")}</span>
           </label>
-          <label className="flex items-start gap-3 text-lg text-navy-900">
+          <label className="flex items-start gap-3 text-lg text-ink-strong">
             <input
               type="checkbox"
               className="mt-1.5 size-5"
@@ -380,7 +380,7 @@ export default function ContactManage({
         </div>
 
         {note && (
-          <p role="status" className="mt-6 text-base text-navy-700">
+          <p role="status" className="mt-6 text-base text-ink-body">
             {t(note)}
           </p>
         )}
@@ -388,7 +388,7 @@ export default function ContactManage({
         <BusyButton
           busy={busy}
           type="submit"
-          className="mt-8 w-full rounded-xl bg-navy-900 px-4 py-4 text-lg font-medium text-cream-50 disabled:opacity-50"
+          className="mt-8 w-full rounded-xl bg-action-strong px-4 py-4 text-lg font-medium text-on-action disabled:opacity-50"
           busyLabel={t("contact.working")}
         >
           {t("contact.save")}
@@ -397,7 +397,7 @@ export default function ContactManage({
 
       {!isOwner && !selfManaged && (
         <>
-          <hr className="my-10 border-navy-200" />
+          <hr className="my-10 border-line-quiet" />
 
           <BusyButton
             busy={busy}
@@ -412,12 +412,12 @@ export default function ContactManage({
                 setWantsPostcard(false);
               }
             }}
-            className="w-full rounded-xl border border-navy-200 px-4 py-3 text-lg text-navy-900"
+            className="w-full rounded-xl border border-line-quiet px-4 py-3 text-lg text-ink-strong"
           >
             {t("contact.unsubscribe")}
           </BusyButton>
 
-          <p className="mt-8 text-base text-navy-600">
+          <p className="mt-8 text-base text-ink-secondary">
             {t("contact.deleteHint")}
           </p>
           <BusyButton

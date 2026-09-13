@@ -190,31 +190,31 @@ export default function PostcardSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-navy-900/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-overlay-strong/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={t("postcard.title")}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:rounded-2xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-surface-raised p-5 shadow-xl sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 className="font-display text-xl font-semibold text-navy-900">
+          <h2 className="font-display text-xl font-semibold text-ink-strong">
             {t("postcard.title")}
           </h2>
           <button
             aria-label={t("postcard.cancel")}
             onClick={onClose}
-            className="rounded-full p-1.5 text-navy-500 hover:bg-navy-100"
+            className="rounded-full p-1.5 text-ink-muted hover:bg-surface-neutral-strong"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {nobody ? (
-          <p className="mt-4 text-sm text-navy-700">{t("postcard.noRecipients")}</p>
+          <p className="mt-4 text-sm text-ink-body">{t("postcard.noRecipients")}</p>
         ) : failed ? (
           <div className="mt-4">
             <p className="text-sm text-coral-600">{t("postcard.failed")}</p>
@@ -231,7 +231,7 @@ export default function PostcardSheet({
         ) : (
           /* The only thing between the tap and the flow, and it is a wait
              rather than a question. */
-          <p className="mt-4 text-sm text-navy-700" role="status">
+          <p className="mt-4 text-sm text-ink-body" role="status">
             {t("postcard.creating")}
           </p>
         )}

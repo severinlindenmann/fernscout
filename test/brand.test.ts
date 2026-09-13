@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { contrast, GROUNDS, lockup, lockups, palette, verdict } from "@/lib/brand";
+import { contrast, GROUNDS, lockup, lockups, palette, screenPalette, verdict } from "@/lib/brand";
 
 /**
  * The bench at `/docs/branding/identity` is only worth trusting if what it
@@ -34,6 +34,30 @@ describe("brand", () => {
     expect(verdict(contrast(hex["green-700"], hex["cream-50"]))).toBe("AA");
     expect(verdict(contrast(hex["navy-900"], hex["yellow-400"]))).toBe("AAA");
   });
+
+  it("defines the same semantic roles in light and dark", () => {
+    const light = screenPalette("light");
+    const dark = screenPalette("dark");
+    expect(light.length).toBeGreaterThan(10);
+    expect(dark.map(({ token }) => token)).toEqual(light.map(({ token }) => token));
+  });
+
+  it.each(["light", "dark"] as const)(
+    "%s small screen ink clears AAA on ordinary surfaces",
+    (theme) => {
+      const colours = Object.fromEntries(
+        screenPalette(theme).map(({ token, hex }) => [token, hex]),
+      );
+      for (const ink of ["ink-strong", "ink-body", "ink-secondary"]) {
+        for (const surface of ["surface-base", "surface-raised", "surface-subtle"]) {
+          expect(
+            contrast(colours[ink], colours[surface]),
+            `${ink} on ${surface}`,
+          ).toBeGreaterThanOrEqual(7);
+        }
+      }
+    },
+  );
 
   it("reads the lockups out of the manual, and every one of them exists", () => {
     const found = lockups();

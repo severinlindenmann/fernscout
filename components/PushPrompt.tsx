@@ -223,16 +223,16 @@ export default function PushPrompt({ username }: { username: string }) {
       aria-label={t("push.prompt.title")}
       className="fixed inset-x-0 bottom-0 z-40 p-3 sm:left-auto sm:right-4 sm:max-w-sm"
     >
-      <div className="rounded-2xl border border-navy-200 bg-white p-4 shadow-lg">
+      <div className="rounded-2xl border border-line-quiet bg-surface-raised p-4 shadow-lg">
         <div className="flex items-start gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-yellow-400 text-yellow-950">
             <Bell className="h-4 w-4" aria-hidden />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-navy-900">
+            <h2 className="text-sm font-semibold text-ink-strong">
               {t("push.prompt.title")}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-navy-600">
+            <p className="mt-1 text-sm leading-6 text-ink-secondary">
               {t("push.prompt.body")}
             </p>
           </div>
@@ -243,7 +243,7 @@ export default function PushPrompt({ username }: { username: string }) {
             type="button"
             onClick={notNow}
             aria-label={t("push.prompt.notNow")}
-            className="-m-1 shrink-0 rounded-full p-1 text-navy-400 transition-colors hover:text-navy-700
+            className="-m-1 shrink-0 rounded-full p-1 text-ink-faint transition-colors hover:text-ink-body
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             <X className="h-4 w-4" aria-hidden />
@@ -255,8 +255,8 @@ export default function PushPrompt({ username }: { username: string }) {
             busy={busy}
             type="button"
             onClick={accept}
-            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-navy-900 px-4
-                       text-sm font-semibold text-cream-50 transition-colors hover:bg-navy-700
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-action-strong px-4
+                       text-sm font-semibold text-on-action transition-colors hover:bg-action-strong-hover
                        disabled:opacity-50
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             busyLabel={t("push.working")}
@@ -266,8 +266,8 @@ export default function PushPrompt({ username }: { username: string }) {
           <button
             type="button"
             onClick={notNow}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-navy-200 px-3
-                       text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-line-quiet px-3
+                       text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             {t("push.prompt.notNow")}
@@ -279,8 +279,8 @@ export default function PushPrompt({ username }: { username: string }) {
         <button
           type="button"
           onClick={never}
-          className="mt-1 inline-flex min-h-11 items-center text-xs text-navy-500 underline underline-offset-4
-                     transition-colors hover:text-navy-800
+          className="mt-1 inline-flex min-h-11 items-center text-xs text-ink-muted underline underline-offset-4
+                     transition-colors hover:text-ink-strong
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         >
           {t("push.prompt.never")}

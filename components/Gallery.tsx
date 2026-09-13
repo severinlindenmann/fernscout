@@ -62,9 +62,9 @@ export default function Gallery({
             whileHover={{ rotate: 0, scale: 1.04, zIndex: 10 }}
             whileTap={{ scale: 0.97 }}
             transition={{ duration: 0.35, delay: i * 0.05, ease: "easeOut" }}
-            className="group relative rounded-sm border border-navy-200 bg-white p-2 pb-6 shadow-lg shadow-navy-900/15"
+            className="group relative rounded-sm border border-line-quiet bg-surface-raised p-2 pb-6 shadow-lg shadow-shadow-color/15"
           >
-            <span className="relative block aspect-[4/3] overflow-hidden bg-cream-200">
+            <span className="relative block aspect-[4/3] overflow-hidden bg-surface-muted">
               {item.type === "video" ? (
                 // A still if there is one, and there almost always is —
                 // ingest writes a poster frame for every clip. The grid used
@@ -93,7 +93,7 @@ export default function Gallery({
                 />
               )}
               {item.type === "video" && (
-                <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl text-white">
+                <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl text-overlay-ink">
                   ▶
                 </span>
               )}
@@ -105,7 +105,7 @@ export default function Gallery({
                 // Two lines rather than one truncated: a tile is a third of
                 // the column on a phone, so almost every caption longer than
                 // four words was ending in an ellipsis that said nothing.
-                className="mt-1.5 line-clamp-2 block px-0.5 text-left font-display text-xs italic leading-snug text-navy-700"
+                className="mt-1.5 line-clamp-2 block px-0.5 text-left font-display text-xs italic leading-snug text-ink-body"
               >
                 {item.caption}
               </span>
@@ -128,7 +128,7 @@ export default function Gallery({
             <button
               type="button"
               aria-label={t("a11y.removePhoto")}
-              className="absolute left-4 top-4 z-10 rounded-full bg-navy-900/40 p-2 text-white/80 hover:bg-white/10 hover:text-white"
+              className="absolute left-4 top-4 z-10 rounded-full bg-overlay-strong/40 p-2 text-overlay-ink/80 hover:bg-overlay-ink/10 hover:text-overlay-ink"
               onClick={(e) => {
                 e.stopPropagation();
                 onRemove(open.src);
@@ -144,7 +144,7 @@ export default function Gallery({
           <>
             <FullPhoto item={open} />
             {open.caption && (
-              <p className="mt-3 text-center font-display text-base italic text-white/90">
+              <p className="mt-3 text-center font-display text-base italic text-overlay-ink/90">
                 {open.caption}
               </p>
             )}

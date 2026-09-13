@@ -91,13 +91,13 @@ export default function Lightbox({
           exit={{ opacity: 0 }}
           {...dialog}
           aria-label={t("a11y.photoViewer")}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-navy-900/95 p-4 outline-none backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-overlay-strong/95 p-4 outline-none backdrop-blur-sm"
           onClick={onClose}
         >
           {extra}
           <button
             aria-label={t("a11y.closePhoto")}
-            className="absolute right-4 top-4 z-10 rounded-full bg-navy-900/40 p-2 text-white/80 hover:bg-white/10 hover:text-white"
+            className="absolute right-4 top-4 z-10 rounded-full bg-overlay-strong/40 p-2 text-overlay-ink/80 hover:bg-overlay-ink/10 hover:text-overlay-ink"
             onClick={onClose}
           >
             <X className="h-6 w-6" />
@@ -106,7 +106,7 @@ export default function Lightbox({
             <>
               <button
                 aria-label={t("a11y.prevPhoto")}
-                className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-navy-900/40 p-2 text-white/70 hover:bg-white/10 hover:text-white sm:left-5"
+                className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-overlay-strong/40 p-2 text-overlay-ink/70 hover:bg-overlay-ink/10 hover:text-overlay-ink sm:left-5"
                 onClick={(e) => {
                   e.stopPropagation();
                   onPrev();
@@ -116,7 +116,7 @@ export default function Lightbox({
               </button>
               <button
                 aria-label={t("a11y.nextPhoto")}
-                className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-navy-900/40 p-2 text-white/70 hover:bg-white/10 hover:text-white sm:right-5"
+                className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-overlay-strong/40 p-2 text-overlay-ink/70 hover:bg-overlay-ink/10 hover:text-overlay-ink sm:right-5"
                 onClick={(e) => {
                   e.stopPropagation();
                   onNext();
@@ -157,7 +157,7 @@ export default function Lightbox({
               // photograph the counter is the only evidence the swipe did
               // anything at all.
               aria-live="polite"
-              className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold tabular-nums text-white/85"
+              className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-overlay-ink/10 px-3 py-1 text-xs font-semibold tabular-nums text-overlay-ink/85"
             >
               <span className="sr-only">
                 {t("a11y.photoPosition", {

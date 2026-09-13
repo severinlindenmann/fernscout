@@ -66,7 +66,7 @@ export default function AdminRefund({
     }
   }
 
-  if (said?.ok) return <p className="mt-1 text-xs text-navy-700">{said.text}</p>;
+  if (said?.ok) return <p className="mt-1 text-xs text-ink-body">{said.text}</p>;
 
   if (asking) {
     return (
@@ -95,7 +95,7 @@ export default function AdminRefund({
       <button
         type="button"
         onClick={() => setAsking(true)}
-        className="mt-1 rounded-lg border border-navy-200 px-2.5 py-1 text-xs font-semibold text-navy-700 hover:border-navy-500"
+        className="mt-1 rounded-lg border border-line-quiet px-2.5 py-1 text-xs font-semibold text-ink-body hover:border-line-prominent"
       >
         Refund
       </button>

@@ -94,12 +94,12 @@ export default function InviteToRead({ username }: { username: string }) {
 
   if (link) {
     return (
-      <div className="col-span-full rounded-2xl border border-navy-200 bg-white p-4">
-        <p className="font-display text-base font-semibold text-navy-900">
+      <div className="col-span-full rounded-2xl border border-line-quiet bg-surface-raised p-4">
+        <p className="font-display text-base font-semibold text-ink-strong">
           {t("me.inviteGuestTitle")}
         </p>
-        <p className="mt-1 text-sm leading-6 text-navy-700">{t("me.inviteGuestBody")}</p>
-        <code className="mt-3 block break-all rounded-xl bg-cream-100 p-3 text-xs text-navy-900">
+        <p className="mt-1 text-sm leading-6 text-ink-body">{t("me.inviteGuestBody")}</p>
+        <code className="mt-3 block break-all rounded-xl bg-surface-subtle p-3 text-xs text-ink-strong">
           {link}
         </code>
         <p className="mt-2 text-xs text-coral-600">{t("contact.adminInviteCopy")}</p>
@@ -110,7 +110,7 @@ export default function InviteToRead({ username }: { username: string }) {
             copiedLabel={t("contact.adminCopiedLink")}
           />
           <a
-            className="text-xs text-navy-900 underline underline-offset-4"
+            className="text-xs text-ink-strong underline underline-offset-4"
             href={`/${username}/contacts`}
           >
             {t("me.contacts")}

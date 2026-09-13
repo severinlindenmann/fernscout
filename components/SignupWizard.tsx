@@ -469,16 +469,16 @@ export default function SignupWizard({
   }
 
   const label =
-    "block font-mono text-[11px] uppercase tracking-[0.08em] text-navy-600";
+    "block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary";
   const field =
-    "mt-4 min-h-11 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 " +
+    "mt-4 min-h-11 rounded-xl border border-line-strong bg-surface-base px-4 py-2 " +
     "focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500";
   const input =
-    "block w-full border-0 bg-transparent p-0 text-base text-navy-900 focus:outline-none focus:ring-0";
+    "block w-full border-0 bg-transparent p-0 text-base text-ink-strong focus:outline-none focus:ring-0";
 
   return (
-    <section className="rounded-2xl border border-navy-200 bg-cream-50 p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">
+    <section className="rounded-2xl border border-line-quiet bg-surface-base p-5 sm:p-6">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
         {/* The "owns" heading is the door's own question — B1568: "New
             here?" above "this address already owns a journal" contradicted
             itself; the question the sentence below answers does not. */}
@@ -495,7 +495,7 @@ export default function SignupWizard({
           plain, not as a link, since a tap away from here loses the rest of
           the wizard's state and the journal has no content yet to visit. */}
       {step === "trip" && (
-        <p className="mt-2 break-all font-mono text-sm text-navy-900">{journalUrl}</p>
+        <p className="mt-2 break-all font-mono text-sm text-ink-strong">{journalUrl}</p>
       )}
       {/* B1370 — the phone-wa step ("Noch ein Schritt: Bestätige deine
           Telefonnummer per WhatsApp") is a confirmation, not a fresh pitch;
@@ -505,7 +505,7 @@ export default function SignupWizard({
           pitch above a sentence saying this address already has a journal
           would contradict it (B1568). */}
       {step !== "phone-wa" && step !== "trip" && step !== "owns" && (
-        <p className="mt-2 text-base leading-7 text-navy-700">
+        <p className="mt-2 text-base leading-7 text-ink-body">
           {t("agent.startIntro")}
         </p>
       )}
@@ -550,7 +550,7 @@ export default function SignupWizard({
 
       {step === "code" && (
         <form onSubmit={verifyCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {t("agent.startCodeSent", { minutes: codeMinutes })}
           </p>
           <div className={field}>
@@ -587,7 +587,7 @@ export default function SignupWizard({
 
       {step === "owns" && (
         <div>
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {t("agent.error.too_many_journals")}
           </p>
           <button
@@ -602,7 +602,7 @@ export default function SignupWizard({
 
       {step === "phone" && (
         <form onSubmit={requestPhoneCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {t("agent.phoneIntro")}
           </p>
           <div className="mt-4">
@@ -621,10 +621,10 @@ export default function SignupWizard({
               locale={locale}
             />
           </div>
-          <p className="mt-3 text-base leading-7 text-navy-700">
+          <p className="mt-3 text-base leading-7 text-ink-body">
             {smsChannel ? t("agent.phoneSmsIntro") : t("agent.phoneWhatsapp")}
           </p>
-          <p className="mt-2 text-sm leading-6 text-navy-600">
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
             {t("agent.phoneNoWhatsapp")}
           </p>
           <BusyButton
@@ -640,7 +640,7 @@ export default function SignupWizard({
 
       {step === "phone-code" && (
         <form onSubmit={verifyPhoneCode}>
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {smsChannel ? t("agent.phoneSmsCodeSent") : t("agent.phoneCodeSent")}
           </p>
           <div className={field}>
@@ -661,7 +661,7 @@ export default function SignupWizard({
               className={`${input} font-mono text-2xl tracking-[0.3em]`}
             />
           </div>
-          <p className="mt-2 text-sm leading-6 text-navy-600">
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
             {t("agent.phoneNoWhatsapp")}
           </p>
           <BusyButton
@@ -675,7 +675,7 @@ export default function SignupWizard({
           <button
             type="button"
             onClick={() => setStep("phone")}
-            className="mt-3 min-h-11 text-base text-navy-600 underline underline-offset-4"
+            className="mt-3 min-h-11 text-base text-ink-secondary underline underline-offset-4"
           >
             {t("agent.phoneAgain")}
           </button>
@@ -684,7 +684,7 @@ export default function SignupWizard({
 
       {step === "phone-wa" && (
         <div>
-          <p className="mt-2 text-base leading-7 text-navy-700">
+          <p className="mt-2 text-base leading-7 text-ink-body">
             {t("agent.phoneWaIntro")}
           </p>
           <a
@@ -695,14 +695,14 @@ export default function SignupWizard({
           >
             {t("agent.phoneWaOpen")}
           </a>
-          <p className="mt-3 text-base leading-7 text-navy-700" role="status">
+          <p className="mt-3 text-base leading-7 text-ink-body" role="status">
             {waExpired ? t("agent.phoneWaExpired") : t("agent.phoneWaWaiting")}
           </p>
           {waExpired && (
             <button
               type="button"
               onClick={requestWaLink}
-              className="mt-2 min-h-11 text-base text-navy-600 underline underline-offset-4"
+              className="mt-2 min-h-11 text-base text-ink-secondary underline underline-offset-4"
             >
               {t("agent.phoneWaRetry")}
             </button>
@@ -717,7 +717,7 @@ export default function SignupWizard({
                 setSmsChannel(true);
                 setStep("phone");
               }}
-              className="mt-3 block min-h-11 text-base text-navy-600 underline underline-offset-4"
+              className="mt-3 block min-h-11 text-base text-ink-secondary underline underline-offset-4"
             >
               {t("agent.phoneSmsOffer")}
             </button>
@@ -746,8 +746,8 @@ export default function SignupWizard({
               just under it with nothing marking where it stops belonging —
               so this is a banded group now, set apart from the field above
               rather than merely below it. */}
-          <div className="mt-6 rounded-xl border border-navy-200 bg-cream-50 p-4">
-            <p className="text-sm leading-6 text-navy-600">
+          <div className="mt-6 rounded-xl border border-line-quiet bg-surface-base p-4">
+            <p className="text-sm leading-6 text-ink-secondary">
               {t("agent.usernameHint")}
             </p>
             <div className={`${field} mt-2`}>
@@ -781,7 +781,7 @@ export default function SignupWizard({
               className={input}
             />
           </div>
-          <p className="mt-2 text-sm leading-6 text-navy-600">
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
             {t("agent.ownerNameHint")}
           </p>
           <div className={field}>
@@ -796,7 +796,7 @@ export default function SignupWizard({
               className={input}
             />
           </div>
-          <p className="mt-2 text-sm leading-6 text-navy-600">
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
             {t("agent.ownerNicknameHint")}
           </p>
 
@@ -804,14 +804,14 @@ export default function SignupWizard({
               read off the browser and never asked, so a German speaker whose
               phone is in English got an English journal. */}
           <p className={`${label} mt-5`}>{t("agent.localeLabel")}</p>
-          <p className="mt-2 text-sm leading-6 text-navy-600">
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
             {t("agent.localeHint")}
           </p>
           <div className="mt-2 space-y-2">
             {MAINTAINED_LOCALES.map((code) => (
               <label
                 key={code}
-                className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+                className="flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong"
               >
                 <input
                   type="radio"
@@ -835,7 +835,7 @@ export default function SignupWizard({
               from. The hint says what a second language commits somebody to
               (B294), because it is a promise to write everything twice. */}
           <p className={`${label} mt-5`}>{t("agent.readerLocalesLabel")}</p>
-          <p className="mt-2 text-sm leading-6 text-navy-600">
+          <p className="mt-2 text-sm leading-6 text-ink-secondary">
             {t("agent.readerLocalesHint")}
           </p>
           <div className="mt-2 space-y-2">
@@ -843,7 +843,7 @@ export default function SignupWizard({
               (code) => (
                 <label
                   key={code}
-                  className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+                  className="flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong"
                 >
                   <input
                     type="checkbox"
@@ -878,8 +878,8 @@ export default function SignupWizard({
               treatment (B809: read before you type) rather than the
               nickname's. Grouped in its own band instead, for the same
               reason the username one is now — not moved. */}
-          <div className="mt-6 rounded-xl border border-navy-200 bg-cream-50 p-4">
-            <p className="text-sm leading-6 text-navy-600">
+          <div className="mt-6 rounded-xl border border-line-quiet bg-surface-base p-4">
+            <p className="text-sm leading-6 text-ink-secondary">
               {t("agent.currencyHint")}
             </p>
             <div className={`${field} mt-2`}>
@@ -912,7 +912,7 @@ export default function SignupWizard({
             {(["public", "guest"] as const).map((option) => (
               <label
                 key={option}
-                className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+                className="flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong"
               >
                 <input
                   type="radio"
@@ -951,7 +951,7 @@ export default function SignupWizard({
 
       {step === "trip" && (
         <form onSubmit={createTripStep}>
-          <h3 className="mt-4 font-display text-lg font-semibold text-navy-900">
+          <h3 className="mt-4 font-display text-lg font-semibold text-ink-strong">
             {t("agent.tripHeading")}
           </h3>
           <div className={field}>
@@ -1006,7 +1006,7 @@ export default function SignupWizard({
       )}
 
       {step === "signing-in" && (
-        <p className="mt-4 text-base leading-7 text-navy-700">
+        <p className="mt-4 text-base leading-7 text-ink-body">
           {t("agent.signingIn")}
         </p>
       )}

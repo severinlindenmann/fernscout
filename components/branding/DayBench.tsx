@@ -157,21 +157,21 @@ export default function DayBench() {
     <CurrencyProvider options={CURRENCY}>
       <div className="mx-auto max-w-3xl space-y-12 px-4 py-10 sm:px-6">
         <header>
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900">
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong">
             Day card
           </h1>
-          <p className="mt-3 text-navy-700">
+          <p className="mt-3 text-ink-body">
             The card the story page draws, in the states a reader of a real site cannot
             reach. A draft is filtered out of every reading path; a half-published day
             needs two updates with one left alone; a test day has to be deliberately
             invented. Those are the ones whose banners nobody looks at twice.
           </p>
-          <p className="mt-2 text-sm text-navy-600">
+          <p className="mt-2 text-sm text-ink-secondary">
             Everything below is a fixture. Nothing here is a record of anything, and the
             currency rates are here to exercise the conversion rather than to be right
             about money.
           </p>
-          <p className="mt-4 text-xs text-navy-500">
+          <p className="mt-4 text-xs text-ink-muted">
             The reader&apos;s currency switcher lives in a journal&apos;s own header and is
             not here; the base is CHF. The <span aria-hidden>≈</span> path is still
             exercised, because the second card was paid in euros and therefore shows both
@@ -181,8 +181,8 @@ export default function DayBench() {
 
         {CASES.map((c, i) => (
           <section key={c.id}>
-            <h2 className="font-display text-lg font-semibold text-navy-900">{c.title}</h2>
-            <p className="mt-1 mb-4 text-sm text-navy-600">{c.why}</p>
+            <h2 className="font-display text-lg font-semibold text-ink-strong">{c.title}</h2>
+            <p className="mt-1 mb-4 text-sm text-ink-secondary">{c.why}</p>
             <DayCard day={c.day} summary={c.summary} dayIndex={i} />
           </section>
         ))}
@@ -193,16 +193,16 @@ export default function DayBench() {
             them at 28px in a row on a phone; this is the same component large
             enough to argue about. */}
         <section>
-          <h2 className="font-display text-lg font-semibold text-navy-900">
+          <h2 className="font-display text-lg font-semibold text-ink-strong">
             The photobook&apos;s day layouts
           </h2>
-          <p className="mt-1 mb-4 text-sm text-navy-600">
+          <p className="mt-1 mb-4 text-sm text-ink-secondary">
             What each arrangement in the photobook composer&apos;s layout picker looks
             like. Schematic on purpose: the question is how many frames and how big,
             not which photograph. A grey block filling the frame is a full-bleed hero;
             the rules underneath are the day&apos;s prose.
           </p>
-          <ul className="flex flex-wrap gap-6 text-navy-800">
+          <ul className="flex flex-wrap gap-6 text-ink-strong">
             {DAY_LAYOUTS.map((layout) => (
               <li key={layout} className="text-center text-xs">
                 <span className="block [&>svg]:h-24 [&>svg]:w-24">
@@ -218,16 +218,16 @@ export default function DayBench() {
             Same idiom on purpose, so somebody who has seen the day picker
             recognises these. */}
         <section>
-          <h2 className="font-display text-lg font-semibold text-navy-900">
+          <h2 className="font-display text-lg font-semibold text-ink-strong">
             The photobook&apos;s whole-book questions
           </h2>
-          <p className="mt-1 mb-4 text-sm text-navy-600">
+          <p className="mt-1 mb-4 text-sm text-ink-secondary">
             The drawings the first-book flow asks its questions with. The three formats
             are at their true proportions against each other — a square and an A4
             landscape shown in the same box would be the one thing that picker must not
             do. The rest are the pages each answer adds.
           </p>
-          <ul className="flex flex-wrap items-end gap-6 text-navy-800">
+          <ul className="flex flex-wrap items-end gap-6 text-ink-strong">
             {Object.keys(BOOK_SIZES).map((id) => (
               <li key={id} className="text-center text-xs">
                 <span className="block [&>svg]:h-24 [&>svg]:w-24">

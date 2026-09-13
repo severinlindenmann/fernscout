@@ -31,8 +31,8 @@ export default function BackToJournal({
       fallbackHref={`/${username}`}
       fallbackLabel={t("nav.toJournal", { title: journalTitle })}
       retraceLabel={t("nav.back")}
-      className="inline-flex min-h-11 items-center gap-1.5 text-sm text-navy-600 underline-offset-4
-                 hover:text-navy-900 hover:underline focus-visible:outline-2
+      className="inline-flex min-h-11 items-center gap-1.5 text-sm text-ink-secondary underline-offset-4
+                 hover:text-ink-strong hover:underline focus-visible:outline-2
                  focus-visible:outline-offset-2 focus-visible:outline-blue-500"
     />
   );

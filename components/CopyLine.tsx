@@ -72,9 +72,9 @@ export default function CopyLine({
           ? "group inline-flex min-h-11 items-center gap-2 rounded-full border border-yellow-600 " +
             "bg-yellow-400 px-5 font-mono text-base font-semibold text-yellow-950 transition-colors " +
             "hover:bg-yellow-300"
-          : "group inline-flex min-h-11 items-center gap-2 rounded-lg border border-navy-200 " +
-            "bg-cream-50 px-4 font-mono text-base text-navy-700 transition-colors " +
-            "hover:border-navy-700 hover:text-navy-900"
+          : "group inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-quiet " +
+            "bg-surface-base px-4 font-mono text-base text-ink-body transition-colors " +
+            "hover:border-line-ink hover:text-ink-strong"
       }
     >
       <span aria-hidden="true">{copied ? copiedLabel : label}</span>

@@ -108,31 +108,31 @@ export default function PaymentCheckout({
 
   return (
     <>
-      <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
         {t("pay.title")}
       </h1>
 
-      <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+      <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
         {/* The summary — the same whether paid or pending. */}
         <div className="flex items-baseline justify-between gap-4">
-          <p className="font-display text-2xl font-semibold text-navy-900">
+          <p className="font-display text-2xl font-semibold text-ink-strong">
             {payment.credits} {tn("me.paymentUnit", payment.credits)}
           </p>
-          <p className="font-display text-2xl font-semibold tabular-nums text-navy-900">
+          <p className="font-display text-2xl font-semibold tabular-nums text-ink-strong">
             {formatChf(payment.amountRappen)}
           </p>
         </div>
-        <dl className="mt-4 space-y-1.5 text-base text-navy-700">
+        <dl className="mt-4 space-y-1.5 text-base text-ink-body">
           <div className="flex justify-between gap-4">
-            <dt className="text-navy-600">{t("pay.transaction")}</dt>
-            <dd className="font-mono text-sm text-navy-900 break-all">
+            <dt className="text-ink-secondary">{t("pay.transaction")}</dt>
+            <dd className="font-mono text-sm text-ink-strong break-all">
               {payment.id}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-navy-600">{t("pay.status")}</dt>
+            <dt className="text-ink-secondary">{t("pay.status")}</dt>
             <dd
-              className={`font-semibold ${paid ? "text-green-700" : "text-navy-900"}`}
+              className={`font-semibold ${paid ? "text-green-700" : "text-ink-strong"}`}
             >
               {t(
                 paid
@@ -151,13 +151,13 @@ export default function PaymentCheckout({
               <Check className="h-5 w-5" aria-hidden="true" />
               {t("pay.paidTitle")}
             </p>
-            <p className="mt-1.5 text-base leading-7 text-navy-700">
+            <p className="mt-1.5 text-base leading-7 text-ink-body">
               {t("pay.paidNote", { credits: String(payment.credits) })}
             </p>
           </div>
         ) : requested ? (
-          <div className="mt-5 rounded-xl border border-navy-200 bg-cream-50 p-4">
-            <p className="font-display text-base font-semibold text-navy-900">
+          <div className="mt-5 rounded-xl border border-line-quiet bg-surface-base p-4">
+            <p className="font-display text-base font-semibold text-ink-strong">
               {t(
                 provider === "stripe"
                   ? "pay.confirmingTitle"
@@ -165,7 +165,7 @@ export default function PaymentCheckout({
               )}
             </p>
             {/* The manual-approval bridge, in plain words. */}
-            <p className="mt-1.5 text-base leading-7 text-navy-700">
+            <p className="mt-1.5 text-base leading-7 text-ink-body">
               {provider === "stripe"
                 ? t(confirming ? "pay.confirming" : "pay.notSettled")
                 : approver
@@ -182,7 +182,7 @@ export default function PaymentCheckout({
                 control in the DOM is one the next reader has to work out is
                 unreachable, and a Playwright run counted three buttons in
                 `main` on a page that shows one. */}
-            <p className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
               {t(
                 provider === "stripe" ? "pay.methodsNote" : "pay.chooseMethod",
               )}
@@ -208,12 +208,12 @@ export default function PaymentCheckout({
                     onClick={() => setMethod(id)}
                     className={`flex min-h-11 items-center justify-center gap-2 rounded-xl border px-4 text-base font-semibold transition-colors ${
                       method === id
-                        ? "border-navy-900 bg-cream-50 text-navy-900"
-                        : "border-navy-200 text-navy-700 hover:border-navy-500"
+                        ? "border-action-strong bg-surface-base text-ink-strong"
+                        : "border-line-quiet text-ink-body hover:border-line-prominent"
                     }`}
                   >
                     <Icon
-                      className="h-[18px] w-[18px] text-navy-600"
+                      className="h-[18px] w-[18px] text-ink-secondary"
                       aria-hidden="true"
                     />
                     {label}
@@ -238,7 +238,7 @@ export default function PaymentCheckout({
                 {t("pay.failed")}
               </p>
             )}
-            <p className="mt-3 text-sm leading-6 text-navy-600">
+            <p className="mt-3 text-sm leading-6 text-ink-secondary">
               {t("pay.comeBack")}
             </p>
           </div>

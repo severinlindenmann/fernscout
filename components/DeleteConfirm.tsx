@@ -51,12 +51,12 @@ export default function DeleteConfirm({
     return (
       <div
         role="status"
-        className="mt-10 rounded-2xl border border-navy-200 bg-white p-6"
+        className="mt-10 rounded-2xl border border-line-quiet bg-surface-raised p-6"
       >
-        <h2 className="font-display text-2xl font-semibold text-navy-900">
+        <h2 className="font-display text-2xl font-semibold text-ink-strong">
           {labels.doneTitle}
         </h2>
-        <p className="mt-3 text-lg leading-8 text-navy-700">
+        <p className="mt-3 text-lg leading-8 text-ink-body">
           {labels.doneBody}
         </p>
       </div>
@@ -75,7 +75,7 @@ export default function DeleteConfirm({
         busy={state === "working"}
         type="button"
         onClick={remove}
-        className="inline-flex min-h-12 items-center justify-center rounded-full border border-coral-600 px-6 text-lg font-semibold text-coral-600 transition-colors hover:bg-coral-600 hover:text-white disabled:opacity-60"
+        className="inline-flex min-h-12 items-center justify-center rounded-full border border-coral-600 px-6 text-lg font-semibold text-coral-600 transition-colors hover:bg-coral-600 hover:text-on-deep disabled:opacity-60"
         busyLabel={labels.working}
       >
         {labels.remove}

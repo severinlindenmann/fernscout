@@ -111,7 +111,7 @@ export default function CountryField({
         aria-autocomplete="list"
         aria-label={label}
         aria-activedescendant={open && active ? `${listId}-${active.iso2}` : undefined}
-        className="w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg text-navy-900"
+        className="w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg text-ink-strong"
         placeholder={searchPlaceholder}
         autoComplete="country-name"
         value={displayValue}
@@ -132,10 +132,10 @@ export default function CountryField({
           id={listId}
           role="listbox"
           aria-label={label}
-          className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-navy-200 bg-white shadow-lg"
+          className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-line-quiet bg-surface-raised shadow-lg"
         >
           {filtered.length === 0 && (
-            <li className="px-4 py-2 text-base text-navy-600">{noMatches}</li>
+            <li className="px-4 py-2 text-base text-ink-secondary">{noMatches}</li>
           )}
           {filtered.map((c, i) => (
             <li
@@ -144,7 +144,7 @@ export default function CountryField({
               role="option"
               aria-selected={i === highlight}
               className={`cursor-pointer px-4 py-2 text-base ${
-                i === highlight ? "bg-cream-100" : ""
+                i === highlight ? "bg-surface-subtle" : ""
               }`}
               // mousedown, not click: see TelField's own note — it fires
               // before the input's blur, so choosing an option does not

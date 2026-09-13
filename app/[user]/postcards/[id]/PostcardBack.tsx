@@ -221,7 +221,7 @@ export default function PostcardBack({
             so every `cqw` resolved against the message column's own width and
             the type came out at roughly twice its real size. */}
         <div
-          className="relative overflow-hidden rounded-lg border border-navy-200 bg-white text-black shadow-sm"
+          className="relative overflow-hidden rounded-lg border border-line-quiet bg-surface-raised text-black shadow-sm"
           style={{ aspectRatio: layout.aspect, containerType: "inline-size" }}
         >
           <p
@@ -297,7 +297,7 @@ export default function PostcardBack({
             ))}
           </div>
         </div>
-        <figcaption className="mt-1 text-xs text-navy-600">
+        <figcaption className="mt-1 text-xs text-ink-secondary">
           {strings.caption}
         </figcaption>
         {/* Its own paragraph rather than a second sentence in the caption: the
@@ -305,7 +305,7 @@ export default function PostcardBack({
             about two things on it that are not ours to draw. Run together they
             read as one run-on line — B982. */}
         {address ? (
-          <p className="mt-1 text-xs text-navy-500">{strings.printerAdds}</p>
+          <p className="mt-1 text-xs text-ink-muted">{strings.printerAdds}</p>
         ) : null}
         {/* Whether it fits, from the printer's own wrap — B1511. The preview
             cannot answer this on a phone: below about 590px of card width the
@@ -314,7 +314,7 @@ export default function PostcardBack({
             a sentence they did not need to. This is the same arithmetic the
             PDF does. */}
         {strings.fit ? (
-          <p className={`mt-1 text-xs ${strings.fitOver ? "text-coral-600" : "text-navy-500"}`}>
+          <p className={`mt-1 text-xs ${strings.fitOver ? "text-coral-600" : "text-ink-muted"}`}>
             {strings.fit}
           </p>
         ) : null}
@@ -337,14 +337,14 @@ export default function PostcardBack({
                 }
               : undefined
           }
-          className="rounded-lg border border-navy-200 bg-white px-3 py-3"
+          className="rounded-lg border border-line-quiet bg-surface-raised px-3 py-3"
         >
           {/* The words as a field with its name on it — B1489, the drawing's
               own treatment. It was a bold label over a plain box; the legend
               sits on the border so the card reads as the card and the writing
               reads as the writing. */}
           <label className="relative block">
-            <span className="absolute -top-2 left-3 bg-white px-1.5 font-mono text-[0.62rem] font-semibold uppercase tracking-wider text-navy-500">
+            <span className="absolute -top-2 left-3 bg-surface-raised px-1.5 font-mono text-[0.62rem] font-semibold uppercase tracking-wider text-ink-muted">
               {strings.messageLabel}
             </span>
             {/* Eight rows, not four — B1005. A card takes 600 characters and
@@ -359,7 +359,7 @@ export default function PostcardBack({
               maxLength={600}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="min-h-44 w-full rounded-xl border border-navy-200 bg-white px-3 pb-2 pt-3 text-sm font-normal text-navy-900 focus-visible:border-yellow-600 focus-visible:outline-2 focus-visible:outline-yellow-600 [field-sizing:content]"
+              className="min-h-44 w-full rounded-xl border border-line-quiet bg-surface-raised px-3 pb-2 pt-3 text-sm font-normal text-ink-strong focus-visible:border-yellow-600 focus-visible:outline-2 focus-visible:outline-yellow-600 [field-sizing:content]"
             />
           </label>
           {/* Two columns from `sm`, stacked below it — B1018.
@@ -375,26 +375,26 @@ export default function PostcardBack({
               took. Label on the left, the value or the switch on the right.
               It was two boxed fields in a grid and a checkbox on a line of
               its own, which is three different shapes for three settings. */}
-          <div className="mt-3 overflow-hidden rounded-xl border border-navy-200 bg-white">
-            <div className="divide-y divide-navy-100">
+          <div className="mt-3 overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
+            <div className="divide-y divide-line-faint">
               <label className="flex items-center justify-between gap-3 px-3 py-2">
-                <span className="shrink-0 text-sm text-navy-800">{strings.signed}</span>
+                <span className="shrink-0 text-sm text-ink-strong">{strings.signed}</span>
                 <input
                   name="from"
                   value={from}
                   onChange={(e) => setFrom(e.target.value)}
-                  className="min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 py-1 text-right text-sm font-normal text-navy-900 hover:bg-navy-50 focus-visible:outline-2 focus-visible:outline-yellow-600"
+                  className="min-h-11 min-w-0 flex-1 rounded-lg bg-transparent px-2 py-1 text-right text-sm font-normal text-ink-strong hover:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-yellow-600"
                 />
               </label>
               {locales.length > 1 ? (
                 <label className="flex items-center justify-between gap-3 px-3 py-2">
-                  <span className="shrink-0 text-sm text-navy-800">{strings.writtenIn}</span>
+                  <span className="shrink-0 text-sm text-ink-strong">{strings.writtenIn}</span>
                   <span className="relative inline-flex items-center">
                     <select
                       name="locale"
                       value={locale}
                       onChange={(e) => setLocale(e.target.value)}
-                      className="min-h-11 cursor-pointer appearance-none rounded-lg bg-transparent py-1 pl-2 pr-6 text-right font-mono text-sm font-normal text-navy-900 hover:bg-navy-50 focus-visible:outline-2 focus-visible:outline-yellow-600"
+                      className="min-h-11 cursor-pointer appearance-none rounded-lg bg-transparent py-1 pl-2 pr-6 text-right font-mono text-sm font-normal text-ink-strong hover:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-yellow-600"
                     >
                       {locales.map((code) => (
                         <option key={code} value={code}>
@@ -409,7 +409,7 @@ export default function PostcardBack({
               )}
               {figuresSvg ? (
                 <label className="flex cursor-pointer items-center justify-between gap-3 px-3 py-2">
-                  <span className="text-sm text-navy-800">{strings.figuresLabel}</span>
+                  <span className="text-sm text-ink-strong">{strings.figuresLabel}</span>
                   <input type="hidden" name="figures_asked" value="1" />
                   <input
                     type="checkbox"
@@ -420,7 +420,7 @@ export default function PostcardBack({
                   />
                   <span
                     aria-hidden
-                    className="relative h-6 w-10 shrink-0 rounded-full bg-navy-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-yellow-600 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-yellow-600 peer-focus-visible:ring-offset-2"
+                    className="relative h-6 w-10 shrink-0 rounded-full bg-surface-selected transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-surface-raised after:shadow-sm after:transition-transform peer-checked:bg-yellow-600 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-yellow-600 peer-focus-visible:ring-offset-2"
                   />
                 </label>
               ) : null}
@@ -439,7 +439,7 @@ export default function PostcardBack({
             {/* Never silent, and never claiming more than it knows. */}
             <span
               role="status"
-              className={`text-xs ${state === "failed" ? "font-semibold text-coral-600" : "text-navy-600"}`}
+              className={`text-xs ${state === "failed" ? "font-semibold text-coral-600" : "text-ink-secondary"}`}
             >
               {/* It says "saving" on its own now that the button it used to
                   defer to is gone — B1515, undoing half of B892. */}
@@ -452,7 +452,7 @@ export default function PostcardBack({
                     : ""}
             </span>
           </div>
-          <p className="mt-2 text-xs text-navy-600">{strings.sameCard}</p>
+          <p className="mt-2 text-xs text-ink-secondary">{strings.sameCard}</p>
         </form>
       ) : null}
     </div>

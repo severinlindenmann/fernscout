@@ -38,8 +38,8 @@ import { isMessageable } from "@/lib/whatsapp/phone";
 // looks like the one their guests fill in rather than like a different corner
 // of the admin.
 const FIELD =
-  "mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg text-navy-900";
-const LABEL = "block text-base font-medium text-navy-700";
+  "mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg text-ink-strong";
+const LABEL = "block text-base font-medium text-ink-body";
 
 type AdminAddress = {
   name: string;
@@ -302,8 +302,8 @@ type GuestFormEnv = {
  */
 function Channel({ icon: Icon, label }: { icon: typeof Mail; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-navy-200 bg-cream-100 px-2.5 py-1 text-sm text-navy-900">
-      <Icon className="h-3.5 w-3.5 text-navy-600" aria-hidden />
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-1 text-sm text-ink-strong">
+      <Icon className="h-3.5 w-3.5 text-ink-secondary" aria-hidden />
       {label}
     </span>
   );
@@ -431,22 +431,22 @@ function ContactRow({
   return (
     <li
       id={`contact-${contact.id}`}
-      className={`rounded-2xl border bg-white p-5 ${
+      className={`rounded-2xl border bg-surface-raised p-5 ${
         highlighted
           ? "border-yellow-400 ring-2 ring-yellow-400"
-          : "border-navy-200"
+          : "border-line-quiet"
       }`}
     >
-      <p className="font-display text-xl text-navy-900">
+      <p className="font-display text-xl text-ink-strong">
         {contact.name ?? contact.email}
       </p>
-      <p className="text-base text-navy-700">{contact.email}</p>
+      <p className="text-base text-ink-body">{contact.email}</p>
       {tags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-2">
           {tags.map((label) => (
             <span
               key={label}
-              className="inline-flex items-center rounded-full border border-navy-200 bg-cream-100 px-2.5 py-1 text-sm text-navy-900"
+              className="inline-flex items-center rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-1 text-sm text-ink-strong"
             >
               {label}
             </span>
@@ -471,24 +471,24 @@ function ContactRow({
           amount of attention, so none of it got any. `navy-500` is a
           border-and-label token — see apply-the-brand — and the values it
           labels are `navy-900`. */}
-      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm text-navy-900">
-        <dt className="text-navy-500">{t("contact.language")}</dt>
+      <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm text-ink-strong">
+        <dt className="text-ink-muted">{t("contact.language")}</dt>
         <dd>{contact.locale ? LOCALE_LABEL[contact.locale] : "—"}</dd>
-        <dt className="text-navy-500">{t("contact.adminVia")}</dt>
+        <dt className="text-ink-muted">{t("contact.adminVia")}</dt>
         <dd>{via ?? "—"}</dd>
-        <dt className="text-navy-500">{t("contact.adminLastSeen")}</dt>
+        <dt className="text-ink-muted">{t("contact.adminLastSeen")}</dt>
         <dd>{contact.lastSeenAt?.slice(0, 10) ?? t("contact.adminNever")}</dd>
-        <dt className="text-navy-500">{t(STATUS_KEY[contact.status])}</dt>
+        <dt className="text-ink-muted">{t(STATUS_KEY[contact.status])}</dt>
         <dd>{contact.confirmedAt?.slice(0, 10) ?? "—"}</dd>
         {/* The fourth channel, and the only one that is state rather than
             consent — B453. Absent, not zero, where this journal has push off:
             `null` means the channel was never offered here. */}
         {contact.pushDevices !== null && (
           <>
-            <dt className="text-navy-500">{t("contact.adminPush")}</dt>
+            <dt className="text-ink-muted">{t("contact.adminPush")}</dt>
             <dd
               className={
-                contact.pushDevices === 0 ? "text-navy-500" : undefined
+                contact.pushDevices === 0 ? "text-ink-muted" : undefined
               }
             >
               {contact.pushDevices === 0
@@ -538,7 +538,7 @@ function ContactRow({
                   loop; say so here rather than let it read like every other
                   number on the page. */}
               {!isMessageable(postal.tel, defaultCountryCode) && (
-                <span className="ml-2 text-navy-500">
+                <span className="ml-2 text-ink-muted">
                   {t("contact.telNotMessageable")}
                 </span>
               )}
@@ -551,7 +551,7 @@ function ContactRow({
         // is the only state that used to be a dead end: `confirmedAt` is
         // null, so the Approve button below never appears, and Edit/Delete
         // were the only thing left to press.
-        <p className="mt-3 text-base text-navy-600">
+        <p className="mt-3 text-base text-ink-secondary">
           {t("contact.adminInvitePending")}
         </p>
       )}
@@ -560,7 +560,7 @@ function ContactRow({
         // contact is otherwise indistinguishable from one with nothing
         // waiting on them, and the Approve button below is what a
         // pending-but-unconfirmed row shows instead.
-        <p className="mt-3 text-base text-navy-600">
+        <p className="mt-3 text-base text-ink-secondary">
           {pendingTrips.length === 1
             ? t("contact.adminPendingTripOne", { trip: pendingTrips[0] })
             : t("contact.adminPendingTripCount", { trips: pendingTrips.join(", ") })}
@@ -572,7 +572,7 @@ function ContactRow({
             busy={busy}
             type="button"
             onClick={() => act({ action: "resend", id: contact.id })}
-            className="rounded-xl border border-navy-200 px-4 py-2 text-base text-navy-900 disabled:opacity-50"
+            className="rounded-xl border border-line-quiet px-4 py-2 text-base text-ink-strong disabled:opacity-50"
           >
             {t("contact.adminResendInvite")}
           </BusyButton>
@@ -582,7 +582,7 @@ function ContactRow({
             busy={busy}
             type="button"
             onClick={() => onApprove(contact)}
-            className="rounded-xl bg-navy-900 px-4 py-2 text-base text-cream-50 disabled:opacity-50"
+            className="rounded-xl bg-action-strong px-4 py-2 text-base text-on-action disabled:opacity-50"
           >
             {t("contact.adminApprove")}
           </BusyButton>
@@ -593,7 +593,7 @@ function ContactRow({
             renders, with its own "opened nothing" sentence, rather than
             silently saying nothing at all. */}
         {approvedTrips && (
-          <p className="mt-2 w-full text-base text-navy-700">
+          <p className="mt-2 w-full text-base text-ink-body">
             {approvedTrips.length === 0
               ? t("contact.adminApprovedNoTrip")
               : t("contact.adminApprovedTrips", {
@@ -606,7 +606,7 @@ function ContactRow({
             busy={busy}
             type="button"
             onClick={() => act({ action: "revoke", id: contact.id })}
-            className="rounded-xl border border-navy-200 px-4 py-2 text-base text-navy-900 disabled:opacity-50"
+            className="rounded-xl border border-line-quiet px-4 py-2 text-base text-ink-strong disabled:opacity-50"
           >
             {t("contact.adminRevoke")}
           </BusyButton>
@@ -615,7 +615,7 @@ function ContactRow({
           busy={busy}
           type="button"
           onClick={() => onEdit(contact)}
-          className="rounded-xl border border-navy-200 px-4 py-2 text-base text-navy-900 disabled:opacity-50"
+          className="rounded-xl border border-line-quiet px-4 py-2 text-base text-ink-strong disabled:opacity-50"
         >
           {t("contact.adminEdit")}
         </BusyButton>
@@ -858,9 +858,9 @@ export function GuestForm({
   return (
     <form
       onSubmit={submit}
-      className="mt-4 rounded-2xl border border-navy-200 bg-cream-100 p-5"
+      className="mt-4 rounded-2xl border border-line-quiet bg-surface-subtle p-5"
     >
-      <p className="font-display text-xl text-navy-900">
+      <p className="font-display text-xl text-ink-strong">
         {t(editingId ? "contact.adminEditGuest" : "contact.adminAddGuest")}
       </p>
 
@@ -930,7 +930,7 @@ export function GuestForm({
           noMatches={t("contact.telNoMatches")}
           locale={form.locale}
         />
-        <p className="mt-2 text-base text-navy-600">
+        <p className="mt-2 text-base text-ink-secondary">
           {t(telHintKey("admin", postcardsEnabled, whatsappEnabled))}
         </p>
       </div>
@@ -941,11 +941,11 @@ export function GuestForm({
           route already stores whatever is typed here regardless (see
           app/api/contacts/admin/route.ts's "create" case). Only the postcard
           *consent* checkbox below stays behind `postcardsEnabled`. */}
-      <fieldset className="mt-6 rounded-2xl border border-navy-200 bg-white p-5">
-        <legend className="px-2 font-display text-lg text-navy-900">
+      <fieldset className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5">
+        <legend className="px-2 font-display text-lg text-ink-strong">
           {t("contact.address")}
         </legend>
-        <p className="text-base text-navy-700">
+        <p className="text-base text-ink-body">
           {t(
             postcardsEnabled
               ? "contact.adminAddressHint"
@@ -1043,7 +1043,7 @@ export function GuestForm({
       </fieldset>
 
       <div className="mt-6 space-y-4">
-        <label className="flex items-start gap-3 text-base text-navy-900">
+        <label className="flex items-start gap-3 text-base text-ink-strong">
           <input
             type="checkbox"
             className="mt-1 size-5"
@@ -1053,7 +1053,7 @@ export function GuestForm({
           <span>{t("contact.adminWantsDigest")}</span>
         </label>
         {postcardsEnabled && (
-          <label className="flex items-start gap-3 text-base text-navy-900">
+          <label className="flex items-start gap-3 text-base text-ink-strong">
             <input
               type="checkbox"
               className="mt-1 size-5"
@@ -1064,7 +1064,7 @@ export function GuestForm({
           </label>
         )}
         {whatsappEnabled && (
-          <label className="flex items-start gap-3 text-base text-navy-900">
+          <label className="flex items-start gap-3 text-base text-ink-strong">
             <input
               type="checkbox"
               className="mt-1 size-5"
@@ -1087,8 +1087,8 @@ export function GuestForm({
           is simply absent. The card above says whether it worked.
         */}
         {pushEnabled && (
-          <p className="rounded-xl bg-cream-100 px-4 py-3 text-sm text-navy-700">
-            <span className="font-medium text-navy-900">
+          <p className="rounded-xl bg-surface-subtle px-4 py-3 text-sm text-ink-body">
+            <span className="font-medium text-ink-strong">
               {t("contact.adminPush")}
             </span>{" "}
             {t("contact.adminPushHint")}
@@ -1106,7 +1106,7 @@ export function GuestForm({
         <BusyButton
           busy={busy}
           type="submit"
-          className="rounded-xl bg-navy-900 px-4 py-3 text-base text-cream-50 disabled:opacity-50"
+          className="rounded-xl bg-action-strong px-4 py-3 text-base text-on-action disabled:opacity-50"
         >
           {t("contact.save")}
         </BusyButton>
@@ -1114,7 +1114,7 @@ export function GuestForm({
           busy={busy}
           type="button"
           onClick={onClose}
-          className="rounded-xl border border-navy-200 px-4 py-3 text-base text-navy-700 disabled:opacity-50"
+          className="rounded-xl border border-line-quiet px-4 py-3 text-base text-ink-body disabled:opacity-50"
         >
           {t("contact.adminGuestCancel")}
         </BusyButton>
@@ -1177,9 +1177,9 @@ function ContactGroup({
 }) {
   return (
     <section className="mt-10">
-      <h2 className="font-display text-2xl text-navy-900">{title}</h2>
+      <h2 className="font-display text-2xl text-ink-strong">{title}</h2>
       {rows.length === 0 ? (
-        <p className="mt-3 text-base text-navy-600">{t("contact.adminNone")}</p>
+        <p className="mt-3 text-base text-ink-secondary">{t("contact.adminNone")}</p>
       ) : (
         <ul className="mt-4 space-y-4">
           {rows.map((contact) => (
@@ -1276,14 +1276,14 @@ function InviteRow({
   ].filter(Boolean);
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-navy-200 px-4 py-3">
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line-quiet px-4 py-3">
       <span className="text-base">
         <span
-          className={dead ? "text-navy-600" : "font-semibold text-navy-900"}
+          className={dead ? "text-ink-secondary" : "font-semibold text-ink-strong"}
         >
           {t(INVITE_KIND_KEY[invite.kind])}
         </span>
-        <span className="block text-sm text-navy-600">
+        <span className="block text-sm text-ink-secondary">
           {detail.join(" · ")}
         </span>
       </span>
@@ -1298,7 +1298,7 @@ function InviteRow({
               button is a shortcut rather than the only way in, matching the
               rule the rest of this codebase follows for a live credential. */}
           {invite.url && (
-            <code className="block max-w-full break-all rounded-lg bg-cream-100 px-2 py-1 text-xs text-navy-900">
+            <code className="block max-w-full break-all rounded-lg bg-surface-subtle px-2 py-1 text-xs text-ink-strong">
               {invite.url}
             </code>
           )}
@@ -1333,7 +1333,7 @@ function InviteRow({
               busy={busy}
               type="button"
               onClick={() => act({ action: "revoke-invite", id: invite.id })}
-              className="rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
+              className="rounded-lg border border-line-quiet px-3 py-1 text-sm text-ink-body disabled:opacity-50"
             >
               {t("contact.adminRevokeLink")}
             </BusyButton>
@@ -1404,7 +1404,7 @@ function AddOwnDetails({
         busy={busy}
         type="button"
         onClick={add}
-        className="inline-flex min-h-11 w-fit items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 disabled:opacity-50"
+        className="inline-flex min-h-11 w-fit items-center rounded-full border border-line-ink px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle disabled:opacity-50"
       >
         {t("me.detailsAddSelf")}
       </BusyButton>
@@ -1632,10 +1632,10 @@ export default function ContactsAdmin({
       className="mx-auto w-full max-w-3xl px-6 py-12"
       lang={locale}
     >
-      <h1 className="font-display text-3xl text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl text-ink-strong sm:text-4xl">
         {t("contact.adminTitle")}
       </h1>
-      <p className="mt-3 text-lg text-navy-700">{t("contact.adminSubtitle")}</p>
+      <p className="mt-3 text-lg text-ink-body">{t("contact.adminSubtitle")}</p>
 
       {/*
         The owner's own row — B621, moved off `/{user}/me`. First, because it
@@ -1643,19 +1643,19 @@ export default function ContactsAdmin({
         themselves is addressed to, and where a day reaches them.
       */}
       {(own || canAddOwn) && (
-        <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-          <h2 className="font-display text-xl font-semibold text-navy-900">
+        <section className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
+          <h2 className="font-display text-xl font-semibold text-ink-strong">
             {t("me.details")}
           </h2>
-          <p className="mt-2 text-base leading-7 text-navy-600">
+          <p className="mt-2 text-base leading-7 text-ink-secondary">
             {t("me.detailsBodyOwner")}
           </p>
           {own ? (
             <details className="mt-3">
-              <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 [&::-webkit-details-marker]:hidden">
+              <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-line-ink px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle [&::-webkit-details-marker]:hidden">
                 {t("me.editDetails")}
               </summary>
-              <div className="mt-4 border-t border-navy-200">
+              <div className="mt-4 border-t border-line-quiet">
                 <ContactManage
                   className="pt-4"
                   locales={locales}
@@ -1683,7 +1683,7 @@ export default function ContactsAdmin({
           and test notices: yellow is the brand's own colour and reads as
           decoration, not a warning — see docs/branding/BRAND.md. */}
       {!hasGuestTrip && (
-        <p className="mt-6 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3 text-base text-navy-900">
+        <p className="mt-6 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3 text-base text-on-bright">
           {t("contact.adminNoGuestTrip")}
         </p>
       )}
@@ -1693,7 +1693,7 @@ export default function ContactsAdmin({
           <button
             type="button"
             onClick={() => setFormTarget("new")}
-            className="rounded-xl bg-navy-900 px-4 py-3 text-base text-cream-50"
+            className="rounded-xl bg-action-strong px-4 py-3 text-base text-on-action"
           >
             {t("contact.adminAddGuest")}
           </button>
@@ -1781,7 +1781,7 @@ export default function ContactsAdmin({
       )}
 
       <section className="mt-14">
-        <h2 className="font-display text-2xl text-navy-900">
+        <h2 className="font-display text-2xl text-ink-strong">
           {t("contact.adminLinks")}
         </h2>
 
@@ -1791,7 +1791,7 @@ export default function ContactsAdmin({
             section is now the one way anybody arrives: a link issued for a
             named person, which still only lets them ask. */}
         <form
-          className="mt-8 rounded-2xl border border-navy-200 p-5"
+          className="mt-8 rounded-2xl border border-line-quiet p-5"
           onSubmit={async (event) => {
             event.preventDefault();
             setInviteError(null);
@@ -1831,7 +1831,7 @@ export default function ContactsAdmin({
             await refresh();
           }}
         >
-          <p className="font-display text-xl text-navy-900">
+          <p className="font-display text-xl text-ink-strong">
             {t("contact.adminNewInvite")}
           </p>
 
@@ -1854,8 +1854,8 @@ export default function ContactsAdmin({
               return (
                 <label
                   key={kind}
-                  className={`mt-2 flex gap-3 rounded-xl border border-navy-200 p-4 ${
-                    unavailable ? "bg-cream-100" : "bg-white"
+                  className={`mt-2 flex gap-3 rounded-xl border border-line-quiet p-4 ${
+                    unavailable ? "bg-surface-subtle" : "bg-surface-raised"
                   }`}
                 >
                   <input
@@ -1870,12 +1870,12 @@ export default function ContactsAdmin({
                   <span>
                     <span
                       className={`block text-lg font-semibold ${
-                        unavailable ? "text-navy-600" : "text-navy-900"
+                        unavailable ? "text-ink-secondary" : "text-ink-strong"
                       }`}
                     >
                       {t(INVITE_KIND_KEY[kind])}
                     </span>
-                    <span className="block text-base leading-7 text-navy-700">
+                    <span className="block text-base leading-7 text-ink-body">
                       {unavailable
                         ? t("contact.adminInviteNoTrips")
                         : t(
@@ -1929,14 +1929,14 @@ export default function ContactsAdmin({
             placeholder={t("contact.adminInviteNotePlaceholder")}
           />
           <label
-            className="mt-4 block text-base font-medium text-navy-700"
+            className="mt-4 block text-base font-medium text-ink-body"
             htmlFor="invite-locale"
           >
             {t("contact.language")}
           </label>
           <select
             id="invite-locale"
-            className="mt-2 w-full rounded-xl border border-navy-200 bg-white px-4 py-3 text-lg"
+            className="mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg"
             value={inviteLocale}
             onChange={(e) => setInviteLocale(e.target.value as Locale)}
           >
@@ -1950,7 +1950,7 @@ export default function ContactsAdmin({
             busy={busy}
             type="submit"
             disabled={inviteKind === "buddy" && trips.length === 0}
-            className="mt-5 rounded-xl bg-navy-900 px-4 py-3 text-base text-cream-50 disabled:opacity-50"
+            className="mt-5 rounded-xl bg-action-strong px-4 py-3 text-base text-on-action disabled:opacity-50"
           >
             {t("contact.adminCreate")}
           </BusyButton>
@@ -1966,7 +1966,7 @@ export default function ContactsAdmin({
               <p className="text-base text-coral-600">
                 {t("contact.adminInviteCopy")}
               </p>
-              <code className="mt-2 block break-all rounded-xl bg-cream-100 p-3 text-sm text-navy-900">
+              <code className="mt-2 block break-all rounded-xl bg-surface-subtle p-3 text-sm text-ink-strong">
                 {freshLink}
               </code>
               <div className="mt-3">

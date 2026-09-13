@@ -21,8 +21,8 @@ export default function ExperimentalPrintNotice() {
       role="note"
       className="mb-5 flex items-start gap-3 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3"
     >
-      <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" aria-hidden />
-      <p className="min-w-0 text-sm leading-6 text-navy-900">
+      <FlaskConical className="mt-0.5 h-5 w-5 shrink-0 text-on-bright" aria-hidden />
+      <p className="min-w-0 text-sm leading-6 text-on-bright">
         {t("photobook.experimentalPrint")}
       </p>
     </div>

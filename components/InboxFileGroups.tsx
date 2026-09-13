@@ -77,9 +77,9 @@ function formatBytes(n: number): string {
 
 function KindIcon({ kind }: { kind: InboxFileKind }) {
   if (kind === "video") return <span aria-hidden>🎞️</span>;
-  if (kind === "location") return <MapPin className="h-5 w-5 text-navy-600" aria-hidden />;
-  if (kind === "contact") return <Contact className="h-5 w-5 text-navy-600" aria-hidden />;
-  return <FileText className="h-5 w-5 text-navy-600" aria-hidden />;
+  if (kind === "location") return <MapPin className="h-5 w-5 text-ink-secondary" aria-hidden />;
+  if (kind === "contact") return <Contact className="h-5 w-5 text-ink-secondary" aria-hidden />;
+  return <FileText className="h-5 w-5 text-ink-secondary" aria-hidden />;
 }
 
 /** Newest first — `undefined` sorts last rather than first, since a file
@@ -115,8 +115,8 @@ function FileRow({
     <li className="flex items-center gap-1">
       <label
         data-inbox-id={file.id}
-        className={`flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
-          selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200 bg-white"
+        className={`flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-lg border px-2 py-1.5 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-blue-500 ${
+          selected.includes(file.id) ? "border-line-ink ring-2 ring-blue-500" : "border-line-quiet bg-surface-raised"
         }`}
       >
         <input
@@ -127,9 +127,9 @@ function FileRow({
         />
         <KindIcon kind={file.kind} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm text-navy-900">{file.name}</span>
+          <span className="block truncate text-sm text-ink-strong">{file.name}</span>
           {(file.bytes !== undefined || file.at) && (
-            <span className="block text-xs text-navy-600">
+            <span className="block text-xs text-ink-secondary">
               {t("agent.room.fileMeta", {
                 size: file.bytes !== undefined ? formatBytes(file.bytes) : "",
                 date: file.at ? new Date(file.at).toLocaleDateString() : "",
@@ -151,7 +151,7 @@ function FileRow({
           type="button"
           onClick={() => onRemove(file.id)}
           aria-label={t("agent.room.menuDiscard")}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-navy-500 hover:bg-navy-50"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-lg text-ink-muted hover:bg-surface-neutral"
         >
           ×
         </button>
@@ -200,7 +200,7 @@ export function InboxFileGroups({
     <>
       {days.map(([date, dayFiles]) => (
         <section className="mt-4" key={date}>
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">{date}</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">{date}</h3>
           <ul className="mt-2 space-y-1">
             {newestFirst(dayFiles).map((file) => (
               <FileRow key={file.id} file={file} selected={selected} onToggle={onToggle} onRemove={onRemove} t={t} />
@@ -211,7 +211,7 @@ export function InboxFileGroups({
 
       {photos.length > 0 && (
         <section className="mt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
             {t("agent.room.photos")}
           </h3>
           <ul className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3">
@@ -219,8 +219,8 @@ export function InboxFileGroups({
               <li key={file.id} className="relative">
                 <label
                   data-inbox-id={file.id}
-                  className={`flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-white focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
-                    selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200"
+                  className={`flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-surface-raised focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-blue-500 ${
+                    selected.includes(file.id) ? "border-line-ink ring-2 ring-blue-500" : "border-line-quiet"
                   }`}
                 >
                   <input
@@ -229,7 +229,7 @@ export function InboxFileGroups({
                     onChange={() => onToggle(file.id)}
                     className="sr-only"
                   />
-                  <span className="relative block aspect-square bg-cream-200">
+                  <span className="relative block aspect-square bg-surface-muted">
                     {/* A video's `src` is the same owner-only thumbnail route a
                      *  photograph's is (`lib/helper/server.ts`), but
                      *  `resizedCopy` (`lib/media.ts`) cannot make a derivative
@@ -253,7 +253,7 @@ export function InboxFileGroups({
                       </span>
                     )}
                   </span>
-                  <span className="truncate px-1 py-1 text-[11px] leading-4 text-navy-800">
+                  <span className="truncate px-1 py-1 text-[11px] leading-4 text-ink-strong">
                     {file.name}
                   </span>
                 </label>
@@ -261,7 +261,7 @@ export function InboxFileGroups({
                   type="button"
                   onClick={() => onRemove(file.id)}
                   aria-label={t("agent.room.menuDiscard")}
-                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-navy-900/70 text-sm leading-none text-white"
+                  className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-overlay-strong/70 text-sm leading-none text-overlay-ink"
                 >
                   ×
                 </button>
@@ -273,7 +273,7 @@ export function InboxFileGroups({
 
       {documents.length > 0 && (
         <section className="mt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
             {t("agent.room.documents")}
           </h3>
           <ul className="mt-2 space-y-1">
@@ -286,7 +286,7 @@ export function InboxFileGroups({
 
       {other.length > 0 && (
         <section className="mt-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
             {t("agent.room.otherFiles")}
           </h3>
           <ul className="mt-2 space-y-1">

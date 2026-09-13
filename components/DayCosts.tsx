@@ -111,20 +111,20 @@ export default function DayCosts({
   };
 
   return (
-    <section className="mt-5 rounded-2xl border border-navy-200 bg-white p-4 sm:p-5">
-      <h3 className="font-display text-lg font-semibold text-navy-900">
+    <section className="mt-5 rounded-2xl border border-line-quiet bg-surface-raised p-4 sm:p-5">
+      <h3 className="font-display text-lg font-semibold text-ink-strong">
         {t("cost.addHeading")}
       </h3>
-      <p className="mt-1 text-sm leading-6 text-navy-600">
+      <p className="mt-1 text-sm leading-6 text-ink-secondary">
         {t("cost.addHint")}
       </p>
 
       {costs.length > 0 ? (
         <>
-          <p className="mt-4 text-sm font-semibold text-navy-800">
+          <p className="mt-4 text-sm font-semibold text-ink-strong">
             {t("cost.addOn")}
           </p>
-          <ul className="mt-1 space-y-1 text-sm text-navy-700">
+          <ul className="mt-1 space-y-1 text-sm text-ink-body">
             {costs.map((cost, at) => (
               <li key={`${cost.label}-${at}`}>
                 {cost.label} · {cost.amount} {cost.currency} ·{" "}
@@ -134,11 +134,11 @@ export default function DayCosts({
           </ul>
         </>
       ) : (
-        <p className="mt-4 text-sm text-navy-600">{t("cost.addNone")}</p>
+        <p className="mt-4 text-sm text-ink-secondary">{t("cost.addNone")}</p>
       )}
 
       <label
-        className="mt-4 block text-sm font-semibold text-navy-800"
+        className="mt-4 block text-sm font-semibold text-ink-strong"
         htmlFor="cost-label"
       >
         {t("cost.what")}
@@ -147,13 +147,13 @@ export default function DayCosts({
         id="cost-label"
         value={label}
         onChange={(event) => setLabel(event.target.value)}
-        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+        className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
       />
 
       <div className="mt-4 flex flex-wrap gap-3">
         <div className="min-w-[8rem] flex-1">
           <label
-            className="block text-sm font-semibold text-navy-800"
+            className="block text-sm font-semibold text-ink-strong"
             htmlFor="cost-amount"
           >
             {t("cost.amount")}
@@ -166,12 +166,12 @@ export default function DayCosts({
             step="0.01"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
-            className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+            className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
           />
         </div>
         <div className="min-w-[6rem]">
           <label
-            className="block text-sm font-semibold text-navy-800"
+            className="block text-sm font-semibold text-ink-strong"
             htmlFor="cost-currency"
           >
             {t("cost.currency")}
@@ -184,7 +184,7 @@ export default function DayCosts({
             list="cost-currencies"
             value={currency}
             onChange={(event) => setCurrency(event.target.value.toUpperCase())}
-            className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base uppercase text-navy-900"
+            className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base uppercase text-ink-strong"
           />
           <datalist id="cost-currencies">
             {currencies.map((code) => (
@@ -195,7 +195,7 @@ export default function DayCosts({
       </div>
 
       <label
-        className="mt-4 block text-sm font-semibold text-navy-800"
+        className="mt-4 block text-sm font-semibold text-ink-strong"
         htmlFor="cost-category"
       >
         {t("cost.category")}
@@ -204,7 +204,7 @@ export default function DayCosts({
         id="cost-category"
         value={category}
         onChange={(event) => setCategory(event.target.value)}
-        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+        className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
       >
         {COST_CATEGORIES.map((name) => (
           <option key={name} value={name}>
@@ -214,7 +214,7 @@ export default function DayCosts({
       </select>
 
       <label
-        className="mt-4 block text-sm font-semibold text-navy-800"
+        className="mt-4 block text-sm font-semibold text-ink-strong"
         htmlFor="cost-date"
       >
         {t("cost.when")}
@@ -224,7 +224,7 @@ export default function DayCosts({
         type="date"
         value={on}
         onChange={(event) => setOn(event.target.value)}
-        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+        className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
       />
 
       <BusyButton
@@ -239,7 +239,7 @@ export default function DayCosts({
       </BusyButton>
 
       {added && (
-        <p role="status" className="mt-3 text-sm leading-6 text-navy-700">
+        <p role="status" className="mt-3 text-sm leading-6 text-ink-body">
           {t("cost.added", { date: added })}
         </p>
       )}

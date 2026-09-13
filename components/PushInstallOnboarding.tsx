@@ -65,27 +65,27 @@ export default function PushInstallOnboarding() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-navy-900/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-overlay-strong/40 p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-label={t("push.install.title")}
     >
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-sm rounded-2xl bg-surface-raised p-6 shadow-xl">
         <div className="flex items-start justify-between gap-4">
-          <h2 className="text-base font-semibold text-navy-900">{t("push.install.title")}</h2>
+          <h2 className="text-base font-semibold text-ink-strong">{t("push.install.title")}</h2>
           <button
             onClick={dismiss}
             aria-label={t("push.install.dismiss")}
-            className="-m-1 shrink-0 rounded-full p-1 text-navy-400 transition-colors hover:text-navy-700"
+            className="-m-1 shrink-0 rounded-full p-1 text-ink-faint transition-colors hover:text-ink-body"
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <p className="mt-1.5 text-sm text-navy-500">{t("push.install.body")}</p>
+        <p className="mt-1.5 text-sm text-ink-muted">{t("push.install.body")}</p>
         <ol className="mt-5 space-y-3.5">
           {steps.map(([Icon, label], i) => (
-            <li key={i} className="flex items-center gap-3 text-sm text-navy-700">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-50 text-navy-600">
+            <li key={i} className="flex items-center gap-3 text-sm text-ink-body">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-50 text-on-bright">
                 <Icon className="h-4 w-4" aria-hidden />
               </span>
               {label}
@@ -94,7 +94,7 @@ export default function PushInstallOnboarding() {
         </ol>
         <button
           onClick={dismiss}
-          className="mt-6 w-full rounded-full bg-navy-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-800"
+          className="mt-6 w-full rounded-full bg-action-strong px-4 py-2.5 text-sm font-semibold text-on-action transition-colors hover:bg-action-strong-hover"
         >
           {t("push.install.dismiss")}
         </button>

@@ -47,10 +47,10 @@ export default function VisitorsContent({
     <div className="min-h-screen">
       <PageHeader />
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("visitors.title")}
         </h1>
-        <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("visitors.subtitle")}</p>
+        <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{t("visitors.subtitle")}</p>
 
         <div className="mt-6 flex flex-wrap gap-2">
           {windows.map((d) => (
@@ -60,8 +60,8 @@ export default function VisitorsContent({
               aria-current={d === report.days ? "page" : undefined}
               className={
                 d === report.days
-                  ? "inline-flex min-h-11 items-center rounded-full bg-navy-900 px-4 text-sm font-semibold text-white"
-                  : "inline-flex min-h-11 items-center rounded-full border border-navy-200 bg-white px-4 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-400"
+                  ? "inline-flex min-h-11 items-center rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action"
+                  : "inline-flex min-h-11 items-center rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
               }
             >
               {t("visitors.lastDays").replace("{days}", String(d))}
@@ -73,7 +73,7 @@ export default function VisitorsContent({
           /* Nothing yet is a sentence, not a grid of zeroes — B76. A journal
              the day after this is switched on has no readers *recorded*,
              which is a different claim from having no readers. */
-          <p className="mt-8 rounded-2xl border border-navy-200 bg-white p-6 text-base text-navy-700">
+          <p className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-6 text-base text-ink-body">
             {t("visitors.empty")}
           </p>
         ) : (
@@ -89,7 +89,7 @@ export default function VisitorsContent({
             </div>
 
             <section className="mt-8">
-              <h2 className="font-display text-lg font-semibold text-navy-900">
+              <h2 className="font-display text-lg font-semibold text-ink-strong">
                 {t("visitors.overTime")}
               </h2>
               {/* A row of bars rather than a charting library: this is one
@@ -98,7 +98,7 @@ export default function VisitorsContent({
                   screen reader gets — the bars are aria-hidden. */}
               <ol
                 aria-hidden
-                className="mt-3 flex h-32 items-end gap-[2px] overflow-x-auto rounded-2xl border border-navy-200 bg-white p-3"
+                className="mt-3 flex h-32 items-end gap-[2px] overflow-x-auto rounded-2xl border border-line-quiet bg-surface-raised p-3"
               >
                 {report.perDay.map((d) => (
                   <li
@@ -118,7 +118,7 @@ export default function VisitorsContent({
 
             {report.trips.length > 0 && (
               <section className="mt-8">
-                <h2 className="font-display text-lg font-semibold text-navy-900">
+                <h2 className="font-display text-lg font-semibold text-ink-strong">
                   {t("visitors.byTrip")}
                 </h2>
                 <Table
@@ -130,7 +130,7 @@ export default function VisitorsContent({
 
             {report.entries.length > 0 && (
               <section className="mt-8">
-                <h2 className="font-display text-lg font-semibold text-navy-900">
+                <h2 className="font-display text-lg font-semibold text-ink-strong">
                   {t("visitors.byDay")}
                 </h2>
                 <Table
@@ -142,12 +142,12 @@ export default function VisitorsContent({
           </>
         )}
 
-        <section className="mt-10 rounded-2xl border border-navy-200 bg-sky-50/50 p-5 sm:p-6">
-          <h2 className="font-display text-lg font-semibold text-navy-900">
+        <section className="mt-10 rounded-2xl border border-line-quiet bg-sky-50/50 p-5 sm:p-6">
+          <h2 className="font-display text-lg font-semibold text-ink-strong">
             {t("visitors.howTitle")}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-navy-700">{t("visitors.howBody")}</p>
-          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-6 text-navy-700">
+          <p className="mt-2 text-sm leading-6 text-ink-body">{t("visitors.howBody")}</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-6 text-ink-body">
             <li>{t("visitors.howNoReturning")}</li>
             <li>{t("visitors.howFloor")}</li>
             <li>{t("visitors.howExcluded")}</li>
@@ -169,12 +169,12 @@ function Stat({
   value: number;
 }) {
   return (
-    <div className="rounded-2xl border border-navy-200 bg-white p-5 shadow-sm">
-      <div className="flex items-center gap-2 text-navy-600">
+    <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm">
+      <div className="flex items-center gap-2 text-ink-secondary">
         <Icon className="h-4 w-4" strokeWidth={2.2} aria-hidden />
         <h2 className="text-sm font-semibold">{label}</h2>
       </div>
-      <p className="mt-2 font-display text-3xl font-semibold text-navy-900">{value}</p>
+      <p className="mt-2 font-display text-3xl font-semibold text-ink-strong">{value}</p>
     </div>
   );
 }
@@ -189,11 +189,11 @@ function Table({
   rows: (string | number)[][];
 }) {
   return (
-    <div className="mt-3 overflow-x-auto rounded-2xl border border-navy-200 bg-white">
+    <div className="mt-3 overflow-x-auto rounded-2xl border border-line-quiet bg-surface-raised">
       <table className="w-full text-sm">
         {caption && <caption className="sr-only">{caption}</caption>}
         <thead>
-          <tr className="border-b border-navy-200 text-left text-navy-600">
+          <tr className="border-b border-line-quiet text-left text-ink-secondary">
             {head.map((h, i) => (
               <th key={h} scope="col" className={i === 0 ? "px-4 py-2" : "px-4 py-2 text-right"}>
                 {h}
@@ -203,14 +203,14 @@ function Table({
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={String(r[0])} className="border-b border-navy-100 last:border-0">
+            <tr key={String(r[0])} className="border-b border-line-faint last:border-0">
               {r.map((cell, i) => (
                 <td
                   key={i}
                   className={
                     i === 0
-                      ? "px-4 py-2 text-navy-900"
-                      : "px-4 py-2 text-right tabular-nums text-navy-700"
+                      ? "px-4 py-2 text-ink-strong"
+                      : "px-4 py-2 text-right tabular-nums text-ink-body"
                   }
                 >
                   {cell}

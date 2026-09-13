@@ -494,32 +494,19 @@ export default function HelperRoom({
 
   /** The bring-your-own-agent sheet — B1210 (D11/D12). */
   const [agentSheetOpen, setAgentSheetOpen] = useState(false);
-  /**
-   * The two display settings the account sheet holds — B1209 (D03/D04).
-   * Read after mount (the storage-in-initializer trap, B1197), written on
-   * every change; the classes they map to live in globals.css, scoped to
-   * the room.
-   */
+  /** The room-only text scale — B1209 (D03). Appearance moved to the one
+   * site-wide reader preference on `/me` in B1541. */
   const [textScale, setTextScale] = useState<"s" | "m" | "l">("m");
-  const [darkRoom, setDarkRoom] = useState(false);
   useEffect(() => {
     const scale = window.localStorage.getItem("fs.agent.textScale");
     if (scale === "s" || scale === "l") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setTextScale(scale);
     }
-    if (window.localStorage.getItem("fs.agent.dark") === "1") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setDarkRoom(true);
-    }
   }, []);
   function chooseTextScale(next: "s" | "m" | "l") {
     setTextScale(next);
     window.localStorage.setItem("fs.agent.textScale", next);
-  }
-  function chooseDark(next: boolean) {
-    setDarkRoom(next);
-    window.localStorage.setItem("fs.agent.dark", next ? "1" : "0");
   }
 
   /** The ⋯ menu holding what left the header — B1208 (D10). */
@@ -831,7 +818,7 @@ export default function HelperRoom({
           {pending.map((one) => (
             <span
               key={one.key}
-              className="relative block h-12 w-12 overflow-hidden rounded-lg border border-navy-200 bg-navy-50"
+              className="relative block h-12 w-12 overflow-hidden rounded-lg border border-line-quiet bg-surface-neutral"
             >
               {one.url && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -872,19 +859,19 @@ export default function HelperRoom({
           publish shortcut that opens the ordinary confirm card in the
           conversation (D26). */}
       {preview && subject && (
-        <div className="mb-2 flex items-center gap-2 border-b border-navy-100 pb-2">
+        <div className="mb-2 flex items-center gap-2 border-b border-line-faint pb-2">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-navy-900">
+            <p className="truncate text-sm font-semibold text-ink-strong">
               {preview.day.lead.title || preview.day.lead.date}
             </p>
-            <p className="text-xs text-navy-500">{preview.day.lead.date}</p>
+            <p className="text-xs text-ink-muted">{preview.day.lead.date}</p>
           </div>
           {preview.day.lead.draft ? (
             <button
               type="button"
               onClick={publishFromPreview}
               disabled={proposing}
-              className="shrink-0 rounded-full border border-navy-300 bg-white px-3 py-1.5 text-xs font-semibold text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
+              className="shrink-0 rounded-full border border-line-strong bg-surface-raised px-3 py-1.5 text-xs font-semibold text-ink-strong transition-colors hover:bg-surface-neutral disabled:opacity-50"
             >
               {/* Its own key, not `agent.about.publish` — B1275. This
                   button never publishes; it opens the real confirmation
@@ -898,7 +885,7 @@ export default function HelperRoom({
           ) : (
             <a
               href={`/${encodeURIComponent(username)}/trips/${encodeURIComponent(subject.trip)}/day/${encodeURIComponent(subject.slug)}`}
-              className="shrink-0 text-xs font-semibold text-navy-700 underline underline-offset-4 hover:text-navy-900"
+              className="shrink-0 text-xs font-semibold text-ink-body underline underline-offset-4 hover:text-ink-strong"
             >
               {t("agent.room.openOnSite")}
             </a>
@@ -952,9 +939,7 @@ export default function HelperRoom({
     // Outer paints the ground edge to edge; inner caps the app at 1680px —
     // B1208 (D43): three panes floating in 2560px of ground looked lost.
     <div
-      className={`fixed inset-x-0 top-0 h-dvh bg-cream-50 ${textScale === "s" ? "fs-scale-s" : textScale === "l" ? "fs-scale-l" : ""} ${
-        darkRoom ? "fs-room-dark" : ""
-      }`}
+      className={`fixed inset-x-0 top-0 h-dvh bg-surface-base ${textScale === "s" ? "fs-scale-s" : textScale === "l" ? "fs-scale-l" : ""}`}
       style={viewportBox ? { top: viewportBox.top, height: viewportBox.height } : undefined}
     >
     <div className="mx-auto flex h-full max-w-[1680px] flex-col">
@@ -963,12 +948,12 @@ export default function HelperRoom({
           aria-hidden
           className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center border-4 border-dashed border-yellow-600 bg-yellow-400/10"
         >
-          <p className="rounded-full bg-white px-5 py-2.5 font-display text-base font-semibold text-navy-900 shadow-lg">
+          <p className="rounded-full bg-surface-raised px-5 py-2.5 font-display text-base font-semibold text-ink-strong shadow-lg">
             {t("agent.room.dropHere")}
           </p>
         </div>
       )}
-      <header className="flex items-center gap-2 border-b border-navy-200 bg-white px-2 py-2">
+      <header className="flex items-center gap-2 border-b border-line-quiet bg-surface-raised px-2 py-2">
         {/* "Zurück" moves here — a chevron before the journal name rather
             than its own bar above the whole page — B1121. */}
         <BackLink
@@ -977,7 +962,7 @@ export default function HelperRoom({
           retraceLabel={t("nav.back")}
           showLabel={false}
           iconClassName="h-5 w-5"
-          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900"
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-ink-body transition-colors hover:bg-surface-neutral hover:text-ink-strong"
         />
 
         {/*
@@ -1005,7 +990,7 @@ export default function HelperRoom({
                   document.cookie = `fs.journal=${encodeURIComponent(event.target.value)};path=/;max-age=31536000;samesite=lax`;
                   window.location.href = "/agent";
                 }}
-                className="min-h-11 w-full truncate rounded-full border border-navy-300 bg-white px-3 font-display text-base font-semibold text-navy-900"
+                className="min-h-11 w-full truncate rounded-full border border-line-strong bg-surface-raised px-3 font-display text-base font-semibold text-ink-strong"
               >
                 {journals.map((one) => (
                   <option key={one.username} value={one.username}>
@@ -1025,13 +1010,13 @@ export default function HelperRoom({
           <h1 className="flex min-w-0 flex-1 items-baseline gap-2 truncate">
             <Link
               href={`/${encodeURIComponent(username)}`}
-              className="truncate font-display text-base font-semibold text-navy-900 hover:underline"
+              className="truncate font-display text-base font-semibold text-ink-strong hover:underline"
             >
               {title}
             </Link>
             <Link
               href={`/${encodeURIComponent(username)}`}
-              className="hidden shrink-0 font-mono text-xs text-navy-500 hover:text-navy-800 hover:underline sm:inline"
+              className="hidden shrink-0 font-mono text-xs text-ink-muted hover:text-ink-strong hover:underline sm:inline"
             >
               /{username}
             </Link>
@@ -1049,7 +1034,7 @@ export default function HelperRoom({
           {/* The balance, whenever this instance charges at all — B1208
               (D06/D08). Yellow once it is low enough to matter, not coral —
               being low on credit is not an error (B1155's 2026-09-09
-              decision record). `text-navy-900` rather than white: white on
+              decision record). `text-ink-strong` rather than white: white on
               `yellow-600` is 2.5:1, well under AA. */}
           {credits !== null && (
             <button
@@ -1058,8 +1043,8 @@ export default function HelperRoom({
               aria-label={t("agent.room.account")}
               className={`flex min-h-8 shrink-0 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-colors ${
                 lowCredits
-                  ? "border-yellow-600 bg-yellow-600 text-navy-900 hover:bg-yellow-400"
-                  : "border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
+                  ? "border-yellow-600 bg-yellow-600 text-on-bright hover:bg-yellow-400"
+                  : "border-line-strong bg-surface-raised text-ink-strong hover:bg-surface-neutral"
               }`}
             >
               <Coins className="h-3.5 w-3.5" aria-hidden />
@@ -1070,7 +1055,7 @@ export default function HelperRoom({
             type="button"
             onClick={() => setHistoryOpen(true)}
             aria-label={t("agent.room.history")}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-ink-body transition-colors hover:bg-surface-neutral hover:text-ink-strong"
           >
             <History className="h-5 w-5" aria-hidden />
           </button>
@@ -1078,7 +1063,7 @@ export default function HelperRoom({
             type="button"
             onClick={() => void newConversation()}
             aria-label={t("agent.room.newConversation")}
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-yellow-400 text-navy-900 transition-colors hover:bg-yellow-300"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full bg-yellow-400 text-on-bright transition-colors hover:bg-yellow-300"
           >
             <Plus className="h-5 w-5" aria-hidden />
           </button>
@@ -1092,14 +1077,14 @@ export default function HelperRoom({
               onClick={() => setMenuOpen((was) => !was)}
               aria-label={t("agent.room.more")}
               aria-expanded={menuOpen}
-              className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-ink-body transition-colors hover:bg-surface-neutral hover:text-ink-strong"
             >
               <MoreVertical className="h-5 w-5" aria-hidden />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full z-30 mt-1 w-56 rounded-xl border border-navy-200 bg-white p-2 shadow-lg">
+              <div className="absolute right-0 top-full z-30 mt-1 w-56 rounded-xl border border-line-quiet bg-surface-raised p-2 shadow-lg">
                 <div className="flex items-center justify-between px-2 py-1.5">
-                  <span className="text-sm text-navy-800">{t("agent.room.language")}</span>
+                  <span className="text-sm text-ink-strong">{t("agent.room.language")}</span>
                   <LocaleSwitcher subtle />
                 </div>
                 <button
@@ -1108,7 +1093,7 @@ export default function HelperRoom({
                     setMenuOpen(false);
                     setDisplayOpen(true);
                   }}
-                  className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-navy-800 hover:bg-navy-50"
+                  className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-strong hover:bg-surface-neutral"
                 >
                   {t("agent.room.display")}
                 </button>
@@ -1119,7 +1104,7 @@ export default function HelperRoom({
                       setMenuOpen(false);
                       setAccountOpen(true);
                     }}
-                    className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-navy-800 hover:bg-navy-50"
+                    className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-strong hover:bg-surface-neutral"
                   >
                     {t("agent.room.account")}
                   </button>
@@ -1130,7 +1115,7 @@ export default function HelperRoom({
                     setMenuOpen(false);
                     setAgentSheetOpen(true);
                   }}
-                  className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-navy-800 hover:bg-navy-50"
+                  className="block w-full rounded-lg px-2 py-1.5 text-left text-sm text-ink-strong hover:bg-surface-neutral"
                 >
                   {t("agent.open.bringAgent")}
                 </button>
@@ -1144,7 +1129,7 @@ export default function HelperRoom({
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="flex min-h-10 w-full shrink-0 items-center justify-center gap-2 border-b border-yellow-600/30 bg-yellow-400/20 px-4 text-sm font-semibold text-navy-800"
+          className="flex min-h-10 w-full shrink-0 items-center justify-center gap-2 border-b border-yellow-600/30 bg-yellow-400/20 px-4 text-sm font-semibold text-ink-strong"
         >
           <RefreshCw className="h-4 w-4" aria-hidden />
           {t("agent.room.updateReady")}
@@ -1260,7 +1245,7 @@ export default function HelperRoom({
                       askNudge();
                     }}
                     disabled={proposing}
-                    className="min-h-9 rounded-full border border-navy-300 bg-white px-3.5 text-sm text-navy-800 transition-colors hover:bg-navy-50 disabled:opacity-50"
+                    className="min-h-9 rounded-full border border-line-strong bg-surface-raised px-3.5 text-sm text-ink-strong transition-colors hover:bg-surface-neutral disabled:opacity-50"
                   >
                     {tn("agent.room.attachNudge", nudgeCount, { count: String(nudgeCount) })}
                   </button>
@@ -1272,7 +1257,7 @@ export default function HelperRoom({
                 // on white: `yellow-600` reads at roughly 2.4:1 against both
                 // white and near-white, well under AA either way round —
                 // the same reason the pill beside this banner uses
-                // `text-navy-900` rather than white. `border-yellow-600` is
+                // `text-ink-strong` rather than white. `border-yellow-600` is
                 // the one place the named token carries: the accent, not
                 // the body text.
                 <p className="mb-2 flex shrink-0 items-start gap-2 rounded-xl border border-yellow-600 bg-yellow-50 px-3 py-2 text-sm leading-5 text-yellow-900">
@@ -1308,14 +1293,14 @@ export default function HelperRoom({
               same sheet the ⋯ menu opens, said twice on one screen. The menu
               entry is its one home now. */}
           {installHint && (
-            <p className="mx-auto mt-1 flex w-full max-w-md shrink-0 items-center justify-center gap-2 text-center text-xs text-navy-500 lg:hidden">
+            <p className="mx-auto mt-1 flex w-full max-w-md shrink-0 items-center justify-center gap-2 text-center text-xs text-ink-muted lg:hidden">
               <span className="min-w-0">{t("agent.room.installHint")}</span>
               {/* "How?" opens the three steps in a sheet — there is no reader
                   doc page for this, so the sheet is the doc. B1334. */}
               <button
                 type="button"
                 onClick={() => setInstallHowOpen(true)}
-                className="shrink-0 whitespace-nowrap font-semibold text-navy-700 underline underline-offset-2 hover:text-navy-900"
+                className="shrink-0 whitespace-nowrap font-semibold text-ink-body underline underline-offset-2 hover:text-ink-strong"
               >
                 {t("agent.room.installHow")} →
               </button>
@@ -1326,7 +1311,7 @@ export default function HelperRoom({
                   window.localStorage.setItem("fs.agent.installHintDismissed", "1");
                 }}
                 aria-label={t("agent.room.closeAccount")}
-                className="shrink-0 rounded-full px-1.5 text-navy-500 hover:text-navy-800"
+                className="shrink-0 rounded-full px-1.5 text-ink-muted hover:text-ink-strong"
               >
                 ✕
               </button>
@@ -1378,7 +1363,7 @@ export default function HelperRoom({
           is the same claim the desktop rail's dot makes. */}
       <nav
         aria-label={t("agent.room.tabs")}
-        className="flex shrink-0 border-t border-navy-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="flex shrink-0 border-t border-line-quiet bg-surface-raised pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         {(
           [
@@ -1402,8 +1387,8 @@ export default function HelperRoom({
             <span
               className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm transition-colors ${
                 tab === which
-                  ? "bg-yellow-400 font-semibold text-navy-900"
-                  : "text-navy-500"
+                  ? "bg-yellow-400 font-semibold text-on-bright"
+                  : "text-ink-muted"
               }`}
             >
               <Icon className="h-5 w-5 shrink-0" aria-hidden />
@@ -1448,7 +1433,7 @@ export default function HelperRoom({
           onClose={() => setDisplayOpen(false)}
         >
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-navy-800">{t("agent.room.textSize")}</span>
+            <span className="text-sm text-ink-strong">{t("agent.room.textSize")}</span>
             <div className="flex gap-1" role="group" aria-label={t("agent.room.textSize")}>
               {(["s", "m", "l"] as const).map((size) => (
                 <button
@@ -1458,33 +1443,14 @@ export default function HelperRoom({
                   onClick={() => chooseTextScale(size)}
                   className={`min-h-9 min-w-9 rounded-full border text-sm font-semibold transition-colors ${
                     textScale === size
-                      ? "border-navy-800 bg-navy-800 text-white"
-                      : "border-navy-300 bg-white text-navy-800 hover:bg-navy-50"
+                      ? "border-line-ink bg-action-strong text-on-action"
+                      : "border-line-strong bg-surface-raised text-ink-strong hover:bg-surface-neutral"
                   }`}
                 >
                   {size.toUpperCase()}
                 </button>
               ))}
             </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <span className="text-sm text-navy-800">{t("agent.room.darkRoom")}</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={darkRoom}
-              onClick={() => chooseDark(!darkRoom)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${
-                darkRoom ? "bg-navy-800" : "bg-navy-200"
-              }`}
-            >
-              <span
-                aria-hidden
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                  darkRoom ? "translate-x-[22px]" : "translate-x-0.5"
-                }`}
-              />
-            </button>
           </div>
         </Sheet>
       )}
@@ -1495,18 +1461,18 @@ export default function HelperRoom({
           close={t("agent.room.closeAccount")}
           onClose={() => setCheatsheetOpen(false)}
         >
-          <ul className="space-y-2 text-sm text-navy-800">
+          <ul className="space-y-2 text-sm text-ink-strong">
             <li className="flex items-center justify-between gap-3">
               <span>{t("agent.room.newConversation")}</span>
-              <kbd className="rounded border border-navy-300 px-1.5 font-mono text-xs">⌘K</kbd>
+              <kbd className="rounded border border-line-strong px-1.5 font-mono text-xs">⌘K</kbd>
             </li>
             <li className="flex items-center justify-between gap-3">
               <span>{t("agent.room.focusField")}</span>
-              <kbd className="rounded border border-navy-300 px-1.5 font-mono text-xs">⌘/</kbd>
+              <kbd className="rounded border border-line-strong px-1.5 font-mono text-xs">⌘/</kbd>
             </li>
             <li className="flex items-center justify-between gap-3">
               <span>{t("agent.room.closePanels")}</span>
-              <kbd className="rounded border border-navy-300 px-1.5 font-mono text-xs">Esc</kbd>
+              <kbd className="rounded border border-line-strong px-1.5 font-mono text-xs">Esc</kbd>
             </li>
           </ul>
         </Sheet>
@@ -1518,7 +1484,7 @@ export default function HelperRoom({
           close={t("agent.room.closeAccount")}
           onClose={() => setInstallHowOpen(false)}
         >
-          <p className="mb-3 text-sm leading-6 text-navy-700">{t("agent.room.installHint")}</p>
+          <p className="mb-3 text-sm leading-6 text-ink-body">{t("agent.room.installHint")}</p>
           <ol className="space-y-3.5">
             {(
               [
@@ -1527,8 +1493,8 @@ export default function HelperRoom({
                 [Smartphone, t("agent.room.installStep3")],
               ] as const
             ).map(([Icon, label], index) => (
-              <li key={index} className="flex items-center gap-3 text-sm text-navy-700">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cream-100 text-navy-600">
+              <li key={index} className="flex items-center gap-3 text-sm text-ink-body">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-ink-secondary">
                   <Icon className="h-4 w-4" aria-hidden />
                 </span>
                 {label}
@@ -1546,12 +1512,12 @@ export default function HelperRoom({
         >
           {/* The same block /me renders — one implementation of minting and
               the prompt, two homes. B1210 (D12). */}
-          <p className="mb-3 text-sm leading-6 text-navy-700">{t("agent.room.bringAgentIntro")}</p>
+          <p className="mb-3 text-sm leading-6 text-ink-body">{t("agent.room.bringAgentIntro")}</p>
           <AgentHandover username={username} siteUrl={siteUrl} />
-          <p className="mt-4 border-t border-navy-200 pt-3">
+          <p className="mt-4 border-t border-line-quiet pt-3">
             <a
               href={`/${encodeURIComponent(username)}/me`}
-              className="text-sm text-navy-600 underline underline-offset-4 hover:text-navy-900"
+              className="text-sm text-ink-secondary underline underline-offset-4 hover:text-ink-strong"
             >
               {t("agent.room.bringAgentMore")}
             </a>
@@ -1600,18 +1566,18 @@ function Sheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="m-0 flex w-full max-w-none flex-col border-0 bg-white p-0 pb-[env(safe-area-inset-bottom)] backdrop:bg-navy-900/40 fixed inset-x-0 bottom-0 top-auto h-auto max-h-[92dvh] rounded-t-2xl lg:mx-auto lg:max-h-[80dvh] lg:max-w-xl"
+      className="m-0 flex w-full max-w-none flex-col border-0 bg-surface-raised p-0 pb-[env(safe-area-inset-bottom)] backdrop:bg-overlay-strong/40 fixed inset-x-0 bottom-0 top-auto h-auto max-h-[92dvh] rounded-t-2xl lg:mx-auto lg:max-h-[80dvh] lg:max-w-xl"
     >
-      <div className="flex items-center gap-3 border-b border-navy-200 px-4 py-2">
+      <div className="flex items-center gap-3 border-b border-line-quiet px-4 py-2">
         {/* The handle, and it is the button: a bar somebody can only drag is a
             bar a keyboard cannot reach. Dragging it is not built — a tap
             closes, and so does Escape. */}
-        <span aria-hidden className="h-1 w-10 rounded-full bg-navy-200" />
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-navy-900">{label}</p>
+        <span aria-hidden className="h-1 w-10 rounded-full bg-surface-selected" />
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-strong">{label}</p>
         <button
           type="button"
           onClick={dismiss}
-          className="min-h-11 shrink-0 text-sm font-semibold text-navy-800 underline underline-offset-4"
+          className="min-h-11 shrink-0 text-sm font-semibold text-ink-strong underline underline-offset-4"
         >
           {close}
         </button>
@@ -1657,13 +1623,13 @@ function FilesRail({
         onClick={onToggleCollapsed}
         aria-label={count > 0 ? `${filesLabel} (${count})` : filesLabel}
         title={showLabel}
-        className="hidden w-10 shrink-0 flex-col items-center gap-1 border-r border-navy-200 bg-white py-3 lg:flex"
+        className="hidden w-10 shrink-0 flex-col items-center gap-1 border-r border-line-quiet bg-surface-raised py-3 lg:flex"
       >
-        <Paperclip className="h-5 w-5 text-navy-700" aria-hidden />
+        <Paperclip className="h-5 w-5 text-ink-body" aria-hidden />
         {count > 0 && (
           <span
             aria-hidden
-            className="min-w-[18px] rounded-full bg-navy-800 px-1 text-center text-[10px] font-semibold leading-[18px] text-cream-50"
+            className="min-w-[18px] rounded-full bg-action-strong px-1 text-center text-[10px] font-semibold leading-[18px] text-on-action"
           >
             {count}
           </span>
@@ -1675,15 +1641,15 @@ function FilesRail({
   return (
     <section
       aria-label={filesLabel}
-      className="hidden min-h-0 w-64 shrink-0 flex-col border-r border-navy-200 bg-white lg:flex"
+      className="hidden min-h-0 w-64 shrink-0 flex-col border-r border-line-quiet bg-surface-raised lg:flex"
     >
-      <div className="flex shrink-0 justify-end border-b border-navy-200 p-1">
+      <div className="flex shrink-0 justify-end border-b border-line-quiet p-1">
         <button
           type="button"
           onClick={onToggleCollapsed}
           aria-label={hideLabel}
           title={hideLabel}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-ink-body transition-colors hover:bg-surface-neutral hover:text-ink-strong"
         >
           <PanelLeftClose className="h-5 w-5" aria-hidden />
         </button>
@@ -1743,9 +1709,9 @@ function PreviewColumn({
         onClick={onToggleCollapsed}
         aria-label={showLabel}
         title={showLabel}
-        className="hidden w-10 shrink-0 flex-col items-center gap-1 border-l border-navy-200 bg-white py-3 lg:flex"
+        className="hidden w-10 shrink-0 flex-col items-center gap-1 border-l border-line-quiet bg-surface-raised py-3 lg:flex"
       >
-        <PanelRightClose className="h-5 w-5 rotate-180 text-navy-700" aria-hidden />
+        <PanelRightClose className="h-5 w-5 rotate-180 text-ink-body" aria-hidden />
         {unseen && <span aria-hidden className="h-2 w-2 rounded-full bg-yellow-400" />}
       </button>
     );
@@ -1756,7 +1722,7 @@ function PreviewColumn({
       ref={innerRef}
       aria-label={previewLabel}
       style={{ width: `${width}px` }}
-      className="relative hidden min-h-0 shrink-0 flex-col border-l border-navy-200 bg-white lg:flex"
+      className="relative hidden min-h-0 shrink-0 flex-col border-l border-line-quiet bg-surface-raised lg:flex"
     >
       <div
         role="separator"
@@ -1768,13 +1734,13 @@ function PreviewColumn({
         onPointerCancel={onResizeUp}
         className="absolute inset-y-0 left-0 z-10 w-2 -translate-x-1/2 cursor-col-resize touch-none"
       />
-      <div className="flex shrink-0 justify-start border-b border-navy-200 p-1">
+      <div className="flex shrink-0 justify-start border-b border-line-quiet p-1">
         <button
           type="button"
           onClick={onToggleCollapsed}
           aria-label={hideLabel}
           title={hideLabel}
-          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-navy-700 transition-colors hover:bg-navy-50 hover:text-navy-900"
+          className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-ink-body transition-colors hover:bg-surface-neutral hover:text-ink-strong"
         >
           <PanelRightClose className="h-5 w-5" aria-hidden />
         </button>
@@ -1930,19 +1896,19 @@ function HistoryPanel({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="fixed inset-0 m-0 flex h-full w-full max-w-none flex-col border-0 bg-white p-0 backdrop:bg-navy-900/40 sm:inset-y-0 sm:left-auto sm:h-full sm:w-96 sm:max-w-[90vw] sm:rounded-l-2xl"
+      className="fixed inset-0 m-0 flex h-full w-full max-w-none flex-col border-0 bg-surface-raised p-0 backdrop:bg-overlay-strong/40 sm:inset-y-0 sm:left-auto sm:h-full sm:w-96 sm:max-w-[90vw] sm:rounded-l-2xl"
     >
-      <div className="flex shrink-0 items-center gap-3 border-b border-navy-200 px-4 py-2">
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-navy-900">{label}</p>
+      <div className="flex shrink-0 items-center gap-3 border-b border-line-quiet px-4 py-2">
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-strong">{label}</p>
         <button
           type="button"
           onClick={dismiss}
-          className="min-h-11 shrink-0 text-sm font-semibold text-navy-800 underline underline-offset-4"
+          className="min-h-11 shrink-0 text-sm font-semibold text-ink-strong underline underline-offset-4"
         >
           {t("agent.room.closeHistory")}
         </button>
       </div>
-      <div className="flex shrink-0 gap-1 border-b border-navy-200 px-4 pt-2">
+      <div className="flex shrink-0 gap-1 border-b border-line-quiet px-4 pt-2">
         {(
           [
             ["history", label],
@@ -1955,7 +1921,7 @@ function HistoryPanel({
             aria-current={panelTab === which ? "page" : undefined}
             onClick={() => setPanelTab(which)}
             className={`relative min-h-10 rounded-t-lg px-3 text-sm transition-colors ${
-              panelTab === which ? "font-semibold text-navy-900" : "text-navy-500 hover:text-navy-800"
+              panelTab === which ? "font-semibold text-ink-strong" : "text-ink-muted hover:text-ink-strong"
             }`}
           >
             {name}
@@ -1973,7 +1939,7 @@ function HistoryPanel({
             onChange={(event) => setQ(event.target.value)}
             placeholder={t("agent.room.searchHistory")}
             aria-label={t("agent.room.searchHistory")}
-            className="min-h-10 w-full rounded-full border border-navy-300 bg-white px-4 text-sm text-navy-900 placeholder:text-navy-500"
+            className="min-h-10 w-full rounded-full border border-line-strong bg-surface-raised px-4 text-sm text-ink-strong placeholder:text-ink-muted"
           />
         </div>
       )}
@@ -1987,7 +1953,7 @@ function HistoryPanel({
               <select
                 value={tripId}
                 onChange={(event) => setTripId(event.target.value)}
-                className="min-h-11 w-full rounded-lg border border-navy-300 bg-white px-3 text-sm text-navy-900"
+                className="min-h-11 w-full rounded-lg border border-line-strong bg-surface-raised px-3 text-sm text-ink-strong"
               >
                 <option value="">{t("agent.room.chooseTrip")}</option>
                 {trips.map((trip) => (
@@ -1999,7 +1965,7 @@ function HistoryPanel({
             </label>
           )}
           {tripDays === null || tripDays.length === 0 ? (
-            <p className="text-sm leading-6 text-navy-700">
+            <p className="text-sm leading-6 text-ink-body">
               {trips.length > 0 && !tripId
                 ? t("agent.room.daysPickTrip")
                 : t("agent.room.daysEmpty")}
@@ -2007,7 +1973,7 @@ function HistoryPanel({
           ) : (
             <>
               {tripTitle && (
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-500">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
                   {tripTitle}
                 </h3>
               )}
@@ -2020,17 +1986,17 @@ function HistoryPanel({
                         onOpenDay({ trip: day.trip, slug: day.slug });
                         dismiss();
                       }}
-                      className="flex w-full items-center gap-3 rounded-xl border border-navy-200 bg-white px-3 py-2 text-left transition-colors hover:bg-navy-50"
+                      className="flex w-full items-center gap-3 rounded-xl border border-line-quiet bg-surface-raised px-3 py-2 text-left transition-colors hover:bg-surface-neutral"
                     >
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium text-navy-900">
+                        <span className="block truncate text-sm font-medium text-ink-strong">
                           {day.title || day.date}
                         </span>
-                        <span className="block text-xs text-navy-500">{day.date}</span>
+                        <span className="block text-xs text-ink-muted">{day.date}</span>
                       </span>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          day.draft ? "bg-yellow-400 text-navy-900" : "bg-green-100 text-green-800"
+                          day.draft ? "bg-yellow-400 text-on-bright" : "bg-green-100 text-green-800"
                         }`}
                       >
                         {day.draft ? t("draft.badge") : t("agent.room.dayOnline")}
@@ -2046,9 +2012,9 @@ function HistoryPanel({
       {panelTab === "history" && (
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {sessions === null ? (
-          <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
+          <p className="text-sm leading-6 text-ink-body">{t("agent.room.historyLoading")}</p>
         ) : days.length === 0 && liveId === null ? (
-          <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyEmpty")}</p>
+          <p className="text-sm leading-6 text-ink-body">{t("agent.room.historyEmpty")}</p>
         ) : (
           <div className="flex flex-col gap-5">
             {/* The conversation you are in, when it has no recorded turns
@@ -2062,11 +2028,11 @@ function HistoryPanel({
               <button
                 type="button"
                 onClick={dismiss}
-                className="block w-full rounded-xl border border-navy-300 bg-navy-50 px-3 py-2 text-left transition-colors hover:bg-navy-100"
+                className="block w-full rounded-xl border border-line-strong bg-surface-neutral px-3 py-2 text-left transition-colors hover:bg-surface-neutral-strong"
               >
-                <p className="truncate text-sm font-medium text-navy-900">
+                <p className="truncate text-sm font-medium text-ink-strong">
                   {t("agent.room.historyThisOne")}
-                  <span className="ml-2 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-navy-900">
+                  <span className="ml-2 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-on-bright">
                     {t("agent.room.historyLive")}
                   </span>
                 </p>
@@ -2074,7 +2040,7 @@ function HistoryPanel({
             )}
             {days.map(({ day, rows }) => (
               <section key={day}>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-navy-500">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-muted">
                   {formatLongDate(day)}
                 </h3>
                 <ul className="flex flex-col gap-1">
@@ -2082,15 +2048,15 @@ function HistoryPanel({
                     <li key={row.session}>
                       <a
                         href={`/agent?c=${encodeURIComponent(row.session)}`}
-                        className="block rounded-xl border border-navy-200 bg-white px-3 py-2 transition-colors hover:bg-navy-50"
+                        className="block rounded-xl border border-line-quiet bg-surface-raised px-3 py-2 transition-colors hover:bg-surface-neutral"
                       >
-                        <p className="truncate text-sm font-medium text-navy-900">
+                        <p className="truncate text-sm font-medium text-ink-strong">
                           {row.opening || t("agent.tool.pastConversationUntitled")}
                         </p>
-                        <p className="text-xs text-navy-500">
+                        <p className="text-xs text-ink-muted">
                           {tn("agent.room.historyTurns", row.turns, { count: String(row.turns) })}
                           {row.session === liveId && (
-                            <span className="ml-2 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-navy-900">
+                            <span className="ml-2 rounded-full bg-yellow-400 px-2 py-0.5 text-[11px] font-semibold text-on-bright">
                               {t("agent.room.historyLive")}
                             </span>
                           )}
@@ -2162,14 +2128,14 @@ function AccountSheet({
       ref={dialog}
       aria-label={label}
       onClose={onClose}
-      className="fixed inset-x-0 bottom-0 top-auto m-0 flex w-full max-w-none flex-col rounded-t-2xl border-0 bg-white p-0 pb-[env(safe-area-inset-bottom)] backdrop:bg-navy-900/40 sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-96 sm:max-w-[90vw] sm:rounded-l-2xl sm:rounded-tr-none"
+      className="fixed inset-x-0 bottom-0 top-auto m-0 flex w-full max-w-none flex-col rounded-t-2xl border-0 bg-surface-raised p-0 pb-[env(safe-area-inset-bottom)] backdrop:bg-overlay-strong/40 sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-96 sm:max-w-[90vw] sm:rounded-l-2xl sm:rounded-tr-none"
     >
-      <div className="flex shrink-0 items-center gap-3 border-b border-navy-200 px-4 py-2">
-        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-navy-900">{label}</p>
+      <div className="flex shrink-0 items-center gap-3 border-b border-line-quiet px-4 py-2">
+        <p className="min-w-0 flex-1 truncate text-sm font-semibold text-ink-strong">{label}</p>
         <button
           type="button"
           onClick={dismiss}
-          className="min-h-11 shrink-0 text-sm font-semibold text-navy-800 underline underline-offset-4"
+          className="min-h-11 shrink-0 text-sm font-semibold text-ink-strong underline underline-offset-4"
         >
           {t("agent.room.closeAccount")}
         </button>
@@ -2180,18 +2146,18 @@ function AccountSheet({
       <div className="min-h-40 flex-1 overflow-y-auto overscroll-contain p-4 sm:min-h-0">
         <div className="flex flex-col gap-4">
           {facts === null ? (
-            <p className="text-sm leading-6 text-navy-700">{t("agent.room.historyLoading")}</p>
+            <p className="text-sm leading-6 text-ink-body">{t("agent.room.historyLoading")}</p>
           ) : (
             facts.credits !== null && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
                   {t("agent.room.accountBalance")}
                 </p>
-                <p className="mt-1 font-display text-2xl font-semibold text-navy-900">
+                <p className="mt-1 font-display text-2xl font-semibold text-ink-strong">
                   {facts.credits.toLocaleString("de-CH", { maximumFractionDigits: 2 })}
                 </p>
                 {facts.monthSpent !== null && (
-                  <p className="mt-1 text-sm text-navy-600">
+                  <p className="mt-1 text-sm text-ink-secondary">
                     {t("agent.room.accountMonth", {
                       count: facts.monthSpent.toLocaleString("de-CH", {
                         maximumFractionDigits: 2,
@@ -2254,12 +2220,12 @@ function StorageLine({ username, refresh }: { username: string; refresh: number 
   return (
     <a
       href={`/${encodeURIComponent(username)}/account`}
-      className="mt-3 block border-t border-navy-100 pt-2.5"
+      className="mt-3 block border-t border-line-faint pt-2.5"
     >
-      <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
         {t("agent.room.accountStorage")}
       </p>
-      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-navy-100">
+      <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-surface-neutral-strong">
         {ceiling !== null && (
           <div
             className="h-full rounded-full bg-yellow-400"
@@ -2267,7 +2233,7 @@ function StorageLine({ username, refresh }: { username: string; refresh: number 
           />
         )}
       </div>
-      <p className="mt-1 text-xs text-navy-600">
+      <p className="mt-1 text-xs text-ink-secondary">
         {ceiling === null
           ? bytesHuman(storage.usedBytes)
           : t("agent.room.accountStorageOf", { used: bytesHuman(storage.usedBytes), ceiling: bytesHuman(ceiling) })}
@@ -2383,7 +2349,7 @@ function FilesPane({
 
   return (
     <div>
-      <p className="text-sm leading-6 text-navy-600">{t("agent.room.filesHint")}</p>
+      <p className="text-sm leading-6 text-ink-secondary">{t("agent.room.filesHint")}</p>
 
       {/**
        * The count is announced by a region that was **there first** — B949.
@@ -2404,7 +2370,7 @@ function FilesPane({
        * only the button, which is a control rather than an announcement,
        * comes and goes.
        */}
-      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-navy-800">
+      <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-ink-strong">
         <span role="status">
           {selected.length > 0
             ? tn("agent.room.selected", selected.length, { count: String(selected.length) })
@@ -2414,14 +2380,14 @@ function FilesPane({
           <button
             type="button"
             onClick={onClear}
-            className="min-h-11 px-1 text-sm text-navy-600 underline underline-offset-4 hover:text-navy-900"
+            className="min-h-11 px-1 text-sm text-ink-secondary underline underline-offset-4 hover:text-ink-strong"
           >
             {t("agent.room.clear")}
           </button>
         )}
       </p>
 
-      {empty && <p className="mt-3 text-sm leading-6 text-navy-700">{t("agent.room.noFiles")}</p>}
+      {empty && <p className="mt-3 text-sm leading-6 text-ink-body">{t("agent.room.noFiles")}</p>}
 
       {/* Above every file rather than below them — B1575. With a long inbox
           already listed, the control used to sit after all of it, out of
@@ -2443,7 +2409,7 @@ function FilesPane({
       {menu && (
         <div
           role="menu"
-          className="fixed z-50 w-52 rounded-xl border border-navy-200 bg-white p-1.5 shadow-lg"
+          className="fixed z-50 w-52 rounded-xl border border-line-quiet bg-surface-raised p-1.5 shadow-lg"
           style={{ left: menu.x, top: menu.y }}
         >
           {subject && (
@@ -2458,7 +2424,7 @@ function FilesPane({
                   files: menu.id.replace(/^inbox:/, ""),
                 });
               }}
-              className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-navy-800 hover:bg-navy-50"
+              className="block w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-ink-strong hover:bg-surface-neutral"
             >
               {t("agent.room.menuAttach")}
             </button>
@@ -2523,13 +2489,13 @@ function FilesPane({
       {files.trips.length > 0 && (
         <div className="mt-4">
           <label className="block">
-            <span className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+            <span className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
               {t("agent.room.tripPhotosHeading")}
             </span>
             <select
               value={tripId}
               onChange={(event) => setTripId(event.target.value)}
-              className="mt-1.5 min-h-11 w-full rounded-lg border border-navy-300 bg-white px-3 text-sm text-navy-900"
+              className="mt-1.5 min-h-11 w-full rounded-lg border border-line-strong bg-surface-raised px-3 text-sm text-ink-strong"
             >
               <option value="">{t("agent.room.chooseTrip")}</option>
               {files.trips.map((trip) => (
@@ -2539,9 +2505,9 @@ function FilesPane({
               ))}
             </select>
           </label>
-          {loadingTrip && <p className="mt-2 text-sm text-navy-700">{t("agent.room.historyLoading")}</p>}
+          {loadingTrip && <p className="mt-2 text-sm text-ink-body">{t("agent.room.historyLoading")}</p>}
           {!loadingTrip && tripPhotos !== null && tripPhotos.length === 0 && (
-            <p className="mt-2 text-sm text-navy-700">{t("agent.room.tripPhotosEmpty")}</p>
+            <p className="mt-2 text-sm text-ink-body">{t("agent.room.tripPhotosEmpty")}</p>
           )}
           {!loadingTrip && tripPhotos !== null && tripPhotos.length > 0 && (
             <Group heading={t("agent.room.onTrip", { trip: tripTitle })}>
@@ -2614,13 +2580,13 @@ function FilesStrip({
               ? tn("agent.room.selected", selected.length, { count: String(selected.length) })
               : t("agent.room.files")
           }
-          className="mb-2 flex h-[50px] w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-navy-200 bg-white p-1"
+          className="mb-2 flex h-[50px] w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-line-quiet bg-surface-raised p-1"
         >
           {items.map((file) => (
             <span
               key={file.id}
-              className={`relative block h-full w-[42px] shrink-0 overflow-hidden rounded-md border bg-white ${
-                selected.includes(file.id) ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200"
+              className={`relative block h-full w-[42px] shrink-0 overflow-hidden rounded-md border bg-surface-raised ${
+                selected.includes(file.id) ? "border-line-ink ring-2 ring-blue-500" : "border-line-quiet"
               }`}
             >
               {file.src ? (
@@ -2750,12 +2716,12 @@ function UploadPanel({
   }
 
   return (
-    <section className="mt-4 border-t border-navy-200 pt-4">
+    <section className="mt-4 border-t border-line-quiet pt-4">
       {/* Named apart from the "Photographs" heading above it — B1272. Both
        *  used to read "Photographs"/"Photographs and files", near enough
        *  alike that the waiting grid and the control that adds to it looked
        *  like one list and a bigger one. */}
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-600">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
         {t("agent.room.addFiles")}
       </h2>
 
@@ -2789,7 +2755,7 @@ function UploadPanel({
           />
           <label
             htmlFor={`${pickerId}-camera`}
-            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-navy-300 bg-white px-5 text-base font-semibold text-navy-800 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
+            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line-strong bg-surface-raised px-5 text-base font-semibold text-ink-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
           >
             {t("agent.room.camera")}
           </label>
@@ -2800,13 +2766,13 @@ function UploadPanel({
        *  standalone inbox page) quotes "What is waiting", which is only ever
        *  a heading there; this room groups the same wait under "Photographs"
        *  and "Documents" (`InboxFileGroups`) instead. */}
-      <p className="mt-2 text-sm leading-6 text-navy-600">{t("agent.room.pickAnyFile")}</p>
+      <p className="mt-2 text-sm leading-6 text-ink-secondary">{t("agent.room.pickAnyFile")}</p>
 
       {/* Mounted from the first render, empty until there is something to
        *  say — B949 again, in the pane that taught this file the rule the
        *  first time. A live region created at the same moment as its first
        *  content is one a screen reader may never have been watching. */}
-      <p role="status" aria-live="polite" className="mt-2 text-sm leading-6 text-navy-800">
+      <p role="status" aria-live="polite" className="mt-2 text-sm leading-6 text-ink-strong">
         {busy
           ? t("agent.askWorking")
           : landedCount > 0
@@ -2826,7 +2792,7 @@ function UploadPanel({
 function Group({ heading, children }: { heading: string; children: React.ReactNode }) {
   return (
     <section className="mt-4">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-navy-600">{heading}</h2>
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">{heading}</h2>
       <ul className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3">{children}</ul>
     </section>
   );
@@ -2847,8 +2813,8 @@ function Tile({
   return (
     <li>
       <label
-        className={`flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-white focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-navy-800 ${
-          on ? "border-navy-800 ring-2 ring-navy-800" : "border-navy-200"
+      className={`flex cursor-pointer flex-col overflow-hidden rounded-lg border bg-surface-raised focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-blue-500 ${
+          on ? "border-line-ink ring-2 ring-blue-500" : "border-line-quiet"
         }`}
       >
         <input
@@ -2857,7 +2823,7 @@ function Tile({
           onChange={() => onToggle(file.id)}
           className="sr-only"
         />
-        <span className="relative block aspect-square bg-cream-200">
+        <span className="relative block aspect-square bg-surface-muted">
           {file.src ? (
             <Image
               src={file.src}
@@ -2873,7 +2839,7 @@ function Tile({
             </span>
           )}
         </span>
-        <span className="truncate px-1 py-1 text-[11px] leading-4 text-navy-800">{file.name}</span>
+        <span className="truncate px-1 py-1 text-[11px] leading-4 text-ink-strong">{file.name}</span>
       </label>
     </li>
   );
@@ -2899,7 +2865,7 @@ function PreviewPane({
 
   if (!preview) {
     return (
-      <p role="status" className="text-sm leading-6 text-navy-700">
+      <p role="status" className="text-sm leading-6 text-ink-body">
         {reading ? t("agent.room.previewReading") : t("agent.room.previewEmpty")}
       </p>
     );

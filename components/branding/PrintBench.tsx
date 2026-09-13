@@ -36,10 +36,10 @@ export default function PrintBench() {
   return (
     <div className="mx-auto max-w-4xl space-y-14 px-4 py-10 sm:px-6">
       <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong">
           Print geometry
         </h1>
-        <p className="mt-3 max-w-2xl text-navy-700">
+        <p className="mt-3 max-w-2xl text-ink-body">
           The millimetres a printer works to, drawn from the same constants the renderers
           use. Nothing here has content in it: a photograph in the wrong place is a
           question for the previews inside a journal, and a <em>margin</em> in the wrong
@@ -56,7 +56,7 @@ export default function PrintBench() {
 
 function Legend() {
   return (
-    <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-navy-700">
+    <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-ink-body">
       {[
         ["bleed", INK.bleed, "artwork runs to here and is cut away"],
         ["trim", INK.trim, "the finished edge"],
@@ -69,8 +69,8 @@ function Legend() {
             style={{ background: colour as string }}
             aria-hidden
           />
-          <span className="font-display font-semibold text-navy-900">{label}</span>
-          <span className="text-navy-500">{note}</span>
+          <span className="font-display font-semibold text-ink-strong">{label}</span>
+          <span className="text-ink-muted">{note}</span>
         </li>
       ))}
     </ul>
@@ -90,7 +90,7 @@ function Postcard() {
       source="lib/postcard/spec.ts · lib/postcard/preview.ts"
     >
       <div
-        className="relative w-full overflow-hidden rounded-lg border-2 bg-cream-50"
+        className="relative w-full overflow-hidden rounded-lg border-2 bg-surface-base"
         style={{ aspectRatio: l.aspect, borderColor: INK.bleed }}
       >
         <Box box={l.trim} colour={INK.trim} label="trim" />
@@ -103,7 +103,7 @@ function Postcard() {
           aria-hidden
         />
       </div>
-      <p className="mt-3 text-sm text-navy-600">
+      <p className="mt-3 text-sm text-ink-secondary">
         The address block and the stamp area are where the sorting machine looks. Their
         position is a postal specification — moving them to balance the card is the one
         change on this page that would be rejected by a machine rather than by a person.
@@ -124,11 +124,11 @@ function Spread() {
       note={`${spec.size.trimWidthMm} × ${spec.size.trimHeightMm} mm trim · ${spec.bleedMm} mm bleed · ${spec.safeMm} mm safe · ${spec.gutterMm} mm gutter · ${spec.dpi} dpi`}
       source="lib/photobook/spec.ts"
     >
-      <div className="flex justify-center gap-1 rounded-lg border border-navy-200 bg-cream-100 p-4">
+      <div className="flex justify-center gap-1 rounded-lg border border-line-quiet bg-surface-subtle p-4">
         <Page spec={spec} side="left" />
         <Page spec={spec} side="right" />
       </div>
-      <p className="mt-3 text-sm text-navy-600">
+      <p className="mt-3 text-sm text-ink-secondary">
         The inner margin is wider than the outer one, and that asymmetry is the whole
         point of drawing both pages: the gutter is where the binding swallows the paper,
         so a face centred on the page is a face half in the spine.
@@ -146,7 +146,7 @@ function Page({ spec, side }: { spec: BookSpec; side: PageSide }) {
   return (
     <div className="flex-1">
       <div
-        className="relative w-full border-2 bg-white"
+        className="relative w-full border-2 bg-surface-raised"
         style={{ aspectRatio: `${w} / ${h}`, borderColor: INK.trim }}
       >
         <div
@@ -159,12 +159,12 @@ function Page({ spec, side }: { spec: BookSpec; side: PageSide }) {
             borderColor: INK.safe,
           }}
         >
-          <span className="absolute left-1 top-1 font-mono text-[10px] text-navy-600">
+          <span className="absolute left-1 top-1 font-mono text-[10px] text-ink-secondary">
             content
           </span>
         </div>
       </div>
-      <p className="mt-1 text-center font-mono text-[11px] text-navy-600">
+      <p className="mt-1 text-center font-mono text-[11px] text-ink-secondary">
         {side} page · gutter {side === "right" ? "left" : "right"}
       </p>
     </div>
@@ -187,7 +187,7 @@ function Box({
       className="absolute border-2 border-dashed"
       style={{ ...box, borderColor: colour }}
     >
-      <span className="absolute left-1 top-0.5 font-mono text-[10px] text-navy-700">
+      <span className="absolute left-1 top-0.5 font-mono text-[10px] text-ink-body">
         {label}
       </span>
     </div>
@@ -207,9 +207,9 @@ function Section({
 }) {
   return (
     <section>
-      <h2 className="font-display text-xl font-semibold tracking-tight text-navy-900">{title}</h2>
-      <p className="mt-1 font-mono text-xs text-navy-600">{note}</p>
-      <p className="font-mono text-xs text-navy-500">{source}</p>
+      <h2 className="font-display text-xl font-semibold tracking-tight text-ink-strong">{title}</h2>
+      <p className="mt-1 font-mono text-xs text-ink-secondary">{note}</p>
+      <p className="font-mono text-xs text-ink-muted">{source}</p>
       <div className="mt-4">{children}</div>
     </section>
   );

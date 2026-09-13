@@ -132,12 +132,12 @@ export function PhotoPicker({
         htmlFor={id}
         // Quiet on both screens: the bright thing on a step is the one that
         // moves a person on from it, and there is only ever one — B767.
-        className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-navy-300 bg-cream-100 px-5 text-base font-semibold text-navy-800 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
+        className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line-strong bg-surface-subtle px-5 text-base font-semibold text-ink-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
       >
         {t("agent.chooseFiles")}
       </label>
       {!bare && showChosen && (
-        <p className="mt-2 text-sm text-navy-700">
+        <p className="mt-2 text-sm text-ink-body">
           {chosen.length === 0 ? t("agent.noneChosen") : t("agent.chosenParts", { parts })}
         </p>
       )}
@@ -146,7 +146,7 @@ export function PhotoPicker({
           import feature is advertised, and a sentence about the inbox on a
           screen holding twelve photographs is noise. */}
       {kinds.files > 0 && (
-        <p role="status" className="mt-1 text-sm leading-6 text-navy-700">
+        <p role="status" className="mt-1 text-sm leading-6 text-ink-body">
           {t("agent.filesToInbox")}
         </p>
       )}
@@ -155,7 +155,7 @@ export function PhotoPicker({
           is welcome. Only where anything else *is* welcome, though (B1012):
           it names the inbox, and a narrowed picker has no inbox behind it. */}
       {!bare && accept === PICKER_ACCEPT && (
-        <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.pickAnyFile")}</p>
+        <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("agent.pickAnyFile")}</p>
       )}
     </div>
   );

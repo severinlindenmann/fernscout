@@ -213,7 +213,7 @@ export default function TripsIndexContent({
     <div className="min-h-screen">
       <PageHeader />
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("trips.title")}
         </h1>
         {/* Owner-only, and independent of the empty state: a journal whose only
@@ -244,7 +244,7 @@ export default function TripsIndexContent({
           map
         ) : (
           <>
-            <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.subtitle")}</p>
+            <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{t("trips.subtitle")}</p>
 
             <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {/* `tn`, not `t`: one country is a country. */}
@@ -264,7 +264,7 @@ export default function TripsIndexContent({
               if (group.length === 0) return null;
               return (
                 <section key={status} className="mt-10">
-                  <h2 className="font-display text-xl font-semibold text-navy-900">{t(key)}</h2>
+                  <h2 className="font-display text-xl font-semibold text-ink-strong">{t(key)}</h2>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     {group.map((trip) => (
                       <TripCard key={trip.id} trip={trip} />
@@ -305,18 +305,18 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
       data-malformed-trips
       className="mt-6 flex items-start gap-3 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3"
     >
-      <FileWarning className="mt-0.5 h-5 w-5 shrink-0 text-navy-900" aria-hidden />
+      <FileWarning className="mt-0.5 h-5 w-5 shrink-0 text-on-bright" aria-hidden />
       <div className="min-w-0">
-        <p className="font-display text-base font-semibold text-navy-900">
+        <p className="font-display text-base font-semibold text-on-bright">
           {tn("trips.malformedTitle", malformed.length)}
         </p>
-        <p className="mt-1 text-sm leading-6 text-navy-900">
+        <p className="mt-1 text-sm leading-6 text-on-bright">
           {tn("trips.malformedIntro", malformed.length)}
         </p>
         <ul className="mt-3 space-y-2">
           {malformed.map((m) => (
-            <li key={m.folder} className="text-sm text-navy-900">
-              <code className="rounded bg-white px-1.5 py-0.5 font-mono text-xs text-navy-900">
+            <li key={m.folder} className="text-sm text-ink-strong">
+              <code className="rounded bg-surface-raised px-1.5 py-0.5 font-mono text-xs text-ink-strong">
                 trips/{m.folder}/trip.md
               </code>{" "}
               {/* The reason, in the journal's language. `m.problem` is the
@@ -378,13 +378,13 @@ function EmptyState({ empty, codeMinutes, whatsappSignIn }: { empty: EmptyJourna
 
   return (
     <>
-      <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-        <h2 className="font-display text-xl font-semibold text-navy-900">{title}</h2>
-        <p className="mt-2 max-w-2xl text-lg leading-8 text-navy-700">{body}</p>
+      <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
+        <h2 className="font-display text-xl font-semibold text-ink-strong">{title}</h2>
+        <p className="mt-2 max-w-2xl text-lg leading-8 text-ink-body">{body}</p>
         {/* Not shown for the filtered state: there is no first day to hand an
             agent for, the owner already has a trip — it just is not listed. */}
         {empty.owner && !empty.filtered && (
-          <div className="mt-6 border-t border-navy-200 pt-5">
+          <div className="mt-6 border-t border-line-quiet pt-5">
             <AgentHandover username={username} siteUrl={empty.siteUrl} />
           </div>
         )}
@@ -424,25 +424,25 @@ function LockedTrips({ trips }: { trips: LockedTripData[] }) {
 
   return (
     <section className="mt-10">
-      <h2 className="font-display text-xl font-semibold text-navy-900">{t("trips.lockedTitle")}</h2>
-      <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("trips.lockedSubtitle")}</p>
+      <h2 className="font-display text-xl font-semibold text-ink-strong">{t("trips.lockedTitle")}</h2>
+      <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{t("trips.lockedSubtitle")}</p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {trips.map((trip) => (
           <Link
             key={trip.id}
             href={`${base}/trips/${trip.id}`}
-            className="flex flex-col gap-2 rounded-2xl border border-dashed border-navy-300 bg-cream-100 p-5 transition-shadow hover:shadow-md"
+            className="flex flex-col gap-2 rounded-2xl border border-dashed border-line-strong bg-surface-subtle p-5 transition-shadow hover:shadow-md"
           >
             <div className="flex items-center gap-2">
-              <Lock aria-hidden className="h-4 w-4 shrink-0 text-navy-500" />
-              <h3 className="font-display text-lg font-semibold text-navy-900">
+              <Lock aria-hidden className="h-4 w-4 shrink-0 text-ink-muted" />
+              <h3 className="font-display text-lg font-semibold text-ink-strong">
                 {localizedTrip(trip).title}
               </h3>
             </div>
-            <p className="text-xs text-navy-600">
+            <p className="text-xs text-ink-secondary">
               {formatLongDate(trip.start)} — {formatLongDate(trip.end)}
             </p>
-            <p className="text-sm text-navy-600">{t("trips.lockedCard")}</p>
+            <p className="text-sm text-ink-secondary">{t("trips.lockedCard")}</p>
           </Link>
         ))}
       </div>
@@ -464,10 +464,10 @@ function TripCard({ trip }: { trip: TripCardData }) {
   return (
     <Link
       href={href}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-navy-200 bg-white transition-shadow hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised transition-shadow hover:shadow-md"
     >
       {trip.cover && (
-        <span className="relative block h-40 w-full shrink-0 overflow-hidden bg-cream-200 sm:h-48">
+        <span className="relative block h-40 w-full shrink-0 overflow-hidden bg-surface-muted sm:h-48">
           <Image
             src={trip.cover}
             loader={mediaLoader}
@@ -485,10 +485,10 @@ function TripCard({ trip }: { trip: TripCardData }) {
             className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ backgroundColor: ACCENT_HEX[trip.accent] }}
           />
-          <h3 className="font-display text-lg font-semibold text-navy-900">{title}</h3>
+          <h3 className="font-display text-lg font-semibold text-ink-strong">{title}</h3>
         </div>
-        {tagline && <p className="text-sm text-navy-600">{tagline}</p>}
-        <p className="text-xs text-navy-600">
+        {tagline && <p className="text-sm text-ink-secondary">{tagline}</p>}
+        <p className="text-xs text-ink-secondary">
           {formatLongDate(trip.start)} — {formatLongDate(trip.end)}
           {" · "}
           {startYear === endYear ? startYear : `${startYear}–${endYear}`}
@@ -497,7 +497,7 @@ function TripCard({ trip }: { trip: TripCardData }) {
         {trip.status === "upcoming" ? (
           <CountdownLine start={trip.start} />
         ) : (
-          <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-navy-600">
+          <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-secondary">
             <CardStat label={tn("map.days", trip.tripDays)} value={trip.tripDays} />
             <CardStat label={tn("map.countries", trip.countries)} value={trip.countries} />
             <CardStat label={tn("map.media", trip.totalMedia)} value={trip.totalMedia} />
@@ -523,7 +523,7 @@ function CountdownLine({ start }: { start: string }) {
   }, [start]);
 
   return (
-    <p className="mt-1 min-h-[1.25rem] text-xs font-semibold text-navy-700">
+    <p className="mt-1 min-h-[1.25rem] text-xs font-semibold text-ink-body">
       {away !== null &&
         (away === 0
           ? t("trips.today")
@@ -537,7 +537,7 @@ function CountdownLine({ start }: { start: string }) {
 function CardStat({ label, value }: { label: string; value: number }) {
   return (
     <div>
-      <dd className="inline font-semibold text-navy-700">{value}</dd>{" "}
+      <dd className="inline font-semibold text-ink-body">{value}</dd>{" "}
       <dt className="inline">{label}</dt>
     </div>
   );
@@ -545,9 +545,9 @@ function CardStat({ label, value }: { label: string; value: number }) {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-navy-200 bg-white px-4 py-3">
-      <dt className="text-xs text-navy-600">{label}</dt>{" "}
-      <dd className="font-display text-2xl font-semibold text-navy-900">{value}</dd>
+    <div className="rounded-xl border border-line-quiet bg-surface-raised px-4 py-3">
+      <dt className="text-xs text-ink-secondary">{label}</dt>{" "}
+      <dd className="font-display text-2xl font-semibold text-ink-strong">{value}</dd>
     </div>
   );
 }

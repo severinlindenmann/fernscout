@@ -75,7 +75,7 @@ function Panel({
           stays in the accessibility tree either way, which is what gives a
           screen reader its landmark. */}
       <h2
-        className={`font-display text-lg font-semibold text-navy-900 ${
+        className={`font-display text-lg font-semibold text-ink-strong ${
           stepped ? "sr-only" : "mb-3 mt-8 first:mt-0"
         }`}
       >
@@ -150,13 +150,13 @@ export default function PostcardSteps({
 
   const head = opening ? (
     <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">
         {opening.eyebrow}
       </p>
-      <h1 className="mt-1 font-display text-2xl font-semibold text-navy-900">
+      <h1 className="mt-1 font-display text-2xl font-semibold text-ink-strong">
         {opening.title}
       </h1>
-      <p className="mt-2 text-sm text-navy-600">{opening.body}</p>
+      <p className="mt-2 text-sm text-ink-secondary">{opening.body}</p>
     </div>
   ) : null;
 
@@ -189,7 +189,7 @@ export default function PostcardSteps({
                 className={`inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full border px-2 text-xs font-bold uppercase tracking-wider transition-colors sm:flex-none sm:px-4 ${
                   active
                     ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                    : "border-navy-200 bg-white text-navy-500 hover:border-navy-400"
+                    : "border-line-quiet bg-surface-raised text-ink-muted hover:border-line-prominent"
                 }`}
               >
                 {/* The number is not decoration: these are steps in an order,
@@ -197,7 +197,7 @@ export default function PostcardSteps({
                     is otherwise three words. */}
                 <span
                   aria-hidden="true"
-                  className={`font-mono text-[0.65rem] ${active ? "text-yellow-950/60" : "text-navy-400"}`}
+                  className={`font-mono text-[0.65rem] ${active ? "text-yellow-950/60" : "text-ink-faint"}`}
                 >
                   {i + 1}
                 </span>

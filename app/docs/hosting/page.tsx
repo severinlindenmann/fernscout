@@ -34,8 +34,8 @@ export default async function HostingPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">Hosting</h1>
-      <p className="mt-3 text-lg leading-relaxed text-navy-700">
+      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">Hosting</h1>
+      <p className="mt-3 text-lg leading-relaxed text-ink-body">
         A VPS, Node and Caddy, one deploy script. A public journal needs no
         database, and every optional capability — mail, sign-in, guests, push,
         print — is off by default.
@@ -45,12 +45,12 @@ export default async function HostingPage() {
         <DocsNav locale={locale} entries={docsNavEntries()} current="/docs/hosting" />
       </div>
 
-      <div className="mt-8 border-t border-navy-200 pt-8">
-        <pre className="overflow-x-auto rounded-xl bg-navy-900 p-4 text-sm text-cream-50">
+      <div className="mt-8 border-t border-line-quiet pt-8">
+        <pre className="overflow-x-auto rounded-xl bg-overlay-strong p-4 text-sm text-overlay-ink">
           <code>{"npm install\nnpm run dev            # http://localhost:3000"}</code>
         </pre>
         {site.repository && (
-          <p className="mt-3 text-sm text-navy-600">
+          <p className="mt-3 text-sm text-ink-secondary">
             Deploying to a VPS is a longer walk — see{" "}
             <a
               href={`${site.repository}/blob/main/docs/runbook.md`}
@@ -62,10 +62,10 @@ export default async function HostingPage() {
           </p>
         )}
 
-        <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">
+        <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">
           What a day looks like
         </h2>
-        <p className="mt-2 text-navy-700">
+        <p className="mt-2 text-ink-body">
           One markdown file per update, carrying whatever fields are actually
           known. An empty field beats a guessed one.
         </p>
@@ -73,7 +73,7 @@ export default async function HostingPage() {
           <EntryContent markdown={dayEntry} />
         </div>
 
-        <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">What you get</h2>
+        <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">What you get</h2>
         <div className="mt-2">
           <EntryContent markdown={looks} />
         </div>

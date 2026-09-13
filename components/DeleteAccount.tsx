@@ -58,11 +58,11 @@ export default function DeleteAccount({ username }: { username: string }) {
   }
 
   return (
-    <section className="mt-8 border-t border-navy-200 pt-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">
+    <section className="mt-8 border-t border-line-quiet pt-6">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
         {t("me.deleteTitle")}
       </h2>
-      <p className="mt-2 text-base leading-7 text-navy-700">{t("me.deleteBody")}</p>
+      <p className="mt-2 text-base leading-7 text-ink-body">{t("me.deleteBody")}</p>
 
       {sentTo ? (
         /* The only honest confirmation: a mail is waiting, and nothing has
@@ -70,7 +70,7 @@ export default function DeleteAccount({ username }: { username: string }) {
            mail supersedes the first link (see `requestDeletion`), so offering
            to send another straight away is offering to invalidate the one they
            are about to open. */
-        <p role="status" className="mt-4 text-base leading-7 text-navy-900">
+        <p role="status" className="mt-4 text-base leading-7 text-ink-strong">
           {t("me.deleteSent", { email: sentTo, minutes })}
         </p>
       ) : inventory ? (
@@ -98,7 +98,7 @@ export default function DeleteAccount({ username }: { username: string }) {
           <button
             type="button"
             onClick={() => void press()}
-            className="mt-4 inline-flex min-h-11 items-center rounded-full border border-coral-600 px-5 text-base font-semibold text-coral-600 transition-colors hover:bg-cream-100"
+            className="mt-4 inline-flex min-h-11 items-center rounded-full border border-coral-600 px-5 text-base font-semibold text-coral-600 transition-colors hover:bg-surface-subtle"
           >
             {t("me.deleteButton")}
           </button>

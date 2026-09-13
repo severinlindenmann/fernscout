@@ -40,7 +40,7 @@ export default function DocsNav({
         const active = entry.href === current;
         return (
           <span key={entry.href} className="flex items-center gap-1">
-            {entry.startsGroup && <span aria-hidden className="mx-1 h-4 w-px bg-navy-200" />}
+            {entry.startsGroup && <span aria-hidden className="mx-1 h-4 w-px bg-surface-selected" />}
             <Link
               href={entry.href}
               aria-current={active ? "page" : undefined}
@@ -49,7 +49,7 @@ export default function DocsNav({
                           focus-visible:outline-blue-500 ${
                             active
                               ? "bg-yellow-400 text-yellow-950"
-                              : "text-navy-700 hover:bg-cream-100 hover:text-navy-900"
+                              : "text-ink-body hover:bg-surface-subtle hover:text-ink-strong"
                           }`}
             >
               {translateIn(locale, entry.labelKey)}

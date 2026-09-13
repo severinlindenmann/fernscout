@@ -309,21 +309,21 @@ export default function BookLevelView({
              (B1486). The inline style is what the aspect ratio has always
              been set with, so the switch belongs here rather than in a class. */
           style={wide ? { height: "70vh" } : { aspectRatio: String(preview?.ratio ?? 2) }}
-          className="w-full border-0 bg-cream-100 sm:rounded-xl"
+          className="w-full border-0 bg-surface-subtle sm:rounded-xl"
           title={t("photobook.title")}
         />
       </div>
 
-      <p className="mt-3 text-sm font-semibold text-navy-900">
+      <p className="mt-3 text-sm font-semibold text-ink-strong">
         {summary ?? " "}
       </p>
-      <p className="mt-1 text-xs text-navy-600">
+      <p className="mt-1 text-xs text-ink-secondary">
         {t("photobook.composer.tapHint")}
       </p>
       {/* Said only where a keyboard exists — a hint about arrow keys on a
           phone is noise. B561. */}
       {hasKeyboard && (
-        <p className="mt-1 text-xs text-navy-600">
+        <p className="mt-1 text-xs text-ink-secondary">
           {t("photobook.composer.keyHint")}
         </p>
       )}
@@ -341,7 +341,7 @@ export default function BookLevelView({
           type="button"
           onClick={() => setReading(true)}
           disabled={!preview}
-          className="min-h-11 w-full rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          className="min-h-11 w-full rounded-full border-2 border-action-strong px-5 text-sm font-semibold text-ink-strong transition-colors hover:bg-action-strong-hover hover:text-on-action disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           {t("photobook.read.open")}
         </button>
@@ -355,7 +355,7 @@ export default function BookLevelView({
           {t("photobook.orderHeading")}
         </button>
       </div>
-      <p className="mt-1 text-xs text-navy-600">
+      <p className="mt-1 text-xs text-ink-secondary">
         {t("photobook.read.openHint")}
       </p>
 
@@ -397,11 +397,11 @@ export default function BookLevelView({
 
       {/* The nine settings, behind one entry — B548. Still every one of them,
           and one tap away rather than in front of the book. */}
-      <details open={wide} className="mt-5 rounded-lg border border-navy-200 bg-white px-3 py-3 lg:mt-0">
-        <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-navy-800">
+      <details open={wide} className="mt-5 rounded-lg border border-line-quiet bg-surface-raised px-3 py-3 lg:mt-0">
+        <summary className="min-h-11 cursor-pointer content-center text-sm font-semibold text-ink-strong">
           {t("photobook.composer.bookSettings")}
         </summary>
-        <p className="mt-1 text-xs text-navy-600">
+        <p className="mt-1 text-xs text-ink-secondary">
           {t("photobook.composer.bookSettingsHint")}
         </p>
         <div className="mt-3">
@@ -425,15 +425,15 @@ export default function BookLevelView({
           understands, and what happens after the button — B551. */}
       <div
         id="photobook-order"
-        className="mt-5 scroll-mt-4 rounded-xl border-2 border-navy-900 bg-cream-100 p-4"
+        className="mt-5 scroll-mt-4 rounded-xl border-2 border-action-strong bg-surface-subtle p-4"
       >
-        <h2 className="font-display text-lg font-semibold text-navy-900">
+        <h2 className="font-display text-lg font-semibold text-ink-strong">
           {t("photobook.orderHeading")}
         </h2>
-        {summary && <p className="mt-1 text-sm text-navy-700">{summary}</p>}
+        {summary && <p className="mt-1 text-sm text-ink-body">{summary}</p>}
         {/* The one thing about the printed object nobody sees until it
             arrives — B642. */}
-        <p className="mt-1 text-sm text-navy-600">
+        <p className="mt-1 text-sm text-ink-secondary">
           {/* The owner's own words when they have written any — the same
               precedence `spineTextFor` applies on the cover itself, so the
               sentence above the button says what will actually be printed.
@@ -456,16 +456,16 @@ export default function BookLevelView({
                 component and cannot ask the disk the way the order page
                 does. */}
             {options.cover && !coverGone && (
-              <div className="overflow-hidden rounded-xl border border-navy-200 bg-white">
+              <div className="overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={options.cover}
                   alt={t("order.object.cover")}
                   onError={() => setCoverGone(true)}
-                  className="block w-full bg-navy-50"
+                  className="block w-full bg-surface-neutral"
                 />
-                <p className="px-3 py-2 text-xs text-navy-600">
-                  <span className="block font-semibold uppercase tracking-wider text-navy-500">
+                <p className="px-3 py-2 text-xs text-ink-secondary">
+                  <span className="block font-semibold uppercase tracking-wider text-ink-muted">
                     {t("order.object.cover")}
                   </span>
                   {summary}
@@ -489,7 +489,7 @@ export default function BookLevelView({
             />
             {recipients.length > 1 && (
               <details className="mt-2" open={!recipient.self}>
-                <summary className="min-h-11 cursor-pointer content-center text-sm text-navy-600">
+                <summary className="min-h-11 cursor-pointer content-center text-sm text-ink-secondary">
                   {t("photobook.print.elsewhere")}
                 </summary>
                 <fieldset className="mt-1">
@@ -498,7 +498,7 @@ export default function BookLevelView({
                     {recipients.map((r) => (
                       <label
                         key={r.id}
-                        className="flex items-start gap-2 rounded-lg border-2 border-navy-200 px-3 py-2 text-sm has-[:checked]:border-navy-900 has-[:checked]:bg-cream-50"
+                        className="flex items-start gap-2 rounded-lg border-2 border-line-quiet px-3 py-2 text-sm has-[:checked]:border-action-strong has-[:checked]:bg-surface-base"
                       >
                         <input
                           type="radio"
@@ -508,8 +508,8 @@ export default function BookLevelView({
                           className="mt-1"
                         />
                         <span>
-                          <span className="block font-semibold text-navy-900">{r.name}</span>
-                          <span className="block text-navy-700">
+                          <span className="block font-semibold text-ink-strong">{r.name}</span>
+                          <span className="block text-ink-body">
                             {addressLines(r.address).join(", ")}
                           </span>
                         </span>
@@ -524,7 +524,7 @@ export default function BookLevelView({
           // No envelope, no purchase: a printed book is the only thing for
           // sale, so a journal with nobody to post to is told why rather than
           // shown a button that cannot work.
-          <p className="mt-3 text-sm text-navy-700">{t("photobook.print.noRecipients")}</p>
+          <p className="mt-3 text-sm text-ink-body">{t("photobook.print.noRecipients")}</p>
         )}
 
           </div>
@@ -554,7 +554,7 @@ export default function BookLevelView({
           </div>
         )}
 
-        <p className="mt-3 text-sm text-navy-700">{t("photobook.orderNext")}</p>
+        <p className="mt-3 text-sm text-ink-body">{t("photobook.orderNext")}</p>
 
         {/* The last thing read before the button — B1368. */}
         <div className="mt-3">
@@ -606,7 +606,7 @@ export default function BookLevelView({
               PDF rendering — this is the only sign the page gives that the
               press was heard, between the click and the redirect. */}
           {submitting && (
-            <p className="mt-2 text-sm text-navy-700" role="status">
+            <p className="mt-2 text-sm text-ink-body" role="status">
               {t("photobook.building")}
             </p>
           )}

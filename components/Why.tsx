@@ -27,10 +27,10 @@ export default function Why({ children }: { children: React.ReactNode }) {
   const { t } = useI18n();
   return (
     <details className="mt-2">
-      <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-navy-700 underline underline-offset-4">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-ink-body underline underline-offset-4">
         {t("agent.why")}
       </summary>
-      <div className="text-sm leading-6 text-navy-700">{children}</div>
+      <div className="text-sm leading-6 text-ink-body">{children}</div>
     </details>
   );
 }

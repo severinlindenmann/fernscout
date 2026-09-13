@@ -22,10 +22,10 @@ export default async function ContributingPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
-      <h1 className="font-display text-3xl font-semibold text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
         Contributing
       </h1>
-      <p className="mt-3 text-lg leading-relaxed text-navy-700">
+      <p className="mt-3 text-lg leading-relaxed text-ink-body">
         How to run the code, and what a change has to clear before it is merged.
       </p>
 
@@ -33,13 +33,13 @@ export default async function ContributingPage() {
         <DocsNav locale={locale} entries={docsNavEntries()} current="/docs/contributing" />
       </div>
 
-      <div className="mt-8 border-t border-navy-200 pt-8">
-        <h2 className="font-display text-2xl font-semibold text-navy-900">Getting started</h2>
+      <div className="mt-8 border-t border-line-quiet pt-8">
+        <h2 className="font-display text-2xl font-semibold text-ink-strong">Getting started</h2>
         <div className="mt-2">
           <EntryContent markdown={section(contributing, "Getting started")} />
         </div>
 
-        <h2 className="mt-10 font-display text-2xl font-semibold text-navy-900">
+        <h2 className="mt-10 font-display text-2xl font-semibold text-ink-strong">
           Before you open a PR
         </h2>
         <div className="mt-2">
@@ -47,7 +47,7 @@ export default async function ContributingPage() {
         </div>
 
         {site.repository && (
-          <p className="mt-8 text-sm text-navy-600">
+          <p className="mt-8 text-sm text-ink-secondary">
             The whole file, and the licence terms, are{" "}
             <a
               href={`${site.repository}/blob/main/CONTRIBUTING.md`}

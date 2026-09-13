@@ -141,7 +141,7 @@ export default function LifetimeMap({
       : t("trips.mapLabel");
 
   return (
-    <figure className="overflow-hidden rounded-2xl border border-navy-200 bg-sky-300">
+    <figure className="overflow-hidden rounded-2xl border border-line-quiet bg-sky-300">
       <svg
         viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
         // A map is the point of this figure, so it gets a floor to stand on:
@@ -306,7 +306,7 @@ export default function LifetimeMap({
           the only thing saying it. Filling countries by visit count and
           labelling them by trip would be a legend for a map that is not
           there. */}
-      <figcaption className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-navy-200 bg-white px-4 py-3 text-xs text-navy-700">
+      <figcaption className="flex flex-wrap gap-x-4 gap-y-1.5 border-t border-line-quiet bg-surface-raised px-4 py-3 text-xs text-ink-body">
         {filling
           ? visits.map((v) => (
               <span key={v.code} className="flex items-center gap-1.5">
@@ -321,7 +321,7 @@ export default function LifetimeMap({
                 <span aria-hidden>{flagFromCode(v.code)}</span>
                 {v.name}
                 {v.trips.length > 1 && (
-                  <span className="text-navy-600">×{v.trips.length}</span>
+                  <span className="text-ink-secondary">×{v.trips.length}</span>
                 )}
               </span>
             ))

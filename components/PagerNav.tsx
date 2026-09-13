@@ -46,7 +46,7 @@ export default function PagerNav({
           onClick={onBack}
           disabled={atStart}
           aria-label={t("pager.back")}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-navy-200 bg-white text-navy-700 transition-colors disabled:opacity-35"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-line-quiet bg-surface-raised text-ink-body transition-colors disabled:opacity-35"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -56,7 +56,7 @@ export default function PagerNav({
           aria-label={nextLabel}
           className={`flex min-h-11 items-center gap-1 rounded-full px-3.5 text-sm font-semibold transition-colors disabled:opacity-35 ${
             skipping
-              ? "border border-navy-200 bg-white text-navy-700"
+              ? "border border-line-quiet bg-surface-raised text-ink-body"
               : "bg-yellow-400 text-yellow-950"
           }`}
         >
@@ -68,22 +68,22 @@ export default function PagerNav({
   }
 
   return (
-    <nav className="mt-6 flex items-center justify-between gap-3 border-t border-navy-200 py-4">
+    <nav className="mt-6 flex items-center justify-between gap-3 border-t border-line-quiet py-4">
       <button
         onClick={onBack}
         disabled={atStart}
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 text-base font-semibold text-navy-700 transition-colors hover:border-navy-500 disabled:opacity-40"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-base font-semibold text-ink-body transition-colors hover:border-line-prominent disabled:opacity-40"
       >
         <ArrowLeft className="h-4 w-4" />
         {t("pager.back")}
       </button>
 
-      <span className="truncate px-2 text-[11px] text-navy-600">{label}</span>
+      <span className="truncate px-2 text-[11px] text-ink-secondary">{label}</span>
 
       {atEnd ? (
         // A trip still going says "more soon"; a finished one shouldn't
         // promise days that are never coming.
-        <span className="text-xs text-navy-600">
+        <span className="text-xs text-ink-secondary">
           {tripOver ? t("story.tripEnd") : `${t("story.caughtUp")} 🎒`}
         </span>
       ) : (
@@ -91,7 +91,7 @@ export default function PagerNav({
           onClick={onNext}
           className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 text-base font-semibold transition-colors ${
             skipping
-              ? "border border-navy-200 bg-white text-navy-700 hover:border-navy-500"
+              ? "border border-line-quiet bg-surface-raised text-ink-body hover:border-line-prominent"
               : "bg-yellow-400 text-yellow-950 hover:bg-yellow-300"
           }`}
         >

@@ -83,7 +83,7 @@ export default function Console({ tabs }: { tabs: Tab[] }) {
   }
 
   const bar = (
-    <div className="flex gap-1 rounded-full border border-navy-200 bg-white p-1">
+    <div className="flex gap-1 rounded-full border border-line-quiet bg-surface-raised p-1">
       {tabs.map((tab) => (
         <button
           key={tab.id}
@@ -92,15 +92,15 @@ export default function Console({ tabs }: { tabs: Tab[] }) {
           onClick={() => go(tab.id)}
           className={`min-h-11 flex-1 rounded-full px-3 text-sm font-semibold transition-colors ${
             active === tab.id
-              ? "bg-navy-900 text-white"
-              : "text-navy-700 hover:bg-cream-100"
+              ? "bg-action-strong text-on-action"
+              : "text-ink-body hover:bg-surface-subtle"
           }`}
         >
           {tab.label}
           {tab.badge ? (
             <span
               className={`ml-1.5 rounded-full px-1.5 py-0.5 font-mono text-xs ${
-                active === tab.id ? "bg-white text-navy-900" : "bg-coral-600 text-white"
+                active === tab.id ? "bg-surface-raised text-ink-strong" : "bg-coral-600 text-on-deep"
               }`}
             >
               {tab.badge}
@@ -129,7 +129,7 @@ export default function Console({ tabs }: { tabs: Tab[] }) {
 
       {/* Phone: pinned to the bottom, in the thumb's reach. `pb-24` on the
           page below is what keeps the last row of content clear of it. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-navy-200 bg-cream-50/95 p-2 backdrop-blur sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line-quiet bg-surface-base/95 p-2 backdrop-blur sm:hidden">
         {bar}
       </div>
     </>

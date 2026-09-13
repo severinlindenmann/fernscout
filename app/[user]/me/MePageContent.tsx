@@ -34,13 +34,14 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
+import ThemePicker from "@/components/ThemePicker";
 
 /** What the "Your details" panel needs to render `ContactManage` inline —
  * everything `/c/<token>` builds server-side, handed down instead of a link
  * to that page. */
-const FIELD_LABEL = "text-sm font-semibold text-navy-900";
+const FIELD_LABEL = "text-sm font-semibold text-ink-strong";
 const FIELD_INPUT =
-  "mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900";
+  "mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong";
 
 /**
  * The journal's own name and subtitle, the rest of the profile
@@ -143,12 +144,12 @@ function JournalSettings({
           // saying what the person could see for themselves.
           disabled={!dirty || title.trim() === ""}
           onClick={save}
-          className="inline-flex min-h-11 w-fit items-center rounded-full bg-navy-900 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-700 disabled:opacity-50"
+          className="inline-flex min-h-11 w-fit items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action transition-colors hover:bg-action-strong-hover disabled:opacity-50"
         >
           {t("me.journalSave")}
         </BusyButton>
         {state === "saved" && !dirty && (
-          <span className="text-sm text-navy-600">{t("me.journalSaved")}</span>
+          <span className="text-sm text-ink-secondary">{t("me.journalSaved")}</span>
         )}
         {state === "failed" && (
           <span className="text-sm text-coral-600">
@@ -157,21 +158,21 @@ function JournalSettings({
         )}
       </div>
 
-      <div className="border-t border-navy-200 pt-4">
+      <div className="border-t border-line-quiet pt-4">
         <p className={FIELD_LABEL}>{t("me.journalEmail")}</p>
-        <p className="mt-0.5 break-words text-base text-navy-900">
+        <p className="mt-0.5 break-words text-base text-ink-strong">
           {journal.email}
         </p>
-        <p className="mt-1 text-sm leading-6 text-navy-600">
+        <p className="mt-1 text-sm leading-6 text-ink-secondary">
           {t("me.journalEmailNote")}
         </p>
       </div>
 
-      <div className="border-t border-navy-200 pt-4">
+      <div className="border-t border-line-quiet pt-4">
         <JournalProfileFields username={username} journal={journal} />
       </div>
 
-      <div className="border-t border-navy-200 pt-4">
+      <div className="border-t border-line-quiet pt-4">
         <VisibilitySetting username={username} journal={journal} />
       </div>
     </div>
@@ -287,12 +288,12 @@ function JournalProfileFields({
           second copy to disagree with the first. */}
       <div>
         <p className={FIELD_LABEL}>{t("agent.localeLabel")}</p>
-        <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.localeHint")}</p>
+        <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("agent.localeHint")}</p>
         <div className="mt-2 space-y-2">
           {MAINTAINED_LOCALES.map((code) => (
             <label
               key={code}
-              className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+              className="flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong"
             >
               <input
                 type="radio"
@@ -306,12 +307,12 @@ function JournalProfileFields({
         </div>
 
         <p className={`${FIELD_LABEL} mt-4`}>{t("agent.readerLocalesLabel")}</p>
-        <p className="mt-1 text-sm leading-6 text-navy-600">{t("agent.readerLocalesHint")}</p>
+        <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("agent.readerLocalesHint")}</p>
         <div className="mt-2 space-y-2">
           {MAINTAINED_LOCALES.filter((code) => code !== defaultLocale).map((code) => (
             <label
               key={code}
-              className="flex min-h-11 items-center gap-3 rounded-xl border border-navy-300 bg-cream-50 px-4 py-2 text-sm text-navy-800"
+              className="flex min-h-11 items-center gap-3 rounded-xl border border-line-strong bg-surface-base px-4 py-2 text-sm text-ink-strong"
             >
               <input
                 type="checkbox"
@@ -330,7 +331,7 @@ function JournalProfileFields({
         </div>
         {/* B852 — the one thing an owner considering removing a language
             needs to hear before they do it. */}
-        <p className="mt-2 text-xs leading-5 text-navy-500">
+        <p className="mt-2 text-xs leading-5 text-ink-muted">
           {t("me.journalLocalesRemoveNote")}
         </p>
       </div>
@@ -344,7 +345,7 @@ function JournalProfileFields({
           placeholder="CHF, EUR, USD"
           className={FIELD_INPUT}
         />
-        <span className="mt-1 block text-xs leading-5 text-navy-500">
+        <span className="mt-1 block text-xs leading-5 text-ink-muted">
           {t("me.journalCurrenciesHint")}
         </span>
       </label>
@@ -358,17 +359,17 @@ function JournalProfileFields({
           placeholder="+41 76 000 00 00"
           className={FIELD_INPUT}
         />
-        <span className="mt-1 block text-xs leading-5 text-navy-500">
+        <span className="mt-1 block text-xs leading-5 text-ink-muted">
           {t("me.journalOwnerTelHint")}
         </span>
       </label>
 
       {/* Refused, always — see the module comment on `JournalSettings`. */}
-      <div className="rounded-xl border border-navy-200 bg-cream-50 p-3.5">
+      <div className="rounded-xl border border-line-quiet bg-surface-base p-3.5">
         <p className={FIELD_LABEL}>
           {t("me.journalBaseCurrency", { code: journal.baseCurrency })}
         </p>
-        <p className="mt-1 text-sm leading-6 text-navy-600">
+        <p className="mt-1 text-sm leading-6 text-ink-secondary">
           {t("me.journalBaseCurrencyNote")}
         </p>
       </div>
@@ -379,12 +380,12 @@ function JournalProfileFields({
           busy={busy}
           disabled={!dirty}
           onClick={save}
-          className="inline-flex min-h-11 w-fit items-center rounded-full bg-navy-900 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-700 disabled:opacity-50"
+          className="inline-flex min-h-11 w-fit items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action transition-colors hover:bg-action-strong-hover disabled:opacity-50"
         >
           {t("me.journalSave")}
         </BusyButton>
         {state === "saved" && !dirty && (
-          <span className="text-sm text-navy-600">{t("me.journalSaved")}</span>
+          <span className="text-sm text-ink-secondary">{t("me.journalSaved")}</span>
         )}
         {state === "failed" && (
           <span className="text-sm text-coral-600">{error ?? t("me.journalFailed")}</span>
@@ -428,7 +429,7 @@ function VisibilitySetting({
   // questions, both button labels — moved into it.
   return (
     <div>
-      <p className="text-sm font-semibold text-navy-900">{t("me.journalVisibility")}</p>
+      <p className="text-sm font-semibold text-ink-strong">{t("me.journalVisibility")}</p>
       {/* No `?` of its own — `VisibilityControl` draws one beside every badge
           it renders, and two here would be two answers to one question. */}
       <div className="mt-1 flex items-center">
@@ -470,17 +471,17 @@ function TripRow({
       <div className="flex items-center">
         <Link
           href={trip.href}
-          className="flex min-h-14 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 transition-colors hover:bg-cream-50"
+          className="flex min-h-14 flex-1 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 px-4 py-3 transition-colors hover:bg-surface-base"
         >
           <span className="flex-1">
-            <span className="block font-display text-lg font-semibold text-navy-900">
+            <span className="block font-display text-lg font-semibold text-ink-strong">
               {trip.title}
             </span>
             {/* B632 — a trip may hold some of its own days back further than
                 the rest of it; a row that only says "you can read this trip"
                 would leave a reader thinking they are seeing all of it. */}
             {trip.partial && (
-              <span className="block text-xs text-navy-500">
+              <span className="block text-xs text-ink-muted">
                 {t("me.tripPartial")}
               </span>
             )}
@@ -495,8 +496,8 @@ function TripRow({
           <span className="flex shrink-0 items-center gap-1.5 self-start">
             {edit && <VisibilityBadge audience={edit.visibility} />}
             <span
-              className="rounded-full bg-cream-100 px-2.5 py-1 text-xs
-                         font-semibold text-navy-600"
+              className="rounded-full bg-surface-subtle px-2.5 py-1 text-xs
+                         font-semibold text-ink-secondary"
             >
               {t(reasonKey)}
             </span>
@@ -510,7 +511,7 @@ function TripRow({
             onClick={() => setOpen((was) => !was)}
             // Outside the `<Link>`, not inside it: a button nested in an
             // anchor is invalid, and a click on it would navigate.
-            className="mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900"
+            className="mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink-strong"
           >
             <Pencil className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -576,10 +577,10 @@ function TripEditor({
   }
 
   return (
-    <div className="border-t border-navy-200 bg-cream-50 px-4 py-4">
+    <div className="border-t border-line-quiet bg-surface-base px-4 py-4">
       <div className="space-y-3">
         <label className="block">
-          <span className="text-sm font-semibold text-navy-900">
+          <span className="text-sm font-semibold text-ink-strong">
             {t("me.tripTitle")}
           </span>
           <input
@@ -587,11 +588,11 @@ function TripEditor({
             value={title}
             maxLength={200}
             onChange={(event) => setTitle(event.target.value)}
-            className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+            className="mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong"
           />
         </label>
         <label className="block">
-          <span className="text-sm font-semibold text-navy-900">
+          <span className="text-sm font-semibold text-ink-strong">
             {t("me.tripTagline")}
           </span>
           <input
@@ -599,12 +600,12 @@ function TripEditor({
             value={tagline}
             maxLength={300}
             onChange={(event) => setTagline(event.target.value)}
-            className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+            className="mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong"
           />
         </label>
         <div className="flex flex-wrap gap-3">
           <label className="block flex-1">
-            <span className="text-sm font-semibold text-navy-900">
+            <span className="text-sm font-semibold text-ink-strong">
               {t("me.tripStart")}
             </span>
             {/* `type="date"` rather than a picker: the platform has one, it is
@@ -613,18 +614,18 @@ function TripEditor({
               type="date"
               value={start}
               onChange={(event) => setStart(event.target.value)}
-              className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+              className="mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong"
             />
           </label>
           <label className="block flex-1">
-            <span className="text-sm font-semibold text-navy-900">
+            <span className="text-sm font-semibold text-ink-strong">
               {t("me.tripEnd")}
             </span>
             <input
               type="date"
               value={end}
               onChange={(event) => setEnd(event.target.value)}
-              className="mt-1 block w-full rounded-xl border border-navy-500 bg-white px-3 py-2.5 text-base text-navy-900"
+              className="mt-1 block w-full rounded-xl border border-line-prominent bg-surface-raised px-3 py-2.5 text-base text-ink-strong"
             />
           </label>
         </div>
@@ -636,14 +637,14 @@ function TripEditor({
             onClick={async () => {
               if (await save({ title, tagline, start, end })) onClose();
             }}
-            className="inline-flex min-h-11 w-fit items-center rounded-full bg-navy-900 px-5 text-base font-semibold text-cream-50 transition-colors hover:bg-navy-700 disabled:opacity-50"
+            className="inline-flex min-h-11 w-fit items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action transition-colors hover:bg-action-strong-hover disabled:opacity-50"
           >
             {t("me.journalSave")}
           </BusyButton>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-11 w-fit items-center rounded-full px-4 text-base text-navy-700 hover:underline"
+            className="inline-flex min-h-11 w-fit items-center rounded-full px-4 text-base text-ink-body hover:underline"
           >
             {t("me.tripCancel")}
           </button>
@@ -654,7 +655,7 @@ function TripEditor({
           second `<select>` with its own two-press button and its own words.
           It writes through `/<user>/trips/<id>/visibility`, not `/api/trip`,
           which is what gives this panel `listed` and `teaser` as well. */}
-      <div className="mt-5 flex items-center border-t border-navy-200 pt-4">
+      <div className="mt-5 flex items-center border-t border-line-quiet pt-4">
         <TripVisibilityFor trip={{ ...trip, username }} />
       </div>
 
@@ -902,7 +903,7 @@ export default function MePageContent({
         tabIndex={-1}
         className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8"
       >
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("me.title")}
         </h1>
 
@@ -911,7 +912,7 @@ export default function MePageContent({
         {hasAbout && (
           <Link
             href={`/${username}/about`}
-            className="mt-2 inline-block text-base font-semibold text-navy-700 underline decoration-navy-200 decoration-2 underline-offset-4 hover:text-navy-900 hover:decoration-navy-500"
+            className="mt-2 inline-block text-base font-semibold text-ink-body underline decoration-line-quiet decoration-2 underline-offset-4 hover:text-ink-strong hover:decoration-line-prominent"
           >
             {t("about.title")}
           </Link>
@@ -923,7 +924,7 @@ export default function MePageContent({
         {signinNotice && (
           <p
             role="status"
-            className="mt-5 rounded-2xl border-l-4 border-yellow-400 bg-cream-100 py-4 pl-5 pr-4 text-lg leading-8 text-navy-900"
+            className="mt-5 rounded-2xl border-l-4 border-yellow-400 bg-surface-subtle py-4 pl-5 pr-4 text-lg leading-8 text-ink-strong"
           >
             {t(signinNotice as never)}
           </p>
@@ -931,8 +932,8 @@ export default function MePageContent({
 
         {!viewer.email ? (
           <>
-            <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
-              <h2 className="font-display text-xl font-semibold text-navy-900">
+            <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
+              <h2 className="font-display text-xl font-semibold text-ink-strong">
                 {t("me.strangerTitle")}
               </h2>
               {/*
@@ -950,7 +951,7 @@ export default function MePageContent({
                 somebody who should be here knows who to write to, and nothing
                 that would be a leak to whoever else tries the URL.
               */}
-              <p className="mt-2 text-lg leading-8 text-navy-700">
+              <p className="mt-2 text-lg leading-8 text-ink-body">
                 {ownerName
                   ? t("me.strangerBodyNamed", { name: ownerName })
                   : t("me.strangerBody")}
@@ -974,7 +975,7 @@ export default function MePageContent({
                 a link would talk them out of the control right underneath it.
               */}
               {!canSignIn && (
-                <p className="mt-4 border-l-2 border-yellow-400 pl-4 text-base leading-7 text-navy-900">
+                <p className="mt-4 border-l-2 border-yellow-400 pl-4 text-base leading-7 text-ink-strong">
                   {ownerName
                     ? t("me.askOwnerNamed", { name: ownerName })
                     : t("me.askOwner")}
@@ -989,17 +990,19 @@ export default function MePageContent({
             )}
           </>
         ) : (
-          <p className="mt-2 text-base text-navy-600">
+          <p className="mt-2 text-base text-ink-secondary">
             {t("me.signedInAs")}{" "}
-            <strong className="font-semibold text-navy-900">
+            <strong className="font-semibold text-ink-strong">
               {viewer.name ?? viewer.email}
             </strong>
           </p>
         )}
 
+        <ThemePicker />
+
         {viewer.email && (
           <section className="mt-6">
-            <h2 className="font-display text-xl font-semibold text-navy-900">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("me.canRead")}
             </h2>
             {/*
@@ -1027,7 +1030,7 @@ export default function MePageContent({
               repeating the handover here.
             */}
             {viewer.trips.length === 0 ? (
-              <p className="mt-2 text-lg leading-8 text-navy-700">
+              <p className="mt-2 text-lg leading-8 text-ink-body">
                 {viewer.owner
                   ? t("me.ownerNoTrips")
                   : viewer.guest
@@ -1037,7 +1040,7 @@ export default function MePageContent({
                     : t("me.nothing")}
               </p>
             ) : (
-              <ul className="mt-3 divide-y divide-navy-200 overflow-hidden rounded-2xl border border-navy-200 bg-white">
+              <ul className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
                 {viewer.trips.map((trip) => (
                   <TripRow
                     key={trip.id}
@@ -1063,7 +1066,7 @@ export default function MePageContent({
         */}
         {manage && !viewer.owner && (
           <section className="mt-6">
-            <h2 className="font-display text-xl font-semibold text-navy-900">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("me.details")}
             </h2>
             {/*
@@ -1079,7 +1082,7 @@ export default function MePageContent({
               form, and it is still an agent that writes — and points at the
               block that tells them how.
             */}
-            <p className="mt-2 text-lg leading-8 text-navy-700">
+            <p className="mt-2 text-lg leading-8 text-ink-body">
               {/* A third reader for a paragraph that had two — B619. To the
                   owner both existing sentences are false: "the journal is
                   written by an agent" is true and is not what this section is
@@ -1098,10 +1101,10 @@ export default function MePageContent({
                 `ManagePanel` above for why the data now travels down instead
                 of a URL. */}
             <details className="mt-3">
-              <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 [&::-webkit-details-marker]:hidden">
+              <summary className="inline-flex min-h-11 w-fit cursor-pointer list-none items-center rounded-full border border-line-ink px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle [&::-webkit-details-marker]:hidden">
                 {t("me.editDetails")}
               </summary>
-              <div className="mt-4 rounded-2xl border border-navy-200 bg-white">
+              <div className="mt-4 rounded-2xl border border-line-quiet bg-surface-raised">
                 <ContactManage
                   className="px-5 py-6 sm:px-6"
                   locales={manage.locales}
@@ -1131,8 +1134,8 @@ export default function MePageContent({
           for anybody not signed in, so this needs no separate check.
         */}
         {writableTrips.length > 0 && viewer.email && (
-          <section className="mt-6 rounded-2xl border border-navy-200 bg-cream-100 p-5 sm:p-6">
-            <h2 className="font-display text-xl font-semibold text-navy-900">
+          <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-subtle p-5 sm:p-6">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("me.buddyTitle")}
             </h2>
             <div className="mt-4">
@@ -1152,10 +1155,10 @@ export default function MePageContent({
 
         {viewer.owner && (
           <section className="mt-8">
-            <h2 className="font-display text-2xl font-semibold tracking-tight text-navy-900">
+            <h2 className="font-display text-2xl font-semibold tracking-tight text-ink-strong">
               {t("me.ownerTitle")}
             </h2>
-            <p className="mt-1.5 text-base leading-7 text-navy-600">
+            <p className="mt-1.5 text-base leading-7 text-ink-secondary">
               {t("me.ownerLede")}
             </p>
 
@@ -1175,15 +1178,15 @@ export default function MePageContent({
                 needing the server.
               */}
               {journal && (
-                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-ink-strong">
                       <BookMarked
                         className="h-[18px] w-[18px]"
                         aria-hidden="true"
                       />
                     </span>
-                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                    <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {t("me.journalCardTitle")}
                     </h3>
                   </div>
@@ -1209,18 +1212,18 @@ export default function MePageContent({
                             it does, and `test/me-journal-badge.test.tsx`
                             holds that. */}
                         <span className="flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5">
-                          <span className="truncate font-display text-lg font-semibold text-navy-900">
+                          <span className="truncate font-display text-lg font-semibold text-ink-strong">
                             {journal.title}
                           </span>
                           <JournalVisibility username={username} journal={journal} />
                         </span>
                         {journal.tagline && (
-                          <span className="block truncate text-sm text-navy-600">
+                          <span className="block truncate text-sm text-ink-secondary">
                             {journal.tagline}
                           </span>
                         )}
                       </span>
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-navy-600">
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-secondary">
                         <Pencil className="h-4 w-4" aria-hidden="true" />
                         {/* The disclosure's own name is the journal's title,
                             which says what it is about and not what opening it
@@ -1230,7 +1233,7 @@ export default function MePageContent({
                         </span>
                       </span>
                     </summary>
-                    <p className="mt-3 text-base leading-7 text-navy-600">
+                    <p className="mt-3 text-base leading-7 text-ink-secondary">
                       {t("me.journalCardBody")}
                     </p>
                     <JournalSettings username={username} journal={journal} />
@@ -1239,15 +1242,15 @@ export default function MePageContent({
               )}
 
               {/* The agent — handing over a key, what it can do, and the live keys. */}
-              <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+              <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-ink-strong">
                     <KeyRound
                       className="h-[18px] w-[18px]"
                       aria-hidden="true"
                     />
                   </span>
-                  <h3 className="font-display text-lg font-semibold text-navy-900">
+                  <h3 className="font-display text-lg font-semibold text-ink-strong">
                     {t("me.agentCardTitle")}
                   </h3>
                 </div>
@@ -1276,15 +1279,15 @@ export default function MePageContent({
                   the summary keeps the heading, so what is behind it is named
                   rather than hidden.
                 */}
-                <details className="mt-5 border-t border-navy-200 pt-5">
-                  <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-base font-semibold text-navy-900 [&::-webkit-details-marker]:hidden">
+                <details className="mt-5 border-t border-line-quiet pt-5">
+                  <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-display text-base font-semibold text-ink-strong [&::-webkit-details-marker]:hidden">
                     <ChevronRight
-                      className="h-4 w-4 shrink-0 text-navy-600 transition-transform [details[open]>summary>&]:rotate-90"
+                      className="h-4 w-4 shrink-0 text-ink-secondary transition-transform [details[open]>summary>&]:rotate-90"
                       aria-hidden="true"
                     />
                     {t("me.tokenTitle")}
                   </summary>
-                  <p className="mt-1.5 text-base leading-7 text-navy-700">
+                  <p className="mt-1.5 text-base leading-7 text-ink-body">
                     {t("me.tokenBody")}
                   </p>
                   <div className="mt-3 flex gap-3 rounded-xl border border-coral-300 bg-coral-300/15 p-3.5">
@@ -1292,7 +1295,7 @@ export default function MePageContent({
                       className="mt-0.5 h-[18px] w-[18px] shrink-0 text-coral-600"
                       aria-hidden="true"
                     />
-                    <p className="text-base leading-7 text-navy-900">
+                    <p className="text-base leading-7 text-ink-strong">
                       {t("me.tokenWarning")}
                     </p>
                   </div>
@@ -1313,19 +1316,19 @@ export default function MePageContent({
                 in.
               */}
               {contactsEnabled && (
-                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-ink-strong">
                       <UserRound
                         className="h-[18px] w-[18px]"
                         aria-hidden="true"
                       />
                     </span>
-                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                    <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {t("me.peopleTitle")}
                     </h3>
                   </div>
-                  <p className="mt-3 text-base leading-7 text-navy-700">
+                  <p className="mt-3 text-base leading-7 text-ink-body">
                     {t("me.peopleBody")}
                   </p>
                   <Link
@@ -1344,16 +1347,16 @@ export default function MePageContent({
                 anything.
               */}
               {postcardCard && (
-                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-ink-strong">
                       <Mailbox className="h-[18px] w-[18px]" aria-hidden="true" />
                     </span>
-                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                    <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {t("me.postcardCardTitle")}
                     </h3>
                   </div>
-                  <p className="mt-3 text-base leading-7 text-navy-700">
+                  <p className="mt-3 text-base leading-7 text-ink-body">
                     {postcardCard.reason}
                   </p>
                   <Link
@@ -1365,19 +1368,19 @@ export default function MePageContent({
                 </div>
               )}
               {analyticsEnabled && (
-                <div className="rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+                <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-navy-900">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sky-300/40 text-ink-strong">
                       <ChartNoAxesColumn
                         className="h-[18px] w-[18px]"
                         aria-hidden="true"
                       />
                     </span>
-                    <h3 className="font-display text-lg font-semibold text-navy-900">
+                    <h3 className="font-display text-lg font-semibold text-ink-strong">
                       {t("me.visitorsTitle")}
                     </h3>
                   </div>
-                  <p className="mt-3 text-base leading-7 text-navy-700">
+                  <p className="mt-3 text-base leading-7 text-ink-body">
                     {t("me.visitorsBody")}
                   </p>
                   <Link
@@ -1414,8 +1417,8 @@ export default function MePageContent({
           <p className="mt-8">
             <Link
               href={`/docs/guide/${viewer.owner ? "creator" : writableTrips.length > 0 ? "buddy" : "guest"}`}
-              className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
-                         transition-colors hover:decoration-navy-700
+              className="text-base text-ink-body underline decoration-line-quiet underline-offset-4
+                         transition-colors hover:decoration-line-prominent
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
               {t("guides.readMore")}
@@ -1425,8 +1428,8 @@ export default function MePageContent({
           <p className="mt-8">
             <Link
               href="/agent"
-              className="text-base text-navy-700 underline decoration-navy-300 underline-offset-4
-                         transition-colors hover:decoration-navy-700
+              className="text-base text-ink-body underline decoration-line-quiet underline-offset-4
+                         transition-colors hover:decoration-line-prominent
                          focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
             >
               {t("me.newHereCta")}

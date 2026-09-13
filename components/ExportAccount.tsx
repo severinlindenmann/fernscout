@@ -38,14 +38,14 @@ export default function ExportAccount({ username }: { username: string }) {
   }
 
   return (
-    <section className="mt-8 border-t border-navy-200 pt-6">
-      <h2 className="font-display text-xl font-semibold text-navy-900">
+    <section className="mt-8 border-t border-line-quiet pt-6">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
         {t("me.exportTitle")}
       </h2>
-      <p className="mt-2 text-base leading-7 text-navy-700">{t("me.exportBody")}</p>
+      <p className="mt-2 text-base leading-7 text-ink-body">{t("me.exportBody")}</p>
 
       {sentTo ? (
-        <p role="status" className="mt-4 text-base leading-7 text-navy-900">
+        <p role="status" className="mt-4 text-base leading-7 text-ink-strong">
           {t("me.exportSent", { email: sentTo, minutes })}
         </p>
       ) : (
@@ -55,7 +55,7 @@ export default function ExportAccount({ username }: { username: string }) {
             busy={busy}
             busyLabel={t("me.exportWorking")}
             onClick={() => void ask()}
-            className="mt-4 inline-flex min-h-11 items-center rounded-full border border-navy-700 px-5 text-base font-semibold text-navy-900 transition-colors hover:bg-cream-100 disabled:opacity-50"
+            className="mt-4 inline-flex min-h-11 items-center rounded-full border border-line-ink px-5 text-base font-semibold text-ink-strong transition-colors hover:bg-surface-subtle disabled:opacity-50"
           >
             {t("me.exportButton")}
           </BusyButton>

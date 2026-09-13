@@ -179,23 +179,23 @@ function DayPlaceholder({
   const { t, formatLongDate } = useI18n();
   return (
     <article
-      className="rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-7"
+      className="rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-7"
       aria-busy={!failed}
     >
-      <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-navy-600">
+      <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-secondary">
         <span>{formatLongDate(summary.date)}</span>
-        <span className="font-medium text-navy-700">
+        <span className="font-medium text-ink-body">
           {flagFor(summary.country, summary.countryCode)} {summary.location}
         </span>
       </div>
-      <p role="status" className="text-base text-navy-700">
+      <p role="status" className="text-base text-ink-body">
         {failed ? t("story.dayFailed") : t("story.dayLoading")}
       </p>
       {!failed && (
         <div className="mt-6 space-y-3" aria-hidden>
-          <div className="h-4 w-3/4 animate-pulse rounded bg-navy-200" />
-          <div className="h-4 w-full animate-pulse rounded bg-navy-200" />
-          <div className="h-4 w-5/6 animate-pulse rounded bg-navy-200" />
+          <div className="h-4 w-3/4 animate-pulse rounded bg-surface-selected" />
+          <div className="h-4 w-full animate-pulse rounded bg-surface-selected" />
+          <div className="h-4 w-5/6 animate-pulse rounded bg-surface-selected" />
         </div>
       )}
     </article>
@@ -251,8 +251,8 @@ export function DayCard({
 
   const card = (
     <article
-      className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-7 ${
-        allDraft || isTest ? "border-coral-600" : "border-navy-200"
+      className={`rounded-2xl border bg-surface-raised p-5 shadow-sm sm:p-7 ${
+        allDraft || isTest ? "border-coral-600" : "border-line-quiet"
       }`}
     >
       {isTest && <TestNotice />}
@@ -297,16 +297,16 @@ export function DayCard({
             className="ml-auto block h-1 w-8 rounded-full bg-yellow-400"
             aria-hidden
           />
-          <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-500">
+          <span className="mt-1.5 block font-display text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-muted">
             {t("day.label")} {dayIndex + 1}
           </span>
         </div>
 
-        <div className="pr-24 font-display text-xl font-semibold tracking-tight text-navy-900 sm:text-2xl">
+        <div className="pr-24 font-display text-xl font-semibold tracking-tight text-ink-strong sm:text-2xl">
           {flagFor(lead.country, lead.countryCode)} {lead.location}
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-navy-600">
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-secondary">
           <span>{formatLongDate(day.date)}</span>
           {/* B325 — in the day's furniture, never in the prose. `DayWeather`
               renders nothing when the day has no reading. */}
@@ -328,11 +328,11 @@ export function DayCard({
                   lighter and smaller. Run together at one weight,
                   `USD 131 ≈ CHF 115` reads as a single strange price rather
                   than as one price said twice. */}
-              <span className="font-medium text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-2 group-hover:decoration-coral-600">
+              <span className="font-medium text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-2 group-hover:decoration-coral-600">
                 {paidAndConverted.paid}
               </span>
               {paidAndConverted.converted && (
-                <span className="text-[11px] text-navy-500">
+                <span className="text-[11px] text-ink-muted">
                   {paidAndConverted.converted}
                 </span>
               )}
@@ -374,7 +374,7 @@ export function DayCard({
         ))}
 
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
-        <div className="mt-10 border-t border-navy-200 pt-4">
+        <div className="mt-10 border-t border-line-quiet pt-4">
           <DayReactions daySlug={lead.slug} />
         </div>
       </div>
@@ -489,7 +489,7 @@ function UpdateBlock({
           />
           {!last && (
             <span
-              className="absolute -bottom-10 -left-[19px] top-5 w-0.5 rounded-full bg-navy-200 sm:-left-[23px]"
+              className="absolute -bottom-10 -left-[19px] top-5 w-0.5 rounded-full bg-surface-selected sm:-left-[23px]"
               aria-hidden
             />
           )}
@@ -500,14 +500,14 @@ function UpdateBlock({
           the heading — on a two-update day it is the thing that says these
           are two moments and not two days. */}
       {entry.time && (
-        <div className="font-display text-xs font-semibold tracking-wide text-navy-600">
+        <div className="font-display text-xs font-semibold tracking-wide text-ink-secondary">
           <DualTime date={entry.date} time={entry.time} timezone={entry.timezone} />
         </div>
       )}
 
       {entry.draft && !first ? (
         <div className="mt-1">
-          <span className="inline-block rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-navy-900">
+          <span className="inline-block rounded-full border border-coral-600 bg-coral-300 px-2.5 py-0.5 font-display text-xs font-semibold text-on-bright">
             {t("draft.badge")}
           </span>
         </div>
@@ -519,7 +519,7 @@ function UpdateBlock({
           this update, attached to the update's name. The draft badge stays
           where it was: "unfinished" is a state of the whole thing and is
           meant to interrupt. */}
-      <h2 className="mb-4 mt-1 font-display text-2xl font-semibold tracking-tight text-navy-900 sm:text-3xl">
+      <h2 className="mb-4 mt-1 font-display text-2xl font-semibold tracking-tight text-ink-strong sm:text-3xl">
         {title}
         <EntryVisibility entry={entry} />
       </h2>
@@ -529,7 +529,7 @@ function UpdateBlock({
           and TestNotice this is a legacy-only path, not a caution, so it is
           a line rather than a banner. */}
       {fallbackNotice && (
-        <p className="mb-4 text-xs italic text-navy-500">{t(fallbackNotice)}</p>
+        <p className="mb-4 text-xs italic text-ink-muted">{t(fallbackNotice)}</p>
       )}
 
       <EntryContent markdown={content} />

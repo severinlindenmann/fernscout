@@ -212,7 +212,7 @@ export default function DayWeather({
 
   return (
     <Wrapper
-      className={`inline-flex items-center gap-1${credit ? " hover:text-navy-900" : ""}`}
+      className={`inline-flex items-center gap-1${credit ? " hover:text-ink-strong" : ""}`}
       title={labels.via}
       {...linkProps}
     >

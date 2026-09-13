@@ -100,7 +100,7 @@ export default function DayLevelView({
 
   return (
     <div className="mt-6 space-y-4">
-      <button type="button" onClick={onBack} className="text-sm font-semibold text-navy-700 underline">
+      <button type="button" onClick={onBack} className="text-sm font-semibold text-ink-body underline">
         ← {t("photobook.composer.back")}
       </button>
 
@@ -111,11 +111,11 @@ export default function DayLevelView({
        * which decides which days want `runOn`). Collapsed by default, so the
        * day's own controls stay what the screen is about.
        */}
-      <details className="rounded-lg border border-navy-200 bg-white px-3 py-3">
-        <summary className="cursor-pointer text-sm font-semibold text-navy-800">
+      <details className="rounded-lg border border-line-quiet bg-surface-raised px-3 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-ink-strong">
           {t("photobook.composer.bookSettings")}
         </summary>
-        <p className="mt-1 text-xs text-navy-600">{t("photobook.composer.bookSettingsHint")}</p>
+        <p className="mt-1 text-xs text-ink-secondary">{t("photobook.composer.bookSettingsHint")}</p>
         <div className="mt-3">
           <BookSettingsPanel
             options={options}
@@ -163,7 +163,7 @@ export default function DayLevelView({
           <iframe
             srcDoc={sliceHtml}
             style={{ aspectRatio: String(ratio) }}
-            className="w-full border-0 bg-cream-100 sm:rounded-xl"
+            className="w-full border-0 bg-surface-subtle sm:rounded-xl"
             title={t("photobook.title")}
           />
         </div>
@@ -172,7 +172,7 @@ export default function DayLevelView({
         // B564. The switch above stays visible and checked either way, so
         // this is not the trap the ticket warns about: turning it back off
         // is one tap, right here, with nowhere to navigate to first.
-        plan?.excluded && <p className="text-xs text-navy-600">{t("photobook.day.excludedPreview")}</p>
+        plan?.excluded && <p className="text-xs text-ink-secondary">{t("photobook.day.excludedPreview")}</p>
       )}
     </div>
   );

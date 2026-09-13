@@ -94,11 +94,11 @@ type State = { word: string; dot: string };
  * Exported for the tests, which is also where the boundaries are pinned.
  */
 export function stateOf(lastWroteAt: string | null, now = Date.now()): State {
-  if (!lastWroteAt) return { word: "never started", dot: "bg-white border border-navy-300" };
+  if (!lastWroteAt) return { word: "never started", dot: "bg-surface-raised border border-line-strong" };
   const days = (now - Date.parse(lastWroteAt)) / 86_400_000;
   if (days <= QUIET_DAYS) return { word: "writing", dot: "bg-green-700" };
   if (days <= DORMANT_DAYS) return { word: "quiet", dot: "bg-yellow-600" };
-  return { word: "dormant", dot: "bg-navy-300" };
+  return { word: "dormant", dot: "bg-action-strong" };
 }
 
 /** When, in the coarsest words that are still true. An exact timestamp on a
@@ -186,7 +186,7 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
             onChange={(event) => setQuery(event.target.value)}
             placeholder={`Search ${rows.length} journals`}
             aria-label="Search journals"
-            className="w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-navy-900"
+            className="w-full rounded-lg border border-line-quiet bg-surface-raised px-3 py-2 text-ink-strong"
           />
           <div role="group" aria-label="Sort journals" className="flex flex-wrap gap-2">
             {ORDERS.map((choice) => (
@@ -197,8 +197,8 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
                 onClick={() => setOrder(choice.value)}
                 className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${
                   order === choice.value
-                    ? "border-navy-900 bg-navy-900 text-white"
-                    : "border-navy-200 bg-white text-navy-700 hover:bg-cream-100"
+                    ? "border-action-strong bg-action-strong text-on-action"
+                    : "border-line-quiet bg-surface-raised text-ink-body hover:bg-surface-subtle"
                 }`}
               >
                 {choice.label}
@@ -210,7 +210,7 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
 
       <div className="mt-3 space-y-2">
         {shown.length === 0 ? (
-          <p className="text-sm text-navy-500">No journal here is called that.</p>
+          <p className="text-sm text-ink-muted">No journal here is called that.</p>
         ) : null}
         {visible.map((journal) => {
           const meter = meterOf(journal);
@@ -220,7 +220,7 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
             key={journal.username}
             type="button"
             onClick={() => setOpen(journal.username)}
-            className="block w-full rounded-2xl border border-navy-200 bg-white px-4 py-3 text-left hover:border-navy-400"
+            className="block w-full rounded-2xl border border-line-quiet bg-surface-raised px-4 py-3 text-left hover:border-line-prominent"
           >
             {/* Name and money on one line whatever the width — an `ml-auto`
                 inside a flex-wrap put the cost under the username on a
@@ -234,17 +234,17 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
                   aria-hidden
                   className={`inline-block h-2 w-2 shrink-0 translate-y-[-1px] rounded-full ${state.dot}`}
                 />
-                <span className="min-w-0 break-words font-display font-semibold text-navy-900">
+                <span className="min-w-0 break-words font-display font-semibold text-ink-strong">
                   {journal.username}
                 </span>
               </span>
-              <span className="shrink-0 font-mono text-sm text-navy-900">
+              <span className="shrink-0 font-mono text-sm text-ink-strong">
                 {formatChf(journal.rappen)}
               </span>
             </span>
             <span className="mt-0.5 flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
-              <span className="text-navy-700">{whenWords(journal.lastWroteAt)}</span>
-              <span className="font-mono text-navy-500">{journal.disk}</span>
+              <span className="text-ink-body">{whenWords(journal.lastWroteAt)}</span>
+              <span className="font-mono text-ink-muted">{journal.disk}</span>
             </span>
             {/* Only once it is worth looking at. Under half full the bar is a
                 sliver that says nothing the byte figure beside it has not
@@ -259,7 +259,7 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
                 identical until one of them turns out to have spent it in a
                 single afternoon a month ago. */}
             <span className="mt-1 flex items-center justify-between gap-3">
-              <span className="min-w-0 font-mono text-xs text-navy-500">{credits(journal)}</span>
+              <span className="min-w-0 font-mono text-xs text-ink-muted">{credits(journal)}</span>
               {journal.series ? (
                 <Sparkline points={journal.series} label={`${journal.username}, day by day`} />
               ) : null}
@@ -274,7 +274,7 @@ export default function Journals({ rows }: { rows: JournalView[] }) {
         <button
           type="button"
           onClick={() => setAll((was) => !was)}
-          className="mt-3 rounded-full border border-navy-200 bg-white px-4 py-2 text-sm font-semibold text-navy-700 hover:bg-cream-100"
+          className="mt-3 rounded-full border border-line-quiet bg-surface-raised px-4 py-2 text-sm font-semibold text-ink-body hover:bg-surface-subtle"
         >
           {all ? `Show ${FIRST} of ${shown.length}` : `Show all ${shown.length}`}
         </button>
@@ -305,23 +305,23 @@ function Panel({ journal, onClose }: { journal: JournalView; onClose: () => void
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-navy-900/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-overlay-strong/70 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={journal.username}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:rounded-2xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-surface-raised shadow-xl sm:rounded-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3 px-4 pb-3 pt-4">
           <div className="min-w-0">
-            <h3 className="break-words font-display text-xl font-semibold text-navy-900">
+            <h3 className="break-words font-display text-xl font-semibold text-ink-strong">
               {journal.username}
             </h3>
-            <p className="mt-0.5 font-mono text-xs text-navy-500">{credits(journal)}</p>
-            <p className="mt-1 font-mono text-sm text-navy-900">
+            <p className="mt-0.5 font-mono text-xs text-ink-muted">{credits(journal)}</p>
+            <p className="mt-1 font-mono text-sm text-ink-strong">
               {formatChf(journal.rappen)} in this period
             </p>
           </div>
@@ -329,7 +329,7 @@ function Panel({ journal, onClose }: { journal: JournalView; onClose: () => void
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="rounded-full p-1.5 text-navy-500 hover:bg-navy-100"
+            className="rounded-full p-1.5 text-ink-muted hover:bg-surface-neutral-strong"
           >
             <X className="h-5 w-5" />
           </button>

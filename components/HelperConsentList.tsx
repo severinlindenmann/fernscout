@@ -101,17 +101,17 @@ export default function HelperConsentList({
   const hasGrants = rows.length > 0;
 
   return (
-    <section className="mt-10 border-t border-navy-200 pt-6">
-      <h2 className="font-display text-base font-semibold text-navy-800">
+    <section className="mt-10 border-t border-line-quiet pt-6">
+      <h2 className="font-display text-base font-semibold text-ink-strong">
         {t("me.dataTitle")}
       </h2>
-      <p className="mt-1 text-sm leading-6 text-navy-600">{t("me.dataLede")}</p>
+      <p className="mt-1 text-sm leading-6 text-ink-secondary">{t("me.dataLede")}</p>
       {/* The date belongs to the record, not to one half of it — it used to
           sit only under the "what you've let the helper send" heading, while
           the instant it names covers `sessions` too. Shown only when there
           is something below it the date could be about. */}
       {agreedAt && hasGrants && (
-        <p className="mt-1 text-sm leading-6 text-navy-600">
+        <p className="mt-1 text-sm leading-6 text-ink-secondary">
           {t("me.consentBody", { date: formatLongDate(agreedAt.slice(0, 10)) })}
         </p>
       )}
@@ -121,11 +121,11 @@ export default function HelperConsentList({
             only permission this page can both grant and withdraw. Absent
             where there is no helper on this journal to have any. */}
         {sessionsShared !== null && (
-          <li className="rounded-xl border border-navy-200 bg-white px-4 py-3">
+          <li className="rounded-xl border border-line-quiet bg-surface-raised px-4 py-3">
             <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
-              <span className="text-sm text-navy-800">
+              <span className="text-sm text-ink-strong">
                 {t("me.sessionsShare")}
-                <span className="block text-xs text-navy-500">
+                <span className="block text-xs text-ink-muted">
                   {t("me.sessionsOffNote")}
                 </span>
               </span>
@@ -134,7 +134,7 @@ export default function HelperConsentList({
                 checked={shared}
                 disabled={busy === "sessions"}
                 onChange={(event) => void setSessions(event.target.checked)}
-                className="h-5 w-5 shrink-0 rounded border-navy-300 text-navy-900"
+                className="h-5 w-5 shrink-0 rounded border-line-strong text-ink-strong"
               />
             </label>
           </li>
@@ -148,11 +148,11 @@ export default function HelperConsentList({
           row.granted ? (
             <li
               key={row.scope}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-navy-200 bg-white px-4 py-3"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-line-quiet bg-surface-raised px-4 py-3"
             >
-              <span className="text-sm text-navy-800">
+              <span className="text-sm text-ink-strong">
                 {t(SCOPE_LABEL[row.scope])}
-                <span className="block text-xs text-navy-500">
+                <span className="block text-xs text-ink-muted">
                   {t("me.consentProvider", { provider: row.provider ?? "" })}
                 </span>
               </span>
@@ -160,7 +160,7 @@ export default function HelperConsentList({
                 busy={busy === row.scope}
                 type="button"
                 onClick={() => void withdraw(row.scope)}
-                className="min-h-11 rounded-lg border border-navy-200 px-3 py-1 text-sm text-navy-700 disabled:opacity-50"
+                className="min-h-11 rounded-lg border border-line-quiet px-3 py-1 text-sm text-ink-body disabled:opacity-50"
               >
                 {t("agent.helperWithdraw")}
               </BusyButton>
@@ -170,13 +170,13 @@ export default function HelperConsentList({
             // Nothing here can grant this, so nothing here offers to.
             <li
               key={row.scope}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-navy-300 bg-cream-50 px-4 py-3 text-navy-500"
+              className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed border-line-strong bg-surface-base px-4 py-3 text-ink-muted"
             >
               <span className="text-sm">
                 {t(SCOPE_LABEL[row.scope])}
                 <span className="block text-xs">{t("me.consentNotGrantedNote")}</span>
               </span>
-              <span className="rounded-full border border-navy-300 px-2.5 py-1 text-xs">
+              <span className="rounded-full border border-line-strong px-2.5 py-1 text-xs">
                 {t("me.consentNotGranted")}
               </span>
             </li>

@@ -18,10 +18,10 @@ export default function CostsPrivate() {
     <div className="min-h-screen">
       <PageHeader />
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("cost.title")}
         </h1>
-        <p className="mt-4 max-w-prose text-base leading-7 text-navy-700">{t("cost.private")}</p>
+        <p className="mt-4 max-w-prose text-base leading-7 text-ink-body">{t("cost.private")}</p>
       </main>
     </div>
   );

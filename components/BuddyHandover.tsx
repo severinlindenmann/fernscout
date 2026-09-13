@@ -59,14 +59,14 @@ export default function BuddyHandover({
   const { t } = useI18n();
   return (
     <div>
-      <h3 className="font-display text-base font-semibold text-navy-900">{t("me.buddyAgent")}</h3>
-      <p className="mt-1 text-base leading-7 text-navy-700">{t("me.buddyAgentBody")}</p>
+      <h3 className="font-display text-base font-semibold text-ink-strong">{t("me.buddyAgent")}</h3>
+      <p className="mt-1 text-base leading-7 text-ink-body">{t("me.buddyAgentBody")}</p>
 
       {trips.map((trip) => (
         <div key={trip.id} className="mt-4">
           {/* Named, and named per block, because the one thing a person has to
               get right here is which prompt goes with which trip. */}
-          <p className="text-base font-semibold leading-7 text-navy-900">
+          <p className="text-base font-semibold leading-7 text-ink-strong">
             {t("me.buddyFor", { trip: trip.title })}
           </p>
           {/*
@@ -75,7 +75,7 @@ export default function BuddyHandover({
             software, and a block they cannot read is a block they cannot
             recover when the clipboard fails silently.
           */}
-          <pre className="mt-2 max-h-64 overflow-auto rounded-xl bg-white p-3 text-xs leading-6 text-navy-900">
+          <pre className="mt-2 max-h-64 overflow-auto rounded-xl bg-surface-raised p-3 text-xs leading-6 text-ink-strong">
             {buddyPrompt({ siteUrl, username, tripId: trip.id, email })}
           </pre>
           <div className="mt-2">
@@ -98,8 +98,8 @@ export default function BuddyHandover({
         yet, and anybody nervous about pasting a credential needs to know how
         far it reaches and that it stops on its own.
       */}
-      <p className="mt-4 text-base leading-7 text-navy-700">{t("me.buddyKeyBody")}</p>
-      <p className="mt-2 border-l-2 border-coral-600 pl-3 text-base leading-7 text-navy-900">
+      <p className="mt-4 text-base leading-7 text-ink-body">{t("me.buddyKeyBody")}</p>
+      <p className="mt-2 border-l-2 border-coral-600 pl-3 text-base leading-7 text-ink-strong">
         {t("me.buddyKeyWarning")}
       </p>
     </div>

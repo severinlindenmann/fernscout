@@ -34,7 +34,7 @@ export type PublicJournal = {
  */
 function Kicker({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-mono text-xs uppercase tracking-[0.14em] text-navy-600">
+    <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-secondary">
       {children}
     </p>
   );
@@ -48,7 +48,7 @@ function Kicker({ children }: { children: React.ReactNode }) {
  */
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-navy-200 bg-cream-100 px-2.5 py-1 font-mono text-[11px] text-navy-600">
+    <span className="inline-flex items-center rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-1 font-mono text-[11px] text-ink-secondary">
       {children}
     </span>
   );
@@ -76,9 +76,9 @@ export const PRIMARY_BUTTON =
  */
 export function OrDivider({ compact = false }: { compact?: boolean } = {}) {
   const { t } = useI18n();
-  const hairline = `h-px flex-1 bg-navy-200 ${compact ? "sm:hidden" : ""}`;
+  const hairline = `h-px flex-1 bg-surface-selected ${compact ? "sm:hidden" : ""}`;
   return (
-    <div role="separator" className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-navy-400">
+    <div role="separator" className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-ink-faint">
       <span className={hairline} />
       {t("common.or")}
       <span className={hairline} />
@@ -119,7 +119,7 @@ export function WhatsAppButton({
         className
       }
     >
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-700 text-white" aria-hidden>
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-700 text-on-deep" aria-hidden>
         <MessageCircle className="h-3 w-3" strokeWidth={2.5} />
       </span>
       {label}
@@ -135,7 +135,7 @@ export function WhatsAppButton({
  */
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="border-b border-navy-200 pb-3 font-display text-xl font-semibold text-navy-900">
+    <h2 className="border-b border-line-quiet pb-3 font-display text-xl font-semibold text-ink-strong">
       {children}
     </h2>
   );
@@ -208,7 +208,7 @@ export function SiteHeader({
           // pair, and min-h-11 is the tap target the switcher already keeps.
           <Link
             href="/admin"
-            className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-navy-600 transition-colors hover:bg-cream-100 hover:text-navy-900"
+            className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink-strong"
           >
             {t("home.operator")}
           </Link>
@@ -223,7 +223,7 @@ export function SiteHeader({
           // the thing has one look wherever it appears.
           <Link
             href="/agent"
-            className="flex min-h-11 items-center rounded-full bg-navy-900 px-3.5 text-xs font-bold text-cream-50 transition-colors hover:bg-navy-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            className="flex min-h-11 items-center rounded-full bg-action-strong px-3.5 text-xs font-bold text-on-action transition-colors hover:bg-action-strong-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
             {t("home.agentLink")}
           </Link>
@@ -261,7 +261,7 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
   return (
     <section
       aria-labelledby="reader-invite"
-      className="mt-6 overflow-hidden rounded-2xl border border-navy-200 border-l-8 border-l-yellow-400 bg-cream-50 p-5 sm:p-6"
+      className="mt-6 overflow-hidden rounded-2xl border border-line-quiet border-l-8 border-l-yellow-400 bg-surface-base p-5 sm:p-6"
     >
       {/* Who this card is for — B1339. The two blocks at the top of the page
           serve two different people, and at phone width nothing said which
@@ -270,11 +270,11 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
       <Kicker>{t("home.inviteKicker")}</Kicker>
       <h2
         id="reader-invite"
-        className="mt-2 font-display text-xl font-semibold leading-tight text-navy-900 sm:text-2xl"
+        className="mt-2 font-display text-xl font-semibold leading-tight text-ink-strong sm:text-2xl"
       >
         {t("home.inviteTitle")}
       </h2>
-      <p className="mt-2 max-w-prose text-base leading-7 text-navy-800 sm:text-lg">
+      <p className="mt-2 max-w-prose text-base leading-7 text-ink-strong sm:text-lg">
         {t("home.inviteBody")}
       </p>
       {/* Full width on a phone and min-h-14 rather than the 11 used elsewhere:
@@ -292,8 +292,8 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
       <p className="mt-3">
         <Link
           href="/docs/guide/guest"
-          className="text-sm text-navy-700 underline decoration-navy-300 underline-offset-4
-                     transition-colors hover:decoration-navy-700
+          className="text-sm text-ink-body underline decoration-line-quiet underline-offset-4
+                     transition-colors hover:decoration-line-prominent
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         >
           {t("guides.readMore")}
@@ -342,10 +342,10 @@ export function LandingHero({
       <div className="mt-12">
         <Kicker>{t("landing.heroKicker")}</Kicker>
       </div>
-      <h1 className="mt-3 font-display text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.12] text-navy-900">
+      <h1 className="mt-3 font-display text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.12] text-ink-strong">
         {t("landing.hero")}
       </h1>
-      <p className="mt-4 text-lg leading-7 text-navy-700">
+      <p className="mt-4 text-lg leading-7 text-ink-body">
         {t("landing.lede")}
       </p>
       {/* B1325: on desktop the two doors sit side by side in one row, with
@@ -422,8 +422,8 @@ export function AgentDisclosure({
     <details className="group mt-6">
       <summary
         className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold
-                   text-navy-700 underline decoration-navy-300 underline-offset-4
-                   transition-colors hover:decoration-navy-700
+                   text-ink-body underline decoration-line-quiet underline-offset-4
+                   transition-colors hover:decoration-line-prominent
                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
                    [&::-webkit-details-marker]:hidden"
       >
@@ -475,15 +475,15 @@ export function AgentBlock({
   return (
     <section
       aria-labelledby="handover"
-      className="mt-8 rounded-2xl border border-navy-200 bg-cream-50 px-5 py-5 sm:px-6"
+      className="mt-8 rounded-2xl border border-line-quiet bg-surface-base px-5 py-5 sm:px-6"
     >
       <h2
         id="handover"
-        className="font-display text-xl font-semibold text-navy-900"
+        className="font-display text-xl font-semibold text-ink-strong"
       >
         {heading ?? t("landing.handTitle")}
       </h2>
-      <p className="mt-1 text-base leading-7 text-navy-700">
+      <p className="mt-1 text-base leading-7 text-ink-body">
         {t("landing.handBody")}
       </p>
       {/* The instruction itself, visible — the same string, from the same
@@ -501,7 +501,7 @@ export function AgentBlock({
           block reported a min-content width of the whole URL, the flex item
           above refused to shrink under it, and the entire page laid out
           wider than the phone. */}
-      <p className="mt-3 rounded-xl bg-cream-100 p-3 font-mono text-sm leading-6 text-navy-900 [overflow-wrap:anywhere]">
+      <p className="mt-3 rounded-xl bg-surface-subtle p-3 font-mono text-sm leading-6 text-ink-strong [overflow-wrap:anywhere]">
         {t("landing.instruction", { docUrl, agentUrl })}
       </p>
       <div className="mt-4">
@@ -557,16 +557,16 @@ export function LandingSteps({
               {String(i + 1).padStart(2, "0")}
             </span>
             <div>
-              <h3 className="text-base font-semibold leading-6 text-navy-900">
+              <h3 className="text-base font-semibold leading-6 text-ink-strong">
                 {step.title}
               </h3>
-              <p className="text-base leading-6 text-navy-700">{step.body}</p>
+              <p className="text-base leading-6 text-ink-body">{step.body}</p>
             </div>
           </li>
         ))}
       </ol>
 
-      <p className="mt-6 border-l-2 border-yellow-400 pl-4 text-base leading-6 text-navy-900">
+      <p className="mt-6 border-l-2 border-yellow-400 pl-4 text-base leading-6 text-ink-strong">
         {t(helperEnabled ? "landing.noEditor" : "landing.noEditorNoHelper")}
       </p>
     </>
@@ -583,7 +583,7 @@ export function DocsLink() {
   return (
     <Link
       href="/docs"
-      className="mt-6 inline-flex min-h-11 items-center gap-2 text-base font-semibold text-navy-900
+      className="mt-6 inline-flex min-h-11 items-center gap-2 text-base font-semibold text-ink-strong
                  underline decoration-blue-500 decoration-2 underline-offset-4
                  focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
     >
@@ -601,7 +601,7 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
       <SectionHeading>{t("landing.publicTitle")}</SectionHeading>
 
       {journals.length === 0 ? (
-        <p className="mt-3 text-base leading-6 text-navy-700">
+        <p className="mt-3 text-base leading-6 text-ink-body">
           {t("landing.publicNone")}
         </p>
       ) : (
@@ -610,8 +610,8 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
             <li key={journal.username}>
               <Link
                 href={`/${journal.username}`}
-                className="group block h-full overflow-hidden rounded-xl border border-navy-200 bg-cream-50
-                           transition-colors hover:border-navy-700
+                className="group block h-full overflow-hidden rounded-xl border border-line-quiet bg-surface-base
+                           transition-colors hover:border-line-ink
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
               >
                 {journal.cover ? (
@@ -629,13 +629,13 @@ export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
                     nothing here has to earn a phone screen's worth of colour
                     it cannot fill. */}
                 <div className="p-4">
-                  <p className="font-display text-base font-semibold text-navy-900">
+                  <p className="font-display text-base font-semibold text-ink-strong">
                     {journal.title}
                   </p>
-                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-navy-600">
+                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-ink-secondary">
                     {journal.tagline}
                   </p>
-                  <p className="mt-2 font-mono text-xs text-navy-600">
+                  <p className="mt-2 font-mono text-xs text-ink-secondary">
                     /{journal.username} ·{" "}
                     {tn("landing.trips", journal.trips, {
                       count: String(journal.trips),
@@ -666,27 +666,27 @@ export function Colophon({
   const { t } = useI18n();
   return (
     <>
-      <section className="mt-10 grid gap-6 border-t border-navy-200 pt-8 sm:grid-cols-2">
+      <section className="mt-10 grid gap-6 border-t border-line-quiet pt-8 sm:grid-cols-2">
         <div>
-          <h2 className="font-display text-base font-semibold text-navy-900">
+          <h2 className="font-display text-base font-semibold text-ink-strong">
             {t("landing.readers")}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-navy-700">
+          <p className="mt-2 text-sm leading-6 text-ink-body">
             {t("landing.readersBody")}
           </p>
         </div>
         <div>
-          <h2 className="font-display text-base font-semibold text-navy-900">
+          <h2 className="font-display text-base font-semibold text-ink-strong">
             {t("landing.selfHost")}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-navy-700">
+          <p className="mt-2 text-sm leading-6 text-ink-body">
             {t("landing.selfHostBody")}
           </p>
           <div className="mt-3 flex flex-col gap-2">
             {repository && (
               <a
                 href={repository}
-                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-navy-900
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-ink-strong
                            underline decoration-blue-500 decoration-2 underline-offset-4
                            focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
               >
@@ -712,7 +712,7 @@ export function Colophon({
         absent — there is no fallback that quietly credits the wrong person.
       */}
       {(credit || legal) && (
-        <footer className="mt-12 border-t border-navy-200 pt-6 text-sm text-navy-600">
+        <footer className="mt-12 border-t border-line-quiet pt-6 text-sm text-ink-secondary">
           {credit && (
             <p>
               {/* Split on the {name} token rather than appending the link after
@@ -728,12 +728,12 @@ export function Colophon({
                 const name = credit.url ? (
                   <a
                     href={credit.url}
-                    className="font-semibold text-navy-900 underline decoration-blue-500 decoration-2 underline-offset-4"
+                    className="font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-4"
                   >
                     {credit.name}
                   </a>
                 ) : (
-                  <span className="font-semibold text-navy-900">
+                  <span className="font-semibold text-ink-strong">
                     {credit.name}
                   </span>
                 );
@@ -754,7 +754,7 @@ export function Colophon({
             journals underneath it. A footer line is the honest weight: it is
             reassurance for somebody who thought to ask, not a selling point.
           */}
-          <p className="mt-2 text-xs leading-5 text-navy-600">
+          <p className="mt-2 text-xs leading-5 text-ink-secondary">
             {t("landing.hostedIn")} · {t("landing.noTracking")}
             {legal && (
               <>

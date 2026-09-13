@@ -63,12 +63,12 @@ export default function TravellerBench() {
   return (
     <div className="mx-auto max-w-5xl space-y-16 px-4 py-10 sm:px-6">
       <header>
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong">
           Travellers
         </h1>
-        <p className="mt-3 max-w-2xl text-navy-700">
+        <p className="mt-3 max-w-2xl text-ink-body">
           Every word the walking figures are described in, and what each one draws. A
-          journal records these as attributes in <code className="rounded bg-cream-100 px-1">trip.md</code>{" "}
+          journal records these as attributes in <code className="rounded bg-surface-subtle px-1">trip.md</code>{" "}
           — never as a preset name — so this is the reference for what to write.
         </p>
       </header>
@@ -114,7 +114,7 @@ function OneFigure() {
           <Pick label="Build" value={figure.build ?? "average"} options={BUILDS as readonly Build[]} onChange={(v) => set("build", v)} />
           <Pick label="Age" value={figure.age ?? "adult"} options={AGES as readonly Age[]} onChange={(v) => set("age", v)} />
           <fieldset className="sm:col-span-2">
-            <legend className="font-display text-xs font-semibold uppercase tracking-wide text-navy-600">
+            <legend className="font-display text-xs font-semibold uppercase tracking-wide text-ink-secondary">
               Accessories
             </legend>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -129,7 +129,7 @@ function OneFigure() {
                     className={`min-h-11 rounded-full border px-3.5 font-display text-sm font-semibold transition-colors ${
                       on
                         ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                        : "border-navy-200 bg-white text-navy-700 hover:border-navy-500"
+                        : "border-line-quiet bg-surface-raised text-ink-body hover:border-line-prominent"
                     }`}
                   >
                     {a}
@@ -139,7 +139,7 @@ function OneFigure() {
             </div>
           </fieldset>
           <label className="sm:col-span-2 block">
-            <span className="font-display text-xs font-semibold uppercase tracking-wide text-navy-600">
+            <span className="font-display text-xs font-semibold uppercase tracking-wide text-ink-secondary">
               Drawn at {size}px
             </span>
             <input
@@ -155,10 +155,10 @@ function OneFigure() {
         </div>
 
         <div>
-          <div className="flex min-h-[300px] items-end justify-center rounded-xl border border-navy-200 bg-sky-200 p-4">
+          <div className="flex min-h-[300px] items-end justify-center rounded-xl border border-line-quiet bg-sky-200 p-4">
             <Figurine figure={figure} width={size} />
           </div>
-          <pre className="mt-3 overflow-x-auto rounded-xl border border-navy-200 bg-white p-3 font-mono text-xs text-navy-800">
+          <pre className="mt-3 overflow-x-auto rounded-xl border border-line-quiet bg-surface-raised p-3 font-mono text-xs text-ink-strong">
             {toYaml(figure)}
           </pre>
         </div>
@@ -204,17 +204,17 @@ function Row<T extends string>({
 }) {
   return (
     <div>
-      <h3 className="font-display text-sm font-semibold text-navy-900">
+      <h3 className="font-display text-sm font-semibold text-ink-strong">
         {axis}{" "}
-        <span className="font-sans font-normal text-navy-500">· {values.length} values</span>
+        <span className="font-sans font-normal text-ink-muted">· {values.length} values</span>
       </h3>
       <div className="mt-3 flex flex-wrap gap-3">
         {values.map((v) => (
-          <figure key={v} className="w-[104px] overflow-hidden rounded-lg border border-navy-200">
+          <figure key={v} className="w-[104px] overflow-hidden rounded-lg border border-line-quiet">
             <div className="flex h-[130px] items-end justify-center bg-sky-200 pb-1">
               <Figurine figure={make(v)} width={92} />
             </div>
-            <figcaption className="bg-white px-2 py-1.5 text-center font-mono text-[11px] text-navy-700">
+            <figcaption className="bg-surface-raised px-2 py-1.5 text-center font-mono text-[11px] text-ink-body">
               {v}
             </figcaption>
           </figure>
@@ -232,25 +232,25 @@ function Presets() {
     >
       <div className="flex flex-wrap gap-3">
         {STARTING_POINTS.map((p) => (
-          <figure key={p.name} className="w-[124px] overflow-hidden rounded-lg border border-navy-200">
+          <figure key={p.name} className="w-[124px] overflow-hidden rounded-lg border border-line-quiet">
             <div className="flex h-[150px] items-end justify-center bg-sky-200 pb-1">
               <Figurine figure={p.figure} width={104} />
             </div>
-            <figcaption className="bg-white px-2 py-1.5 text-center font-mono text-[11px] text-navy-700">
+            <figcaption className="bg-surface-raised px-2 py-1.5 text-center font-mono text-[11px] text-ink-body">
               {p.name}
             </figcaption>
           </figure>
         ))}
       </div>
 
-      <h3 className="mt-8 font-display text-sm font-semibold text-navy-900">
+      <h3 className="mt-8 font-display text-sm font-semibold text-ink-strong">
         A party, walking
       </h3>
-      <p className="mt-1 text-sm text-navy-600">
+      <p className="mt-1 text-sm text-ink-secondary">
         The arrangement the hero and the travel scene use — figures shrink together
         rather than the party overflowing.
       </p>
-      <div className="mt-3 flex min-h-[170px] items-end rounded-xl border border-navy-200 bg-sky-200 p-4">
+      <div className="mt-3 flex min-h-[170px] items-end rounded-xl border border-line-quiet bg-sky-200 p-4">
         <Travelers figures={STARTING_POINTS.slice(0, 5).map((p) => p.figure)} size={80} available={820} />
       </div>
     </Section>
@@ -301,8 +301,8 @@ function Section({
 }) {
   return (
     <section>
-      <h2 className="font-display text-xl font-semibold tracking-tight text-navy-900">{title}</h2>
-      <p className="mt-2 max-w-3xl text-sm text-navy-600">{note}</p>
+      <h2 className="font-display text-xl font-semibold tracking-tight text-ink-strong">{title}</h2>
+      <p className="mt-2 max-w-3xl text-sm text-ink-secondary">{note}</p>
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -321,13 +321,13 @@ function Pick<T extends string>({
 }) {
   return (
     <label className="block">
-      <span className="block font-display text-xs font-semibold uppercase tracking-wide text-navy-600">
+      <span className="block font-display text-xs font-semibold uppercase tracking-wide text-ink-secondary">
         {label}
       </span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as T)}
-        className="mt-1 min-h-11 w-full rounded-lg border border-navy-200 bg-white px-3 text-sm text-navy-900"
+        className="mt-1 min-h-11 w-full rounded-lg border border-line-quiet bg-surface-raised px-3 text-sm text-ink-strong"
       >
         {options.map((o) => (
           <option key={o} value={o}>

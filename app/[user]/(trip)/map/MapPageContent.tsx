@@ -86,17 +86,17 @@ export default function MapPageContent({
             not exist, because the only markers on the map are planned ones and
             they open nothing. Both follow `pastTense` — `hasPlaces` or `over`,
             never `trip.status` directly, so the two cannot drift apart. */}
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t(pastTense ? "map.title" : "map.titlePlanned")}
         </h1>
         <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-navy-600">
+          <p className="text-sm text-ink-secondary">
             {t(pastTense ? "map.subtitle" : "map.subtitlePlanned")}
           </p>
           {hasPlaces && (
             <button
               onClick={() => setShowing(true)}
-              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-navy-200 bg-white px-4 text-sm font-semibold text-navy-700 transition-colors hover:border-navy-500"
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
             >
               <Clapperboard className="h-4 w-4" />
               {t("show.start")}
@@ -123,7 +123,7 @@ export default function MapPageContent({
           // Visible only to somebody who may see the drafts themselves (see
           // `hasDraftPlaces`) — the same audience, and the same wording shape,
           // as the planned route's own note below.
-          <p className="mt-2 text-xs text-navy-600">
+          <p className="mt-2 text-xs text-ink-secondary">
             {t(canPublish ? "map.stopsFromDrafts" : "map.stopsFromDraftsShared")}
           </p>
         )}
@@ -155,14 +155,14 @@ export default function MapPageContent({
             // without GPS and a different fact from the first. Saying "no days
             // written" over a published day told an owner their day was
             // missing when it was on the site.
-            <p className="text-navy-600">
+            <p className="text-ink-secondary">
               {t(hasDays ? "map.emptyNoPlace" : "map.empty")}
             </p>
           )}
         </div>
 
         {plan.length > 0 && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-navy-600">
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-ink-secondary">
             <span className="flex items-center gap-1.5">
               <svg width="26" height="6" aria-hidden className="shrink-0">
                 <line
@@ -178,7 +178,7 @@ export default function MapPageContent({
               </svg>
               {t("map.planned")} — {t("map.plannedHint")}
             </span>
-            <span className="font-semibold text-navy-700">
+            <span className="font-semibold text-ink-body">
               {reachedCount}/{plan.length} {t("map.progress")}
             </span>
             {hasDraftStops && (
@@ -195,7 +195,7 @@ export default function MapPageContent({
 
         {remaining.length > 0 && (
           <section className="mt-10">
-            <h2 className="font-display text-xl font-semibold text-navy-900">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("map.stillToCome")}
             </h2>
             <ol className="mt-3 flex flex-wrap gap-2">
@@ -205,7 +205,7 @@ export default function MapPageContent({
                   className={`rounded-full border px-3 py-1.5 text-xs ${
                     i === 0
                       ? "border-yellow-600 bg-yellow-400 font-semibold text-yellow-950"
-                      : "border-dashed border-navy-200 bg-white text-navy-700"
+                      : "border-dashed border-line-quiet bg-surface-raised text-ink-body"
                   }`}
                   title={stop.note}
                 >
@@ -223,23 +223,23 @@ export default function MapPageContent({
             immediately above. */}
         {hasPlaces && (
           <section className="mt-10">
-            <h2 className="font-display text-xl font-semibold text-navy-900">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("map.everyStop")}
             </h2>
-            <ol className="mt-3 divide-y divide-navy-200 overflow-hidden rounded-xl border border-navy-200 bg-white">
+            <ol className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
               {places.map((place) => (
                 <li key={place.key}>
                   <a
                     href={href(`/day/${place.entries[0].slug}`)}
-                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-cream-50"
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-surface-base"
                   >
                     <div className="min-w-0">
-                      <div className="truncate font-display text-sm font-semibold text-navy-900">
+                      <div className="truncate font-display text-sm font-semibold text-ink-strong">
                         {flagFor(place.country, place.countryCode)} {place.location}
                       </div>
-                      <div className="text-xs text-navy-600">{place.country}</div>
+                      <div className="text-xs text-ink-secondary">{place.country}</div>
                     </div>
-                    <div className="shrink-0 text-right text-xs text-navy-600">
+                    <div className="shrink-0 text-right text-xs text-ink-secondary">
                       <div>
                         {formatShortDate(place.firstDate)}
                         {place.lastDate !== place.firstDate &&
@@ -264,9 +264,9 @@ export default function MapPageContent({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-navy-200 bg-white px-4 py-3">
-      <dt className="text-xs text-navy-600">{label}</dt>{" "}
-      <dd className="font-display text-2xl font-semibold text-navy-900">{value}</dd>
+    <div className="rounded-xl border border-line-quiet bg-surface-raised px-4 py-3">
+      <dt className="text-xs text-ink-secondary">{label}</dt>{" "}
+      <dd className="font-display text-2xl font-semibold text-ink-strong">{value}</dd>
     </div>
   );
 }

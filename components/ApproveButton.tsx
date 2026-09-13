@@ -42,10 +42,10 @@ export default function ApproveButton({
 
   return (
     <>
-      <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+      <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
         {t("approve.title")}
       </h1>
-      <section className="mt-6 rounded-2xl border border-navy-200 bg-white p-5 sm:p-6">
+      <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
         {state === "done" ? (
           <div className="rounded-xl border border-green-500/40 bg-green-100 p-4">
             <p className="flex items-center gap-2 font-display text-base font-semibold text-green-700">
@@ -55,7 +55,7 @@ export default function ApproveButton({
           </div>
         ) : (
           <>
-            <p className="text-lg leading-8 text-navy-900">
+            <p className="text-lg leading-8 text-ink-strong">
               {t("approve.prompt", {
                 credits: String(credits),
                 unit: tn("me.paymentUnit", credits),

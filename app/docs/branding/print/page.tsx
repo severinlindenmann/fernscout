@@ -12,12 +12,12 @@ export const metadata: Metadata = {
 
 export default function PrintBenchPage() {
   return (
-    <main id="main" className="min-h-screen bg-cream-50">
+    <main id="main" className="min-h-screen bg-surface-base">
       <PrintBench />
       <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
         <Link
           href="/docs/branding"
-          className="text-sm font-semibold text-navy-700 underline decoration-blue-500 decoration-2 underline-offset-2 hover:text-navy-900"
+          className="text-sm font-semibold text-ink-body underline decoration-blue-500 decoration-2 underline-offset-2 hover:text-ink-strong"
         >
           Back to the workbenches
         </Link>

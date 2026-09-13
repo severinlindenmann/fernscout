@@ -218,7 +218,7 @@ describe("the sign-in door", () => {
       expect(html).toContain(">Sign in</span>");
       expect(html).not.toContain("hidden xl:inline");
       // And it still reads as a control rather than another tab.
-      expect(html).toContain("border border-navy-700");
+      expect(html).toContain("border border-line-ink");
     } finally {
       site.canSignIn = false;
     }
@@ -258,7 +258,7 @@ describe("the sign-in door", () => {
     const html = door(markup(false));
     expect(html).not.toContain("Sign in");
     expect(html).toContain("hidden xl:inline");
-    expect(html).not.toContain("border border-navy-700");
+    expect(html).not.toContain("border border-line-ink");
   });
 
   /**

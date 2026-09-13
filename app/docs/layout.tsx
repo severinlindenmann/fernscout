@@ -23,14 +23,14 @@ export default async function DocsLayout({ children }: LayoutProps<"/docs">) {
 
   return (
     <div className="min-h-full">
-      <header className="border-b border-navy-200 bg-cream-100/95 px-4 py-3 backdrop-blur sm:px-6">
+      <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
           <BackLink
             fallbackHref="/"
             fallbackLabel={translateIn(locale, "docs.backToSite", { name: site.name })}
             retraceLabel={translateIn(locale, "nav.back")}
-            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-navy-700
-                       transition-colors hover:text-navy-900
+            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
+                       transition-colors hover:text-ink-strong
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           />
           {/* `LocaleProvider` because the switcher is a client component that

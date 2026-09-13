@@ -137,7 +137,7 @@ export default function GalleryGrid({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.4) }}
             whileHover={{ y: -3 }}
-            className="group relative overflow-hidden rounded-xl border border-navy-200 bg-cream-200 shadow-sm"
+            className="group relative overflow-hidden rounded-xl border border-line-quiet bg-surface-muted shadow-sm"
           >
             <span className="relative block aspect-square">
               {tile.type === "video" ? (
@@ -169,28 +169,28 @@ export default function GalleryGrid({
                 />
               )}
               {tile.type === "video" && (
-                <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl text-white">
+                <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl text-overlay-ink">
                   ▶
                 </span>
               )}
               <PhotoBadge own={tile.visibility} />
             </span>
-            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy-900/80 to-transparent px-2.5 py-2 text-left">
+            <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong/80 to-transparent px-2.5 py-2 text-left">
               {/* `aria-hidden` because the image's alt already carries it — see
                   the alt above. A caption written today used to be invisible
                   here until somebody opened the lightbox (B522). */}
               {tile.caption && (
                 <span
                   aria-hidden
-                  className="mb-0.5 block truncate font-display text-[11px] italic text-white/95"
+                  className="mb-0.5 block truncate font-display text-[11px] italic text-overlay-ink/95"
                 >
                   {tile.caption}
                 </span>
               )}
-              <span className="block truncate text-xs font-semibold text-white">
+              <span className="block truncate text-xs font-semibold text-overlay-ink">
                 {tile.location}
               </span>
-              <span className="block text-[11px] text-white/90">
+              <span className="block text-[11px] text-overlay-ink/90">
                 {formatShortDate(tile.date)}
               </span>
             </span>
@@ -199,14 +199,14 @@ export default function GalleryGrid({
       </div>
 
       {shown.length === 0 && (
-        <p className="py-10 text-center text-sm text-navy-600">{t("gallery.none")}</p>
+        <p className="py-10 text-center text-sm text-ink-secondary">{t("gallery.none")}</p>
       )}
 
       {visibleCount < shown.length && (
         <div className="mt-6 flex justify-center">
           <button
             onClick={() => setVisibleCount((v) => v + BATCH)}
-            className="min-h-11 rounded-full border border-navy-200 bg-white px-5 text-sm font-semibold text-navy-700 shadow-sm transition-colors hover:border-navy-500"
+            className="min-h-11 rounded-full border border-line-quiet bg-surface-raised px-5 text-sm font-semibold text-ink-body shadow-sm transition-colors hover:border-line-prominent"
           >
             {t("gallery.loadMore")}
           </button>
@@ -227,9 +227,9 @@ export default function GalleryGrid({
             <FullPhoto item={open} />
             <div className="mt-3 text-center">
               {open.caption && (
-                <p className="font-display text-sm italic text-white/85">{open.caption}</p>
+                <p className="font-display text-sm italic text-overlay-ink/85">{open.caption}</p>
               )}
-              <p className="mt-0.5 text-xs text-white/80">
+              <p className="mt-0.5 text-xs text-overlay-ink/80">
                 {flagFor(open.country, open.countryCode)} {open.location}, {open.country} ·{" "}
                 {formatShortDate(open.date)}
               </p>
@@ -240,7 +240,7 @@ export default function GalleryGrid({
                     setComposing(open);
                     close();
                   }}
-                  className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-white/15 px-4 text-sm font-semibold text-white transition-colors hover:bg-white/25"
+                  className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-overlay-ink/15 px-4 text-sm font-semibold text-overlay-ink transition-colors hover:bg-overlay-ink/25"
                 >
                   <Send className="h-4 w-4" />
                   {t("postcard.start")}
@@ -279,7 +279,7 @@ function FilterChip({
       className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold transition-colors ${
         active
           ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-          : "border-navy-200 bg-white text-navy-600 hover:border-navy-500"
+          : "border-line-quiet bg-surface-raised text-ink-secondary hover:border-line-prominent"
       }`}
     >
       {children}

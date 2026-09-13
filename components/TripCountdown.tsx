@@ -49,7 +49,7 @@ export default function TripCountdown({
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         {/* min-h reserves the line's height so filling this in after mount
             doesn't shift the layout below it. */}
-        <p className="min-h-[1.25rem] font-display text-sm font-semibold uppercase tracking-wide text-navy-600">
+        <p className="min-h-[1.25rem] font-display text-sm font-semibold uppercase tracking-wide text-ink-secondary">
           {away !== null &&
             (away === 0
               ? t("trips.today")
@@ -57,18 +57,18 @@ export default function TripCountdown({
                 ? t("trips.oneDayAway")
                 : `${away} ${t("trips.daysAway")}`)}
         </p>
-        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {title}
         </h1>
-        <p className="mt-2 text-sm text-navy-600">
+        <p className="mt-2 text-sm text-ink-secondary">
           {formatLongDate(trip.start)} — {formatLongDate(trip.end)}
         </p>
-        {trip.intro && <p className="mt-4 max-w-2xl text-navy-700">{trip.intro}</p>}
+        {trip.intro && <p className="mt-4 max-w-2xl text-ink-body">{trip.intro}</p>}
 
         {countries.length > 0 && (
-          <p className="mt-4 flex flex-wrap gap-2 text-sm text-navy-700">
+          <p className="mt-4 flex flex-wrap gap-2 text-sm text-ink-body">
             {countries.map((c) => (
-              <span key={c} className="rounded-full bg-cream-100 px-3 py-1">
+              <span key={c} className="rounded-full bg-surface-subtle px-3 py-1">
                 {flagFor(c)} {c}
               </span>
             ))}
@@ -77,7 +77,7 @@ export default function TripCountdown({
 
         {stops.length > 0 && (
           <section className="mt-8">
-            <h2 className="font-display text-xl font-semibold text-navy-900">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
               {t("trips.plannedRoute")}
             </h2>
             <div className="mt-3">
@@ -88,20 +88,20 @@ export default function TripCountdown({
         )}
 
         {budget && (
-          <section className="mt-8 rounded-2xl border border-navy-200 bg-white p-5">
-            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-navy-600">
+          <section className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-5">
+            <h2 className="font-display text-sm font-semibold uppercase tracking-wide text-ink-secondary">
               {t("trips.plannedBudget")}
             </h2>
-            <p className="mt-1 font-display text-2xl font-semibold text-navy-900">
+            <p className="mt-1 font-display text-2xl font-semibold text-ink-strong">
               {money(budget.total)}
             </p>
-            <p className="text-xs text-navy-600">
+            <p className="text-xs text-ink-secondary">
               {money(budget.total / budget.days)} / {budget.days}d
             </p>
           </section>
         )}
 
-        <p className="mt-8 text-sm text-navy-600">{t("trips.noEntriesYet")}</p>
+        <p className="mt-8 text-sm text-ink-secondary">{t("trips.noEntriesYet")}</p>
       </main>
     </div>
   );

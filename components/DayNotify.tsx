@@ -85,7 +85,7 @@ export default function DayNotify({
 
   if (status.alreadySent) {
     return (
-      <p className="col-span-full text-xs text-navy-600">{t("notify.sent")}</p>
+      <p className="col-span-full text-xs text-ink-secondary">{t("notify.sent")}</p>
     );
   }
 
@@ -109,7 +109,7 @@ export default function DayNotify({
   // nobody and reports success — B1027.
   if (status.pending.every(({ count }) => count === 0)) {
     return (
-      <p className="col-span-full text-xs text-navy-600">
+      <p className="col-span-full text-xs text-ink-secondary">
         {t("notify.nobody")}
       </p>
     );
@@ -142,9 +142,9 @@ export default function DayNotify({
         role="dialog"
         aria-modal="false"
         aria-label={t("notify.button")}
-        className="col-span-full rounded-2xl border border-navy-200 bg-white p-4 shadow-sm"
+        className="col-span-full rounded-2xl border border-line-quiet bg-surface-raised p-4 shadow-sm"
       >
-        <p className="text-sm font-semibold leading-6 text-navy-900">
+        <p className="text-sm font-semibold leading-6 text-ink-strong">
           {t("notify.question")}
         </p>
 
@@ -170,9 +170,9 @@ export default function DayNotify({
             .map(({ channel, count, cost }) => (
               <li
                 key={channel}
-                className="flex items-center gap-2.5 border-t border-cream-200 py-1.5 text-sm text-navy-900 first:border-t-0"
+                className="flex items-center gap-2.5 border-t border-line-quiet py-1.5 text-sm text-ink-strong first:border-t-0"
               >
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-cream-100 text-navy-700">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-surface-subtle text-ink-body">
                   {channel === "mail" ? (
                     <Mail className="h-4 w-4" aria-hidden />
                   ) : (
@@ -190,7 +190,7 @@ export default function DayNotify({
                 </span>
                 {/* Where the cost actually falls. That a letter is free and a
                     WhatsApp is not used to disappear into one sum. */}
-                <span className="shrink-0 text-xs text-navy-600">
+                <span className="shrink-0 text-xs text-ink-secondary">
                   {cost === 0
                     ? t("notify.free")
                     : tn("notify.costCredits", cost, { credits: String(cost) })}
@@ -205,7 +205,7 @@ export default function DayNotify({
             `needed === 0`, so a journal with credits that sends only letters
             was told its send cost "0 Credit(s)" and quoted a balance. */}
         {status.needed > 0 && (
-          <p className="mt-2 border-t border-navy-200 pt-2 text-xs text-navy-700">
+          <p className="mt-2 border-t border-line-quiet pt-2 text-xs text-ink-body">
             {t("notify.total", {
               needed: String(status.needed),
               rest: formatCredits((status.balance ?? 0) - status.needed),
@@ -225,7 +225,7 @@ export default function DayNotify({
             busy={busy}
             type="button"
             onClick={() => setAsking(false)}
-            className="min-h-11 rounded-full border border-navy-300 px-4 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-50"
+            className="min-h-11 rounded-full border border-line-strong px-4 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle disabled:opacity-50"
           >
             {t("notify.cancel")}
           </BusyButton>

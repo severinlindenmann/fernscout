@@ -317,7 +317,7 @@ export default async function PostcardOrderPage({
                         : `scale(${order.payload.crop?.zoom})`,
                     transformOrigin: `${(order.payload.crop?.x ?? 0.5) * 100}% ${(order.payload.crop?.y ?? 0.5) * 100}%`,
                   }}
-                  className="block w-full bg-navy-50"
+                  className="block w-full bg-surface-neutral"
                 />
               }
             />
@@ -359,7 +359,7 @@ export default async function PostcardOrderPage({
                     the photograph after it had been looked at; the Write
                     step's own card names itself before its contents and this
                     now reads the same way. */}
-                <figcaption className="mb-1 text-xs font-semibold uppercase tracking-wider text-navy-500">
+                <figcaption className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                   {t("postcard.page.front")}
                 </figcaption>
                 <PostcardCropper
@@ -386,7 +386,7 @@ export default async function PostcardOrderPage({
                   figure: a number a person cannot act on is not advice, and it
                   reads as a fault rather than as a suggestion. */}
               {resolution && !resolution.ok && isPending(order) ? (
-                <p className="mt-3 text-sm text-navy-600">
+                <p className="mt-3 text-sm text-ink-secondary">
                   {t("postcard.page.smallPhoto")}
                 </p>
               ) : null}
@@ -452,7 +452,7 @@ export default async function PostcardOrderPage({
               {/* B628 — a trip nobody has described has nothing to switch on,
                   and saying so is the only useful thing this space can do. */}
               {isPending(order) && !expired && !hasParty ? (
-                <p className="mt-4 text-xs text-navy-600">
+                <p className="mt-4 text-xs text-ink-secondary">
                   {t("postcard.page.figuresNone")}
                 </p>
               ) : null}

@@ -24,7 +24,7 @@ type Draft = {
 };
 
 const FIELD =
-  "w-full rounded-lg border border-navy-200 bg-white px-3 py-2 text-sm text-navy-900 focus:border-navy-500 focus:outline-none";
+  "w-full rounded-lg border border-line-quiet bg-surface-raised px-3 py-2 text-sm text-ink-strong focus:border-line-prominent focus:outline-none";
 
 function draftOf(entry: Entry): Draft {
   return {
@@ -289,15 +289,15 @@ export default function EditDay({
   return (
     <section
       aria-label={t("edit.heading")}
-      className="mt-3 rounded-xl border border-navy-200 bg-white p-3"
+      className="mt-3 rounded-xl border border-line-quiet bg-surface-raised p-3"
     >
-      <p className="font-display text-sm font-semibold text-navy-900">
+      <p className="font-display text-sm font-semibold text-ink-strong">
         {t("edit.heading")}
       </p>
-      <p className="mt-0.5 text-xs leading-5 text-navy-600">{t("edit.body")}</p>
+      <p className="mt-0.5 text-xs leading-5 text-ink-secondary">{t("edit.body")}</p>
 
       <label className="mt-3 block">
-        <span className="text-xs font-semibold text-navy-700">
+        <span className="text-xs font-semibold text-ink-body">
           {t("edit.date")}
         </span>
         <input
@@ -312,7 +312,7 @@ export default function EditDay({
           reader's own trip-level `visibility` and `listed` come from, edited
           from the day where the owner is already standing. */}
       <label className="mt-2 block">
-        <span className="text-xs font-semibold text-navy-700">
+        <span className="text-xs font-semibold text-ink-body">
           {t("edit.tripVisibility")}
         </span>
         <select
@@ -330,7 +330,7 @@ export default function EditDay({
         </select>
       </label>
       {tripVis === "public" && (
-        <label className="mt-2 flex items-center gap-2 text-xs text-navy-700">
+        <label className="mt-2 flex items-center gap-2 text-xs text-ink-body">
           <input
             type="checkbox"
             checked={tripListed}
@@ -343,16 +343,16 @@ export default function EditDay({
       {drafts.map((draft, at) => (
         <div
           key={day.entries[at].slug}
-          className="mt-4 border-t border-navy-200 pt-3"
+          className="mt-4 border-t border-line-quiet pt-3"
         >
           {day.entries.length > 1 && (
-            <p className="text-xs font-semibold text-navy-500">
+            <p className="text-xs font-semibold text-ink-muted">
               {formatLongDate(day.date)} · {at + 1}/{day.entries.length}
             </p>
           )}
 
           <label className="mt-2 block">
-            <span className="text-xs font-semibold text-navy-700">
+            <span className="text-xs font-semibold text-ink-body">
               {t("edit.title")}
             </span>
             <input
@@ -364,7 +364,7 @@ export default function EditDay({
 
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <label className="block">
-              <span className="text-xs font-semibold text-navy-700">
+              <span className="text-xs font-semibold text-ink-body">
                 {t("edit.time")}
               </span>
               <input
@@ -375,7 +375,7 @@ export default function EditDay({
               />
             </label>
             <label className="block">
-              <span className="text-xs font-semibold text-navy-700">
+              <span className="text-xs font-semibold text-ink-body">
                 {t("edit.place")}
               </span>
               <input
@@ -387,7 +387,7 @@ export default function EditDay({
           </div>
 
           <label className="mt-2 block">
-            <span className="text-xs font-semibold text-navy-700">
+            <span className="text-xs font-semibold text-ink-body">
               {t("edit.text")}
             </span>
             <textarea
@@ -399,8 +399,8 @@ export default function EditDay({
           </label>
 
           {Object.entries(draft.translations).map(([code, said]) => (
-            <div key={code} className="mt-2 rounded-lg bg-cream-100 p-2">
-              <p className="text-xs font-semibold text-navy-700">
+            <div key={code} className="mt-2 rounded-lg bg-surface-subtle p-2">
+              <p className="text-xs font-semibold text-ink-body">
                 {t("edit.inLanguage", { language: code.toUpperCase() })}
               </p>
               <input
@@ -436,7 +436,7 @@ export default function EditDay({
               removal and an upload are their own calls to `photos/`, and
               nothing leaves disk until the same press. */}
           <div className="mt-3">
-            <p className="text-xs font-semibold text-navy-700">
+            <p className="text-xs font-semibold text-ink-body">
               {t("edit.photos")}
             </p>
             {day.entries[at].gallery.map((item) => {
@@ -444,7 +444,7 @@ export default function EditDay({
               return (
                 <div
                   key={item.src}
-                  className={`mt-2 flex gap-2 rounded-lg border border-navy-200 p-2 ${going ? "opacity-50" : ""}`}
+                  className={`mt-2 flex gap-2 rounded-lg border border-line-quiet p-2 ${going ? "opacity-50" : ""}`}
                 >
                   {/* The derivative the page already draws, at thumbnail
                         size. `img` rather than `next/image`: this is one
@@ -503,7 +503,7 @@ export default function EditDay({
                               : [...prev, item.src],
                           )
                         }
-                        className="min-h-11 shrink-0 rounded-full border border-navy-300 px-3 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100"
+                        className="min-h-11 shrink-0 rounded-full border border-line-strong px-3 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle"
                       >
                         {t(going ? "edit.keepPhoto" : "edit.removePhoto")}
                       </button>
@@ -521,7 +521,7 @@ export default function EditDay({
                 and video: a correction to a day adds nothing else, and there
                 is no inbox behind this panel to sort a receipt into. */}
             <div className="mt-2">
-              <span className="text-xs font-semibold text-navy-700">
+              <span className="text-xs font-semibold text-ink-body">
                 {t("edit.addPhotos")}
               </span>
               <PhotoPicker
@@ -539,7 +539,7 @@ export default function EditDay({
               here for that reason: the trip's own visibility is the ceiling
               and this can only sit under it. */}
           <label className="mt-2 block">
-            <span className="text-xs font-semibold text-navy-700">
+            <span className="text-xs font-semibold text-ink-body">
               {t("edit.whoSees")}
             </span>
             <select
@@ -574,7 +574,7 @@ export default function EditDay({
           busy={busy}
           type="button"
           onClick={onClose}
-          className="min-h-11 rounded-full border border-navy-300 px-4 text-xs font-semibold text-navy-700 transition-colors hover:bg-cream-100 disabled:opacity-50"
+          className="min-h-11 rounded-full border border-line-strong px-4 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle disabled:opacity-50"
         >
           {t("edit.cancel")}
         </BusyButton>

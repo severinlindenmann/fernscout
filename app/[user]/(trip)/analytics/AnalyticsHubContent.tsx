@@ -49,10 +49,10 @@ export default function AnalyticsHubContent({
     <div className="min-h-screen">
       <PageHeader />
       <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-display text-3xl font-semibold tracking-tight text-navy-900 sm:text-4xl">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
           {t("analytics.title")}
         </h1>
-        <p className="mt-1 max-w-2xl text-sm text-navy-600">{t("analytics.subtitle")}</p>
+        <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{t("analytics.subtitle")}</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {costs && (
@@ -110,18 +110,18 @@ function Card({
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-2xl border border-navy-200 bg-white p-5 shadow-sm transition-colors hover:border-yellow-600/40 sm:p-6"
+      className="group flex flex-col rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm transition-colors hover:border-yellow-600/40 sm:p-6"
     >
-      <div className="flex items-center gap-2 text-navy-600">
+      <div className="flex items-center gap-2 text-ink-secondary">
         <Icon className="h-4 w-4" strokeWidth={2.2} aria-hidden />
-        <h2 className="font-display text-lg font-semibold text-navy-900">{title}</h2>
+        <h2 className="font-display text-lg font-semibold text-ink-strong">{title}</h2>
       </div>
       {headline && (
-        <p className="mt-3 font-display text-3xl font-semibold text-navy-900">{headline}</p>
+        <p className="mt-3 font-display text-3xl font-semibold text-ink-strong">{headline}</p>
       )}
-      {note && <p className="mt-1 text-xs text-navy-600">{note}</p>}
-      <p className="mt-3 flex-1 text-sm text-navy-600">{blurb}</p>
-      <span className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-navy-600 group-hover:text-navy-900">
+      {note && <p className="mt-1 text-xs text-ink-secondary">{note}</p>}
+      <p className="mt-3 flex-1 text-sm text-ink-secondary">{blurb}</p>
+      <span className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-ink-secondary group-hover:text-ink-strong">
         {open}
         <ArrowRight className="h-3.5 w-3.5" aria-hidden />
       </span>

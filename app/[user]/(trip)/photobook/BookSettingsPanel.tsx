@@ -82,9 +82,9 @@ function Row({
   if (stacked) {
     return (
       <div className="flex flex-col gap-1 py-2.5 pl-4 pr-4">
-        <span className="text-sm text-navy-800">
+        <span className="text-sm text-ink-strong">
           {label}
-          {note && <span className="mt-0.5 block text-xs text-navy-500">{note}</span>}
+          {note && <span className="mt-0.5 block text-xs text-ink-muted">{note}</span>}
         </span>
         {children}
       </div>
@@ -100,12 +100,12 @@ function Row({
     // format name hides the choice somebody is making.
     <div
       className={`flex items-center justify-between gap-3 py-2.5 pr-4 ${
-        indented ? "ml-4 border-l-2 border-navy-100 pl-4" : "pl-4"
+        indented ? "ml-4 border-l-2 border-line-faint pl-4" : "pl-4"
       }`}
     >
-      <span className="min-w-0 flex-1 text-sm text-navy-800">
+      <span className="min-w-0 flex-1 text-sm text-ink-strong">
         {label}
-        {note && <span className="mt-0.5 block text-xs text-navy-500">{note}</span>}
+        {note && <span className="mt-0.5 block text-xs text-ink-muted">{note}</span>}
       </span>
       <span className="shrink-0">{children}</span>
     </div>
@@ -136,7 +136,7 @@ function ValueSelect({
         aria-label={label}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-h-11 max-w-full cursor-pointer appearance-none rounded-lg bg-transparent py-1 pl-2 pr-6 text-right font-mono text-sm text-navy-900 hover:bg-navy-50 focus-visible:outline-2 focus-visible:outline-yellow-600"
+        className="min-h-11 max-w-full cursor-pointer appearance-none rounded-lg bg-transparent py-1 pl-2 pr-6 text-right font-mono text-sm text-ink-strong hover:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-yellow-600"
       >
         {children}
       </select>
@@ -174,7 +174,7 @@ function ValueText({
       placeholder={placeholder}
       maxLength={maxLength}
       onChange={(e) => onChange(e.target.value)}
-      className="min-h-11 w-full rounded-lg border border-navy-200 bg-white px-2 py-1 font-mono text-sm text-navy-900 placeholder:text-navy-400 focus-visible:outline-2 focus-visible:outline-yellow-600"
+      className="min-h-11 w-full rounded-lg border border-line-quiet bg-surface-raised px-2 py-1 font-mono text-sm text-ink-strong placeholder:text-ink-faint focus-visible:outline-2 focus-visible:outline-yellow-600"
     />
   );
 }
@@ -206,7 +206,7 @@ function Switch({
       />
       <span
         aria-hidden
-        className="relative h-6 w-10 rounded-full bg-navy-200 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:bg-yellow-600 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-yellow-600 peer-focus-visible:ring-offset-2"
+        className="relative h-6 w-10 rounded-full bg-surface-selected transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-surface-raised after:shadow-sm after:transition-transform peer-checked:bg-yellow-600 peer-checked:after:translate-x-4 peer-focus-visible:ring-2 peer-focus-visible:ring-yellow-600 peer-focus-visible:ring-offset-2"
       />
     </label>
   );
@@ -288,8 +288,8 @@ export default function BookSettingsPanel({
   const [coverOpen, setCoverOpen] = useState(false);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-navy-200 bg-white">
-      <div className="divide-y divide-navy-100">
+    <div className="overflow-hidden rounded-xl border border-line-quiet bg-surface-raised">
+      <div className="divide-y divide-line-faint">
         {/* Soft or hard — B845. It comes first because it decides which sizes
             the row below may offer. */}
         {/* No hint on the row — B1487. The card is 20rem wide beside the
@@ -347,8 +347,8 @@ export default function BookSettingsPanel({
             aria-expanded={coverOpen}
             className="flex min-h-11 w-full items-center justify-between gap-4 px-4 py-2.5 text-left"
           >
-            <span className="text-sm text-navy-800">{t("photobook.option.cover")}</span>
-            <span aria-hidden className="text-navy-500">
+            <span className="text-sm text-ink-strong">{t("photobook.option.cover")}</span>
+            <span aria-hidden className="text-ink-muted">
               {coverOpen ? "−" : "+"}
             </span>
           </button>
@@ -366,7 +366,7 @@ export default function BookSettingsPanel({
                 className={`flex aspect-square items-center justify-center rounded-md border p-1 text-center text-[10px] font-semibold ${
                   !options.cover
                     ? "border-yellow-600 bg-yellow-400 text-yellow-950"
-                    : "border-navy-200 text-navy-600"
+                    : "border-line-quiet text-ink-secondary"
                 }`}
               >
                 {t("photobook.option.coverDefault")}
@@ -380,7 +380,7 @@ export default function BookSettingsPanel({
                   aria-label={tile.caption || tile.src}
                   onClick={() => setOptions((o) => ({ ...o, cover: tile.src }))}
                   className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
-                    options.cover === tile.src ? "border-yellow-500" : "border-navy-200"
+                    options.cover === tile.src ? "border-yellow-500" : "border-line-quiet"
                   }`}
                 >
                   <Image
@@ -467,11 +467,11 @@ export default function BookSettingsPanel({
       {/* One under the other and ranged left — B1524. Two sentence-long links
           on one wrapping row centred themselves into a paragraph of
           underlined text that read as prose rather than as two controls. */}
-      <div className="flex flex-col items-start gap-2 border-t border-navy-200 bg-navy-50 px-4 py-3">
+      <div className="flex flex-col items-start gap-2 border-t border-line-quiet bg-surface-neutral px-4 py-3">
         <button
           type="button"
           onClick={startOver}
-          className="text-left text-xs font-semibold text-navy-600 underline"
+          className="text-left text-xs font-semibold text-ink-secondary underline"
         >
           {t("photobook.first.again")}
         </button>
@@ -479,7 +479,7 @@ export default function BookSettingsPanel({
           type="button"
           onClick={resetBook}
           disabled={!canReset}
-          className="text-left text-xs font-semibold text-navy-600 underline disabled:cursor-not-allowed disabled:text-navy-300 disabled:no-underline"
+          className="text-left text-xs font-semibold text-ink-secondary underline disabled:cursor-not-allowed disabled:text-ink-faint disabled:no-underline"
         >
           {t("photobook.resetAll")}
         </button>

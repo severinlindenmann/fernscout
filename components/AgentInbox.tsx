@@ -257,15 +257,15 @@ export default function AgentInbox({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 py-8">
-      <h1 className="text-2xl font-semibold text-navy-900">
+      <h1 className="text-2xl font-semibold text-ink-strong">
         {t("agent.inboxTitle")}
       </h1>
-      <p className="mt-2 text-sm leading-6 text-navy-700">
+      <p className="mt-2 text-sm leading-6 text-ink-body">
         {t("agent.inboxIntro")}
       </p>
 
       {visible.length === 0 && (
-        <p className="mt-6 rounded-2xl border border-navy-200 bg-cream-50 p-4 text-sm text-navy-700">
+        <p className="mt-6 rounded-2xl border border-line-quiet bg-surface-base p-4 text-sm text-ink-body">
           {t("agent.inboxEmpty")}
         </p>
       )}
@@ -277,12 +277,12 @@ export default function AgentInbox({
           return (
             <li
               key={id}
-              className="rounded-2xl border border-navy-200 bg-cream-50 p-4"
+              className="rounded-2xl border border-line-quiet bg-surface-base p-4"
             >
-              <p className="break-words text-base font-semibold text-navy-900">
+              <p className="break-words text-base font-semibold text-ink-strong">
                 {item.entry.filename}
               </p>
-              <p className="mt-1 text-sm text-navy-600">
+              <p className="mt-1 text-sm text-ink-secondary">
                 {Math.max(1, Math.round(item.entry.bytes / 1024))} kB ·{" "}
                 {offerWords(item.offer, t)}
               </p>
@@ -303,7 +303,7 @@ export default function AgentInbox({
                   <button
                     type="button"
                     onClick={() => setRemoving(id)}
-                    className="min-h-11 rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-700"
+                    className="min-h-11 rounded-full border border-line-strong px-5 text-base font-semibold text-ink-body"
                   >
                     {t("agent.inboxRemove")}
                   </button>
@@ -327,7 +327,7 @@ export default function AgentInbox({
 
               {isOpen && item.offer.kind === "gps" && (
                 <div className="mt-4 space-y-3">
-                  <p className="text-sm leading-6 text-navy-700">
+                  <p className="text-sm leading-6 text-ink-body">
                     {t("agent.inboxGpsFree")}
                   </p>
                   <BusyButton
@@ -349,7 +349,7 @@ export default function AgentInbox({
                     type="button"
                     disabled={trip === ""}
                     onClick={drawTrack}
-                    className="min-h-11 w-full rounded-full border border-navy-300 px-5 text-base font-semibold text-navy-700 disabled:opacity-50"
+                    className="min-h-11 w-full rounded-full border border-line-strong px-5 text-base font-semibold text-ink-body disabled:opacity-50"
                   >
                     {t("agent.inboxDrawTrip")}
                   </BusyButton>
@@ -359,17 +359,17 @@ export default function AgentInbox({
               {isOpen && item.offer.kind === "statement" && (
                 <div className="mt-4 space-y-3">
                   {"format" in item.offer ? (
-                    <p className="text-sm leading-6 text-navy-700">
+                    <p className="text-sm leading-6 text-ink-body">
                       {t("agent.inboxStatementKnown", {
                         label: item.offer.label,
                       })}
                     </p>
                   ) : !helper.enabled ? (
-                    <p className="text-sm leading-6 text-navy-700">
+                    <p className="text-sm leading-6 text-ink-body">
                       {t("agent.inboxOff")}
                     </p>
                   ) : (
-                    <p className="text-sm leading-6 text-navy-700">
+                    <p className="text-sm leading-6 text-ink-body">
                       {t("agent.inboxColumnsHint")}
                     </p>
                   )}
@@ -430,7 +430,7 @@ export default function AgentInbox({
                         type="button"
                         disabled={busy}
                         onClick={() => notTheHeader(id)}
-                        className="text-sm font-semibold text-navy-600 underline disabled:opacity-50"
+                        className="text-sm font-semibold text-ink-secondary underline disabled:opacity-50"
                       >
                         {t("agent.inboxNotTheHeader")}
                       </button>
@@ -487,7 +487,7 @@ export default function AgentInbox({
               {isOpen && said && (
                 <p
                   role="status"
-                  className="mt-3 text-sm leading-6 text-navy-700"
+                  className="mt-3 text-sm leading-6 text-ink-body"
                 >
                   {said}
                 </p>
@@ -501,7 +501,7 @@ export default function AgentInbox({
                 <button
                   type="button"
                   onClick={() => reset(null)}
-                  className="mt-3 text-sm font-semibold text-navy-600 underline"
+                  className="mt-3 text-sm font-semibold text-ink-secondary underline"
                 >
                   {t("me.cancel")}
                 </button>
@@ -533,12 +533,12 @@ function TripPicker({
   label: string;
 }) {
   return (
-    <label className="block text-sm font-semibold text-navy-700">
+    <label className="block text-sm font-semibold text-ink-body">
       {label}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base font-normal text-navy-900"
+        className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base font-normal text-ink-strong"
       >
         {trips.map((option) => (
           <option key={option.id} value={option.id}>
@@ -578,14 +578,14 @@ export function Mapping({
     field: "date" | "amount" | "description" | "currency",
     optional = false,
   ) => (
-    <label className="block text-sm font-semibold text-navy-700">
+    <label className="block text-sm font-semibold text-ink-body">
       {t(label)}
       <select
         value={mapping[field] ?? NONE}
         onChange={(event) =>
           onChange({ ...mapping, [field]: event.target.value })
         }
-        className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base font-normal text-navy-900"
+        className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base font-normal text-ink-strong"
       >
         {optional && <option value={NONE}>{t("agent.inboxColNone")}</option>}
         {header.map((name) => (
@@ -598,18 +598,18 @@ export function Mapping({
   );
 
   return (
-    <div className="space-y-3 rounded-2xl border border-navy-200 bg-white p-3">
-      <h2 className="text-base font-semibold text-navy-900">
+    <div className="space-y-3 rounded-2xl border border-line-quiet bg-surface-raised p-3">
+      <h2 className="text-base font-semibold text-ink-strong">
         {t("agent.inboxMappingTitle")}
       </h2>
-      <p className="text-sm leading-6 text-navy-700">
+      <p className="text-sm leading-6 text-ink-body">
         {t("agent.inboxMappingHint")}
       </p>
       {column("agent.inboxColDate", "date")}
       {column("agent.inboxColAmount", "amount")}
       {column("agent.inboxColDescription", "description")}
       {column("agent.inboxColCurrency", "currency", true)}
-      <label className="block text-sm font-semibold text-navy-700">
+      <label className="block text-sm font-semibold text-ink-body">
         {t("agent.inboxDateFormat")}
         <select
           value={mapping.dateFormat}
@@ -619,7 +619,7 @@ export function Mapping({
               dateFormat: event.target.value as ColumnMapping["dateFormat"],
             })
           }
-          className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base font-normal text-navy-900"
+          className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base font-normal text-ink-strong"
         >
           {DATE_FORMATS.map((format) => (
             <option key={format} value={format}>
@@ -628,7 +628,7 @@ export function Mapping({
           ))}
         </select>
       </label>
-      <label className="flex items-center gap-2 text-sm text-navy-700">
+      <label className="flex items-center gap-2 text-sm text-ink-body">
         <input
           type="checkbox"
           checked={mapping.decimalComma === true}
@@ -638,7 +638,7 @@ export function Mapping({
         />
         {t("agent.inboxDecimalComma")}
       </label>
-      <label className="flex items-center gap-2 text-sm text-navy-700">
+      <label className="flex items-center gap-2 text-sm text-ink-body">
         <input
           type="checkbox"
           checked={mapping.outgoingPositive === true}
@@ -650,7 +650,7 @@ export function Mapping({
       </label>
 
       {dedicatedImporters.length > 0 && (
-        <p className="text-sm leading-6 text-navy-700">
+        <p className="text-sm leading-6 text-ink-body">
           {t("agent.inboxMappingNoRates", {
             banks: dedicatedImporters.join(", "),
           })}
@@ -659,10 +659,10 @@ export function Mapping({
 
       {notes.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-navy-900">
+          <h3 className="text-sm font-semibold text-ink-strong">
             {t("agent.inboxMappingNotes")}
           </h3>
-          <ul className="mt-1 list-disc pl-5 text-sm text-navy-700">
+          <ul className="mt-1 list-disc pl-5 text-sm text-ink-body">
             {notes.map((note) => (
               <li key={note}>{note}</li>
             ))}
@@ -672,10 +672,10 @@ export function Mapping({
 
       {preview.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-navy-900">
+          <h3 className="text-sm font-semibold text-ink-strong">
             {t("agent.inboxPreview")}
           </h3>
-          <ul className="mt-1 space-y-1 text-sm text-navy-700">
+          <ul className="mt-1 space-y-1 text-sm text-ink-body">
             {preview.map((row, index) => (
               <li key={index} className="flex flex-wrap justify-between gap-2">
                 <span>
@@ -722,19 +722,19 @@ function Rows({
   );
 
   return (
-    <div className="space-y-3 rounded-2xl border border-navy-200 bg-white p-3">
-      <h2 className="text-base font-semibold text-navy-900">
+    <div className="space-y-3 rounded-2xl border border-line-quiet bg-surface-raised p-3">
+      <h2 className="text-base font-semibold text-ink-strong">
         {t("agent.inboxRowsTitle", { count: String(rows.length) })}
       </h2>
-      <p className="text-sm leading-6 text-navy-700">
+      <p className="text-sm leading-6 text-ink-body">
         {t("agent.inboxRowsHint")}
       </p>
-      <label className="block text-sm font-semibold text-navy-700">
+      <label className="block text-sm font-semibold text-ink-body">
         {t("agent.inboxCategoryAll")}
         <select
           defaultValue={NONE}
           onChange={(event) => onAll(event.target.value)}
-          className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base font-normal text-navy-900"
+          className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base font-normal text-ink-strong"
         >
           {options}
         </select>
@@ -743,9 +743,9 @@ function Rows({
         {rows.map((row, index) => (
           <li
             key={`${row.date}-${index}`}
-            className="border-t border-navy-100 pt-2"
+            className="border-t border-line-faint pt-2"
           >
-            <p className="flex flex-wrap justify-between gap-2 text-sm text-navy-700">
+            <p className="flex flex-wrap justify-between gap-2 text-sm text-ink-body">
               <span>
                 {row.date} · {row.label}
               </span>
@@ -756,7 +756,7 @@ function Rows({
             <select
               value={categories[index] ?? NONE}
               onChange={(event) => onCategory(index, event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-xl border border-navy-300 bg-white px-3 text-base text-navy-900"
+              className="mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong"
             >
               {options}
             </select>

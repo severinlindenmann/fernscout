@@ -289,11 +289,11 @@ const CASES: { title: string; why: string; node: React.ReactNode }[] = [
 export default function OrderBench() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-navy-500">Workbench</p>
-      <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-navy-900">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-ink-muted">Workbench</p>
+      <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-ink-strong">
         Orders
       </h1>
-      <p className="mt-3 max-w-2xl text-navy-700">
+      <p className="mt-3 max-w-2xl text-ink-body">
         One component for a photobook and for a set of postcards, in the states a reader cannot
         reach. Everything here is a fixture — no journal, no database, no session — so a fault that
         shows on this page is a fault in{" "}
@@ -304,9 +304,9 @@ export default function OrderBench() {
       <div className="mt-10 flex flex-col gap-12">
         {CASES.map((c) => (
           <section key={c.title}>
-            <h2 className="font-display text-lg font-semibold text-navy-900">{c.title}</h2>
-            <p className="mt-1 max-w-2xl text-sm text-navy-600">{c.why}</p>
-            <div className="mt-4 rounded-2xl border border-navy-200 bg-cream-50 p-4 sm:p-6">
+            <h2 className="font-display text-lg font-semibold text-ink-strong">{c.title}</h2>
+            <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{c.why}</p>
+            <div className="mt-4 rounded-2xl border border-line-quiet bg-surface-base p-4 sm:p-6">
               {c.node}
             </div>
           </section>

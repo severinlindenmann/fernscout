@@ -104,16 +104,16 @@ export default function PostcardPeople({
   }
 
   return (
-    <section className="rounded-xl border border-navy-200 bg-white p-4">
-      <h3 className="font-display text-base font-semibold text-navy-900">
+    <section className="rounded-xl border border-line-quiet bg-surface-raised p-4">
+      <h3 className="font-display text-base font-semibold text-ink-strong">
         {strings.heading}
       </h3>
       {strings.lost ? (
-        <p className="mt-1 text-sm text-navy-600">{strings.lost}</p>
+        <p className="mt-1 text-sm text-ink-secondary">{strings.lost}</p>
       ) : null}
 
       {candidates.length === 0 ? (
-        <p className="mt-2 text-sm text-navy-600">{strings.none}</p>
+        <p className="mt-2 text-sm text-ink-secondary">{strings.none}</p>
       ) : (
         <form
           method="post"
@@ -136,7 +136,7 @@ export default function PostcardPeople({
                         people, which is what a person is checking here. */}
                     <span
                       aria-hidden
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-navy-100 text-[0.6rem] font-bold text-navy-700"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-neutral-strong text-[0.6rem] font-bold text-ink-body"
                     >
                       {candidate.name
                         .split(/\s+/)
@@ -165,10 +165,10 @@ export default function PostcardPeople({
                       htmlFor={`to-${candidate.contactId}`}
                       className="min-w-0 flex-1 cursor-pointer"
                     >
-                      <span className="block text-sm font-semibold text-navy-900">
+                      <span className="block text-sm font-semibold text-ink-strong">
                         {candidate.name}
                       </span>
-                      <span className="block text-xs text-navy-600">
+                      <span className="block text-xs text-ink-secondary">
                         {candidate.city}
                         {candidate.country ? `, ${candidate.country}` : ""}
                       </span>
@@ -182,7 +182,7 @@ export default function PostcardPeople({
                   </div>
                   {candidate.address && on ? (
                     <details className="pl-[4.25rem]">
-                      <summary className="cursor-pointer text-xs text-navy-600">
+                      <summary className="cursor-pointer text-xs text-ink-secondary">
                         {candidate.address.postcode} {candidate.address.city}
                       </summary>
                       <address className="mt-1 text-xs not-italic opacity-80">
@@ -210,13 +210,13 @@ export default function PostcardPeople({
                 busy={busy}
                 busyLabel={strings.saving}
                 disabled={!dirty || picked.length === 0}
-                className="min-h-11 rounded-full border-2 border-navy-900 px-5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900 hover:text-white disabled:opacity-40"
+                className="min-h-11 rounded-full border-2 border-action-strong px-5 text-sm font-semibold text-ink-strong transition-colors hover:bg-action-strong-hover hover:text-on-action disabled:opacity-40"
               >
                 {strings.save}
               </BusyButton>
               <span
                 role="status"
-                className={`text-xs ${state === "failed" ? "font-semibold text-coral-600" : "text-navy-600"}`}
+                className={`text-xs ${state === "failed" ? "font-semibold text-coral-600" : "text-ink-secondary"}`}
               >
                 {state === "saved" && !dirty
                   ? strings.saved

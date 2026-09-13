@@ -26,6 +26,7 @@ import { palette } from "@/lib/brand";
 
 const CODE_DIRS = ["app", "components"];
 const ROOT = process.cwd();
+const CSS = fs.readFileSync(path.join(ROOT, "app", "globals.css"), "utf8");
 const UTILITIES =
   "bg|border|text|decoration|ring|outline|divide|from|via|to|fill|stroke|accent|caret|shadow|placeholder";
 const UNAMBIGUOUS_HUES = new Set(["navy", "cream", "coral"]);
@@ -72,6 +73,26 @@ describe("every colour class on an unambiguous hue names a defined token", () =>
       }
     }
 
+    expect([...missing].sort()).toEqual([]);
+  });
+
+  test("every semantic screen role used by a utility is exported to Tailwind", () => {
+    const defined = new Set(
+      [...CSS.matchAll(/--color-((?:surface|ink|line|action|on-|overlay|shadow)[a-z-]*):/g)].map(
+        ([, token]) => token,
+      ),
+    );
+    const pattern = new RegExp(
+      `\\b(?:${UTILITIES})-((?:surface|ink|line|action|on-|overlay|shadow)[a-z-]*)(?:/\\d+)?\\b`,
+      "g",
+    );
+    const missing = new Set<string>();
+    for (const file of CODE_DIRS.flatMap((d) => walk(path.join(ROOT, d)))) {
+      const source = fs.readFileSync(file, "utf8");
+      for (const [, token] of source.matchAll(pattern)) {
+        if (!defined.has(token)) missing.add(`${token} (${path.relative(ROOT, file)})`);
+      }
+    }
     expect([...missing].sort()).toEqual([]);
   });
 });

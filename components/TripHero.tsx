@@ -35,7 +35,7 @@ import type { DaySummary, PhotobookEntry } from "@/lib/types";
  * what says it is one, since nothing else about it does. B989.
  */
 const QUIET =
-  "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-navy-700 underline decoration-navy-200 decoration-2 underline-offset-4 transition-colors hover:text-navy-900 hover:decoration-navy-500";
+  "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-ink-body underline decoration-line-quiet decoration-2 underline-offset-4 transition-colors hover:text-ink-strong hover:decoration-line-prominent";
 
 export type HeroStats = {
   tripDays: number;
@@ -181,14 +181,14 @@ export default function TripHero({
   return (
     <div className="flex flex-col gap-4">
       {/* Masthead */}
-      <section className="overflow-hidden rounded-2xl border border-navy-200 bg-cream-100 shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-line-quiet bg-surface-subtle shadow-sm">
         <div
           className={
             coverSrc ? "grid gap-0 md:grid-cols-[1.1fr_1fr]" : "grid gap-0"
           }
         >
           <div className="p-6 sm:p-8">
-            <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-navy-900 sm:text-4xl">
+            <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-ink-strong sm:text-4xl">
               {heading}
             </h1>
             {/* B1585 — the trip is the gate, and it was the one level with no
@@ -199,19 +199,19 @@ export default function TripHero({
                 returns null. */}
             <TripVisibility />
             {subheading && (
-              <p className="mt-1.5 max-w-md text-sm text-navy-600">
+              <p className="mt-1.5 max-w-md text-sm text-ink-secondary">
                 {subheading}
               </p>
             )}
             {stats.firstDate && stats.lastDate && (
-              <p className="mt-0.5 text-xs text-navy-600">
+              <p className="mt-0.5 text-xs text-ink-secondary">
                 {formatShortDate(stats.firstDate)}
                 {stats.firstDate !== stats.lastDate &&
                   ` – ${formatShortDate(stats.lastDate)}`}
               </p>
             )}
             {travellerNames && (
-              <p className="mt-0.5 text-xs text-navy-600">
+              <p className="mt-0.5 text-xs text-ink-secondary">
                 {t("hero.travellers", { names: travellerNames })}
               </p>
             )}
@@ -227,7 +227,7 @@ export default function TripHero({
                   className="h-4 w-4 shrink-0 text-green-700"
                   aria-hidden
                 />
-                <span className="text-xs text-navy-900">
+                <span className="text-xs text-ink-strong">
                   <strong className="font-semibold">{newDayCount}</strong>{" "}
                   {newDayCount === 1
                     ? t("hero.newSinceOne")
@@ -235,7 +235,7 @@ export default function TripHero({
                 </span>
                 <button
                   onClick={onShowNew}
-                  className="inline-flex min-h-11 items-center rounded-full bg-green-700 px-3.5 text-sm font-semibold text-white transition-colors hover:bg-navy-900"
+                  className="inline-flex min-h-11 items-center rounded-full bg-green-700 px-3.5 text-sm font-semibold text-on-deep transition-colors hover:bg-action-strong-hover"
                 >
                   {t("hero.showNew")}
                 </button>
@@ -244,14 +244,14 @@ export default function TripHero({
 
             {live ? (
               hasLocation && (
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-navy-200 bg-white px-3 py-1.5">
+                <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-line-quiet bg-surface-raised px-3 py-1.5">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-yellow-400 opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-yellow-400" />
                   </span>
-                  <span className="text-xs text-navy-600">
+                  <span className="text-xs text-ink-secondary">
                     {t("hero.currentlyIn")}{" "}
-                    <strong className="font-semibold text-navy-900">
+                    <strong className="font-semibold text-ink-strong">
                       {flag} {current.location}
                     </strong>
                   </span>
@@ -261,14 +261,14 @@ export default function TripHero({
               // No dot, nothing pinging — the whole point is that this is
               // not happening right now. It says so first, then where it
               // ended, if the last day said where that was.
-              <div className="mt-4 inline-flex flex-col gap-0.5 rounded-xl border border-navy-200 bg-white px-3 py-2">
-                <span className="text-xs font-semibold text-navy-900">
+              <div className="mt-4 inline-flex flex-col gap-0.5 rounded-xl border border-line-quiet bg-surface-raised px-3 py-2">
+                <span className="text-xs font-semibold text-ink-strong">
                   {t("hero.over")}
                 </span>
                 {hasLocation && (
-                  <span className="text-xs text-navy-600">
+                  <span className="text-xs text-ink-secondary">
                     {t("hero.endedIn")}{" "}
-                    <strong className="font-semibold text-navy-900">
+                    <strong className="font-semibold text-ink-strong">
                       {flag} {current.location}
                     </strong>{" "}
                     · {formatShortDate(current.date)}
@@ -285,7 +285,7 @@ export default function TripHero({
               {onResume && resumeLabel ? (
                 <button
                   onClick={onResume}
-                  className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-navy-900 px-5 text-base font-semibold text-white transition-colors hover:bg-navy-700 sm:w-auto"
+                  className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-full bg-action-strong px-5 text-base font-semibold text-on-action transition-colors hover:bg-action-strong-hover sm:w-auto"
                 >
                   <PlayCircle className="h-4 w-4" />
                   {resumeLabel}
@@ -340,7 +340,7 @@ export default function TripHero({
               call, flagged for a person's eye rather than settled — see
               B1260's Work section. */}
           {coverSrc && (
-            <div className="relative min-h-[200px] border-t border-navy-200 md:border-l md:border-t-0">
+            <div className="relative min-h-[200px] border-t border-line-quiet md:border-l md:border-t-0">
               <Image
                 src={coverSrc}
                 loader={mediaLoader}
@@ -350,7 +350,7 @@ export default function TripHero({
                 className="object-cover"
                 priority
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-navy-900/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-overlay-strong/40 to-transparent" />
               <div className="pointer-events-none absolute bottom-2 right-3">
                 {/* Who was actually on this trip — its own `travellers:` block,
                     or the journal's default, or one neutral figure. Never the
@@ -372,7 +372,7 @@ export default function TripHero({
       {/* Where we are — absent, not a map of the whole world with no marker
           on it, until some day has a coordinate. B1260. */}
       {hasRoute && (
-        <section className="overflow-hidden rounded-2xl border border-navy-200 bg-sky-300 shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-line-quiet bg-sky-300 shadow-sm">
           <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -445,8 +445,8 @@ export default function TripHero({
 
       {/* Where the money goes */}
       {slices.length > 0 && (
-        <section className="rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="mb-3 font-display text-base font-semibold text-navy-900">
+        <section className="rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
+          <h2 className="mb-3 font-display text-base font-semibold text-ink-strong">
             {t("cost.byCategory")}
           </h2>
           <StackedShareBar
@@ -459,8 +459,8 @@ export default function TripHero({
 
       {/* Time per country */}
       {stats.byCountry && stats.byCountry.length > 0 && (
-        <section className="rounded-2xl border border-navy-200 bg-white p-5 shadow-sm sm:p-6">
-          <h2 className="mb-3 font-display text-base font-semibold text-navy-900">
+        <section className="rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
+          <h2 className="mb-3 font-display text-base font-semibold text-ink-strong">
             {t("hero.timePerCountry")}
           </h2>
           <BarList
@@ -491,10 +491,10 @@ function Stat({
   big?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-navy-200 bg-white px-4 py-3">
-      <dt className="text-[11px] leading-tight text-navy-600">{label}</dt>{" "}
+    <div className="rounded-xl border border-line-quiet bg-surface-raised px-4 py-3">
+      <dt className="text-[11px] leading-tight text-ink-secondary">{label}</dt>{" "}
       <dd
-        className={`font-display font-semibold text-navy-900 ${big ? "text-2xl" : "text-lg"}`}
+        className={`font-display font-semibold text-ink-strong ${big ? "text-2xl" : "text-lg"}`}
       >
         {value}
       </dd>

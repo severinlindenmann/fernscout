@@ -515,12 +515,12 @@ export default function TravelScene({
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-navy-200 shadow-sm ${
-        quick ? "h-[110px] bg-navy-50" : `h-[280px] sm:h-[340px] ${SKIES[sky] ?? SKIES.day}`
+      className={`relative w-full overflow-hidden rounded-2xl border border-line-quiet shadow-sm ${
+        quick ? "h-[110px] bg-surface-neutral" : `h-[280px] sm:h-[340px] ${SKIES[sky] ?? SKIES.day}`
       }`}
     >
       {quick ? (
-        <div className="absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-navy-200">
+        <div className="absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full bg-surface-selected">
           {/* The lane behind the marker, filled in as far as it has got. */}
           <motion.div
             style={{ scaleX: p }}
@@ -533,8 +533,8 @@ export default function TravelScene({
             style={{ x: quickX, opacity: quickOpacity }}
             className="absolute inset-x-0 -top-5"
           >
-            <div className="w-fit rounded-full bg-white p-2 shadow-md shadow-navy-900/15">
-              <Icon className="h-5 w-5 text-navy-900" strokeWidth={1.75} />
+            <div className="w-fit rounded-full bg-surface-raised p-2 shadow-md shadow-shadow-color/15">
+              <Icon className="h-5 w-5 text-ink-strong" strokeWidth={1.75} />
             </div>
           </motion.div>
         </div>
@@ -543,13 +543,13 @@ export default function TravelScene({
           {/* Sky, slowest. A flight gets more of it, because for the length of
               a flight the sky is the whole world. */}
           <motion.div style={{ x: cloudsX }} className="pointer-events-none absolute inset-0">
-            <Cloud className="absolute left-[12%] top-6 h-10 w-10 fill-white text-white opacity-90" />
-            <Cloud className="absolute left-[56%] top-10 h-7 w-7 fill-white text-white opacity-75" />
-            <Cloud className="absolute left-[84%] top-5 h-8 w-8 fill-white text-white opacity-80" />
+            <Cloud className="absolute left-[12%] top-6 h-10 w-10 fill-overlay-ink text-overlay-ink opacity-90" />
+            <Cloud className="absolute left-[56%] top-10 h-7 w-7 fill-overlay-ink text-overlay-ink opacity-75" />
+            <Cloud className="absolute left-[84%] top-5 h-8 w-8 fill-overlay-ink text-overlay-ink opacity-80" />
             {isFlight && (
               <>
-                <Cloud className="absolute left-[30%] top-24 h-12 w-12 fill-white text-white opacity-70" />
-                <Cloud className="absolute left-[70%] top-32 h-9 w-9 fill-white text-white opacity-60" />
+                <Cloud className="absolute left-[30%] top-24 h-12 w-12 fill-overlay-ink text-overlay-ink opacity-70" />
+                <Cloud className="absolute left-[70%] top-32 h-9 w-9 fill-overlay-ink text-overlay-ink opacity-60" />
               </>
             )}
           </motion.div>
@@ -657,7 +657,7 @@ export default function TravelScene({
       <Caption leg={leg} progress={p} />
 
       {/* How far through the leg we are. */}
-      <div className="absolute inset-x-0 bottom-0 h-1 bg-white/25">
+      <div className="absolute inset-x-0 bottom-0 h-1 bg-overlay-ink/25">
         <div
           // The easing is for a scene that is playing. Held on a slider it
           // would lag a hundred milliseconds behind the hand dragging it.
@@ -731,12 +731,12 @@ function Caption({ leg, progress }: { leg: DaySummary; progress: MotionValue<num
   return (
     <motion.div
       style={{ opacity, y }}
-      className="pointer-events-none absolute left-5 top-5 rounded-xl bg-white/90 px-3.5 py-2 shadow-sm backdrop-blur-sm"
+      className="pointer-events-none absolute left-5 top-5 rounded-xl bg-surface-raised/90 px-3.5 py-2 shadow-sm backdrop-blur-sm"
     >
-      <div className="font-display text-sm font-semibold text-navy-900">
+      <div className="font-display text-sm font-semibold text-ink-strong">
         {leg.transport.from} → {leg.transport.to}
       </div>
-      <div className="text-xs capitalize text-navy-600">by {leg.transport.mode}</div>
+      <div className="text-xs capitalize text-ink-secondary">by {leg.transport.mode}</div>
     </motion.div>
   );
 }
