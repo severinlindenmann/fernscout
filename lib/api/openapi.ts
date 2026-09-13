@@ -954,6 +954,198 @@ export function openApiDocument() {
           },
         },
       },
+      "/api/v1/{user}/config": {
+        get: {
+          summary: "What this journal asks for, and what it says about itself",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description:
+                "One boolean per capability under `features`, and the writable half of " +
+                "config.json under `journal` — plus the two read-only fields a caller " +
+                "needs and cannot otherwise learn: the `baseCurrency` a " +
+                "`displayCurrencies` must contain, and the `media` block this journal " +
+                "actually runs under, so a client syncing a folder up can tell whether " +
+                "its local copy differs (B1504). `owner.email` is deliberately not here: " +
+                "a token that reads a journal's config is not permission to collect its " +
+                "owner's address.",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": { description: "The token belongs to a different journal" },
+          },
+        },
+        patch: {
+          summary: "Change a capability, or what this journal says about itself",
+          description:
+            "Send only what you are changing: `{\"features\": {\"contacts\": true}}`, or one " +
+            "or more of `title`, `tagline`, `visibility`, `startLocation`, `units`, " +
+            "`locales`, `defaultLocale`, `displayCurrencies`, `manualRates`, `ownerTel`, " +
+            "`travellers`. " +
+            "Before this " +
+            "there was no endpoint, tool or page that wrote a journal's config at all, so it " +
+            "was fixed at creation and only an operator with a shell could change it — which " +
+            "left journals unable to invite anybody (B182) and a title typoed at signup " +
+            "permanent (B220).\n\nCapabilities can only ask for what the server already " +
+            "provides: the server's own config is a ceiling, and asking to exceed it is " +
+            "refused with the reason rather than written and silently ignored. Switching a " +
+            "capability *off* always works, except for the four the server decides alone: " +
+            "`photobook` and `postcards` cost the operator money at a printer, and `logging` " +
+            "and `credits` are the instance's own. All four are whatever the server says for " +
+            "every journal on it, and either direction is refused with `capability_not_yours`.\n\n**Capabilities and the rest are two calls.** " +
+            "A body naming `features` alongside another field is `400 mixed_change` and " +
+            "writes nothing: each call rewrites config.json whole, reads it back, and " +
+            "restores the previous bytes if it does not load, so a request doing that twice " +
+            "is one that can succeed halfway.\n\nThree keys are never writable, each with " +
+            "its own reason in the refusal. The `owner` block is not writable as a " +
+            "whole, and `owner.email` in particular never is: it decides who can obtain a " +
+            "token for this journal, so a token must not be able to move it. The telephone " +
+            "number inside it is the exception, reached as the flat field `ownerTel`. `baseCurrency` is not a " +
+            "display setting — a cost written without a `currency` IS a cost in the base " +
+            "currency, so changing it re-reads every amount already recorded rather than " +
+            "reconverting it. `media` is the operator's, and the server's limits are already " +
+            "a ceiling over it. Owner only.",
+          parameters: [
+            { name: "user", in: "path", required: true, schema: { type: "string" } },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    features: {
+                      type: "object",
+                      // Named one by one rather than left as free-form booleans:
+                      // "which capabilities are there" is exactly the question an
+                      // agent cannot answer from prose, and a misspelled name was
+                      // being refused with no list to correct it against. B540.
+                      properties: Object.fromEntries(
+                        FEATURE_NAMES.map((name) => [name, { type: "boolean" }]),
+                      ),
+                      additionalProperties: false,
+                      description:
+                        `Capability name to true or false — one of ${FEATURE_NAMES.join(", ")}. ` +
+                        "Omitted ones are left alone, and an unknown name is refused rather " +
+                        "than ignored. A journal can only ever switch on what this server " +
+                        "already offers: /api/health says which those are, and asking for one " +
+                        "it cannot do is refused. `logging` and `credits` are never a journal's " +
+                        "own opt-in — they are the operator's alone, for the whole server — so " +
+                        "the response echoes the server's own answer for those two regardless " +
+                        "of what is sent here. Not combinable with the fields below — send it " +
+                        "in a call of its own.",
+                    },
+                    title: { type: "string" },
+                    tagline: {
+                      type: "string",
+                      description: "Empty string removes it rather than writing one.",
+                    },
+                    visibility: {
+                      type: "string",
+                      // `"private"` — the word before B306 — is still accepted
+                      // and normalised to `guest` (normalizeJournalVisibility),
+                      // but is not offered here.
+                      enum: ["public", "guest"],
+                      description: `Whether this server advertises the journal: ${VISIBILITY_MEANING}`,
+                    },
+                    startLocation: {
+                      type: "string",
+                      description: "Empty string removes it rather than writing one.",
+                    },
+                    units: { type: "string", enum: ["metric", "imperial"] },
+                    locales: {
+                      type: "array",
+                      items: { type: "string", enum: [...MAINTAINED_LOCALES] },
+                      description:
+                        "Language codes, most preferred first. Must contain `defaultLocale`; " +
+                        "a pair that disagrees is refused rather than written, because the " +
+                        "resulting config would take the journal off the site entirely. " +
+                        `Each entry must be one of ${LOCALE_LIST}, the same set creation ` +
+                        "refuses outside of — B777: a field checked when a journal is made " +
+                        "and unchecked when it is corrected is the same field with two " +
+                        "meanings.",
+                    },
+                    defaultLocale: {
+                      type: "string",
+                      enum: [...MAINTAINED_LOCALES],
+                      description:
+                        `One of ${LOCALE_LIST}. The language the site's own chrome is in; a ` +
+                        "code this build ships no strings for is refused here exactly as it " +
+                        "is at creation.",
+                    },
+                    displayCurrencies: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Which currencies a reader may see totals in. Must include the " +
+                        "journal's `baseCurrency`, which this endpoint cannot change — `GET` " +
+                        "returns it under `journal`.",
+                    },
+                    ownerTel: {
+                      type: "string",
+                      description:
+                        "The owner's own telephone number — `owner.tel` in config.json, and " +
+                        "the only part of the `owner` block a token may write. It is where " +
+                        "the owner's own WhatsApp copy of a published day goes, and that copy " +
+                        "costs no credits; without it the owner is the one person the channel " +
+                        "cannot reach. Include the country code — `+41 76 000 00 00`, " +
+                        "`0041 76 000 00 00` or `41760000000`. A national number like " +
+                        "`076 000 00 00` is refused rather than guessed at, because it means " +
+                        "a different telephone in every country. Stored and returned as E.164 " +
+                        "digits, whatever form it was sent in. Empty string removes it, which " +
+                        "is also how the owner stops their own messages.",
+                    },
+                    manualRates: {
+                      type: "object",
+                      additionalProperties: { type: ["number", "null"] },
+                      description:
+                        "Rates for what the ECB does not publish, MERGED into what is there. " +
+                        "The ECB's direction: `{\"VND\": 30500}` is \"1 EUR = 30 500 VND\", " +
+                        "the opposite of a trip's own `rates`. `null` removes a code.",
+                    },
+                    travellers: {
+                      type: "array",
+                      maxItems: 10,
+                      items: { $ref: "#/components/schemas/Traveller" },
+                      description:
+                        "The journal's own default party — how a trip draws its walking " +
+                        "figures when it carries no `travellers:` block of its own. Replaced " +
+                        "wholesale, the same as `.../trips/{trip}/travellers`: send the whole " +
+                        "list, and `[]` to go back to having no default (one neutral figure). " +
+                        "Ask GET /api/v2/{user}/figures/presets for the vocabulary first; " +
+                        "an unknown key inside a figure is `400 invalid_travellers` rather " +
+                        "than dropped. Read back with GET /api/v1/{user}/travellers.",
+                    },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "The journal's features or profile afterwards, and what changed",
+            },
+            "400": {
+              description:
+                "An unknown capability, a non-boolean, an unwritable field (`owner`, " +
+                "`baseCurrency`, `media`), a capability this server does not provide, one " +
+                "the server decides for every journal (`capability_not_yours`: `photobook`, " +
+                "`postcards`, `logging`, `credits`), `features` sent together with a " +
+                "profile field (`mixed_change`), or a `travellers` figure with an unknown " +
+                "field (`invalid_travellers`)",
+            },
+            "401": { description: "Missing or invalid token" },
+            "403": {
+              description:
+                "The token belongs to a different journal, or is scoped to one trip",
+            },
+            "404": { description: "No such journal" },
+          },
+        },
+      },
       "/api/v1/{user}/deletions/{token}": {
         post: {
           summary: "Confirm a deletion (from the mailed page, not from an agent)",

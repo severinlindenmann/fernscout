@@ -724,7 +724,7 @@ export type SetFeaturesResult =
  * kept reading the raw per-journal flag for both, which is exactly how B408
  * came back on the PATCH response (B607).
  */
-function journalFeatures(user: UserConfig): Record<FeatureName, boolean> {
+export function journalFeatures(user: UserConfig): Record<FeatureName, boolean> {
   const serverOnly = resolveCapabilities();
   const features = {} as Record<FeatureName, boolean>;
   for (const name of FEATURE_NAMES) {
