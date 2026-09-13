@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (249)
+## backlog (250)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (65)
+### issue (66)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -109,6 +109,7 @@ Do not edit them by hand; run the script.
 | [B1642](backlog/issue/B1642-known-trip-fields-and-the-journals.md) | KNOWN_TRIP_FIELDS and the journals field-coverage test still speak v1's vocabulary | ISSUE | medium | medium |
 | [B1653](backlog/issue/B1653-the-me-settings-page-still-draws.md) | The /me settings page still draws inputs for two fields v2 dropped, so typing in them does nothing | ISSUE | medium | low |
 | [B1657](backlog/issue/B1657-day-media-s-files-branch-upload.md) | day/media's files-branch upload bypasses the storage quota | ISSUE | medium | low |
+| [B1663](backlog/issue/B1663-five-credit-spending-paths-mint-a.md) | Five credit-spending paths mint a fresh ref per call, so a retry charges again | ISSUE | medium | medium |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
