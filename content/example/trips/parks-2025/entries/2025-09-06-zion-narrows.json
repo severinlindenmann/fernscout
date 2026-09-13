@@ -13,15 +13,15 @@
   "media": [
     {
       "src": "/media/parks-2025/zion-narrows/01.jpg",
-      "caption": "The water going over, and the spray coming straight back up",
       "type": "image",
+      "caption": "The water going over, and the spray coming straight back up",
       "width": 1600,
       "height": 1066
     },
     {
       "src": "/media/parks-2025/zion-narrows/02.jpg",
-      "caption": "Steps down into the fog, and nothing at the bottom of them",
       "type": "image",
+      "caption": "Steps down into the fog, and nothing at the bottom of them",
       "width": 1600,
       "height": 1066
     },
@@ -63,8 +63,8 @@
   ],
   "translations": {
     "hu": {
-      "title": "Up the Narrows",
-      "content": "Három óra gyaloglás felfelé egy folyóban, háromszáz méter magas falak között, térd- és derékmagasság közötti vízben — attól függően, mennyire jól olvasod a kavicsot.\n\nA kanyonban mindenki csendben volt. Nem áhítatból — csak a lábukra figyeltek."
+      "content": "Három óra gyaloglás felfelé egy folyóban, háromszáz méter magas falak között, térd- és derékmagasság közötti vízben — attól függően, mennyire jól olvasod a kavicsot.\n\nA kanyonban mindenki csendben volt. Nem áhítatból — csak a lábukra figyeltek.\n",
+      "title": "Felfelé a Narrowsban"
     }
   },
   "weather": {
@@ -75,6 +75,10 @@
     "windMax": 19.2,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:18.968Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

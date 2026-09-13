@@ -7,7 +7,6 @@
     "to": "2023-06-02"
   },
   "visibility": "public",
-  "listed": true,
   "accent": "coral",
   "cover": "/media/asia-2023/mekong-slow-boat/01.jpg",
   "people": [
@@ -125,5 +124,8 @@
       }
     ],
     "body": "Bangkok to Hanoi overland. This is the version we drew on a napkin in December; the trip mostly agreed with it, which surprised us both."
+  },
+  "declined": {
+    "listed": "advertised like every other public trip"
   }
 }

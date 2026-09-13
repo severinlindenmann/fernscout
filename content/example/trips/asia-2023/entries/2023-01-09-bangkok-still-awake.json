@@ -26,8 +26,8 @@
   ],
   "translations": {
     "hu": {
-      "title": "Still awake, still hot",
-      "content": "A vendégház előtti utca este tizenegykor megy a legjobban, és feladtuk, hogy majd átalusszuk.\n\nMásodik vacsora, állva megevett. Fotó nincs: a telefon kilencre lemerült, és egyikünk sem ment vissza a töltőért."
+      "content": "A vendégház előtti utca este tizenegykor megy a legjobban, és feladtuk, hogy majd átalusszuk.\n\nMásodik vacsora, állva megevett. Fotó nincs: a telefon kilencre lemerült, és egyikünk sem ment vissza a töltőért.\n",
+      "title": "Még mindig ébren, még mindig meleg"
     }
   },
   "weather": {
@@ -38,6 +38,11 @@
     "windMax": 20.6,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:20.296Z"
+  },
+  "declined": {
+    "media": "no photographs were taken on this day",
+    "transportMode": "a day in one place, with no leg to record",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

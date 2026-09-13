@@ -18,5 +18,13 @@
     "walking"
   ],
   "test": true,
+  "declined": {
+    "media": "no photographs were taken on this day",
+    "costs": "no figures were kept for this day",
+    "weather": "the weather was not looked up for this day",
+    "time": "the hour was not noted when this was written",
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
   "status": "published"
 }

@@ -1,270 +1,300 @@
-import { beforeEach, describe, expect, test } from "vitest";
+/**
+ * `content/example` is the acceptance fixture — B1643, M3.
+ *
+ * Two properties, and the second is the one that keeps the first honest:
+ *
+ * 1. **It is valid.** Every file parses with the real serializers and
+ *    validates against the real schemas, through `buildTripDoc` — the same
+ *    function every GET/PUT echo of a trip goes through. Not a second
+ *    implementation of the format: if this passes, the routes can serve it.
+ *
+ * 2. **It is complete.** Every field the contract defines, and every value of
+ *    every enum, is demonstrated somewhere in the journal. The expectation is
+ *    derived from the schemas themselves at run time, so a field added to the
+ *    contract tomorrow fails HERE until the example shows it. That is what
+ *    makes the demo a fixture rather than a snapshot: "the example shows
+ *    everything" stops being a claim somebody has to remember and becomes a
+ *    test somebody has to satisfy.
+ *
+ * A failure here is never "relax the test": it is either a field the example
+ * owes a demonstration of, or a field the contract should not have.
+ */
 import path from "node:path";
 import fs from "node:fs";
-import { getTrips, getTrip, tripDir } from "@/lib/trips";
-import { getAllEntries, getDays } from "@/lib/entries";
-import { getPlan } from "@/lib/plan";
-import { getBudgetInBase, getCostSummary, COST_CATEGORIES } from "@/lib/costs";
-import { clearConfigCache } from "@/lib/config";
-import { clearUserCache } from "@/lib/users";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { z } from "zod";
+import {
+  DAY_DECLINABLE_KEYS,
+  TRIP_DECLINABLE_KEYS,
+  dayWrite,
+  figureDoc,
+  journalWrite,
+  tripCreate,
+} from "@/lib/api/v2/schemas";
+import { buildTripDoc } from "@/lib/api/v2/trips";
+import { readTripFile } from "@/lib/api/v2/store";
+
+const REPO_CONTENT = path.join(process.cwd(), "content");
+const USER = "example";
+const EXAMPLE = path.join(REPO_CONTENT, USER);
+
+let previousContentDir: string | undefined;
+beforeAll(() => {
+  // Point the store at the repository's own content, not at whatever fixture
+  // directory another test left behind.
+  previousContentDir = process.env.CONTENT_DIR;
+  process.env.CONTENT_DIR = REPO_CONTENT;
+});
+afterAll(() => {
+  if (previousContentDir === undefined) delete process.env.CONTENT_DIR;
+  else process.env.CONTENT_DIR = previousContentDir;
+});
+
+/** ── what the contract defines ────────────────────────────────────────── */
+
+type Expectation = { paths: Set<string>; enums: Map<string, string[]> };
 
 /**
- * content/example/ is the only place every field is exercised at once, and
- * that is a job it can only do while somebody is checking.
- *
- * A field nothing in the demo set uses is a field whose breakage nobody sees:
- * the trip countdown asked for a budget by bare id rather than by ref for
- * months, and it went unnoticed precisely because the demo had no `upcoming`
- * trip to draw a countdown for. These tests are the tripwire for that — not
- * assertions about prose, which is free to change, but about which shapes are
- * still represented.
- *
- * The generator is scripts/build-demo-content.mjs. If one of these fails, add
- * the missing shape there and re-run it rather than editing content by hand.
+ * Walk a schema's JSON-Schema projection and collect every leaf path a
+ * document could carry, plus every enum and its values. Unions contribute
+ * all of their branches: `weather` is `true | reading`, and the example owes
+ * a demonstration of both.
  */
+function expectationsOf(schema: z.ZodType, skip: readonly string[] = []): Expectation {
+  const json = z.toJSONSchema(schema, { io: "input", unrepresentable: "any" }) as Record<string, unknown>;
+  const paths = new Set<string>();
+  const enums = new Map<string, string[]>();
 
-const REF_PREFIX = "example/";
-
-beforeEach(() => {
-  process.env.CONTENT_DIR = path.join(process.cwd(), "content");
-  clearConfigCache();
-  clearUserCache();
-});
-
-const trips = () => getTrips("example");
-const everyEntry = () =>
-  trips().flatMap((t) => getAllEntries(t.ref, { includeDrafts: true }));
-
-describe("the demo journal covers every trip shape", () => {
-  test("all three statuses are represented", () => {
-    expect(new Set(trips().map((t) => t.status))).toEqual(
-      new Set(["past", "current", "upcoming"]),
-    );
-  });
-
-  test("exactly one trip is current", () => {
-    expect(trips().filter((t) => t.status === "current")).toHaveLength(1);
-  });
-
-  test("every accent is used, so the lifetime map's legend is legible", () => {
-    // Two trips sharing a hue makes the legend say nothing.
-    const accents = trips().map((t) => t.accent);
-    expect(new Set(accents).size).toBe(accents.length);
-    expect(new Set(accents)).toEqual(
-      new Set(["sky", "yellow", "green", "coral", "navy"]),
-    );
-  });
-
-  test("a route never repeats the stop it is already standing on", () => {
-    // The route of a trip with no `plan:` is derived from its days, and it
-    // used to be derived from its *entries* — so a day written as three
-    // updates stacked three identical markers on one coordinate.
-    for (const trip of trips()) {
-      const stops = getPlan(trip.ref, { includeDrafts: true }).stops;
-      for (let i = 1; i < stops.length; i++) {
-        expect(
-          `${stops[i].location}|${stops[i].country}`,
-          `${trip.id} repeats ${stops[i].location} at stop ${i + 1}`,
-        ).not.toBe(`${stops[i - 1].location}|${stops[i - 1].country}`);
+  const walk = (node: unknown, prefix: string, depth: number): void => {
+    if (!node || typeof node !== "object" || depth > 5) return;
+    const n = node as Record<string, unknown>;
+    for (const key of ["anyOf", "oneOf", "allOf"]) {
+      const branches = n[key];
+      if (Array.isArray(branches)) {
+        for (const b of branches) walk(b, prefix, depth);
       }
     }
+    const props = n.properties as Record<string, Record<string, unknown>> | undefined;
+    if (!props) return;
+    for (const [key, value] of Object.entries(props)) {
+      const p = prefix ? `${prefix}.${key}` : key;
+      if (skip.includes(p)) continue;
+      paths.add(p);
+      if (Array.isArray(value.enum)) enums.set(p, value.enum.map(String));
+      if (value.type === "object" || value.properties) walk(value, p, depth + 1);
+      if (value.type === "array" && value.items) walk(value.items, `${p}[]`, depth + 1);
+      for (const key2 of ["anyOf", "oneOf"]) {
+        const branches = value[key2];
+        if (Array.isArray(branches)) for (const b of branches) walk(b, p, depth + 1);
+      }
+    }
+  };
+  walk(json, "", 0);
+  return { paths, enums };
+}
+
+/** ── what the content demonstrates ───────────────────────────────────── */
+
+function demonstrate(doc: unknown, prefix: string, paths: Set<string>, values: Set<string>): void {
+  if (doc === undefined || doc === null) return;
+  if (Array.isArray(doc)) {
+    for (const item of doc) demonstrate(item, `${prefix}[]`, paths, values);
+    return;
+  }
+  if (typeof doc === "object") {
+    for (const [key, value] of Object.entries(doc as Record<string, unknown>)) {
+      const p = prefix ? `${prefix}.${key}` : key;
+      if (value === undefined) continue;
+      paths.add(p);
+      demonstrate(value, p, paths, values);
+    }
+    return;
+  }
+  // A leaf: record it as a value seen at this path, for the enum check.
+  values.add(`${prefix}=${String(doc)}`);
+}
+
+/** ── the journal, read from disk ─────────────────────────────────────── */
+
+function readJson(file: string): Record<string, unknown> {
+  return JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
+}
+
+const tripIds = fs
+  .readdirSync(path.join(EXAMPLE, "trips"))
+  .filter((d) => fs.statSync(path.join(EXAMPLE, "trips", d)).isDirectory())
+  .sort();
+
+const daySlugsOf = (tripId: string): string[] => {
+  const dir = path.join(EXAMPLE, "trips", tripId, "entries");
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => f.endsWith(".json")).map((f) => f.replace(/\.json$/, "")).sort();
+};
+
+describe("content/example is v2-canonical", () => {
+  it("carries no v1 markdown at all", () => {
+    const stray: string[] = [];
+    const walk = (dir: string): void => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name.endsWith(".md")) stray.push(path.relative(EXAMPLE, full));
+      }
+    };
+    walk(path.join(EXAMPLE, "trips"));
+    expect(stray).toEqual([]);
   });
 
-  test("a trip names the people who took it, with a nickname", () => {
-    const shared = trips().filter((t) => t.people.length > 1);
-    expect(shared.length).toBeGreaterThan(0);
-    expect(shared.some((t) => t.people.some((p) => p.nickname))).toBe(true);
+  it("the journal document validates (minus the one legacy key the code still needs)", () => {
+    const config = readJson(path.join(EXAMPLE, "config.json"));
+    // `features` is read by lib/capabilities.ts's own resolver, so the file
+    // keeps it until decision 5 ("features are instance-only") lands in the
+    // CODE. Content cannot lead that. Strip it here, and when the code stops
+    // reading it, this line and the key go in the same commit.
+    const { features: _legacyFeatures, ...v2 } = config;
+    expect(journalWrite.safeParse(v2)).toMatchObject({ success: true });
   });
 
-  test("a trip carries a translated title and tagline", () => {
-    const translated = trips().filter((t) => t.translations?.de?.title);
-    expect(translated.length).toBeGreaterThan(0);
-    expect(translated.some((t) => t.translations?.hu?.tagline)).toBe(true);
+  it("every figure in the library validates", () => {
+    const dir = path.join(EXAMPLE, "figures");
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
+    expect(files.length).toBeGreaterThan(0);
+    for (const file of files) {
+      const result = figureDoc.safeParse(readJson(path.join(dir, file)));
+      expect(result.success, `${file}: ${result.success ? "" : JSON.stringify(result.error.issues)}`).toBe(true);
+    }
   });
 
-  test("covers point at media that is actually on disk", () => {
-    const withCover = trips().filter((t) => t.cover);
-    expect(withCover.length).toBeGreaterThan(0);
-    for (const trip of withCover) {
-      // Prefixed with the owner on read; trip-relative on disk.
-      expect(trip.cover).toMatch(/^\/example\/media\//);
-      const rel = trip.cover!.replace(`/example/media/${trip.id}/`, "");
-      expect(
-        fs.existsSync(path.join(tripDir(trip.ref), "media", rel)),
-        `${trip.id} cover ${trip.cover} is not on disk`,
-      ).toBe(true);
+  it.each(tripIds)("%s validates as a whole document, days included", (tripId) => {
+    const trip = readTripFile(USER, tripId);
+    expect(trip, `${tripId}/trip.json does not read`).not.toBeNull();
+
+    // `buildTripDoc(..., "full")` ends in `tripDoc.parse` — the same call
+    // every GET and every write echo of a trip goes through, days included
+    // (each one through `dayEchoInput`). If this returns, the routes can
+    // serve this trip; if it throws, they cannot. No second implementation
+    // of the format lives in this test.
+    expect(() => buildTripDoc(USER, tripId, trip!, "full")).not.toThrow();
+  });
+
+  it.each(tripIds)("%s: every day file reads and carries a real status", (tripId) => {
+    for (const slug of daySlugsOf(tripId)) {
+      const day = readJson(path.join(EXAMPLE, "trips", tripId, "entries", `${slug}.json`));
+      expect(["draft", "published"], `${tripId}/${slug} status`).toContain(day.status);
     }
   });
 });
 
-describe("the upcoming trip renders as a countdown", () => {
-  const upcoming = () => trips().find((t) => t.status === "upcoming")!;
+/** ── completeness ─────────────────────────────────────────────────────── */
 
-  test("it exists and has no entries a reader can see", () => {
-    expect(upcoming()).toBeDefined();
-    expect(getAllEntries(upcoming().ref)).toHaveLength(0);
+/**
+ * Every field and every enum value the contract defines, demonstrated
+ * somewhere in the journal. The expectation is read from the schemas at run
+ * time, so this cannot go stale: add a field to `dayWrite` tomorrow and this
+ * fails until `content/example` shows what it looks like in use.
+ *
+ * The point is not tidiness. The example is what an agent copies and what a
+ * feature is proven against — a field nothing demonstrates is a field whose
+ * first real use is somebody's actual journal.
+ */
+describe("content/example demonstrates the whole contract", () => {
+  const days = tripIds.flatMap((t) =>
+    daySlugsOf(t).map((slug) => readJson(path.join(EXAMPLE, "trips", t, "entries", `${slug}.json`))),
+  );
+  const trips = tripIds.map((t) => readJson(path.join(EXAMPLE, "trips", t, "trip.json")));
+  const figures = fs
+    .readdirSync(path.join(EXAMPLE, "figures"))
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => readJson(path.join(EXAMPLE, "figures", f)));
+  const journal = readJson(path.join(EXAMPLE, "config.json"));
+
+  const seen = (docs: unknown[]): { paths: Set<string>; values: Set<string> } => {
+    const paths = new Set<string>();
+    const values = new Set<string>();
+    for (const doc of docs) demonstrate(doc, "", paths, values);
+    return { paths, values };
+  };
+
+  /**
+   * `singleton` marks a document a journal has exactly one of. A collection
+   * (44 days, 8 trips, a figure library) can be asked to show every value of
+   * every enum; one document cannot — a journal is `metric` **or**
+   * `imperial`, and no amount of content makes it both. For those, the field
+   * is still owed a demonstration; only the exhaustive enum sweep is not.
+   */
+  type EnumRule = "exhaustive" | "one-of" | "present";
+
+  const cases: [string, z.ZodType, unknown[], readonly string[], EnumRule][] = [
+    // `slug` is the filename and never a key inside the document; `days` is
+    // the trip's inline projection, which a stored trip file never carries.
+    ["day", dayWrite, days, ["slug"], "exhaustive"],
+    ["trip", tripCreate, trips, ["days", "id"], "exhaustive"],
+    // `declined` is skipped for one reason only: the journal's two declinable
+    // sections are `tagline` and `figures`, and the demo wants both. Showing
+    // a declined journal section would mean taking one away — the example
+    // teaching the mechanism by being a worse example. The mechanism is
+    // demonstrated 200-odd times over on days and trips instead.
+    ["journal", journalWrite, [journal], ["declined"], "one-of"],
+    // `appearance` marks the drawing vocabulary — hairStyle, outfit, build,
+    // age. Every FIELD is still owed a demonstration, and every value is
+    // still rendered and checked: at /docs/branding/travellers, the bench
+    // that draws each axis from the vocabulary constant, which is where a
+    // wrong drawing actually shows. Forcing the journal's own cast to wear
+    // all eleven hairstyles would make the demo less believable, not more
+    // complete — the journal proves that figures are referenced and drawn,
+    // the bench proves that each value draws.
+    ["figure", figureDoc, figures, ["id"], "present"],
+  ];
+
+  it.each(cases)("every %s field is demonstrated", (_name, schema, docs, skip) => {
+    const want = expectationsOf(schema, skip);
+    const have = seen(docs);
+    const missing = [...want.paths].filter((p) => !have.paths.has(p) && !skip.includes(p)).sort();
+    expect(missing, `never demonstrated in content/example: ${missing.join(", ")}`).toEqual([]);
   });
 
-  test("its budget resolves — the countdown has a figure to show", () => {
-    // This is the regression: the page passed `trip.id` where a
-    // `<user>/<trip>` ref was wanted, so the budget silently vanished.
-    const budget = getBudgetInBase(upcoming().ref);
-    expect(budget?.total).toBeGreaterThan(0);
-    expect(budget?.days).toBeGreaterThan(0);
-  });
+  it.each(cases.filter(([, , , , rule]) => rule === "exhaustive"))(
+    "every %s enum value is demonstrated",
+    (_name, schema, docs, skip) => {
+      const want = expectationsOf(schema, skip);
+      const have = seen(docs);
+      const missing: string[] = [];
+      for (const [p, allowed] of want.enums) {
+        for (const value of allowed) {
+          if (!have.values.has(`${p}=${value}`)) missing.push(`${p}=${value}`);
+        }
+      }
+      expect(missing.sort(), `enum values never demonstrated: ${missing.join(", ")}`).toEqual([]);
+    },
+  );
 
-  test("its planned route is drawn, and the stops carry notes", () => {
-    const plan = getPlan(upcoming().ref);
-    expect(plan.stops.length).toBeGreaterThan(1);
-    expect(plan.stops.filter((s) => s.note).length).toBeGreaterThan(0);
-    // Nothing has happened yet.
-    expect(plan.reachedCount).toBe(0);
-  });
+  it.each(cases.filter(([, , , , rule]) => rule !== "exhaustive"))(
+    "%s: every enum field carries at least one value the contract allows",
+    (_name, schema, docs, skip) => {
+      const want = expectationsOf(schema, skip);
+      const have = seen(docs);
+      for (const [p, allowed] of want.enums) {
+        const used = allowed.filter((v) => have.values.has(`${p}=${v}`));
+        expect(used.length, `${p} carries no value the contract allows`).toBeGreaterThan(0);
+      }
+    },
+  );
 
-  test("future-dated drafts extend the route, but only for the owner", () => {
-    const ref = upcoming().ref;
-    const stranger = getPlan(ref).stops;
-    const owner = getPlan(ref, { includeDrafts: true }).stops;
-    expect(owner.length).toBeGreaterThan(stranger.length);
-    expect(owner.filter((s) => s.fromDraft).length).toBeGreaterThan(0);
-    expect(stranger.some((s) => s.fromDraft)).toBe(false);
-  });
-});
-
-describe("the demo journal covers every entry shape", () => {
-  test("one day holds several updates, ordered by time", () => {
-    const multi = trips()
-      .flatMap((t) => getDays(t.ref))
-      .filter((d) => d.entries.length > 1);
-    expect(multi.length).toBeGreaterThan(0);
-    for (const day of multi) {
-      const times = day.entries.map((e) => e.time ?? "");
-      expect(times).toEqual([...times].sort());
-      // The day's arrival leg belongs to the lead, not to the afterthought.
-      expect(day.lead).toBe(day.entries[0]);
-    }
-  });
-
-  test("a day holds three updates, not just two", () => {
-    // Two is the case where "several updates" and "the one after the lead"
-    // look the same, so a pager that only ever draws the second one passes.
-    // Three is what tells them apart.
-    const deepest = Math.max(
-      ...trips().flatMap((t) => getDays(t.ref).map((d) => d.entries.length)),
+  it("every declinable section is declined somewhere, with a real reason", () => {
+    const declines = [...days, ...trips].flatMap((d) =>
+      Object.entries((d.declined ?? {}) as Record<string, string>),
     );
-    expect(deepest).toBeGreaterThanOrEqual(3);
-  });
-
-  test("an update that is not the day's lead carries a gallery", () => {
-    // The lead's photographs are the ones every surface reaches for. A
-    // gallery hanging off the second update of a day is the arrangement that
-    // gets dropped — from the day, and from the trip's gallery page.
-    const trailing = trips()
-      .flatMap((t) => getDays(t.ref))
-      .flatMap((d) => d.entries.slice(1));
-    expect(trailing.some((e) => e.gallery.length > 0)).toBe(true);
-  });
-
-  test("multi-update days are spread across trips, not just the current one", () => {
-    const withBranch = trips().filter((t) =>
-      getDays(t.ref).some((d) => d.entries.length > 1),
-    );
-    expect(withBranch.length).toBeGreaterThan(1);
-  });
-
-  test("every entry is tagged", () => {
-    for (const entry of everyEntry()) {
-      expect(entry.tags.length, `${entry.slug} has no tags`).toBeGreaterThan(0);
-      for (const tag of entry.tags) expect(tag).toMatch(/^[a-z0-9][a-z0-9-]*$/);
+    for (const [key, reason] of declines) {
+      expect(reason.length, `declined.${key} carries a reason too short to act on`).toBeGreaterThanOrEqual(10);
     }
-  });
-
-  test("the clip has a poster, so the grid does not download the video", () => {
-    const videos = everyEntry().flatMap((e) =>
-      e.gallery.filter((g) => g.type === "video"),
-    );
-    expect(videos.length).toBeGreaterThan(0);
-    for (const video of videos) {
-      expect(video.poster).toMatch(/^\/example\/media\//);
-    }
-  });
-
-  test("entries are translated into every locale the journal advertises", () => {
-    const declared: string[] = JSON.parse(
-      fs.readFileSync(
-        path.join(process.cwd(), "content", "example", "config.json"),
-        "utf8",
-      ),
-    ).locales;
-    const written = new Set(
-      everyEntry().flatMap((e) => Object.keys(e.translations ?? {})),
-    );
-    for (const locale of declared.filter((l) => l !== "en")) {
-      expect(written.has(locale), `nothing is translated into ${locale}`).toBe(true);
-    }
-  });
-
-  test("a translation may override the title as well as the prose", () => {
-    const titled = everyEntry().filter((e) =>
-      Object.values(e.translations ?? {}).some((t) => t.title),
-    );
-    expect(titled.length).toBeGreaterThan(0);
-  });
-
-  test("drafts exist, and no reading path shows them", () => {
-    for (const trip of trips()) {
-      const all = getAllEntries(trip.ref, { includeDrafts: true });
-      expect(getAllEntries(trip.ref).some((e) => e.draft)).toBe(false);
-      expect(all.length).toBeGreaterThanOrEqual(getAllEntries(trip.ref).length);
-    }
-    expect(everyEntry().some((e) => e.draft)).toBe(true);
-  });
-});
-
-describe("the demo journal covers every cost shape", () => {
-  test("every category the chart can draw is spent in somewhere", () => {
-    const used = new Set(
-      trips().flatMap((t) => getCostSummary(t.ref).items.map((i) => i.category)),
-    );
-    for (const category of COST_CATEGORIES) {
-      expect(used.has(category), `nothing is filed under "${category}"`).toBe(true);
-    }
-  });
-
-  test("every trip's spend converts, in every currency it was spent in", () => {
-    // The one check on a trip's `rates:` block that exists anywhere. A cost in
-    // a currency the trip has no rate for is a *supported* state — the page
-    // says what it left out rather than guessing — so nothing may fail the
-    // build over it, and the demo journal is the one place it can be asserted
-    // without making a claim about somebody's own content. Name the currency
-    // in the message: "could not convert" is not actionable, "missing a rate
-    // for THB" is the edit. See docs/currencies.md, and B17.
-    for (const trip of trips()) {
-      const summary = getCostSummary(trip.ref);
-      expect(
-        summary.unconverted.map((u) => u.currency),
-        `${trip.ref} spends in a currency missing from its rates: block in trip.md`,
-      ).toEqual([]);
-      expect(summary.budget?.total).toBeGreaterThan(0);
-    }
-  });
-
-  test("a preparation cost is spent in a foreign currency somewhere", () => {
-    // Preparation is not always paid at home, and the trip's own rate is what
-    // converts it — a path nothing exercised while every prep line was in CHF.
-    const foreign = trips().flatMap((trip) =>
-      getCostSummary(trip.ref).items.filter(
-        (i) => i.category !== "food" && i.currency !== "CHF",
-      ),
-    );
-    expect(foreign.length).toBeGreaterThan(0);
-  });
-});
-
-describe("the demo journal is addressable", () => {
-  test("every trip resolves by its ref", () => {
-    for (const trip of trips()) {
-      expect(getTrip(REF_PREFIX + trip.id)?.ref).toBe(trip.ref);
-    }
+    const keys = new Set(declines.map(([k]) => k));
+    // `status` is the one declinable a stored day cannot demonstrate: a file
+    // always carries `draft` or `published`, because a day on disk is always
+    // one or the other. The decline exists for the WIRE — a create call that
+    // does not state it arrives as a draft — and is exercised there, in
+    // test/api-v2-schemas.test.ts, not here.
+    const owed = [...DAY_DECLINABLE_KEYS, ...TRIP_DECLINABLE_KEYS].filter((k) => k !== "status");
+    const missing = owed.filter((k) => !keys.has(k)).sort();
+    expect(missing, `declinable sections never demonstrated as declined: ${missing.join(", ")}`).toEqual([]);
   });
 });

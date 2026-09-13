@@ -37,8 +37,8 @@
     },
     {
       "src": "/media/asia-2023/mekong-slow-boat/clip.mp4",
-      "caption": "Ten seconds of the bank going past",
       "type": "video",
+      "caption": "Ten seconds of the bank going past",
       "width": 1280,
       "height": 720,
       "poster": "/media/asia-2023/mekong-slow-boat/clip.jpg"
@@ -66,12 +66,12 @@
   ],
   "translations": {
     "de": {
-      "title": "Two days on the Mekong",
-      "content": "Zwei Tage auf einem Holzboot mit einem hinten eingebauten Automotor. Es gibt nichts zu tun, was der ganze Sinn der Sache ist und ungefähr vier Stunden dauert, bis man es versteht.\n\nAm zweiten Nachmittag haben wir zehn Sekunden Ufer gefilmt. Es ist das einzige Video der ganzen Reise — und trotzdem das Erste, was wir den Leuten zeigen."
+      "content": "Zwei Tage auf einem Holzboot mit einem hinten eingebauten Automotor. Es gibt nichts zu tun, was der ganze Sinn der Sache ist und ungefähr vier Stunden dauert, bis man es versteht.\n\nAm zweiten Nachmittag haben wir zehn Sekunden Ufer gefilmt. Es ist das einzige Video der ganzen Reise — und trotzdem das Erste, was wir den Leuten zeigen.\n",
+      "title": "Zwei Tage auf dem Mekong"
     },
     "hu": {
-      "title": "Two days on the Mekong",
-      "content": "Két nap egy fahajón, aminek a hátuljába autómotort építettek. Nincs semmi tennivaló, ami az egésznek a lényege, és körülbelül négy órába telik megérteni.\n\nA második délutánon felvettünk tíz másodpercnyi partot. Ez az egyetlen videó az egész útról — és mégis ez az első, amit megmutatunk."
+      "content": "Két nap egy fahajón, aminek a hátuljába autómotort építettek. Nincs semmi tennivaló, ami az egésznek a lényege, és körülbelül négy órába telik megérteni.\n\nA második délutánon felvettünk tíz másodpercnyi partot. Ez az egyetlen videó az egész útról — és mégis ez az első, amit megmutatunk.\n",
+      "title": "Két nap a Mekongon"
     }
   },
   "weather": {
@@ -82,6 +82,10 @@
     "windMax": 4.9,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:20.385Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

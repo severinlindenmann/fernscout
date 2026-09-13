@@ -57,5 +57,11 @@
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:18.504Z"
   },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "transportMode": "a day in one place, with no leg to record",
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
   "status": "published"
 }

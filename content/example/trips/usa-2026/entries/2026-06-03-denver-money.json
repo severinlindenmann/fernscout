@@ -17,9 +17,16 @@
   "translations": {
     "de": {
       "title": "Der Teil mit dem Geld",
-      "content": "Was der Truck wirklich gekostet hat, aufgeschrieben, solange wir es noch genau wissen — und für uns beide, nicht für den Rest der Welt."
+      "content": "Was der Truck wirklich gekostet hat, aufgeschrieben, solange wir es noch genau wissen — und für uns beide, nicht für den Rest der Welt.\n"
     }
   },
   "visibility": "private",
+  "declined": {
+    "media": "no photographs were taken on this day",
+    "costs": "no figures were kept for this day",
+    "weather": "the weather was not looked up for this day",
+    "timezone": "the zone was not recorded when this was written",
+    "transportMode": "a day in one place, with no leg to record"
+  },
   "status": "published"
 }

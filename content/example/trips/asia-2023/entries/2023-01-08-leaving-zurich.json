@@ -25,5 +25,18 @@
     "recordedAt": "2026-09-06T08:32:20.122Z"
   },
   "test": true,
-  "status": "published"
+  "declined": {
+    "media": "no photographs were taken on this day",
+    "transportMode": "a day in one place, with no leg to record",
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published",
+  "costs": [
+    {
+      "label": "Flights to Bangkok, one way",
+      "amount": 1240,
+      "category": "flights"
+    }
+  ]
 }

@@ -39,17 +39,36 @@ export const costItem = z.strictObject({
 });
 
 /**
- * A reading somebody actually took — never composed. `source` is required
- * because a number with no source is indistinguishable from one made up, and
- * `open-meteo` is refused because that name means *this server* looked it up.
+ * The measurements themselves, shared by both directions — one list of
+ * fields and ranges, so a reading cannot mean two different things
+ * depending on which way it is travelling.
+ */
+const weatherMeasurements = {
+  tempMin: z.number().min(-90).max(60).optional(),
+  tempMax: z.number().min(-90).max(60).optional(),
+  code: z.number().int().min(0).max(99).optional(),
+  precipitation: z.number().min(0).max(2000).optional(),
+  windMax: z.number().min(0).max(500).optional(),
+  recordedAt: isoInstant,
+};
+
+/** At least one measurement — a reading of nothing is not a reading. */
+const hasAMeasurement = (w: { tempMin?: number; tempMax?: number; code?: number; precipitation?: number; windMax?: number }) =>
+  w.tempMin !== undefined ||
+  w.tempMax !== undefined ||
+  w.code !== undefined ||
+  w.precipitation !== undefined ||
+  w.windMax !== undefined;
+
+/**
+ * A reading a CALLER sent — never composed, and never claiming to be the
+ * server's own: `source` is required because a number with no source is
+ * indistinguishable from one made up, and `open-meteo` is refused because
+ * that name means *this server* looked it up (B1578).
  */
 const weatherData = z
   .strictObject({
-    tempMin: z.number().min(-90).max(60).optional(),
-    tempMax: z.number().min(-90).max(60).optional(),
-    code: z.number().int().min(0).max(99).optional(),
-    precipitation: z.number().min(0).max(2000).optional(),
-    windMax: z.number().min(0).max(500).optional(),
+    ...weatherMeasurements,
     source: z
       .string()
       .trim()
@@ -57,17 +76,24 @@ const weatherData = z
       .refine((s) => !(RESERVED_SOURCES as readonly string[]).includes(s.toLowerCase()), {
         message: "this source name is the server's own — a caller may never claim it",
       }),
-    recordedAt: isoInstant,
   })
-  .refine(
-    (w) =>
-      w.tempMin !== undefined ||
-      w.tempMax !== undefined ||
-      w.code !== undefined ||
-      w.precipitation !== undefined ||
-      w.windMax !== undefined,
-    { message: "at least one measurement" },
-  );
+  .refine(hasAMeasurement, { message: "at least one measurement" });
+
+/**
+ * The same reading as it is READ BACK — B1645. Identical in every field
+ * except that `open-meteo` is allowed here, because the server writes it:
+ * a day that asked for a lookup (`weather: true`) carries the archive's own
+ * reading afterwards, and a read shape that refused it could not answer for
+ * the ordinary case. The asymmetry IS the rule — a caller may not claim the
+ * server's name, and the server may — so it lives in two schemas rather
+ * than one loosened one.
+ */
+const weatherReading = z
+  .strictObject({
+    ...weatherMeasurements,
+    source: z.string().trim().min(1),
+  })
+  .refine(hasAMeasurement, { message: "at least one measurement" });
 
 /** A photograph on the day, addressed by the src the media door answered
  * with. Caption and hold-back live here, per item — v1's separate `captions`
@@ -244,8 +270,9 @@ export const dayDoc = z.object({
    * "open-meteo" means the server looked it up; anything else is what the
    * person supplying it called their instrument. A client forwarding a
    * journal skips open-meteo entries rather than sending them back (B1578) —
-   * the write shape enforces that by refusing the reserved source. */
-  weather: z.union([z.literal(true), weatherData]).optional(),
+   * the WRITE shape is what refuses the reserved source; this one must
+   * accept it, because it is what the server itself wrote (B1645). */
+  weather: z.union([z.literal(true), weatherReading]).optional(),
 });
 
 export type DayWrite = z.infer<typeof dayWrite>;

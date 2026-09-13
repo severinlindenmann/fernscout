@@ -62,5 +62,9 @@
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:19.330Z"
   },
+  "declined": {
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
   "status": "published"
 }

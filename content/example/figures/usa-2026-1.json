@@ -1,11 +1,15 @@
 {
   "id": "usa-2026-1",
-  "person": "agent@fernscout.ch",
   "hairStyle": "short",
   "skin": "light-medium",
   "hair": "brown",
   "shirt": "sky",
   "accessories": [
     "glasses"
-  ]
+  ],
+  "person": "agent@fernscout.ch",
+  "name": "Alex, across and back",
+  "eyes": "brown",
+  "build": "average",
+  "outfit": "trousers"
 }

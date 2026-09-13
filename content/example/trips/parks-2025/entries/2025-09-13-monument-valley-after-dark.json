@@ -25,5 +25,12 @@
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:19.381Z"
   },
+  "declined": {
+    "media": "no photographs were taken on this day",
+    "costs": "no figures were kept for this day",
+    "transportMode": "a day in one place, with no leg to record",
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
   "status": "published"
 }

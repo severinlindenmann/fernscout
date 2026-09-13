@@ -47,8 +47,8 @@
   ],
   "translations": {
     "de": {
-      "title": "Las Vegas, and a cooler",
-      "content": "Um vier gelandet, eine weiße Limousine abgeholt, die aussah wie jede andere weiße Limousine auf dem Platz, und dann eine Stunde in einem Supermarkt von der Größe eines Flughafens verbracht, um eine Kühlbox zu kaufen.\n\nWir waren nicht in der Nähe des Strip. Das fühlte sich nach dem richtigen Anfang an."
+      "content": "Um vier gelandet, eine weiße Limousine abgeholt, die aussah wie jede andere weiße Limousine auf dem Platz, und dann eine Stunde in einem Supermarkt von der Größe eines Flughafens verbracht, um eine Kühlbox zu kaufen.\n\nWir waren nicht in der Nähe des Strip. Das fühlte sich nach dem richtigen Anfang an.\n",
+      "title": "Las Vegas, und eine Kühlbox"
     }
   },
   "weather": {
@@ -59,6 +59,10 @@
     "windMax": 10.5,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:18.914Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

@@ -61,5 +61,10 @@
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:18.769Z"
   },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "timezone": "the zone was not recorded when this was written",
+    "translations": "this day has not been translated yet"
+  },
   "status": "published"
 }

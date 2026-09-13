@@ -25,8 +25,8 @@
     },
     {
       "src": "/media/usa-2026/utah-red-country/03.jpg",
-      "visibility": "guest",
       "type": "image",
+      "visibility": "guest",
       "width": 1067,
       "height": 1600
     },
@@ -67,12 +67,12 @@
   ],
   "translations": {
     "de": {
-      "title": "Red country",
-      "content": "Der Pick-up hat es geschafft, laut. Vier Nächte auf einem Felsvorsprung außerhalb der Stadt, ganz allein — zwanzig Dollar die Nacht, und es fühlte sich an wie Diebstahl.\n\nEs lässt sich schlecht fotografieren. Wir haben es trotzdem versucht, mehrere hundert Mal."
+      "content": "Der Pick-up hat es geschafft, laut. Vier Nächte auf einem Felsvorsprung außerhalb der Stadt, ganz allein — zwanzig Dollar die Nacht, und es fühlte sich an wie Diebstahl.\n\nEs lässt sich schlecht fotografieren. Wir haben es trotzdem versucht, mehrere hundert Mal.\n",
+      "title": "Rotes Land"
     },
     "hu": {
-      "title": "Red country",
-      "content": "A pickup megcsinálta, hangosan. Négy éjszaka egy dombon a városon kívül, rajtunk kívül senki, húsz dollár egy éjszaka — lopásnak éreztük.\n\nNehéz lefényképezni, és mi mégis megpróbáltuk, több százszor."
+      "content": "A pickup megcsinálta, hangosan. Négy éjszaka egy dombon a városon kívül, rajtunk kívül senki, húsz dollár egy éjszaka — lopásnak éreztük.\n\nNehéz lefényképezni, és mi mégis megpróbáltuk, több százszor.\n",
+      "title": "Vörös vidék"
     }
   },
   "weather": {
@@ -83,6 +83,10 @@
     "windMax": 19.6,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:18.715Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

@@ -7,14 +7,13 @@
     "to": "2024-09-15"
   },
   "visibility": "public",
-  "listed": true,
   "accent": "green",
   "cover": "/media/alps-2024/grimsel-and-rain/01.jpg",
   "people": [
     {
       "name": "Alex Berger",
-      "email": "agent@fernscout.ch",
-      "nickname": "Alex"
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
     }
   ],
   "rates": {
@@ -101,6 +100,7 @@
     "body": "Three passes and whatever was between them. We booked one guesthouse and left the other three nights open."
   },
   "declined": {
-    "buddies": "travelling solo"
+    "buddies": "travelling alone on this one",
+    "listed": "advertised like every other public trip"
   }
 }

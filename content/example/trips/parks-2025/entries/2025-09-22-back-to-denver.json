@@ -53,8 +53,8 @@
   ],
   "translations": {
     "de": {
-      "title": "Back to Denver",
-      "content": "Sechs Stunden nach Süden, die Kühlbox endlich leer und ungefähr vier Kilo roter Staub in den Fußräumen.\n\nAchtzehn Nächte an achtzehn verschiedenen Orten. Wir haben das Auto mit 6.140 Kilometern zurückgegeben und sofort angefangen zu streiten, welcher Park der beste war."
+      "content": "Sechs Stunden nach Süden, die Kühlbox endlich leer und ungefähr vier Kilo roter Staub in den Fußräumen.\n\nAchtzehn Nächte an achtzehn verschiedenen Orten. Wir haben das Auto mit 6.140 Kilometern zurückgegeben und sofort angefangen zu streiten, welcher Park der beste war.\n",
+      "title": "Zurück nach Denver"
     }
   },
   "weather": {
@@ -65,6 +65,10 @@
     "windMax": 18.4,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:19.825Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

@@ -7,7 +7,9 @@
     "to": "2027-05-09"
   },
   "visibility": "public",
-  "listed": true,
+  "reminder": {
+    "channel": "whatsapp"
+  },
   "accent": "yellow",
   "people": [
     {
@@ -143,6 +145,8 @@
     "body": "South to north, and the rail pass decides most of it. Eight places we mean to sleep in and six weeks to find out what goes between them."
   },
   "declined": {
-    "figures": "uses the journal's own default party"
+    "cover": "no photograph has been chosen for the card yet",
+    "figures": "nobody has been drawn for this trip yet",
+    "listed": "advertised like every other public trip"
   }
 }

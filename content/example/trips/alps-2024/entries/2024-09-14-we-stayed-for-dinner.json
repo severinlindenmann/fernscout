@@ -33,7 +33,7 @@
   "translations": {
     "de": {
       "title": "Wir sind zum Abendessen geblieben",
-      "content": "Auf dem Parkplatz entschieden, heute nicht mehr über den Pass zurückzufahren. Über dem Restaurant gab es ein Zimmer, und auf der Karte standen vier Gerichte.\n\nWir haben zu zweit alle vier gegessen und sind in Italien ins Bett gegangen, was so nicht geplant war."
+      "content": "Auf dem Parkplatz entschieden, heute nicht mehr über den Pass zurückzufahren. Über dem Restaurant gab es ein Zimmer, und auf der Karte standen vier Gerichte.\n\nWir haben zu zweit alle vier gegessen und sind in Italien ins Bett gegangen, was so nicht geplant war.\n"
     }
   },
   "weather": {
@@ -44,6 +44,11 @@
     "windMax": 12,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:20.031Z"
+  },
+  "declined": {
+    "media": "no photographs were taken on this day",
+    "transportMode": "a day in one place, with no leg to record",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

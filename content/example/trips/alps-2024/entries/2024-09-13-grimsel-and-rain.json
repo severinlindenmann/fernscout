@@ -64,5 +64,10 @@
     "source": "the guesthouse thermometer",
     "recordedAt": "2024-09-13T18:30:00Z"
   },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
   "status": "published"
 }

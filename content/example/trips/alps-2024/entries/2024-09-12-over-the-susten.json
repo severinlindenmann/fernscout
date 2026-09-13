@@ -13,8 +13,8 @@
   "media": [
     {
       "src": "/media/alps-2024/over-the-susten/01.jpg",
-      "caption": "The last hairpin before the pass",
       "type": "image",
+      "caption": "The last hairpin before the pass",
       "width": 1600,
       "height": 1067
     },
@@ -41,6 +41,11 @@
       "label": "Lunch at the pass",
       "amount": 46,
       "category": "food"
+    },
+    {
+      "label": "Vignette, bought at the border",
+      "amount": 40,
+      "category": "preparation"
     }
   ],
   "tags": [
@@ -51,11 +56,11 @@
   "translations": {
     "de": {
       "title": "Über den Susten",
-      "content": "Wir sind spät aus Zürich losgefahren und haben das genau so lange bereut, bis wir Luzern hinter uns hatten. Der Susten ist die Sorte Straße, die einen geliehenen Kombi deutlich besser wirken lässt, als er ist.\n\nOben gab es eine Hütte mit Suppe und genau einer Sorte Kuchen. Wir hatten beides, zweimal."
+      "content": "Wir sind spät aus Zürich losgefahren und haben das genau so lange bereut, bis wir Luzern hinter uns hatten. Der Susten ist die Sorte Straße, die einen geliehenen Kombi deutlich besser wirken lässt, als er ist.\n\nOben gab es eine Hütte mit Suppe und genau einer Sorte Kuchen. Wir hatten beides, zweimal.\n"
     },
     "hu": {
       "title": "Át a Susten-hágón",
-      "content": "Későn indultunk Zürichből, és pontosan addig bántuk, amíg magunk mögött nem hagytuk Lucernt. A Susten az a fajta út, amitől egy kölcsönkért kombi sokkal jobb autónak tűnik, mint amilyen.\n\nFent volt egy kunyhó levessel és pontosan egyféle süteménnyel. Mindkettőből kértünk, kétszer."
+      "content": "Későn indultunk Zürichből, és pontosan addig bántuk, amíg magunk mögött nem hagytuk Lucernt. A Susten az a fajta út, amitől egy kölcsönkért kombi sokkal jobb autónak tűnik, mint amilyen.\n\nFent volt egy kunyhó levessel és pontosan egyféle süteménnyel. Mindkettőből kértünk, kétszer.\n"
     }
   },
   "weather": {
@@ -66,6 +71,11 @@
     "windMax": 9.2,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:19.875Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "transportMode": "a day in one place, with no leg to record",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

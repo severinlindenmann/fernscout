@@ -256,8 +256,12 @@ describe("the example content set", () => {
   });
 
   test("ships media inside the trip, not in public/", () => {
-    const trip = fs.readdirSync(path.join(dir, "trips"))[0];
-    expect(fs.existsSync(path.join(dir, "trips", trip, "media"))).toBe(true);
+    // Any trip, not `[0]`: which folder sorts first is an accident of naming,
+    // and it broke the moment a trip with no days was added to the example.
+    // What must hold is that the photographs ship inside the trips and that
+    // none of them leaked into `public/` — neither is a claim about one trip.
+    const trips = fs.readdirSync(path.join(dir, "trips"));
+    expect(trips.some((t) => fs.existsSync(path.join(dir, "trips", t, "media")))).toBe(true);
     expect(fs.existsSync(path.join(ROOT, "public", "media"))).toBe(false);
   });
 });

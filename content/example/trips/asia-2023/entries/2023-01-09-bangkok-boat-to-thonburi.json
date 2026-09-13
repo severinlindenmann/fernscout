@@ -47,7 +47,7 @@
   "translations": {
     "de": {
       "title": "Mit dem falschen Boot über den Fluss",
-      "content": "Wir wollten zwei Stationen mit der orangen Fähre fahren und sind in die blaue gestiegen, die für Touristen ist und viermal so viel kostet. Gemerkt haben wir es, als die Ansage anfing.\n\nSind trotzdem in Thonburi ausgestiegen und über die Brücke zurückgelaufen. Jedes Foto zeigt die falsche Flussseite und ist dadurch besser."
+      "content": "Wir wollten zwei Stationen mit der orangen Fähre fahren und sind in die blaue gestiegen, die für Touristen ist und viermal so viel kostet. Gemerkt haben wir es, als die Ansage anfing.\n\nSind trotzdem in Thonburi ausgestiegen und über die Brücke zurückgelaufen. Jedes Foto zeigt die falsche Flussseite und ist dadurch besser.\n"
     }
   },
   "weather": {
@@ -59,5 +59,9 @@
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:20.251Z"
   },
-  "status": "published"
+  "declined": {
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published",
+  "transportMode": "ferry"
 }

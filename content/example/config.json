@@ -6,8 +6,6 @@
     "nickname": "Alex",
     "email": "agent@fernscout.ch"
   },
-  "startLocation": "Zurich, Switzerland",
-  "defaultLocale": "en",
   "locales": [
     "en",
     "de",
@@ -20,28 +18,14 @@
     "USD"
   ],
   "units": "metric",
-  "travellers": [
-    {
-      "for": "agent@fernscout.ch",
-      "skin": "light-medium",
-      "hair": "brown",
-      "hairStyle": "short",
-      "shirt": "sky",
-      "pants": "slate",
-      "accessories": [
-        "glasses"
-      ]
-    },
-    {
-      "for": "priya@example.com",
-      "skin": "medium-deep",
-      "hair": "black",
-      "hairStyle": "braids",
-      "shirt": "coral",
-      "outfit": "skirt",
-      "pants": "plum"
-    }
-  ],
+  "visibility": "public",
+  "figures": {
+    "mode": "set",
+    "figures": [
+      "agent",
+      "priya"
+    ]
+  },
   "features": {
     "reactions": {
       "enabled": true

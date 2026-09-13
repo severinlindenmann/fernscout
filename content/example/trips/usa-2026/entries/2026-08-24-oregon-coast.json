@@ -14,8 +14,8 @@
   "media": [
     {
       "src": "/media/usa-2026/oregon-coast/01.jpg",
-      "caption": "One leaf still holding the rain",
       "type": "image",
+      "caption": "One leaf still holding the rain",
       "width": 1600,
       "height": 1067
     },
@@ -27,15 +27,15 @@
     },
     {
       "src": "/media/usa-2026/oregon-coast/03.jpg",
-      "caption": "The beach at low tide, and one person on the whole of it",
       "type": "image",
+      "caption": "The beach at low tide, and one person on the whole of it",
       "width": 1067,
       "height": 1600
     },
     {
       "src": "/media/usa-2026/oregon-coast/04.jpg",
-      "visibility": "private",
       "type": "image",
+      "visibility": "private",
       "width": 1400,
       "height": 1400
     }
@@ -70,6 +70,10 @@
     "windMax": 16.5,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:18.818Z"
+  },
+  "declined": {
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

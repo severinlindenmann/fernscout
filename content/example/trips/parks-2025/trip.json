@@ -7,14 +7,13 @@
     "to": "2025-09-22"
   },
   "visibility": "public",
-  "listed": true,
   "accent": "navy",
   "cover": "/media/parks-2025/bryce-at-six/01.jpg",
   "people": [
     {
       "name": "Alex Berger",
-      "email": "agent@fernscout.ch",
-      "nickname": "Alex"
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
     }
   ],
   "rates": {
@@ -209,6 +208,7 @@
     "body": "Booked as a loop because a one-way car hire across four states costs more than the flights. Everything between Las Vegas and Denver was ours to choose."
   },
   "declined": {
-    "buddies": "travelling solo"
+    "buddies": "travelling alone on this one",
+    "listed": "advertised like every other public trip"
   }
 }

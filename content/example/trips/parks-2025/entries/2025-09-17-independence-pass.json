@@ -54,8 +54,8 @@
   ],
   "translations": {
     "hu": {
-      "title": "Over Independence Pass",
-      "content": "Háromezer-hétszáz méter, korlát nélkül, és az út olyan keskeny, hogy egy lakóautóval találkozni már tárgyalás kérdése.\n\nAzon a héten fordultak sárgába a nyárfák. Coloradóban mindenki tudta, és mindenki kint volt."
+      "content": "Háromezer-hétszáz méter, korlát nélkül, és az út olyan keskeny, hogy egy lakóautóval találkozni már tárgyalás kérdése.\n\nAzon a héten fordultak sárgába a nyárfák. Coloradóban mindenki tudta, és mindenki kint volt.\n",
+      "title": "Át az Independence-hágón"
     }
   },
   "weather": {
@@ -66,6 +66,10 @@
     "windMax": 12.7,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:19.563Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }

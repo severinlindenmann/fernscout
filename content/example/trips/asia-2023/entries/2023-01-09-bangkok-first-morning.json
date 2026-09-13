@@ -20,8 +20,8 @@
     },
     {
       "src": "/media/asia-2023/bangkok-first-morning/02.jpg",
-      "caption": "The camera, put down for five minutes",
       "type": "image",
+      "caption": "The camera, put down for five minutes",
       "width": 1600,
       "height": 1067
     },
@@ -62,12 +62,12 @@
   ],
   "translations": {
     "de": {
-      "title": "First morning in Bangkok",
-      "content": "Um sechs gelandet, um acht geschlafen, um drei Uhr nachts hellwach und fest überzeugt, es sei Mittag. Als es dann wirklich Mittag war, waren wir vier Stunden gelaufen und hatten zweimal gegessen.\n\nDie Hitze ist nicht das, wovor die Leute warnen. Es ist der Lärm — und wie schnell man ihn nicht mehr hört."
+      "content": "Um sechs gelandet, um acht geschlafen, um drei Uhr nachts hellwach und fest überzeugt, es sei Mittag. Als es dann wirklich Mittag war, waren wir vier Stunden gelaufen und hatten zweimal gegessen.\n\nDie Hitze ist nicht das, wovor die Leute warnen. Es ist der Lärm — und wie schnell man ihn nicht mehr hört.\n",
+      "title": "Erster Morgen in Bangkok"
     },
     "hu": {
-      "title": "First morning in Bangkok",
-      "content": "Hatkor landoltunk, nyolckor aludtunk, hajnali háromkor pedig teljesen éberen, abban a hitben, hogy dél van. Mire tényleg dél lett, négy órát gyalogoltunk és kétszer ettünk.\n\nNem a hőség az, amire figyelmeztetnek. Hanem a zaj — és hogy milyen gyorsan nem hallod meg többé."
+      "content": "Hatkor landoltunk, nyolckor aludtunk, hajnali háromkor pedig teljesen éberen, abban a hitben, hogy dél van. Mire tényleg dél lett, négy órát gyalogoltunk és kétszer ettünk.\n\nNem a hőség az, amire figyelmeztetnek. Hanem a zaj — és hogy milyen gyorsan nem hallod meg többé.\n",
+      "title": "Első reggel Bangkokban"
     }
   },
   "weather": {
@@ -78,6 +78,9 @@
     "windMax": 20.6,
     "source": "open-meteo",
     "recordedAt": "2026-09-06T08:32:20.184Z"
+  },
+  "declined": {
+    "visibility": "shown to everyone the trip already lets in"
   },
   "status": "published"
 }
