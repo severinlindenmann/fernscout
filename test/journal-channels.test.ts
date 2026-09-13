@@ -6,15 +6,19 @@ import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 /**
  * B463 — the two mute switches on the credits card.
  *
- * The route is a narrow window onto `setJournalFeatures`, and the two things
- * worth pinning are the narrowness and the ceiling: it writes `mail` and
- * `whatsapp` and refuses every other key, and it can no more switch on a
- * capability this server does not have than `PATCH /config` can.
+ * Two doors now onto the same `setJournalFeatures` write, split by credential
+ * (B1595): `PATCH /api/v2/{user}/channels` (bearer, an agent) and its cookie
+ * proxy `PATCH /api/web/{user}/channels` (cookie, the owner's own browser) —
+ * one route used to answer both. The two things worth pinning are unchanged:
+ * it writes `mail` and `whatsapp` and refuses every other key, and it can no
+ * more switch on a capability this server does not have than `PATCH /config`
+ * could.
  *
- * The gate is `isOwner(user, request)` — the same one `credits/purchase`
- * uses — so the non-owner cases here are the same three callers that test
- * enumerates, for the same reason: a switch that turns off somebody else's
- * notifications is a switch worth being sure about.
+ * The non-owner cases (nobody signed in, a guest signed into the journal)
+ * only make sense against the cookie door — there is no bearer-shaped
+ * equivalent of "a guest cookie" — so those go through `webPatch`; the
+ * owner's own writes go through `apiPatch` with a bearer token, the same as
+ * every other v2 write.
  */
 
 const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
@@ -55,19 +59,40 @@ async function guestSession(): Promise<string> {
   return result.token;
 }
 
-async function post(
+/** The cookie door — `jar.cookies` (set by `as()`) or nothing. */
+async function webPatch(
   body: Record<string, unknown>,
-  bearer?: string,
 ): Promise<{ status: number; body: Record<string, unknown> }> {
-  const { POST } = await import("@/app/api/v1/[user]/channels/route");
+  const { PATCH } = await import("@/app/api/web/[user]/channels/route");
   calls += 1;
-  const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/channels`, {
-      method: "POST",
+  const response = await PATCH(
+    new Request(`https://example.test/api/web/${OWNER}/channels`, {
+      method: "PATCH",
       headers: {
         "content-type": "application/json",
         "x-forwarded-for": `10.0.2.${calls % 250}`,
-        ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
+      },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ user: OWNER }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+/** The bearer door — an agent holding the owner's own token. */
+async function apiPatch(
+  body: Record<string, unknown>,
+  bearer: string,
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const { PATCH } = await import("@/app/api/v2/[user]/channels/route");
+  calls += 1;
+  const response = await PATCH(
+    new Request(`https://example.test/api/v2/${OWNER}/channels`, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": `10.0.2.${calls % 250}`,
+        authorization: `Bearer ${bearer}`,
       },
       body: JSON.stringify(body),
     }),
@@ -142,14 +167,14 @@ afterAll(async () => {
 describe("who may switch a channel", () => {
   test("an unauthenticated caller cannot, and nothing is written", async () => {
     as(null);
-    const result = await post({ channel: "mail", enabled: false });
+    const result = await webPatch({ mail: false });
     expect(result.status).toBe(403);
     expect(await fileSays("mail")).toBe(true);
   });
 
   test("a guest signed into the journal cannot", async () => {
     as(await guestSession());
-    const result = await post({ channel: "mail", enabled: false });
+    const result = await webPatch({ mail: false });
     expect(result.status).toBe(403);
     expect(await fileSays("mail")).toBe(true);
     as(null);
@@ -158,21 +183,19 @@ describe("who may switch a channel", () => {
 
 describe("what the owner may do with it", () => {
   test("muting mail writes the file, and un-muting puts it back", async () => {
-    as(null);
     const token = await ownerToken();
 
-    expect((await post({ channel: "mail", enabled: false }, token)).status).toBe(200);
+    expect((await apiPatch({ mail: false }, token)).status).toBe(200);
     expect(await fileSays("mail")).toBe(false);
 
-    expect((await post({ channel: "mail", enabled: true }, token)).status).toBe(200);
+    expect((await apiPatch({ mail: true }, token)).status).toBe(200);
     expect(await fileSays("mail")).toBe(true);
   });
 
   /** The ceiling, and the reason the answer is not a silent success: a write
    * that cannot take effect must not report that it did. */
   test("a channel this server does not offer cannot be switched on", async () => {
-    as(null);
-    const result = await post({ channel: "whatsapp", enabled: true }, await ownerToken());
+    const result = await apiPatch({ whatsapp: true }, await ownerToken());
     expect(result.status).toBe(409);
     expect(result.body.error).toBe("capability_unavailable");
   });
@@ -180,10 +203,9 @@ describe("what the owner may do with it", () => {
   /** The window is two named channels. Anything else is a different decision
    * with different consequences, and belongs to `PATCH /config`. */
   test("no other capability can be reached through this route", async () => {
-    as(null);
     const token = await ownerToken();
     for (const channel of ["auth", "contacts", "credits", "postcards"]) {
-      const result = await post({ channel, enabled: false }, token);
+      const result = await apiPatch({ [channel]: false }, token);
       expect(result.status).toBe(400);
     }
     const { getUser, clearUserCache } = await import("@/lib/users");
@@ -192,8 +214,7 @@ describe("what the owner may do with it", () => {
   });
 
   test("a body with no boolean in it is refused", async () => {
-    as(null);
-    const result = await post({ channel: "mail", enabled: "off" }, await ownerToken());
+    const result = await apiPatch({ mail: "off" }, await ownerToken());
     expect(result.status).toBe(400);
   });
 });

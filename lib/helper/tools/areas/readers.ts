@@ -245,7 +245,7 @@ export const READERS_TOOLS: readonly Tool[] = [
      * The two switches themselves — B1051, and the reason it lives beside
      * `tell_readers` rather than in `areas/journal.ts`: both are about what
      * reaches a reader, and this is the one that decides whether anything
-     * does at all. `POST /api/v1/<user>/channels` is the route it mirrors,
+     * does at all. `PATCH /api/v2/<user>/channels` is the route it mirrors,
      * and this stays within the same closed pair it validates against
      * (`mail`, `whatsapp`) rather than growing into the settings surface that
      * route's own doc comment is explicit must not exist.

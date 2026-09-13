@@ -13,10 +13,13 @@ export const dynamic = "force-dynamic";
 
 const CHANNELS = ["mail", "whatsapp"] as const;
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/channels">) {
-  const { user } = await params;
-  const auth = await requireJournalOwner(request, user);
-  if (!auth.ok) return auth.response;
+/**
+ * Both verbs' own logic, apart from who is asking — B1595. Called here after
+ * `requireJournalOwner` (bearer), and by
+ * `app/api/web/[user]/channels/route.ts` after its own cookie-only `isOwner`
+ * check — both already know the journal exists by the time they call these.
+ */
+export function channelsGetDoc(user: string): Response {
   const journal = getUser(user);
   if (!journal) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
 
@@ -28,10 +31,14 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
   return ok(doc, { etag: etagFor(doc) });
 }
 
-export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/[user]/channels">) {
+export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/channels">) {
   const { user } = await params;
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth.response;
+  return channelsGetDoc(user);
+}
+
+export async function channelsPatchResponse(user: string, request: Request): Promise<Response> {
   if (!getUser(user)) return fail("no_such_journal", `No journal called "${user}".`, undefined, 404);
 
   const parsed = await request.json().catch(() => null);
@@ -70,4 +77,11 @@ export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/
     mail: server.mail.enabled ? written.features.mail : null,
     whatsapp: server.whatsapp.enabled ? written.features.whatsapp : null,
   });
+}
+
+export async function PATCH(request: Request, { params }: RouteContext<"/api/v2/[user]/channels">) {
+  const { user } = await params;
+  const auth = await requireJournalOwner(request, user);
+  if (!auth.ok) return auth.response;
+  return channelsPatchResponse(user, request);
 }

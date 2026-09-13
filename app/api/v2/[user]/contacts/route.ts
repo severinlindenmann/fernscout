@@ -102,7 +102,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
   }
 
   // The owner typing an address is not the address proving it can be read —
-  // reuses the same invite-and-mail machinery `POST /api/v1/{user}/invites`
+  // reuses the same invite-and-mail machinery `PUT /api/v2/{user}/invites/{id}`
   // always has, so this row is pre-approved the moment it confirms (B319).
   // No address or channel consent travels with this call — see the module
   // comment; the row starts with neither, exactly as `addSelfContact` does.

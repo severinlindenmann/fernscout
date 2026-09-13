@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
 /**
  * B407 — two refusals used to blame the server when a journal's own
  * `features.mail.enabled: false` was the actual reason nothing sent. Both the
- * redeem route's 503 and this note (`POST /api/v1/<user>/invites` with an
+ * redeem route's 503 and this note (`PUT /api/v2/<user>/invites/<id>` with an
  * `email`) go through `mailDisabledReason`, which reads the same two checks
  * `sendMail` itself makes; this exercises the note in isolation, without the
  * whole invites route or an owner token.

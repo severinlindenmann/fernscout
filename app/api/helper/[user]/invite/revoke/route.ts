@@ -9,14 +9,15 @@ export const dynamic = "force-dynamic";
 /**
  * The `revoke_invite` press — B1051.
  *
- * The counterpart of `DELETE /api/v1/<user>/invites/<id>`, reached from the
- * wizard's own door rather than the published contract, exactly the way
+ * The counterpart of `DELETE /api/v2/<user>/invites/<id>` (and its cookie
+ * proxy, `DELETE /api/web/<user>/invites/<id>`), reached from the wizard's
+ * own door rather than the published contract, exactly the way
  * `./invite/route.ts` beside this one answers for `POST .../invites`. Nothing
  * here is new machinery: `revokeInvite` is the same function, and its own
  * doc comment already says what this does — one row, reversible by issuing
  * another link, and nobody already approved through it is touched.
  *
- * Cookie only, owner only, outside `/api/v1` — the same door as every other
+ * Cookie only, owner only, outside `/api/v2` — the same door as every other
  * route in this family, for the reasons `./invite/route.ts` gives at length.
  */
 export async function POST(

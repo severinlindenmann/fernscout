@@ -42,7 +42,7 @@ import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
  * the state that is a panel rather than a tile (B877) — and only where the
  * viewer is already known to be the owner
  * (`canPublish`, which is exactly `isOwner` — see `lib/tripGate.ts`), and it
- * asks the server the remaining question itself: `GET /api/v1/<user>/invites`
+ * asks the server the remaining question itself: `GET /api/web/<user>/invites`
  * is owner-only *and* refuses a journal with `contacts` switched off, so a
  * journal that cannot invite anybody shows nothing at all rather than a button
  * that explains itself after being pressed. Same shape as `DayNotify` beside
@@ -57,7 +57,7 @@ export default function InviteToRead({ username }: { username: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/v1/${username}/invites`)
+    fetch(`/api/web/${username}/invites`)
       .then((response) => {
         if (!cancelled && response.ok) setOffered(true);
       })
@@ -76,7 +76,7 @@ export default function InviteToRead({ username }: { username: string }) {
   async function make() {
     setFailed(false);
     setBusy(true);
-    const response = await fetch(`/api/v1/${username}/invites`, {
+    const response = await fetch(`/api/web/${username}/invites`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       // `kind: "guest"` and nothing else. No `trip`, which this route refuses
@@ -85,11 +85,9 @@ export default function InviteToRead({ username }: { username: string }) {
       body: JSON.stringify({ kind: "guest", locale }),
     }).catch(() => null);
     setBusy(false);
-    const body = (await response?.json().catch(() => null)) as {
-      invite?: { url?: string };
-    } | null;
-    if (!response?.ok || !body?.invite?.url) return setFailed(true);
-    setLink(body.invite.url);
+    const body = (await response?.json().catch(() => null)) as { url?: string } | null;
+    if (!response?.ok || !body?.url) return setFailed(true);
+    setLink(body.url);
   }
 
   if (link) {

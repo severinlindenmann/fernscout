@@ -59,22 +59,42 @@ type InviteBody = {
   message?: string;
 };
 
-/** `POST /api/v1/ana/invites`, as an agent holding the owner's own token would
- * call it. */
+/** `PUT /api/v2/ana/invites/{id}`, as an agent holding the owner's own token
+ * would call it — reshaped into the pre-v2 `{invite: {id, url}, sent}` shape
+ * this file's assertions were written against, since v2's own response is
+ * the flat document plus `url` and (only on a failed send) `note` rather
+ * than a nested `invite` and an explicit `sent` boolean. */
 async function createLink(
   token: string,
   body: Record<string, unknown>,
 ): Promise<{ status: number; body: InviteBody }> {
-  const { POST } = await import("@/app/api/v1/[user]/invites/route");
-  const response = await POST(
-    new Request("https://example.test/api/v1/ana/invites", {
-      method: "POST",
+  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const id = crypto.randomUUID();
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/ana/invites/${id}`, {
+      method: "PUT",
       headers: headers({ authorization: `Bearer ${token}` }),
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: OWNER }) },
+    { params: Promise.resolve({ user: OWNER, id }) },
   );
-  return { status: response.status, body: (await response.json()) as InviteBody };
+  const status = response.status;
+  const raw = (await response.json()) as {
+    id?: string;
+    url?: string;
+    note?: string;
+    error?: string;
+    message?: string;
+  };
+  if (status >= 400) return { status, body: { error: raw.error, message: raw.message } };
+  return {
+    status,
+    body: {
+      ok: true,
+      invite: { id: raw.id!, url: raw.url },
+      ...(typeof body.email === "string" ? { sent: raw.note === undefined } : {}),
+    },
+  };
 }
 
 /** `POST /api/contacts/redeem` — the door a `guest` link's page posts to. */

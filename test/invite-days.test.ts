@@ -4,10 +4,16 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 
 /**
- * B553 — `days` on `POST .../invites` is documented `integer` and was checked
- * only with `Number.isFinite`, so `2.5` was accepted and reached
- * `inviteExpiry` as an expiry nobody asked for. Refused now, the same way a
- * malformed `email` on this route already is.
+ * B553 — `days` on v1's `POST .../invites` was documented `integer` and
+ * checked only with `Number.isFinite`, so `2.5` was accepted and reached
+ * `inviteExpiry` as an expiry nobody asked for.
+ *
+ * v1's `days` field is gone along with the route (B1595): v2's
+ * `PUT /api/v2/{user}/invites/{id}` takes `expiresAt`, an ISO instant, via
+ * `inviteWrite` (`z.strictObject`) — so a numeric `days`, fractional or
+ * whole, is refused outright as a field the schema has never heard of,
+ * rather than a value it half-accepts. What is left worth asserting is that
+ * refusal, and that a real `expiresAt` and an absent one still both work.
  */
 
 const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
@@ -37,14 +43,15 @@ async function ownerToken(): Promise<string> {
 }
 
 async function createLink(token: string, body: Record<string, unknown>) {
-  const { POST } = await import("@/app/api/v1/[user]/invites/route");
-  const response = await POST(
-    new Request("https://example.test/api/v1/ana/invites", {
-      method: "POST",
+  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const id = crypto.randomUUID();
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/ana/invites/${id}`, {
+      method: "PUT",
       headers: headers({ authorization: `Bearer ${token}` }),
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: OWNER }) },
+    { params: Promise.resolve({ user: OWNER, id }) },
   );
   return { status: response.status, body: (await response.json()) as { error?: string; message?: string } };
 }
@@ -105,22 +112,24 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("days is refused rather than truncated", () => {
-  test("a fractional value is refused, not silently used as-is", async () => {
+describe("days no longer exists as a field; expiresAt is refused or accepted on its own terms", () => {
+  test("days, fractional or not, is refused as a field the schema does not define", async () => {
     const token = await ownerToken();
     const created = await createLink(token, { kind: "guest", days: 2.5 });
     expect(created.status).toBe(400);
     expect(created.body.error).toBe("invalid_request");
-    expect(created.body.message).toMatch(/days must be a whole number/i);
   });
 
-  test("a whole number still works", async () => {
+  test("a real ISO expiresAt still works", async () => {
     const token = await ownerToken();
-    const created = await createLink(token, { kind: "guest", days: 3 });
+    const created = await createLink(token, {
+      kind: "guest",
+      expiresAt: new Date(Date.now() + 3 * 86400_000).toISOString(),
+    });
     expect(created.status).toBe(201);
   });
 
-  test("absent still works, with no expiry forced on it", async () => {
+  test("absent still works, with the server default expiry", async () => {
     const token = await ownerToken();
     const created = await createLink(token, { kind: "guest" });
     expect(created.status).toBe(201);
