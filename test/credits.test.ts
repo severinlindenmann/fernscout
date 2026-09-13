@@ -268,7 +268,10 @@ describe("the grant path is not reachable over HTTP", () => {
     // instead of a body field). Still exactly one of the three sanctioned
     // grant callers.
     "app/api/web/[user]/purchases/[id]/approve/[token]/route.ts",
-    "app/api/v1/journals/route.ts",
+    // B1624: the journals create moved to /api/v2 with the four-prefix
+    // scheme. Same file, same one-off SIGNUP_CREDIT_GRANT, same authority —
+    // a path change, not a new grant caller. The list is still four.
+    "app/api/v2/journals/route.ts",
     // B792. Stripe's signed webhook, behind a once-only claim — the same two
     // guarantees the approve route above rests on, from a credential this
     // server verified rather than a session or a bearer token.

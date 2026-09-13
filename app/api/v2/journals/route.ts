@@ -14,6 +14,7 @@ import { NO_JOURNAL, SESSION_SCOPE, issueRelayLink, openAgentSession, resolveSes
 import { normalizeJournalVisibility } from "@/lib/config";
 import { normalizeCurrency } from "@/lib/currency";
 import { creditsEnabled, grant, SIGNUP_CREDIT_GRANT } from "@/lib/credits";
+import { skillDocPath } from "@/lib/api/skillDocMeta";
 import { createJournal, sendWelcome, setJournalFeatures } from "@/lib/journals";
 // One sentence, read here and by the guide and the OpenAPI document — never a
 // third hand-written copy (B855). Not a v1 route-glue import: this constant
@@ -235,7 +236,13 @@ export async function POST(request: Request) {
       ...(welcomeMailed
         ? {}
         : { note: "The welcome mail could not be sent, so the owner does not have the URL. Give it to them." }),
-      next: `PUT /api/v2/${created.username}/trips/<id> to create your first trip.`,
+      // Names the document, not just the call — B311's chain, and B1621 is
+      // the record of it being dropped once already in this migration. An
+      // agent that has just made its first journal has nowhere else to learn
+      // what a trip needs.
+      next:
+        `PUT /api/v2/${created.username}/trips/<id> to create your first trip — ` +
+        `${serverSite().url}${skillDocPath("add-a-trip")} is what it takes.`,
     },
     { status: 201 },
   );

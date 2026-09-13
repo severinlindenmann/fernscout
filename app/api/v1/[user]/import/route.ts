@@ -82,9 +82,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v1/[u
     kinds: importFormats(),
     maxBytes: REQUEST_MAX_BYTES,
     next:
-      `Stage the export with \`POST /api/v2/${user}/media\` (\`intent: {"kind": "gps_history", ` +
-      '"declined": {...}}\` or `"document"`), then ' +
-      `\`POST /api/v1/${user}/import\` with \`{"kind": "…", "inbox": "<the id after "inbox:" in the src it answered with>"}\`. ` +
+      `Stage the export with \`POST /api/v2/${user}/media\` — \`intent\` names the kind ` +
+      "(`gps_history` for a location history, `document` for anything else) — then " +
+      `\`POST /api/v1/${user}/import\` with \`{"kind": "…", "inbox": "<the id the src carries after inbox:>"}\`. ` +
       "Say the kind; leave `format` out and the file is recognised from its own contents. " +
       `A \`gps\` import is stored as it is read, and \`POST /api/v1/${user}/trips/<trip>/track\` ` +
       "then draws one trip's line from it. A `contacts` import (a vCard) writes nothing: it " +

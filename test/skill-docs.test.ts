@@ -208,7 +208,19 @@ describe("the guide split by task (B311)", () => {
     const v1WithNextPointer = withNextPointer.filter(
       (file) => !path.relative(process.cwd(), file).startsWith(path.join("app", "api", "v2")),
     );
-    expect(v1WithNextPointer.length).toBeGreaterThan(0);
+
+    // B1624 moved the last of them. Every route that sends a `next` pointer
+    // is now a v2 route, so this loop has nothing left to check and the
+    // filter above has stopped protecting anything — it is a placeholder for
+    // an obligation that has entirely moved, not a live assertion.
+    //
+    // What must happen at step 6, when `/api/v2/openapi.json` is generated:
+    // delete the filter, point `doc` at the v2 document, and let the loop run
+    // over `withNextPointer` whole. Until then this asserts the honest thing
+    // — that the v1 side is empty — so that the day a v1 route grows a `next`
+    // pointer again, this fails and somebody reads the comment. B1621.
+    expect(v1WithNextPointer).toEqual([]);
+    expect(withNextPointer.length).toBeGreaterThan(0);
 
     const doc = openApiDocument() as unknown as {
       paths: Record<string, Record<string, { responses?: Record<string, { description?: string }> }>>;
@@ -236,8 +248,9 @@ describe("the guide split by task (B311)", () => {
   });
 
   test("the reply that creates a journal, a trip, and a day each names the next document", () => {
+    // The journals create moved to /api/v2 in B1624, carrying its pointer.
     const journalsSrc = fs.readFileSync(
-      path.join(process.cwd(), "app/api/v1/journals/route.ts"),
+      path.join(process.cwd(), "app/api/v2/journals/route.ts"),
       "utf8",
     );
     expect(journalsSrc).toContain('skillDocPath("add-a-trip")');
