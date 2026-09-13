@@ -8,6 +8,7 @@
 // The cookie-lifecycle doors (`identity/upgrade`, `logout`) and handover/keys
 // are unchanged in shape and carry no schema here.
 import { z } from "zod";
+import { CHANNEL_NAMES } from "./social";
 import type { SessionKind } from "../../../auth";
 
 /**
@@ -48,7 +49,7 @@ export const codesRequest = z.strictObject({
   for: z.enum(CREDENTIAL_FOR),
   user: z.string().optional(),
   scope: tripScope.optional(),
-  channel: z.enum(["mail", "whatsapp"]).optional(),
+  channel: z.enum(CHANNEL_NAMES).optional(),
   destination: z.string().optional(),
   locale: z.string().optional(),
 });

@@ -8,6 +8,7 @@
 // `coordinates: false`, `photos: false` — B531/B560) are retired: the
 // `declined` map is the one mechanism, everywhere.
 import { z } from "zod";
+import { PHOTO_VISIBILITIES } from "../../../photos";
 import { TRANSPORT_MODES, TRAVEL_SCENE_VARIANTS } from "../../../validate/entry";
 import { COST_CATEGORIES } from "../../../costFormat";
 import { RESERVED_SOURCES } from "../../../weather";
@@ -104,7 +105,7 @@ const weatherReading = z
 const dayMediaItem = z.strictObject({
   src: z.string(),
   caption: z.string().optional(),
-  visibility: z.enum(["guest", "private"]).optional(),
+  visibility: z.enum(PHOTO_VISIBILITIES).optional(),
 });
 
 /** ── what a day is asked, and why ────────────────────────────────────── */
@@ -227,7 +228,7 @@ const dayBase = z
     translations: z.record(z.string(), z.strictObject({ title: z.string(), content: z.string() })).optional(),
     /** Narrows only: guest|private on top of the trip's own gate. There is
      * deliberately no "public". */
-    visibility: z.enum(["guest", "private"]).optional(),
+    visibility: z.enum(PHOTO_VISIBILITIES).optional(),
     /** The one writable value. "published" is refused here, always. */
     status: z.literal("draft").optional(),
     declined: declinedMap(DAY_DECLINABLE_KEYS).optional(),

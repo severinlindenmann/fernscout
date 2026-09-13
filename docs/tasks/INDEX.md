@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (253)
+## backlog (259)
 
 ### security (6)
 
@@ -62,7 +62,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (66)
+### issue (70)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -81,6 +81,8 @@ Do not edit them by hand; run the script.
 | [B1603](backlog/issue/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
 | [B1634](backlog/issue/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low |
 | [B1647](backlog/issue/B1647-costs-apply-on-a-trip-cannot.md) | costs/apply on a trip cannot find days written through the day-write endpoint | ISSUE | high | medium |
+| [B1667](backlog/issue/B1667-trip-translations-section-is-required-even.md) | Trip translations section is required even on single-locale journals, contradicting decision and its own schema comment | ISSUE | high | low |
+| [B1668](backlog/issue/B1668-trip-422-tells-a-caller-to.md) | Trip 422 tells a caller to declined.teaser, a key the schema refuses | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -132,6 +134,8 @@ Do not edit them by hand; run the script.
 | [B1649](backlog/issue/B1649-trip-put-s-missing-buddies-message.md) | trip PUT's missing-buddies message gives no schema and no pointer to the invites endpoint | ISSUE | low | low |
 | [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
 | [B1659](backlog/issue/B1659-helper-buy-room-spends-with-no.md) | helper buy_room spends with no idempotency ref, unlike the v2/web storage purchase door | ISSUE | low | low |
+| [B1671](backlog/issue/B1671-trip-write-path-auto-fills-declined.md) | Trip write path auto-fills declined.days without the caller ever declining it | ISSUE | low | low |
+| [B1672](backlog/issue/B1672-web-purchases-route-silently-accepts-a.md) | web purchases route silently accepts a bearer token despite its own cookie-only comment | ISSUE | low | low |
 
 ### big-feature (19)
 
@@ -184,7 +188,7 @@ Do not edit them by hand; run the script.
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (11)
+### chore (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -194,6 +198,7 @@ Do not edit them by hand; run the script.
 | [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
 | [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
 | [B1666](backlog/chore/B1666-finish-decision-5-journal-level-features.md) | Finish decision 5: journal-level features and manualRates are still read by live code | CHORE | medium | high |
+| [B1669](backlog/chore/B1669-photo-visibility-and-reminder-channel-enums.md) | Photo visibility and reminder-channel enums are hand-typed in multiple v2 schema files instead of imported | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1413](backlog/chore/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low |
 | [B1424](backlog/chore/B1424-photobook-base-credits-argues-for-160.md) | PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists | CHORE | low | low |
@@ -219,7 +224,7 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (7)
+### docs-and-skills (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -229,6 +234,7 @@ Do not edit them by hand; run the script.
 | [B1478](backlog/docs-and-skills/B1478-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B1483](backlog/docs-and-skills/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
+| [B1670](backlog/docs-and-skills/B1670-several-v2-migration-docs-and-code.md) | Several v2-migration docs and code comments describe a pre-migration state that no longer exists | DOCS | medium | low |
 | [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
 ### superseded (95)
