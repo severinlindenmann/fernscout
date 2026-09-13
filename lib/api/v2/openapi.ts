@@ -1127,6 +1127,7 @@ function buildPaths(): Record<string, PathItem> {
           outOfScope(),
           ref("invalid_request", 400),
           ref("unknown_trip", 404),
+          ref("unknown_day", 404),
           forbidden(),
           ref("expected_urls", 400),
           ref("unknown_inbox_file", 400),

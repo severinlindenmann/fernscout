@@ -36,6 +36,7 @@ import { findInboxFile, removeInboxFile, storeInboxFile } from "../../inbox";
 import { validateMediaBatch, type Problem } from "../../validate/media";
 import { mediaKey } from "../../photos";
 import type { MediaIntent } from "./schemas/media";
+import { attachDayMedia } from "./days";
 
 type MediaKind = MediaIntent["kind"];
 
@@ -57,6 +58,7 @@ export type MediaWriteResult =
   | { ok: true; item: MediaItemOut }
   | { ok: false; error: "invalid_media"; problems: Problem[] }
   | { ok: false; error: "unknown_trip" }
+  | { ok: false; error: "unknown_day" }
   | { ok: false; error: "storage_full"; problem: string };
 
 export type MediaUpload = { filename: string; bytes: Buffer };
@@ -307,7 +309,32 @@ export async function storeMediaV2(
       day = safe;
     }
 
-    return storeTripPhoto(username, intent.trip, ref, day, intent.caption, upload);
+    const stored = await storeTripPhoto(username, intent.trip, ref, day, intent.caption, upload);
+    if (!stored.ok || !day) return stored;
+
+    // B1685: a photo uploaded naming a day used to sit on disk while the day
+    // itself never learned about it — accepted, answered 201, and invisible
+    // on the one resource that owns it. `attachDayMedia` (./days.ts) is the
+    // same write `POST .../days/{slug}/media` uses (B1656/D20): appends the
+    // src to the day's own `media` and retracts a stale `declined.media`
+    // (T6). Never a second implementation of that write.
+    const attach = attachDayMedia(username, intent.trip, day, [
+      { src: stored.item.src, ...(intent.caption ? { caption: intent.caption } : {}) },
+    ]);
+    if (!attach.ok) {
+      if (attach.error === "unknown_day") return { ok: false, error: "unknown_day" };
+      // Cannot happen in practice — attachDayMedia's own "not this trip"
+      // check is exactly the resolve this function just used to place the
+      // bytes — but the type has to be exhaustive, and answering honestly
+      // beats a silent success that did not actually attach anything.
+      return {
+        ok: false,
+        error: "invalid_media",
+        problems: attach.problems.map((p) => ({ field: p.field, got: stored.item.src, expected: p.problem })),
+      };
+    }
+
+    return stored;
   }
 
   // Every other case lands in the flat, journal-wide inbox — a photo whose

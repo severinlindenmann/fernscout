@@ -31,22 +31,18 @@ import { paintJpeg } from "./support/pictures";
  * re-deriving it the way v1's `mediaWithOwner` did. So there is no separate
  * owner-prefixing step left to drift out of sync with the write path.
  *
- * The v2 day routes are being built in a different worktree and are not
- * present here, so this cannot drive an actual day round-trip the way the v1
- * version of this file did. What it asserts instead is the strongest thing
- * available in this worktree: that POST's `src` for a photograph is *byte-
- * identical* to what GET (the list/read half of this same door) answers for
- * that same file — the two halves of B540's promise this door alone owns.
- * It also pins the actual shape of that shared string, so a future change
- * that quietly starts owner-prefixing it here (which would then disagree
- * with a day route built to expect the untouched form) fails loudly rather
- * than silently.
+ * The v2 day routes now exist in this worktree, and — since B1685 — naming a
+ * day in the upload `intent` attaches the photograph to it, which means the
+ * day has to actually exist first (`attachDayMedia`, lib/api/v2/days.ts).
+ * `DAY`/`SECOND_DAY` below are real day documents created in `beforeAll` for
+ * exactly that reason, not merely directory names.
  */
 
 const OWNER = "ana";
 const OWNER_EMAIL = "ana@example.test";
 const TRIP = "asia-2026";
-const DAY = "lanterns-of-hoi-an";
+const DAY = "2026-01-02-lanterns-of-hoi-an";
+const SECOND_DAY = "2026-01-03-second-day";
 
 let dir: string;
 let calls = 0;
@@ -83,6 +79,44 @@ async function postFile(token: string, filename: string, bytes: Buffer, day: str
     { params: Promise.resolve({ user: OWNER }) },
   );
   return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+function dayBody(slug: string): Record<string, unknown> {
+  return {
+    slug,
+    title: "A day",
+    date: slug.slice(0, 10),
+    content: "Something happened.",
+    status: "draft",
+    declined: {
+      media: "no photographs attached to this day yet",
+      costs: "nothing spent today, tracked elsewhere",
+      coordinates: "no position recorded for this day",
+      weather: "weather was not asked for this day",
+      time: "the exact time of day was not recorded",
+      timezone: "no timezone established for this leg",
+      location: "no specific location named for this day",
+      country: "no country named for this day entry",
+      countryCode: "no country code named for this day",
+      transportMode: "no transport leg happened this day",
+      tags: "no tags applied to this day",
+      translations: "single-language journal, nothing to translate",
+      visibility: "no narrower visibility set for this day",
+    },
+  };
+}
+
+async function putDay(slug: string, token: string) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/${OWNER}/trips/${TRIP}/days/${slug}`, {
+      method: "PUT",
+      headers: headers({ authorization: `Bearer ${token}` }),
+      body: JSON.stringify(dayBody(slug)),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP, slug }) },
+  );
+  if (response.status !== 201) throw new Error(`putDay(${slug}) failed: ${JSON.stringify(await response.json())}`);
 }
 
 async function getMedia(token: string) {
@@ -141,6 +175,10 @@ beforeAll(async () => {
     visibility: "private",
   });
   if (!trip.ok) throw new Error(trip.message);
+
+  const token = await ownerToken();
+  await putDay(DAY, token);
+  await putDay(SECOND_DAY, token);
 });
 
 afterAll(async () => {
@@ -170,14 +208,14 @@ describe("the upload response's src", () => {
   test("is the trip-relative frontmatter form, unprefixed by owner — the exact string a v2 day is defined to store and echo back untouched", async () => {
     const token = await ownerToken();
     const bytes = await paintJpeg(410, 310);
-    const { status, body } = await postFile(token, "b.jpg", bytes, "second-day");
+    const { status, body } = await postFile(token, "b.jpg", bytes, SECOND_DAY);
     expect(status, JSON.stringify(body)).toBe(201);
 
     // frontmatterSrc(tripId, relPath) — see lib/ingest/paths.ts. Not
     // `/${OWNER}/media/...`: v2 deliberately leaves the owner prefix off
     // `src` and carries it only in the separate, browser-facing `url` field
     // instead, so there is no read-time rewrite of `src` left to drift.
-    expect(body.src).toMatch(new RegExp(`^/media/${TRIP}/second-day/[0-9a-f]+\\.jpg$`));
+    expect(body.src).toMatch(new RegExp(`^/media/${TRIP}/${SECOND_DAY}/[0-9a-f]+\\.jpg$`));
     expect(typeof body.url).toBe("string");
     expect(body.url).toBe(`/${OWNER}${body.src}`);
   });
