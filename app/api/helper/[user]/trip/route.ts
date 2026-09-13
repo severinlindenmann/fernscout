@@ -4,7 +4,7 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { patchTripDetails } from "@/lib/api/tripDetails";
 import { getTrip, tripRef } from "@/lib/trips";
-import { createTrip, DATE_RE, VISIBILITIES } from "@/lib/tripWrite";
+import { createTrip, DATE_RE, HELPER_TRIP_DECLINE_REASONS, VISIBILITIES } from "@/lib/tripWrite";
 
 export const dynamic = "force-dynamic";
 
@@ -96,12 +96,73 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
     ? (said as (typeof VISIBILITIES)[number])
     : undefined;
 
+  /**
+   * B1660 — the trip-side mirror of B1650's day gate. `HELPER_TRIP_DECLINE_
+   * REASONS` names the `TRIP_DECLINABLES` rows this door can actually ask
+   * about today (`lib/tripWrite.ts`'s own doc comment says which of the nine
+   * are missing and why); a create silent on any of them is refused here,
+   * before `createTrip` ever runs, the same shape `POST .../day` already uses.
+   * `"none"` is the wire sentinel for an actual decline — never invented by
+   * this route, only ever sent because the model was told the person had
+   * been asked and said no.
+   *
+   * **Gated on `isEnabled("helper", user)`, deliberately** — the one
+   * difference from `POST .../day`, which carries no such gate either but has
+   * never needed one because every trip it writes into already tracks
+   * `costs`/`coordinates` by default. This route is reached two ways: a
+   * model's `create_trip` proposal, which can always supply a value or
+   * `"none"`, and a plain form with nobody to ask through at all (B754 — "the
+   * wizard's own 'new trip' form", and every self-hoster's default has no
+   * model configured). Refusing the second caller for silence on a question
+   * nothing could ever have put in front of anybody would not be catching an
+   * omission — it would make trip creation impossible on the instance's own
+   * default configuration, which is the thing this route exists to keep
+   * working (test/helper-day-flow.test.ts: "the trip route needs no helper
+   * capability, only the cookie"). So the gate only runs where a model is
+   * actually configured to do the asking.
+   */
+  const answered: Record<string, string> = {};
+  const declined: Record<string, string> = {};
+  if (isEnabled("helper", user)) {
+    for (const field of Object.keys(HELPER_TRIP_DECLINE_REASONS)) {
+      const raw = (body as Record<string, unknown>)[field];
+      const given = typeof raw === "string" && raw.trim() !== "" ? raw.trim() : undefined;
+      if (given === undefined) continue;
+      if (given.toLowerCase() === "none") {
+        declined[field] = HELPER_TRIP_DECLINE_REASONS[field];
+      } else {
+        answered[field] = given;
+      }
+    }
+    const missing = Object.keys(HELPER_TRIP_DECLINE_REASONS).filter(
+      (field) => answered[field] === undefined && declined[field] === undefined,
+    );
+    if (missing.length > 0) {
+      refused(user, "create_trip", "incomplete_trip");
+      return Response.json({ error: "incomplete_trip", missing }, { status: 422 });
+    }
+  }
+
   const created = createTrip(user, {
     id: idFrom(user, title, start),
     title,
     start,
     end,
     ...(visibility ? { visibility } : {}),
+    ...(answered.accent ? { accent: answered.accent as never } : {}),
+    ...(answered.tagline ? { tagline: answered.tagline } : {}),
+    ...(answered.intro ? { intro: answered.intro } : {}),
+    ...(answered.rates
+      ? {
+          rates: {
+            currencies: answered.rates
+              .split(",")
+              .map((c) => c.trim().toUpperCase())
+              .filter((c) => c.length === 3),
+          },
+        }
+      : {}),
+    ...(Object.keys(declined).length ? { declined } : {}),
   });
   if (!created.ok) {
     refused(user, "create_trip", created.error);

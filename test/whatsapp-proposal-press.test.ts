@@ -177,7 +177,7 @@ describe("a proposal that leaves the model with nowhere to press", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press1.propose", "plan a trip to japan"));
 
@@ -203,7 +203,7 @@ describe("tapping accept", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press2.propose", "plan a trip to japan"));
 
@@ -227,7 +227,7 @@ describe("tapping accept", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press3.propose", "plan a trip to japan"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press3.tap-a", "confirm:0:yes"));
@@ -253,7 +253,7 @@ describe("the decline button — B1241", () => {
     await bindGreetAcknowledge(username, tel, "de");
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Hier ist die Reise."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Hier ist die Reise."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press8.propose", "plane eine reise nach japan"));
 
@@ -274,7 +274,7 @@ describe("tapping decline", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press4.propose", "plan a trip to japan"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press4.tap", "confirm:1:no"));
@@ -321,7 +321,7 @@ describe("a newly-allowed ordinary write — B1235", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press6.trip", "plan a trip to japan"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press6.trip-tap", "confirm:0:yes"));
@@ -377,7 +377,7 @@ describe("a newly-allowed ordinary write — B1235", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press7.trip", "plan a trip to japan"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press7.trip-tap", "confirm:0:yes"));
@@ -438,7 +438,7 @@ describe("the enrichment question after a day-writing press — B1264", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press9.trip", "plan a trip to japan"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press9.trip-tap", "confirm:0:yes"));
@@ -476,7 +476,7 @@ describe("the enrichment question after a day-writing press — B1264", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press10.trip", "plan a trip to japan"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press10.trip-tap", "confirm:0:yes"));
@@ -520,7 +520,7 @@ describe("the enrichment question after a day-writing press — B1264", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press11.trip", "plan a trip to japan"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press11.trip-tap", "confirm:0:yes"));
@@ -571,7 +571,7 @@ describe("two interactive shapes drawn in one turn — B1261", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press12.trip", "plan a trip to japan"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press12.trip-tap", "confirm:0:yes"));
@@ -633,7 +633,7 @@ describe("a turn that proposes twice — B1261", () => {
     answerInThread.mockImplementationOnce(
       turnCallingBoth(
         [
-          { name: "create_trip", args: { title: "Japan", start: "2027-03-01", end: "2027-03-31" } },
+          { name: "create_trip", args: { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" } },
           { name: "create_trip", args: { title: "France", start: "2027-06-01", end: "2027-06-14" } },
         ],
         "Two trips you might mean.",
@@ -676,7 +676,7 @@ describe("a typed press — B1302", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press14.propose", "plan a trip to japan"));
 
@@ -718,7 +718,7 @@ describe("a typed press — B1302", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press16.propose", "plan a trip to japan"));
 
@@ -737,7 +737,7 @@ describe("a typed press — B1302", () => {
     await bindGreetAcknowledge(username, tel);
 
     answerInThread.mockImplementationOnce(
-      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }, "Here's the trip."),
+      turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31", accent: "none", tagline: "none", intro: "none", rates: "none" }, "Here's the trip."),
     );
     await handleInboundMessage(textMessage(tel, "wamid.press17.propose", "plan a trip to japan"));
 

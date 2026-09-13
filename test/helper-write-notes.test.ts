@@ -108,7 +108,19 @@ afterEach(async () => {
 
 describe("a press with no client behind it", () => {
   test("the whole journey leaves the conversation knowing what happened", async () => {
-    const response = await createTrip(post({ title: "Am See", start: "2026-05-01", end: "2026-05-03" }), params);
+    const response = await createTrip(
+      post({
+        title: "Am See",
+        start: "2026-05-01",
+        end: "2026-05-03",
+        // B1660 — asked and declined, same as `start_day`'s own rows below.
+        accent: "none",
+        tagline: "none",
+        intro: "none",
+        rates: "none",
+      }),
+      params,
+    );
     const made = await response.json();
     expect(made.ok).toBe(true);
 

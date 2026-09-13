@@ -70,6 +70,32 @@ export const COSTS_VISIBILITIES = ["public", "guests"] as const;
  */
 export const REMINDER_CHANNELS = ["mail", "whatsapp"] as const;
 
+/**
+ * The `TRIP_DECLINABLES` rows `create_trip` can actually ask about today —
+ * B1660, the trip-side mirror of `lib/tracks.ts`'s day-level rows.
+ *
+ * Only four of the nine: `costs` is filled in progressively today, through
+ * `set_budget`/`set_rate` after the trip already exists, not at the moment it
+ * is made (B1658 is the ticket that asks whether that should change); `plan`
+ * and `figures` have no helper tool that writes them at all yet; `translations`
+ * needs the journal's own locale count (the same gap `lib/tracks.ts` leaves
+ * for a day, and there is likewise no tool that writes a trip's translated
+ * card text). `days` needs no row here — `createTrip` above answers it for
+ * free, since a brand new trip never has one yet.
+ *
+ * The mechanism is the same as B1650's: `POST /api/helper/[user]/trip`
+ * refuses a create silent on any of these (`incomplete_trip`, naming them),
+ * and the value here is what a decline is recorded as when the caller sends
+ * the wire sentinel `"none"` — a real, readable reason, never invented by the
+ * model itself.
+ */
+export const HELPER_TRIP_DECLINE_REASONS: Record<string, string> = {
+  accent: "no accent chosen — left to the trip's own default colour",
+  tagline: "no one-line subtitle for this trip's card",
+  intro: "no opening prose for this trip's page",
+  rates: "this trip's figures only ever use the journal's own currency",
+};
+
 export type NewTrip = {
   id: string;
   title: string;
@@ -148,6 +174,15 @@ export type NewTrip = {
   travellers?: unknown;
   rates?: unknown;
   translations?: unknown;
+  /**
+   * Which of v2's `TRIP_DECLINABLES` (lib/api/v2/schemas/trip.ts) this trip
+   * consciously answers "no" to, and why — B1660. Keyed by field, each value
+   * a real reason (the same `declined` map the document itself carries, since
+   * `writeTripFile` writes this straight onto `TripFile.declined`). Unknown
+   * keys and reasons under ten characters are refused rather than dropped,
+   * the same way every other block in this function is.
+   */
+  declined?: Record<string, string>;
   /**
    * **`cover` is deliberately not here** — the fourth field B207 asked about,
    * and the one that answers no.
@@ -1122,6 +1157,54 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
   const tracksResult = tracksBlock(input.tracks);
   if (!tracksResult.ok) return { ok: false, error: tracksResult.error, message: tracksResult.message };
 
+  /**
+   * The trip's own `declined` map — B1660, the trip-side mirror of the
+   * `without`/`unrecorded` lines a day writes.
+   *
+   * Which keys are real `TRIP_DECLINABLES` is v2's own rule
+   * (`lib/api/v2/schemas/trip.ts`'s `TRIP_DECLINABLE_KEYS`) — not reimported
+   * here, because that module imports `ACCENTS`/`COSTS_VISIBILITIES`/etc from
+   * THIS file, and importing it back would be a circular module (confirmed
+   * the hard way: `COSTS_VISIBILITIES` came back `undefined` inside `trip.ts`
+   * the first time this tried it). So a key is not checked against the real
+   * list here — the one caller today (`POST /api/helper/[user]/trip`) only
+   * ever sends keys it knows are real declinables. The reason-length floor
+   * (ten characters — the same one `declineReason` enforces, a number rather
+   * than a list, so duplicating it here does not risk drifting from a
+   * vocabulary) IS checked, so a declined map this writes is never one v2's
+   * own schema would refuse on a later PATCH.
+   */
+  const declined: Record<string, string> = {};
+  if (input.declined !== undefined) {
+    if (typeof input.declined !== "object" || Array.isArray(input.declined)) {
+      return {
+        ok: false,
+        error: "invalid_declined",
+        message: 'declined must be an object, e.g. {"accent": "no preference either way"}.',
+      };
+    }
+    for (const [key, reason] of Object.entries(input.declined)) {
+      if (typeof reason !== "string" || reason.trim().length < 10) {
+        return {
+          ok: false,
+          error: "invalid_declined",
+          message: `declined.${key} needs a real reason the next reader can act on (at least 10 characters), not ${JSON.stringify(reason)}.`,
+        };
+      }
+      declined[key] = reason.trim();
+    }
+  }
+  /**
+   * `days` is answered for free: a trip this call is creating has none yet —
+   * a fact about the moment, not a person's judgement — and they are added
+   * afterward through `start_day`, each its own call. Same reasoning v2's own
+   * PATCH route uses to auto-decline `days` once a trip already exists
+   * (`app/api/v2/[user]/trips/[trip]/route.ts`).
+   */
+  if (declined.days === undefined) {
+    declined.days = "a brand new trip has no days yet — they are written afterward, each through its own call";
+  }
+
   const baseCurrency = normalizeCurrency(
     loadUserConfig(username).baseCurrency,
     loadUserConfig(username).baseCurrency.toUpperCase(),
@@ -1179,6 +1262,7 @@ export function createTrip(username: string, input: NewTrip): CreateTripResult {
       const figures = writeTravellersAsFigures(username, id, input.travellers);
       return figures ? { figures } : {};
     })(),
+    ...(Object.keys(declined).length ? { declined } : {}),
   };
 
   fs.mkdirSync(path.join(dir, "entries"), { recursive: true });

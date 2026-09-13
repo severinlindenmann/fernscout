@@ -211,7 +211,8 @@ export const PERFECT_TRIP_EXAMPLE = [
   '  "rates": {"JPY": 0.0058},',
   '  "translations": {',
   '    "de": {"title": "Japan", "tagline": "sechs Wochen mit dem Zug", "intro": "Sechs Wochen…"}',
-  "  }",
+  "  },",
+  '  "declined": {"plan": "not planning a fixed route ahead of time"}',
   "}",
 ];
 
@@ -355,6 +356,15 @@ export const TRIP_FIELDS: {
       "record a journey — every day of it then carries a banner and none of it reaches the " +
       "feed, the search index or the sitemap. Deliberately not in the example above, because " +
       "an example is a thing people copy.",
+  },
+  {
+    key: "declined",
+    required: false,
+    what:
+      "Which of v2's `TRIP_DECLINABLES` (`lib/api/v2/schemas/trip.ts`) this trip consciously " +
+      "answers \"no\" to, and why — `{\"plan\": \"not planning a fixed route ahead of time\"}`. " +
+      "A real reason, at least ten characters: a decline is a message to the next reader, " +
+      "not a checkbox. `days` is answered for free — a brand new trip never has one yet.",
   },
   {
     key: "cover",

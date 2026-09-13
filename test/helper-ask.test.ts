@@ -187,7 +187,20 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
   describe("a write tool proposes", () => {
     beforeEach(() => {
       answerInThread.mockImplementation(
-        turnCalling("create_trip", { title: "Japan", start: "2027-03-01", end: "2027-03-31" }),
+        turnCalling("create_trip", {
+          title: "Japan",
+          start: "2027-03-01",
+          end: "2027-03-31",
+          // B1660 — asked and declined, the same "none" sentinel `start_day`'s
+          // own four rows use (B1650). A press silent on any of these is
+          // refused (`incomplete_trip`), so a model that answered nothing
+          // would never reach a proposal at all in real use; these tests are
+          // about what happens once it has.
+          accent: "none",
+          tagline: "none",
+          intro: "none",
+          rates: "none",
+        }),
       );
     });
 
@@ -206,6 +219,12 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
         // "alex" is a public journal, so the card opens on the value the
         // server would write anyway — B1342 (E04 A).
         expect.objectContaining({ name: "visibility", value: "public" }),
+        // B1660 — carried through fixed, exactly as the model was told, never
+        // shown as a button to press past.
+        { name: "accent", value: "none", fixed: true },
+        { name: "tagline", value: "none", fixed: true },
+        { name: "intro", value: "none", fixed: true },
+        { name: "rates", value: "none", fixed: true },
       ]);
       // The whole point: a turn ran and the journal is untouched.
       expect(getTrips("alex")).toHaveLength(0);
@@ -261,7 +280,11 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
         .arguments;
       expect(proposed).not.toHaveProperty("teaser");
       // The declared ones are all there — since B935 the arguments are the whole
-      // of what a press sends, fields and defaults included.
+      // of what a press sends, fields and defaults included. `accent`/
+      // `tagline`/`intro`/`rates` (B1660) are absent rather than `""`: the
+      // model said nothing about them, `argumentsOf` only keeps a non-empty
+      // string, and `create_trip`'s own `fields` never adds one nobody
+      // answered either (never a pre-filled default to press past).
       expect(proposed).toEqual({ title: "Japan", start: "", end: "", visibility: "public" });
     });
   });

@@ -87,6 +87,7 @@ export const ERROR_CODES = {
   invalid_rates: "A rate is not usable. The shape is `{\"EUR\": 0.94}` — units of the journal's base currency for one unit of the keyed one.",
   invalid_tracks: "A row in `tracks` is not one this server knows, or its value is not true or false. The rows are costs, coordinates and photos.",
   invalid_translations: "A translation names a locale this journal does not declare, or its shape is wrong. Declare the locale first with PATCH .../config, or drop it.",
+  invalid_declined: "`declined` names a key that is not one of v2's TRIP_DECLINABLES, or gives it a reason under ten characters. A decline is a message to the next reader, not a checkbox — say why, in a real sentence.",
   trip_exists: "A trip with that id is already here. Ids are the URL, so they are unique within a journal — pick another, or edit the one that exists.",
   day_exists: "A day with that slug is already here (the `details` carry it). This looks like a retried create — if you meant to replace it, GET it first and PUT again with `If-Match` set to its ETag, or PATCH the fields that changed.",
   figure_referenced: "This figure is still named in the journal's own default figures, or a trip's figures — `message` lists which. Deleting it would leave a dangling reference, so nothing was deleted. Remove it from every set that names it first (PATCH the journal or the trip's figures), then delete it again.",
