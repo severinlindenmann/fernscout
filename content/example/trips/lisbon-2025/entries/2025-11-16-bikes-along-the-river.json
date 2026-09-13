@@ -42,14 +42,14 @@
   "weather": {
     "tempMax": 17.4,
     "tempMin": 12.1,
-    "windMax": 31.0,
+    "windMax": 31,
     "source": "the handlebar computer",
     "recordedAt": "2025-11-16T16:40:00Z"
   },
-  "status": "published",
   "declined": {
     "tags": "nothing about this day needed filing under anything",
     "translations": "this short trip is written in English only",
     "visibility": "shown to everyone the trip already lets in"
-  }
+  },
+  "status": "published"
 }

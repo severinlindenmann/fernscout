@@ -11,6 +11,13 @@
     "lng": 8.5417
   },
   "content": "The trip's first leg, and the only one that leaves the ground. Written to show\nwhat a flight looks like on the map: a long dashed arc between two continents,\nagainst the solid train line and the dotted boat further east.\n\nNobody took this day. It exists so the map has an aeroplane on it.",
+  "costs": [
+    {
+      "label": "Flights to Bangkok, one way",
+      "amount": 1240,
+      "category": "flights"
+    }
+  ],
   "tags": [
     "switzerland",
     "flights"
@@ -31,12 +38,5 @@
     "translations": "this day has not been translated yet",
     "visibility": "shown to everyone the trip already lets in"
   },
-  "status": "published",
-  "costs": [
-    {
-      "label": "Flights to Bangkok, one way",
-      "amount": 1240,
-      "category": "flights"
-    }
-  ]
+  "status": "published"
 }

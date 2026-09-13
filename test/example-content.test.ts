@@ -31,6 +31,7 @@ import {
   journalWrite,
   tripCreate,
 } from "@/lib/api/v2/schemas";
+import { dayFromJson, dayToJson, tripFromJson, tripToJson } from "@/lib/api/v2/documents";
 import { buildTripDoc } from "@/lib/api/v2/trips";
 import { readTripFile } from "@/lib/api/v2/store";
 
@@ -296,5 +297,46 @@ describe("content/example demonstrates the whole contract", () => {
     const owed = [...DAY_DECLINABLE_KEYS, ...TRIP_DECLINABLE_KEYS].filter((k) => k !== "status");
     const missing = owed.filter((k) => !keys.has(k)).sort();
     expect(missing, `declinable sections never demonstrated as declined: ${missing.join(", ")}`).toEqual([]);
+  });
+  /**
+   * B1679. `lib/api/v2/documents.ts` states the invariant the whole format
+   * rests on: "Key order is fixed so that serialising the same document twice
+   * matches byte-for-byte: a diff in git is then always a change in content,
+   * never a change in this function's mood."
+   *
+   * Nine files in this journal did not hold it — `costs` written last instead
+   * of after `media`, `accent`/`cover` after `intro`, and one `31.0` that
+   * `JSON.stringify` emits as `31`. No data was lost in any of them, which is
+   * exactly why nothing caught it: every other check here parses the file and
+   * asks about the object. The cost is the next real edit through the API,
+   * which would have produced a whole-file reordering beside the one-line
+   * change — the diff the invariant exists to prevent.
+   *
+   * It walks the whole content root rather than this journal, because the
+   * property is about the serializers, not about the demo.
+   */
+  it("every day and trip file on disk round-trips through the serializers byte for byte", () => {
+    const drifted: string[] = [];
+    for (const user of fs.readdirSync(REPO_CONTENT)) {
+      const trips = path.join(REPO_CONTENT, user, "trips");
+      if (!fs.existsSync(trips)) continue;
+      for (const trip of fs.readdirSync(trips)) {
+        const tripFile = path.join(trips, trip, "trip.json");
+        if (fs.existsSync(tripFile)) {
+          const raw = fs.readFileSync(tripFile, "utf8");
+          if (tripToJson(tripFromJson(raw)) !== raw) drifted.push(path.relative(process.cwd(), tripFile));
+        }
+        const entries = path.join(trips, trip, "entries");
+        if (!fs.existsSync(entries)) continue;
+        for (const name of fs.readdirSync(entries)) {
+          if (!name.endsWith(".json")) continue;
+          const file = path.join(entries, name);
+          const raw = fs.readFileSync(file, "utf8");
+          const slug = name.replace(/\.json$/, "");
+          if (dayToJson(dayFromJson(slug, raw)) !== raw) drifted.push(path.relative(process.cwd(), file));
+        }
+      }
+    }
+    expect(drifted, `files whose bytes differ from what the serializer would write: ${drifted.join(", ")}`).toEqual([]);
   });
 });
