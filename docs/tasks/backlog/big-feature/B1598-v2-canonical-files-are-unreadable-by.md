@@ -84,3 +84,43 @@ readers expect. It shows up the first time somebody opens a page.
 Between step 3 (core document routes) and phase 3 (replay), or inside step 3.
 It blocks anything visual: `test-in-a-browser` on v2 content is impossible
 until this exists, and so is the render diff in `04-instruments.md`.
+
+---
+
+## Found 2026-09-13, while verifying the branch: this is one landing with step 5
+
+The branch flips the **readers** and the **content**. It does not flip the
+**writers**, and that is not a tidy-up left over — it is the rest of the same
+change:
+
+- `createTrip` (`lib/tripWrite.ts`), `createDraft`/`editEntry`
+  (`lib/api/entries.ts`) and the `spliceBlock` patchers
+  (`lib/api/costs.ts`, `tripDetails.ts`, `tripParty.ts`, `tripRates.ts`,
+  `tripVisibility.ts`, `tripTracks.ts`) all still emit markdown.
+- Their callers are `/api/helper/**`, the browser edit and photos routes
+  under `app/[user]/trips/…`, `lib/ingest/entry.ts`, and the last two v1
+  write routes (costs, travellers).
+
+So merging the readers alone leaves a **split brain**: v2 routes write JSON,
+the helper and the browser write markdown, and the readers can read only the
+first. Every day written through `/agent` would vanish from the site.
+
+`npm run verify` on the branch: **171 files, 1091 tests failing.** 143 of
+those hand-write markdown fixtures; the other 28 fail because they go through
+`createTrip`/`createDraft` — including, notably, `test/fixtures/content.ts`
+itself, which is built on `createTrip`. The fixture helper cannot be the
+answer to the fixture problem until the writer underneath it emits JSON.
+
+**The order this implies:**
+
+1. Flip the writers' **bodies** to emit JSON through
+   `lib/api/v2/documents.ts`, leaving their interfaces alone — the same trick
+   the fixture helper uses, so the helper, the browser routes and ingest all
+   keep working without being rewritten.
+2. `test/fixtures/content.ts` then emits JSON for free, and the repointed
+   fixture files follow.
+3. Repoint or retire the remaining hand-written markdown fixtures.
+4. Merge readers, writers and content together.
+
+Not doing: merging this branch on its own. A green `main` that renders
+nothing an owner writes is worse than an unmerged branch.
