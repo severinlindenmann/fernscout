@@ -355,24 +355,22 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (8)
+## in-development (5)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1561](in-development/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium | `47912984` |
 | [B1562](in-development/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low | `47912984` |
-| [B1563](in-development/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium | `47912984` |
 | [B1564](in-development/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | `47912984` |
-| [B1565](in-development/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | `47912984` |
 | [B1567](in-development/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | `47912984` |
-| [B1582](in-development/B1582-health-and-contentmodel-never-create-their.md) | health and contentModel never create their cache directory, so a missing one reads as an unreachable server | ISSUE | medium | low | `615a7d13` |
 | [B1566](in-development/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | `47912984` |
 
-## testing (75)
+## testing (78)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1529](testing/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low | — |
+| [B1563](testing/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium | — |
 | [B1577](testing/B1577-six-hand-kept-key-lists-in.md) | Six hand-kept key lists in the helper mirror the instance, and nothing fails when one falls behind | FEATURE | high | high | — |
 | [B1585](testing/B1585-nothing-on-a-trip-a-day.md) | Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides | FEATURE | high | high | — |
 | [B1587](testing/B1587-api-v2-document-oriented-required-or.md) | API v2: document-oriented, required-or-declined contract (phase 0: Zod schemas) | FEATURE | high | high | — |
@@ -428,6 +426,8 @@ _Nothing here._
 | [B1525](testing/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low | — |
 | [B1534](testing/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low | — |
 | [B1541](testing/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high | — |
+| [B1565](testing/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | — |
+| [B1582](testing/B1582-health-and-contentmodel-never-create-their.md) | health and contentModel never create their cache directory, so a missing one reads as an unreachable server | ISSUE | medium | low | — |
 | [B1589](testing/B1589-photobook-prints-the-written-language-entry.md) | Photobook language leaves trip text and fallback labels untranslated | ISSUE | medium | medium | — |
 | [B1591](testing/B1591-the-visibility-badge-s-explainer-and.md) | The visibility badge's explainer and its chooser both push the page open instead of floating above it | FEATURE | medium | medium | — |
 | [B1626](testing/B1626-v2-merge-patch-has-no-way.md) | v2 merge-patch has no way to clear a scalar back to absent, and cover is never checked against the trip's own media | ISSUE | medium | medium | — |
