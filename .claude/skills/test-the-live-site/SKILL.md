@@ -13,7 +13,8 @@ meeting a real mail scanner.
 
 The lane is flat (since B1110 — what a person reviews a finished batch from
 is the run report, not a browse through category folders), so read it with
-`npm run tasks`, which lists what is waiting, or `ls docs/tasks/testing/`.
+`npm run tasks -- list --lane testing`, which lists what is waiting, or
+`ls docs/tasks/testing/`.
 Cluster tickets by `type` yourself when handing batches to subagents:
 something read on the site with a browser and something probed with `curl`
 are different kinds of work, and a subagent handed one kind at a time carries

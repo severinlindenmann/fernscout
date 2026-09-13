@@ -198,6 +198,14 @@ environment skips and took 92.24 seconds versus the 170.65-second baseline
 was rejected. The committed configuration stays at five; the ticket's required
 five-run median still has to be measured before final acceptance.
 
+The root instruction slice is implemented. `AGENTS.md` now holds the universal
+truth, authority, portability, verification, worktree and task gates plus a
+topic router in 11,784 bytes (84% below the 73,665-byte baseline). The detailed
+content, network, verification, worktree/task and tool explanations remain
+verbatim in five `docs/agents/` references and load only when relevant. A new
+keeper enforces the 28 KiB ceiling, resolves every local link and refuses an
+unlinked scoped reference; its three focused tests pass.
+
 ## Acceptance
 
 - A committed baseline report and command reproduce measurements across at
