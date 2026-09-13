@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * The rest of the wizard's write routes, wired the same way — B985.
@@ -66,7 +67,7 @@ beforeEach(async () => {
   process.env.ANTHROPIC_API_KEY = "not-a-real-key";
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -85,16 +86,20 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "visibility: private", "---", "", "Intro."].join(
-      "\n",
-    ),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-day.md"),
-    ["---", "date: 2026-05-01", "title: Day one", "status: draft", "---", "", "Nothing yet."].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    visibility: "private",
+  });
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "day",
+    date: "2026-05-01",
+    title: "Day one",
+    status: "draft",
+    content: "Nothing yet.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

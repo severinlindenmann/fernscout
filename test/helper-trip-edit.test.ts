@@ -162,6 +162,11 @@ describe("set_visibility", () => {
       pressed(proposal),
     );
     expect(res.status).toBe(200);
+    // FINDING (B1630, not a fixture problem): trips are v2 JSON now, so the
+    // written field reads `"visibility": "guest"` — this literal,
+    // colon-no-quote YAML-shaped assertion can no longer match any
+    // production write. Left as-is per "fix the repoint, never the
+    // assertion" — reported alongside this repoint.
     expect(tripFile()).toContain("visibility: guest");
   });
 });
@@ -188,6 +193,12 @@ describe("trip_tracks", () => {
     expect(costs?.value).toBe("false");
     const res = await patch(tripTracks, "https://t.test/api/helper/alex/trip/tracks", pressed(proposal));
     expect(res.status).toBe(200);
+    // FINDING (B1630, not a fixture problem — reported alongside this
+    // repoint): v1's trip-level `tracks:` has no v2 home (see
+    // `lib/tripWrite.ts`'s `tracksBlock` comment: "tracks have no v2 home at
+    // all any more"). The route answers 200 but writes nothing to
+    // trip.json's `costs` field, so this assertion can no longer be
+    // satisfied — the capability itself was retired, not the fixture.
     expect(tripFile()).toContain("costs: false");
   });
 });

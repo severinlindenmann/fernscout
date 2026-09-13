@@ -139,12 +139,21 @@ describe("the listed: key", () => {
       path.join(dir, "config.json"),
       JSON.stringify({ siteName: "T", url: "http://localhost:3000", defaultUser: "u" }),
     );
-    fs.mkdirSync(path.join(dir, "u", "trips", "nu-2023", "entries"), { recursive: true });
-    fs.writeFileSync(path.join(dir, "u", "config.json"), JSON.stringify({ title: "T" }));
+    fs.mkdirSync(path.join(dir, "u", "trips", "nu-2023"), { recursive: true });
     fs.writeFileSync(
-      path.join(dir, "u", "trips", "nu-2023", "trip.md"),
-      ['---', 'id: nu-2023', 'title: "Nu"', 'start: "2023-01-01"', 'end: "2023-01-02"',
-        "visibility: private", "listed: true", "---", "", "Intro.", ""].join("\n"),
+      path.join(dir, "u", "config.json"),
+      JSON.stringify({ title: "T", owner: { name: "A B", nickname: "A" } }),
+    );
+    fs.writeFileSync(
+      path.join(dir, "u", "trips", "nu-2023", "trip.json"),
+      JSON.stringify({
+        id: "nu-2023",
+        title: "Nu",
+        dates: { from: "2023-01-01", to: "2023-01-02" },
+        visibility: "private",
+        listed: true,
+        intro: "Intro.",
+      }),
     );
 
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});

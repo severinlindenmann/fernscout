@@ -12,6 +12,7 @@ import { isIndexable } from "@/lib/access";
 import { dictionaryFor, installedLocales } from "@/lib/locales";
 import LocaleProvider from "@/components/LocaleProvider";
 import { LOCALE_LABEL, translate } from "@/lib/i18n";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * The landing page.
@@ -50,26 +51,7 @@ function writeServerConfig() {
 }
 
 function writeUser(username: string, title: string, withTrip = true) {
-  fs.mkdirSync(path.join(dir, username, "trips"), { recursive: true });
-  if (withTrip) {
-    const tripDir = path.join(dir, username, "trips", "a-trip");
-    fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
-    fs.writeFileSync(
-      path.join(tripDir, "trip.md"),
-      [
-        "---",
-        "id: a-trip",
-        'title: "A trip"',
-        'start: "2026-01-01"',
-        'end: "2026-01-05"',
-        "status: past",
-        "---",
-        "",
-        "Body.",
-        "",
-      ].join("\n"),
-    );
-  }
+  fs.mkdirSync(path.join(dir, username), { recursive: true });
   fs.writeFileSync(
     path.join(dir, username, "config.json"),
     JSON.stringify({
@@ -85,6 +67,16 @@ function writeUser(username: string, title: string, withTrip = true) {
       features: {},
     }),
   );
+  clearUserCache();
+  if (withTrip) {
+    writeTripFixture(username, {
+      id: "a-trip",
+      title: "A trip",
+      start: "2026-01-01",
+      end: "2026-01-05",
+      status: "past",
+    });
+  }
   clearUserCache();
 }
 

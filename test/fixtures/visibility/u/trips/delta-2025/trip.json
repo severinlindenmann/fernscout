@@ -6,6 +6,7 @@
     "to": "2025-03-10"
   },
   "visibility": "password",
+  "passwordHash": "leftover-from-before-b39",
   "listed": true,
   "people": [
     {
@@ -14,6 +15,9 @@
     }
   ],
   "intro": "Not for everyone.",
+  "costs": {
+    "visibility": "guests"
+  },
   "declined": {
     "buddies": "travelling solo",
     "figures": "uses the journal's own default party"

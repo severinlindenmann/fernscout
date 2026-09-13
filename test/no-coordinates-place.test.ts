@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import { getPlaces, getTripStats } from "@/lib/entries";
+import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * B381 — a day with no `lat`/`lng` at all has nothing to plot, and must not
@@ -20,10 +21,22 @@ import { getPlaces, getTripStats } from "@/lib/entries";
 
 let dir: string;
 
-function writeDay(file: string, frontmatter: string, body: string) {
+// B1630: username "u" is one character — `isValidUsername` refuses it, so
+// `writeTripFixture` (which goes through `createTrip`) fails with
+// `no_such_journal`. Writes the v2 JSON directly instead, through the same
+// production serialisers (`tripToJson`/`dayToJson`) the fixture helper uses
+// internally.
+function writeDay(slug: string, date: string, fields: Partial<DayFile>, body: string) {
+  const day: DayFile = {
+    slug,
+    date,
+    content: body,
+    status: "published",
+    ...fields,
+  } as DayFile;
   fs.writeFileSync(
-    path.join(dir, "u", "trips", "t", "entries", file),
-    `---\n${frontmatter}---\n\n${body}\n`,
+    path.join(dir, "u", "trips", "t", "entries", `${date}-${slug}.json`),
+    dayToJson(day),
   );
 }
 
@@ -41,43 +54,34 @@ beforeEach(() => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "u", "trips", "t", "trip.md"),
-    ['---', 'id: t', 'title: "Test trip"', 'start: "2026-09-01"', 'end: "2026-09-04"', 'status: past', '---', '', 'Intro.', ''].join("\n"),
-  );
+  const trip: TripFile = {
+    id: "t",
+    title: "Test trip",
+    dates: { from: "2026-09-01", to: "2026-09-04" },
+    visibility: "private",
+    people: [],
+  };
+  fs.writeFileSync(path.join(dir, "u", "trips", "t", "trip.json"), tripToJson(trip));
 
   writeDay(
-    "2026-09-01-ljubljana.md",
-    ['title: "Ljubljana"', 'date: "2026-09-01"', 'location: "Ljubljana"', 'country: "Slovenia"', "lat: 46.0569", "lng: 14.5058"].join(
-      "\n",
-    ) + "\n",
+    "ljubljana",
+    "2026-09-01",
+    { title: "Ljubljana", location: "Ljubljana", country: "Slovenia", coordinates: { lat: 46.0569, lng: 14.5058 } },
     "Arrived.",
   );
   writeDay(
-    "2026-09-02-ohrid.md",
-    [
-      'title: "Ohrid"',
-      'date: "2026-09-02"',
-      'location: "Ohrid"',
-      'country: "North Macedonia"',
-      "lat: 41.1231",
-      "lng: 20.8016",
-    ].join("\n") + "\n",
+    "ohrid",
+    "2026-09-02",
+    { title: "Ohrid", location: "Ohrid", country: "North Macedonia", coordinates: { lat: 41.1231, lng: 20.8016 } },
     "By the lake.",
   );
-  // The blank day: title, date, prose — no lat, no lng, no location, no
+  // The blank day: title, date, prose — no coordinates, no location, no
   // country. Exactly what the ticket found on fernscout.ch.
-  writeDay("2026-09-03-train.md", ['title: "On the train"', 'date: "2026-09-03"'].join("\n") + "\n", "Nothing to report today.");
+  writeDay("train", "2026-09-03", { title: "On the train" }, "Nothing to report today.");
   writeDay(
-    "2026-09-04-skopje.md",
-    [
-      'title: "Skopje"',
-      'date: "2026-09-04"',
-      'location: "Skopje"',
-      'country: "North Macedonia"',
-      "lat: 41.9981",
-      "lng: 21.4254",
-    ].join("\n") + "\n",
+    "skopje",
+    "2026-09-04",
+    { title: "Skopje", location: "Skopje", country: "North Macedonia", coordinates: { lat: 41.9981, lng: 21.4254 } },
     "Last stop.",
   );
 });

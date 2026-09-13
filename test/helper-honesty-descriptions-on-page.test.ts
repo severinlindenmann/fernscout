@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
 import { forget } from "@/lib/helper/thread";
 import { honestyCounts } from "@/lib/helper/model";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B1563 — live evidence, journal `severin`, 2026-09-12: asked to "beschreibe
@@ -104,7 +105,7 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -116,36 +117,33 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    intro: "Intro.",
+  });
   // The bare day, exactly the reported shape: no gallery, no coordinates, a
   // body of "…".
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-eins.md"),
-    ["---", "title: Eins", 'date: "2026-05-01"', "status: draft", "---", "", "…"].join("\n"),
-  );
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "eins",
+    date: "2026-05-01",
+    title: "Eins",
+    status: "draft",
+    content: "…",
+  });
   // A day that really does carry both — the honest case this guard must
   // leave alone.
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-03-drei.md"),
-    [
-      "---",
-      "title: Drei",
-      'date: "2026-05-03"',
-      "status: draft",
-      "lat: 46.9",
-      "lng: 7.4",
-      "gallery:",
-      "  - src: media/one.jpg",
-      "    type: image",
-      "    caption: Am See",
-      "---",
-      "",
-      "Worte.",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "drei",
+    date: "2026-05-03",
+    title: "Drei",
+    status: "draft",
+    coordinates: { lat: 46.9, lng: 7.4 },
+    media: [{ src: "media/one.jpg", type: "image", caption: "Am See" }],
+    content: "Worte.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

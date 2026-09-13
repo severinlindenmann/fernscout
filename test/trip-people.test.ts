@@ -24,25 +24,26 @@ import {
 
 let dir: string;
 
-function writeTrip(id: string, people: string[]) {
+// Not on writeTripFixture (B1630): every case in this file writes a
+// deliberately malformed `people:` block (a bad email, a duplicate address,
+// too many entries) to test the fail-closed *reader* — `createTrip`
+// validates `people` and would refuse to write any of these at all. Same
+// resistance as test/travellers-on-disk.test.ts and test/trip-reparse.test.ts.
+// Malformed/raw JSON rather than malformed markdown: `getTrip` reads
+// `trip.json` exclusively now (lib/trips.ts).
+function writeTrip(id: string, people: unknown[]) {
   const tripDir = path.join(dir, "alex", "trips", id);
   fs.mkdirSync(tripDir, { recursive: true });
   fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    [
-      "---",
-      `id: ${id}`,
-      `title: "${id}"`,
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      "status: past",
-      "visibility: public",
-      ...(people.length ? ["people:", ...people] : []),
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
+    path.join(tripDir, "trip.json"),
+    JSON.stringify({
+      id,
+      title: id,
+      dates: { from: "2026-01-01", to: "2026-01-05" },
+      visibility: "public",
+      intro: "Body.",
+      ...(people.length ? { people } : {}),
+    }),
   );
 }
 
@@ -102,7 +103,7 @@ describe("the people block", () => {
   });
 
   test("addresses are lower-cased, because that is how they are compared", async () => {
-    writeTrip("shared-2026", ['  - { name: "Robin", email: "Robin@Example.COM" }']);
+    writeTrip("shared-2026", [{ name: "Robin", email: "Robin@Example.COM" }]);
     expect(trip("shared-2026").people).toEqual([{ name: "Robin", email: "robin@example.com" }]);
     expect(await isPersonOn(trip("shared-2026"), "  ROBIN@example.com ")).toBe(true);
   });
@@ -110,7 +111,7 @@ describe("the people block", () => {
   test("ten is allowed", () => {
     writeTrip(
       "big-2026",
-      Array.from({ length: MAX_TRIP_PEOPLE }, (_, i) => `  - { name: "P${i}", email: "p${i}@e.com" }`),
+      Array.from({ length: MAX_TRIP_PEOPLE }, (_, i) => ({ name: `P${i}`, email: `p${i}@e.com` })),
     );
     expect(trip("big-2026").people).toHaveLength(MAX_TRIP_PEOPLE);
   });
@@ -118,25 +119,25 @@ describe("the people block", () => {
   test("eleven is not, and the whole list is dropped rather than truncated", () => {
     writeTrip(
       "huge-2026",
-      Array.from({ length: MAX_TRIP_PEOPLE + 1 }, (_, i) => `  - { name: "P${i}", email: "p${i}@e.com" }`),
+      Array.from({ length: MAX_TRIP_PEOPLE + 1 }, (_, i) => ({ name: `P${i}`, email: `p${i}@e.com` })),
     );
     expect(trip("huge-2026").people).toEqual([]);
   });
 
   test.each([
-    ['  - { name: "No address", email: "" }', "a missing address"],
-    ['  - { name: "Bad", email: "not-an-address" }', "an address that is not one"],
-    ['  - { email: "nameless@e.com" }', "a missing name"],
-    ['  - "just a string"', "an entry that is not a mapping"],
-  ])("%s is rejected — %s", (line) => {
-    writeTrip("bad-2026", [line]);
+    [{ name: "No address", email: "" }, "a missing address"],
+    [{ name: "Bad", email: "not-an-address" }, "an address that is not one"],
+    [{ email: "nameless@e.com" }, "a missing name"],
+    ["just a string", "an entry that is not a mapping"],
+  ])("%s is rejected — %s", (entry) => {
+    writeTrip("bad-2026", [entry]);
     expect(trip("bad-2026").people).toEqual([]);
   });
 
   test("a duplicate address drops the list, rather than picking one", () => {
     writeTrip("dupe-2026", [
-      '  - { name: "Robin", email: "robin@e.com" }',
-      '  - { name: "Robin again", email: "ROBIN@e.com" }',
+      { name: "Robin", email: "robin@e.com" },
+      { name: "Robin again", email: "ROBIN@e.com" },
     ]);
     expect(trip("dupe-2026").people).toEqual([]);
   });
@@ -144,19 +145,19 @@ describe("the people block", () => {
   describe("a nickname on a person", () => {
     test("is read when given", () => {
       writeTrip("nick-1", [
-        '  - { name: "Robin Berger", email: "robin@example.com", nickname: "Robin" }',
+        { name: "Robin Berger", email: "robin@example.com", nickname: "Robin" },
       ]);
       expect(trip("nick-1").people[0].nickname).toBe("Robin");
     });
 
     test("is absent rather than guessed from the name", () => {
-      writeTrip("nick-2", ['  - { name: "Robin Berger", email: "robin@example.com" }']);
+      writeTrip("nick-2", [{ name: "Robin Berger", email: "robin@example.com" }]);
       expect(trip("nick-2").people[0].nickname).toBeUndefined();
     });
 
     test("drops the whole list when it is not text, as any bad entry does", () => {
       writeTrip("nick-3", [
-        '  - { name: "Robin Berger", email: "robin@example.com", nickname: 7 }',
+        { name: "Robin Berger", email: "robin@example.com", nickname: 7 },
       ]);
       expect(trip("nick-3").people).toEqual([]);
     });
@@ -170,7 +171,7 @@ describe("the people block", () => {
  */
 describe("what a scope reaches", () => {
   beforeEach(() => {
-    writeTrip("vietnam-2026", ['  - { name: "Robin", email: "robin@e.com" }']);
+    writeTrip("vietnam-2026", [{ name: "Robin", email: "robin@e.com" }]);
     writeTrip("honeymoon-2027", []);
   });
 
@@ -208,7 +209,7 @@ describe("a narrow request", () => {
   test("narrows the scope for the owner too, not only for a companion", async () => {
     // Both trips written before either is read: lib/trips.ts memoises per
     // content root, so a trip created after the first read is not seen.
-    writeTrip("vietnam-2026", ['  - { name: "Robin", email: "robin@e.com" }']);
+    writeTrip("vietnam-2026", [{ name: "Robin", email: "robin@e.com" }]);
     writeTrip("honeymoon-2027", []);
     const t = trip("vietnam-2026");
 

@@ -24,6 +24,7 @@ import {
   honestyCounts,
   threadSystemPrompt,
 } from "@/lib/helper/model";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * The claim and the act are the same thing — B920, and B924 beside it.
@@ -122,7 +123,7 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -134,14 +135,20 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "entries", "2026-05-01-eins.md"),
-    ["---", "title: Eins", 'date: "2026-05-01"', "status: draft", "---", "", "Worte."].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    intro: "Intro.",
+  });
+  writeDayFixture(dir, "alex", "reise", {
+    slug: "eins",
+    date: "2026-05-01",
+    title: "Eins",
+    status: "draft",
+    content: "Worte.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -976,23 +983,22 @@ describe("a total the tool said was partial", () => {
    * so this is what every trip built through the conversation looks like the
    * moment somebody spends in a second currency.
    */
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Not on writeDayFixture (B1630): a day's `costs:` list is not a concept
+    // the fixture exposes — see the note in test/costs-drafts.test.ts. Built
+    // with the real production serialiser (`dayToJson`) instead of a
+    // hand-rolled string.
+    const { dayToJson } = await import("@/lib/api/v2/documents");
     fs.writeFileSync(
-      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-02-zwei.md"),
-      [
-        "---",
-        "title: Zwei",
-        'date: "2026-05-02"',
-        "status: draft",
-        "costs:",
-        "  - label: Abendessen",
-        "    amount: 4500",
-        "    currency: RSD",
-        "    category: food",
-        "---",
-        "",
-        "Worte.",
-      ].join("\n"),
+      path.join(dir, "alex", "trips", "reise", "entries", "2026-05-02-zwei.json"),
+      dayToJson({
+        slug: "zwei",
+        title: "Zwei",
+        date: "2026-05-02",
+        status: "draft",
+        content: "Worte.",
+        costs: [{ label: "Abendessen", amount: 4500, currency: "RSD", category: "food" }],
+      }),
     );
     clearUserCache();
   });

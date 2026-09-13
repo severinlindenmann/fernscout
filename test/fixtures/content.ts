@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { readTripFile, writeTripFile } from "@/lib/api/v2/store";
 import { createTrip } from "@/lib/tripWrite";
 import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
 
@@ -44,6 +45,14 @@ export type TripFixture = {
   test?: boolean;
   people?: Array<{ name: string; email: string; nickname?: string }>;
   intro?: string;
+  /** Widened with the day's, and for the same reason — B1630. */
+  accent?: string;
+  tagline?: string;
+  translations?: Record<string, { title?: string; tagline?: string; intro?: string }>;
+  plan?: { route: Array<Record<string, unknown>>; body?: string };
+  costs?: { budget: { total: number; days?: number; currency?: string }; items?: Array<Record<string, unknown>>; note?: string; visibility?: "public" | "guests" };
+  rates?: { currencies: string[]; manual?: Record<string, number> };
+  declined?: Record<string, string>;
 };
 
 /**
@@ -74,6 +83,27 @@ export function writeTripFixture(username: string, trip: TripFixture): { ref: st
   if (!result.ok) {
     throw new Error(`writeTripFixture(${username}/${trip.id}) failed: ${result.error}`);
   }
+
+  // The sections `createTrip` does not take, applied to the document it just
+  // wrote — B1630. Still through the real store, so the bytes are what the
+  // production writer produces; `createTrip` simply has no argument for a
+  // trip's plan, costs, rates or translations, and a fixture that needs one
+  // was otherwise forced to bypass this helper and hand-roll the whole
+  // document, which is the duplication this exists to remove.
+  const extras: Record<string, unknown> = {};
+  if (trip.accent !== undefined) extras.accent = trip.accent;
+  if (trip.tagline !== undefined) extras.tagline = trip.tagline;
+  if (trip.translations !== undefined) extras.translations = trip.translations;
+  if (trip.plan !== undefined) extras.plan = trip.plan;
+  if (trip.costs !== undefined) extras.costs = trip.costs;
+  if (trip.rates !== undefined) extras.rates = trip.rates;
+  if (trip.declined !== undefined) extras.declined = trip.declined;
+  if (Object.keys(extras).length > 0) {
+    const stored = readTripFile(username, trip.id);
+    if (!stored) throw new Error(`writeTripFixture(${username}/${trip.id}): written but unreadable`);
+    writeTripFile(username, trip.id, { ...stored, ...extras } as typeof stored);
+  }
+
   return { ref: result.ref };
 }
 
@@ -103,6 +133,21 @@ export type DayFixture = {
   visibility?: "guest" | "private";
   test?: boolean;
   content?: string;
+  /** Widened after the first repointing pass — B1630. Nine files had to
+   * bypass the helper for one of these and reach for `dayToJson` directly,
+   * which is exactly the duplication this exists to remove. Each is a real
+   * thing a day has, not a frontmatter detail. */
+  costs?: Array<{ label: string; amount: number; category?: string; currency?: string }>;
+  translations?: Record<string, { title: string; content: string }>;
+  /** `true` asks the server to look it up; an object IS a reading, whose own
+   * `source` says whose it is (open-meteo means this server fetched it). */
+  weather?: true | Record<string, unknown>;
+  tags?: string[];
+  transportMode?: string;
+  travelScene?: string;
+  /** What this day consciously has none of, and why — the one decline
+   * mechanism, replacing v1's `without:`/`unrecorded:`/`costs: false`. */
+  declined?: Record<string, string>;
 };
 
 /**
@@ -146,6 +191,13 @@ export function writeDayFixture(
         }
       : {}),
     ...(day.visibility ? { visibility: day.visibility } : {}),
+    ...(day.costs ? { costs: day.costs } : {}),
+    ...(day.translations ? { translations: day.translations } : {}),
+    ...(day.weather !== undefined ? { weather: day.weather } : {}),
+    ...(day.tags ? { tags: day.tags } : {}),
+    ...(day.transportMode ? { transportMode: day.transportMode } : {}),
+    ...(day.travelScene ? { travelScene: day.travelScene } : {}),
+    ...(day.declined ? { declined: day.declined } : {}),
     ...(day.test ? { test: true } : {}),
   };
 

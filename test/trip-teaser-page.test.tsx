@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * What `/<user>/trips` sends a reader who may not open a teasered trip — B587.
@@ -31,31 +32,44 @@ beforeEach(() => {
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test", defaultUser: "alex" }, features: {} }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "closed-2026", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({ title: "Alex", owner: { name: "A B", nickname: "A", email: "a@t.test" } }),
   );
+  writeTripFixture("alex", {
+    id: "closed-2026",
+    title: "Quiet",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "private",
+    teaser: true,
+    intro: "Intro.",
+  });
   // Two days: one published, one draft, both in Portugal. The draft must not
   // reach the map either — see the assertions below.
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "closed-2026", "entries", "2026-01-02-faro.md"),
-    ["---", 'title: "Faro"', 'date: "2026-01-02"', 'location: "Faro"', 'country: "Portugal"',
-      'countryCode: "PT"', "lat: 37.0194", "lng: -7.9304", 'status: "published"', "---", "",
-      "Ankunft.", ""].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "closed-2026", "entries", "2026-01-03-lagos.md"),
-    ["---", 'title: "Lagos"', 'date: "2026-01-03"', 'location: "Lagos"', 'country: "Spain"',
-      'countryCode: "ES"', "lat: 37.1028", "lng: -8.6742", 'status: "draft"', "---", "",
-      "Ein Entwurf.", ""].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "closed-2026", "trip.md"),
-    ["---", 'id: "closed-2026"', 'title: "Quiet"', 'tagline: "A fortnight"', 'cover: "cover.jpg"',
-      'start: "2026-01-01"', 'end: "2026-01-05"', 'status: "past"', 'visibility: "private"',
-      "teaser: true", "---", "", "Intro.", ""].join("\n"),
-  );
+  writeDayFixture(dir, "alex", "closed-2026", {
+    slug: "faro",
+    date: "2026-01-02",
+    title: "Faro",
+    location: "Faro",
+    country: "Portugal",
+    countryCode: "PT",
+    coordinates: { lat: 37.0194, lng: -7.9304 },
+    content: "Ankunft.",
+  });
+  writeDayFixture(dir, "alex", "closed-2026", {
+    slug: "lagos",
+    date: "2026-01-03",
+    title: "Lagos",
+    location: "Lagos",
+    country: "Spain",
+    countryCode: "ES",
+    coordinates: { lat: 37.1028, lng: -8.6742 },
+    content: "Ein Entwurf.",
+    status: "draft",
+  });
   clearConfigCache();
   clearUserCache();
 });

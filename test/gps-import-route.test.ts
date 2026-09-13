@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * Importing over the network, driven the way an agent drives it — B671.
@@ -152,7 +153,7 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
   fs.writeFileSync(
     path.join(dir, OWNER, "config.json"),
     JSON.stringify({
@@ -164,25 +165,16 @@ beforeAll(async () => {
       features: { auth: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(tripPath(), "trip.md"),
-    [
-      "---",
-      `id: "${TRIP}"`,
-      'title: "The Algarve"',
-      'start: "2026-06-22"',
-      'end: "2026-06-24"',
-      'status: "past"',
-      'visibility: "private"',
-      "people:",
-      `  - name: "Buddy"`,
-      `    email: "${BUDDY_EMAIL}"`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: "The Algarve",
+    start: "2026-06-22",
+    end: "2026-06-24",
+    status: "past",
+    visibility: "private",
+    people: [{ name: "Buddy", email: BUDDY_EMAIL }],
+    intro: "Intro.",
+  });
 
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
@@ -417,12 +409,15 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     test("a trip with nothing in the store writes nothing and leaves any line alone", async () => {
       const token = await tokenFor(OWNER_EMAIL);
       const empty = "winter-2029";
-      fs.mkdirSync(path.join(dir, OWNER, "trips", empty), { recursive: true });
-      fs.writeFileSync(
-        path.join(dir, OWNER, "trips", empty, "trip.md"),
-        ["---", `id: "${empty}"`, 'title: "Later"', 'start: "2029-01-01"', 'end: "2029-01-05"',
-          'status: "upcoming"', 'visibility: "private"', "---", "", "x", ""].join("\n"),
-      );
+      writeTripFixture(OWNER, {
+        id: empty,
+        title: "Later",
+        start: "2029-01-01",
+        end: "2029-01-05",
+        status: "upcoming",
+        visibility: "private",
+        intro: "x",
+      });
       const { status, body } = await deriveTrack(token, empty);
       expect(status).toBe(200);
       expect(body.written).toBe(false);

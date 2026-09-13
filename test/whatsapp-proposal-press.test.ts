@@ -14,6 +14,7 @@ import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { storeInboxFile } from "@/lib/inbox";
 import { paintJpeg } from "./support/pictures";
 import type { Say } from "@/lib/helper/intents";
+import { dayToJson, type DayFile } from "@/lib/api/v2/documents";
 
 /**
  * B1230 — a proposal on WhatsApp gets a real button, and the tap it answers
@@ -443,12 +444,15 @@ describe("the enrichment question after a day-writing press — B1264", () => {
     // test exercises is `set_day_words`, writing prose onto it.
     const entryDir = path.join(dir, username, "trips", trip.id, "entries");
     fs.mkdirSync(entryDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(entryDir, "2027-03-01-day.md"),
-      ["---", 'title: "Day"', 'date: "2027-03-01"', "lat: 35.0", "lng: 135.0", "status: draft", "---", "", "…"].join(
-        "\n",
-      ),
-    );
+    const day1: DayFile = {
+      slug: "day",
+      title: "Day",
+      date: "2027-03-01",
+      coordinates: { lat: 35.0, lng: 135.0 },
+      status: "draft",
+      content: "…",
+    };
+    fs.writeFileSync(path.join(entryDir, "2027-03-01-day.json"), dayToJson(day1));
 
     answerInThread.mockImplementationOnce(
       turnCalling(
@@ -482,24 +486,16 @@ describe("the enrichment question after a day-writing press — B1264", () => {
 
     const entryDir = path.join(dir, username, "trips", trip.id, "entries");
     fs.mkdirSync(entryDir, { recursive: true });
-    fs.writeFileSync(
-      path.join(entryDir, "2027-03-01-day.md"),
-      [
-        "---",
-        'title: "Day"',
-        'date: "2027-03-01"',
-        "lat: 35.0",
-        "lng: 135.0",
-        "costs:",
-        "  - label: Lunch",
-        "    amount: 12",
-        "    currency: CHF",
-        "status: draft",
-        "---",
-        "",
-        "…",
-      ].join("\n"),
-    );
+    const day2: DayFile = {
+      slug: "day",
+      title: "Day",
+      date: "2027-03-01",
+      coordinates: { lat: 35.0, lng: 135.0 },
+      costs: [{ label: "Lunch", amount: 12, currency: "CHF" }],
+      status: "draft",
+      content: "…",
+    };
+    fs.writeFileSync(path.join(entryDir, "2027-03-01-day.json"), dayToJson(day2));
 
     answerInThread.mockImplementationOnce(
       turnCalling(

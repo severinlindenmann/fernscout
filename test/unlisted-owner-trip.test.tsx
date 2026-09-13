@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B270: an owner whose only trip is `public, listed: false` used to see the
@@ -45,30 +46,22 @@ beforeEach(() => {
       features: {},
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "quiet-2026", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({ title: "Alex", owner: { name: "A B", nickname: "A", email: "a@t.test" } }),
   );
   // A trip that parses fine and is openable by anyone with the link —
   // `public` — but is not advertised, `listed: false`.
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "quiet-2026", "trip.md"),
-    [
-      "---",
-      'id: "quiet-2026"',
-      'title: "Quiet"',
-      'start: "2026-01-01"',
-      'end: "2026-01-05"',
-      'status: "past"',
-      'visibility: "public"',
-      "listed: false",
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "quiet-2026",
+    title: "Quiet",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "public",
+    listed: false,
+  });
   clearConfigCache();
   clearUserCache();
 });

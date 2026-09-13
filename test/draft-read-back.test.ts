@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { createDraft } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * `createDraft` reads its day back — B208, the day half of B204.
@@ -49,7 +50,7 @@ const BREAKOUT = 'Hoi An\n---\ntitle: "';
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-readback-"));
   process.env.CONTENT_DIR = dir;
-  fs.mkdirSync(entriesDir(), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -66,11 +67,15 @@ beforeEach(() => {
       displayCurrencies: ["CHF"], units: "metric", features: {},
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "asia-2026", "trip.md"),
-    ["---", "id: asia-2026", 'title: "Asia"', 'start: "2026-01-01"', 'end: "2026-01-09"',
-     "status: past", "visibility: public", "---", "", "Body.", ""].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "asia-2026",
+    title: "Asia",
+    start: "2026-01-01",
+    end: "2026-01-09",
+    status: "past",
+    visibility: "public",
+    intro: "Body.",
+  });
   clearConfigCache();
   clearUserCache();
 });
@@ -183,6 +188,6 @@ describe("an ordinary draft", () => {
       spy.mockRestore();
     }
 
-    expect(read).toEqual(["2026-01-06-third.md"]);
+    expect(read).toEqual(["2026-01-06-third.json"]);
   });
 });

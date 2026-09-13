@@ -10,6 +10,7 @@ import { attachGallery } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
 import { MAX_ITEMS_PER_DAY, VIDEO_SHORT_SECONDS, type Problem } from "@/lib/validate/media";
 import { paintJpeg } from "./support/pictures";
+import { writeDayFixture } from "./fixtures/content";
 
 /**
  * Media arriving over the network.
@@ -31,28 +32,22 @@ const tripPath = () => path.join(dir, "alex", "trips", "asia-2026");
 
 /** Photographs attach to a day, so the day has to exist first. */
 function writeDay(slug: string, date: string, draft = false) {
-  fs.writeFileSync(
-    path.join(tripPath(), "entries", `${date}-${slug}.md`),
-    [
-      "---",
-      `title: "${slug}"`,
-      `date: "${date}"`,
-      'location: "Hoi An"',
-      'country: "Vietnam"',
-      ...(draft ? ["status: draft"] : []),
-      "---",
-      "",
-      "Words.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, "alex", "asia-2026", {
+    slug,
+    date,
+    title: slug,
+    location: "Hoi An",
+    country: "Vietnam",
+    status: draft ? "draft" : undefined,
+    content: "Words.",
+  });
 }
 
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-upload-"));
   process.env.CONTENT_DIR = dir;
   delete process.env.MEDIA_ORIGINALS_DIR;
-  fs.mkdirSync(path.join(tripPath(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "F", url: "https://e.test", defaultUser: "alex" }, users: {}, features: {} }),
@@ -133,6 +128,13 @@ describe("storing an upload", () => {
     expect(result.items[0].from).toBe("IMG_4821.JPG");
 
     expect(attachGallery(REF, "day-two", result.items).ok).toBe(true);
+    // FINDING (B1630, not a fixture problem — reported alongside this
+    // repoint): the v2 gallery projection in lib/entries.ts maps
+    // src/type/caption/width/height/poster/visibility off `day.media`, but
+    // never `from` — the field this test (and B527's own resumability
+    // guarantee) depends on reading back. `result.items[0].from` above is
+    // still populated (storeUploads' own return value); it is the read-back
+    // through `getEntryBySlug` that silently drops it.
     expect(getEntryBySlug(REF, "day-two")!.gallery[0].from).toBe("IMG_4821.JPG");
   });
 
@@ -855,12 +857,12 @@ describe("attaching a gallery to the day", () => {
     if (result.ok) attachGallery(REF, "day-one", result.items);
 
     const raw = fs.readFileSync(
-      path.join(tripPath(), "entries", "2026-01-01-day-one.md"),
+      path.join(tripPath(), "entries", "2026-01-01-day-one.json"),
       "utf8",
     );
-    expect(raw).toContain('location: "Hoi An"');
-    expect(raw).toContain("status: draft");
-    expect(raw.trimEnd().endsWith("Words.")).toBe(true);
+    expect(raw).toContain('"location": "Hoi An"');
+    expect(raw).toContain('"status": "draft"');
+    expect(JSON.parse(raw).content).toBe("Words.");
   });
 
   test("a slug naming no entry is refused rather than guessed at", () => {
@@ -870,17 +872,20 @@ describe("attaching a gallery to the day", () => {
     });
   });
 
-  test("an entry with no frontmatter is left alone and said so", () => {
+  // Deliberately malformed (B1630): entries are v2 JSON now, so "no
+  // frontmatter block" becomes "cannot be parsed at all" — plain prose is
+  // not valid JSON, same shape of failure, different words.
+  test("an entry that is not valid JSON is left alone and said so", () => {
     fs.writeFileSync(
-      path.join(tripPath(), "entries", "2026-02-02-freeform.md"),
+      path.join(tripPath(), "entries", "2026-02-02-freeform.json"),
       "Just prose, written by hand.\n",
     );
     const result = attachGallery(REF, "freeform", [{ src: "x", type: "image" }]);
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error).toContain("no frontmatter block");
+    if (!result.ok) expect(result.error).toContain("cannot be parsed");
     // And the file is untouched.
     expect(
-      fs.readFileSync(path.join(tripPath(), "entries", "2026-02-02-freeform.md"), "utf8"),
+      fs.readFileSync(path.join(tripPath(), "entries", "2026-02-02-freeform.json"), "utf8"),
     ).toBe("Just prose, written by hand.\n");
   });
 });

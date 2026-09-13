@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
 import { forget } from "@/lib/helper/thread";
 import { claimsAWrite } from "@/lib/helper/model";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B1323 — on the live instance, a postcard proposed and never pressed was
@@ -117,7 +118,7 @@ beforeEach(async () => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -129,10 +130,13 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", "title: Die Reise", 'start: "2026-05-01"', 'end: "2026-05-10"', "---", "", "Intro."].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Die Reise",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    intro: "Intro.",
+  });
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());

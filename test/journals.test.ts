@@ -794,9 +794,9 @@ describe("creating a trip", () => {
     test("says nothing about listing when the caller did not", () => {
       createTrip("wanderer", { ...DATES, id: "plain", title: "P", visibility: "public" });
       const file = fs.readFileSync(
-        path.join(dir, "wanderer", "trips", "plain", "trip.md"), "utf8",
+        path.join(dir, "wanderer", "trips", "plain", "trip.json"), "utf8",
       );
-      expect(file).not.toContain("listed:");
+      expect(file).not.toContain('"listed":');
       // Derived, and the same answer the key would have given.
       expect(getTrip("wanderer/plain")?.listed).toBe(true);
     });
@@ -821,9 +821,9 @@ describe("creating a trip", () => {
     test("says nothing about costs when the caller did not, and that reads as public", () => {
       createTrip("wanderer", { ...DATES, id: "open-money", title: "O" });
       const file = fs.readFileSync(
-        path.join(dir, "wanderer", "trips", "open-money", "trip.md"), "utf8",
+        path.join(dir, "wanderer", "trips", "open-money", "trip.json"), "utf8",
       );
-      expect(file).not.toContain("costsVisibility:");
+      expect(file).not.toContain('"costs"');
       expect(getTrip("wanderer/open-money")?.costsVisibility).toBe("public");
     });
 
@@ -1124,10 +1124,14 @@ describe("the trip fields that had no writer", () => {
     test("an empty list writes no key at all", () => {
       createTrip("wanderer", { ...DATES, id: "solo", title: "Solo", people: [] });
       const file = fs.readFileSync(
-        path.join(dir, "wanderer", "trips", "solo", "trip.md"),
+        path.join(dir, "wanderer", "trips", "solo", "trip.json"),
         "utf8",
       );
-      expect(file).not.toContain("people:");
+      // FINDING (B1630, not a fixture problem): v2's `tripToJson` writes
+      // `"people": []` even for an empty list — unlike v1, which omitted the
+      // key entirely — so this assertion no longer holds against any
+      // production write. Reported alongside this repoint.
+      expect(file).not.toContain('"people"');
       expect(getTrip("wanderer/solo")?.people).toEqual([]);
     });
   });
@@ -1142,6 +1146,13 @@ describe("the trip fields that had no writer", () => {
         rates: { THB: 0.0245, VND: 0.000034 },
       });
       expect(result.ok).toBe(true);
+      // FINDING (B1630, not a fixture problem): v2 stores rates as
+      // `{currencies, manual}` (inverted, per-EUR) rather than a flat
+      // currency→CHF map — see the "everything" trip's own dump a few tests
+      // down, which shows `rates: {currencies: ["THB"], manual: {THB: ...}}`
+      // for a single-currency call. `getTrip().rates` no longer round-trips
+      // this v1-shaped call the way this assertion expects. Reported
+      // alongside this repoint.
       expect(getTrip("wanderer/vietnam")?.rates).toEqual({ THB: 0.0245, VND: 0.000034 });
     });
 
@@ -1276,8 +1287,8 @@ describe("the trip fields that had no writer", () => {
       ...({ cover: "/media/covered/hero.jpg" } as Record<string, unknown>),
     });
     expect(result.ok).toBe(true);
-    const file = fs.readFileSync(path.join(dir, "wanderer", "trips", "covered", "trip.md"), "utf8");
-    expect(file).not.toContain("cover:");
+    const file = fs.readFileSync(path.join(dir, "wanderer", "trips", "covered", "trip.json"), "utf8");
+    expect(file).not.toContain('"cover"');
     expect(getTrip("wanderer/covered")?.cover).toBeUndefined();
   });
 
@@ -1347,15 +1358,25 @@ describe("the trip fields that had no writer", () => {
     });
     expect(trip.ok).toBe(true);
 
+    // FINDING (B1630, not a fixture problem — reported alongside this
+    // repoint): trips are v2 JSON now (trip.json, not trip.md), and
+    // `KNOWN_TRIP_FIELDS` (lib/trips.ts) has itself moved on — "start"/"end"
+    // are now one "dates" object, "status" is derived rather than written,
+    // "costsVisibility" is nested under "costs", "tracks" has no v2 home at
+    // all (see lib/tripWrite.ts's own comment on `tracksBlock`), and "plan"/
+    // "figures"/"intro"/"declined" are new fields this v1-vocabulary list
+    // never named. Reconciling `written`/`decidedAgainst` with the actual v2
+    // write contract is a real piece of work, not a mechanical repoint, so
+    // it is left as this file's own next task rather than guessed at here.
     const file = fs.readFileSync(
-      path.join(dir, "wanderer", "trips", "everything", "trip.md"),
+      path.join(dir, "wanderer", "trips", "everything", "trip.json"),
       "utf8",
     );
     for (const field of written) {
-      expect(file, `${field} should be written by createTrip`).toContain(`${field}:`);
+      expect(file, `${field} should be written by createTrip`).toContain(`"${field}"`);
     }
     for (const field of Object.keys(decidedAgainst)) {
-      expect(file, `${field} is decided against`).not.toContain(`${field}:`);
+      expect(file, `${field} is decided against`).not.toContain(`"${field}"`);
     }
     expect([...written, ...Object.keys(decidedAgainst)].sort()).toEqual(
       [...KNOWN_TRIP_FIELDS].sort(),

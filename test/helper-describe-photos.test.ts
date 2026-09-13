@@ -11,6 +11,8 @@ import { clearIdempotencyStore } from "@/lib/idempotency";
 import { tripMediaDir } from "@/lib/media";
 import { PHOTO_SYSTEM_PROMPT } from "@/lib/helper/model";
 import { paintJpeg } from "./support/pictures";
+import { writeTripFixture } from "./fixtures/content";
+import { dayToJson } from "@/lib/api/v2/documents";
 
 /**
  * Photographs → captions — B687.
@@ -86,48 +88,55 @@ function writeConfig(features: Record<string, unknown>) {
   clearUserCache();
 }
 
-/** Writes a day with `n` photographs, real files on disk, gallery items
- *  pointing at them exactly as ingest or an upload would. */
+/** The path `writeDayWithPhotos` and its callers agree the day file sits at.
+ * `.json` now (B1598) — `getAllEntries` only reads that extension. */
+function entryPath(): string {
+  return path.join(dir, "alex", "trips", TRIP, "entries", `2026-05-04-${SLUG}.json`);
+}
+
+/**
+ * Writes a day with `n` photographs, real files on disk, gallery items
+ * pointing at them exactly as ingest or an upload would.
+ *
+ * Not on writeDayFixture (B1630): `width`/`height` on a gallery item are not
+ * fields the fixture's `media` entries expose, so this is built with the
+ * real production serialiser (`dayToJson`) instead.
+ */
 async function writeDayWithPhotos(n: number) {
+  // Trip first — `createTrip` refuses a directory that already exists, and
+  // `mkdirSync(media, {recursive: true})` below would otherwise have created
+  // `trips/<id>/` itself as a side effect of creating `media/` under it.
+  writeTripFixture("alex", {
+    id: TRIP,
+    title: "Over the pass",
+    start: "2026-05-01",
+    end: "2026-05-31",
+    visibility: "public",
+    intro: "Trip.",
+  });
   const media = tripMediaDir(REF);
   fs.mkdirSync(path.join(media, SLUG), { recursive: true });
-  const gallery: string[] = [];
+  const gallery = [];
   for (let i = 1; i <= n; i += 1) {
     const name = `${String(i).padStart(2, "0")}.jpg`;
     fs.writeFileSync(path.join(media, SLUG, name), await paintJpeg(400, 300, i));
-    gallery.push(`  - src: "/media/${TRIP}/${SLUG}/${name}"\n    type: image\n    width: 400\n    height: 300`);
+    gallery.push({
+      src: `/media/${TRIP}/${SLUG}/${name}`,
+      type: "image" as const,
+      width: 400,
+      height: 300,
+    });
   }
-  const tripDir = path.join(dir, "alex", "trips", TRIP);
-  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
   fs.writeFileSync(
-    path.join(tripDir, "entries", `2026-05-04-${SLUG}.md`),
-    [
-      "---",
-      'title: "The pass"',
-      'date: "2026-05-04"',
-      "status: draft",
-      "gallery:",
-      ...gallery,
-      "---",
-      "",
-      "Words.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    [
-      "---",
-      `id: ${TRIP}`,
-      'title: "Over the pass"',
-      'start: "2026-05-01"',
-      'end: "2026-05-31"',
-      "visibility: public",
-      "---",
-      "",
-      "Trip.",
-      "",
-    ].join("\n"),
+    entryPath(),
+    dayToJson({
+      slug: SLUG,
+      title: "The pass",
+      date: "2026-05-04",
+      status: "draft",
+      content: "Words.",
+      media: gallery,
+    }),
   );
 }
 
@@ -244,26 +253,25 @@ describe("what it costs", () => {
   });
 
   test("a day with no photographs is refused before any spend", async () => {
+    writeTripFixture("alex", {
+      id: TRIP,
+      title: "Over the pass",
+      start: "2026-05-01",
+      end: "2026-05-31",
+      visibility: "public",
+      intro: "Trip.",
+    });
     const tripDir = path.join(dir, "alex", "trips", TRIP);
     fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
     fs.writeFileSync(
-      path.join(tripDir, "entries", `2026-05-04-${SLUG}.md`),
-      ["---", 'title: "The pass"', 'date: "2026-05-04"', "status: draft", "---", "", "Words.", ""].join("\n"),
-    );
-    fs.writeFileSync(
-      path.join(tripDir, "trip.md"),
-      [
-        "---",
-        `id: ${TRIP}`,
-        'title: "Over the pass"',
-        'start: "2026-05-01"',
-        'end: "2026-05-31"',
-        "visibility: public",
-        "---",
-        "",
-        "Trip.",
-        "",
-      ].join("\n"),
+      path.join(tripDir, "entries", `2026-05-04-${SLUG}.json`),
+      dayToJson({
+        slug: SLUG,
+        title: "The pass",
+        date: "2026-05-04",
+        status: "draft",
+        content: "Words.",
+      }),
     );
     const refused = await read(await call());
     expect(refused.status).toBe(400);
@@ -275,17 +283,12 @@ describe("what it costs", () => {
 describe("a mixed day — B873", () => {
   test("a video on the day gets its own row, marked skipped, not silently dropped", async () => {
     await writeDayWithPhotos(2);
-    // A third gallery item, a video, appended straight into the frontmatter
-    // already written by writeDayWithPhotos — no file needs to exist on disk
-    // for it, since a video is never resolved or resized here.
-    const entryPath = path.join(dir, "alex", "trips", TRIP, "entries", `2026-05-04-${SLUG}.md`);
-    const withVideo = fs
-      .readFileSync(entryPath, "utf8")
-      .replace(
-        "---\n\nWords.",
-        '  - src: "/media/a-trip/the-pass/clip.mp4"\n    type: video\n---\n\nWords.',
-      );
-    fs.writeFileSync(entryPath, withVideo);
+    // A third gallery item, a video, appended to the day already written by
+    // writeDayWithPhotos — no file needs to exist on disk for it, since a
+    // video is never resolved or resized here.
+    const day = JSON.parse(fs.readFileSync(entryPath(), "utf8"));
+    day.media.push({ src: "/media/a-trip/the-pass/clip.mp4", type: "video" });
+    fs.writeFileSync(entryPath(), JSON.stringify(day, null, 2) + "\n");
 
     await consent("photos");
     // A distinct IP, so this extra call spends from its own rate-limit

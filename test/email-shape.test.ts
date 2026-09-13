@@ -59,32 +59,42 @@ describe("a trip's people: block and a journal's owner.email agree", () => {
   });
 
   test("a people: entry shaped like a@b.c is dropped, same as owner.email would be", () => {
-    const root = path.join(dir, "u", "trips", "t");
-    fs.mkdirSync(path.join(root, "entries"), { recursive: true });
+    fs.mkdirSync(path.join(dir, "uz"), { recursive: true });
     fs.writeFileSync(
-      path.join(root, "trip.md"),
-      [
-        "---",
-        'id: "t"',
-        'title: "t"',
-        'start: "2026-08-25"',
-        'end: "2026-08-26"',
-        'status: "past"',
-        'visibility: "private"',
-        "people:",
-        '  - name: "R"',
-        '    email: "a@b.c"',
-        "---",
-        "",
-        "Intro.",
-        "",
-      ].join("\n"),
+      path.join(dir, "uz", "config.json"),
+      JSON.stringify({
+        title: "T",
+        tagline: "L",
+        owner: { name: "A", nickname: "A", email: "owner@example.test" },
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+        features: {},
+      }),
+    );
+    // Deliberately malformed — `createTrip` validates `people` at write time
+    // and would refuse this address outright, but the reader's own
+    // fail-closed behaviour (dropping the whole list on one bad entry) is
+    // what this test is proving, so the file has to be forced onto disk
+    // rather than written through the real writer. Reads as `trip.json`
+    // now (B1598) rather than `trip.md`.
+    fs.mkdirSync(path.join(dir, "uz", "trips", "t"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "uz", "trips", "t", "trip.json"),
+      JSON.stringify({
+        id: "t",
+        title: "t",
+        dates: { from: "2026-08-25", to: "2026-08-26" },
+        visibility: "private",
+        people: [{ name: "R", email: "a@b.c" }],
+        intro: "Intro.",
+      }),
     );
 
     // The whole list is dropped on a malformed entry, so an address this
     // predicate refuses leaves the trip with nobody but its owner — the
     // same failure mode `parsePeople` already uses for any other bad entry.
-    expect(getTrip("u/t")?.people).toEqual([]);
+    expect(getTrip("uz/t")?.people).toEqual([]);
 
     expect(() =>
       parseUserConfig("u", {

@@ -21,13 +21,28 @@ const SERVER_CFG =
 const USER_CFG =
   '{"title":"F","tagline":"t","owner":{"name":"A B","nickname":"A"},"startLocation":"X","defaultLocale":"en","locales":["en"],"baseCurrency":"CHF","displayCurrencies":["CHF"],"units":"metric","features":{}}';
 
-const GOOD_TRIP =
-  '---\nid: asia-2023\ntitle: "A Trip"\nstart: "2024-01-01"\nend: "2024-01-09"\nstatus: past\n---\n\nx\n';
+const TRIP_BASE = {
+  id: "asia-2023",
+  title: "A Trip",
+  dates: { from: "2024-01-01", to: "2024-01-09" },
+};
 
-const BROKEN_PLAN = `---\nroute: [unterminated\n---\n\nx\n`;
+// FINDING (B1630, not a fixture problem — reported alongside this repoint):
+// B1606 folded `plan.md` into `trip.json`'s own `plan` section, so there is
+// no longer a *separate* file that can be malformed while the trip itself
+// reads fine — a `trip.json` that fails to parse at all is "the whole trip
+// is malformed" (test/malformed-trips.test.ts), a different case. The
+// nearest equivalent to the old "route: [unterminated" case is a `plan`
+// section present with the wrong shape: `tripFromJson` casts `data.plan`
+// through with no validation (`lib/api/v2/documents.ts`), so a `route` that
+// is not an array is what reaches `readPlanFile`'s own defensive
+// `Array.isArray` check.
+const BROKEN_TRIP = JSON.stringify({ ...TRIP_BASE, plan: { route: "not-an-array" } });
 
-const GOOD_PLAN =
-  '---\nroute:\n  - location: "Faro"\n    country: "Portugal"\n    lat: 37.0194\n    lng: -7.9304\n---\n\nx\n';
+const GOOD_TRIP = JSON.stringify({
+  ...TRIP_BASE,
+  plan: { route: [{ location: "Faro", country: "Portugal", lat: 37.0194, lng: -7.9304 }] },
+});
 
 function journal(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "malformed-plan-"));
@@ -42,13 +57,9 @@ function journal(): string {
 // one-character username `isValidUsername` refuses, so `createTrip`'s
 // `getUser` call fails with `no_such_journal` before it can write anything.
 // Same resistance as test/malformed-entries.test.ts.
-function writeTrip(dir: string): void {
+function writeTrip(dir: string, body: string): void {
   fs.mkdirSync(path.join(dir, "u", "trips", "asia-2023"), { recursive: true });
-  fs.writeFileSync(path.join(dir, "u", "trips", "asia-2023", "trip.md"), GOOD_TRIP);
-}
-
-function writePlan(dir: string, body: string): void {
-  fs.writeFileSync(path.join(dir, "u", "trips", "asia-2023", "plan.md"), body);
+  fs.writeFileSync(path.join(dir, "u", "trips", "asia-2023", "trip.json"), body);
 }
 
 /** Silences the `[plan]` warning this fixture deliberately provokes. */

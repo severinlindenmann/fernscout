@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B980 — the owner's own door onto `editEntry`, from a browser.
@@ -30,7 +31,7 @@ let isOwnerMock: ReturnType<typeof vi.fn>;
 vi.mock("@/lib/contacts/session", () => ({ isOwner: vi.fn() }));
 
 const entryFile = () =>
-  path.join(dir, OWNER, "trips", TRIP, "entries", `2026-09-02-${SLUG}.md`);
+  path.join(dir, OWNER, "trips", TRIP, "entries", `2026-09-02-${SLUG}.json`);
 
 function writeJournal() {
   fs.writeFileSync(
@@ -60,38 +61,23 @@ function writeJournal() {
     }),
   );
 
-  const root = path.join(dir, OWNER, "trips", TRIP);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${TRIP}"`,
-      `title: "${TRIP}"`,
-      'start: "2026-09-01"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      'visibility: "public"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    entryFile(),
-    [
-      "---",
-      'title: "A day"',
-      'date: "2026-09-02"',
-      'location: "Somewhere"',
-      'country: "Nowhere"',
-      "---",
-      "",
-      "Something happened.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: TRIP,
+    title: TRIP,
+    start: "2026-09-01",
+    end: "2026-09-10",
+    status: "current",
+    visibility: "public",
+    intro: "Intro.",
+  });
+  writeDayFixture(dir, OWNER, TRIP, {
+    slug: SLUG,
+    date: "2026-09-02",
+    title: "A day",
+    location: "Somewhere",
+    country: "Nowhere",
+    content: "Something happened.",
+  });
 }
 
 async function route() {
@@ -139,7 +125,7 @@ describe("the owner's own correction door", { shuffle: false }, () => {
     const response = await PATCH(req({ title: "New" }, { authorization: "Bearer x" }), params);
     expect(response.status).toBe(403);
     expect(isOwnerMock).not.toHaveBeenCalled();
-    expect(fs.readFileSync(entryFile(), "utf8")).toContain('title: "A day"');
+    expect(fs.readFileSync(entryFile(), "utf8")).toContain('"title": "A day"');
   });
 
   test("somebody who is not the owner writes nothing", async () => {
@@ -147,7 +133,7 @@ describe("the owner's own correction door", { shuffle: false }, () => {
     const { PATCH } = await route();
     const response = await PATCH(req({ title: "New" }), params);
     expect(response.status).toBe(403);
-    expect(fs.readFileSync(entryFile(), "utf8")).toContain('title: "A day"');
+    expect(fs.readFileSync(entryFile(), "utf8")).toContain('"title": "A day"');
   });
 
   // A day moves on and off the site through its own endpoint — B28 — and this
@@ -191,15 +177,15 @@ describe("the owner's own correction door", { shuffle: false }, () => {
    */
   test("a caption and a photograph's label are what the panel draws, so the route takes them", async () => {
     const file = entryFile();
-    fs.writeFileSync(
-      file,
-      fs
-        .readFileSync(file, "utf8")
-        .replace(
-          'country: "Nowhere"\n',
-          `country: "Nowhere"\ngallery:\n  - src: "/media/${TRIP}/${SLUG}/01.jpg"\n    type: "image"\n    width: 800\n    height: 600\n`,
-        ),
-    );
+    writeDayFixture(dir, OWNER, TRIP, {
+      slug: SLUG,
+      date: "2026-09-02",
+      title: "A day",
+      location: "Somewhere",
+      country: "Nowhere",
+      content: "Something happened.",
+      media: [{ src: `/media/${TRIP}/${SLUG}/01.jpg`, type: "image" }],
+    });
     const src = `/${OWNER}/media/${TRIP}/${SLUG}/01.jpg`;
     const { PATCH } = await route();
 
@@ -217,7 +203,7 @@ describe("the owner's own correction door", { shuffle: false }, () => {
     expect(written).toContain("Lanterns");
     expect(written).toContain("private");
     // The title travelled in the same patch and must not have been lost with it.
-    expect(written).toContain('title: "Arrival"');
+    expect(written).toContain('"title": "Arrival"');
   });
 
   test("a correction lands on disk", async () => {
@@ -225,7 +211,7 @@ describe("the owner's own correction door", { shuffle: false }, () => {
     const response = await PATCH(req({ title: "Arrival", content: "It rained." }), params);
     expect(response.status).toBe(200);
     const written = fs.readFileSync(entryFile(), "utf8");
-    expect(written).toContain('title: "Arrival"');
+    expect(written).toContain('"title": "Arrival"');
     expect(written).toContain("It rained.");
     expect(written).not.toContain("Something happened.");
   });

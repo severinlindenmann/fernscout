@@ -27,6 +27,13 @@ function tripDir(): string {
   return path.join(root, USER, "trips", TRIP);
 }
 
+// FINDING (B1630, not a fixture problem — reported alongside this repoint):
+// `lib/ingest/index.ts` (the module under test) checks for a literal
+// `trip.md` on disk before it will fill a trip — `fs.existsSync(path.join(
+// trip, "trip.md"))` — and `lib/ingest/entry.ts` writes its own entries as
+// `.md` too. Neither has been migrated to v2 JSON, so this whole suite
+// resists `writeTripFixture` (which writes `trip.json`): pointing it there
+// makes every `ingest()` call fail with "No trip at …". Left hand-written.
 beforeEach(() => {
   root = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-ingest-test-"));
   source = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-ingest-src-"));

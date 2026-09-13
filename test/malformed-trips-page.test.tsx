@@ -198,10 +198,12 @@ describe("the page decides who sees it", () => {
       path.join(dir, "alex", "config.json"),
       JSON.stringify({ title: "Alex", owner: { name: "A B", nickname: "A", email: "a@t.test" } }),
     );
-    // The journal's only trip, and it will not parse.
+    // The journal's only trip, and it will not parse — deliberately
+    // malformed (B1630): trips are v2 JSON now, so this is malformed JSON
+    // (missing title/dates) rather than malformed frontmatter.
     fs.writeFileSync(
-      path.join(dir, "alex", "trips", "japan-2027", "trip.md"),
-      ["---", "id: japan-2027", "---", "", "Body."].join("\n"),
+      path.join(dir, "alex", "trips", "japan-2027", "trip.json"),
+      JSON.stringify({ id: "japan-2027" }),
     );
     warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     clearConfigCache();

@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * A day's slug catching up with its title — B1276.
@@ -42,7 +43,7 @@ beforeEach(() => {
   process.env.CONTENT_DIR = dir;
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
-  fs.mkdirSync(path.join(TRIP_DIR(), "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),
     JSON.stringify({
@@ -62,10 +63,14 @@ beforeEach(() => {
       features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
     }),
   );
-  fs.writeFileSync(
-    path.join(TRIP_DIR(), "trip.md"),
-    ["---", "id: kyoto", "title: Kyoto", 'start: "2026-04-01"', 'end: "2026-04-08"', "visibility: private", "---", "", "Intro."].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "kyoto",
+    title: "Kyoto",
+    start: "2026-04-01",
+    end: "2026-04-08",
+    visibility: "private",
+    intro: "Intro.",
+  });
   clearConfigCache();
   clearUserCache();
 });

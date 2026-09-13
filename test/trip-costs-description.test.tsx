@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
+import { tripToJson, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * B214 / B382 — the trip-scoped costs page's `<meta name="description">`.
@@ -38,33 +39,27 @@ vi.mock("next/navigation", async (importOriginal) => ({
 const SERVER_CFG =
   '{"site":{"name":"F","url":"https://example.test","defaultUser":"alex"},"users":{"reserved":[]},"features":{}}';
 
+function writeTrip(dir: string, id: string, title: string, from: string, to: string) {
+  const tripPath = path.join(dir, "alex", "trips", id);
+  fs.mkdirSync(path.join(tripPath, "entries"), { recursive: true });
+  const trip: TripFile = {
+    id,
+    title,
+    dates: { from, to },
+    visibility: "public",
+    people: [],
+    intro: "Something.",
+    costs: { budget: { total: 100, days: 10 }, note: "Before we left." },
+  };
+  fs.writeFileSync(path.join(tripPath, "trip.json"), tripToJson(trip));
+}
+
 function journal(locale = "en"): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "trip-costs-description-"));
   fs.writeFileSync(path.join(dir, "config.json"), SERVER_CFG);
 
-  const past = path.join(dir, "alex", "trips", "ridge-2025");
-  fs.mkdirSync(path.join(past, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(past, "trip.md"),
-    '---\nid: ridge-2025\ntitle: "Along the ridge"\nstart: "2025-05-01"\nend: "2025-05-10"\n' +
-      "status: past\nvisibility: public\n---\n\nSomething.\n",
-  );
-  fs.writeFileSync(
-    path.join(past, "costs.md"),
-    "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
-  );
-
-  const upcoming = path.join(dir, "alex", "trips", "cherry-blossom");
-  fs.mkdirSync(path.join(upcoming, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(upcoming, "trip.md"),
-    '---\nid: cherry-blossom\ntitle: "Cherry blossom, north to south"\nstart: "2027-04-03"\n' +
-      'end: "2027-04-20"\nstatus: upcoming\nvisibility: public\n---\n\nSomething.\n',
-  );
-  fs.writeFileSync(
-    path.join(upcoming, "costs.md"),
-    "---\nbudget:\n  total: 100\n  days: 10\n---\n\nBefore we left.\n",
-  );
+  writeTrip(dir, "ridge-2025", "Along the ridge", "2025-05-01", "2025-05-10");
+  writeTrip(dir, "cherry-blossom", "Cherry blossom, north to south", "2027-04-03", "2027-04-20");
 
   fs.writeFileSync(
     path.join(dir, "alex", "config.json"),

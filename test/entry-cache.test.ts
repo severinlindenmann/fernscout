@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { createDraft, deleteEntry } from "@/lib/api/entries";
 import { getAllEntries, getEntryBySlug } from "@/lib/entries";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * What the site serves after the application writes a file.
@@ -27,7 +28,7 @@ const REF = "alex/asia-2026";
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-cache-"));
   process.env.CONTENT_DIR = dir;
-  fs.mkdirSync(path.join(dir, "alex", "trips", "asia-2026", "entries"), { recursive: true });
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "F", url: "https://e.test", defaultUser: "alex" }, users: {}, features: {} }),
@@ -40,13 +41,17 @@ beforeEach(() => {
       displayCurrencies: ["CHF"], units: "metric", features: {},
     }),
   );
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "asia-2026", "trip.md"),
-    ["---", "id: asia-2026", 'title: "Asia"', 'start: "2026-01-01"', 'end: "2026-01-09"',
-     "status: past", "visibility: public", "---", "", "Body.", ""].join("\n"),
-  );
   clearConfigCache();
   clearUserCache();
+  writeTripFixture("alex", {
+    id: "asia-2026",
+    title: "Asia",
+    start: "2026-01-01",
+    end: "2026-01-09",
+    status: "past",
+    visibility: "public",
+    intro: "Body.",
+  });
 });
 
 afterEach(() => {
@@ -61,7 +66,9 @@ function publish(slug: string) {
   const dirPath = path.join(dir, "alex", "trips", "asia-2026", "entries");
   const file = fs.readdirSync(dirPath).find((f) => f.includes(slug))!;
   const full = path.join(dirPath, file);
-  fs.writeFileSync(full, fs.readFileSync(full, "utf8").replace(/^status: draft\n/m, ""));
+  const data = JSON.parse(fs.readFileSync(full, "utf8"));
+  data.status = "published";
+  fs.writeFileSync(full, JSON.stringify(data, null, 2) + "\n");
 }
 
 describe("after the application writes an entry", () => {
@@ -126,17 +133,21 @@ describe("content edited on disk", () => {
 
     const dirPath = path.join(dir, "alex", "trips", "asia-2026", "entries");
     const file = path.join(dirPath, fs.readdirSync(dirPath)[0]);
-    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace(/^---\n/, "---\nstatus: draft\n"));
+    const data = JSON.parse(fs.readFileSync(file, "utf8"));
+    data.status = "draft";
+    fs.writeFileSync(file, JSON.stringify(data, null, 2) + "\n");
     expect(getAllEntries(REF)).toEqual([]);
   });
 
   /** A trip's visibility is the one that matters most. */
   test("a trip switched to private stops being readable, without a restart", async () => {
     const { getTrip } = await import("@/lib/trips");
-    const file = path.join(dir, "alex", "trips", "asia-2026", "trip.md");
+    const file = path.join(dir, "alex", "trips", "asia-2026", "trip.json");
     expect(getTrip(REF)?.visibility).toBe("public");
 
-    fs.writeFileSync(file, fs.readFileSync(file, "utf8").replace("visibility: public", "visibility: private"));
+    const data = JSON.parse(fs.readFileSync(file, "utf8"));
+    data.visibility = "private";
+    fs.writeFileSync(file, JSON.stringify(data, null, 2) + "\n");
     expect(getTrip(REF)?.visibility).toBe("private");
     expect(getTrip(REF)?.listed).toBe(false);
   });

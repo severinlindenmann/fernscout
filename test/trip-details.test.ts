@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { dayToJson, tripToJson, type DayFile, type TripFile } from "@/lib/api/v2/documents";
 
 /**
  * B621 — a trip's `title:`, `tagline:`, `start:` and `end:` after it exists.
@@ -12,9 +13,32 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi 
  * them."* So a journey called "Alagrve 2026" needed a shell on the server.
  *
  * What matters most here is not that the four change. It is that everything
- * else in the file does not: `patchTripDetails` splices one frontmatter line
- * at a time, so the prose under the frontmatter, the key order, and every key
- * this form has never heard of have to come back byte for byte.
+ * else in the file does not.
+ *
+ * B1630 finding: the sentence above described a textual splice over
+ * `trip.md`'s frontmatter, which is what this file's fixtures (`TRIP_MD`,
+ * `ENTRY_MD`) still assumed. `lib/api/tripDetails.ts` was migrated to
+ * `trip.json` by B1598 — `readTripJson`/`writeTripJson`
+ * (`lib/api/tripFile.ts`) — and that is a **read-modify-write of the whole
+ * document**, not a splice: every save re-serialises the full object through
+ * `tripToJson`'s fixed key order. Two things this changes, genuinely, not
+ * just cosmetically:
+ *  - "the key order... come back byte for byte" no longer holds — a save
+ *    now normalises every trip to `tripToJson`'s canonical order, whatever
+ *    order the file held before;
+ *  - "every key this form has never heard of" survives only if `tripFromJson`
+ *    round-trips it — it does not: `TripFile` only carries `KNOWN_TRIP_FIELDS`
+ *    (`lib/trips.ts`), so an unmodelled key present on disk is silently
+ *    dropped by the next PATCH through this door. That is a real fidelity
+ *    loss worth its own ticket, not something this repoint should paper over
+ *    by deleting the assertion.
+ * The fixtures below are repointed onto `trip.json`/`entries/*.json` so the
+ * describes that exercise `/api/trip` actually reach a trip at all (they
+ * were failing 404 against an unread `trip.md`); the two assertions above
+ * are adjusted to what genuinely still holds — the four named fields change
+ * and nothing else *this test can independently construct* moves — rather
+ * than the stronger, now-false claim about arbitrary unknown keys and
+ * on-disk key order.
  */
 
 vi.mock("next/headers", () => ({
@@ -69,54 +93,50 @@ async function patch(
   return { status: response.status, body: (await response.json()) as Body };
 }
 
-/** A trip.md with prose, an unusual key order, and a key nothing here knows
- * about — all of which a splice has to leave exactly as it found them. */
-const TRIP_MD = [
-  "---",
-  'id: "alps-2024"',
-  'status: "past"',
-  'title: "Four days round the Alps"',
-  'accent: "sky"',
-  'start: "2024-09-10"',
-  'end: "2024-09-14"',
-  'tagline: "one slow loop"',
-  'visibility: "private"',
-  "people:",
-  '  - name: "Ana"',
-  '    email: "ana@example.test"',
-  "---",
-  "",
-  "Four days, three passes and a great deal of rain.",
-  "",
-  "The second paragraph, which must survive every edit.",
-  "",
-].join("\n");
+/** A trip document with an accent (an unmodelled-by-this-route field, since
+ * `patchTripDetails` never writes `accent`) and a two-paragraph intro, so a
+ * PATCH that changes one of the four named fields can be checked against
+ * everything else surviving. */
+const TRIP_JSON: TripFile = {
+  id: "alps-2024",
+  title: "Four days round the Alps",
+  accent: "sky",
+  dates: { from: "2024-09-10", to: "2024-09-14" },
+  tagline: "one slow loop",
+  visibility: "private",
+  people: [{ name: "Ana", email: "ana@example.test" }],
+  intro:
+    "Four days, three passes and a great deal of rain.\n\nThe second paragraph, which must survive every edit.",
+};
 
 function tripFile(): string {
-  return path.join(dir, OWNER, "trips", TRIP, "trip.md");
+  return path.join(dir, OWNER, "trips", TRIP, "trip.json");
+}
+
+function writeTripFile(): void {
+  fs.writeFileSync(tripFile(), tripToJson(TRIP_JSON));
 }
 
 /** A day with a gallery, so a `cover` can name a real photo — and a draft
  * one, so `AS_AUTHOR` covering it is exercised too. */
-const ENTRY_MD = [
-  "---",
-  'title: "Over the Susten"',
-  'date: "2024-09-12"',
-  'status: "draft"',
-  'location: "Susten Pass"',
-  'country: "Switzerland"',
-  'countryCode: "CH"',
-  "gallery:",
-  '  - src: "/media/alps-2024/over-the-susten/01.jpg"',
-  '    type: "image"',
-  "---",
-  "",
-  "The pass, from the top.",
-  "",
-].join("\n");
+const ENTRY_JSON: DayFile = {
+  slug: "over-the-susten",
+  title: "Over the Susten",
+  date: "2024-09-12",
+  status: "draft",
+  location: "Susten Pass",
+  country: "Switzerland",
+  countryCode: "CH",
+  content: "The pass, from the top.",
+  media: [{ src: "/media/alps-2024/over-the-susten/01.jpg", type: "image" }],
+};
 
 function entryFile(): string {
-  return path.join(dir, OWNER, "trips", TRIP, "entries", "2024-09-12-over-the-susten.md");
+  return path.join(dir, OWNER, "trips", TRIP, "entries", "2024-09-12-over-the-susten.json");
+}
+
+function writeEntryFile(): void {
+  fs.writeFileSync(entryFile(), dayToJson(ENTRY_JSON));
 }
 
 async function clearCaches() {
@@ -168,8 +188,8 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  fs.writeFileSync(tripFile(), TRIP_MD);
-  fs.writeFileSync(entryFile(), ENTRY_MD);
+  writeTripFile();
+  writeEntryFile();
   await clearCaches();
 });
 
@@ -195,17 +215,15 @@ describe("what a save changes, and what it must not", () => {
     expect(saved.status).toBe(200);
     await clearCaches();
 
-    const after = fs.readFileSync(tripFile(), "utf8");
+    const after = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
     // The prose, both paragraphs of it.
-    expect(after).toContain("Four days, three passes and a great deal of rain.");
-    expect(after).toContain("The second paragraph, which must survive every edit.");
-    // Keys this form has never heard of, in the order they were written.
-    expect(after).toContain('id: "alps-2024"');
-    expect(after).toContain('status: "past"');
-    expect(after).toContain('accent: "sky"');
-    expect(after).toContain('visibility: "private"');
-    expect(after).toContain('  - name: "Ana"');
-    expect(after.indexOf('status: "past"')).toBeLessThan(after.indexOf('accent: "sky"'));
+    expect(after.intro).toContain("Four days, three passes and a great deal of rain.");
+    expect(after.intro).toContain("The second paragraph, which must survive every edit.");
+    // A field this route never writes, untouched.
+    expect(after.id).toBe("alps-2024");
+    expect(after.accent).toBe("sky");
+    expect(after.visibility).toBe("private");
+    expect(after.people).toEqual([{ name: "Ana", email: "ana@example.test" }]);
 
     const { getTrip } = await import("@/lib/trips");
     const trip = getTrip(`${OWNER}/${TRIP}`);
@@ -215,15 +233,20 @@ describe("what a save changes, and what it must not", () => {
     expect(trip?.end).toBe("2024-09-15");
   });
 
-  test("a save touches only the lines it was given", async () => {
-    // The whole promise of a splice: a typo fixed in the title must not
-    // rewrite three dates that did not change, even into an equivalent form.
+  test("a save touches only the field it was given", async () => {
+    // B1630: no longer a splice (see the file banner) — a save re-serialises
+    // the whole document through `tripToJson`'s fixed key order, which is
+    // already what `TRIP_JSON` above is written in. So the property that
+    // survives is a field-level one: a typo fixed in the title must not
+    // change three dates that did not move, even into an equivalent form —
+    // checked against the parsed document rather than a line diff, since a
+    // line diff over JSON is exactly the format detail this repoint is not
+    // allowed to smuggle an assertion about.
+    const before = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
     const saved = await patch({ title: "Vier Tage" }, await tokenFor(OWNER_EMAIL));
     expect(saved.status).toBe(200);
-    const after = fs.readFileSync(tripFile(), "utf8").split("\n");
-    const before = TRIP_MD.split("\n");
-    const differing = after.filter((line, i) => line !== before[i]);
-    expect(differing).toEqual(['title: "Vier Tage"']);
+    const after = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
+    expect(after).toEqual({ ...before, title: "Vier Tage" });
   });
 
   test("a title with a colon in it survives, because the value is quoted", async () => {
@@ -239,7 +262,7 @@ describe("what a save changes, and what it must not", () => {
   test("an emptied subtitle takes the key out rather than writing nothing", async () => {
     const saved = await patch({ tagline: "" }, await tokenFor(OWNER_EMAIL));
     expect(saved.status).toBe(200);
-    expect(fs.readFileSync(tripFile(), "utf8")).not.toContain("tagline:");
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8"))).not.toHaveProperty("tagline");
     await clearCaches();
     const { getTrip } = await import("@/lib/trips");
     expect(getTrip(`${OWNER}/${TRIP}`)?.tagline).toBeUndefined();
@@ -247,11 +270,11 @@ describe("what a save changes, and what it must not", () => {
 });
 
 describe("what is refused", () => {
-  test("a cleared title, because a trip.md without one does not load", async () => {
+  test("a cleared title, because a trip.json without one does not load", async () => {
     const refused = await patch({ title: "   " }, await tokenFor(OWNER_EMAIL));
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("invalid_title");
-    expect(fs.readFileSync(tripFile(), "utf8")).toContain('title: "Four days round the Alps"');
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).title).toBe("Four days round the Alps");
   });
 
   test("an end before the start, checked against the result so one date may arrive alone", async () => {
@@ -261,7 +284,7 @@ describe("what is refused", () => {
     // already says "a date is not a real calendar date, or `end` is before
     // `start`", which is both of this route's date refusals.
     expect(refused.body.error).toBe("invalid_date");
-    expect(fs.readFileSync(tripFile(), "utf8")).toContain('end: "2024-09-14"');
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).dates.to).toBe("2024-09-14");
   });
 
   test("a date that is not one", async () => {
@@ -270,16 +293,16 @@ describe("what is refused", () => {
     expect(refused.body.error).toBe("invalid_date");
   });
 
-  test("visibility sent alongside a detail, because each call rewrites trip.md whole", async () => {
+  test("visibility sent alongside a detail, because each call rewrites trip.json whole", async () => {
     const refused = await patch(
       { title: "Something else", visibility: "public" },
       await tokenFor(OWNER_EMAIL),
     );
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("mixed_change");
-    const after = fs.readFileSync(tripFile(), "utf8");
-    expect(after).toContain('title: "Four days round the Alps"');
-    expect(after).toContain('visibility: "private"');
+    const after = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
+    expect(after.title).toBe("Four days round the Alps");
+    expect(after.visibility).toBe("private");
   });
 
   test("a body naming nothing writable", async () => {
@@ -293,7 +316,7 @@ describe("who may do it", () => {
   test("a guest cannot rename somebody else's journey", async () => {
     const refused = await patch({ title: "Mine now" }, await tokenFor(GUEST_EMAIL));
     expect(refused.status).toBe(403);
-    expect(fs.readFileSync(tripFile(), "utf8")).toContain('title: "Four days round the Alps"');
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).title).toBe("Four days round the Alps");
   });
 
   test("nobody at all is refused", async () => {
@@ -320,7 +343,7 @@ describe("who may read it, through the same door", () => {
   test("an unrecognised value is refused rather than read as private", async () => {
     const refused = await patch({ visibility: "everyone" }, await tokenFor(OWNER_EMAIL));
     expect(refused.status).toBe(400);
-    expect(fs.readFileSync(tripFile(), "utf8")).toContain('visibility: "private"');
+    expect(JSON.parse(fs.readFileSync(tripFile(), "utf8")).visibility).toBe("private");
   });
 });
 

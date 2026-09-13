@@ -5,8 +5,6 @@
     "from": "2021-05-01",
     "to": "2021-05-10"
   },
-  "visibility": "private",
-  "listed": true,
   "people": [
     {
       "name": "Test Person",

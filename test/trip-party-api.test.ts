@@ -20,9 +20,13 @@ import { writeTripFixture } from "./fixtures/content";
  *
  * B1612 repoint: `people` is no longer a route of its own — it is a section
  * of the one v2 trip document (`PATCH /api/v2/{user}/trips/{trip}`), folded
- * in the way `.../visibility` and `.../rates` were. `travellers` was NOT
- * touched by that migration (v1's route is still standing, still working
- * against `trip.md`), so that half of this file is unchanged.
+ * in the way `.../visibility` and `.../rates` were. `travellers` still has
+ * its own v1 route (`.../trips/{trip}/travellers`), but B1598 moved what it
+ * writes onto too: `lib/api/tripParty.ts` now does a `readTripJson`/
+ * `writeTripJson` round-trip like every other trip patcher, not the
+ * `trip.md` splice this comment used to describe — the "changing the party
+ * leaves the prose and every other field alone" case below is fixed onto
+ * `trip.json` for that reason (B1630 finding, corrected here).
  *
  * What v2's fold changes, beyond the address:
  *  - the trip is a v2-native `trip.json` document (`lib/api/v2/store.ts`),
@@ -53,7 +57,7 @@ let dir: string;
 const OWNER_EMAIL = "alex@example.test";
 
 function tripFile(): string {
-  return path.join(dir, "alex", "trips", "reise", "trip.md");
+  return path.join(dir, "alex", "trips", "reise", "trip.json");
 }
 
 function writeTrip() {
@@ -404,10 +408,10 @@ describe("PATCH .../travellers", () => {
   test("changing the party leaves the prose and every other field alone", async () => {
     const token = await ownerToken();
     await call(patchTravellers, "PATCH", token, { travellers: [{ skin: "deep" }] });
-    const text = fs.readFileSync(tripFile(), "utf8");
-    expect(text).toMatch(/^title: "Reise"$/m);
-    expect(text).toMatch(/^visibility: private$/m);
-    expect(text.trimEnd().endsWith("Body.")).toBe(true);
+    const written = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
+    expect(written.title).toBe("Reise");
+    expect(written.visibility).toBe("private");
+    expect(written.intro).toBe("Body.");
   });
 
   test("a body that names neither field is refused with the shape to send", async () => {
