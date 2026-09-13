@@ -76,6 +76,11 @@ const cardInput = {
   t,
   dayName: "A morning in Lagos",
   sentWhen: "10 September",
+  // Most cases below are not about the live/sample distinction, so they
+  // fix it to the world where the wording used to be true unconditionally
+  // — B1287 added the field, and the case that actually exercises it below
+  // overrides this.
+  real: true,
   recipients: [
     { name: "One", town: "Bern, CH" },
     { name: "Two", town: "Wien, AT" },
@@ -198,6 +203,19 @@ describe("postcardOrderView", () => {
     expect(view.head.title).toBe("Postcards, sent");
     expect(view.head.subtitle).toContain("10 September");
     expect(view.meta).toContain("Sent");
+  });
+
+  it("says a sample rendered, never that it is with the printer, when this instance is not live — B1287", () => {
+    const view = postcardOrderView({
+      ...cardInput,
+      real: false,
+      order: cards({}, { status: "built" }),
+    });
+    expect(view.status?.tone).toBe("navy");
+    expect(view.status?.label).toBe("Sample only");
+    expect(view.status?.note).toContain("posts none of them");
+    expect(view.head.subtitle).toContain("free sample");
+    expect(view.head.subtitle).not.toContain("with the printer");
   });
 
   it("refunds a refused set the way a refused book is refunded", () => {

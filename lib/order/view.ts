@@ -242,6 +242,12 @@ export type PostcardViewInput = {
    *  this list: `addressesFor` is the owner's own disclosure and lives on the
    *  page, behind a control they open deliberately. */
   recipients: { name: string; town: string }[];
+  /** Whether this order's cards will actually reach a printer and the post —
+   *  `order.payload.provider !== "dry-run" && postcardsLive()` — rather than
+   *  a free sample nothing is dispatched from. B1287: the copy about a sent
+   *  or waiting order must say which of those happened, not assume the one
+   *  that costs real money and real postage. */
+  real: boolean;
   now?: number;
 };
 
@@ -255,7 +261,7 @@ export type PostcardViewInput = {
  * the page is in a position to avoid.
  */
 export function postcardOrderView(input: PostcardViewInput): OrderView {
-  const { order, t } = input;
+  const { order, t, real } = input;
   const pending = isPending(order);
   const expired = isExpired(order, input.now);
   const failed = order.status === "failed";
@@ -284,15 +290,30 @@ export function postcardOrderView(input: PostcardViewInput): OrderView {
      * names. One string across two providers is how a claim gets borrowed by
      * the one that cannot make it.
      */
-    status = {
-      tone: "yellow",
-      label: t("postcard.status.withPrinter"),
-      note: t("postcard.status.withPrinterNote"),
-    };
+    // B1287 — this is only true if a printer actually took the order. On a
+    // `dry-run` provider, or `stannp` with `features.postcards.live` unset,
+    // nothing was posted: this instance rendered a free sample and stopped.
+    // Saying "with the printer" about that is the exact false claim the
+    // ticket was filed over, this time after the button rather than before.
+    status = real
+      ? {
+          tone: "yellow",
+          label: t("postcard.status.withPrinter"),
+          note: t("postcard.status.withPrinterNote"),
+        }
+      : {
+          tone: "navy",
+          label: t("postcard.status.sample"),
+          note: t("postcard.status.sampleNote"),
+        };
   } else if (expired) {
     status = { tone: "navy", label: t("order.status.expired"), note: t("postcard.result.expired") };
   } else {
-    status = { tone: "navy", label: t("order.status.waiting"), note: t("postcard.page.sendWarning") };
+    status = {
+      tone: "navy",
+      label: t("order.status.waiting"),
+      note: t(real ? "postcard.page.sendWarning" : "postcard.page.sendWarningSample"),
+    };
   }
 
   const introKey: TranslationKey = input.dayName
@@ -300,12 +321,16 @@ export function postcardOrderView(input: PostcardViewInput): OrderView {
       ? "postcard.page.introFailed"
       : pending
         ? "postcard.page.intro"
-        : "postcard.page.introSent"
+        : real
+          ? "postcard.page.introSent"
+          : "postcard.page.introSentSample"
     : failed
       ? "postcard.page.introFromFileFailed"
       : pending
         ? "postcard.page.introFromFile"
-        : "postcard.page.introFromFileSent";
+        : real
+          ? "postcard.page.introFromFileSent"
+          : "postcard.page.introFromFileSentSample";
 
   const lines: Omit<OrderLedgerLine, "amount">[] = [
     {

@@ -2112,14 +2112,29 @@ function AccountSheet({
   const [facts, setFacts] = useState<AccountFacts | null>(null);
   useEffect(() => {
     let live = true;
-    fetch(`/api/helper/${encodeURIComponent(username)}/account`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body: AccountFacts | null) => {
-        if (live && body) setFacts(body);
-      })
-      .catch(() => {});
+    const load = () => {
+      fetch(`/api/helper/${encodeURIComponent(username)}/account`)
+        .then((response) => (response.ok ? response.json() : null))
+        .then((body: AccountFacts | null) => {
+          if (live && body) setFacts(body);
+        })
+        .catch(() => {});
+    };
+    load();
+    // B1358 — an installed PWA is suspended rather than closed, and a phone
+    // taken off standby resumes its network interface a beat after the OS
+    // wakes the app. The one fetch above lands in that gap on a resume — it
+    // fails, the catch above swallows it, and nothing ever asks again, so
+    // the sheet is stuck on "Looking…" until it is closed and reopened. The
+    // update-chip check above already reloads on the same signal for the
+    // same reason; this is the sheet's own numbers, not the build version.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       live = false;
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [username]);
 

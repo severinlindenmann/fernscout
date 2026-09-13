@@ -83,7 +83,15 @@ export async function fetchStannpStatus(ref: string): Promise<StannpStatus | nul
   }
 }
 
-function isLive(): boolean {
+/**
+ * Whether `features.postcards.live` is actually set — B1287.
+ *
+ * Exported because the owner's own postcard page needs the same answer this
+ * module acts on, to say so *before* the button is pressed rather than only
+ * behaving correctly after it. One read of the config, so the page and the
+ * sender can never disagree about which world they are in.
+ */
+export function postcardsLive(): boolean {
   const feature = loadServerConfig().features.postcards as Record<string, unknown>;
   return feature.live === true;
 }
@@ -103,7 +111,7 @@ export async function sendPostcard(input: {
   const key = process.env.STANNP_API_KEY;
   if (!key) return { ok: false, error: "STANNP_API_KEY is not set" };
 
-  const test = !isLive();
+  const test = !postcardsLive();
   let request;
   try {
     request = buildStannpRequest({ ...input, test });

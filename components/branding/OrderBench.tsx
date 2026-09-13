@@ -120,6 +120,9 @@ const cardInput = {
   // Fixed, so the expired card below stays expired and the pending one stays
   // pending however long after this was written the page is opened.
   now: Date.parse("2026-09-12T00:00:00Z"),
+  // Most cases below are about states other than live/sample — B1287 added
+  // this field, and the "Sent as a free sample" case overrides it.
+  real: true,
 };
 
 const printed = (providerRef: string) => ({
@@ -258,6 +261,16 @@ const CASES: { title: string; why: string; node: React.ReactNode }[] = [
       <OrderDocket
         labels={LABELS}
         view={postcardOrderView({ ...cardInput, order: cards({}, { status: "built" }) })}
+      />
+    ),
+  },
+  {
+    title: "Sent as a free sample",
+    why: "B1287 — a dry-run provider, or Stannp with features.postcards.live unset, took the request and posted nothing. The reader is told that in the status pill and the subtitle, never “with the printer.”",
+    node: (
+      <OrderDocket
+        labels={LABELS}
+        view={postcardOrderView({ ...cardInput, real: false, order: cards({}, { status: "built" }) })}
       />
     ),
   },
