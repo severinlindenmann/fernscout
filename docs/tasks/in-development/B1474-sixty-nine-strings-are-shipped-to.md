@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: locales
 found: "2026-09-11T15:30:25Z"
+started: "2026-09-13T07:16:19Z"
 ---
 
 # B1474 — Sixty-nine strings are shipped to Hungarian readers in English, including the whole of an order's status
