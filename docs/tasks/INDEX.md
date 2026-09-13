@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (242)
+## backlog (243)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
 | [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
 
-### issue (65)
+### issue (66)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -112,6 +112,7 @@ Do not edit them by hand; run the script.
 | [B1619](backlog/issue/B1619-v2-s-day-translations-field-has.md) | v2's day translations field has no journal-locale check at all, unlike v1's | ISSUE | medium | medium |
 | [B1620](backlog/issue/B1620-three-v2-surfaces-drop-information-v1.md) | Three v2 surfaces drop information v1 exposed: day-list test inheritance, status drafts' test flag, and mail send error detail | ISSUE | medium | low |
 | [B1627](backlog/issue/B1627-the-v2-media-door-validates-format.md) | The v2 media door validates format for a trip photo but not one declined to the inbox | ISSUE | medium | low |
+| [B1639](backlog/issue/B1639-a-trip-patch-silently-drops-any.md) | A trip PATCH silently drops any key the model does not carry, where v1 surfaced them as unknownFields | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
