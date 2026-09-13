@@ -166,6 +166,24 @@ runtime performance in this ticket. This is the repository and development
 harness used by coding agents. Do not require one vendor: Claude Code, Codex
 and a plain shell-based agent must all retain the documented path.
 
+## Progress
+
+Checkpoint on 2026-09-13: the branch now gives `tasks.mjs` concise default,
+lane/category, single-task and search views, with the former exhaustive output
+behind `list --all`. On the real task tree, default stdout fell from roughly
+160 KB to 7,525 bytes. Six focused discovery tests pass alongside the existing
+task-script and hold suites, and the two task-management skills now route to
+the narrow commands.
+
+The first test run also confirmed that this shell can resolve Node 18 while CI
+and the installed dependencies require Node 24.20.0. Checks pass when invoked
+with CI's exact Node binary. The later worktree-preflight slice should make that
+version mismatch explicit before a test starts.
+
+Next: remove the real settlement clock from photobook tests, then split the
+backup-script critical path. The instruction-size refactor follows those
+mechanical wins so its quality benchmark can run on the faster suite.
+
 ## Acceptance
 
 - A committed baseline report and command reproduce measurements across at

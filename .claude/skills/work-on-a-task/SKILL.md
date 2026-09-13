@@ -59,10 +59,13 @@ verdict for this ticket, read that verdict rather than redoing the work —
 `plan-a-run` already read the code for the same question. Write it into the
 task file and move on.
 
+`npm run tasks -- show B01` prints the current task in full without loading the
+whole task index.
+
 ### 2. Take it
 
 ```bash
-npm run tasks                       # what is in open/
+npm run tasks -- list --lane open   # what is in open/
 ```
 
 Given an id, use it. Asked to pick, take the highest-priority task in `open/`;
