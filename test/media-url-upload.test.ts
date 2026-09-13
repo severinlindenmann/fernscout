@@ -41,7 +41,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, test } from "vitest";
 const OWNER = "ana";
 const OWNER_EMAIL = "ana@example.test";
 const TRIP = "asia-2026";
-const DAY = "lanterns-of-hoi-an";
+const DAY = "2026-01-04-lanterns-of-hoi-an";
 
 let dir: string;
 let calls = 0;
@@ -82,6 +82,47 @@ async function postUrl(token: string, url: string, day: string, opts: { trip?: s
     { params: Promise.resolve({ user: OWNER }) },
   );
   return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+function dayBody(slug: string): Record<string, unknown> {
+  return {
+    slug,
+    title: "A day",
+    date: slug.slice(0, 10),
+    content: "Something happened.",
+    status: "draft",
+    declined: {
+      media: "no photographs attached to this day yet",
+      costs: "nothing spent today, tracked elsewhere",
+      coordinates: "no position recorded for this day",
+      weather: "weather was not asked for this day",
+      time: "the exact time of day was not recorded",
+      timezone: "no timezone established for this leg",
+      location: "no specific location named for this day",
+      country: "no country named for this day entry",
+      countryCode: "no country code named for this day",
+      transportMode: "no transport leg happened this day",
+      tags: "no tags applied to this day",
+      translations: "single-language journal, nothing to translate",
+      visibility: "no narrower visibility set for this day",
+    },
+  };
+}
+
+/** B1685: naming a day in the upload intent now attaches to it, which means
+ * the day has to actually exist — the media door no longer accepts an
+ * arbitrary directory name here. */
+async function putDay(slug: string, token: string) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/${OWNER}/trips/${TRIP}/days/${slug}`, {
+      method: "PUT",
+      headers: headers({ authorization: `Bearer ${token}` }),
+      body: JSON.stringify(dayBody(slug)),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: TRIP, slug }) },
+  );
+  if (response.status !== 201) throw new Error(`putDay(${slug}) failed: ${JSON.stringify(await response.json())}`);
 }
 
 const realRequest = https.request;
@@ -165,6 +206,9 @@ beforeAll(async () => {
     visibility: "private",
   });
   if (!trip.ok) throw new Error(trip.message);
+
+  const token = await ownerToken();
+  await putDay(DAY, token);
 });
 
 afterEach(() => {

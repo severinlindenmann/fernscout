@@ -163,17 +163,19 @@ describe("POST — the same bytes twice", () => {
     const token = await ownerToken();
     const bytes = await jpeg(800, 600);
 
-    const first = await postMultipart(token, { kind: "photo", trip: TRIP, day: "day-one", declined: { caption: "n/a for this test" } }, {
-      name: "a.jpg",
-      bytes,
-    });
+    const first = await postMultipart(
+      token,
+      { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "n/a for this test" } },
+      { name: "a.jpg", bytes },
+    );
     expect(first.status, JSON.stringify(first.body)).toBe(201);
     expect(first.body.duplicateOf).toBeUndefined();
 
-    const second = await postMultipart(token, { kind: "photo", trip: TRIP, day: "day-one", declined: { caption: "n/a for this test" } }, {
-      name: "a-again.jpg",
-      bytes,
-    });
+    const second = await postMultipart(
+      token,
+      { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "n/a for this test" } },
+      { name: "a-again.jpg", bytes },
+    );
     expect(second.status).toBe(201);
     expect(second.body.src).toBe(first.body.src);
     expect(second.body.duplicateOf).toBe(first.body.src);
@@ -238,7 +240,7 @@ describe("POST — the original survives untouched, beside the derivative", () =
 
     const { status, body } = await postMultipart(
       token,
-      { kind: "photo", trip: TRIP, day: "print-test", declined: { caption: "no caption for this test" } },
+      { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "no caption for this test" } },
       { name: "big.jpg", bytes },
     );
     expect(status, JSON.stringify(body)).toBe(201);
@@ -264,7 +266,7 @@ describe("DELETE — by src", () => {
     const bytes = await jpeg(300, 300, 90);
     const uploaded = await postMultipart(
       token,
-      { kind: "photo", trip: TRIP, day: "to-delete", declined: { caption: "no caption for this test" } },
+      { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "no caption for this test" } },
       { name: "gone.jpg", bytes },
     );
     expect(uploaded.status).toBe(201);
@@ -304,7 +306,7 @@ describe("DELETE — by src", () => {
     const bytes = await jpeg(200, 200, 50);
     const uploaded = await postMultipart(
       owner,
-      { kind: "photo", trip: TRIP, day: "scoped-test", declined: { caption: "no caption for this test" } },
+      { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "no caption for this test" } },
       { name: "x.jpg", bytes },
     );
     const src = String(uploaded.body.src);
@@ -363,7 +365,7 @@ describe("GET — cursor paging", () => {
       const bytes = await jpeg(120 + i, 120 + i, 5 + i * 10);
       const res = await postMultipart(
         token,
-        { kind: "photo", trip: TRIP, day: "paged-day", declined: { caption: "no caption for this test" } },
+        { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "no caption for this test" } },
         { name: `p${i}.jpg`, bytes },
       );
       expect(res.status, JSON.stringify(res.body)).toBe(201);

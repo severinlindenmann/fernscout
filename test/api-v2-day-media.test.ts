@@ -161,6 +161,26 @@ async function uploadPhoto(tripId: string, shade: number, token: string | undefi
   return body.src;
 }
 
+/** Same door, but the intent NAMES a day instead of declining it — B1685: a
+ * photograph uploaded this way must land in that day's own `media` too, not
+ * merely on disk. Returns the full upload response and status, since a test
+ * of this needs both. */
+async function uploadPhotoNamingDay(tripId: string, slug: string, shade: number, token: string | undefined) {
+  const { POST } = await import("@/app/api/v2/[user]/media/route");
+  const form = new FormData();
+  form.set("intent", JSON.stringify({ kind: "photo", trip: tripId, day: slug, caption: "the harbour at dawn" }));
+  form.set("file", new File([new Uint8Array(await jpeg(shade))], "q.jpg", { type: "image/jpeg" }));
+  const response = await POST(
+    new Request(`https://example.test/api/v2/${OWNER}/media`, {
+      method: "POST",
+      headers: formHeaders(token ? { authorization: `Bearer ${token}` } : {}),
+      body: form,
+    }),
+    { params: Promise.resolve({ user: OWNER }) },
+  );
+  return { status: response.status, body: (await response.json()) as Body };
+}
+
 async function attach(
   tripId: string,
   slug: string,
@@ -400,5 +420,28 @@ describe("visibility — narrows only, and round-trips", () => {
     const { dayMediaAttachRequest } = await import("@/lib/api/v2/schemas/dayMedia");
     const result = dayMediaAttachRequest.safeParse({ items: [{ src: "x", visibility: "public" }] });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("POST /api/v2/{user}/media naming a day — B1685", () => {
+  test("attaches the photograph to that day, and retracts declined.media", async () => {
+    const token = await ownerToken();
+    await putDay(TRIP_ID, "2026-06-05-lanterns", dayBody("2026-06-05-lanterns"), token);
+
+    const { status, body: uploaded } = await uploadPhotoNamingDay(TRIP_ID, "2026-06-05-lanterns", 33, token);
+    expect(status, JSON.stringify(uploaded)).toBe(201);
+    const src = String(uploaded.src);
+
+    // It is there, not merely accepted (B540/B1685) — a fresh GET agrees.
+    const { body: day } = await getDay(TRIP_ID, "2026-06-05-lanterns", token);
+    expect((day.media as { src: string }[] | undefined)?.map((m) => m.src)).toContain(src);
+    expect((day.declined as Record<string, string> | undefined)?.media).toBeUndefined();
+  });
+
+  test("a day this trip has never heard of is unknown_day, and nothing is written", async () => {
+    const token = await ownerToken();
+    const { status, body } = await uploadPhotoNamingDay(TRIP_ID, "2026-06-05-no-such-day", 44, token);
+    expect(status, JSON.stringify(body)).toBe(404);
+    expect(body.error).toBe("unknown_day");
   });
 });
