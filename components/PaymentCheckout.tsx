@@ -106,6 +106,17 @@ export default function PaymentCheckout({
     return () => clearTimeout(timer);
   }, [confirming, waited, router]);
 
+  // B1411 — `requested` under Stripe means a checkout session was offered,
+  // not that anybody paid. Only `confirming` (just back from Stripe, still
+  // polling for the webhook) is evidence a payment might be settling; every
+  // other `requested` moment under Stripe — a fresh visit, Stripe's own back
+  // link, or the poll above giving up — gets the Pay button back rather than
+  // a page with nothing on it. The route already reuses an open session or
+  // mints a fresh one (B831), so a second press is safe.
+  const manualRequested = requested && provider === "manual";
+  const offerPayAgain = !paid && !confirming && !manualRequested;
+  const stripeNotSettled = offerPayAgain && requested && provider === "stripe";
+
   return (
     <>
       <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
@@ -137,7 +148,7 @@ export default function PaymentCheckout({
               {t(
                 paid
                   ? "pay.statusPaid"
-                  : requested
+                  : manualRequested || confirming
                     ? "pay.statusRequested"
                     : "pay.statusPending",
               )}
@@ -155,26 +166,40 @@ export default function PaymentCheckout({
               {t("pay.paidNote", { credits: String(payment.credits) })}
             </p>
           </div>
-        ) : requested ? (
+        ) : confirming ? (
           <div className="mt-5 rounded-xl border border-line-quiet bg-surface-base p-4">
             <p className="font-display text-base font-semibold text-ink-strong">
-              {t(
-                provider === "stripe"
-                  ? "pay.confirmingTitle"
-                  : "pay.requestedTitle",
-              )}
+              {t("pay.confirmingTitle")}
+            </p>
+            <p className="mt-1.5 text-base leading-7 text-ink-body">
+              {t("pay.confirming")}
+            </p>
+          </div>
+        ) : manualRequested ? (
+          <div className="mt-5 rounded-xl border border-line-quiet bg-surface-base p-4">
+            <p className="font-display text-base font-semibold text-ink-strong">
+              {t("pay.requestedTitle")}
             </p>
             {/* The manual-approval bridge, in plain words. */}
             <p className="mt-1.5 text-base leading-7 text-ink-body">
-              {provider === "stripe"
-                ? t(confirming ? "pay.confirming" : "pay.notSettled")
-                : approver
-                  ? t("pay.requestedNote", { admin: approver })
-                  : t("pay.requestedNoteNoAdmin")}
+              {approver
+                ? t("pay.requestedNote", { admin: approver })
+                : t("pay.requestedNoteNoAdmin")}
             </p>
           </div>
         ) : (
           <div className="mt-5">
+            {/* A prior Stripe session was offered and we have no evidence it
+                was ever finished — Stripe's own back link, a stale reload, or
+                the poll above giving up. Say that honestly and hand back the
+                only way forward: pay again. Somebody who did pay is unharmed
+                — the webhook still lands and grants the credits whenever it
+                arrives, and the route reuses that same open session first. */}
+            {stripeNotSettled && (
+              <p className="mb-4 text-base leading-7 text-ink-body">
+                {t("pay.notSettled")}
+              </p>
+            )}
             {/* Under a provider there is nothing to choose here: Stripe's own
                 page offers TWINT, the device's wallet and a card, and a second
                 chooser in front of it would only be a guess at the first. Not

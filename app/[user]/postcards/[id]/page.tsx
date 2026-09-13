@@ -17,6 +17,7 @@ import { readJpeg } from "@/lib/postcard/pdf";
 import { backLayout, resolutionNote } from "@/lib/postcard/preview";
 import { messageFit } from "@/lib/postcard/render";
 import { getOrder, isExpired, isPending, refreshProviderStatuses } from "@/lib/postcard/orders";
+import { settleCancelledCard } from "@/lib/postcard/reconcile";
 import { postcardOrderView } from "@/lib/order/view";
 import OrderDocket from "@/components/order/OrderDocket";
 import { travellerPartyFor } from "@/lib/postcard/entry";
@@ -136,8 +137,18 @@ export default async function PostcardOrderPage({
   // B1548 — Stannp has no push for `printing`/`dispatched`, only for
   // cancellation, so a card already at the printer is the only case worth
   // asking about here. Best-effort: `refreshProviderStatuses` never throws.
+  // Since B1532 it may also hand back cards it just found cancelled — the
+  // on-view counterpart of the webhook, settled through the same
+  // `settleCancelledCard` so a card caught here refunds exactly like one the
+  // webhook caught first.
   if (order.status === "built" || order.status === "failed") {
-    order = await refreshProviderStatuses(order);
+    const refreshed = await refreshProviderStatuses(order);
+    order = refreshed.order;
+    for (const claim of refreshed.cancellations) {
+      await settleCancelledCard(claim).catch((error) =>
+        console.error(`[postcard] settling cancelled card ${claim.ref} failed:`, error),
+      );
+    }
   }
 
   const people = await recipientsOf(username, order.payload.recipients);

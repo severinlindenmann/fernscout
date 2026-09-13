@@ -358,6 +358,12 @@ describe("the grant path is not reachable over HTTP", () => {
     "lib/photobook/reconcile.ts",
     "lib/postcard/send.ts",
     "lib/whatsapp/dispatch.ts",
+    // B1532. The postcard counterpart of `lib/photobook/reconcile.ts`: one
+    // card Stannp cancels after accepting it, refunded once, through the
+    // same atomic claim (`recordProviderCancellation`,
+    // `refreshProviderStatuses`) that keeps a retried webhook delivery or a
+    // page opened twice from refunding twice.
+    "lib/postcard/reconcile.ts",
   ];
 
   test("only the sanctioned routes import refund from lib/credits", () => {
