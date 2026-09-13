@@ -1,11 +1,10 @@
 import "server-only";
 import { fileUnchangedSince } from "../entries";
-import { getTrip, parseTripRef, tripRef, type TripRef } from "../trips";
+import { getTrip, parseTripRef, type TripRef } from "../trips";
 import type { TripPerson } from "../types";
 import type { Figure } from "../travellers/vocabulary";
 import { peopleBlock, travellersBlock, writeTravellersAsFigures, type BlockResult } from "../tripWrite";
 import { readTripJson, writeTripJson } from "./tripFile";
-import { authenticate, errorResponse, mayActAsOwner, ownsUser } from "./auth";
 
 /**
  * Amending a trip's `people:` and `figures:` (v1: `travellers:`) after it has
@@ -127,49 +126,4 @@ export function patchTripParty(
     };
   }
   return { ok: true, ...after };
-}
-
-/**
- * The gate both routes stand behind: the journal's owner, on a trip that
- * exists.
- *
- * Shared rather than copied a third and fourth time — `.../rates` and
- * `.../visibility` each carry their own `resolve()`, and the only thing that
- * differs between them is the sentence in the refusal. That sentence is the
- * argument, so it is the parameter.
- *
- * **Owner only, and `people:` is why it has to be.** `mayWriteTrip` would let
- * anyone already on the trip through, and everyone on `people:` may write to
- * the whole trip — so a trip-scoped token could add its holder's friends to
- * the list that decides who else may write, and remove the owner's own
- * co-traveller. Being on the bus is not deciding who is on it. `travellers:`
- * is cosmetic and could defensibly be looser; it is held to the same line so
- * there is one answer to "who may edit a trip's own fields" rather than two.
- */
-export async function resolveTripOwner(
-  request: Request,
-  user: string,
-  trip: string,
-  refusal: string,
-): Promise<{ ok: true; ref: TripRef } | { ok: false; response: Response }> {
-  const auth = await authenticate(request);
-  if (!auth.ok) return { ok: false, response: errorResponse(auth) };
-
-  if (!ownsUser(auth.session, user)) {
-    return { ok: false, response: Response.json({ error: "out_of_scope" }, { status: 403 }) };
-  }
-
-  const ref = tripRef(user, trip);
-  if (!getTrip(ref)) {
-    return { ok: false, response: Response.json({ error: "unknown_trip" }, { status: 404 }) };
-  }
-
-  if (!mayActAsOwner(auth.session, user)) {
-    return {
-      ok: false,
-      response: Response.json({ error: "out_of_scope", message: refusal }, { status: 403 }),
-    };
-  }
-
-  return { ok: true, ref };
 }

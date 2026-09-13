@@ -58,7 +58,6 @@ export const ERROR_CODES = {
     "step. The refusal names the three bounds.",
   no_such_device: "No device of that id on this account.",
   not_found: "Nothing at this address.",
-  no_costs_file: "This trip has no costs.md yet. PUT the costs once to create it, then PATCH to change it.",
   gone: "This journal or trip was deleted. Its name stays reserved and its old URLs answer 410 rather than 404, so this is not a typo — it is a thing that used to be here.",
 
   // ── the body is wrong ──────────────────────────────────────────────────
@@ -109,7 +108,6 @@ export const ERROR_CODES = {
   unreadable: "The importer could not read the file at all. If the format was detected it may be the wrong one — name it explicitly. If you named it, the file is not what you said.",
   contract: "The file was read and what came out does not hold up: `problems` says what is wrong in words — coordinates the wrong way round, seconds where milliseconds were meant, an export with no positions. Nothing was written.",
   could_not_fetch: "This server could not fetch one of the `urls`. https only, public hosts only, and it is refused after a redirect to a private address.",
-  method_not_allowed: "This route does not take that verb, and the `message` names the one that does what you meant.",
   nothing_to_draw: "No figure to draw. Send `figure` or `party` as JSON.",
   expected_photo: "Name one photograph — multipart bytes under `photo`, or `inbox` or `gallery` in a JSON body.",
   not_this_trip: "That `gallery` src is not a photograph on this trip's own media — either it names a different trip, or it does not exist. Give a src exactly as a day's gallery already carries it.",

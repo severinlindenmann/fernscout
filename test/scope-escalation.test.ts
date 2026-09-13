@@ -562,20 +562,11 @@ describe("B231/B1086 — export.zip is owner-only and hands nothing to anyone el
     expect(archive.names).not.toContain("trips/");
   });
 
-  /**
-   * The same mistake in the same idiom, one endpoint over, on a much smaller
-   * payload — folded into B231 by the sweep rather than filed separately.
-   */
-  test("and the journal's features are not readable by a trip-scoped token", async () => {
-    const token = await scopedToken(ROBIN, "alps-2026");
-    const { GET } = await import("@/app/api/v1/[user]/config/route");
-    const response = await GET(
-      new Request(`https://example.test/api/v1/${OWNER}/config`, {
-        headers: headers({ authorization: `Bearer ${token}` }),
-      }),
-      { params: Promise.resolve({ user: OWNER }) },
-    );
-    expect(response.status).toBe(403);
-    expect(((await response.json()) as { error?: string }).error).toBe("out_of_scope");
-  });
+  // "the same mistake in the same idiom, one endpoint over" (folded into
+  // B231) tested this against `GET /api/v1/{user}/config`, which B1632
+  // retired. The mistake reappeared rather than going away: `GET
+  // /api/v2/{user}` (`app/api/v2/[user]/route.ts`) checks `ownsUser` but
+  // never `mayActAsOwner`, so a trip-scoped token reads the whole journal
+  // document back, `owner.email` included — filed as B1652 rather than
+  // ported here as a passing assertion of the wrong thing.
 });

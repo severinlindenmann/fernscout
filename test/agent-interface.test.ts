@@ -639,18 +639,10 @@ describe("the discovery document does not point at 404s", () => {
   });
 })
 
-describe("the wrong-verb messages name doors that exist (B414)", () => {
-  // The trip route's own wrong-verb message is gone: B622 gave `PATCH` the
-  // four fields it had spent two tickets apologising for not having, so there
-  // is no message left to keep honest. One signpost remains, below.
-
-  test("the journal route does not claim features are writable through no door", async () => {
-    const { PATCH } = await import("@/app/api/v1/[user]/route");
-    const res = await PATCH(new Request("https://x.test", { method: "PATCH" }), {
-      params: Promise.resolve({ user: "alex" }),
-    });
-    const body = (await res.json()) as { message: string };
-    expect(res.status).toBe(405);
-    expect(body.message).not.toMatch(/features are not writable through any door/i);
-  });
-});
+// "the wrong-verb messages name doors that exist" (B414) has no tests left.
+// The trip route's own wrong-verb message went first: B622 gave `PATCH` the
+// four fields it had spent two tickets apologising for not having, so there
+// was no message left to keep honest. The journal route's followed —
+// B1632 retired v1's `/api/v1/{user}` (PATCH answered 405 on purpose, a
+// signpost to `.../config`) once `PATCH /api/v2/{user}` covered the same
+// ground for real, so there is no wrong-verb stub left to keep honest either.

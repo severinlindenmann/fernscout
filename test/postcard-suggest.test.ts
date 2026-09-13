@@ -6,24 +6,25 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { issueCode, verifyCode } from "@/lib/auth";
+import { issueCode } from "@/lib/auth";
 import { approveContact, confirmContact, requestContact } from "@/lib/contacts";
 import { createOrder } from "@/lib/postcard/orders";
 import { postcardSuggestion } from "@/lib/postcard/suggest";
-import { GET as statusRoute } from "@/app/api/v1/[user]/status/route";
 import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
- * B436 — the one moment worth catching, and the one function that answers it
- * for both `GET .../status` and `/<user>/me` (`lib/postcard/suggest.ts`).
+ * B436 — the one moment worth catching, at the shared function
+ * (`lib/postcard/suggest.ts`) both `/<user>/me` and, until B1632, `GET
+ * .../status` drew their own card from.
  *
- * Every test here flips exactly one of the function's four conditions and
- * checks the *status route* — the same call `/<user>/me` drives its own card
- * from, through the identical `postcardSuggestion` import — rather than
- * duplicating the logic. `app/[user]/me/page.tsx` importing that same
- * function is asserted once, at the bottom, so a future edit that
- * reimplements this inline instead of calling the shared function is caught
- * here rather than by two pages quietly disagreeing.
+ * B1632 retired v1's `/status` and v2's own `journalStatus` schema
+ * (`lib/api/v2/schemas/status.ts`) carries no `suggestions` field at all —
+ * a deliberate narrowing (00-decisions.md), not a gap this ticket may patch
+ * by editing a frozen schema. So the "both doors go quiet together"
+ * property this file used to assert against the API is gone with the door;
+ * what remains is the function itself, still exercised by `/<user>/me`
+ * (`app/[user]/me/page.tsx`), asserted at the bottom so a future edit that
+ * reimplements this inline instead of calling the shared function is caught.
  */
 
 const OWNER = "ana";
@@ -120,23 +121,6 @@ async function addRecipient(): Promise<string> {
   return contactId!;
 }
 
-async function ownerToken(): Promise<string> {
-  const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
-  const verified = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
-  if (!verified.ok) throw new Error("no owner token");
-  return verified.token;
-}
-
-async function status(token: string) {
-  const response = await statusRoute(
-    new Request(`https://t.test/api/v1/${OWNER}/status`, {
-      headers: { authorization: `Bearer ${token}` },
-    }),
-    { params: Promise.resolve({ user: OWNER }) },
-  );
-  return { code: response.status, body: (await response.json()) as Record<string, unknown> };
-}
-
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-postcard-suggest-"));
   process.env.CONTENT_DIR = dir;
@@ -176,30 +160,16 @@ describe("with everything in place", () => {
     expect(suggestion?.recipients).toHaveLength(1);
     expect(suggestion?.recipients[0]).toMatchObject({ name: "Marta", city: "Lisbon" });
   });
-
-  test("and the status route carries the same day and trip", async () => {
-    writeDay();
-    await addRecipient();
-
-    const { code, body } = await status(await ownerToken());
-    expect(code).toBe(200);
-    const suggestions = body.suggestions as { day: string; trip: string }[];
-    expect(suggestions).toHaveLength(1);
-    expect(suggestions[0]).toMatchObject({ day: DAY, trip: TRIP });
-  });
 });
 
-describe("flipping one condition changes both doors together", () => {
-  test("no contact has asked for a postcard: both the function and status go quiet", async () => {
+describe("each condition can suppress it on its own", () => {
+  test("no contact has asked for a postcard", async () => {
     writeDay();
     // No addRecipient() call — nobody has asked.
-
     expect(await postcardSuggestion(OWNER)).toBeNull();
-    const { body } = await status(await ownerToken());
-    expect("suggestions" in body).toBe(false);
   });
 
-  test("credits are off server-wide: both the function and status go quiet", async () => {
+  test("credits are off server-wide", async () => {
     writeDay();
     await addRecipient();
     fs.writeFileSync(
@@ -219,11 +189,9 @@ describe("flipping one condition changes both doors together", () => {
     clearConfigCache();
 
     expect(await postcardSuggestion(OWNER)).toBeNull();
-    const { body } = await status(await ownerToken());
-    expect("suggestions" in body).toBe(false);
   });
 
-  test("an order already exists for that trip this week: both go quiet", async () => {
+  test("an order already exists for that trip this week", async () => {
     writeDay();
     await addRecipient();
     await createOrder(OWNER, {
@@ -238,25 +206,13 @@ describe("flipping one condition changes both doors together", () => {
     });
 
     expect(await postcardSuggestion(OWNER)).toBeNull();
-    const { body } = await status(await ownerToken());
-    expect("suggestions" in body).toBe(false);
   });
-});
 
-test("a test: true day never produces a suggestion", async () => {
-  writeDay(true);
-  await addRecipient();
-
-  expect(await postcardSuggestion(OWNER)).toBeNull();
-  const { body } = await status(await ownerToken());
-  expect("suggestions" in body).toBe(false);
-});
-
-test("absent means absent, never an empty array", async () => {
-  // Nothing written at all: no day, no contact.
-  const { body } = await status(await ownerToken());
-  expect(body.suggestions).toBeUndefined();
-  expect("suggestions" in body).toBe(false);
+  test("a test: true day never produces a suggestion", async () => {
+    writeDay(true);
+    await addRecipient();
+    expect(await postcardSuggestion(OWNER)).toBeNull();
+  });
 });
 
 test("/<user>/me draws its card from the same shared function, not a copy of the logic", () => {

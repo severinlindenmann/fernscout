@@ -155,7 +155,15 @@ describe("known-key / never-in-file / never-over-api against /openapi.json", () 
   // infrastructure, not this parcel's to redo — see docs/v2-migration's own
   // build order for where that lands.
 
-  test("config.json: the union of POST /journals and PATCH …/config accounts for every key the API offers that the file does not carry", () => {
+  // PATCH /api/v1/{user}/config retired under B1632 (v2 migration): a
+  // journal's profile fields are now PATCH /api/v2/{user} against the
+  // journalPatch schema, and `features` is instance-only and unwritable in
+  // v2 (00-decisions.md, decision 5) — there is no longer a v1 config PATCH
+  // for `body()` to resolve against, so both cross-checks below lost their
+  // subject along with the route. Same "not this parcel's to redo" as the
+  // days/trips retirement above: content-model.json still describes the
+  // pre-v2 config.json shape wholesale and wants the same rewrite.
+  test.skip("config.json: the union of POST /journals and PATCH …/config accounts for every key the API offers that the file does not carry", () => {
     const created = body("/api/v1/journals", "post");
     const patched = body("/api/v1/{user}/config", "patch");
     const apiKeys = new Set([...Object.keys(created.properties ?? {}), ...Object.keys(patched.properties ?? {})]);
@@ -164,7 +172,7 @@ describe("known-key / never-in-file / never-over-api against /openapi.json", () 
     expect(undeclared, "keys the API takes that this document does not mention at all").toEqual([]);
   });
 
-  test("config.json: every offered (non-file-only) key this document knows is actually taken by one of the two calls", () => {
+  test.skip("config.json: every offered (non-file-only) key this document knows is actually taken by one of the two calls", () => {
     const created = body("/api/v1/journals", "post");
     const patched = body("/api/v1/{user}/config", "patch");
     const apiKeys = new Set([...Object.keys(created.properties ?? {}), ...Object.keys(patched.properties ?? {})]);

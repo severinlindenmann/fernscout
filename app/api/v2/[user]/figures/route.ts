@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
  * `GET /api/v2/{user}/figures` — every figure in the journal's library, one
  * page at a time (V12: `?limit=&cursor=`/`next_cursor`).
  *
- * Owner only, the same gate `GET /api/v1/{user}/travellers` (the journal's
- * default *set*) already used — a figure may carry `person`, an email tying
- * it to somebody, which is not a vocabulary and not open the way `.../
- * presets` is.
+ * Owner only, the same gate v1's `GET /api/v1/{user}/travellers` (the
+ * journal's default *set*, retired under B1632) already used — a figure may
+ * carry `person`, an email tying it to somebody, which is not a vocabulary
+ * and not open the way `.../presets` is.
  */
 export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/figures">) {
   const started = Date.now();
