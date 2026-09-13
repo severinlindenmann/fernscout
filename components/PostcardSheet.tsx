@@ -19,15 +19,17 @@ import type { MediaTile } from "@/lib/types";
  * that page, and it is the only thing anywhere that spends credits at a
  * printer — see `app/[user]/postcards/[id]/send/route.ts`.
  *
- * ## It calls the endpoints the owner already had
+ * ## It calls the owner's own cookie doors, never a bearer one — B1674
  *
- * `GET …/postcards/recipients`, `GET …/postcards/texts` and
- * `POST …/postcards` all authenticate through `isOwner(user, request)`, which
- * accepts the owner's session cookie as readily as an agent's bearer token —
- * so the browser is simply another owner, and every guard those routes carry
- * applies here unchanged. That is also why this component can be wrong about
- * who is allowed to see it without being dangerous: the server does not take
- * its word for anything.
+ * This runs in a browser and holds only a cookie, and every `/api/v2` door is
+ * bearer-only (decision 24: a browser must never hold a credential that can
+ * rewrite the site). So it calls the `/api/web` proxies instead —
+ * `GET /api/web/{user}/postcards/recipients`, `GET
+ * /api/web/{user}/postcards/texts` and `POST /api/web/{user}/postcards/orders`
+ * — each of which checks `isOwner` on the cookie only and then calls the
+ * exact function the matching `/api/v2/{user}/postcards/...` route calls
+ * after its own bearer check, in process. No bearer token is ever minted,
+ * held or sent by this component.
  *
  * ## Why the message is prefilled from the day, and only prefilled
  *
@@ -127,14 +129,19 @@ export default function PostcardSheet({
     (async () => {
       try {
         const [recRes, textRes] = await Promise.all([
-          fetch(`/api/v1/${username}/postcards/recipients`),
-          fetch(`/api/v1/${username}/postcards/texts?trip=${encodeURIComponent(trip)}`),
+          fetch(`/api/web/${username}/postcards/recipients`),
+          fetch(`/api/web/${username}/postcards/texts?trip=${encodeURIComponent(trip)}`),
         ]);
         if (!live) return;
 
-        const rec = recRes.ok
-          ? ((await recRes.json()) as { recipients: Candidate[] })
-          : { recipients: [] };
+        // A failed request is not the same claim as an empty list — the
+        // first means "could not find out", the second means "nobody has
+        // asked". Treating a 404 as `{recipients: []}` used to render the
+        // wrong one: an owner told nobody wants a postcard when the truth
+        // was the door had moved (B1674). So a failed fetch here falls
+        // through to the `catch` below, the same as a create failure.
+        if (!recRes.ok) throw new Error(String(recRes.status));
+        const rec = (await recRes.json()) as { recipients: Candidate[] };
         const to = rec.recipients[0];
         if (!to) {
           if (live) setNobody(true);
@@ -159,13 +166,11 @@ export default function PostcardSheet({
         }
         if (!live) return;
 
-        const res = await fetch(`/api/v1/${username}/postcards`, {
+        const res = await fetch(`/api/web/${username}/postcards/orders`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            trip,
-            day: tile.slug,
-            photo: photoPathOf(tile.src, username, trip),
+            source: { trip, day: tile.slug, photo: photoPathOf(tile.src, username, trip) },
             message: message.trim(),
             from,
             recipients: [to.contactId],
