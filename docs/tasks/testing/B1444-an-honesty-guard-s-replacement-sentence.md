@@ -7,6 +7,7 @@ complexity: low
 area: helper, room
 found: "2026-09-11T11:11:05Z"
 started: "2026-09-13T07:06:34Z"
+merged: "2026-09-13T07:10:52Z"
 ---
 
 # B1444 — An honesty guard's replacement sentence is rendered twice around the card it replaces
