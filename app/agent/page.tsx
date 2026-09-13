@@ -28,6 +28,7 @@ import { currencyOptions } from "@/lib/rates";
 import { JOURNAL_COOKIE } from "@/lib/requestKeys";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
+import { getOwnerTel } from "@/lib/ownerTel";
 import { whatsappNumberForUrl } from "@/lib/whatsapp/settings";
 
 // Reads the identity cookie on every request; there is nothing here to
@@ -231,7 +232,7 @@ export default async function AgentPage({ searchParams }: PageProps<"/agent">) {
           // simply not there — the component draws nothing rather than a
           // chip that would fail.
           whatsappNumber={
-            journal.owner.telProvenAt && isEnabled("whatsappInbound", user)
+            (await getOwnerTel(user))?.provenAt && isEnabled("whatsappInbound", user)
               ? whatsappNumberForUrl()
               : undefined
           }

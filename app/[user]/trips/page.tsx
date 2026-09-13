@@ -379,7 +379,7 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
 
   return (
     <TripsIndexContent
-      whatsappSignIn={whatsappSignInOffered(user)}
+      whatsappSignIn={await whatsappSignInOffered(user)}
       trips={cards}
       locked={lockedCards}
       // Frame only — a teasered trip's countries have to be inside the map or

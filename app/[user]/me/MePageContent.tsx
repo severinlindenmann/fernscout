@@ -231,9 +231,10 @@ function JournalProfileFields({
     // first entry of `locales` IS the default, which `[defaultLocale,
     // ...extraLocales]` below already produces. B1653 removed both inputs
     // from this panel rather than leave them silently unsaved: `startLocation`
-    // is read by nothing, and `ownerTel` is set at signup (phone
-    // verification) or by an agent's own `PATCH /api/v1/{user}/config`, never
-    // from this cookie-only page — see the read-only row below.
+    // is read by nothing, and `ownerTel` is proof-only since B1654 — set at
+    // signup (phone verification) or through `.../owner/tel/verify` and
+    // `.../verify/redeem`, never by a bare write from this cookie-only page
+    // or anywhere else — see the read-only row below.
     const response = await fetch(`/api/web/${encodeURIComponent(username)}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -339,13 +340,17 @@ function JournalProfileFields({
         </span>
       </label>
 
-      {/* Read-only — B1653. The v2 journal document has no `ownerTel`, and
-          this page writes through the v2-backed cookie proxy
-          (`/api/web/{user}`), so an input here could accept a value it would
-          never store. The number is still real: it is set once, at signup
-          (phone verification), or later by an agent's own
-          `PATCH /api/v1/{user}/config` — the door `JOURNAL_PROFILE_FIELDS`
-          (`lib/journals.ts`) still keeps open for exactly this field. */}
+      {/* Read-only — B1653, and doubly so since B1654. The v2 journal
+          document has no `ownerTel`, and this page writes through the
+          v2-backed cookie proxy (`/api/web/{user}`), so an input here could
+          accept a value it would never store. The number itself is proof-only
+          now: it is set once, at signup (phone verification), or by
+          proving a new one through `POST /api/v2/{user}/owner/tel/verify`
+          and `.../verify/redeem` (`lib/ownerTel.ts`) — never by a bare
+          write, agent-held token or not, because that would let a token
+          redirect the owner's own WhatsApp copies of their day to a number
+          it chose. Clearing it (turning the WhatsApp copy off) is the one
+          plain call left, `DELETE /api/v2/{user}/owner/tel`. */}
       <div className="rounded-xl border border-navy-200 bg-cream-50 p-3.5">
         <p className={FIELD_LABEL}>{t("me.journalOwnerTel")}</p>
         <p className="mt-1 text-sm leading-6 text-navy-900">

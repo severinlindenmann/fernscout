@@ -3,6 +3,7 @@ import { isEnabled } from "../capabilities";
 import { getTrip, parseTripRef, type TripRef } from "../trips";
 import type { ReminderChannel } from "../types";
 import { getUser } from "../users";
+import { getOwnerTel } from "../ownerTel";
 import { reminderTemplate } from "../whatsapp/settings";
 import { REMINDER_CHANNELS } from "../tripWrite";
 import { readTripFile, writeTripFile } from "./v2/store";
@@ -40,7 +41,7 @@ export function readTripReminder(
   return { enabled: Boolean(trip.reminder), channel: trip.reminder?.channel ?? null };
 }
 
-export function patchTripReminder(ref: TripRef, raw: unknown): ReminderWriteResult {
+export async function patchTripReminder(ref: TripRef, raw: unknown): Promise<ReminderWriteResult> {
   const trip = getTrip(ref);
   if (!trip) return { ok: false, error: "unknown_trip" };
 
@@ -85,7 +86,7 @@ export function patchTripReminder(ref: TripRef, raw: unknown): ReminderWriteResu
         message: "This journal's WhatsApp channel is switched off; switch it on first, or choose mail.",
       };
     }
-    if (!user.owner.tel) {
+    if (!(await getOwnerTel(username!))?.tel) {
       return {
         ok: false,
         error: "channel_unavailable",

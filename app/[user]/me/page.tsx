@@ -14,6 +14,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { helperConsent } from "@/lib/helper/consent";
 import { journalProfile } from "@/lib/journals";
+import { getOwnerTel } from "@/lib/ownerTel";
 import { operatorMayRead } from "@/lib/helper/sessions";
 import { postcardSuggestion } from "@/lib/postcard/suggest";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
@@ -133,12 +134,17 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
 
   // B619, widened by B852. Owner only, like everything else resolved here:
   // the address is on it, and `config.json` is not something a reader's page
-  // should be able to ask about. `journalProfile()` is the same function `GET
-  // /api/v1/{user}/config` reads, so this panel and that response can never
-  // disagree about what the journal's own fields currently are.
+  // should be able to ask about.
+  //
+  // `ownerTel` no longer comes from `journalProfile()` — B1654 moved it to
+  // `lib/ownerTel.ts`'s central store, which `journalProfile()` does not
+  // read (it stays a plain, backward-compatible read of `config.json` for a
+  // number written there before this table existed). This is the one place
+  // the true, current number is looked up and spliced in.
   const journalPanel: JournalPanel | undefined = viewer.owner
     ? {
         ...journalProfile(journal),
+        ownerTel: (await getOwnerTel(user))?.tel ?? "",
         email: journal.owner.email ?? "",
       }
     : undefined;
@@ -217,7 +223,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
 
   return (
     <MePageContent
-      whatsappSignIn={whatsappSignInOffered(user)}
+      whatsappSignIn={await whatsappSignInOffered(user)}
       viewer={viewer}
       username={user}
       siteUrl={serverSite().url}

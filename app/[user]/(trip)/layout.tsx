@@ -35,7 +35,7 @@ export default async function TripPagesLayout({
         canSignIn={isEnabled("auth", username)}
         canAsk={isEnabled("contacts", username)}
         codeMinutes={CODE_TTL_MINUTES}
-        whatsappSignIn={whatsappSignInOffered(username)}
+        whatsappSignIn={await whatsappSignInOffered(username)}
         guestBlockedByPrivate={await guestBlockedByPrivateTrip(current)}
         waiting={await awaitingApproval(username)}
       />

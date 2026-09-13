@@ -1,6 +1,6 @@
 import { loadServerConfig } from "../config";
 import { isEnabled } from "../capabilities";
-import { getUser } from "../users";
+import { getOwnerTel } from "../ownerTel";
 import { toE164 } from "./phone";
 
 /**
@@ -172,9 +172,8 @@ export function authTemplateFor(locale: string): { name: string; language: strin
  * who presses it. What this reveals — that the journal's owner has a proven
  * number — is a fact about the journal, not about any visitor.
  */
-export function whatsappSignInOffered(username: string): boolean {
+export async function whatsappSignInOffered(username: string): Promise<boolean> {
   if (!isEnabled("whatsapp")) return false;
-  const user = getUser(username);
-  return Boolean(user?.owner?.tel && user.owner.telProvenAt);
-
+  const tel = await getOwnerTel(username);
+  return Boolean(tel?.tel && tel.provenAt);
 }

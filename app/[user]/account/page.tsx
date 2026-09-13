@@ -6,6 +6,7 @@ import AccountPageContent, {
 } from "./AccountPageContent";
 import { isOwner } from "@/lib/contacts/session";
 import { optedInCounts, listContacts } from "@/lib/contacts";
+import { getOwnerTel } from "@/lib/ownerTel";
 import { balanceOf, creditsEnabled, spentByReason } from "@/lib/credits";
 import { EXTRA_STORAGE_CREDITS, formatChf, POSTCARD_CREDITS } from "@/lib/credits/pricing";
 import { isEnabled } from "@/lib/capabilities";
@@ -93,7 +94,10 @@ export default async function AccountPage({ params }: PageProps<"/[user]/account
   let payment: PaymentPanel | undefined;
   const balance = await balanceOf(user);
   if (balance !== null) {
-    const counts = optedInCounts(await listContacts(user), journal.owner);
+    const counts = optedInCounts(await listContacts(user), {
+      email: journal.owner.email,
+      tel: (await getOwnerTel(user))?.tel ?? null,
+    });
     const transactions = (await listPayments(user)).map((tx) => ({
       id: tx.id,
       credits: tx.credits,

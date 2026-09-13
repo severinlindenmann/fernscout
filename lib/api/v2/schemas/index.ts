@@ -41,6 +41,8 @@ export type { JournalDoc } from "./journal";
 export type { MediaIntent } from "./media";
 export type { InstanceStatus, JournalStatus } from "./status";
 export type { ErrorEnvelope } from "./shared";
+export { ownerTelDoc, ownerTelVerifyRequest, ownerTelVerifyStarted, ownerTelVerifyRedeem } from "./ownerTel";
+export type { OwnerTelDoc, OwnerTelVerifyRequest, OwnerTelVerifyStarted, OwnerTelVerifyRedeem } from "./ownerTel";
 export {
   INVITE_KINDS,
   inviteWrite,

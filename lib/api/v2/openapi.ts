@@ -44,6 +44,10 @@ import {
   contactDoc,
   channelsPatch,
   channelsDoc,
+  ownerTelDoc,
+  ownerTelVerifyRequest,
+  ownerTelVerifyStarted,
+  ownerTelVerifyRedeem,
 } from "./schemas";
 import {
   ACCESSORIES,
@@ -819,6 +823,56 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(200, channelsDoc, "the channels as they now stand"),
         ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("capability_unavailable", 409)]),
+      },
+    },
+  };
+
+  paths["/api/v2/{user}/owner/tel"] = {
+    get: {
+      summary: "The owner's own telephone number — a notification channel, not the address that owns the journal.",
+      responses: {
+        ...jsonResponse(200, ownerTelDoc, "null fields when there is no number on file"),
+        ...refusalResponses(ownerRefusals),
+      },
+    },
+    delete: {
+      summary: "Clear the owner's own number — turns their free WhatsApp copy of a day back off.",
+      responses: {
+        ...jsonResponse(200, ownerTelDoc, "tel: null"),
+        ...refusalResponses(ownerRefusals),
+      },
+    },
+  };
+
+  // There is no PATCH on the resource above — setting the number takes two
+  // calls, on purpose. A bare PATCH would let an owner token redirect the
+  // owner's own WhatsApp copies to a number of its own choosing; proving
+  // possession of the number first is what `dayWhatsapp.ts`'s "presence IS
+  // the consent" reasoning depends on. See `lib/ownerTel.ts`.
+  paths["/api/v2/{user}/owner/tel/verify"] = {
+    post: {
+      summary: "Start proving a number for the owner's own telephone field — sends a one-time code.",
+      request: jsonBody(ownerTelVerifyRequest, 'a telephone number with its country code, e.g. "+41 76 000 00 00"'),
+      responses: {
+        ...jsonResponse(202, ownerTelVerifyStarted, "an opaque id — bring it, with the code, to `.../verify/redeem`"),
+        ...refusalResponses([
+          ...ownerRefusals,
+          ref("invalid_request", 400),
+          ref("capability_unavailable", 409),
+          ref("too_many_requests", 429),
+          ref("verification_failed", 503),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/v2/{user}/owner/tel/verify/redeem"] = {
+    post: {
+      summary: "Finish proving a number — the code from `.../verify` writes owner.tel, proven, for good.",
+      request: jsonBody(ownerTelVerifyRedeem, "the id from `.../verify`, and the code the number received"),
+      responses: {
+        ...jsonResponse(200, ownerTelDoc, "the number, now proven"),
+        ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("invalid_code", 401), ref("too_many_requests", 429)]),
       },
     },
   };

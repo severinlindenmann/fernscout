@@ -981,7 +981,7 @@ export function openApiDocument() {
           description:
             "Send only what you are changing: `{\"features\": {\"contacts\": true}}`, or one " +
             "or more of `title`, `tagline`, `visibility`, `startLocation`, `units`, " +
-            "`locales`, `defaultLocale`, `displayCurrencies`, `manualRates`, `ownerTel`, " +
+            "`locales`, `defaultLocale`, `displayCurrencies`, `manualRates`, " +
             "`travellers`. " +
             "Before this " +
             "there was no endpoint, tool or page that wrote a journal's config at all, so it " +
@@ -999,9 +999,12 @@ export function openApiDocument() {
             "restores the previous bytes if it does not load, so a request doing that twice " +
             "is one that can succeed halfway.\n\nThree keys are never writable, each with " +
             "its own reason in the refusal. The `owner` block is not writable as a " +
-            "whole, and `owner.email` in particular never is: it decides who can obtain a " +
-            "token for this journal, so a token must not be able to move it. The telephone " +
-            "number inside it is the exception, reached as the flat field `ownerTel`. `baseCurrency` is not a " +
+            "whole, and none of it is writable here at all — B1654: the telephone number " +
+            "moved to its own proof-only door, `POST /api/v2/{user}/owner/tel/verify` and " +
+            "`.../verify/redeem`, because a bare write let a token holding this call " +
+            "redirect the owner's own WhatsApp copies to a number of its own choosing. " +
+            "`owner.email` decides who can obtain a token for this journal, so a token " +
+            "must not be able to move it either. `baseCurrency` is not a " +
             "display setting — a cost written without a `currency` IS a cost in the base " +
             "currency, so changing it re-reads every amount already recorded rather than " +
             "reconverting it. `media` is the operator's, and the server's limits are already " +
@@ -1083,20 +1086,6 @@ export function openApiDocument() {
                         "journal's `baseCurrency`, which this endpoint cannot change — `GET` " +
                         "returns it under `journal`.",
                     },
-                    ownerTel: {
-                      type: "string",
-                      description:
-                        "The owner's own telephone number — `owner.tel` in config.json, and " +
-                        "the only part of the `owner` block a token may write. It is where " +
-                        "the owner's own WhatsApp copy of a published day goes, and that copy " +
-                        "costs no credits; without it the owner is the one person the channel " +
-                        "cannot reach. Include the country code — `+41 76 000 00 00`, " +
-                        "`0041 76 000 00 00` or `41760000000`. A national number like " +
-                        "`076 000 00 00` is refused rather than guessed at, because it means " +
-                        "a different telephone in every country. Stored and returned as E.164 " +
-                        "digits, whatever form it was sent in. Empty string removes it, which " +
-                        "is also how the owner stops their own messages.",
-                    },
                     manualRates: {
                       type: "object",
                       additionalProperties: { type: ["number", "null"] },
@@ -1131,7 +1120,7 @@ export function openApiDocument() {
             "400": {
               description:
                 "An unknown capability, a non-boolean, an unwritable field (`owner`, " +
-                "`baseCurrency`, `media`), a capability this server does not provide, one " +
+                "`ownerTel`, `baseCurrency`, `media`), a capability this server does not provide, one " +
                 "the server decides for every journal (`capability_not_yours`: `photobook`, " +
                 "`postcards`, `logging`, `credits`), `features` sent together with a " +
                 "profile field (`mixed_change`), or a `travellers` figure with an unknown " +

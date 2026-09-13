@@ -8,6 +8,7 @@ import { ALL_TRACKED, TRACKS, type Track } from "../../../tracks";
 import { VISIBILITIES } from "../../../tripWrite";
 import { REMINDER_CHANNELS } from "../../../tripWrite";
 import { getUser } from "../../../users";
+import { getOwnerTel } from "../../../ownerTel";
 import { reminderTemplate } from "../../../whatsapp/settings";
 import { noTrip, resolveTrip } from "../resolve";
 
@@ -414,7 +415,7 @@ export const TRIPS_TOOLS: readonly Tool[] = [
       // when it plainly cannot is the same mistake B944 already found once:
       // a sentence that is false about somebody's own journal.
       const whatsappReady =
-        isEnabled("whatsapp", username) && Boolean(getUser(username)?.owner.tel) && reminderTemplate() !== null;
+        isEnabled("whatsapp", username) && Boolean((await getOwnerTel(username))?.tel) && reminderTemplate() !== null;
       const channel = requested === "whatsapp" && !whatsappReady ? "mail" : requested;
 
       return {

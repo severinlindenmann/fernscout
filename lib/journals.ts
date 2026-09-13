@@ -855,9 +855,17 @@ export function setJournalFeatures(
  *
  * B220 asked for a decision per field rather than for the file to be opened,
  * because these do not deserve the same care. `JOURNAL_PROFILE_FIELDS` is the
- * whole accepted list. Three fields are refused, each for its own reason, and
+ * whole accepted list. Four fields are refused, each for its own reason, and
  * `JOURNAL_FIELD_REFUSALS` carries the sentence the caller is told:
  *
+ * - **`ownerTel`** — B1654. It was writable here once, checked only for
+ *   shape (a valid E.164 number), which is exactly the gap that let an owner
+ *   token point a journal's WhatsApp copies at a number it chose rather than
+ *   one the owner actually holds. It moved to its own door,
+ *   `POST /api/v2/{user}/owner/tel/verify` and `.../verify/redeem`, which
+ *   proves possession with a passcode before anything is written — nothing
+ *   inside a boundary may move the boundary, the same rule `owner.email`
+ *   below already follows.
  * - **`owner.email`** — the address that decides who can obtain a token for
  *   this journal (decision 24). A token issued because of that address must
  *   not be able to move it: nothing inside a boundary may move the boundary.
@@ -903,7 +911,6 @@ export const JOURNAL_PROFILE_FIELDS = [
   "defaultLocale",
   "displayCurrencies",
   "manualRates",
-  "ownerTel",
   "travellers",
 ] as const;
 
@@ -913,11 +920,18 @@ type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
  * top-level key a caller would send. */
 export const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
   owner:
-    "The owner block is not writable as a whole. owner.email in particular is never writable " +
-    "here — it is the address that decides who can get a token for this journal, so a token " +
-    'cannot move it. The one part you can set is the telephone number, as "ownerTel": ' +
-    '"+41 76 000 00 00" — it is what the owner\'s own WhatsApp copy of a day is sent to, and ' +
-    "it costs no credits. Ask the person who runs the server for anything else in there.",
+    "The owner block is not writable as a whole, and none of it is writable here at all. " +
+    "owner.email decides who can get a token for this journal, so a token cannot move it. The " +
+    "telephone number moved off this call too — B1654, see \"ownerTel\" below. Ask the person " +
+    "who runs the server for anything else in there.",
+  ownerTel:
+    "The owner's own telephone number moved off this call — B1654 — and there is no bare " +
+    "write for it anywhere, agent token or not: a call that could set it to any number would " +
+    "let a token redirect the owner's own WhatsApp copy of every published day. Proving " +
+    "possession of the number is the only way on: POST /api/v2/{user}/owner/tel/verify with " +
+    '{"tel": "+41 76 000 00 00"} sends a code, and POST .../verify/redeem with {"id", "code"} ' +
+    "writes it once the code is confirmed. GET /api/v2/{user}/owner/tel reads it back, and " +
+    "DELETE clears it.",
   baseCurrency:
     "baseCurrency is not writable after a journal exists. A cost written without a currency " +
     "IS a cost in the base currency, so changing it would not reconvert the money — it would " +
@@ -943,17 +957,20 @@ export type JournalProfile = {
   displayCurrencies: string[];
   manualRates: RateTable;
   /**
-   * `owner.tel`, flattened — B614.
+   * `owner.tel`, flattened — B614, and **read-only since B1654.**
+   *
+   * The number itself now lives centrally (`lib/ownerTel.ts`), proof-only,
+   * and this call cannot set or clear it — see `ownerTel` in
+   * `JOURNAL_FIELD_REFUSALS`. This field stays only so a journal whose
+   * number is still sitting in `config.json` from before that table existed
+   * reads back unchanged; a number set or cleared through the new door does
+   * NOT show up here — `getOwnerTel()` is the one place that answers "what
+   * is the number now", and `app/[user]/me/page.tsx` calls it directly
+   * rather than trusting this field for that.
    *
    * The empty string means there is none, the same way a cleared `tagline`
-   * reads: the key is simply absent from the file, and `""` is what both a
-   * read-back and a "clear this" write say about it.
-   *
-   * Flattened rather than a nested `owner: { tel }`, because the rest of that
-   * block is not writable at all (see `JOURNAL_FIELD_REFUSALS`) and a nested
-   * object here would advertise a door that is not there. It is also the one
-   * writable field that is not a top-level key of `config.json`, which the
-   * write step below handles by hand.
+   * reads: the key is simply absent from the file, and `""` is what a
+   * read-back says about it.
    */
   ownerTel: string;
   /** Read-only here, and included because `displayCurrencies` must contain
@@ -1098,37 +1115,6 @@ export function setJournalProfile(
         break;
       }
 
-      case "ownerTel": {
-        const read = oneLine(key, value);
-        if ("problem" in read) return refuse("invalid_ownerTel", read.problem);
-        if (!read.text) {
-          // Cleared, which is also how the owner turns their own WhatsApp
-          // copy off again: no number, no message, and nothing else about it
-          // to switch.
-          remove.push(key);
-          break;
-        }
-        // Normalised here rather than on the way out of the file, so what is
-        // stored is what the send path uses and a number that cannot work is
-        // refused while somebody is still looking at the answer.
-        //
-        // No default country code, deliberately — the same rule
-        // `parseOwner` applies, and for the same reason: the operator's
-        // `defaultCountryCode` is an env var, and a number that depends on it
-        // would stop working when the operator changed it.
-        const tel = toE164(read.text);
-        if (!tel) {
-          return refuse(
-            "invalid_ownerTel",
-            `"${read.text}" is not a telephone number this can use. Include the country code — ` +
-              `+41 76 000 00 00, 0041 76 000 00 00 or 41760000000. A national number like ` +
-              `076 000 00 00 is refused: it means a different telephone in every country, and ` +
-              `this server is not standing in any of them.`,
-          );
-        }
-        patch[key] = tel;
-        break;
-      }
 
       case "visibility": {
         // `"private"` — the word this field used before B306 — is still
@@ -1355,18 +1341,6 @@ export function setJournalProfile(
     if (changed.length === 0) return null;
     const next = { ...raw, ...patch };
     for (const key of remove) delete next[key];
-    // `ownerTel` is the one writable field that is not a key of its own: it
-    // lives at `owner.tel`, one level down. Rewritten from `raw.owner` rather
-    // than from the parsed `user.owner`, so a key this code does not know
-    // about survives the edit.
-    if ("ownerTel" in next || remove.includes("ownerTel")) {
-      const owner = { ...(raw.owner as Record<string, unknown>) };
-      const tel = next.ownerTel;
-      delete next.ownerTel;
-      if (typeof tel === "string" && tel) owner.tel = tel;
-      else delete owner.tel;
-      next.owner = owner;
-    }
     return next;
   });
   if (!written.ok) return written;

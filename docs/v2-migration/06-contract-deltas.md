@@ -500,3 +500,46 @@ costs". That is the honest trade for letting a costs visibility and
 preparation spend exist before a budget does — both real states a trip passes
 through rather than edge cases. Tighten it back only by giving
 `costs.visibility` a home outside the section.
+
+### D20 — `schemas/ownerTel.ts` (new file), and no direct write
+
+**What changed.** A new schema file, `ownerTelDoc` (read shape:
+`{tel, provenAt, provenMethod}`, all nullable), `ownerTelVerifyRequest`
+(`{tel}`), `ownerTelVerifyStarted` (`{id}`) and `ownerTelVerifyRedeem`
+(`{id, code}`). Three new routes: `GET`/`DELETE /api/v2/{user}/owner/tel`,
+`POST .../owner/tel/verify` and `POST .../owner/tel/verify/redeem`.
+`journal.ts` itself is untouched — `owner` there still carries only
+`name`/`nickname`/`email`, exactly as the review froze it.
+
+**Why.** B1654: the last v1 route kept alive for one field
+(`PATCH /api/v1/{user}/config`'s `ownerTel`). The owner's own decision was
+that `owner.email` stays in `config.json` (it is the ownership claim a
+database drop must not be able to orphan) while `owner.tel` — a notification
+channel, not a claim — moves to a central store alongside `contacts` and
+`credits` (`lib/ownerTel.ts`, `034-owner-tel` migration).
+
+**What it costs, stated rather than buried.** The first draft of this
+schema added a plain `PATCH` accepting `{tel}`, checked only for E.164
+shape — the same check v1 already made. The owner's review of that draft
+caught what the check missed: a `PATCH` reachable by any owner-scoped agent
+token lets that token point the journal's WhatsApp copies (every published
+day, mailed to `owner.tel` for free — `lib/digest/dayWhatsapp.ts`) at a
+number of its own choosing, with nothing checking that the number belongs to
+anybody in particular. That is an exfiltration path wearing a settings field.
+So there is no `PATCH` at all: the only way onto this field is
+`.../verify` + `.../verify/redeem`, which reuses `lib/phoneVerify` (the same
+`startVerification`/`checkVerification` pair signup's own phone step uses)
+to prove the caller actually received a passcode at the number before
+anything is written. An agent may still *ask* for a code to be sent — that
+costs nothing to allow, since completing the proof needs the code itself,
+which only the phone holder has. `DELETE` (turning the channel off) needed
+no such gate and keeps the plain shape, since it can only narrow consent,
+never redirect it.
+
+One consequence worth naming: this server can only prove a number by
+sending it a code (`phoneProofMode() === "code"`). The `whatsapp-inbound`
+mode signup can use is bound to a signup session that an existing journal
+does not have, and re-proving a number that way for an existing journal is
+not built here — `.../verify` refuses with `capability_unavailable` on an
+instance configured for that mode. An owner on such an instance who never
+proved a number at signup has no way to add one until that gap is closed.
