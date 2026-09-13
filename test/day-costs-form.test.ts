@@ -7,7 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
-import { POST as createTripRoute } from "@/app/api/v1/[user]/trips/route";
+import { createTrip } from "@/lib/tripWrite";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getCostSummary } from "@/lib/costs";
 import { tripRef } from "@/lib/trips";
@@ -101,14 +101,13 @@ beforeEach(async () => {
   const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
   const verified = await verifyCode("alex", OWNER_EMAIL, code, "agent");
   if (!verified.ok) throw new Error("no token");
-  await createTripRoute(
-    new Request("https://t.test/api/v1/alex/trips", {
-      method: "POST",
-      headers: { authorization: `Bearer ${verified.token}`, "content-type": "application/json" },
-      body: JSON.stringify({ id: "a-trip", title: "A trip", start: "2026-05-01", end: "2026-05-08" }),
-    }),
-    params,
-  );
+  // The deleted v1 route this test used to drive (`POST /api/v1/alex/trips`)
+  // was a thin wrapper over this same function — calling it directly is the
+  // same fixture, not a change in what is exercised: this test is about the
+  // helper's day/costs routes and the v1 markdown storage they still write,
+  // which the v2 migration has not touched (B1598).
+  const created = createTrip("alex", { id: "a-trip", title: "A trip", start: "2026-05-01", end: "2026-05-08" });
+  if (!created.ok) throw new Error(created.message);
 });
 
 afterEach(async () => {

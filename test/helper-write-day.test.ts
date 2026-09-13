@@ -10,8 +10,7 @@ import { balanceOf, grant } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { buildPrompt, SYSTEM_PROMPT } from "@/lib/helper/model";
 import { history } from "@/lib/helper/thread";
-import { issueCode, verifyCode } from "@/lib/auth";
-import { POST as createTripRoute } from "@/app/api/v1/[user]/trips/route";
+import { createTrip } from "@/lib/tripWrite";
 
 /**
  * The model layer — B684.
@@ -117,22 +116,8 @@ beforeEach(async () => {
   await migrateToLatest(await getDatabase());
   await grant("alex", 10);
 
-  const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
-  const verified = await verifyCode("alex", OWNER_EMAIL, code, "agent");
-  if (!verified.ok) throw new Error("no token");
-  await createTripRoute(
-    new Request("https://t.test/api/v1/alex/trips", {
-      method: "POST",
-      headers: { authorization: `Bearer ${verified.token}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        id: "a-trip",
-        title: "Over the pass",
-        start: "2026-05-01",
-        end: "2026-05-31",
-      }),
-    }),
-    params,
-  );
+  const created = createTrip("alex", { id: "a-trip", title: "Over the pass", start: "2026-05-01", end: "2026-05-31" });
+  if (!created.ok) throw new Error(`trip fixture failed: ${created.message}`);
 });
 
 afterEach(async () => {

@@ -11,6 +11,10 @@ import { balanceOf, grant, ledgerFor } from "@/lib/credits";
 import { requestContact, confirmContact, approveContact } from "@/lib/contacts";
 import { mailWouldReach, sendDayLetter } from "@/lib/digest/dayLetter";
 import { getEntryBySlug } from "@/lib/entries";
+import { publishDraft, unpublishEntry } from "@/lib/api/entries";
+import { writeTripFile, writeDayFile } from "@/lib/api/v2/store";
+import { toStoredMedia } from "@/lib/api/v2/days";
+import { tripCreate, dayWrite } from "@/lib/api/v2/schemas";
 import type { Locale } from "@/lib/types";
 
 /**
@@ -83,6 +87,87 @@ type TripOptions = {
   people?: { name: string; email: string }[];
 };
 
+/**
+ * A v2-native mirror of the v1 `trip.md`/`entries/*.md` fixtures below —
+ * B1598's read-layer gap made concrete: `sendDayLetter`/`mailWouldReach`
+ * read the v1 markdown this file has always written, but the v2
+ * publish/send routes this ticket repoints onto (below) gate on
+ * `lib/api/v2/store.ts`'s own `trip.json`/`entries/*.json`, which nothing in
+ * this file otherwise writes. Both are written for every trip and entry so
+ * the v2 route can find its document; the mail behaviour under test still
+ * comes entirely from the v1 reader, unchanged.
+ */
+function mirrorTripV2(id: string, opts: TripOptions = {}) {
+  const visibility = opts.visibility ?? "public";
+  const people = opts.people?.length ? opts.people : [{ name: "Alex B", email: OWNER_EMAIL }];
+  const solo = people.length <= 1;
+  const declined: Record<string, string> = {
+    rates: "no foreign currency tracked",
+    costs: "no budget tracked",
+    plan: "no planned route recorded",
+    days: "days are written one at a time",
+    translations: "single-language journal",
+    accent: "default accent",
+    figures: "no walking figures drawn",
+    tagline: "no subtitle written",
+    intro: "no opening prose written",
+    ...(solo ? { buddies: "travelling solo" } : {}),
+    ...(visibility === "public" ? { listed: "not advertised for this fixture" } : {}),
+  };
+  const parsed = tripCreate.parse({
+    id,
+    title: id,
+    dates: { from: "2026-09-01", to: "2026-09-20" },
+    visibility,
+    people,
+    ...(visibility === "public" ? {} : { teaser: true }),
+    ...(opts.test ? { test: true } : {}),
+    declined,
+  });
+  const { days: _ignored, ...fields } = parsed;
+  writeTripFile(OWNER, id, fields);
+}
+
+function mirrorDayV2(
+  tripId: string,
+  slug: string,
+  title: string,
+  date: string,
+  opts: { test?: boolean; published?: boolean } = {},
+) {
+  const parsed = dayWrite.parse({
+    slug,
+    title,
+    date,
+    content: "Mirrored for the v2 route's own gating — see mirrorTripV2 above.",
+    status: "draft",
+    ...(opts.test ? { test: true } : {}),
+    declined: {
+      media: "n/a for this fixture",
+      costs: "n/a for this fixture",
+      coordinates: "n/a for this fixture",
+      weather: "n/a for this fixture",
+      time: "n/a for this fixture",
+      timezone: "n/a for this fixture",
+      location: "n/a for this fixture",
+      country: "n/a for this fixture",
+      countryCode: "n/a for this fixture",
+      transportMode: "n/a for this fixture",
+      tags: "n/a for this fixture",
+      translations: "n/a for this fixture",
+      visibility: "n/a for this fixture",
+    },
+  });
+  // `toStoredMedia` rather than the parsed wire items: a stored day's media
+  // carries `type`/`width`/`height`, derived at upload and absent from the
+  // wire shape, so `DayFile` is not satisfied by what `dayWrite` returns.
+  writeDayFile(OWNER, tripId, slug, {
+    ...parsed,
+    media: toStoredMedia(parsed.media, undefined),
+    status: opts.published ? "published" : "draft",
+  });
+}
+
 function writeTrip(id: string, opts: TripOptions = {}) {
   const root = path.join(dir, OWNER, "trips", id);
   fs.mkdirSync(path.join(root, "entries"), { recursive: true });
@@ -110,6 +195,7 @@ function writeTrip(id: string, opts: TripOptions = {}) {
       "",
     ].join("\n"),
   );
+  mirrorTripV2(id, opts);
 }
 
 async function writePhoto(tripId: string) {
@@ -173,6 +259,11 @@ function writeEntry(tripId: string, opts: EntryOptions = {}): { slug: string; fi
       "",
     ].join("\n"),
   );
+  // The v2 slug is the whole filename stem (YYYY-MM-DD-slug), not the bare
+  // `slug` var above — see api-v2-days.test.ts's own fixtures. `published`
+  // mirrors the v1 file's own default: no explicit `draft: true` means this
+  // entry already reads as published (lib/entries.ts's `isDraft`).
+  mirrorDayV2(tripId, `${date}-${slug}`, title, date, { test: opts.test, published: !opts.draft });
   return { slug, file };
 }
 
@@ -216,41 +307,83 @@ async function scopedToken(email: string, trip: string): Promise<string> {
   return session.token;
 }
 
+/** `slug` here is the bare v1-style slug every call site already uses
+ * (`"unannounced-day"`); the v2 route addresses a day by the whole
+ * `YYYY-MM-DD-slug` filename stem, which `mirrorDayV2` wrote — resolved from
+ * disk rather than changing every call site's slug. */
+function v2SlugFor(tripId: string, slug: string): string {
+  const entriesDir = path.join(dir, OWNER, "trips", tripId, "entries");
+  const file = fs.readdirSync(entriesDir).find((f) => f.endsWith(`-${slug}.json`));
+  if (!file) throw new Error(`no v2 mirror day for "${tripId}/${slug}" — did writeEntry() run for it?`);
+  return file.slice(0, -".json".length);
+}
+
+/**
+ * `body` here is old v1 vocabulary (`send_mail`, `costs`/`coordinates`/
+ * `photos` declines) — kept as every call site already writes it, and
+ * translated to v2's `publishRequest` shape (`sendMail`/`sendWhatsapp`;
+ * completeness is answered by `mirrorDayV2`'s full declines instead of a
+ * per-call decline list, so those three v1 keys need no v2 counterpart).
+ */
 async function publish(
   token: string,
   tripId: string,
   slug: string,
   body: Record<string, unknown> = {},
 ) {
-  const { POST } = await import(
-    "@/app/api/v1/[user]/trips/[trip]/days/[slug]/publish/route"
-  );
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/publish/route");
+  const v2Slug = v2SlugFor(tripId, slug);
+  const v2Body: Record<string, unknown> = {};
+  if ("send_mail" in body) v2Body.sendMail = body.send_mail;
+  if ("send_whatsapp" in body) v2Body.sendWhatsapp = body.send_whatsapp;
+
+  // Bridges the known v1/v2 read-layer gap (B1598, documented in
+  // app/api/v2/.../publish/route.ts and in api-v2-trips.test.ts's own
+  // "known gap" case) from the OTHER side of the call than the day route
+  // parcel needed: the v2 publish route calls `sendDayLetter` *synchronously*
+  // when a send is requested, and that function reads the v1 markdown's own
+  // draft flag — which the v2 route never touches — so a send requested in
+  // the same call as the publish would otherwise find the day still a draft
+  // and refuse `not_published`. Flip the .md file before the call, the same
+  // edit `publishDraft` makes for a real v1 publish; if the v2 call refuses
+  // for any reason, put it back exactly as it found it (`unpublishEntry`) —
+  // a refusal must never leave the day published on one side and not the
+  // other.
+  const ref = `${OWNER}/${tripId}`;
+  const wasDraft = getEntryBySlug(ref, slug, { includeDrafts: true })?.draft === true;
+  if (wasDraft) {
+    const flipped = publishDraft(ref, slug);
+    if (!flipped.ok) throw new Error(flipped.error);
+  }
+
   const response = await POST(
-    new Request(`https://t.test/api/v1/${OWNER}/trips/${tripId}/days/${slug}/publish`, {
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${tripId}/days/${v2Slug}/publish`, {
       method: "POST",
       headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      // The three declines by default: these fixture days carry no money, no
-      // photographs and sometimes no coordinates, and a trip tracks all three
-      // unless it says otherwise (B531). Publish re-runs the whole contract,
-      // so a file about the *letter* satisfies it here once rather than in
-      // every test.
-      body: JSON.stringify({ costs: false, coordinates: false, photos: false, ...body }),
+      body: JSON.stringify(v2Body),
     }),
-    { params: Promise.resolve({ user: OWNER, trip: tripId, slug }) },
+    { params: Promise.resolve({ user: OWNER, trip: tripId, slug: v2Slug }) },
   );
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  const status = response.status;
+  const responseBody = (await response.json()) as Record<string, unknown>;
+
+  if (wasDraft && status !== 200) {
+    const reverted = unpublishEntry(ref, slug);
+    if (!reverted.ok) throw new Error(reverted.error);
+  }
+  return { status, body: responseBody };
 }
 
 async function resend(token: string, tripId: string, slug: string) {
-  const { POST } = await import(
-    "@/app/api/v1/[user]/trips/[trip]/days/[slug]/send-mail/route"
-  );
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/send/route");
+  const v2Slug = v2SlugFor(tripId, slug);
   const response = await POST(
-    new Request(`https://t.test/api/v1/${OWNER}/trips/${tripId}/days/${slug}/send-mail`, {
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${tripId}/days/${v2Slug}/send`, {
       method: "POST",
-      headers: { authorization: `Bearer ${token}` },
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ channels: ["mail"] }),
     }),
-    { params: Promise.resolve({ user: OWNER, trip: tripId, slug }) },
+    { params: Promise.resolve({ user: OWNER, trip: tripId, slug: v2Slug }) },
   );
   return { status: response.status, body: (await response.json()) as Record<string, unknown> };
 }
@@ -520,6 +653,23 @@ describe("the photograph and the letter's shape", () => {
   });
 });
 
+/**
+ * KNOWN GAP (B1598-shaped, found by this repoint): the v2 publish/send
+ * routes call `sendDayLetter`/`sendDayWhatsapp`/`whatsappWouldCost` with the
+ * URL's own slug — the whole `YYYY-MM-DD-slug` filename stem — but those v1
+ * functions address an entry by the BARE slug (`entrySlugFromFile` in
+ * `lib/entries.ts` strips the date prefix before matching). Every send
+ * requested through these routes therefore reads back `unknown_day`/
+ * `unknown_trip` no matter how complete the v1 fixture is, and a credits
+ * pre-flight that depends on the same lookup silently falls back to its
+ * `.catch(() => 1)` default instead of the real recipient count. The tests
+ * below that request an actual send (four of them, and one credits
+ * pre-flight) are left failing rather than bent to match — the property they
+ * assert is real and still true of `sendDayLetter` itself (proven directly,
+ * with no route involved, in the earlier describe blocks in this file); it
+ * is only unreachable through these two routes until they pass the right
+ * slug through.
+ */
 describe("the two triggers, and what only the owner may pull", () => {
   test("publishing without send_mail sends nothing", async () => {
     writeTrip("quiet", { visibility: "public" });
@@ -545,8 +695,10 @@ describe("the two triggers, and what only the owner may pull", () => {
     const result = await publish(token, "prompted", "prompted-day", {});
     const notify = result.body.notify as { channels: { channel: string; url: string }[]; ask: string };
     expect(notify.channels.map((c) => c.channel)).toContain("mail");
+    // v2's one send door (S1) — both channels share this URL now, distinguished
+    // by the `channels` array in the POST body, not by a channel-named path.
     expect(notify.channels.find((c) => c.channel === "mail")?.url).toContain(
-      "/days/prompted-day/send-mail",
+      "/days/2026-09-08-prompted-day/send",
     );
     expect(notify.ask).toContain("Ask them");
     expect(mailFiles()).toHaveLength(0);
@@ -609,8 +761,11 @@ describe("the two triggers, and what only the owner may pull", () => {
 
     const result = await resend(token, "again", "again-day");
     expect(result.status).toBe(200);
-    expect(result.body).toMatchObject({ ok: true, resend: true, attempted: true });
-    expect((result.body.sent as number)).toBeGreaterThan(0);
+    // v2's one send door nests the outcome under `mail` (S1) rather than at
+    // the top level `send-mail` answered with.
+    const mail = result.body.mail as Record<string, unknown>;
+    expect(mail).toMatchObject({ attempted: true, resend: true });
+    expect((mail.sent as number)).toBeGreaterThan(0);
     // Sent again, not skipped as already-delivered.
     expect(mailFiles().length).toBe(firstCount * 2);
   });
@@ -628,30 +783,35 @@ describe("the two triggers, and what only the owner may pull", () => {
     writeEntry("proving2", { date: "2026-09-08", slug: "invented", test: true });
     const token = await agentToken();
     const result = await resend(token, "proving2", "invented");
-    expect(result.status).toBe(400);
+    // v2's one send door answers `test_content` as 409 (a conflict with what
+    // this day is), not v1's 400 — same error code, corrected status.
+    expect(result.status).toBe(409);
     expect(result.body.error).toBe("test_content");
   });
 });
 
 /**
- * B400 — `readPublishFlags`'s `=== true` is unchanged and load-bearing: a
- * non-boolean `send_mail` must still send nothing. What changes is that the
- * response now says so, instead of looking identical to nobody asking.
+ * B400 was v1's `readPublishFlags`'s `=== true`: a non-boolean `send_mail`
+ * published anyway and silently sent nothing, until the response was made to
+ * say so (`flagsIgnored`). v2's `publishRequest` is a `z.strictObject` with
+ * `sendMail: z.boolean().optional()` — a non-boolean value is not silently
+ * ignored, it is refused outright, before anything is written. The property
+ * that matters (a malformed flag never sends mail) still holds, more
+ * strongly: nothing is published either, so there is no `flagsIgnored`
+ * vocabulary left for the response to carry.
  */
-describe("a non-boolean send_mail is ignored, and the response names it", () => {
-  test("a string still publishes, still sends nothing, and now names the flag", async () => {
+describe("a non-boolean sendMail is refused outright — v2 does not ignore it", () => {
+  test("a string is refused, and nothing is published or sent", async () => {
     writeTrip("stringy", { visibility: "public" });
     writeEntry("stringy", { date: "2026-09-08", slug: "stringy-day", draft: true });
     await addReader("reader@example.test", "en");
 
     const token = await agentToken();
     const result = await publish(token, "stringy", "stringy-day", { send_mail: "true" });
-    expect(result.status).toBe(200);
-    expect(result.body.status).toBe("published");
-    expect(result.body.mail).toBeUndefined();
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe("invalid_request");
     expect(mailFiles()).toHaveLength(0);
-    expect(result.body.flagsIgnored).toEqual(["send_mail"]);
-    expect(typeof result.body.flagsIgnoredMessage).toBe("string");
+    expect(getEntryBySlug("alex/stringy", "stringy-day", { includeDrafts: true })?.draft).toBe(true);
   });
 
   test("a number is the same story", async () => {
@@ -661,13 +821,13 @@ describe("a non-boolean send_mail is ignored, and the response names it", () => 
 
     const token = await agentToken();
     const result = await publish(token, "numeric", "numeric-day", { send_mail: 1 });
-    expect(result.status).toBe(200);
-    expect(result.body.mail).toBeUndefined();
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe("invalid_request");
     expect(mailFiles()).toHaveLength(0);
-    expect(result.body.flagsIgnored).toEqual(["send_mail"]);
+    expect(getEntryBySlug("alex/numeric", "numeric-day", { includeDrafts: true })?.draft).toBe(true);
   });
 
-  test("send_mail: true still sends, and reports nothing ignored", async () => {
+  test("send_mail: true still sends", async () => {
     writeTrip("boolean", { visibility: "public" });
     writeEntry("boolean", { date: "2026-09-08", slug: "boolean-day", draft: true });
     await addReader("reader@example.test", "en");
@@ -676,10 +836,9 @@ describe("a non-boolean send_mail is ignored, and the response names it", () => 
     const result = await publish(token, "boolean", "boolean-day", { send_mail: true });
     expect(result.status).toBe(200);
     expect(result.body.mail).toMatchObject({ attempted: true, sent: 2, failed: 0 });
-    expect(result.body.flagsIgnored).toBeUndefined();
   });
 
-  test("no send_mail key at all sends nothing and reports nothing ignored", async () => {
+  test("no send_mail key at all sends nothing", async () => {
     writeTrip("silent", { visibility: "public" });
     writeEntry("silent", { date: "2026-09-08", slug: "silent-day", draft: true });
     await addReader("reader@example.test", "en");
@@ -689,7 +848,6 @@ describe("a non-boolean send_mail is ignored, and the response names it", () => 
     expect(result.status).toBe(200);
     expect(result.body.mail).toBeUndefined();
     expect(mailFiles()).toHaveLength(0);
-    expect(result.body.flagsIgnored).toBeUndefined();
   });
 });
 
@@ -996,8 +1154,11 @@ describe("credits — B366, and what B840 stopped charging for", () => {
 
     expect(result.status).toBe(402);
     expect(result.body.error).toBe("no_credits");
-    expect(result.body.needed).toBe(12);
-    expect(result.body.balance).toBe(8);
+    // v2's `fail()` nests a refusal's structured facts under `details`,
+    // rather than splicing them onto the body's own top level.
+    const details = result.body.details as { needed: number; balance: number };
+    expect(details.needed).toBe(12);
+    expect(details.balance).toBe(8);
     expect(
       getEntryBySlug("alex/combined", slug, { includeDrafts: true })?.draft,
     ).toBe(true);

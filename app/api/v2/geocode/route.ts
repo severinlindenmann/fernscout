@@ -16,11 +16,12 @@ export async function POST(request: Request) {
   const bearer = await resolveBearer(request);
   if (!bearer.ok) return bearer.response;
 
-  // Same rule as v1: the token's own journal, never a `user` the body might
-  // otherwise be tempted to name — a trip-scoped token belongs to this
-  // journal too, so it may ask for its own trip's candidates.
-  const username = bearer.session.owner;
-  if (!isEnabled("addressLookup", username)) {
+  // Asked of the INSTANCE, not the journal — v2 decision 5. A capability
+  // answers "is the plumbing configured", which is the operator's fact; a
+  // geocoder this server has no key for is missing for everybody on it.
+  // v1 asked per journal and v2 retired the per-journal `features` block
+  // (see `lib/api/v2/schemas/journal.ts`'s own header). B1617.
+  if (!isEnabled("addressLookup")) {
     return fail("address_lookup_disabled", ERROR_CODES.address_lookup_disabled, undefined, 404);
   }
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const limit = rateLimitFor("place-geocode", `${username}:${bearer.session.id}`, { max: 1, windowMs: 1000 });
+  const limit = rateLimitFor("place-geocode", `${bearer.session.owner}:${bearer.session.id}`, { max: 1, windowMs: 1000 });
   if (!limit.ok) {
     const res = fail("too_many_requests", ERROR_CODES.too_many_requests, { retryAfter: limit.retryAfter }, 429);
     res.headers.set("Retry-After", String(limit.retryAfter));

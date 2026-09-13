@@ -52,7 +52,7 @@ export default function PaymentCheckout({
     setBusy(true);
     setFailed(false);
     const response = await fetch(
-      `/api/v1/${username}/payments/${payment.id}/pay`,
+      `/api/web/${username}/purchases/${payment.id}/pay`,
       {
         method: "POST",
         headers: { "content-type": "application/json" },

@@ -1,9 +1,11 @@
 // POST /api/v2/geocode — B1608, phase 2 step 3. Not part of the original
 // golden-contract review round (`00-decisions.md`'s field-level list has no
 // geocode entry); this is new work the parcel names outright, so it is a new
-// schema rather than a change to one, and carries no `06-contract-deltas.md`
-// row — that file tracks deviations from what was already reviewed and
-// frozen, not the shape of a schema that never existed to deviate from.
+// schema rather than a change to one. It carries a `06-contract-deltas.md`
+// row anyway (D12) — not because there is drift to explain, but because the
+// ledger records every file under `schemas/`, reviewed or net-new, rather
+// than leaving an unstated exception for the ones that never went through
+// review (see D8, D11, the same shape).
 //
 // Mirrors v1's `/api/v1/geocode` body and response
 // (`app/api/v1/geocode/route.ts`, `lib/addressLookup.ts`'s `GeocodeCandidate`)

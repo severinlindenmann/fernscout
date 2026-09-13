@@ -8,44 +8,25 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { tripWriteScope } from "@/lib/tripPeople";
-import { getTrip } from "@/lib/trips";
-import { GET as getRoute, PATCH as patchRoute } from "@/app/api/v1/[user]/trips/[trip]/visibility/route";
 
 /**
- * B396 — a trip's visibility could not be changed after it was created, but
- * the contacts page told an owner with no `guest` trip to "set a trip's
- * visibility to guest". `PATCH .../trips/<trip>` answers `method_not_allowed`
- * and there is no shell on a hosted instance. This is the door that opened:
- * `PATCH .../trips/<trip>/visibility`, built the way B352 built `.../rates`.
+ * B396 (visibility) / B587 (teaser) / B51 (listed) — a trip's visibility
+ * could not be changed after it was created.
+ *
+ * B1612 repoint: v1's `.../visibility` route is deleted; `visibility`,
+ * `listed` and `teaser` are now plain fields of the one v2 trip document
+ * (`PATCH /api/v2/{user}/trips/{trip}`) — no section of their own, no bespoke
+ * error codes. Every refusal below comes back as `invalid_request` (v2's one
+ * validation-failure code) rather than v1's `invalid_visibility`/
+ * `invalid_listed`/`invalid_teaser`, since these are ordinary Zod issues on
+ * the whole document rather than a route with its own hand-rolled checks. GET
+ * is not owner-only in v2 (unlike v1's `.../visibility`, which refused a
+ * trip-scoped token even a read); only PATCH is.
  */
 
 let dir: string;
-const REF = "alex/reise";
 const OWNER_EMAIL = "alex@example.test";
-
-function tripFile(name: string): string {
-  return path.join(dir, "alex", "trips", "reise", name);
-}
-
-function writeTrip(front: string[] = ["visibility: private"]) {
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    tripFile("trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      ...front,
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
-}
+const TRIP = "reise-v2";
 
 async function ownerToken(): Promise<string> {
   const { code } = await issueCode("alex", OWNER_EMAIL, "agent");
@@ -55,31 +36,71 @@ async function ownerToken(): Promise<string> {
 }
 
 async function scopedToken(email: string): Promise<string> {
-  const { code } = await issueCode("alex", email, "agent", { trip: "reise" });
-  const session = await verifyCode("alex", email, code, "agent", tripWriteScope("reise"));
+  const { code } = await issueCode("alex", email, "agent", { trip: TRIP });
+  const session = await verifyCode("alex", email, code, "agent", tripWriteScope(TRIP));
   if (!session.ok) throw new Error(`could not mint a trip token: ${session.reason}`);
   return session.token;
 }
 
-async function call(
-  route: typeof getRoute | typeof patchRoute,
-  method: string,
-  token: string,
-  body?: unknown,
-) {
-  const response = await route(
-    new Request("https://t.test/api/v1/alex/trips/reise/visibility", {
-      method,
-      headers: {
-        authorization: `Bearer ${token}`,
-        ...(body !== undefined ? { "content-type": "application/json" } : {}),
-      },
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+function fullTrip(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: TRIP,
+    title: "Reise",
+    dates: { from: "2026-09-01", to: "2026-09-05" },
+    visibility: "private",
+    people: [{ name: "Alex", email: OWNER_EMAIL }],
+    teaser: true,
+    declined: {
+      rates: "no foreign currency tracked on this trip at all",
+      costs: "no budget tracked for this trip currently",
+      plan: "no planned route recorded for this trip",
+      days: "no days written for this trip at create time",
+      translations: "single-language journal, nothing to translate",
+      accent: "default accent left as the renderer's choice",
+      figures: "no walking figures drawn for this trip",
+      tagline: "no one-line subtitle written for this trip",
+      intro: "no opening prose written for this trip yet",
+      buddies: "travelling solo, nobody else was on this trip",
+    },
+    ...overrides,
+  };
+}
+
+async function putTrip(body: unknown, token: string) {
+  const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await PUT(
+    new Request(`https://t.test/api/v2/alex/trips/${TRIP}`, {
+      method: "PUT",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: "alex", trip: "reise" }) },
+    { params: Promise.resolve({ user: "alex", trip: TRIP }) },
   );
-  const parsed = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  return { status: response.status, body: parsed };
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+async function patchTrip(body: unknown, token: string) {
+  const { PATCH } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await PATCH(
+    new Request(`https://t.test/api/v2/alex/trips/${TRIP}`, {
+      method: "PATCH",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ user: "alex", trip: TRIP }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+async function getTrip(token: string) {
+  const { GET } = await import("@/app/api/v2/[user]/trips/[trip]/route");
+  const response = await GET(
+    new Request(`https://t.test/api/v2/alex/trips/${TRIP}`, {
+      headers: { authorization: `Bearer ${token}` },
+    }),
+    { params: Promise.resolve({ user: "alex", trip: TRIP }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
 }
 
 beforeEach(async () => {
@@ -104,7 +125,6 @@ beforeEach(async () => {
       baseCurrency: "CHF",
     }),
   );
-  writeTrip();
   clearConfigCache();
   clearUserCache();
   await migrateToLatest(await getDatabase());
@@ -120,132 +140,129 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("GET .../visibility", () => {
-  test("reads back what is in trip.md", async () => {
+describe("GET the visibility fields, through the trip document", () => {
+  test("reads back what was created", async () => {
     const token = await ownerToken();
-    const { status, body } = await call(getRoute, "GET", token);
+    await putTrip(fullTrip(), token);
+    const { status, body } = await getTrip(token);
     expect(status).toBe(200);
-    expect(body).toEqual({ trip: REF, visibility: "private", listed: false, teaser: false });
+    expect(body.visibility).toBe("private");
+    expect(body.teaser).toBe(true);
+    expect(body.listed).toBeUndefined();
   });
 
-  test("a trip-scoped token cannot even read it", async () => {
-    const token = await scopedToken("guest@example.test");
-    const { status, body } = await call(getRoute, "GET", token);
-    expect(status).toBe(403);
-    expect(body.error).toBe("out_of_scope");
+  test("a trip-scoped token may still read it — GET is not owner-only in v2", async () => {
+    const owner = await ownerToken();
+    await putTrip(fullTrip(), owner);
+    const scoped = await scopedToken("guest@example.test");
+    const { status } = await getTrip(scoped);
+    expect(status).toBe(200);
   });
 });
 
-describe("PATCH .../visibility", () => {
-  test("the owner can widen a private trip to guest, and is told what that means", async () => {
+describe("PATCH the visibility fields, through the trip document", () => {
+  test("the owner widens a private trip to guest", async () => {
     const token = await ownerToken();
-    const { status, body } = await call(patchRoute, "PATCH", token, { visibility: "guest" });
-    expect(status).toBe(200);
-    expect(body.ok).toBe(true);
+    await putTrip(fullTrip(), token);
+    const { status, body } = await patchTrip({ visibility: "guest" }, token);
+    expect(status, JSON.stringify(body)).toBe(200);
     expect(body.visibility).toBe("guest");
-    expect(String(body.note)).toMatch(/widens who may read/);
-    expect(getTrip(REF)!.visibility).toBe("guest");
+
+    const { body: onDisk } = await getTrip(token);
+    expect(onDisk.visibility).toBe("guest");
   });
 
-  test("the owner can narrow a public trip to private, with no widening warning", async () => {
-    writeTrip(["visibility: public"]);
+  /**
+   * B1616 — v1's `.../visibility` route special-cased this: narrowing away
+   * from `public` dropped a stale `listed` (and `teaser`) rather than
+   * leaving it to conflict with the new value. Folding that route into the
+   * trip document (B1612) had dropped the special-casing along with it: a
+   * public trip's stored `listed` (every public trip has one,
+   * required-or-declined at create) survived a `PATCH {visibility:
+   * "private"}` merge and collided with `tripCreate`'s own "a closed trip is
+   * never advertised, remove listed" refusal, permanently — merge-patch has
+   * no way to un-send a key by omitting it. `reconcileVisibility`
+   * (`lib/api/v2/write.ts`) is the route now dropping the question that
+   * stopped applying, the same job the old dedicated route did.
+   */
+  test("the owner narrows a public trip to private", async () => {
     const token = await ownerToken();
-    const { status, body } = await call(patchRoute, "PATCH", token, { visibility: "private" });
-    expect(status).toBe(200);
+    await putTrip(fullTrip({ visibility: "public", teaser: undefined, listed: false }), token);
+    const { status, body } = await patchTrip({ visibility: "private", teaser: false }, token);
+    expect(status, JSON.stringify(body)).toBe(200);
     expect(body.visibility).toBe("private");
-    expect(String(body.note)).not.toMatch(/widens who may read/);
-    expect(getTrip(REF)!.visibility).toBe("private");
-    expect(getTrip(REF)!.listed).toBe(false);
+    expect(body.teaser).toBe(false);
+    expect(body.listed).toBeUndefined();
+
+    const { body: onDisk } = await getTrip(token);
+    expect(onDisk.visibility).toBe("private");
+    expect(onDisk.listed).toBeUndefined();
   });
 
-  test("an unrecognised visibility is refused, not written and read back as private", async () => {
+  test("the owner widens a closed trip back to public — the mirror of narrowing", async () => {
     const token = await ownerToken();
-    const { status, body } = await call(patchRoute, "PATCH", token, { visibility: "publik" });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_visibility");
-    expect(getTrip(REF)!.visibility).toBe("private");
+    await putTrip(fullTrip(), token); // private, teaser: true, no listed
+    const { status, body } = await patchTrip({ visibility: "public", listed: true }, token);
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.visibility).toBe("public");
+    expect(body.listed).toBe(true);
+    expect(body.teaser).toBeUndefined();
+
+    const { body: onDisk } = await getTrip(token);
+    expect(onDisk.visibility).toBe("public");
+    expect(onDisk.teaser).toBeUndefined();
   });
 
-  test("listed: true is refused on a trip whose new visibility does not advertise it", async () => {
+  test("an unrecognised visibility is refused, not written", async () => {
     const token = await ownerToken();
-    const { status, body } = await call(patchRoute, "PATCH", token, {
-      visibility: "guest",
-      listed: true,
-    });
+    await putTrip(fullTrip(), token);
+    const { status, body } = await patchTrip({ visibility: "publik" }, token);
     expect(status).toBe(400);
-    expect(body.error).toBe("invalid_listed");
-    expect(getTrip(REF)!.visibility).toBe("private");
+    expect(body.error).toBe("invalid_request");
+
+    const { body: onDisk } = await getTrip(token);
+    expect(onDisk.visibility).toBe("private");
+  });
+
+  test("listed: true is refused on a trip whose visibility does not advertise it", async () => {
+    const token = await ownerToken();
+    await putTrip(fullTrip(), token);
+    const { status, body } = await patchTrip({ listed: true }, token);
+    expect(status).toBe(400);
+    expect(body.error).toBe("invalid_request");
+
+    const { body: onDisk } = await getTrip(token);
+    expect(onDisk.listed).toBeUndefined();
   });
 
   test("listed: true is accepted alongside visibility: public — B51 is satisfied, not violated", async () => {
     const token = await ownerToken();
-    const { status, body } = await call(patchRoute, "PATCH", token, {
-      visibility: "public",
-      listed: true,
-    });
-    expect(status).toBe(200);
+    await putTrip(fullTrip({ visibility: "public", teaser: undefined, listed: false }), token);
+    const { status, body } = await patchTrip({ listed: true }, token);
+    expect(status, JSON.stringify(body)).toBe(200);
     expect(body.listed).toBe(true);
-    expect(getTrip(REF)!.visibility).toBe("public");
-    expect(getTrip(REF)!.listed).toBe(true);
-  });
 
-  test("narrowing visibility away from public drops a stale listed: true rather than leaving it inert", async () => {
-    writeTrip(["visibility: public", "listed: true"]);
-    const token = await ownerToken();
-    const { status } = await call(patchRoute, "PATCH", token, { visibility: "guest" });
-    expect(status).toBe(200);
-    expect(getTrip(REF)!.visibility).toBe("guest");
-    expect(getTrip(REF)!.listed).toBe(false);
-    // And the file itself no longer carries a listed: line that would read
-    // as inert — it should have moved off `true` entirely.
-    const text = fs.readFileSync(tripFile("trip.md"), "utf8");
-    expect(text).not.toMatch(/^listed: true$/m);
-  });
-
-  /** B587 — the third key on this door. */
-  test("teaser: true is written on a closed trip and read back", async () => {
-    const token = await ownerToken();
-    const { status, body } = await call(patchRoute, "PATCH", token, { teaser: true });
-    expect(status).toBe(200);
-    expect(body.teaser).toBe(true);
-    expect(getTrip(REF)!.teaser).toBe(true);
-    // And it advertises nothing: `listed` is where that lives.
-    expect(getTrip(REF)!.listed).toBe(false);
-    expect(fs.readFileSync(tripFile("trip.md"), "utf8")).toMatch(/^teaser: true$/m);
+    const { body: onDisk } = await getTrip(token);
+    expect(onDisk.listed).toBe(true);
   });
 
   test("teaser: true is refused on a public trip, where there is nothing to tease", async () => {
     const token = await ownerToken();
-    const { status, body } = await call(patchRoute, "PATCH", token, {
-      visibility: "public",
-      teaser: true,
-    });
-    expect(status).toBe(400);
-    expect(body.error).toBe("invalid_teaser");
-    expect(getTrip(REF)!.visibility).toBe("private");
-  });
-
-  test("going public drops a stale teaser rather than leaving it for the reader to ignore", async () => {
-    writeTrip(["visibility: private", "teaser: true"]);
-    const token = await ownerToken();
-    const { status } = await call(patchRoute, "PATCH", token, { visibility: "public" });
-    expect(status).toBe(200);
-    expect(getTrip(REF)!.teaser).toBeUndefined();
-    expect(fs.readFileSync(tripFile("trip.md"), "utf8")).not.toMatch(/^teaser:/m);
-  });
-
-  test("an empty body is refused rather than a no-op success", async () => {
-    const token = await ownerToken();
-    const { status, body } = await call(patchRoute, "PATCH", token, {});
+    await putTrip(fullTrip({ visibility: "public", teaser: undefined, listed: false }), token);
+    const { status, body } = await patchTrip({ teaser: true }, token);
     expect(status).toBe(400);
     expect(body.error).toBe("invalid_request");
   });
 
-  test("a trip-scoped token — someone on the trip, not its owner — is refused", async () => {
-    const token = await scopedToken("guest@example.test");
-    const { status, body } = await call(patchRoute, "PATCH", token, { visibility: "public" });
+  test("a trip-scoped token — someone on the trip, not its owner — cannot patch visibility at all", async () => {
+    const owner = await ownerToken();
+    await putTrip(fullTrip(), owner);
+    const scoped = await scopedToken("guest@example.test");
+    const { status, body } = await patchTrip({ visibility: "public" }, scoped);
     expect(status).toBe(403);
-    expect(body.error).toBe("out_of_scope");
-    expect(getTrip(REF)!.visibility).toBe("private");
+    expect(body.error).toBe("forbidden");
+
+    const { body: onDisk } = await getTrip(owner);
+    expect(onDisk.visibility).toBe("private");
   });
 });

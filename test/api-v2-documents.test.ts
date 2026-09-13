@@ -178,6 +178,30 @@ describe("dayToJson / dayFromJson", () => {
     expect(data).not.toHaveProperty("slug");
   });
 
+  // B1629: `costs: []` ("nothing was spent" — a real zero) and an absent
+  // `costs` key paired with `declined.costs` ("the figures are gone") are
+  // two different facts about a day, and `lib/costs.ts`'s averaging depends
+  // on telling them apart on disk. `JSON.stringify`/`JSON.parse` keep an
+  // empty array and a missing key distinct on their own — this pins that
+  // down as a guarantee rather than an accident, so a future tidy-up that
+  // taught `dayToJson` to treat `[]` as "nothing to write" (the way it
+  // already treats `undefined`) would fail here first, before it ever
+  // reached a costs page.
+  it("keeps `costs: []` (nothing spent) distinct from an absent costs key (declined) on disk", () => {
+    const zeroSpendDay: DayFile = { ...minimalDay, declined: undefined, costs: [] };
+    const declinedDay: DayFile = { ...minimalDay, declined: { ...minimalDay.declined } };
+
+    const zeroRaw = dayToJson(zeroSpendDay);
+    const declinedRaw = dayToJson(declinedDay);
+
+    expect(zeroRaw).not.toBe(declinedRaw);
+    expect(JSON.parse(zeroRaw)).toHaveProperty("costs", []);
+    expect(JSON.parse(declinedRaw)).not.toHaveProperty("costs");
+
+    expect(dayFromJson(zeroSpendDay.slug, zeroRaw).costs).toEqual([]);
+    expect(dayFromJson(declinedDay.slug, declinedRaw).costs).toBeUndefined();
+  });
+
   it("ignores a pre-v2 file's retired decline keys rather than reviving them", () => {
     const raw = JSON.stringify({
       title: "Old day",

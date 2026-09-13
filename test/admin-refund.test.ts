@@ -33,9 +33,9 @@ let calls = 0;
 
 async function refundRoute(body: Record<string, unknown>) {
   calls += 1;
-  const { POST } = await import("@/app/api/admin/refunds/route");
+  const { POST } = await import("@/app/api/web/admin/refunds/route");
   const response = await POST(
-    new Request("https://example.test/api/admin/refunds", {
+    new Request("https://example.test/api/web/admin/refunds", {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": `10.3.0.${calls % 250}` },
       body: JSON.stringify(body),

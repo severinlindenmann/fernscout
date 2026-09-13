@@ -69,7 +69,7 @@ export type RatesWriteResult =
   | { ok: false; error: string; message?: string; bug?: true };
 
 /** Read the `rates:` table currently on disk, `{}` when there is none. */
-export function readTripRates(ref: TripRef): RateTable {
+function readTripRates(ref: TripRef): RateTable {
   const trip = getTrip(ref);
   return trip?.rates ?? {};
 }
@@ -300,6 +300,6 @@ export async function fillTripRates(
  * and every failure swallowed — see `fillDayWeatherQuietly` for why this is
  * awaited rather than left floating.
  */
-export function fillTripRatesQuietly(ref: string): Promise<unknown> {
+function fillTripRatesQuietly(ref: string): Promise<unknown> {
   return fillTripRates(ref).catch(() => undefined);
 }
