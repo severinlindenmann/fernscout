@@ -33,3 +33,16 @@ export type { JournalDoc } from "./journal";
 export type { MediaIntent } from "./media";
 export type { InstanceStatus, JournalStatus } from "./status";
 export type { ErrorEnvelope } from "./shared";
+export {
+  INVITE_KINDS,
+  inviteWrite,
+  inviteDoc,
+  CONTACT_STATUSES,
+  contactCreate,
+  contactPatch,
+  contactDoc,
+  CHANNEL_NAMES,
+  channelsPatch,
+  channelsDoc,
+} from "./social";
+export type { InviteDoc, ContactDoc } from "./social";

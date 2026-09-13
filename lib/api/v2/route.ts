@@ -140,6 +140,27 @@ export function readDryRun(request: Request): boolean | null {
   return null;
 }
 
+/**
+ * V12 cursor pagination for a list already held in memory, in a fixed order.
+ * `cursor` is the `id` of the last item the caller already has; the next page
+ * starts right after it in `all`'s own order, so this works for any list
+ * order (ascending, or newest-first like `listInvites`/`listContacts`) as
+ * long as it does not change between calls. An unrecognised cursor (the row
+ * was deleted, or the id is invented) starts from the top rather than
+ * refusing — a caller that already fell behind gets a page rather than an
+ * error over something it cannot fix.
+ */
+export function paginate<T>(
+  all: T[],
+  opts: { limit: number; cursor?: string },
+  idOf: (item: T) => string,
+): { items: T[]; nextCursor?: string } {
+  const from = opts.cursor ? Math.max(0, all.findIndex((item) => idOf(item) === opts.cursor) + 1) : 0;
+  const items = all.slice(from, from + opts.limit);
+  const nextCursor = from + opts.limit < all.length ? idOf(items[items.length - 1]) : undefined;
+  return { items, nextCursor };
+}
+
 /** Parses the body as JSON, never throwing — a malformed body is the
  * `invalid_json` refusal, not an unhandled exception. */
 export async function readJson(request: Request): Promise<{ ok: true; value: unknown } | { ok: false; response: NextResponse }> {
