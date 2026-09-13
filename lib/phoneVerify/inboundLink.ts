@@ -2,8 +2,7 @@ import "server-only";
 import crypto from "node:crypto";
 import { NO_JOURNAL, hashSecret } from "../auth";
 import { getDatabase } from "../db";
-import { toE164 } from "../whatsapp/phone";
-import { whatsappDisplayNumber } from "../whatsapp/settings";
+import { whatsappNumberForUrl } from "../whatsapp/settings";
 
 /**
  * Proving a number by receiving a message from it — B1234.
@@ -60,8 +59,7 @@ function prefillText(token: string): string {
 /** Refused (null) when the instance has no WhatsApp number configured —
  * `features.whatsapp.number`, the same one printed beside the helper. */
 export async function createPhoneLink(sessionId: string, locale: string): Promise<PhoneLink | null> {
-  const display = whatsappDisplayNumber();
-  const number = display ? toE164(display) : null;
+  const number = whatsappNumberForUrl();
   if (!number) return null;
 
   const { db } = await getDatabase();

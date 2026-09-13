@@ -31,7 +31,7 @@ import { getTrips } from "../trips";
 import { COVER_TYPES, sizesFor } from "../photobook/spec";
 import { isIndexable } from "../access";
 import { CODE_TTL_MINUTES } from "../auth";
-import { whatsappDisplayNumber } from "../whatsapp/settings";
+import { whatsappNumberForDisplay } from "../whatsapp/settings";
 import { openApiDocument } from "./openapi";
 import { SKILL_DOC_SLUGS, SKILL_DOC_SUMMARY, SKILL_DOC_TITLE } from "./skillDocMeta";
 // The sentences these documents share with /openapi.json, kept in one place so
@@ -177,8 +177,8 @@ export function instanceDocumentation(): string {
     ),
     "",
     ...wrap(
-      (whatsappDisplayNumber()
-        ? `**A messenger, at ${whatsappDisplayNumber()}.** `
+      (whatsappNumberForDisplay()
+        ? `**A messenger, at ${whatsappNumberForDisplay()}.** `
         : "**A messenger**, where this instance offers one. ") +
         "Text it and a model turn answers, on this instance's own model, and " +
         "spends the journal's credits the same way a WhatsApp announcement " +
