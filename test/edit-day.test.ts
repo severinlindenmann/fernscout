@@ -9,6 +9,7 @@ import { migrateToLatest } from "@/lib/db/migrate";
 import { issueCode, verifyCode } from "@/lib/auth";
 import { createDraft, editEntry, publishDraft, type EditInput } from "@/lib/api/entries";
 import { getEntryBySlug } from "@/lib/entries";
+import { writeTripFixture } from "./fixtures/content";
 
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
@@ -33,23 +34,15 @@ const REF = "alex/reise";
 const OWNER_EMAIL = "alex@example.test";
 
 function writeTrip() {
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    [
-      "---",
-      "id: reise",
-      'title: "Reise"',
-      'start: "2026-09-01"',
-      'end: "2026-09-05"',
-      "status: current",
-      "visibility: public",
-      "---",
-      "",
-      "Body.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Reise",
+    start: "2026-09-01",
+    end: "2026-09-05",
+    status: "current",
+    visibility: "public",
+    intro: "Body.",
+  });
 }
 
 async function agentToken(): Promise<string> {

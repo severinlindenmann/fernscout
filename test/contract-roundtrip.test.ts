@@ -34,6 +34,16 @@ import { PUT as putDayRoute, GET as readDayRoute } from "@/app/api/v2/[user]/tri
  * are matched against it. Add a field to a write schema and this fails until
  * you either give it a sample or say, in `*_WRITE_ONLY` below, why it cannot
  * be read back — with a reason, not a shrug.
+ *
+ * B1630 — deliberately not built on `test/fixtures/content.ts`. That helper
+ * (and every test repointed onto it) writes through the same production
+ * serializer the reader parses, so a bug shared by both sides would sail
+ * through every one of them. `TRIP_SAMPLES`/`DAY_SAMPLES` below are typed out
+ * by hand instead, and compared against what the API hands back — an
+ * independent check that does not route through the fixture's writer at all.
+ * Leave it that way: folding this onto `writeTripFixture`/`writeDayFixture`
+ * would remove the one test in the suite that a serializer/reader pair
+ * cannot both get wrong in the same direction and still pass.
  */
 
 /**

@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 // `isOwner` reads the guest cookie through `next/headers`, which throws
 // outside a request. Every call in this file authenticates with a bearer
@@ -38,27 +39,15 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
 }
 
 function writeTrip(id: string, people: string[]) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      'visibility: "public"',
-      ...(people.length
-        ? ["people:", ...people.flatMap((email) => [`  - name: "R"`, `    email: "${email}"`])]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "public",
+    people: people.map((email) => ({ name: "R", email })),
+  });
 }
 
 async function ownerAgentToken(): Promise<string> {

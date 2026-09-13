@@ -8,9 +8,10 @@ import { createDraft, publishDraft } from "@/lib/api/entries";
 import { buildFeedXml } from "@/lib/feed";
 import { buildSearchIndex } from "@/lib/search";
 import { getAllEntries } from "@/lib/entries";
-import { getCurrentTrip, getTrip, tripRef } from "@/lib/trips";
+import { getCurrentTrip, getTrip } from "@/lib/trips";
 import { createTrip } from "@/lib/tripWrite";
 import { buildStoryProps, showsCountdown } from "@/lib/tripView";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B72 — a trip whose dates have passed, and the days published into it.
@@ -66,17 +67,6 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-/** A trip.md written by hand, the way the one in the incident read. */
-function writeTripFile(id: string, front: string[]): string {
-  const tripDir = path.join(dir, "alex", "trips", id);
-  fs.mkdirSync(path.join(tripDir, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(tripDir, "trip.md"),
-    ["---", `id: ${id}`, ...front, "---", "", "Body.", ""].join("\n"),
-  );
-  return tripRef("alex", id);
-}
-
 /** One published day, exactly as an agent writes and a person publishes it. */
 function publishOneDay(ref: string): void {
   const made = createDraft(ref, DAY);
@@ -90,14 +80,15 @@ describe("a trip whose dates have passed", () => {
 
   beforeEach(() => {
     // The incident's own file: dates in the past, `status: upcoming`.
-    writeTripFile("testreise", [
-      'title: "Testreise"',
-      'start: "2026-08-24"',
-      'end: "2026-08-26"',
-      "status: upcoming",
-      "visibility: public",
-      "listed: true",
-    ]);
+    writeTripFixture("alex", {
+      id: "testreise",
+      title: "Testreise",
+      start: "2026-08-24",
+      end: "2026-08-26",
+      status: "upcoming",
+      visibility: "public",
+      listed: true,
+    });
     publishOneDay(ref);
   });
 
@@ -142,12 +133,13 @@ describe("a trip that has genuinely not started", () => {
   const ref = "alex/japan-2099";
 
   beforeEach(() => {
-    writeTripFile("japan-2099", [
-      'title: "Japan"',
-      'start: "2099-04-01"',
-      'end: "2099-05-15"',
-      "visibility: public",
-    ]);
+    writeTripFixture("alex", {
+      id: "japan-2099",
+      title: "Japan",
+      start: "2099-04-01",
+      end: "2099-05-15",
+      visibility: "public",
+    });
   });
 
   test("reads as upcoming even though its file declares nothing", () => {
