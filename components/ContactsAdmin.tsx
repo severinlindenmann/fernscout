@@ -1796,18 +1796,22 @@ export default function ContactsAdmin({
             event.preventDefault();
             setInviteError(null);
             setBusy(true);
-            // `POST /api/v1/{user}/invites` rather than the panel's own admin
+            // `POST /api/web/{user}/invites` rather than the panel's own admin
             // route: that route's `invite` action made a `personal` link and
             // nothing else, and this one already owns the rules — a buddy
             // link needs a trip, a guest link must not name one, the trip has
             // to exist, and every link is dated. B281.
-            const response = await fetch(`/api/v1/${username}/invites`, {
+            const response = await fetch(`/api/web/${username}/invites`, {
               method: "POST",
               headers: { "content-type": "application/json" },
               body: JSON.stringify({
                 kind: inviteKind,
                 ...(inviteKind === "buddy" ? { trip: inviteTrip } : {}),
-                name: inviteName,
+                // `name` is optional on the wire (`inviteWrite`, min length
+                // 1) and this field is optional in the form — an empty
+                // string is "nothing typed", not a one-character name, so it
+                // is left out rather than sent and refused.
+                ...(inviteName.trim() ? { name: inviteName.trim() } : {}),
                 locale: inviteLocale,
               }),
             }).catch(() => null);
@@ -1823,10 +1827,8 @@ export default function ContactsAdmin({
               setInviteError(body?.message ?? t("contact.adminInviteFailed"));
               return;
             }
-            const body = (await response.json()) as {
-              invite?: { url?: string };
-            };
-            setFreshLink(body.invite?.url ?? null);
+            const body = (await response.json()) as { url?: string };
+            setFreshLink(body.url ?? null);
             setInviteName("");
             await refresh();
           }}

@@ -25,10 +25,12 @@ import { setJournalFeatures } from "@/lib/journals";
  * and the figure library has its own coverage (`test/api-v2-figures.test.ts`).
  *
  * What is left here is `setJournalFeatures` itself, called directly rather
- * than through a route: `channels` (kept, `app/api/v1/[user]/channels/
- * route.ts`) still calls it for `mail`/`whatsapp`, and helper journal tools
- * call it too, so the function is not dead even though its general-purpose
- * door is gone. What must stay true, and is what these are for:
+ * than through a route: `channels` (kept, `app/api/v2/[user]/channels/
+ * route.ts`, reached from a browser through the cookie proxy
+ * `app/api/web/[user]/channels/route.ts`) still calls it for
+ * `mail`/`whatsapp`, and helper journal tools call it too, so the function is
+ * not dead even though its general-purpose door is gone. What must stay
+ * true, and is what these are for:
  *
  *  - the server is still a ceiling, and a journal cannot climb over it;
  *  - nothing else in config.json is touched, including keys this code has

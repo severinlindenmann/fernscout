@@ -124,18 +124,19 @@ describe("a reader who follows every instruction reaches the journal", () => {
     const token = await ownerToken();
 
     // The owner's link, handed over.
-    const invites = await import("@/app/api/v1/[user]/invites/route");
+    const invites = await import("@/app/api/v2/[user]/invites/[id]/route");
+    const inviteId = crypto.randomUUID();
     const made = (await (
-      await invites.POST(
-        new Request("https://example.test/api/v1/ana/invites", {
-          method: "POST",
+      await invites.PUT(
+        new Request(`https://example.test/api/v2/ana/invites/${inviteId}`, {
+          method: "PUT",
           headers: headers({ authorization: `Bearer ${token}` }),
           body: JSON.stringify({ kind: "guest" }),
         }),
-        { params: Promise.resolve({ user: OWNER }) },
+        { params: Promise.resolve({ user: OWNER, id: inviteId }) },
       )
-    ).json()) as { invite?: { url?: string } };
-    const link = made.invite?.url?.split("/").pop();
+    ).json()) as { url?: string };
+    const link = made.url?.split("/").pop();
     expect(link).toBeTruthy();
 
     // She opens it and names herself. A code is mailed.

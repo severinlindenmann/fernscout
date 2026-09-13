@@ -70,17 +70,18 @@ async function ownerToken(): Promise<string> {
 
 /** A guest link, as the owner's own page or an agent makes one. */
 async function guestLink(): Promise<string> {
-  const { POST } = await import("@/app/api/v1/[user]/invites/route");
-  const response = await POST(
-    new Request("https://example.test/api/v1/ana/invites", {
-      method: "POST",
+  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const id = crypto.randomUUID();
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/ana/invites/${id}`, {
+      method: "PUT",
       headers: headers({ authorization: `Bearer ${await ownerToken()}` }),
       body: JSON.stringify({ kind: "guest" }),
     }),
-    { params: Promise.resolve({ user: OWNER }) },
+    { params: Promise.resolve({ user: OWNER, id }) },
   );
-  const body = (await response.json()) as { invite?: { url?: string } };
-  const url = body.invite?.url;
+  const body = (await response.json()) as { url?: string };
+  const url = body.url;
   if (!url) throw new Error("no invite url");
   return url.split("/").pop()!;
 }

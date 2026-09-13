@@ -7,6 +7,7 @@
 // first.
 import type { ContactDoc, InviteDoc } from "./schemas";
 import { inviteDoc } from "./schemas";
+import { fail } from "./route";
 import type { Invite } from "../../contacts/invites";
 import type { ContactRecord } from "../../contacts";
 import { normaliseEmail } from "../../contacts";
@@ -14,7 +15,38 @@ import { relationshipsFor } from "../../contacts/relationships";
 import { peopleOf, pendingTripRequestsFor } from "../../tripPeople";
 import { getTrips } from "../../trips";
 import { getUser } from "../../users";
+import { isEnabled } from "../../capabilities";
 import { maskNumber } from "../../whatsapp";
+
+/**
+ * The existence-and-capability half of the invites guard, apart from
+ * ownership — B1595. Both `app/api/v2/[user]/invites*` (bearer) and
+ * `app/api/web/[user]/invites*` (cookie) need exactly this check after their
+ * own, different, way of proving who is asking, and a v2 route file cannot
+ * import a sibling's (`test/api-v2-imports.test.ts` — nothing under
+ * `app/api/v2/**` imports from `app/`), so it lives here instead, under
+ * `lib/api/v2/`, where both sides may reach it.
+ */
+export async function contactsReady(
+  user: string,
+): Promise<{ ok: true } | { ok: false; response: Response }> {
+  if (!getUser(user)) {
+    return { ok: false, response: fail("no_such_journal", `No journal called "${user}".`, undefined, 404) };
+  }
+  if (!isEnabled("contacts", user)) {
+    return {
+      ok: false,
+      response: fail(
+        "contacts_disabled",
+        "This journal does not have contacts switched on, so it has nobody to invite and no " +
+          "queue for a redemption to land in.",
+        undefined,
+        409,
+      ),
+    };
+  }
+  return { ok: true };
+}
 
 /** Never carries `url` — only the create response does (a lost link is
  * reissued, never looked up back through this list; the owner's copy of it

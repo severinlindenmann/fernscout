@@ -128,7 +128,6 @@ export const ERROR_CODES = {
     "say that it has not been up.",
   not_published: "This day is still a draft. Publish it before sending it to anybody.",
   test_content: "This is content nobody lived — `test: true`. It cannot be sent to real people, which is the point of the flag.",
-  not_created: "The thing was not created. The `message` says why.",
 
   // ── this server cannot do that ─────────────────────────────────────────
   auth_disabled: "This server has authentication switched off entirely, so there are no tokens to hold. /api/health says what it can do.",

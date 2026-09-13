@@ -112,20 +112,61 @@ type InviteBody = {
   error?: string;
 };
 
+/**
+ * `PUT /api/v2/{user}/invites/{id}`, as an agent holding the owner's own
+ * token would call it — reshaped into the pre-v2 `{invite: {id, kind, scope,
+ * trip, url, expiresAt}}` shape this file's assertions were written against.
+ * v2's own response is the flat document (`id`, `kind`, `trip`, `email`,
+ * `name`, `locale`, `expiresAt`, …) plus `url`, and has no `scope` — the
+ * journal, or a `<user>/<trip>` ref, computed here the same way v1's own
+ * `view()` did.
+ */
+async function issueOn(
+  username: string,
+  token: string,
+  body: Record<string, unknown>,
+): Promise<{ status: number; body: InviteBody }> {
+  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const id = crypto.randomUUID();
+  const response = await PUT(
+    new Request(`https://example.test/api/v2/${username}/invites/${id}`, {
+      method: "PUT",
+      headers: headers({ authorization: `Bearer ${token}` }),
+      body: JSON.stringify(body),
+    }),
+    { params: Promise.resolve({ user: username, id }) },
+  );
+  const status = response.status;
+  const raw = (await response.json()) as {
+    id?: string;
+    kind?: string;
+    trip?: string | null;
+    url?: string;
+    expiresAt?: string | null;
+    error?: string;
+  };
+  if (status >= 400) return { status, body: { error: raw.error } };
+  return {
+    status,
+    body: {
+      ok: true,
+      invite: {
+        id: raw.id!,
+        kind: raw.kind!,
+        scope: raw.trip ? `${username}/${raw.trip}` : username,
+        trip: raw.trip ?? null,
+        url: raw.url,
+        expiresAt: raw.expiresAt ?? null,
+      },
+    },
+  };
+}
+
 async function createLink(
   token: string,
   body: Record<string, unknown>,
 ): Promise<{ status: number; body: InviteBody }> {
-  const { POST } = await import("@/app/api/v1/[user]/invites/route");
-  const response = await POST(
-    new Request("https://example.test/api/v1/ana/invites", {
-      method: "POST",
-      headers: headers({ authorization: `Bearer ${token}` }),
-      body: JSON.stringify(body),
-    }),
-    { params: Promise.resolve({ user: OWNER }) },
-  );
-  return { status: response.status, body: (await response.json()) as InviteBody };
+  return issueOn(OWNER, token, body);
 }
 
 async function redeem(
@@ -281,9 +322,9 @@ describe("issuing a link", () => {
 
     // And never again from the listing: only the hash was stored, so a link
     // that is lost is reissued rather than looked up.
-    const { GET } = await import("@/app/api/v1/[user]/invites/route");
+    const { GET } = await import("@/app/api/v2/[user]/invites/route");
     const listed = await GET(
-      new Request("https://example.test/api/v1/ana/invites", {
+      new Request("https://example.test/api/v2/ana/invites", {
         headers: headers({ authorization: `Bearer ${token}` }),
       }),
       { params: Promise.resolve({ user: OWNER }) },
@@ -314,9 +355,9 @@ describe("issuing a link", () => {
     // for somebody who is not the owner at all.
     const stranger = await signIn(OWNER, "nobody@example.test");
     as(stranger);
-    const { POST } = await import("@/app/api/v1/[user]/invites/route");
+    const { POST } = await import("@/app/api/web/[user]/invites/route");
     const refused = await POST(
-      new Request("https://example.test/api/v1/ana/invites", {
+      new Request("https://example.test/api/web/ana/invites", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({ kind: "guest" }),
@@ -331,27 +372,36 @@ describe("issuing a link", () => {
    * B79 — the arm the copy-a-link control on `/{user}/me` stands on.
    *
    * That panel is a page the owner is *reading in a browser*, so its request
-   * carries the session cookie and no `Authorization` header at all. `isOwner`
-   * accepts either credential on purpose (decision 24 gives the owner both),
-   * and this asserts the cookie arm with the header genuinely absent rather
-   * than merely unused — drop it and the panel's two buttons both answer 403.
+   * carries the session cookie and no `Authorization` header at all. Since
+   * B1595 that arm is a separate door, `POST /api/web/{user}/invites` —
+   * v2's own `PUT /api/v2/{user}/invites/{id}` is bearer-only and refuses
+   * `Authorization` outright on the web proxy — this asserts the cookie
+   * door with the header genuinely absent rather than merely unused.
    */
   test("the owner's own browser, cookie only and no bearer, may issue both", async () => {
     as(await signIn(OWNER, OWNER_EMAIL));
-    const { POST } = await import("@/app/api/v1/[user]/invites/route");
+    const { POST } = await import("@/app/api/web/[user]/invites/route");
 
     async function fromTheBrowser(body: Record<string, unknown>) {
       const sent = headers();
       expect(sent).not.toHaveProperty("authorization");
       const response = await POST(
-        new Request("https://example.test/api/v1/ana/invites", {
+        new Request("https://example.test/api/web/ana/invites", {
           method: "POST",
           headers: sent,
           body: JSON.stringify(body),
         }),
         { params: Promise.resolve({ user: OWNER }) },
       );
-      return { status: response.status, body: (await response.json()) as InviteBody };
+      const status = response.status;
+      const raw = (await response.json()) as {
+        id?: string;
+        trip?: string | null;
+        url?: string;
+        expiresAt?: string | null;
+      };
+      const invite = { ...raw, scope: raw.trip ? `${OWNER}/${raw.trip}` : OWNER };
+      return { status, body: { invite } as InviteBody };
     }
 
     const guest = await fromTheBrowser({ kind: "guest" });
@@ -473,9 +523,9 @@ describe("redeeming a guest link", { shuffle: false }, () => {
   test("revoking it stops the next person and moves nobody already let in", async () => {
     as(null);
     const token = await ownerToken();
-    const { DELETE } = await import("@/app/api/v1/[user]/invites/[id]/route");
+    const { DELETE } = await import("@/app/api/v2/[user]/invites/[id]/route");
     const gone = await DELETE(
-      new Request(`https://example.test/api/v1/ana/invites/${inviteId}`, {
+      new Request(`https://example.test/api/v2/ana/invites/${inviteId}`, {
         method: "DELETE",
         headers: headers({ authorization: `Bearer ${token}` }),
       }),
@@ -1031,14 +1081,15 @@ describe("an invite token is not a credential", () => {
     expect((await refused.json()).error).toBe("invalid_token");
 
     // And it cannot issue links either, which is the endpoint it was minted by.
-    const { GET: listing } = await import("@/app/api/v1/[user]/invites/route");
+    const { GET: listing } = await import("@/app/api/v2/[user]/invites/route");
     const alsoRefused = await listing(
-      new Request("https://example.test/api/v1/ana/invites", {
+      new Request("https://example.test/api/v2/ana/invites", {
         headers: headers({ authorization: `Bearer ${secret}` }),
       }),
       { params: Promise.resolve({ user: OWNER }) },
     );
-    expect(alsoRefused.status).toBe(403);
+    expect(alsoRefused.status).toBe(401);
+    expect((await alsoRefused.json()).error).toBe("invalid_token");
   });
 
   test("a buddy token pasted at the guestbook reads as a dead link", async () => {
@@ -1093,10 +1144,11 @@ describe("an invite token is not a credential", () => {
 });
 
 describe("the documents that describe them", () => {
-  // v1's own /api/v1/{user}/invites is untouched by this ticket and still
-  // documented in lib/api/openapi.ts — see below. The v2 guide at
-  // /skill/invite-someone.md is the one this ticket rewrote, against the v2
-  // door (PUT .../invites/{id}, not POST).
+  // v1's own /api/v1/{user}/invites is gone (B1595): the last structural
+  // reason it survived — a browser needing a cookie door onto a bearer-only
+  // v2 — is closed by `POST /api/web/{user}/invites` instead. The v2 guide
+  // at /skill/invite-someone.md is unaffected by this ticket, already
+  // written against the v2 door (PUT .../invites/{id}, not POST).
   test("the v2 guide names both kinds and says which one grants write access", async () => {
     const { skillDoc } = await import("@/lib/api/skillDocs");
     const guide = skillDoc("invite-someone");
@@ -1106,11 +1158,20 @@ describe("the documents that describe them", () => {
     expect(guide.toLowerCase()).toContain("group chat");
   });
 
-  test("v1's openapi still lists its own endpoints, untouched", async () => {
+  // Superseded by B1595 — this used to assert v1's invites endpoints were
+  // still documented ("untouched by this ticket"); this is the ticket that
+  // touches them; they are gone from v1's hand-written openapi document now,
+  // and the two entries this asserted have no replacement there because the
+  // replacement (v2's own, schema-generated) is `test/openapi-contract.test.ts`'s
+  // job, not this file's.
+  test("v1's openapi no longer lists invites, and other v1 doors are unaffected", async () => {
     const { GET } = await import("@/app/openapi.json/route");
     const document = (await (await GET()).json()) as { paths: Record<string, unknown> };
-    expect(Object.keys(document.paths)).toContain("/api/v1/{user}/invites");
-    expect(Object.keys(document.paths)).toContain("/api/v1/{user}/invites/{id}");
+    expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/invites");
+    expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/invites/{id}");
+    expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/channels");
+    // A door this ticket has no reason to touch, still there.
+    expect(Object.keys(document.paths)).toContain("/api/v1/{user}/import");
   });
 
   /**
@@ -1153,22 +1214,8 @@ describe("a journal created through the API can share itself", () => {
   const NEW_USER = "freshly";
   const NEW_EMAIL = "freshly@example.test";
 
-  async function issueOn(
-    username: string,
-    token: string,
-    body: Record<string, unknown>,
-  ): Promise<{ status: number; body: InviteBody }> {
-    const { POST } = await import("@/app/api/v1/[user]/invites/route");
-    const response = await POST(
-      new Request(`https://example.test/api/v1/${username}/invites`, {
-        method: "POST",
-        headers: headers({ authorization: `Bearer ${token}` }),
-        body: JSON.stringify(body),
-      }),
-      { params: Promise.resolve({ user: username }) },
-    );
-    return { status: response.status, body: (await response.json()) as InviteBody };
-  }
+  // `issueOn` is the file's own top-level helper — no need for a second copy
+  // here now that it already takes a username.
 
   test("both link kinds, with nobody touching the server", async () => {
     const { createJournal } = await import("@/lib/journals");

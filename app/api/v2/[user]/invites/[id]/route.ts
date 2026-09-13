@@ -9,7 +9,7 @@ import { inviteWrite } from "@/lib/api/v2/schemas";
 import { requireJournalOwner } from "@/lib/api/v2/auth";
 import { etagFor, fail, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { inviteToDoc } from "@/lib/api/v2/social";
+import { contactsReady, inviteToDoc } from "@/lib/api/v2/social";
 import {
   createInvite,
   inviteExpiry,
@@ -20,7 +20,6 @@ import {
 import { mailFailedNote } from "@/lib/contacts/inviteMailNote";
 import { pickLocale } from "@/lib/contacts/locale";
 import { sendInviteMail } from "@/lib/contacts/mail";
-import { isEnabled } from "@/lib/capabilities";
 import { serverSite } from "@/lib/site";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
@@ -30,38 +29,34 @@ export const dynamic = "force-dynamic";
 async function guard(request: Request, user: string) {
   const auth = await requireJournalOwner(request, user);
   if (!auth.ok) return auth;
-  if (!getUser(user)) return { ok: false as const, response: fail("no_such_journal", `No journal called "${user}".`, undefined, 404) };
-  if (!isEnabled("contacts", user)) {
-    return {
-      ok: false as const,
-      response: fail(
-        "contacts_disabled",
-        "This journal does not have contacts switched on, so it has nobody to invite and no " +
-          "queue for a redemption to land in.",
-        undefined,
-        409,
-      ),
-    };
-  }
+  const ready = await contactsReady(user);
+  if (!ready.ok) return ready;
   return auth;
 }
 
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
-  const { user, id } = await params;
-  const guarded = await guard(request, user);
-  if (!guarded.ok) return guarded.response;
-
+/**
+ * The three verbs' own logic, apart from who is asking — B1595. Each is
+ * called here after `requireJournalOwner` + `contactsReady` (bearer), and by
+ * `app/api/web/[user]/invites/[id]/route.ts` after its own cookie-only
+ * `isOwner` check plus the same `contactsReady` — a v2 route file cannot
+ * import a sibling's glue and there is none to duplicate here besides this
+ * split.
+ */
+export async function inviteGetResponse(user: string, id: string): Promise<Response> {
   const invite = (await listInvites(user)).find((row) => row.id === id);
   if (!invite) return fail("not_found", `No invite "${id}" on this journal.`, undefined, 404);
   const doc = inviteToDoc(invite);
   return ok(doc, { etag: etagFor(doc) });
 }
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
+export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
   const { user, id } = await params;
   const guarded = await guard(request, user);
   if (!guarded.ok) return guarded.response;
+  return inviteGetResponse(user, id);
+}
 
+export async function invitePutResponse(user: string, id: string, request: Request): Promise<Response> {
   const parsed = await readJson(request);
   if (!parsed.ok) return parsed.response;
   const body = parsed.value;
@@ -141,11 +136,14 @@ export async function PUT(request: Request, { params }: RouteContext<"/api/v2/[u
   );
 }
 
-export async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
+export async function PUT(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
   const { user, id } = await params;
   const guarded = await guard(request, user);
   if (!guarded.ok) return guarded.response;
+  return invitePutResponse(user, id, request);
+}
 
+export async function inviteDeleteResponse(user: string, id: string, request: Request): Promise<Response> {
   const invite = (await listInvites(user)).find((row) => row.id === id);
   if (!invite) return fail("not_found", `No invite "${id}" on this journal.`, undefined, 404);
 
@@ -160,4 +158,11 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v2
     note: "The link stops working. Everybody already approved stays in — revoking an invite " +
       "removes nothing anybody already has.",
   });
+}
+
+export async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
+  const { user, id } = await params;
+  const guarded = await guard(request, user);
+  if (!guarded.ok) return guarded.response;
+  return inviteDeleteResponse(user, id, request);
 }

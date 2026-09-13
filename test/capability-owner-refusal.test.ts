@@ -110,9 +110,9 @@ afterAll(async () => {
 type Body = { error?: string; message?: string };
 
 async function invites(user: string, token?: string): Promise<{ status: number; body: Body }> {
-  const { GET } = await import("@/app/api/v1/[user]/invites/route");
+  const { GET } = await import("@/app/api/v2/[user]/invites/route");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${user}/invites`, {
+    new Request(`https://example.test/api/v2/${user}/invites`, {
       headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
     }),
     { params: Promise.resolve({ user }) },
@@ -149,9 +149,14 @@ describe("invites: ownership is checked before the capability", () => {
     writeConfig({ auth: { enabled: true }, contacts: { enabled: false } });
     await clearCaches();
     try {
+      // v2's bearer gate (`requireJournalOwner`) refuses a missing token
+      // before it ever asks whether the journal exists — a stricter version
+      // of the same "no second oracle" property v1's `isOwner`-first guard
+      // had, and the reason `noToken` and `fakeJournal` still have to match.
       const noToken = await invites(OWNER);
       const fakeJournal = await invites("no-such-journal");
-      expect(noToken.status).toBe(403);
+      expect(noToken.status).toBe(401);
+      expect(noToken.body.error).toBe("missing_token");
       expect(noToken).toEqual(fakeJournal);
     } finally {
       writeConfig({ auth: { enabled: true }, contacts: { enabled: true } });
@@ -159,10 +164,10 @@ describe("invites: ownership is checked before the capability", () => {
     }
   });
 
-  test("a real journal with contacts on still answers a non-owner the same 403 as a fake one — no second oracle", async () => {
+  test("a real journal with contacts on still answers a missing token the same as a fake journal — no second oracle", async () => {
     const real = await invites(OWNER);
     const fake = await invites("no-such-journal");
-    expect(real.status).toBe(403);
+    expect(real.status).toBe(401);
     expect(real).toEqual(fake);
   });
 });
