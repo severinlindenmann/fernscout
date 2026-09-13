@@ -16,6 +16,7 @@ import { writeTripFile, writeDayFile } from "@/lib/api/v2/store";
 import { toStoredMedia } from "@/lib/api/v2/days";
 import { tripCreate, dayWrite } from "@/lib/api/v2/schemas";
 import type { Locale } from "@/lib/types";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B345 — the letter one published day sends.
@@ -169,32 +170,17 @@ function mirrorDayV2(
 }
 
 function writeTrip(id: string, opts: TripOptions = {}) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-09-01"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      `visibility: "${opts.visibility ?? "public"}"`,
-      ...(opts.costsVisibility ? [`costsVisibility: "${opts.costsVisibility}"`] : []),
-      ...(opts.test ? ["test: true"] : []),
-      ...(opts.people?.length
-        ? [
-            "people:",
-            ...opts.people.flatMap((p) => [`  - name: "${p.name}"`, `    email: "${p.email}"`]),
-          ]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-09-01",
+    end: "2026-09-10",
+    status: "current",
+    visibility: opts.visibility ?? "public",
+    costsVisibility: opts.costsVisibility,
+    test: opts.test,
+    people: opts.people?.length ? opts.people : undefined,
+  });
   mirrorTripV2(id, opts);
 }
 
@@ -218,6 +204,10 @@ type EntryOptions = {
   noCoordinates?: boolean;
 };
 
+// Not on writeDayFixture (B1630): needs a `costs:` line, a `translations:`
+// block and a captioned gallery item with a coordinate toggle — none of
+// which the shared day fixture writes (also true of test/costs-drafts.test.ts's
+// day, a separate hand-rolled case for the same reason).
 function writeEntry(tripId: string, opts: EntryOptions = {}): { slug: string; file: string } {
   const title = opts.title ?? "Lanterns of Hoi An";
   const date = opts.date ?? "2026-09-02";

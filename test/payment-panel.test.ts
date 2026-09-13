@@ -8,6 +8,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import { issueCode } from "@/lib/auth";
 import { approveContact, confirmContact, listContacts, optedInCounts, requestContact } from "@/lib/contacts";
 import { mailWouldReach } from "@/lib/digest/dayLetter";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B367's central promise: the "up to N" the owner reads on `/<user>/me` and
@@ -80,24 +81,14 @@ function writeUserConfig() {
 }
 
 function writeTrip(id: string, visibility: "public" | "private") {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-09-01"',
-      'end: "2026-09-10"',
-      'status: "current"',
-      `visibility: "${visibility}"`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-09-01",
+    end: "2026-09-10",
+    status: "current",
+    visibility,
+  });
 }
 
 async function addContact(

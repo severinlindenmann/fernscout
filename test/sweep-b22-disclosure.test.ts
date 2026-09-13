@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { fetchMedia, type Transport } from "@/lib/api/fetchMedia";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * Two smaller findings from the B22 sweep, now asserting the fix.
@@ -48,24 +49,14 @@ let dir: string;
 const tokens: Record<string, string | null> = { anonymous: null };
 
 function writeTrip(id: string, visibility: string) {
-  const root = path.join(dir, OWNER, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${visibility}"`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: visibility as "private" | "public" | "guest",
+  });
 }
 
 /** The journal's own config, rewritten so a test can switch reactions off. */

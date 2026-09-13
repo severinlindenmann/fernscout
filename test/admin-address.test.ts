@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * The one address that owns every journal on the instance — B480.
@@ -84,31 +85,22 @@ function writeJournal(username: string, email: string) {
  * `lib/api/v2/store.ts`.
  */
 async function writeTrip(username: string, id: string) {
-  const root = path.join(dir, username, "trips", id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${id}"`,
-      `title: "${id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      'visibility: "private"',
-      'costsVisibility: "guests"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(root, "entries", "2026-08-25-the-quiet-week.md"),
-    ["---", 'title: "Quiet"', 'date: "2026-08-25"', "status: draft", "---", "", "Unread.", ""].join(
-      "\n",
-    ),
-  );
+  writeTripFixture(username, {
+    id,
+    title: id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: "private",
+    costsVisibility: "guests",
+  });
+  writeDayFixture(dir, username, id, {
+    slug: "the-quiet-week",
+    date: "2026-08-25",
+    title: "Quiet",
+    status: "draft",
+    content: "Unread.",
+  });
 
   const { writeTripFile } = await import("@/lib/api/v2/store");
   writeTripFile(username, id, {

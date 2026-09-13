@@ -88,7 +88,13 @@ export type DayFixture = {
   coordinates?: { lat: number; lng: number };
   /** Gallery items — each `src` is a path the caller already wrote bytes to
    * (usually under the trip's `media/` folder). Maps to `gallery:`. */
-  media?: Array<{ src: string; type?: "image" | "video"; caption?: string }>;
+  media?: Array<{
+    src: string;
+    type?: "image" | "video";
+    caption?: string;
+    /** A single photograph's own narrowing — B596. Independent of the day's. */
+    visibility?: "guest" | "private";
+  }>;
   /** Present and `"draft"` to withhold the day; absent means published —
    * the same default `lib/entries.ts` reads. */
   status?: "draft";
@@ -135,6 +141,7 @@ export function writeDayFixture(
             `  - src: ${quote(m.src)}`,
             `    type: ${quote(m.type ?? "image")}`,
             ...(m.caption ? [`    caption: ${quote(m.caption)}`] : []),
+            ...(m.visibility ? [`    visibility: ${quote(m.visibility)}`] : []),
           ]),
         ]
       : []),

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import type { Trip } from "@/lib/types";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * Who may see a trip's unpublished days — B327.
@@ -103,56 +104,38 @@ function writeConfigs() {
 
 function writeTrip(spec: (typeof TRIPS)[number]) {
   const root = path.join(dir, OWNER, "trips", spec.id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${spec.id}"`,
-      `title: "${spec.id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${spec.visibility}"`,
-      ...(spec.people.length > 0
-        ? ["people:", ...spec.people.map((e) => `  - { name: "Robin", email: "${e}" }`)]
-        : []),
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: spec.id,
+    title: spec.id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: spec.visibility as "private" | "public" | "guest",
+    people: spec.people.length > 0 ? spec.people.map((e) => ({ name: "Robin", email: e })) : undefined,
+  });
   // One published day and one draft, so a reader who may see drafts sees two
   // and everyone else sees one — a difference a count can catch. Each gets a
   // photograph in the folder the media route addresses by slug, so the same
   // fixture answers "may they read it" and "may they see its pictures".
-  for (const [name, title, draft] of [
-    ["2026-08-25-arrival.md", "Arrival", false],
-    ["2026-08-26-unfinished.md", "Unfinished", true],
+  for (const [date, slug, title, draft] of [
+    ["2026-08-25", "arrival", "Arrival", false],
+    ["2026-08-26", "unfinished", "Unfinished", true],
   ] as const) {
-    const slug = name.replace(/\.md$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
     fs.mkdirSync(path.join(root, "media", slug), { recursive: true });
     // A JPEG's first four bytes, which is all `contentTypeFor` looks at.
     fs.writeFileSync(
       path.join(root, "media", slug, "01.jpg"),
       Buffer.from([0xff, 0xd8, 0xff, 0xdb]),
     );
-    fs.writeFileSync(
-      path.join(root, "entries", name),
-      [
-        "---",
-        `title: "${title}"`,
-        `date: "${name.slice(0, 10)}"`,
-        'location: "Bangkok"',
-        'country: "Thailand"',
-        ...(draft ? ["status: draft"] : []),
-        "---",
-        "",
-        title,
-        "",
-      ].join("\n"),
-    );
+    writeDayFixture(dir, OWNER, spec.id, {
+      slug,
+      date,
+      title,
+      location: "Bangkok",
+      country: "Thailand",
+      status: draft ? "draft" : undefined,
+      content: title,
+    });
   }
 }
 

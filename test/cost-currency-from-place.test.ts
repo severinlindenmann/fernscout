@@ -6,6 +6,7 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
 import { createDraft, editEntry } from "@/lib/api/entries";
 import { getAllEntries } from "@/lib/entries";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B542 — a cost written without a `currency` is stamped with the day's own,
@@ -22,13 +23,14 @@ let dir: string;
 const REF = "alex/reise";
 
 function writeTrip() {
-  fs.mkdirSync(path.join(dir, "alex", "trips", "reise", "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "alex", "trips", "reise", "trip.md"),
-    ["---", "id: reise", 'title: "Reise"', 'start: "2026-01-01"', 'end: "2026-01-31"', "status: current", "---", "", "Body.", ""].join(
-      "\n",
-    ),
-  );
+  writeTripFixture("alex", {
+    id: "reise",
+    title: "Reise",
+    start: "2026-01-01",
+    end: "2026-01-31",
+    status: "current",
+    intro: "Body.",
+  });
 }
 
 beforeEach(() => {

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import type { Trip } from "@/lib/types";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * B363 — `mayMailTrip`/`mayMailCosts` (`lib/digest/dayLetter.ts`) are a second,
@@ -80,27 +81,16 @@ function writeConfigs() {
 }
 
 function writeTrip(spec: (typeof TRIPS)[number]) {
-  const root = path.join(dir, OWNER, "trips", spec.id);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${spec.id}"`,
-      `title: "${spec.id}"`,
-      'start: "2026-08-25"',
-      'end: "2026-08-26"',
-      'status: "past"',
-      `visibility: "${spec.visibility}"`,
-      `costsVisibility: "${spec.costsVisibility}"`,
-      "people:",
-      `  - { name: "Robin", email: "${ROBIN}" }`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: spec.id,
+    title: spec.id,
+    start: "2026-08-25",
+    end: "2026-08-26",
+    status: "past",
+    visibility: spec.visibility,
+    costsVisibility: spec.costsVisibility,
+    people: [{ name: "Robin", email: ROBIN }],
+  });
 }
 
 async function signIn(email: string): Promise<string> {

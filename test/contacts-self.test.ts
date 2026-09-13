@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { writeTripFixture } from "./fixtures/content";
 
 /**
  * `POST /api/contacts/self` — B1395.
@@ -72,26 +73,15 @@ function writeConfig() {
 }
 
 function writeTrip() {
-  const root = path.join(dir, OWNER, "trips", "asia-2025");
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      'id: "asia-2025"',
-      'title: "Asia 2025"',
-      'start: "2025-08-25"',
-      'end: "2025-08-26"',
-      'status: "past"',
-      'visibility: "private"',
-      "people:",
-      `  - { name: "Robin", email: "${ROBIN}" }`,
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: "asia-2025",
+    title: "Asia 2025",
+    start: "2025-08-25",
+    end: "2025-08-26",
+    status: "past",
+    visibility: "private",
+    people: [{ name: "Robin", email: ROBIN }],
+  });
 }
 
 async function reloadConfig() {

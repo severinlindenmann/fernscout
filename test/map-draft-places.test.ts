@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 /**
  * B336 — one trip, three map surfaces, three different marker counts.
@@ -66,61 +67,37 @@ function writeConfigs() {
 }
 
 function writeTrip() {
-  const root = path.join(dir, OWNER, "trips", TRIP_ID);
-  fs.mkdirSync(path.join(root, "entries"), { recursive: true });
-  fs.writeFileSync(
-    path.join(root, "trip.md"),
-    [
-      "---",
-      `id: "${TRIP_ID}"`,
-      'title: "Along the ridge"',
-      'start: "2026-05-01"',
-      'end: "2026-05-10"',
-      'status: "past"',
-      'visibility: "public"',
-      "---",
-      "",
-      "Intro.",
-      "",
-    ].join("\n"),
-  );
+  writeTripFixture(OWNER, {
+    id: TRIP_ID,
+    title: "Along the ridge",
+    start: "2026-05-01",
+    end: "2026-05-10",
+    status: "past",
+    visibility: "public",
+  });
   // A published day in Chur, and a draft day in Basel — two distinct
   // locations so each is its own `Place` rather than collapsing into one.
-  fs.writeFileSync(
-    path.join(root, "entries", "2026-05-02-chur.md"),
-    [
-      "---",
-      'title: "Chur"',
-      'date: "2026-05-02"',
-      'location: "Chur"',
-      'country: "Switzerland"',
-      'countryCode: "CH"',
-      "lat: 46.8508",
-      "lng: 9.5320",
-      "---",
-      "",
-      "Arrived.",
-      "",
-    ].join("\n"),
-  );
-  fs.writeFileSync(
-    path.join(root, "entries", "2026-05-03-basel.md"),
-    [
-      "---",
-      'title: "Basel"',
-      'date: "2026-05-03"',
-      'location: "Basel"',
-      'country: "Switzerland"',
-      'countryCode: "CH"',
-      "lat: 47.5596",
-      "lng: 7.5886",
-      "status: draft",
-      "---",
-      "",
-      "Written, not yet published.",
-      "",
-    ].join("\n"),
-  );
+  writeDayFixture(dir, OWNER, TRIP_ID, {
+    slug: "chur",
+    date: "2026-05-02",
+    title: "Chur",
+    location: "Chur",
+    country: "Switzerland",
+    countryCode: "CH",
+    coordinates: { lat: 46.8508, lng: 9.532 },
+    content: "Arrived.",
+  });
+  writeDayFixture(dir, OWNER, TRIP_ID, {
+    slug: "basel",
+    date: "2026-05-03",
+    title: "Basel",
+    location: "Basel",
+    country: "Switzerland",
+    countryCode: "CH",
+    coordinates: { lat: 47.5596, lng: 7.5886 },
+    status: "draft",
+    content: "Written, not yet published.",
+  });
 }
 
 function signOut() {

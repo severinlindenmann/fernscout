@@ -69,6 +69,11 @@ function writeJournal(costsOn: boolean) {
   );
 }
 
+// Not on writeTripFixture (B1630): "a hand-typed rate is never overwritten"
+// (below) calls this twice for the same trip id — the second time to
+// simulate a rate already sitting in trip.md, an in-place rewrite
+// `createTrip` (the fixture's writer) refuses. Same resistance as
+// test/write-revocation.test.ts.
 function writeTrip(front: string[] = []) {
   fs.writeFileSync(
     path.join(dir, "ana", "trips", "alps", "trip.md"),
