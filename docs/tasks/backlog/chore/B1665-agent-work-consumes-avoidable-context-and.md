@@ -45,9 +45,12 @@ Current primary guidance points in the same direction:
   <https://nextjs.org/docs/app/guides/ai-agents>. Its supported MCP bridge can
   expose route metadata, compilation issues and dev-server logs directly:
   <https://nextjs.org/docs/app/guides/mcp>.
-- Vitest says to measure before changing isolation or pools (`vitest doctor`),
-  supports persisted module/Node compile caches, and supports file sharding for
-  large suites: <https://vitest.dev/guide/improving-performance>.
+- Vitest says to measure before changing isolation or pools, supports persisted
+  module/Node compile caches, and supports file sharding for large suites:
+  <https://vitest.dev/guide/improving-performance>. Its current web guide
+  describes `vitest doctor`, but Fernscout's installed Vitest 4.1.11 does not
+  provide that command, so the first implementation must use a checked-in
+  benchmark instead.
 - Next.js documents persisting `.next/cache` between builds, and GitHub Actions
   supports dependency caches and parallel matrix jobs:
   <https://nextjs.org/docs/13/pages/building-your-application/deploying/ci-build-caching>
