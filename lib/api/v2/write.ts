@@ -526,6 +526,65 @@ export function checkTranslations(
 }
 
 /**
+ * B1671 — the trip write path's one auto-written decline. A brand-new trip
+ * genuinely has no days yet to answer the `days` declinable with, and once a
+ * trip exists `days` is answered elsewhere (`PUT .../days/{slug}`) rather
+ * than re-askable through a document that no longer carries the field at
+ * all — the reasoning `06-contract-deltas.md`'s decline-truth row records as
+ * a deliberate, authorised exception to "a `declined` entry is only ever
+ * written when a person actually declines" (decision 3). Because it is an
+ * exception and not the rule, the stored text says so in the first person
+ * plural of the SERVER, not the owner's — "we", never "I" or a bare
+ * unattributed sentence a reader could mistake for something the owner
+ * typed. One constant so the PUT-replace and PATCH paths cannot drift into
+ * two different tells for the same exception.
+ */
+export const TRIP_DAYS_ANSWERED_ELSEWHERE_REASON =
+  "(auto-recorded by the server, not a caller's decision) days are written and changed through their own route (PUT .../days/{slug}), not re-asked once a trip exists";
+
+/**
+ * B1667 — a journal with one locale (or none) has no second language to
+ * carry `translations` in, so the required-or-declined question has no
+ * honest answer either way: nothing was left unanswered, and nothing was
+ * declined either — the question simply does not apply
+ * (`00-decisions.md`, and `TRIP_DECLINABLES`/`DAY_DECLINABLES`'s own
+ * `whyRequired` text: "a single-language journal is exempt"). The schema's
+ * `checkRequiredOrDeclined` cannot see the journal's locale count, so it
+ * always demands the section present-or-declined — this is the door-level
+ * exemption the route applies before handing the document to that frozen
+ * check.
+ *
+ * Unlike B1671's `days` exception above, this never touches `declined`: an
+ * empty `translations: {}` is not a decline standing in for a decision
+ * nobody made, it is the plain, true value of "this journal has no
+ * translations to carry" — the same fact a multi-locale journal states with
+ * a non-empty map. `stripInjectedTranslations` removes the synthesised key
+ * again once the frozen schema has been satisfied, so nothing the caller did
+ * not send is ever persisted or echoed back: no `translations`, and no
+ * `declined.translations` either.
+ *
+ * Returns whether it actually injected anything, so the caller knows
+ * whether to strip it back out afterwards — a caller that genuinely
+ * supplied or declined `translations` is left completely untouched.
+ */
+export function exemptSingleLocaleTranslations(raw: Record<string, unknown>, locales: readonly string[]): boolean {
+  if (locales.length > 1) return false;
+  if (raw.translations !== undefined) return false;
+  const declined = (raw.declined as Record<string, string> | undefined) ?? {};
+  if (declined.translations !== undefined) return false;
+  raw.translations = {};
+  return true;
+}
+
+/** The other half of `exemptSingleLocaleTranslations` — undoes the injected
+ * `translations: {}` on a document that is about to be persisted or echoed,
+ * once the frozen schema's own parse has already run and no longer needs it
+ * present. A no-op when nothing was injected. */
+export function stripInjectedTranslations(doc: Record<string, unknown>, injected: boolean): void {
+  if (injected) delete doc.translations;
+}
+
+/**
  * B1626 (the immediately-buildable half) — `cover` must name a `src` this
  * trip's own gallery already carries. No Zod schema can check this either —
  * it needs the trip's own stored media, not just the shape of one string —

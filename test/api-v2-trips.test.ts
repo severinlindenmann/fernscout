@@ -221,7 +221,8 @@ describe("PUT /api/v2/{user}/trips/{trip} — the 422 incomplete body", () => {
     const missing = (body.details as { missing?: { field: string; to_decline: string }[] })?.missing ?? [];
     const fields = missing.map((m) => m.field).sort();
     // Every declinable section this trip left open, PLUS the buddies question
-    // (solo trip, buddies neither supplied nor declined).
+    // (solo trip, buddies neither supplied nor declined). NOT translations —
+    // OWNER's journal has one locale, so that question is exempt (B1667).
     expect(fields).toEqual(
       [
         "accent",
@@ -233,7 +234,6 @@ describe("PUT /api/v2/{user}/trips/{trip} — the 422 incomplete body", () => {
         "plan",
         "rates",
         "tagline",
-        "translations",
       ].sort(),
     );
 
@@ -603,6 +603,81 @@ describe("PUT/PATCH /api/v2/{user}/trips/{trip} — translations refuses an unde
     );
     expect(status, JSON.stringify(body)).toBe(200);
     expect(body.translations).toEqual({ de: { title: "Vier Tage" } });
+  });
+});
+
+/**
+ * B1667 — a journal with one locale (or none) has no second language for
+ * `translations` to carry, so the required-or-declined question has no
+ * honest answer either way. `00-decisions.md` and `TRIP_DECLINABLES`' own
+ * `whyRequired` text both say such a journal is exempt; the schema itself
+ * cannot see the journal's locale count, so this is checked at the door.
+ */
+describe("PUT/PATCH /api/v2/{user}/trips/{trip} — translations is exempt on a single-locale journal (B1667)", () => {
+  test("a create leaving translations entirely absent (not declined) succeeds — OWNER's journal has one locale", async () => {
+    const token = await ownerToken();
+    const declined = { ...(fullTrip("single-locale-create").declined as Record<string, string>) };
+    delete declined.translations;
+    const body = fullTrip("single-locale-create", { declined });
+
+    const { status, body: created } = await putTrip(OWNER, "single-locale-create", body, token);
+    expect(status, JSON.stringify(created)).toBe(201);
+    expect(created.translations).toBeUndefined();
+    expect((created.declined as Record<string, string> | undefined)?.translations).toBeUndefined();
+
+    // Persisted, not just echoed: a GET reads back the same absence.
+    const { body: onDisk } = await getTrip(OWNER, "single-locale-create", token);
+    expect(onDisk.translations).toBeUndefined();
+    expect((onDisk.declined as Record<string, string> | undefined)?.translations).toBeUndefined();
+  });
+
+  test("a patch leaving translations absent on an existing single-locale trip stays exempt", async () => {
+    const token = await ownerToken();
+    const declined = { ...(fullTrip("single-locale-patch").declined as Record<string, string>) };
+    delete declined.translations;
+    await putTrip(OWNER, "single-locale-patch", fullTrip("single-locale-patch", { declined }), token);
+
+    const { status, body } = await patchTrip(OWNER, "single-locale-patch", { tagline: "Updated tagline" }, token);
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.translations).toBeUndefined();
+    expect((body.declined as Record<string, string> | undefined)?.translations).toBeUndefined();
+  });
+
+  test("declining translations explicitly on a single-locale journal is still accepted (the exemption widens, never narrows)", async () => {
+    const token = await ownerToken();
+    const { status, body } = await putTrip(OWNER, "single-locale-explicit-decline", fullTrip("single-locale-explicit-decline"), token);
+    expect(status, JSON.stringify(body)).toBe(201);
+    expect(body.declined).toMatchObject({ translations: "single-language journal, nothing to translate" });
+  });
+
+  test("the same absence on a two-or-more-locale journal still 422s, asking for translations", async () => {
+    const MULTI_OWNER = "milo";
+    const MULTI_EMAIL = "milo@example.test";
+    const { createJournal } = await import("@/lib/journals");
+    const created = createJournal({
+      username: MULTI_OWNER,
+      title: "Milo's Journal",
+      ownerEmail: MULTI_EMAIL,
+      ownerName: "Milo Traveller",
+      ownerNickname: "Milo",
+      defaultLocale: "en",
+      locales: ["en", "fr"],
+    });
+    if (!created.ok) throw new Error(created.message);
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+    const { code } = await issueCode(MULTI_OWNER, MULTI_EMAIL, "agent");
+    const result = await verifyCode(MULTI_OWNER, MULTI_EMAIL, code, "agent");
+    if (!result.ok) throw new Error("no multi-locale owner token");
+
+    const declined = { ...(fullTrip("multi-locale-trip").declined as Record<string, string>) };
+    delete declined.translations;
+    const body = fullTrip("multi-locale-trip", { declined });
+
+    const { status, body: resBody } = await putTrip(MULTI_OWNER, "multi-locale-trip", body, result.token);
+    expect(status, JSON.stringify(resBody)).toBe(422);
+    expect(resBody.error).toBe("incomplete");
+    const missing = (resBody.details as { missing?: { field: string }[] })?.missing ?? [];
+    expect(missing.map((m) => m.field)).toContain("translations");
   });
 });
 

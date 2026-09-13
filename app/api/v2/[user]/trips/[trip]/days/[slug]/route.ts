@@ -10,8 +10,10 @@ import {
   DAY_IMMUTABLE_FIELDS,
   checkTranslations,
   clearDeclinedSections,
+  exemptSingleLocaleTranslations,
   retractDeclines,
   stripEchoedFields,
+  stripInjectedTranslations,
 } from "@/lib/api/v2/write";
 import { resolveBearer, ownsUser, outOfScopeRefusal } from "@/lib/api/v2/auth";
 import { mayWriteTrip, refuseWrite } from "@/lib/api/auth";
@@ -153,20 +155,28 @@ export async function PUT(request: Request, { params }: RouteCtx) {
   const weatherOff = weatherLookupRefused(raw as { weather?: unknown });
   if (weatherOff) return fail("weather_disabled", weatherOff, undefined, 400);
 
+  // B1667 — same door-level exemption as the trip route: a journal with one
+  // locale (or none) has no second language for `translations` to carry, so
+  // the required-or-declined question the frozen schema always asks has no
+  // honest answer either way. Fetched here, before the parse, because the
+  // exemption has to be applied to `raw` before `dayWrite.safeParse` sees it.
+  const dayJournal = getUser(user);
+  const injectedTranslations = exemptSingleLocaleTranslations(raw, dayJournal?.locales ?? []);
+
   const parsed = dayWrite.safeParse(raw);
   if (!parsed.success) {
     const shape = dayDoc.shape as unknown as Record<string, ZodType>;
-    const { incomplete, problems } = splitIssues(parsed.error, shape);
+    const { incomplete, problems } = splitIssues(parsed.error, shape, DAY_DECLINABLE_FIELDS);
     if (incomplete) return fail("incomplete", ERROR_CODES.incomplete, incomplete, 422);
     return fail("invalid_entry", ERROR_CODES.invalid_entry, problems, 400);
   }
+  stripInjectedTranslations(parsed.data as Record<string, unknown>, injectedTranslations);
 
   // B1625/B1619 — a translation naming a locale this journal does not
   // declare, the day's own language duplicated under translations, or a
   // translations map missing a language the journal is owed. A Zod schema
   // cannot see the journal's config, so this check lives at the door
   // (00-decisions.md), shared with the trip route.
-  const dayJournal = getUser(user);
   const localeProblem = checkTranslations(
     parsed.data.translations,
     dayJournal?.locales ?? [],
@@ -304,16 +314,21 @@ export async function applyDayPatch(
   // both at once.
   clearDeclinedSections(merged, patch.declined as Record<string, string> | undefined);
 
+  // B1667 — same door-level exemption as PUT/create, applied to the merged
+  // document about to be revalidated in full.
+  const patchJournal = getUser(user);
+  const injectedTranslations = exemptSingleLocaleTranslations(merged, patchJournal?.locales ?? []);
+
   const finalParsed = dayWrite.safeParse(merged);
   if (!finalParsed.success) {
     const shape = dayDoc.shape as unknown as Record<string, ZodType>;
-    const { incomplete, problems } = splitIssues(finalParsed.error, shape);
+    const { incomplete, problems } = splitIssues(finalParsed.error, shape, DAY_DECLINABLE_FIELDS);
     if (incomplete) return fail("incomplete", ERROR_CODES.incomplete, incomplete, 422);
     return fail("invalid_entry", ERROR_CODES.invalid_entry, problems, 400);
   }
+  stripInjectedTranslations(finalParsed.data as Record<string, unknown>, injectedTranslations);
 
   // B1625/B1619 — same door checks the PUT route runs, against the merged document.
-  const patchJournal = getUser(user);
   const patchLocaleProblem = checkTranslations(
     finalParsed.data.translations,
     patchJournal?.locales ?? [],

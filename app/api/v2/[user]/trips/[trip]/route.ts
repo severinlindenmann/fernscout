@@ -14,10 +14,13 @@ import {
   checkCover,
   checkTranslations,
   clearDeclinedSections,
+  exemptSingleLocaleTranslations,
   reconcileVisibility,
   retractAnsweredDeclines,
   retractDeclines,
   stripEchoedFields,
+  stripInjectedTranslations,
+  TRIP_DAYS_ANSWERED_ELSEWHERE_REASON,
 } from "@/lib/api/v2/write";
 import {
   mayActAsOwner,
@@ -165,17 +168,31 @@ export async function PUT(request: Request, { params }: RouteCtx) {
     delete raw.days;
     const declined = (raw.declined as Record<string, string> | undefined) ?? {};
     if (declined.days === undefined) {
-      raw.declined = { ...declined, days: "days are written and changed through their own route, not re-asked on a trip replace" };
+      raw.declined = { ...declined, days: TRIP_DAYS_ANSWERED_ELSEWHERE_REASON };
     }
   }
+
+  // B1667 — a journal with one locale (or none) has no second language to
+  // carry `translations` in, so the question has no honest answer either
+  // way (00-decisions.md, and TRIP_DECLINABLES' own `whyRequired` text: "a
+  // single-language journal is exempt"). The schema itself cannot see the
+  // journal's locale count, so the exemption is applied here, at the door,
+  // as the one honest value that needs no caller decision — an empty map,
+  // which genuinely IS the state of "no translations exist" — purely to
+  // satisfy the schema's required-or-declined check; `stripInjectedTranslations`
+  // below removes it again before anything is persisted or echoed, so a
+  // single-locale journal's trip carries no `translations` key and no
+  // `declined.translations` entry it never asked for.
+  const injectedTranslations = exemptSingleLocaleTranslations(raw, journal.locales);
 
   const parsed = tripCreate.safeParse(raw);
   if (!parsed.success) {
     const shape = tripDoc.shape as unknown as Record<string, ZodType>;
-    const { incomplete, problems } = splitIssues(parsed.error, shape);
+    const { incomplete, problems } = splitIssues(parsed.error, shape, TRIP_DECLINABLE_KEYS);
     if (incomplete) return fail("incomplete", ERROR_CODES.incomplete, incomplete, 422);
     return fail("invalid_trip", ERROR_CODES.invalid_trip, problems, 400);
   }
+  stripInjectedTranslations(parsed.data as Record<string, unknown>, injectedTranslations);
 
   // B1625/B1619 — a translation naming a locale this journal does not
   // declare, the journal's own language duplicated under translations, or a
@@ -377,7 +394,7 @@ export async function applyTripPatch(
   if (merged.days === undefined) {
     const declined = (merged.declined as Record<string, string> | undefined) ?? {};
     if (declined.days === undefined) {
-      merged.declined = { ...declined, days: "days are written and changed through their own route, not re-asked once a trip exists" };
+      merged.declined = { ...declined, days: TRIP_DAYS_ANSWERED_ELSEWHERE_REASON };
     }
   }
 
@@ -411,13 +428,18 @@ export async function applyTripPatch(
 
   delete merged.days; // a day changes through its own route, whatever the patch names.
 
+  // B1667 — same exemption as the PUT create path above, applied to the
+  // merged document this revalidation is about to hand `tripCreate`.
+  const injectedTranslations = exemptSingleLocaleTranslations(merged, journal.locales);
+
   const finalParsed = tripCreate.safeParse(merged);
   if (!finalParsed.success) {
     const shape = tripDoc.shape as unknown as Record<string, ZodType>;
-    const { incomplete, problems } = splitIssues(finalParsed.error, shape);
+    const { incomplete, problems } = splitIssues(finalParsed.error, shape, TRIP_DECLINABLE_KEYS);
     if (incomplete) return fail("incomplete", ERROR_CODES.incomplete, incomplete, 422);
     return fail("invalid_request", ERROR_CODES.invalid_request, problems, 400);
   }
+  stripInjectedTranslations(finalParsed.data as Record<string, unknown>, injectedTranslations);
 
   // B1625/B1619/B1626 — the same door checks the PUT route runs, against the
   // merged document a patch produces. Media is whatever the trip already has

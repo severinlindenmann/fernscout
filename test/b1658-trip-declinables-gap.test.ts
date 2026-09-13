@@ -122,9 +122,10 @@ test("a helper-created trip, fully answered on B1660's four fields, still 422s a
   const missingFields = (body.details?.missing ?? []).map((m) => m.field).sort();
   // `costs` itself is answered by the patch. `accent`/`tagline`/`intro`/
   // `rates`/`days` are answered by B1660's create-time gate. Everything else
-  // v2's `tripCreate` schema asks a trip — `plan`, `translations`, `figures`
-  // (no helper tool writes any of the three) — plus this trip's own `listed`
-  // (public, never asked) and `buddies` (solo, never asked) — is still
-  // silently missing, so the merged document still refuses.
-  expect(missingFields).toEqual(["buddies", "figures", "listed", "plan", "translations"]);
+  // v2's `tripCreate` schema asks a trip — `plan`, `figures` (no helper tool
+  // writes either) — plus this trip's own `listed` (public, never asked) and
+  // `buddies` (solo, never asked) — is still silently missing, so the merged
+  // document still refuses. NOT `translations` — this journal has one locale
+  // (`locales: ["en"]` above), so that question is exempt (B1667).
+  expect(missingFields).toEqual(["buddies", "figures", "listed", "plan"]);
 });
