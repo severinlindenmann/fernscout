@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: helper, room
 found: "2026-09-11T11:11:05Z"
+started: "2026-09-13T07:06:34Z"
 ---
 
 # B1444 — An honesty guard's replacement sentence is rendered twice around the card it replaces
@@ -52,3 +53,9 @@ same shape and simply has two different strings, which would hide it.
 - A guarded turn that also carries a card shows its sentence once.
 - `test/helper-honesty*.test.ts` still passes, and one of them asserts the count
   rather than only the wording.
+
+## Revalidated — 2026-09-13
+
+Still valid on current `main`: helper turn rendering can include the guard's
+replacement text as the message body and again as the card caption. The task
+has a focused acceptance condition and requires no product decision.
