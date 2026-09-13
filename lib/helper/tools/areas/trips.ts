@@ -75,6 +75,18 @@ export const TRIPS_TOOLS: readonly Tool[] = [
         description:
           "Who may read it: public (anybody), guest (everybody let into this journal), private (ONLY the people who were on the trip). A person they name is a guest — \"only my daughter should read this\" is guest; private shuts her out. Leave it out unless they said.",
       },
+      /**
+       * B1660 — the trip-side mirror of `start_day`'s own four rows
+       * (B1650). Each is also a row in `HELPER_TRIP_DECLINE_REASONS`
+       * (`lib/tripWrite.ts`), so a create silent on one of them is refused
+       * (`incomplete_trip`, naming the row) — that refusal is what should
+       * send the model back to ask, in words, rather than this card
+       * pre-filling a value nobody was asked for.
+       */
+      accent: { type: "string", description: 'sky/yellow/green/coral/navy, or "none".' },
+      tagline: { type: "string", description: 'Card subtitle, or "none".' },
+      intro: { type: "string", description: 'Opening lines, or "none".' },
+      rates: { type: "string", description: 'Currencies, comma-separated, or "none".' },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip`,
     propose: async (username, args, say) => ({
@@ -120,6 +132,17 @@ export const TRIPS_TOOLS: readonly Tool[] = [
             { value: "private", label: say("agent.tool.visibilityPrivate") },
           ],
         },
+        /**
+         * B1660 — carried through exactly as the model filled them in, never
+         * shown with a pre-filled default: `fixed` means `HelperAsk` draws
+         * nothing for these, so there is no button to press past without
+         * having actually been asked. Absent when the model has not been
+         * told, which is what lets `POST .../trip`'s own completeness check
+         * catch a create still silent on one of them.
+         */
+        ...(["accent", "tagline", "intro", "rates"] as const)
+          .filter((name) => (args[name] ?? "").trim() !== "")
+          .map((name) => ({ name, value: args[name]!.trim(), fixed: true as const })),
       ],
     }),
   },

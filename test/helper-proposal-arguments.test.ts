@@ -68,6 +68,7 @@ const SHAPE = new Set([
   "unknown_day",
   "no_day_on_date",
   "incomplete_day",
+  "incomplete_trip",
   "expected_files",
   "expected_src",
   "unknown_media",
@@ -121,7 +122,18 @@ const DRAFT_PHOTO = `/alex/media/${TRIP}/${DRAFT}/01.jpg`;
  *  because an inbox id is a hash of the bytes staged in that test. */
 const SAID: Record<string, Record<string, string>> = {
   add_contact: {},
-  create_trip: { title: "Japan", start: "2026-03-01", end: "2026-03-14" },
+  // B1660's own four rows — same shape as `start_day`'s below: never
+  // pre-filled on the card, so what the model is imagined to have already
+  // asked about and been told "none" for travels as an argument here.
+  create_trip: {
+    title: "Japan",
+    start: "2026-03-01",
+    end: "2026-03-14",
+    accent: "none",
+    tagline: "none",
+    intro: "none",
+    rates: "none",
+  },
   edit_trip: { trip: AS_SAID, title: "Die neue Reise", start: "2026-05-02", end: "2026-05-12" },
   set_visibility: { trip: AS_SAID, visibility: "guest" },
   set_reminder: { trip: AS_SAID, enabled: "on" },

@@ -149,6 +149,7 @@ function isProposal(
  */
 const NAMED_FAILURES = [
   "incomplete_day",
+  "incomplete_trip",
   "day_exists",
   "slug_taken",
   "consent_required",

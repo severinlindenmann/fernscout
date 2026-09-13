@@ -1334,6 +1334,11 @@ describe("the trip fields that had no writer", () => {
       // below is `guest` rather than public: the key is refused on a trip
       // anybody may read.
       "teaser",
+      // B1660 — `createTrip` now has a field for this: what the trip
+      // consciously has none of and why (`input.declined`), plus `days`,
+      // which it always writes for free (a brand new trip never has one
+      // yet — see `lib/tripWrite.ts`'s own comment on `createTrip`).
+      "declined",
     ];
     const decidedAgainst = {
       cover: "no media exists when a trip is created — B245",
@@ -1341,11 +1346,6 @@ describe("the trip fields that had no writer", () => {
       // field for it at all — an upcoming trip's plan is written some other
       // way (or by hand) until that gets a call of its own.
       plan: "createTrip has no field for a planned route yet",
-      // The one decline mechanism (B1598 decision 4) records what a trip
-      // consciously has none of and why — a judgement call `createTrip`
-      // has no field to receive, the same way it never invented a decline
-      // for anything else.
-      declined: "createTrip has no field for a decline yet",
     };
 
     const trip = createTrip("wanderer", {
