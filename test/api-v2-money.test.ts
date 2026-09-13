@@ -438,6 +438,40 @@ describe("PUT /api/web/{user}/storage/purchases/{id} — the owner's own spend",
   });
 });
 
+describe("PUT /api/web/{user}/purchases/{id} — the owner's own cookie only", () => {
+  test("a bearer token is refused outright, even one scoped to the owner", async () => {
+    const token = await ownerToken();
+    const { PUT } = await import("@/app/api/web/[user]/purchases/[id]/route");
+    const response = await PUT(
+      req(`https://example.test/api/web/${OWNER}/purchases/web-1`, {
+        method: "PUT",
+        token,
+        body: JSON.stringify({ credits: 50 }),
+      }),
+      { params: Promise.resolve({ user: OWNER, id: "web-1" }) },
+    );
+    expect(response.status).toBe(403);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).toBe("not_for_agents");
+    const { getPayment } = await import("@/lib/payments");
+    expect(await getPayment(OWNER, "web-1")).toBeNull();
+  });
+
+  test("the owner's own cookie still works", async () => {
+    await ownerCookie();
+    const { PUT } = await import("@/app/api/web/[user]/purchases/[id]/route");
+    const response = await PUT(
+      new Request(`https://example.test/api/web/${OWNER}/purchases/web-2`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ credits: 50 }),
+      }),
+      { params: Promise.resolve({ user: OWNER, id: "web-2" }) },
+    );
+    expect(response.status).toBe(201);
+  });
+});
+
 describe("the invariant: no route in this area can raise a balance", () => {
   test("none of the v2/web money routes import grant from lib/credits", async () => {
     const files = [
