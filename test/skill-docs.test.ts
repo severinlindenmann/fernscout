@@ -4,11 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";
-import { agentGuide, instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
+import { instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
 import { skillDoc } from "@/lib/api/skillDocs";
 import { SKILL_DOC_SLUGS, type SkillDocSlug } from "@/lib/api/skillDocMeta";
-import { PERFECT_DAY_EXAMPLE, PERFECT_TRIP_EXAMPLE } from "@/lib/api/agentCopy";
 import { openApiDocument } from "@/lib/api/openapi";
+import { openApiDocumentV2 } from "@/lib/api/v2/openapi";
 
 let dir: string;
 
@@ -49,7 +49,7 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("the guide split by task (B311)", () => {
+describe("the nine v2 task guides (B311, step 6 of the v2 migration)", () => {
   test("every slug renders, and starts with an H1 and a blockquote", () => {
     for (const slug of SKILL_DOC_SLUGS) {
       const rendered = skillDoc(slug as SkillDocSlug);
@@ -59,63 +59,60 @@ describe("the guide split by task (B311)", () => {
   });
 
   // The acceptance line: an agent that needs to write a day reads one
-  // document under 10KB and can do it, without fetching the whole guide.
+  // document under 10KB and can do it, without fetching the whole contract.
   test("add-a-day.md is under 10KB", () => {
     const bytes = Buffer.byteLength(skillDoc("add-a-day"), "utf8");
-    // This has failed with under 100 bytes to spare before (B311). If it just
-    // failed on you: a day field was added or a sentence grew, and the fix is
-    // not to raise the 10KB ceiling (that is the acceptance line itself) —
-    // trim a sentence out of `add-a-day`'s slices in `lib/api/skillDocs.ts`,
-    // or move the new field's description onto /openapi.json's Draft schema
-    // instead of inlining it here (dayFieldNames() already only lists names).
     expect(
       bytes,
-      `add-a-day.md is ${bytes} bytes, over the 10KB ceiling. Do not raise the ceiling — ` +
-        "trim a sentence out of its slices in lib/api/skillDocs.ts, or describe the new " +
-        "field on /openapi.json's Draft schema instead of inlining it here.",
+      `add-a-day.md is ${bytes} bytes, over the 10KB ceiling. Trim a sentence rather than ` +
+        "raising the ceiling, or move detail onto /api/v2/openapi.json's own request schema.",
     ).toBeLessThan(10 * 1024);
   });
 
-  test("add-a-day.md carries the fields a day needs and the worked example", () => {
+  test("add-a-day.md names the required fields and the write/correct/publish calls", () => {
     const rendered = skillDoc("add-a-day");
     expect(rendered).toContain("title");
     expect(rendered).toContain("date");
     expect(rendered).toContain("content");
     expect(rendered).toMatch(/\(required\)/);
-    for (const line of PERFECT_DAY_EXAMPLE) expect(rendered).toContain(line);
-    expect(rendered).toMatch(/PATCH/);
+    expect(rendered).toContain("PUT");
+    expect(rendered).toContain("PATCH");
     expect(rendered).toMatch(/\/publish/);
+    // The v2 shape, not v1's: asked-or-declined, not `false`/`"unknown"`.
+    expect(rendered).toMatch(/declined/);
   });
 
-  test("add-a-trip.md carries the worked example from the same constant the guide uses", () => {
-    const rendered = skillDoc("add-a-trip");
-    for (const line of PERFECT_TRIP_EXAMPLE) expect(rendered).toContain(line);
-  });
-
-  // No fact about the API lives in two documents from two sources: every
-  // skill document is built mostly from slices of `agentGuide()`'s own
-  // rendered text — so a sentence sliced into a skill document appears in
-  // the guide byte for byte — plus a handful of hand-written connective
-  // sentences that name no fact of their own (they point at `dayFieldNames()`
-  // and `/openapi.json`, the same schema the guide's own table reads).
-  test("known slices reappear in the guide verbatim", () => {
-    const guide = agentGuide();
-    const knownSlices: Record<SkillDocSlug, string> = {
-      "new-account": "## Starting from nothing",
-      "add-journal": "### Deleting a trip, or the whole journal",
-      "add-a-trip": PERFECT_TRIP_EXAMPLE[0],
-      "add-a-day": "The slug comes from the title",
-      "ingest-photos": "### Photographs and video",
-      "invite-someone": "## Letting other people in",
-      costs: "### The trip's budget",
-      "send-postcards": "## Real postcards, in the post",
-      "make-a-photobook": "## Printing a photobook",
+  test("every field name in add-a-day.md's table is generated from the real v2 request schema", () => {
+    // Not a hand-typed copy: read the same JSON Schema the served
+    // /api/v2/openapi.json carries, and check the guide names every key of
+    // it. A field renamed in lib/api/v2/schemas/day.ts without this test
+    // failing would mean the generator itself is broken, not this guide.
+    const openapi = openApiDocumentV2() as unknown as {
+      paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
     };
+    const schema =
+      openapi.paths["/api/v2/{user}/trips/{trip}/days/{slug}"].put.request!.content!["application/json"]!.schema!;
+    const rendered = skillDoc("add-a-day");
+    for (const field of Object.keys(schema.properties ?? {})) {
+      expect(rendered, `add-a-day.md should name the field \`${field}\``).toContain(`\`${field}\``);
+    }
+  });
+
+  test("add-a-trip.md carries every field name of the v2 trip PUT, generated from the schema", () => {
+    const openapi = openApiDocumentV2() as unknown as {
+      paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
+    };
+    const schema = openapi.paths["/api/v2/{user}/trips/{trip}"].put.request!.content!["application/json"]!.schema!;
+    const rendered = skillDoc("add-a-trip");
+    for (const field of Object.keys(schema.properties ?? {})) {
+      expect(rendered, `add-a-trip.md should name the field \`${field}\``).toContain(`\`${field}\``);
+    }
+  });
+
+  test("every v2 route document uses /api/v2, never /api/v1", () => {
     for (const slug of SKILL_DOC_SLUGS) {
       const rendered = skillDoc(slug as SkillDocSlug);
-      const needle = knownSlices[slug];
-      expect(rendered, `${slug} should carry ${needle}`).toContain(needle);
-      expect(guide, `${needle} should come from agentGuide()`).toContain(needle);
+      expect(rendered, `${slug} should not mention /api/v1`).not.toMatch(/\/api\/v1\//);
     }
   });
 
@@ -129,6 +126,11 @@ describe("the guide split by task (B311)", () => {
     for (const slug of SKILL_DOC_SLUGS) {
       expect(doc, slug).toContain(`/skill/${slug}.md`);
     }
+  });
+
+  test("/documentation.txt points at the generated v2 machine contract, not a hand-written one", () => {
+    const doc = instanceDocumentation();
+    expect(doc).toContain("/api/v2/openapi.json");
   });
 
   test("/agent.md is retired: a 301 to /documentation.txt, not the guide", async () => {
@@ -170,15 +172,13 @@ describe("the guide split by task (B311)", () => {
     }
   });
 
-  // B1459: a route that sends a `next` pointer at a skill document but never
-  // says so in the contract is the exact failure AGENTS.md names — "a field
-  // the code accepts and the document does not describe is a field nobody
-  // outside will ever use", one hop earlier. This derives each route file's
-  // OpenAPI path from its position under app/api (Next.js file routing:
-  // app/api/v1/journals/route.ts -> /api/v1/journals, [user] -> {user}) and
-  // fails if the operation whose handler calls skillDocPath() has no `201`
-  // response description mentioning `next`.
-  test("every route that sends a next pointer documents it", () => {
+  // B1459/B1621: a route that sends a `next` pointer at a skill document but
+  // never says so in the contract is the exact failure AGENTS.md names — "a
+  // field the code accepts and the document does not describe is a field
+  // nobody outside will ever use", one hop earlier. Every route that sends a
+  // `next` pointer is a v2 route now (B1624 moved the last of them), so this
+  // checks the GENERATED v2 document rather than v1's hand-written one.
+  test("every route that sends a next pointer documents it in the generated v2 contract", () => {
     const apiRoot = path.join(process.cwd(), "app/api");
     const files: string[] = [];
     const walk = (dir: string) => {
@@ -195,37 +195,22 @@ describe("the guide split by task (B311)", () => {
     );
     expect(withNextPointer.length).toBeGreaterThan(0);
 
-    // `lib/api/openapi.ts` is v1's document and describes v1 and /api/auth
-    // only — v2's contract is the Zod schemas, and its own
-    // `/api/v2/openapi.json` is generated from them in step 6 of the
-    // migration. So a v2 route sending `next` cannot be checked against this
-    // document; it is not a gap in the route, it is the wrong document.
-    //
-    // **The obligation does not disappear, it moves.** The generator that
-    // builds `/api/v2/openapi.json` has to carry this same rule, and this
-    // filter has to come back out when it does. `docs/v2-migration/05-status.md`
-    // records it against step 6 so it is not lost with this comment.
+    // v1 no longer sends a `next` pointer at all — see 06-contract-deltas.md.
+    // A v1 route growing one again is worth catching here rather than
+    // silently documenting nothing.
     const v1WithNextPointer = withNextPointer.filter(
       (file) => !path.relative(process.cwd(), file).startsWith(path.join("app", "api", "v2")),
     );
-
-    // B1624 moved the last of them. Every route that sends a `next` pointer
-    // is now a v2 route, so this loop has nothing left to check and the
-    // filter above has stopped protecting anything — it is a placeholder for
-    // an obligation that has entirely moved, not a live assertion.
-    //
-    // What must happen at step 6, when `/api/v2/openapi.json` is generated:
-    // delete the filter, point `doc` at the v2 document, and let the loop run
-    // over `withNextPointer` whole. Until then this asserts the honest thing
-    // — that the v1 side is empty — so that the day a v1 route grows a `next`
-    // pointer again, this fails and somebody reads the comment. B1621.
     expect(v1WithNextPointer).toEqual([]);
-    expect(withNextPointer.length).toBeGreaterThan(0);
 
-    const doc = openApiDocument() as unknown as {
-      paths: Record<string, Record<string, { responses?: Record<string, { description?: string }> }>>;
+    type Schema = { properties?: Record<string, unknown> };
+    const doc = openApiDocumentV2() as unknown as {
+      paths: Record<
+        string,
+        Record<string, { responses?: Record<string, { content?: { "application/json"?: { schema?: Schema } } }> }>
+      >;
     };
-    for (const file of v1WithNextPointer) {
+    for (const file of withNextPointer) {
       const routePath =
         "/" +
         path
@@ -236,30 +221,33 @@ describe("the guide split by task (B311)", () => {
           .replace(/\[([^\]]+)\]/g, "{$1}");
       const methods = doc.paths[routePath];
       expect(methods, `${routePath} (from ${file}) should be a documented path`).toBeTruthy();
+      // Grounded in the generated schema itself, not a prose description: the
+      // response body schema (produced from the frozen Zod document) has to
+      // list `next` as a property, or the field the route sends is one the
+      // generated contract says nothing about.
       const anyOperationDocumentsNext = Object.values(methods ?? {}).some((op) =>
-        Object.values(op.responses ?? {}).some((r) => r.description?.includes("`next`")),
+        Object.values(op.responses ?? {}).some((r) =>
+          Object.prototype.hasOwnProperty.call(
+            r.content?.["application/json"]?.schema?.properties ?? {},
+            "next",
+          ),
+        ),
       );
       expect(
         anyOperationDocumentsNext,
-        `${routePath} sends a next pointer via skillDocPath() but no response ` +
-          "description in lib/api/openapi.ts mentions `next`",
+        `${routePath} sends a next pointer via skillDocPath() but no response schema in ` +
+          "lib/api/v2/openapi.ts lists a `next` field",
       ).toBe(true);
     }
   });
 
   test("the reply that creates a journal, a trip, and a day each names the next document", () => {
-    // The journals create moved to /api/v2 in B1624, carrying its pointer.
     const journalsSrc = fs.readFileSync(
       path.join(process.cwd(), "app/api/v2/journals/route.ts"),
       "utf8",
     );
     expect(journalsSrc).toContain('skillDocPath("add-a-trip")');
 
-    // The trip and day creates moved to v2 (B1612), and the chain moved with
-    // them — it had to be put back, because it had not been (B1621): an agent
-    // that made its first trip through v2 was told nothing about what comes
-    // next. Creating is a PUT to the id now, so the pointer lives on the
-    // single-trip and single-day routes rather than on a collection POST.
     const tripsSrc = fs.readFileSync(
       path.join(process.cwd(), "app/api/v2/[user]/trips/[trip]/route.ts"),
       "utf8",
@@ -281,5 +269,12 @@ describe("the guide split by task (B311)", () => {
       expect(body, slug).toBe(skillDoc(slug as SkillDocSlug));
       expect(res.headers.get("content-type")).toContain("text/markdown");
     }
+  });
+
+  // v1's own document is untouched by this ticket (rule 5) — a smoke check
+  // that it still parses, so a change here cannot silently have reached it.
+  test("v1's own hand-written openapi document is unaffected", () => {
+    const doc = openApiDocument() as unknown as { paths: Record<string, unknown> };
+    expect(doc.paths["/api/v1/{user}/invites"]).toBeTruthy();
   });
 });

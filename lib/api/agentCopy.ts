@@ -24,8 +24,30 @@
  * So the *definitions* live here, once, and each document frames them in its
  * own voice and its own shape. This module is deliberately dependency-free —
  * `app/openapi.json/route.ts` imports it without dragging in the whole
- * documentation generator, and `test/agent-interface.test.ts` asserts that
- * every document actually carries them.
+ * documentation generator.
+ *
+ * v2 migration note (step 6, docs/v2-migration/03-build-order.md): the
+ * fragments tied to the retired `agentGuide()` and index/question-script
+ * prose — the perfect-day example, the frontmatter-migration table, the
+ * question scripts for a trip and a day, and the sentences only they used
+ * (`NOT_WRITABLE`, `TRANSLATIONS_REQUIRED`, `PUBLISH_OFFER`,
+ * `GUEST_LINK_OFFER`, `COORDINATES_QUESTION`, `TITLE_COLLISION_EXAMPLE`,
+ * `MEDIA_ENDPOINT_PATH`, `VISIBILITY_CHOICE`, `asSentence`, `scriptIntro`) —
+ * were retired with this ticket: nothing outside `lib/api/documentation.ts`'s
+ * own retired `agentGuide()` and the docs tests used them, and the v2 skill
+ * docs (`lib/api/skillDocs.ts`) generate their field tables from the frozen
+ * schemas instead of retyping an example.
+ *
+ * `PERFECT_TRIP_EXAMPLE` and `TRIP_FIELDS` are the one exception: they still
+ * check a real thing about **v1**'s own `createTrip` (`lib/tripWrite.ts`) in
+ * `test/trip-shape.test.ts` — a genuine contract test, not documentation
+ * prose — so they stay, untouched, doing v1's job rather than v2's.
+ *
+ * What else remains here is genuinely shared: the journal-visibility
+ * definitions (still true of a v2 journal), `firstQuestions()` (still asked
+ * by the WhatsApp onboarding flow and the signup wizard), and the two
+ * handover prompts (still rendered by the owner-facing components that paste
+ * them into an agent).
  */
 
 /**
@@ -82,105 +104,20 @@ export const VISIBILITY_NOT_A_LOCK =
   "the journal's own answer, unless the call that creates it says otherwise.";
 
 /**
- * The consequence of the slug rule, which the rule alone does not carry.
- *
- * "The slug comes from the title, and no two days in a trip may share one" is
- * already documented — this is what an agent titling several days from one
- * journal actually needs at that moment: a worked example of the fix, not
- * just the name of the failure mode. B292.
- */
-export const TITLE_COLLISION_EXAMPLE =
-  "Two days at the same place, titled the same way, collide: give each a distinguishing " +
-  "title instead — `Bangkok — Arrival`, `Bangkok — Night Market`.";
-
-/**
- * Where photographs actually go, named rather than left as "the media
- * endpoint" for an agent to guess at — it guessed `.../days/{slug}/photos`,
- * got a 404, and went hunting. B292.
- *
- * B1613 moved this door: `app/api/v1/[user]/trips/[trip]/media/route.ts` is
- * deleted, folded into the one v2 upload door every kind of bytes shares
- * (`lib/api/v2/schemas/media.ts`). The path changes here rather than the day
- * script quietly pointing an agent at something gone.
- */
-export const MEDIA_ENDPOINT_PATH = "/api/v2/<user>/media";
-
-/**
- * The question nothing asked before B267: whether this trip accounts for its
- * money at all. `costs.md` is optional (AGENTS.md, the content model) and
- * `features.costs` is on by default at creation (lib/journals.ts), so a trip
- * ended up with the capability on and nobody ever having been asked for a
- * figure — the costs page rendered anyway, with nothing in it. Saying what
- * "yes" costs the person, and what "no" costs the page, is the fix: a
- * decision put to them instead of left to a default.
- *
- * B328 corrected the last clause: a `costs.md` was said to be the only thing
- * that brings the page, which stopped being true the day per-day `costs:`
- * became writable on a day itself (W38, B292) — a trip with fifteen costed
- * days and no `costs.md` had a page with nothing to show it.
- */
-export const BUDGET_QUESTION =
-  "Ask whether this trip tracks its money. Saying yes means a `costs.md` — a budget, and " +
-  "a figure per day, both supplied by the person and never guessed at by you. That is one " +
-  "way to bring a costs page onto the site, not the only one: a day carrying its own " +
-  "`costs:` block does too, and either is enough for the page and its nav entry to appear.";
-
-/**
- * What a day owes its journal's other languages — B294, corrected by B316.
- *
- * The complaint: a journal declaring `de`, `en` and `hu` gave a reader who
- * switched to English an English switcher, an English trip title, and German
- * prose. `translations` covers a trip's title, tagline and introduction,
- * so no call could put a day's words in a second language.
- *
- * The owner chose to require them. B294's wording forbade translating
- * outright, on the theory that carrying words into another language is the
- * same invention as putting weather nobody mentioned into a day — it is not.
- * AGENTS.md's one rule is about *what happened*; translating what the owner
- * did write invents nothing. Stated as an absolute, the sentence trapped an
- * agent that had hit the refusal and was then asked, directly, to translate:
- * it complied "under protest", having read its own instructions as forbidding
- * the one thing that would satisfy them (B316). So the rule now turns on
- * whether the owner asked — silent translation is still the failure, asked-for
- * translation is not, and either way the day must say which words are whose.
- *
- * B326 added the clause naming which slot holds which language, after an
- * agent working from English prose for a `defaultLocale: de` journal put
- * English in the day's own `title`/`content` and German in
- * `translations.de` — backwards, and nothing here or in the refusal said so
- * until then.
- */
-export const TRANSLATIONS_REQUIRED =
-  "**`translations` — the day's title and content in the journal's other languages.** The " +
-  "day's own `title` and `content` are the journal's `defaultLocale` version; `translations` " +
-  "holds the rest, one entry per remaining language. A " +
-  "journal readable in three languages writes its days in three: a day missing one is " +
-  "refused, and the refusal names which. Send it as " +
-  '`{"en": {"title": "…", "content": "…"}}`, keyed by language code, for every language ' +
-  "the journal declares except the one the day is already written in. **Do not translate " +
-  "unasked** — three language versions the owner never asked for, presented as their own " +
-  "writing, is the failure. **If they ask you to, translate it**: carrying what they wrote " +
-  "into another language invents nothing, and is not the invented weather or meals AGENTS.md " +
-  "forbids. Say so in your reply either way, so the owner knows which words are theirs and " +
-  "can correct them. If they write in one language only, the fix is the journal's " +
-  "`locales`, not the day: one `PATCH` to the journal's config, and nothing is owed.";
-
-/**
  * What a second reader language actually costs — B855.
  *
  * B838 put this on the signup form, where a person ticking a checkbox reads it
  * (`agent.readerLocalesHint` in `site/locales/*.json`, in all three languages,
- * because a person sees it). `/agent.md` said it in its own words. The API said
- * nothing at all, and accepted `["en", "de"]` in silence — so a tester picked a
- * second language "because German sounded like a normal extra option, not a
- * leap" and found out at his first day, which was refused until he produced a
- * full German translation. On a phone at 2am that is a landmine, not a
- * question.
+ * because a person sees it). The API said nothing at all, and accepted
+ * `["en", "de"]` in silence — so a tester picked a second language "because
+ * German sounded like a normal extra option, not a leap" and found out at his
+ * first day, which was refused until he produced a full German translation.
+ * On a phone at 2am that is a landmine, not a question.
  *
- * So the sentence lives here and the three agent-facing places read it: the
- * `201` from `POST /api/v1/journals`, the guide, and the OpenAPI description of
- * the field itself. Written to survive being dropped into all three, which is
- * why it names the call rather than saying "this endpoint".
+ * So the sentence lives here and the agent-facing places read it: the `201`
+ * from `POST /api/v2/journals`, and the OpenAPI description of the field
+ * itself. Written to survive being dropped into either, which is why it names
+ * the call rather than saying "this endpoint".
  */
 export const SECOND_LANGUAGE_COMMITMENT =
   "**More than one entry in `locales` is a promise to write every day twice.** Every day of " +
@@ -192,302 +129,29 @@ export const SECOND_LANGUAGE_COMMITMENT =
   "widened afterwards with a `PATCH` to the journal's config. Say this to them **before** " +
   "you send a second code, not after.";
 
-/**
- * What is not writable, said once so nobody has to discover it by guessing.
- *
- * B293. An agent asked to turn a trip's costs page off tried `PATCH` on the
- * trip and on the journal, got a bare `405` from both, and then told its owner
- * to "do it manually via the web UI" — an interface that does not exist and
- * never will (ROADMAP decision 24). That is the same invention as B259's
- * "manually upload", and it comes from the same place: no correct call
- * available and nothing saying so.
- *
- * Two facts, and the first has stopped being a dead end. The costs page now
- * follows the data (B267) and the budget is writable (B295), so "turn it off"
- * has a real answer. `features` genuinely is not writable, and the reason is
- * worth carrying: `auth` and `contacts` gate the way back into a journal, and
- * a token issued because of an address must not be able to sever it — which is
- * why B153 forces both on at creation.
- */
-export const NOT_WRITABLE =
-  "Two things no call changes, so you do not have to look. A journal's `features` are not " +
-  "writable through any door: `auth` and `contacts` are what get an owner back into their " +
-  "own journal, and a token must not be able to shut the door it came through. And a trip " +
-  "has no costs *switch* — the page follows the data, and the data is either a budget at the " +
-  "costs endpoint or any day carrying its own `costs:` block. Write either and the page " +
-  "appears; to take it away, both have to go — deleting the budget while the days still log " +
-  "spend leaves the page exactly where it was (B332). If neither of those is what you were " +
-  "asked for, say so and stop: there is no web form, no CMS and no upload page to send " +
-  "somebody to instead.";
+// Read from the constant rather than typed into prose: a fourth language would
+// otherwise be maintained everywhere except in the sentence that tells an agent
+// it exists. The media limits table already works this way.
+import { LOCALE_LABEL, MAINTAINED_LOCALES } from "../i18n";
 
 /**
- * The other question B267 found nothing asking: a day is written to hold
- * `lat`/`lng`, and nothing ever said so. Fifteen days went out with neither,
- * at which point there was no coordinate to add after the fact (B266) and no
- * reason for an agent reading a journal's prose to have thought they were
- * wanted.
- *
- * The line this sentence has to hold, deliberately: *propose*, do not invent.
- * An agent reading "we had lunch in Hoi An" may reasonably know where Hoi An
- * is and offer it — but only as something put to the person, never as
- * something written on the strength of its own guess. "An empty field beats
- * an invented location" is the same rule AGENTS.md states for every other
- * fact a day might carry, said again here because a weak model reading only
- * "propose coordinates" could otherwise read that as permission to geocode
- * and write in the same breath.
+ * The maintained languages, named the way a person recognises them —
+ * "Deutsch", not "de" — with the code beside each for the field that actually
+ * takes it. B256: a bare `en, de, hu` was the only place either language
+ * question named the choices, and it named them in a way only the software
+ * understood.
  */
-// The seven categories, read from the definition rather than typed out here:
-// an eighth would otherwise be listed everywhere except in the sentence that
-// tells an agent which ones exist.
-import { COST_CATEGORIES } from "../costFormat";
+export const LOCALE_LIST = MAINTAINED_LOCALES.map(
+  (code) => `${LOCALE_LABEL[code]} (\`${code}\`)`,
+).join(", ");
 
 /**
- * One day with every field an agent should have asked for, filled in — B335.
- *
- * The two documents each carried a two-field example (`title`, `date`,
- * `content`), which is the *minimum* a day is refused for lacking and reads
- * as the *target*. An agent that copies it writes a day with no place on the
- * map, no money and no leg on the story pager, and every one of those is a
- * second call to fix later. Defined once and rendered by both documents so
- * the two cannot drift.
- *
- * `status` and `gallery` are absent because they are not fields: a day is
- * always a draft, and photographs are their own call. `translations` is here
- * because it is the one optional-looking field that is not optional: a
- * journal declaring more than one language refuses a day without it
- * (`checkTranslations`, lib/validate/entry.ts), and an example that omitted
- * it taught the shape that gets refused.
+ * A finished v1 trip, for `test/trip-shape.test.ts` to POST at `createTrip`
+ * (`lib/tripWrite.ts`) and read back — a v1 contract test, kept here because
+ * this is where it always lived, not because a v2 document still reads it.
+ * v1's own routes and `lib/api/openapi.ts` are frozen for this ticket, so
+ * this example documents nothing that has changed.
  */
-/**
- * One trip with every field a create call may carry — B530, and the same
- * finding B335 made about a day, one call earlier.
- *
- * Both documents showed `{id, title, start, end}` — the four fields
- * `createTrip` *refuses* a trip for lacking — as the example to copy, so the
- * other ten were invisible at the moment somebody was writing the call. A
- * trip made from that minimum has no tagline, no intro, no party, no rate
- * table and no answer about its money, and each of those is either a second
- * call later or, for `translations`, a field with no door at all.
- *
- * Two fields of `NewTrip` are deliberately not in these lines, and both are in
- * `TRIP_FIELDS` below instead:
- *
- * - **`test`**, because an example is a thing people copy and `"test": true`
- *   copied by accident puts a banner on somebody's real journey. It is the
- *   answer to "invent me a trip so I can see it work", and nothing else.
- * - **`cover`**, which is not a field here at all: a trip has no photographs
- *   at the moment it is created. It is named in the list because an agent
- *   reading a complete-looking example will otherwise go looking for it.
- */
-/**
- * Frontmatter key to API field, for a journal already on disk being moved to
- * a hosted instance — B533.
- *
- * The guide had a section for a folder of photographs and none for this,
- * which is the run that actually happened: days already written, frontmatter
- * already filled in, and an agent that read them through a filter of its own
- * making — title, date, place, coordinates — and posted what its own filter
- * had shown it. `costs:` was on seven of those days and in none of its
- * output.
- *
- * A table is what that agent said would have stopped it: *"it would have
- * forced me to look at every frontmatter key rather than the ones I
- * remembered."* So the table names the keys that do **not** cross too — an
- * agent that reads `status: draft` and sends it gets a refusal, and one that
- * reads `gallery:` and sends it gets nothing at all.
- *
- * `test/day-migration.test.ts` checks it against `EDITABLE_DAY_FIELDS`, so a
- * day field added later cannot quietly go missing from here.
- */
-export const FRONTMATTER_TO_API: { key: string; api: string; note: string }[] = [
-  { key: "title", api: "title", note: "Straight across. It becomes the slug." },
-  { key: "date", api: "date", note: "Straight across, as `2026-08-26`." },
-  { key: "time", api: "time", note: "`16:45`. Orders several days that share a date." },
-  {
-    key: "timezone",
-    api: "timezone",
-    note:
-      "The IANA name `time` is local to — `\"Asia/Bangkok\"`. Send it when the file has one; " +
-      "absent falls back to the journal's own zone for the feed and the on-page dual clock, " +
-      "rather than a guess from `lat`/`lng`.",
-  },
-  { key: "location", api: "location", note: "The place's name, as written." },
-  { key: "country", api: "country", note: "As written." },
-  {
-    key: "countryCode",
-    api: "countryCode",
-    note:
-      "Two letters — `PT`, `CH`. It draws the flag. Send it when the file has it rather " +
-      "than leaving the name to be guessed from: the guess is right for `Portugal` and " +
-      "silent for anything it does not know. Accepted since B540; before that it was taken " +
-      "and dropped.",
-  },
-  { key: "lat / lng", api: "lat / lng", note: "Both or neither. **Read them off the file** — a day that has them on disk and not in your call loses its place on the map." },
-  {
-    key: "content",
-    api: "content",
-    note:
-      "Everything below the closing `---`, as it is. Their words: do not tidy the prose, and " +
-      "do not translate it — `translations` carries the other languages, and they are theirs " +
-      "too.",
-  },
-  { key: "tags", api: "tags", note: "The list as it stands." },
-  { key: "transportMode", api: "transportMode", note: "With `transportFrom` and `transportTo`, which travel with it." },
-  { key: "transportFrom", api: "transportFrom", note: "Where the leg started." },
-  { key: "transportTo", api: "transportTo", note: "Where it ended." },
-  { key: "travelScene", api: "travelScene", note: "How the arrival plays. Absent is the default." },
-  {
-    key: "costs",
-    api: "costs",
-    note:
-      "**The one most often dropped.** Each line as it stands, in the currency it was paid " +
-      "in — nothing is converted on the way in. A day whose file has costs and whose call " +
-      "does not is a day that arrives on the site with its money missing, and nothing about " +
-      "the 201 will tell you.",
-  },
-  {
-    key: "translations",
-    api: "translations",
-    note:
-      "Every language the journal declares. Missing one is refused, so this is the field " +
-      "that fails loudly rather than quietly — unlike `costs` directly above it.",
-  },
-  { key: "test", api: "test", note: "Only when the day is content nobody lived." },
-  {
-    key: "visibility",
-    api: "visibility",
-    note:
-      "Straight across, when the file carries it — B632. A day held back from readers a " +
-      "trip otherwise lets in whose call omits this arrives readable by everyone the trip " +
-      "lets in, which is the one direction this must never move on a migration.",
-  },
-  {
-    key: "weather",
-    api: "weather",
-    note:
-      "`true` if the file says so. It is a request for a lookup, not a value — the server " +
-      "fetches what the weather actually was from the day's own coordinates, so a day whose " +
-      "file carries it and whose call does not simply loses its weather.",
-  },
-  {
-    key: "weatherData",
-    api: "weatherData",
-    note:
-      "A reading already in the file, carried across whole — including its `source` and " +
-      "`recordedAt`, which are what make it a measurement rather than a claim. A reading " +
-      "sourced `open-meteo` is the server's own and is **refused** on the way in: send " +
-      "`weather: true` and let the new instance look it up again. Never write this field " +
-      "from anything but the file in front of you.",
-  },
-  {
-    key: "without",
-    api: '"costs": false — and the same for coordinates and photos',
-    note:
-      "A day that says on disk it deliberately has no money says the same thing in the call. " +
-      "A day that simply lacks costs is a day to **ask about**, not to decline on its behalf.",
-  },
-  {
-    key: "coordinates",
-    api: "coordinates",
-    note:
-      "Not a frontmatter field of its own — `lat`/`lng` above is the positive answer. This is " +
-      "the file's `without:`/`unrecorded:` block instead, when it names `coordinates`: " +
-      '`false` on the way in if the day never had one, `"unknown"` if it happened somewhere ' +
-      'and nobody can say where. **On an existing day only `"unknown"` crosses** — `false` is ' +
-      "given when a day is created and refused on a `PATCH`, B599.",
-  },
-  {
-    key: "photos",
-    api: "photos",
-    note:
-      "Not a frontmatter field either — photographs are their own call regardless (`gallery` " +
-      "below). What crosses is the file's `without:`/`unrecorded:` block when it names " +
-      '`photos`: `false` there if the day was created with none, `"unknown"` if there are ' +
-      "pictures somewhere and nobody has them to hand. Same B599 limit as `coordinates` " +
-      'above — an existing day can only be told `"unknown"`.',
-  },
-  {
-    key: "gallery",
-    api: "— does not cross —",
-    note:
-      `Photographs are their own call: ${MEDIA_ENDPOINT_PATH} with an \`intent\` naming the ` +
-      "trip and day, the bytes under `file`, one per call. `DELETE` the same path with the " +
-      "`src` it answered with to take one off — derivative, poster and kept original all " +
-      "go, not merely detached, and an unknown `src` refuses rather than quietly doing " +
-      "nothing. Sending `gallery` in the day body writes nothing. A caption travels in the " +
-      "same `intent`, or later as `captions` on a `PATCH` — and so does `visibility`, one " +
-      "photograph held back from readers the trip lets in.",
-  },
-  {
-    key: "gallery[].visibility",
-    api: '"photoVisibility" on a PATCH — not yet a field the media call\'s own intent takes',
-    note:
-      "One picture, seen by fewer people than the rest of the day. `guest` is everybody the " +
-      "owner has let into the journal plus the people who were on the trip; `private` is the " +
-      "people who were there, and the owner. **It narrows and never widens** — there is no " +
-      "`public`, and a `guest` label on a `private` trip stays private, because a label " +
-      "cannot let anybody past the gate the trip is already holding. Absent is the normal " +
-      "case and means everyone the trip lets in. Only ever what the owner asked for: a " +
-      "picture nobody said anything about is not held back on a hunch, and the whole day is " +
-      "the trip's `visibility` to decide, not thirty labels.",
-  },
-  {
-    key: "status: draft",
-    api: "— does not cross —",
-    note:
-      "Everything this API writes is a draft, and `status` is refused outright rather than " +
-      "ignored. Publishing is the second call, and it is the person's decision to ask for.",
-  },
-];
-
-/** The paragraph in front of that table. The one instruction that matters is
- * "read the file, not your notes about the file". */
-export const MIGRATION_INTRO =
-  "Moving a journal that already exists — days on disk, frontmatter written, photographs " +
-  "beside them — onto an instance over the network. **Do it one day at a time, and read " +
-  "each day's whole frontmatter rather than the keys you remember.** The failure this " +
-  "warns about has happened: an agent listed fourteen entries through a filter of its own " +
-  "making, saw no `costs:` in its own output, concluded there were none, and posted " +
-  "fourteen days that every call accepted. Twenty-two cost lines stayed on the laptop, and " +
-  "the owner found out by opening their own website. Print the file, not a summary of it; " +
-  "if you filter, filter to *more* than you think you need.";
-
-/** And the paragraph after it: how to know it landed. */
-export const MIGRATION_RECONCILE =
-  "**Then reconcile, because a 201 means \"written\", not \"complete\".** Read each day back " +
-  "with `GET .../days/<slug>` and compare it against the file you sent, field by field — " +
-  "the day's own read carries everything, including `costs` and `translations`. For the " +
-  "photographs, compare `from` on each gallery item, which is the name your file had, " +
-  "rather than counting: counting duplicates some and silently drops others. And when the " +
-  "trip is done, `GET .../trips/<trip>/costs` says how many of its days record any " +
-  "spending, which is the number that would have caught this in one call.";
-
-/**
- * How to check a folder against the instance before any of it is sent —
- * B537. `MIGRATION_RECONCILE` above answers "did it land"; this answers the
- * earlier question, "will it land", without writing anything to find out.
- *
- * It names two calls and nothing else, because that is the whole mechanism:
- * a field list re-typed here would be the fourth copy of one B533 already
- * built as `/content-model.json`, and B535's contract checker already runs
- * inside the real POST — `dryRun: true` on the same call is that checker
- * with nothing written, not a second implementation to keep in step.
- */
-export const CHECK_BEFORE_SENDING =
-  "Before any of it leaves your machine: fetch `/content-model.json` once, and read it as " +
-  "the list of every frontmatter key a day or a trip may carry — which ones map straight " +
-  "onto a field, and which never cross at all (`status`, `gallery`, `id` among them). Then, " +
-  "for each day, send its body to `POST .../days` with `dryRun: true` added. Every check the " +
-  "real write would run — the shape of the body, this trip's own contract, whether weather " +
-  "or a track is being asked for that this journal cannot supply — runs the same way and " +
-  "answers the same `problems`/`missing` list a real POST would, and nothing is written: no " +
-  "draft, no idempotency record. A clean day answers `{ ok: true, written: false, dryRun: " +
-  "true }`. Do this for every day before sending any of them for real, and you find out what " +
-  "the instance will refuse before a single draft exists to clean up.\n\n" +
-  "It only checks what the server can check from the body — a `gallery:` path that does not " +
-  "exist on disk, or a photograph the wrong size, is still yours to catch by reading the " +
-  "file and the folder yourself; `dryRun` never opens a photograph.";
-
 export const PERFECT_TRIP_EXAMPLE = [
   "{",
   '  "id": "japan-2027",',
@@ -516,15 +180,10 @@ export const PERFECT_TRIP_EXAMPLE = [
 ];
 
 /**
- * Every field the create call takes, and whether it is required — the
- * reference the example is the *shape* of.
- *
- * Rendered as a table by the guide and as a list by the index, from one
- * definition, for the reason this whole module exists. `test/trip-shape.test.ts`
+ * Every field the v1 create call takes, and whether it is required — the
+ * reference `PERFECT_TRIP_EXAMPLE` is the *shape* of. `test/trip-shape.test.ts`
  * checks it against `NewTrip` in lib/tripWrite.ts, so a field added there and
- * not here fails the build rather than quietly going undocumented — which is
- * exactly how `travellers` came to be missing from a sentence that counted
- * two of it (B526).
+ * not here fails the build rather than quietly going undocumented.
  */
 export const TRIP_FIELDS: {
   key: string;
@@ -631,7 +290,7 @@ export const TRIP_FIELDS: {
     key: "travellers",
     required: false,
     what:
-      "How the party is drawn — see \"Drawing the travellers\". `for` ties a figure to an " +
+      "How the party is drawn. `for` ties a figure to an " +
       "address in `people`. Ask how somebody wants to be drawn and show them the preview; " +
       "never infer it. Correctable at `PATCH .../trips/<id>/travellers`.",
   },
@@ -672,200 +331,16 @@ export const TRIP_FIELDS: {
   },
 ];
 
-/**
- * The sentence that turns the example from a template into a set of questions
- * — B530, and the trip's version of `PERFECT_DAY_INTRO`.
- *
- * The line it has to hold is the one this whole product turns on: **ask, and
- * fill in what you are told.** "An empty field beats an invented one" is the
- * rule everywhere else in these documents, and read alone it can be taken as
- * permission to send four fields and stop. Asking is the third option that
- * makes both true, and it is the one an agent skips.
- */
-export const PERFECT_TRIP_INTRO =
-  "This is what a finished trip looks like — **the shape to aim at, not the minimum**. Only " +
-  "`id`, `title`, `start` and `end` are required; every other line is a question worth " +
-  "putting to the person, because each one left out is something the trip cannot show and, " +
-  "for `translations`, something no later call can add. **Ask for them, in the one round of " +
-  "questions above, and fill in what you are told.** What you must not do is copy a value " +
-  "from here: these are somebody else's answers. An empty field still beats an invented one " +
-  "— asking is how you get neither.";
-
-export const PERFECT_DAY_EXAMPLE = [
-  "{",
-  '  "title": "Lanterns of Hoi An",',
-  '  "date": "2026-08-26",',
-  '  "time": "16:45",',
-  '  "location": "Hoi An",',
-  '  "country": "Vietnam",',
-  '  "lat": 15.8801,',
-  '  "lng": 108.338,',
-  '  "transportMode": "bus",',
-  '  "transportFrom": "Da Lat",',
-  '  "transportTo": "Hoi An",',
-  '  "content": "The whole old town hangs with lanterns...",',
-  '  "tags": ["vietnam"],',
-  '  "translations": {',
-  '    "de": {"title": "Laternen von Hoi An", "content": "Die ganze Altstadt hängt voller Laternen..."}',
-  "  },",
-  '  "costs": [',
-  '    {"label": "Sleeper bus", "amount": 320000, "currency": "VND", "category": "transport"},',
-  '    {"label": "Dinner", "amount": 180000, "currency": "VND", "category": "food"}',
-  "  ],",
-  '  "idempotency_key": "one-key-per-day-you-write"',
-  "}",
-];
-
-/**
- * What the example above is for — B335. Said in words, because a block of
- * JSON with no sentence over it reads as one of several shapes rather than
- * as the one to aim at.
- */
-export const PERFECT_DAY_INTRO =
-  "This is what a finished day looks like — the shape to aim at, not the minimum. Only " +
-  "`title`, `date` and `content` are required; everything else here is a question worth " +
-  "asking, because each one omitted is something the site cannot show and a second call " +
-  "to correct later. Send what you were actually told and leave the rest out: an empty " +
-  "field beats an invented one, and this example is a form to fill from what the person " +
-  "said, never a set of plausible values to copy. `translations` is the exception to " +
-  "\"only three are required\": `title` and `content` hold the language the journal is " +
-  "written in, every *other* language it declares needs an entry here, and a day missing " +
-  "one is refused rather than saved in a single language. A journal written in one " +
-  "language owes nothing and leaves the field out.";
-
-/**
- * What a day's spending owes, before it is written — B335.
- *
- * `dayQuestions()` asked about coordinates and never about money, so `costs`
- * was the field an agent simply did not think of: the validator
- * (`checkCosts`, lib/validate/entry.ts) is strict about it and only ever got
- * to say so to the callers that had guessed the field existed.
- *
- * The three refusals worth naming ahead of the write are the ones whose
- * failure is silent if they are not caught here — a zero amount and an
- * unrecognisable currency were both stored and then dropped when the page
- * rendered, before B304, and a currency the trip has no rate for is still
- * reported unconverted rather than counted wrong.
- */
-const DAY_MONEY_QUESTION =
-  "**A trip that keeps track of costs refuses a day that says nothing about them**, so " +
-  "this is not optional the way the rows around it are — and there are three honest " +
-  "answers. The figures. Or `\"costs\": false`, meaning there was none. Or " +
-  '`"costs": "unknown"`, meaning there was some and nobody has it — which is the truth ' +
-  "about most of a trip that finished a while ago, and is the answer for cash somebody " +
-  "paid and cannot remember. Ask which; do not choose for them, and never send `false` " +
-  "where you mean `\"unknown\"`. B567 — being refused is a worse way to learn this than " +
-  "being told. " +
-  "Ask what the day cost, and record each thing separately rather than as one total: " +
-  "`costs: [{label, amount, currency, category}]`. `label` and `amount` are required, and " +
-  "the amount is a positive number — zero or less is refused. **The currency is the one " +
-  "the money was actually spent in**, as three letters (`VND`, not `\u20ab` and not the " +
-  "converted figure); nothing is converted on the way in, and a currency this trip's " +
-  "`rates:` block does not carry is reported unconverted rather than guessed at. Omitting " +
-  "`currency` means the journal's base currency, so omit it only when that is true. " +
-  "`category` is one of " + COST_CATEGORIES.join(", ") + ". Amounts are the person's to " +
-  "state: an approximate figure they gave you is fine, one you inferred from what things " +
-  "usually cost is not.";
-
-export const COORDINATES_QUESTION =
-  "A day is expected to carry `lat` and `lng` — they are what puts it on the map. Ask " +
-  "for them, and where the prose names a real place, `POST /api/v1/geocode` can return " +
-  "ranked candidates to read back. If it returns several plausible matches, ask which one " +
-  "they meant rather than picking. An unconfirmed guess is never written: an empty field " +
-  "beats an invented location.";
-
-/**
- * What follows a trip's days, once they exist — B317.
- *
- * Every day script already says a single day arrives as a draft and asks the
- * person before publishing it. What none of it said was the moment that
- * matters once several days of a trip are sitting there: nothing prompted an
- * agent to go back and offer to put them up. This is that offer, not a new
- * rule — AGENTS.md's "ask, in words, and wait" already governs every call it
- * describes, which is why this is phrased as one to make, not one to
- * default to.
- */
-export const PUBLISH_OFFER =
-  "Once a trip's days are written, say so plainly: they are still only drafts, and nothing " +
-  "is on the site yet. Then offer to publish — one call per day, and the owner's decision " +
-  "every time, never assumed because a day merely looks finished.";
-
-/**
- * What follows a trip going live — B317.
- *
- * An owner with a freshly published trip has no reason to know
- * `POST /api/v1/<user>/invites` exists; this is the sentence that tells an
- * agent to offer it, once. It used to stop at "ask whether they want one
- * sent" and leave the mechanism unnamed — B319 had already added a mailed,
- * pre-approving form of the same call, and B333 is the record of what that
- * cost: an agent that had only ever seen `{"kind": "guest"}` here sent
- * exactly that, then walked the owner through a queue B319 existed to skip.
- * Naming `email` here is the fix — the offer and the call it makes are the
- * same sentence now.
- */
-export const GUEST_LINK_OFFER =
-  "Once a trip is published, offer a guest link — `POST /api/v1/<user>/invites` with " +
-  '`{"kind": "guest"}`. Say what it is: leads to reading the journal\'s `guest` trips, safe ' +
-  "to forward, and grants nothing until the owner approves whoever opens it. Ask whether " +
-  'they want it mailed — add `"email": "<address>"` to the same call and that address is ' +
-  "pre-approved: proving it is all that is left, no queue and no second decision. A wrong " +
-  "or forwarded address still just asks, exactly as before.";
-
-// Read from the constant rather than typed into prose: a fourth language would
-// otherwise be maintained everywhere except in the sentence that tells an agent
-// it exists. The media limits table already works this way.
-import { LOCALE_LABEL, MAINTAINED_LOCALES } from "../i18n";
-
-/**
- * The maintained languages, named the way a person recognises them —
- * "Deutsch", not "de" — with the code beside each for the field that actually
- * takes it. B256: a bare `en, de, hu` was the only place either language
- * question named the choices, and it named them in a way only the software
- * understood.
- */
-export const LOCALE_LIST = MAINTAINED_LOCALES.map(
-  (code) => `${LOCALE_LABEL[code]} (\`${code}\`)`,
-).join(", ");
-
 /** One thing an agent has to ask before its first call. */
 export type FirstQuestion = { ask: string; because: string };
-
-/**
- * "Four questions", not "4 questions".
- *
- * The count comes from the list's own length so that adding a question cannot
- * leave the sentence above it lying — but a bare digit in running prose reads
- * like a form field. Only as far as the list could plausibly grow.
- */
-const NUMERALS = ["no", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"];
-export function numeral(n: number): string {
-  return NUMERALS[n] ?? String(n);
-}
-
-/**
- * `ask` and `because` as one sentence, for the documents that render the list
- * as prose rather than as a table.
- *
- * The join is a full stop unless `ask` already ends in punctuation — "Public or
- * private?." is the kind of seam that makes a generated document look
- * generated. Trailing markdown emphasis is looked past to find that
- * punctuation: the question mark in `**Public or guest?**` is real, and the
- * asterisks after it are not characters a reader sees.
- */
-export function asSentence(question: FirstQuestion): string {
-  const ask = question.ask.trimEnd();
-  const joiner = /[?!.:][*`_]*$/.test(ask) ? "" : ".";
-  return `${ask}${joiner} ${question.because}`;
-}
 
 /**
  * The questions to put to the person before anything else.
  *
  * Every one of them decides something they live with, and none has a default
- * worth guessing. An agent may arrive at either `/documentation.txt` or
- * `/agent.md` first, so both carry these — but as one list rendered twice, a
- * numbered list in the index and a table in the guide, rather than two lists
- * that will drift.
+ * worth guessing. `lib/whatsapp/onboarding.ts` and `components/SignupWizard.tsx`
+ * both ask them, in their own shapes, so they are one list rendered twice
+ * rather than two lists that will drift.
  *
  * Takes the site URL because the second question is about a URL.
  */
@@ -890,10 +365,8 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
       ask: "What the **journal is called** (`title`)",
       because:
         "Required — a journal cannot be created without one, and it is the name on every " +
-        "page and in the browser tab. It was missing from this script for long enough that " +
-        "an agent following the script hit the refusal, or invented a title, which is worse. " +
-        "Unlike the address above it is correctable later, at `PATCH /api/v1/<user>/config`, " +
-        "so a plain answer now is fine.",
+        "page and in the browser tab. Unlike the address above it is correctable later, at " +
+        "`PATCH /api/v1/<user>/config`, so a plain answer now is fine.",
     },
     {
       ask: "**Public or guest?** (`visibility`)",
@@ -935,192 +408,11 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
         "A three-letter code — every cost anywhere in this journal is added up in it. **It is " +
         "the one field here that can never be changed**: `PATCH /api/v1/<user>/config` refuses " +
         "it outright, because correcting it later would silently re-price every trip already " +
-        "written. It was defaulted to `CHF` and asked by nobody until B839, so tell them it is " +
-        "permanent when you ask, and send the code rather than the name — \"francs\" is `CHF`.",
+        "written. Tell them it is permanent when you ask, and send the code rather than the " +
+        "name — \"francs\" is `CHF`.",
     },
   ];
 }
-
-/**
- * The sentence a table of questions never said: that it is a script.
- *
- * B307 — an agent that read the six questions above still asked them in three
- * separate rounds, interleaved with three fetches of the guide, because
- * nothing on the page told it these were one thing to do once rather than
- * six facts to pick up as they came to mind. This is that sentence, shared by
- * all three scripts below so it cannot say something different for one of
- * them.
- */
-export function scriptIntro(count: number): string {
-  return (
-    `This is a script, not a menu: ask all ${numeral(count).toLowerCase()} of the questions ` +
-    "below, in order, once, before your first call. Do not start on a guess."
-  );
-}
-
-/**
- * Ask before creating a trip — B307.
- *
- * `id`, `title`, `start` and `end` are what `createTrip` (lib/tripWrite.ts)
- * requires; `visibility` and the budget question are not retyped here — they
- * reuse `VISIBILITY_CHOICE` and `BUDGET_QUESTION`, the same sentences the
- * rest of this file already exports, so there is one definition of each and
- * this script is a third *shape* for it, not a third *copy*.
- */
-export function tripQuestions(): FirstQuestion[] {
-  return [
-    {
-      ask: "The trip's **id** (`id`)",
-      because:
-        "Lowercase letters, digits and dashes, starting with a letter or digit. It becomes " +
-        "part of the URL and cannot be changed afterwards — `japan-2027` ages better than " +
-        "`the-big-one`.",
-    },
-    {
-      ask: "Its **title** (`title`)",
-      because: "What the trip is called. Required — a trip without one is refused.",
-    },
-    {
-      ask: "**When it starts and ends** (`start`, `end`)",
-      because:
-        "Both, as `2027-04-01`. Required: a trip missing either is skipped when the site " +
-        "reads it, so it would exist on disk and nowhere a reader could find it.",
-    },
-    {
-      ask: "**Public, guest or private?** (`visibility`)",
-      because:
-        `${VISIBILITY_CHOICE} Leaving it out is not a fourth answer: the trip then inherits ` +
-        "this journal's own answer, never wider than that, and a value this server does not " +
-        "recognise falls back to `private` instead, the narrowest state there is.",
-    },
-    {
-      ask: "**Who was on it** (`people`)",
-      because:
-        "A name and an email each, up to ten. It is the byline **and it is write access**: " +
-        "everyone named may write to the whole trip and may ask for a token scoped to it. " +
-        "Ask even when the answer is 'just me' — a trip created without the person who was " +
-        "actually on it is the commonest thing anybody comes back to fix. Correctable " +
-        "afterwards at `PATCH .../trips/<id>/people`, which replaces the whole list.",
-    },
-    {
-      ask: "**How the party should be drawn** (`travellers`)",
-      because:
-        "Every journal opens with figures walking, and this is who they are — see \"Drawing " +
-        "the travellers\". Ask once, openly: *how would you like to be drawn?* Never infer " +
-        "it from a name, a country or a photograph, and show them the preview before it is " +
-        "written. It is the one question here with an honest 'skip it' answer: no block " +
-        "draws one neutral figure. Correctable at `PATCH .../trips/<id>/travellers`.",
-    },
-    {
-      ask: "**Does this trip track its money?**",
-      because: BUDGET_QUESTION,
-    },
-  ];
-}
-
-/**
- * Ask before writing a day — B307.
- *
- * `title`, `date` and `content` are required by `validateEntry`
- * (lib/validate/entry.ts). `translations` becomes required the moment the
- * journal declares more than one language (B294) and reuses
- * `TRANSLATIONS_REQUIRED` rather than saying it twice; coordinates never are
- * — `COORDINATES_QUESTION` already says to propose, never invent, so it
- * stays a question rather than a requirement.
- */
-export function dayQuestions(): FirstQuestion[] {
-  return [
-    {
-      ask: "The day's **title** (`title`)",
-      because:
-        "Required — it becomes the slug, and no two days in a trip may share one; a title " +
-        "that collides is refused rather than overwriting the day already there.",
-    },
-    {
-      ask: "The **date** (`date`)",
-      because: "Required, as YYYY-MM-DD — a real calendar date.",
-    },
-    {
-      ask: "**What happened, in their words** (`content`)",
-      because:
-        "Required — the day's prose, as they told it. Write what you were told: no invented " +
-        "weather, meals or feelings. An empty field beats a plausible fiction. (If they want " +
-        "the weather, it is a field and a lookup, never prose — see `weather` below.)",
-    },
-    {
-      ask: "**The same day in the journal's other languages** (`translations`)",
-      because: TRANSLATIONS_REQUIRED,
-    },
-    {
-      ask: "**Coordinates**, if the prose names a real place (`lat`, `lng`)",
-      because: COORDINATES_QUESTION,
-    },
-    {
-      ask: "**What the day cost** (`costs`)",
-      because: DAY_MONEY_QUESTION,
-    },
-    {
-      ask: "**Whether to look the weather up** (`weather`)",
-      because: WEATHER_QUESTION,
-    },
-  ];
-}
-
-/**
- * The one place this project's own rule points the other way, and the sentence
- * that keeps it from reading as a contradiction — B325.
- *
- * "No invented weather" is right and stays. What it forbids is *guessing*, and
- * until now guessing was the only route available, so the rule read as "there
- * is no weather here". There is: a measurement from a public archive, at a
- * coordinate the person supplied, on a date they supplied, labelled as coming
- * from that archive.
- *
- * The distinction an agent has to hold is the whole feature. Asking for the
- * lookup is `weather: true` and is always safe. Supplying a reading is
- * `weatherData` and requires naming where it came from — and an agent's own
- * belief about a Tuesday in August is not a source, however confident it is.
- */
-const WEATHER_QUESTION =
-  "Optional, two routes. `weather: true` asks this server to look it up from Open-Meteo, " +
-  "using the day's own `lat`/`lng` and `date` — a day without coordinates gets nothing " +
-  "rather than a guess. Or send the reading yourself as `weatherData`, with a " +
-  "`source` naming where it came from and a `recordedAt` — an instrument, a station, a " +
-  "weather service. That route is there so somebody's own tools can produce their own " +
-  "data; using it is normal. A reading with no source is refused, and `open-meteo` is " +
-  "refused as one — that name means this server fetched it. **Forbidden is weather from " +
-  "your own knowledge**: your confidence is not a source, and neither is an instrument you " +
-  "invented to satisfy the check.";
-
-/**
- * The note a day script owes and a question list cannot carry: photographs
- * are not a field on the call above, they are a call of their own, made once
- * the day exists — B307, closing the "Writing a day" bullet the ticket asked
- * for.
- *
- * B317 added the second sentence. A day script that only named the endpoint
- * still left an agent to fetch the guide for the field names before it could
- * act, and the transcripts this ticket came from show an agent that had just
- * written a day with photos described to it, and did not think to ask for
- * them. The coordinates clause beside it is the same gap: `COORDINATES_
- * QUESTION` asks before the day is written, but an owner who answered "I
- * don't know" or was never asked — an older flow, a day imported some other
- * way — still has a real place sitting in the prose with nothing on the map
- * for it.
- *
- * B1613 reshaped the call itself: `multipart/form-data` with a single `file`
- * and an `intent` (JSON) naming `kind: "photo"`, `trip` and `day`, rather
- * than the old `day`/`files` pair — one photograph per call now, not a
- * batch, which is what let the same door take a bank statement or a GPS
- * export as easily as a picture.
- */
-export const PHOTOS_SECOND_CALL =
-  "Photographs are never part of this call. They are a second one, once the day exists — " +
-  `offer it, naming the call: ${MEDIA_ENDPOINT_PATH}, sent as \`multipart/form-data\` with ` +
-  "the bytes under `file` and an `intent` (JSON) naming `kind`, `trip` and `day`. One per " +
-  "call, nothing to paste into the day. Offer coordinates too, if the day names a " +
-  "real place and carries no `lat`/`lng` yet — the same `PATCH` the day itself takes, not " +
-  "a new call.";
 
 /**
  * Greedy wrap to a column, for the documents that are assembled as arrays of
@@ -1150,11 +442,11 @@ export function wrap(text: string, width = 78, indent = ""): string[] {
  *
  * Written here rather than in the component that renders it, and in **English
  * regardless of the owner's locale**, because the reader is an agent and every
- * other agent-facing document on this instance is English: `/agent.md`,
- * `/documentation.txt`, the `next` line on every API response. A German owner
- * sees German chrome around it, which is the two-layer split in AGENTS.md §1.2
- * working as designed — the UI is translated, the content is in whatever
- * language it was written in, and this is content addressed to a machine.
+ * other agent-facing document on this instance is English: `/documentation.txt`,
+ * the `next` line on every API response. A German owner sees German chrome
+ * around it, which is the two-layer split in AGENTS.md §1.2 working as
+ * designed — the UI is translated, the content is in whatever language it
+ * was written in, and this is content addressed to a machine.
  *
  * Three instructions and nothing else, in the order they have to happen. It is
  * deliberately not a summary of the guide: an agent that follows step 3 has the
@@ -1197,50 +489,13 @@ export function handoverPrompt(input: {
 }
 
 /**
- * Which visibility to give a new trip — B302.
- *
- * `VISIBILITY_NOT_A_LOCK` above *defines* the three values and is carried by
- * every agent-facing document. This is the different question, and the one an
- * agent actually has to put to a person: which of the three to ask for. The
- * guide had no answer to it. It said "a trip is created private unless you say
- * otherwise; ask before sending public" — a binary, in which the value that
- * matches "my family should be able to read this" is never mentioned at all.
- * So an agent asked "shall I make it public?", heard "no", and left a `private`
- * trip; and the owner then approved a guest who could not read it. That is
- * B300, and this is the sentence whose absence caused it.
- *
- * Three things have to hold at once without contradicting each other, which is
- * why this is one constant rather than three:
- *
- * - **the default follows the journal** — `public` in a `public` journal,
- *   `guest` in a `guest` one (B306), never wider than that, and a
- *   misspelled value still falls back to `private`, the narrowest state
- *   there is;
- * - **do not rely on the default** — ask, and recommend `public` or `guest`;
- * - **`private` is the narrow tool**, for one journey held back from readers
- *   who are welcome to the rest.
- *
- * The order is the author's (2026-09-04): public, guest, private — most open
- * first, because that is the order a person decides in.
- */
-export const VISIBILITY_CHOICE =
-  "Ask which of three, and say what each does. **`public`** — anyone with the address, and " +
-  "listed in this journal's feed and sitemap. **`guest`** — the people the owner has " +
-  "approved into this journal, plus anyone named on the trip; nobody else, and it is never " +
-  "advertised. **`private`** — only the people named on the trip, and *not* the journal's " +
-  "approved guests. Recommend `public` or `guest`: those are what somebody keeping a journal " +
-  "for people actually wants, and `private` is the narrow tool for holding one journey back " +
-  "from readers who may read the rest.";
-
-/**
  * The consequence that the definitions alone do not carry, and the one an
  * owner walked into on the live site — B300.
  *
- * It travels with `VISIBILITY_CHOICE` wherever that goes. Approving a guest is
- * a grant on the *journal*, and a `private` trip does not honour it: the owner
- * sees "approved", the reader sees a locked page, and no amount of approving
- * changes it. Whoever reads this is the only party in a position to say so
- * before the trip is created.
+ * Approving a guest is a grant on the *journal*, and a `private` trip does
+ * not honour it: the owner sees "approved", the reader sees a locked page,
+ * and no amount of approving changes it. Whoever reads this is the only
+ * party in a position to say so before the trip is created.
  */
 export const PRIVATE_SHUTS_OUT_GUESTS =
   "A `private` trip stays shut to approved guests too — approving somebody into the journal " +
@@ -1250,14 +505,8 @@ export const PRIVATE_SHUTS_OUT_GUESTS =
 /**
  * The same choice, for `visibility` on a field list rather than in prose.
  *
- * Short enough for an OpenAPI `description`, where the paragraph above would
- * be a wall. Both come from here so the two cannot drift.
- *
- * Used to say "omitted means private, so a forgotten field publishes
- * nothing" — true before B306, when a trip's default did not look at its
- * journal at all. It now does, so the safe half of that sentence has to be
- * said differently: a forgotten field is never wider than the journal it is
- * in, not always closed.
+ * Short enough for an OpenAPI `description`, where a paragraph would be a
+ * wall. Used by `lib/api/openapi.ts` (v1's own hand-written contract).
  */
 export const VISIBILITY_ENUM_NOTE =
   "public (anyone, and listed) · guest (the journal's approved guests, plus the trip's own " +

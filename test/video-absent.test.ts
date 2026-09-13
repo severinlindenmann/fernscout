@@ -79,10 +79,10 @@ describe("a server that cannot convert a clip", () => {
     vi.resetModules();
     const { videoToolsAvailable } = await import("@/lib/ingest/video");
     videoToolsAvailable();
-    const { agentGuide } = await import("@/lib/api/documentation");
-    const row = agentGuide()
+    const { skillDoc } = await import("@/lib/api/skillDocs");
+    const row = skillDoc("ingest-photos")
       .split("\n")
-      .find((line) => line.startsWith("| video |"));
+      .find((line: string) => line.startsWith("| video |"));
 
     expect(row).toBeDefined();
     expect(row).toContain("not accepted on this instance");
@@ -98,10 +98,10 @@ describe("a server that cannot convert a clip", () => {
     const { videoToolsAvailable } = await import("@/lib/ingest/video");
     if (!videoToolsAvailable()) return;
 
-    const { agentGuide } = await import("@/lib/api/documentation");
-    const row = agentGuide()
+    const { skillDoc } = await import("@/lib/api/skillDocs");
+    const row = skillDoc("ingest-photos")
       .split("\n")
-      .find((line) => line.startsWith("| video |"));
+      .find((line: string) => line.startsWith("| video |"));
 
     expect(row).toContain("mp4");
     expect(row).toContain("at most");
@@ -139,10 +139,10 @@ describe("a server that cannot convert a clip", () => {
     vi.resetModules();
 
     const { GET } = await import("@/app/api/health/route");
-    const { agentGuide } = await import("@/lib/api/documentation");
+    const { skillDoc } = await import("@/lib/api/skillDocs");
     for (let i = 0; i < 5; i++) {
       await GET(new Request("https://t.test/api/health"));
-      agentGuide();
+      skillDoc("ingest-photos");
     }
 
     expect(fs.existsSync(trace)).toBe(false);

@@ -1085,16 +1085,20 @@ describe("an invite token is not a credential", () => {
 });
 
 describe("the documents that describe them", () => {
-  test("the guide names both kinds and says which one grants write access", async () => {
-    const { agentGuide } = await import("@/lib/api/documentation");
-    const guide = agentGuide();
+  // v1's own /api/v1/{user}/invites is untouched by this ticket and still
+  // documented in lib/api/openapi.ts — see below. The v2 guide at
+  // /skill/invite-someone.md is the one this ticket rewrote, against the v2
+  // door (PUT .../invites/{id}, not POST).
+  test("the v2 guide names both kinds and says which one grants write access", async () => {
+    const { skillDoc } = await import("@/lib/api/skillDocs");
+    const guide = skillDoc("invite-someone");
     expect(guide).toContain("/invite/guest/");
     expect(guide).toContain("/invite/buddy/");
-    expect(guide).toContain("POST /api/v1/");
+    expect(guide).toContain("PUT /api/v2/");
     expect(guide.toLowerCase()).toContain("group chat");
   });
 
-  test("openapi lists the endpoints", async () => {
+  test("v1's openapi still lists its own endpoints, untouched", async () => {
     const { GET } = await import("@/app/openapi.json/route");
     const document = (await (await GET()).json()) as { paths: Record<string, unknown> };
     expect(Object.keys(document.paths)).toContain("/api/v1/{user}/invites");
@@ -1102,30 +1106,25 @@ describe("the documents that describe them", () => {
   });
 
   /**
-   * B333: the schema grew `email` and `sent` and the guide's worked example
-   * did not, which is exactly how the argument shipped invisible the first
-   * time — nothing wrong syntactically, nothing failing, just never shown to
-   * an agent reading either document. Pin both sides so they cannot drift
-   * apart again.
+   * B333, carried into v2: an email field or a kind an agent cannot see
+   * documented is invisible the same way whichever era of the API it is.
+   * The v2 field table is generated straight from the served
+   * /api/v2/openapi.json, so pin the generated schema and the guide's own
+   * table to each other rather than to a worked JSON example — v2's PUT
+   * response has no `sent` boolean (see app/api/v2/[user]/invites/[id]/
+   * route.ts): a failed mail surfaces as `note`, not a flag.
    */
-  test("the schema names email and sent, and the guide's worked example carries email", async () => {
-    const { openApiDocument } = await import("@/lib/api/openapi");
-    const doc = openApiDocument() as { paths: Record<string, unknown> };
-    const invitesPost = (doc.paths["/api/v1/{user}/invites"] as { post: unknown }).post as {
-      requestBody: { content: { "application/json": { schema: { properties: Record<string, unknown> } } } };
-      responses: unknown;
+  test("the v2 schema names email, and the guide's table carries it", async () => {
+    const { openApiDocumentV2 } = await import("@/lib/api/v2/openapi");
+    const doc = openApiDocumentV2() as unknown as {
+      paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
     };
-    expect(invitesPost.requestBody.content["application/json"].schema.properties).toHaveProperty(
-      "email",
-    );
-    expect(JSON.stringify(invitesPost.responses)).toMatch(/sent/);
+    const schema = doc.paths["/api/v2/{user}/invites/{id}"].put.request!.content!["application/json"]!.schema!;
+    expect(schema.properties).toHaveProperty("email");
 
-    const { agentGuide } = await import("@/lib/api/documentation");
-    const guide = agentGuide();
-    // The worked request body, and the worked response beside it — both from
-    // the invites example, not merely present somewhere in a 24 KB guide.
-    expect(guide).toContain('"kind": "guest", "email"');
-    expect(guide).toMatch(/"sent":\s*true/);
+    const { skillDoc } = await import("@/lib/api/skillDocs");
+    const guide = skillDoc("invite-someone");
+    expect(guide).toContain("`email`");
   });
 });
 
