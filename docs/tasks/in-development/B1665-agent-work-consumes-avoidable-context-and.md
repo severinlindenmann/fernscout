@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: agent workflow, context, tests, CI, developer tooling
 found: "2026-09-13T12:56:53Z"
+started: "2026-09-13T13:20:26Z"
 ---
 
 # B1665 — Agent work consumes avoidable context and verification time without measured quality feedback
