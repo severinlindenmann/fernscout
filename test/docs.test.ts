@@ -14,12 +14,14 @@ describe("section()", () => {
   test("extracts a known heading's body from README.md", () => {
     const readme = readRepoFile("README.md");
     const dayEntry = section(readme, "What a day looks like");
-    // The exact example `/docs` shows a visitor: a frontmatter block with
-    // the fields the task asked for by name.
-    expect(dayEntry).toContain("time:");
-    expect(dayEntry).toContain("lat:");
-    expect(dayEntry).toContain("lng:");
-    expect(dayEntry).toContain("```markdown");
+    // The exact example `/docs` shows a visitor: a day document with the
+    // fields the task asked for by name. JSON spelling since B1598 — the
+    // point of the assertion is that the worked example still names the
+    // field, not which punctuation surrounds it.
+    expect(dayEntry).toContain('"time"');
+    expect(dayEntry).toContain('"lat"');
+    expect(dayEntry).toContain('"lng"');
+    expect(dayEntry).toContain("```json");
   });
 
   test("stops at the next heading, not the whole rest of the file", () => {
