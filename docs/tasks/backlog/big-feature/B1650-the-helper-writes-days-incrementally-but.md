@@ -70,9 +70,58 @@ A decision first, then the build. The options, with what each costs:
   v2 store does not. Costs nothing and loses nothing today; the price is that
   "one door" stays aspirational for these two areas.
 
-**Taken for now: (c)**, on the ground that B1598 already collected the value
-step 5 was chasing here, and neither (a) nor (b) is a refactor. Nothing was
-deleted and nothing was repointed.
+**Decided: (a).** The owner's own words are the spec: *"one of the main goals
+of this update to v2 for B1650 is that there is less incremental updates, sure
+the agent still can update it step by step by going through the 'declined'
+steps, but the goal is that on the first entry it should be already
+completed, the agent should ask the user for all the information and not
+create the day before all is defined."* (c) was the provisional answer above
+and is superseded — not because the storage argument was wrong (B1598 still
+stands), but because the owner wants fewer half-written days on disk, not
+merely a working write path.
+
+**What "teach the wizard v2's full question set" turned out to mean, once
+built, is narrower than the name suggests — and deliberately so.** A
+follow-up correction from the owner ruled out a client-side completeness
+list: *"the agent sends the api request and if data is missing he is
+reminded ... and just when the user actively declines then we set the
+declined setting."* So the mechanism is the existing refusal loop
+(`missingFrom` → `incomplete_day`, naming the fields), not a new upfront
+questionnaire the helper runs before every write. Concretely, for the day
+side:
+
+- `lib/tracks.ts` gained four rows — `time`, `transportMode`, `tags`,
+  `visibility` — using the exact registry `costs`/`coordinates`/`photos`
+  already had. `POST /api/helper/[user]/day` and
+  `POST /api/helper/[user]/assemble-day` both already ran `missingFrom`
+  before writing; they now refuse `incomplete_day` naming these four too,
+  for free, because the registry grew rather than the routes' own logic.
+- **Neither card pre-fills a default for the four new rows**
+  (`CARD_PREFILL_TRACKS` in `lib/tracks.ts` names the three that still do,
+  unchanged from before this ticket). A person pressing through a card that
+  already says "unknown" is not the same as being asked, so the new rows are
+  never shown that way — only ever answered because the model supplied a
+  real value or an actual decline, read directly off the press body
+  (`start_day`/`assemble_day` each declare the four as string tool
+  arguments, with the two decline spellings — `"none"`/`"unknown"` —
+  documented in each one's description).
+- `lib/api/entries.ts` and `lib/entries.ts` already carried everything else:
+  `DraftInput` already accepted `time`/`transportMode`/`tags`/`visibility` as
+  real values (this widens each to also accept a decline, the same shape
+  `costs` already had), and `createDraft`/`editEntry` already wrote through
+  `lib/api/v2/documents.ts` — B1598's own point, that the storage argument
+  was never in question.
+- Not built this round: `location`/`country`/`countryCode`/`timezone` (tied
+  to `coordinates` rather than independent questions — no card change needed,
+  and a real per-field ask for them is a separate, smaller ticket) and
+  `translations` (needs the journal's own locale count, which `lib/tracks.ts`
+  deliberately cannot read, and the helper has no tool that writes per-language
+  content at all yet). The **trip** side (`TRIP_DECLINABLES`: `rates`,
+  `costs`, `plan`, `translations`, `accent`, `figures`, `tagline`, `intro`,
+  `listed`/`teaser`) is untouched — `create_trip`/`edit_trip` still only ask
+  title/dates/visibility, and the same gap this ticket found on days exists
+  there too. Both are worth their own tickets rather than folded into this
+  one's build.
 
 Not doing: touching `media`, `inbox`, `contacts`, `invites`, `money` or
 `storage` — those are separate merges, and **each should be checked for this
@@ -80,10 +129,20 @@ same conflict before it starts** rather than assumed to be a clean repoint.
 
 ## Acceptance
 
-The owner picks (a), (b) or (c) as the permanent answer. If (b), it lands with
-a D row in `06-contract-deltas.md` saying what completeness now means and when
-it is enforced.
+Decided and built: **(a)**, scoped to the day side as described above.
 
-A test pins whichever is chosen: for (c), that the helper's day writes and a
-v2 route write produce byte-identical documents for the same input, so the two
-doors cannot drift apart while both exist.
+- `POST /api/helper/[user]/day` and `POST /api/helper/[user]/assemble-day`
+  refuse `incomplete_day` naming `time`/`transportMode`/`tags`/`visibility`
+  when a create attempt is silent on any of them, the same shape they already
+  used for `costs`/`coordinates`.
+- Neither route's own proposal card pre-fills a default for those four —
+  `test/helper-start-day-press.test.ts`'s `"a trip's own trip.json carries no
+  track opt-out any more"` pins the card's field list unchanged
+  (`trip, date, costs, coordinates`).
+- A real value or an actual decline for the four new rows, supplied directly
+  by the caller (never invented by the route), is what a write actually
+  stores — `test/day-missing.test.ts`, `test/assemble-day-route.test.ts` and
+  `test/helper-start-day-press.test.ts` cover both.
+- Follow-up tickets, not this one: the trip side (`create_trip`/`edit_trip`
+  never asking `TRIP_DECLINABLES`), and the day-side fields left out above
+  (`location`/`country`/`countryCode`/`timezone` cascade, `translations`).
