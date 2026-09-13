@@ -7,7 +7,7 @@ import { dictionaryFor } from "@/lib/locales";
 /**
  * What the signed-in root page says — B411.
  *
- * The panel is client-rendered from `/api/v1/me/home`, so `test/home.test.ts`
+ * The panel is client-rendered from `/api/v2/me/home`, so `test/home.test.ts`
  * covers what may appear in it and this covers what it then says about it.
  * The thing worth pinning is the labelling: this list deliberately mixes
  * journals somebody owns with journals somebody else let them into, and if the

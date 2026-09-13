@@ -131,7 +131,7 @@ machine against files this project reads and writes directly. A **hosted**
 journal's owner has no shell on the server, and an agent driving one over the
 network never does either — so since B665/B671 this project has grown its
 own door for the kind of data that is a measurement rather than editorial
-judgement: `POST /api/v1/<user>/import`, taking a `kind` of `gps` or
+judgement: `POST /api/v2/<user>/import`, taking a `kind` of `gps` or
 `contacts` and bytes from the inbox, from multipart or from plain `text`.
 
 A bank statement moved to `/api/v2` in B1624 and no longer goes through that
@@ -147,7 +147,7 @@ is different in kind, not degree: a coordinate is a measurement, so it is
 stored as read, with no agreement step at all — see `docs/gps.md`. A phone's
 address book (`contacts`) is read the same way a statement is: reported,
 agreed, and only then written with a second call
-(`POST /api/v1/<user>/contacts/import`). `importers/` (MIT-licensed, same as
+(`POST /api/v2/<user>/contacts/import`). `importers/` (MIT-licensed, same as
 this whole tool) is the registry of small parsers behind these: Google
 Timeline, Google Takeout, GPX and a neutral JSON Lines format on the GPS side;
 a bank statement's own CSV shape under `importers/costs/`.

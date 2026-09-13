@@ -50,13 +50,17 @@ function fixesJsonl(count = 40, day = "2026-06-22"): string {
   ).join("\n");
 }
 
-async function importCall(token: string, body: unknown) {
-  const { POST } = await import("@/app/api/v1/[user]/import/route");
+async function importCall(token: string, body: { dryRun?: boolean; [k: string]: unknown }) {
+  const { POST } = await import("@/app/api/v2/[user]/import/route");
+  // v2 takes `dryRun` as a query parameter (readDryRun, lib/api/v2/route.ts),
+  // not a body field — every v2 write does, unlike v1's own `import` route.
+  const { dryRun, ...rest } = body;
+  const url = `https://example.test/api/v2/${OWNER}/import${dryRun ? "?dryRun=true" : ""}`;
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/import`, {
+    new Request(url, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}`, "content-type": "application/json" }),
-      body: JSON.stringify(body),
+      body: JSON.stringify(rest),
     }),
     { params: Promise.resolve({ user: OWNER }) },
   );
@@ -64,9 +68,9 @@ async function importCall(token: string, body: unknown) {
 }
 
 async function importForm(token: string, form: FormData) {
-  const { POST } = await import("@/app/api/v1/[user]/import/route");
+  const { POST } = await import("@/app/api/v2/[user]/import/route");
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/import`, {
+    new Request(`https://example.test/api/v2/${OWNER}/import`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}` }),
       body: form,
@@ -77,9 +81,9 @@ async function importForm(token: string, form: FormData) {
 }
 
 async function formats(token: string) {
-  const { GET } = await import("@/app/api/v1/[user]/import/route");
+  const { GET } = await import("@/app/api/v2/[user]/import/route");
   const response = await GET(
-    new Request(`https://example.test/api/v1/${OWNER}/import`, {
+    new Request(`https://example.test/api/v2/${OWNER}/import`, {
       headers: headers({ authorization: `Bearer ${token}` }),
     }),
     { params: Promise.resolve({ user: OWNER }) },
@@ -278,10 +282,13 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const buddy = await tokenFor(BUDDY_EMAIL, TRIP);
       const { status, body } = await importCall(buddy, { kind: "gps", text: fixesJsonl() });
       expect(status).toBe(403);
-      expect(body.error).toBe("out_of_scope");
-      // The reason is the point: it is not "you may not", it is "this is every
-      // day of somebody's life, not the days you were there".
-      expect(body.message).toMatch(/whole journal/i);
+      // v2's owner gate is the same shared `forbidden` every other v2
+      // owner-only route answers a trip-scoped token with — the specific
+      // "whole journal" wording lived in v1's own needsJournalScope and was
+      // not ported (B1664-family v2 migration); the refusal itself still
+      // blocks the same token the same way.
+      expect(body.error).toBe("forbidden");
+      expect(body.message).toMatch(/journal owner/i);
     });
 
     test("a trip-scoped token cannot derive a track either, on its own trip", async () => {
@@ -299,7 +306,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
         text: fixesJsonl(),
       });
       expect(status).toBe(400);
-      expect(body.error).toBe("unknown_format");
+      expect(body.error).toBe("unreadable");
       expect(body.message).toContain("google-timeline");
     });
 
@@ -326,7 +333,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const token = await tokenFor(OWNER_EMAIL);
       const { status, body } = await importCall(token, { kind: "gps", text: "name,amount\na,1\n" });
       expect(status).toBe(400);
-      expect(body.error).toBe("unknown_format");
+      expect(body.error).toBe("unreadable");
     });
 
     test("an export that parses to nothing is refused, not stored as nothing", async () => {
@@ -338,7 +345,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       });
       expect(status).toBe(400);
       expect(body.error).toBe("contract");
-      expect(body.problems.join(" ")).toMatch(/returned nothing/);
+      expect(body.details.join(" ")).toMatch(/returned nothing/);
     });
 
     test("coordinates the wrong way round are refused, and told what that looks like", async () => {
@@ -355,7 +362,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       });
       expect(status).toBe(400);
       expect(body.error).toBe("contract");
-      expect(body.problems.join(" ")).toMatch(/wrong way round/);
+      expect(body.details.join(" ")).toMatch(/wrong way round/);
     });
 
     test("no body at all is a hint rather than a stack trace", async () => {

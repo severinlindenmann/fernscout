@@ -45,14 +45,14 @@ capability the two people it was built for could not use. Two doors would have
 been worse — the unexercised one is the one that rots.
 
 ```http
-GET  /api/v1/<user>/import          the kinds, and the formats each one knows
-POST /api/v1/<user>/import          {"kind": "gps", "inbox": "<id>"}
+GET  /api/v2/<user>/import          the kinds, and the formats each one knows
+POST /api/v2/<user>/import          {"kind": "gps", "inbox": "<id>"}
 ```
 
 The export is staged in the inbox first (`POST /api/v2/<user>/media` with
 `intent.kind: "gps_history"` and `trip` declined — a `.json` or `.gpx` lands in
 the inbox), then named by id. Multipart `file` is the one-shot; `text` takes a
-few lines inline to the `/api/v1/<user>/import` call itself.
+few lines inline to the `/api/v2/<user>/import` call itself.
 
 The format is detected from the file's own contents; `format` overrides.
 `"dryRun": true` parses, runs the kind's own contract check, reports what it

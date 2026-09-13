@@ -6,7 +6,7 @@ time.
 
 Since B1624 this moved to `/api/v2` — the statement door is no longer keyed
 through the same `kind` mechanism a location history goes through
-(`docs/gps.md`, still `POST /api/v1/<user>/import` with `kind: "gps"` or
+(`docs/gps.md`, `POST /api/v2/<user>/import` with `kind: "gps"` or
 `"contacts"`). "Import" now means that shared door's own verb; a bank
 statement's read is a different call, on a different route.
 

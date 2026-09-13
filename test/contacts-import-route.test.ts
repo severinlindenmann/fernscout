@@ -43,9 +43,9 @@ const VCARD = [
 ].join("\r\n");
 
 async function readCall(token: string, body: unknown) {
-  const { POST } = await import("@/app/api/v1/[user]/import/route");
+  const { POST } = await import("@/app/api/v2/[user]/import/route");
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/import`, {
+    new Request(`https://example.test/api/v2/${OWNER}/import`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}`, "content-type": "application/json" }),
       body: JSON.stringify(body),

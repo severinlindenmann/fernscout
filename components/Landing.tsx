@@ -159,7 +159,7 @@ export default function Landing({
 
   useEffect(() => {
     let live = true;
-    fetch("/api/v1/me/home", { headers: { accept: "application/json" } })
+    fetch("/api/v2/me/home", { headers: { accept: "application/json" } })
       .then(async (res) => (res.ok ? ((await res.json()) as Home) : null))
       .then((data) => {
         if (!live) return;
