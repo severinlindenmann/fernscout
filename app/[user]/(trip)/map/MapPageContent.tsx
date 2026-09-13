@@ -71,12 +71,10 @@ export default function MapPageContent({
   // because nothing had been drawn yet. `over` is the trip's own hero telling
   // the same fact a different way: it is done regardless of what got drawn.
   //
-  // `over` only gets a say once `hasDays` is true, or B118's own policy
-  // breaks: a trip with nothing written at all stays in the planned tense
-  // even once its dates are past — "has been nowhere and is going nowhere" —
-  // and `hasDays` is what tells that trip apart from one `over` is actually
-  // reporting on.
-  const pastTense = hasPlaces || (over && hasDays);
+  // A place says where a day is, not whether the trip has happened. `over` is
+  // the date-aware answer, and `hasDays` preserves B118's policy: an empty
+  // trip stays in the planned tense even after its dates pass.
+  const pastTense = over && hasDays;
 
   return (
     <div className="min-h-screen">
@@ -139,7 +137,13 @@ export default function MapPageContent({
             directly above a legend for the route it had just refused to draw. */}
         <div className="mt-7">
           {hasPlaces || plan.length > 0 || track.length > 0 ? (
-            <WorldMap places={places} plan={plan} track={track} basemap={basemap} />
+            <WorldMap
+              places={places}
+              plan={plan}
+              track={track}
+              basemap={basemap}
+              pastTense={pastTense}
+            />
           ) : (
             // Not `story.empty`. "No entries yet" is true and is not the reason
             // the map is missing; with neither days nor a route there is

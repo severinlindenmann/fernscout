@@ -74,6 +74,7 @@ export default function WorldMap({
   plan = [],
   track = [],
   basemap = null,
+  pastTense = places.length > 0,
 }: {
   places: PlaceView[];
   /** The intended route, drawn behind the real one. */
@@ -94,6 +95,8 @@ export default function WorldMap({
    * the old 110m coastline stands in — which is all this map had before B46.
    */
   basemap?: Basemap | null;
+  /** Whether the containing map page speaks about completed travel. */
+  pastTense?: boolean;
 }) {
   const { t, formatShortDate, formatStay } = useI18n();
   // Same as the stop list below the map: the day link has to carry the owner
@@ -273,7 +276,7 @@ export default function WorldMap({
           // only a planned route must not announce itself as "where we've
           // been" — the sighted reader had that corrected in the h1, and this
           // is the only name a screen reader gets.
-          aria-label={t(places.length > 0 ? "map.title" : "map.titlePlanned")}
+          aria-label={t(pastTense ? "map.title" : "map.titlePlanned")}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}
