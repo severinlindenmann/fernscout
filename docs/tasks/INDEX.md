@@ -67,7 +67,6 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1699](backlog/issue/B1699-content-model-json-still-describes-v1.md) | content-model.json still describes v1's content model — .md filenames, frontmatter prose, start/end, no declined | ISSUE | high | high |
 | [B1700](backlog/issue/B1700-content-model-json-still-describes-v1.md) | content-model.json still describes v1 content — md filenames, frontmatter prose, start/end, no declined | ISSUE | high | high |
-| [B1706](backlog/issue/B1706-a-root-owned-restic-lock-silently.md) | A root-owned restic lock silently breaks the next nightly backup, and root restic runs leak RESTIC_PASSWORD into the journal | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -88,6 +87,7 @@ Do not edit them by hand; run the script.
 | [B1620](backlog/issue/B1620-three-v2-surfaces-drop-information-v1.md) | Three v2 surfaces drop information v1 exposed: day-list test inheritance, status drafts' test flag, and mail send error detail | ISSUE | medium | low |
 | [B1627](backlog/issue/B1627-the-v2-media-door-validates-format.md) | The v2 media door validates format for a trip photo but not one declined to the inbox | ISSUE | medium | low |
 | [B1692](backlog/issue/B1692-the-sync-manifest-never-lists-content.md) | The sync manifest never lists content/<user>/figures/ | ISSUE | medium | low |
+| [B1707](backlog/issue/B1707-sudo-env-restic-password-writes-the.md) | sudo ENV=RESTIC_PASSWORD writes the repository password into the journal | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -307,9 +307,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1706](in-development/B1706-a-root-owned-restic-lock-silently.md) | A lock the service user cannot read fails the whole nightly backup, and only a person can clear it | ISSUE | high | low | `cbe9e605` |
 
 ## testing (152)
 
