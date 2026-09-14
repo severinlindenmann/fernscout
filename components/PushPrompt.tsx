@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import BusyButton from "@/components/BusyButton";
-import { usePathname } from "next/navigation";
 import { Bell, X } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { needsHomeScreenInstall } from "./PushOptIn";
 import { subscribeToPush } from "./pushSubscribe";
+import { useEngagement } from "./useEngagement";
 
 /**
  * Offering notifications to a reader who never went looking for them — B440.
@@ -32,7 +32,9 @@ import { subscribeToPush } from "./pushSubscribe";
  *
  * ## When it appears
  *
- * After the reader has actually read something — see `useEngagement`. Someone
+ * After the reader has actually read something — see
+ * `components/useEngagement.ts`, which B1718 lifted out of this file so the
+ * showcase bar could ask the same question the same way. Someone
  * who has read a day has a reason to want the next one, so the ask makes sense
  * to them; someone who bounced in three seconds is never interrupted.
  *
@@ -58,65 +60,10 @@ const NEVER_KEY = "fs.push.never";
 const SNOOZE_PREFIX = "fs.push.snooze.";
 const SNOOZE_DAYS = 30;
 
-/** How long a reader has to have been *looking* at the page, tab in front,
- * before the ask is earned. Paused while the tab is in the background, so a
- * journal left open in another window never qualifies on its own. */
-const DWELL_MS = 15_000;
-/** And how far they have to have scrolled, if they have not navigated. */
-const SCROLL_PX = 300;
-
 function snoozedUntil(username: string): number {
   const raw = window.localStorage.getItem(`${SNOOZE_PREFIX}${username}`);
   const at = raw ? Date.parse(raw) : NaN;
   return Number.isNaN(at) ? 0 : at;
-}
-
-/**
- * Has this reader actually read anything?
- *
- * Two signals, either of which counts, both gated behind visible dwell time:
- * they scrolled a screen's worth, or they moved to another page inside the
- * journal. A timer alone would fire at somebody who opened a tab and walked
- * away, which is the reader least likely to want a prompt waiting for them.
- */
-function useEngagement(): boolean {
-  const pathname = usePathname();
-  const startPath = useRef(pathname);
-  const [engaged, setEngaged] = useState(false);
-
-  useEffect(() => {
-    if (engaged) return;
-
-    let dwelled = 0;
-    let last = Date.now();
-    let acted = false;
-
-    const tick = () => {
-      const now = Date.now();
-      if (document.visibilityState === "visible") dwelled += now - last;
-      last = now;
-      if (acted && dwelled >= DWELL_MS) setEngaged(true);
-    };
-
-    const onScroll = () => {
-      if (window.scrollY >= SCROLL_PX) acted = true;
-    };
-
-    // A navigation inside the journal — the story pager's day links, a trip,
-    // the gallery — is the clearest "I am reading this" there is.
-    if (pathname !== startPath.current) acted = true;
-
-    const timer = window.setInterval(tick, 1000);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    document.addEventListener("visibilitychange", tick);
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener("scroll", onScroll);
-      document.removeEventListener("visibilitychange", tick);
-    };
-  }, [engaged, pathname]);
-
-  return engaged;
 }
 
 export default function PushPrompt({ username }: { username: string }) {
@@ -221,7 +168,13 @@ export default function PushPrompt({ username }: { username: string }) {
       role="dialog"
       aria-modal="false"
       aria-label={t("push.prompt.title")}
-      className="fixed inset-x-0 bottom-0 z-40 p-3 sm:left-auto sm:right-4 sm:max-w-sm"
+      /* `bottom` from the showcase bar's own measured height — B1718. Both
+         this and `ShowcaseBar` live at the foot of the page, and on a journal
+         showing both they used to be drawn on top of each other. Unset, which
+         is every journal that is not a showcase, `0px` is exactly where this
+         card already sat. */
+      className="fixed inset-x-0 z-40 p-3 sm:left-auto sm:right-4 sm:max-w-sm"
+      style={{ bottom: "var(--fs-showcase-bar, 0px)" }}
     >
       <div className="rounded-2xl border border-line-quiet bg-surface-raised p-4 shadow-lg">
         <div className="flex items-start gap-3">

@@ -111,7 +111,12 @@ describe("the /agent door's chat vignette", () => {
     const css = fs.readFileSync(path.join(process.cwd(), "app/globals.css"), "utf8");
     const reducedMotionBlock = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
     expect(reducedMotionBlock).toMatch(/\.fs-chat-dots\s*\{\s*display:\s*none;/);
-    expect(reducedMotionBlock).toMatch(/\.fs-assemble-in,?\s*\n?\s*\.fs-waymark-bounce\s*\{\s*\n?\s*animation:\s*none;/);
+    // The selector list grows — B1718 added `.fs-rise-in` between these two —
+    // so this asserts that both classes sit in the same `animation: none`
+    // rule rather than that they are adjacent in it.
+    const stilled = reducedMotionBlock.slice(0, reducedMotionBlock.indexOf("animation: none;"));
+    expect(stilled).toContain(".fs-assemble-in");
+    expect(stilled).toContain(".fs-waymark-bounce");
   });
 
   test("only the own-agent guide remains under the card; why? and the demo are gone", () => {

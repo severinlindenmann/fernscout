@@ -2518,5 +2518,10 @@
   "landing.pitchOwnTitle": "Dein Ordner, und du kannst ihn mitnehmen",
   "landing.pitchOwnBody": "Das Tagebuch sind JSON-Dateien und Fotos in einem Ordner, der dir gehört, unter deiner eigenen Adresse. Ein Befehl gibt dir alles als Zip zurück, und dasselbe Tagebuch läuft auch auf deinem eigenen Rechner. Geld kostet nur Papier.",
   "landing.vignetteCaption": "Die Fotos und der Tag sind echt, aus",
-  "landing.vignetteDay": "dem Demo-Tagebuch"
+  "landing.vignetteDay": "dem Demo-Tagebuch",
+  "showcase.title": "Dieses Tagebuch ist eine Demo.",
+  "showcase.body": "Deins wären deine eigenen Reisen, unter deiner Adresse — kostenlos, die Dateien bleiben dir.",
+  "showcase.cta": "Eigenes Tagebuch starten",
+  "showcase.how": "Wie es funktioniert",
+  "showcase.close": "Schliessen"
 }

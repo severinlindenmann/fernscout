@@ -9,8 +9,10 @@ import LocaleProvider from "@/components/LocaleProvider";
 import TripListProvider from "@/components/TripListProvider";
 import { isIndexable } from "@/lib/access";
 import { siteSummaryFor } from "@/lib/site";
+import { loadServerConfig } from "@/lib/config";
 import IdentityUpgrade from "@/components/IdentityUpgrade";
 import PushPrompt from "@/components/PushPrompt";
+import ShowcaseBar from "@/components/ShowcaseBar";
 import { resolveAccess } from "@/lib/auth/handshake";
 import { isOwner as resolveIsOwner } from "@/lib/contacts/session";
 import { listableTrips } from "@/lib/tripGate";
@@ -158,6 +160,15 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
         the reader the hero has already scrolled away from (B439).
       */}
       <PushPrompt username={username} />
+      {/*
+        A door out of a journal that exists to be looked at — B1718. The
+        operator's list and only theirs (`site.showcase`), resolved on the
+        server so a journal that is not a showcase has no bar in its document
+        at all rather than one hidden with CSS. Beside `PushPrompt` because
+        they are the same kind of thing in the same corner, and because the
+        two have to know about each other's height — see ShowcaseBar.
+      */}
+      {loadServerConfig().site.showcase.includes(username) && <ShowcaseBar />}
       {upgradeIdentity && <IdentityUpgrade />}
       {/* The journal's own language, rendered on the server. This used to be
           English on the server and the reader's choice after hydration, which

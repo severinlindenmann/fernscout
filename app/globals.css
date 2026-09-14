@@ -419,6 +419,7 @@ body {
   .fs-weather-pulse,
   .fs-weather-flash,
   .fs-assemble-in,
+  .fs-rise-in,
   .fs-waymark-bounce {
     animation: none;
   }
@@ -441,6 +442,43 @@ body {
  * "no animation" means "always shown") and for `fs-waymark-bounce` is simply
  * still.
  */
+/*
+ * The showcase bar arriving from the foot of the page — B1718.
+ *
+ * One short slide, once. `animation: none` under `prefers-reduced-motion`
+ * above leaves it at its resting state, which is in place and fully visible:
+ * the reader still gets the bar, it simply does not move.
+ */
+@keyframes fs-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fs-rise-in {
+  animation: fs-rise-in 0.32s ease-out 1;
+}
+
+/*
+ * What the bar's own measured height is spent on — B1718.
+ *
+ * Two fixed things at the foot of one page is how they end up on top of each
+ * other, and `PushPrompt` is already down there. `ShowcaseBar` publishes its
+ * height as `--fs-showcase-bar`; the prompt sits on top of the bar instead of
+ * behind it, and the document gains the same room so the last line of a day
+ * is never underneath it. Unset on every journal that is not a showcase, and
+ * for every reader who has closed it, where the fallback makes both rules
+ * no-ops.
+ */
+body {
+  padding-bottom: var(--fs-showcase-bar, 0px);
+}
+
 @keyframes fs-assemble-in {
   from {
     opacity: 0;
