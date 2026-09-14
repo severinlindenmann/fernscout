@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: whatsapp
 found: "2026-09-14T14:50:35Z"
+started: "2026-09-14T15:50:55Z"
+session: 47321abb-ce05-46ca-8dfe-58c5b70fa908
+claimed: "2026-09-14T15:50:55Z"
 ---
 
 # B1738 — A shared contact card's postal address is dropped
