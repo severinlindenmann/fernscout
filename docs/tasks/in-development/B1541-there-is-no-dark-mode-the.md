@@ -110,6 +110,26 @@ request still answers 404.
 environment-dependent skips), and knip. The focused theme, contrast, locale,
 undefined-token, navigation and chart checks pass as 127 tests.
 
+## Regression correction — 2026-09-14
+
+The follow-up work is isolated on `b1541-dark-mode-regressions`. It dims the
+desktop day-path rail and gives both labels an opaque semantic-surface backing,
+keeps the active trip's year dark on its yellow menu row, and uses bright yellow
+for the selected-language tick. The pricing gift is now solid `yellow-400`,
+with `yellow-950` words as the brand rule requires. A compact, browser-local
+appearance menu now sits beside the landing-page language control and offers
+Automatic, Light and Dark without adding a new translation key.
+
+Focused and changed-path checks passed (47 related suites, 431 tests; four
+static keepers also passed). Existing landing and trip pages were captured at
+1280px and 390px with dark mode forced: no console errors; the existing
+unauthenticated reactions request still returns 404. The normal final gate is
+currently environment-blocked before application checking: Turbopack cannot
+create its CSS worker's local process/port (`Operation not permitted`). A
+Webpack fallback compiled successfully, then exposed two unrelated generated
+route-type failures for pre-existing exports `invitesListResponse` and
+`postcardTextsDoc`. Do not merge until `npm run verify` can complete normally.
+
 ## Acceptance
 
 - With no explicit choice and the OS in dark mode, the landing page, a journal,
