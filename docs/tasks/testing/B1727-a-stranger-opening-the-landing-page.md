@@ -7,8 +7,7 @@ complexity: low
 area: auth, landing
 found: "2026-09-14T10:48:00Z"
 started: "2026-09-14T10:58:07Z"
-session: 7c5b9049-8b95-4498-9456-3bc0d44db73e
-claimed: "2026-09-14T10:58:07Z"
+merged: "2026-09-14T11:05:50Z"
 ---
 
 # B1727 — A stranger opening the landing page gets a 401 in their console

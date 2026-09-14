@@ -310,15 +310,14 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1715](in-development/B1715-fernscout-helper-cannot-reach-this-instance.md) | fernscout-helper cannot reach this instance at all since v2, and its own self-test reports green | FEATURE | high | high | `3309c078` |
 | [B1728](in-development/B1728-the-back-arrow-means-two-different.md) | The back arrow means two different things and the reader cannot tell which | ISSUE | medium | medium | `c7a2f6dd` |
-| [B1727](in-development/B1727-a-stranger-opening-the-landing-page.md) | A stranger opening the landing page gets a 401 in their console | ISSUE | low | low | `7c5b9049` |
 
-## testing (168)
+## testing (169)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -490,6 +489,7 @@ _Nothing here._
 | [B1696](testing/B1696-a-billed-whatsapp-send-has-no.md) | A billed WhatsApp send has no matching application log line | ISSUE | low | low | — |
 | [B1697](testing/B1697-b1232-s-authentication-template-blocker-no.md) | B1232's authentication-template blocker no longer blocks anything live | OPS | low | low | — |
 | [B1716](testing/B1716-missing-token-still-tells-every-v2.md) | missing_token still tells every v2 caller that /api/v1 needs a token | ISSUE | low | low | — |
+| [B1727](testing/B1727-a-stranger-opening-the-landing-page.md) | A stranger opening the landing page gets a 401 in their console | ISSUE | low | low | — |
 
 ## completed (1306)
 
