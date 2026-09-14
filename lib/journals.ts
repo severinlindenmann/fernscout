@@ -909,7 +909,7 @@ export function setJournalFeatures(
  * once, whole or not at all, which is the property `editUserConfigFile`
  * exists for.
  */
-export const JOURNAL_PROFILE_FIELDS = [
+const JOURNAL_PROFILE_FIELDS = [
   "title",
   "tagline",
   "visibility",
@@ -925,7 +925,7 @@ type JournalProfileField = (typeof JOURNAL_PROFILE_FIELDS)[number];
 
 /** Why a field of `config.json` is not writable through an API. Keyed by the
  * top-level key a caller would send. */
-export const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
+const JOURNAL_FIELD_REFUSALS: Record<string, string> = {
   owner:
     "The owner block is not writable as a whole, and none of it is writable here at all. " +
     "owner.email decides who can get a token for this journal, so a token cannot move it. The " +

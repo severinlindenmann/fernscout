@@ -71,15 +71,6 @@ function checkBody(raw: unknown, problems: Problem[]): void {
 
 export type CostsInput = { budget?: unknown; costs?: unknown; body?: unknown };
 
-/** `PUT .../costs` — the whole file, so a budget is required. */
-export function validateCostsPut(input: CostsInput): Problem[] {
-  const problems: Problem[] = [];
-  checkBudget(input.budget, problems, true);
-  checkCostsList(input.costs, problems);
-  checkBody(input.body, problems);
-  return problems;
-}
-
 /**
  * `PATCH .../costs` — a partial edit, so every field is optional and an
  * absent one means "leave it alone", the same rule `validateEntryEdit`

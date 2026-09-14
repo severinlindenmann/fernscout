@@ -42,9 +42,8 @@ import { quoteScalar, singleLineProblem } from "./validate/frontmatter";
  */
 
 /** Same shape a trip id has to have to be read back — `lib/trips.ts`.
- * Exported so `test/content-model.test.ts` can check `content-model.json`'s
- * `trip.md` `id` pattern against the regex that actually refuses one, rather
- * than a second copy typed out in the test. */
+ * Exported so anything that states the pattern reads it from here rather
+ * than keeping a second copy of it. */
 export const ID_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 /** Exported for the same reason `VISIBILITIES` below is: `lib/api/openapi.ts`
@@ -851,8 +850,8 @@ export type CreateTripResult =
   | { ok: true; id: string; ref: string }
   | { ok: false; error: string; message: string };
 
-/** Exported for the same reason `ID_RE` above is — `test/content-model.test.ts`
- * checks `content-model.json`'s `start`/`end` pattern against this. */
+/** Exported for the same reason `ID_RE` above is: one pattern, read by
+ * whatever needs to state it, never re-typed. */
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
