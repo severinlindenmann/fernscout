@@ -8,6 +8,7 @@ systemd unit, and a deploy script.
 - [What actually runs](#what-actually-runs)
 - [First deploy on a fresh VPS](#first-deploy-on-a-fresh-vps)
 - [Day-to-day deploys](#day-to-day-deploys)
+- [Sharing the box with other workloads](#sharing-the-box-with-other-workloads)
 - [Deploying alongside an existing Caddy site](#deploying-alongside-an-existing-caddy-site)
 - [Adding Postgres later](#adding-postgres-later)
 - [What the first deploy turned up](#what-the-first-deploy-turned-up)
@@ -411,6 +412,78 @@ sudo find /var/lib/fernscout/content -type f -print0 \
 > `scripts/migrate-*.ts` to run against `/var/lib/fernscout/content` first. A
 > non-zero exit from one of those scripts means at least one journal needs
 > attention — it does not mean nothing was written; re-running is safe.
+
+---
+
+## Sharing the box with other workloads
+
+A VPS that runs Fernscout and nothing else is the easy case. The instance this
+runbook was written against also serves a static site and, at one point, a
+second application of its operator's — and the audit that prompted this section
+(B1702, 2026-09-14) found the difference between them was the whole security
+story: `fernscout.service` ran as its own user inside a
+systemd sandbox, and every other workload ran as **root** with the run of the
+filesystem. `/etc/fernscout/env` is every secret this instance has and
+`/var/lib/fernscout/content` is everybody's journals, including their GPS
+history. The confinement Fernscout declares for itself is worth nothing while a
+sibling process on the same box can read both.
+
+So: **a new workload here gets its own user and the same sandbox**, and that is
+not a nice-to-have. The unit below is the pattern — it is the block
+`fernscout.service` already carries, with the paths changed.
+
+```ini
+[Service]
+User=thing
+Group=thing
+WorkingDirectory=/srv/thing
+# Name the binary. `ExecStart=/bin/bash -lc '…'` drags in a login shell, its
+# profile and whatever that sources — none of which the sandbox can see.
+ExecStart=/srv/thing/bin/thing --listen 127.0.0.1:3100
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+# Only what it actually writes. If this list is long, the workload is keeping
+# state somewhere it should not.
+ReadWritePaths=/srv/thing /var/lib/thing
+```
+
+Four more rules, each of which this box got wrong somewhere before B1702:
+
+- **Not out of `/root`.** A service whose code, venv or data lives under
+  `/root` cannot be given a non-root user without moving it first, and a
+  Python venv has its interpreter path baked into every script — so the move
+  costs a rebuild. Put it in `/srv/<thing>` on day one and the question never
+  arises.
+- **Bind to `127.0.0.1` and let Caddy reach it.** ufw is default-deny with a
+  three-line allow list (22, 443, the mosh range) and a new workload is not a
+  reason to add a fourth. A site block of its own, or an `import` beside the
+  Fernscout one, is how it gets a hostname and TLS.
+- **`enabled` is what survives a reboot.** Both of that second application's
+  units were *running* and *disabled*, which reads as healthy in `systemctl status` and silently
+  does not come back. After any reboot, compare
+  `systemctl list-units --state=running` against the enabled list.
+- **Secrets in a file the unit reads, not in the unit.** `EnvironmentFile=`
+  pointing at `root:<group> 0640`, like `/etc/fernscout/env`. Never `0600` for
+  Fernscout's own — the nightly backup reads it as the group.
+
+### What the box itself is set to
+
+Also from B1702, so a rebuild reproduces it rather than rediscovering it:
+
+- `unattended-upgrades`, with `/etc/apt/apt.conf.d/20auto-upgrades` written —
+  the package alone does nothing; that file is what makes
+  `apt-daily-upgrade.timer` act.
+- `fail2ban` with `backend = systemd` in `/etc/fail2ban/jail.local`. **The
+  stock jail reads `/var/log/auth.log`, which this box does not have** — sshd
+  logs to the journal — so a default install starts, looks healthy and matches
+  nothing.
+- `PasswordAuthentication no` in `/etc/ssh/sshd_config.d/`, and an
+  unprivileged admin account with sudo. Root stays reachable by key; the
+  admin account is what day-to-day work and the VS Code tunnel use, so that
+  1.3 GB of editor server is not running as root.
 
 ---
 
