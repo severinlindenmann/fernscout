@@ -310,15 +310,15 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
+
+_Nothing here._
+
+## testing (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1741](in-development/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | `47321abb` |
-
-## testing (0)
-
-_Nothing here._
+| [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
 
 ## completed (1489)
 
