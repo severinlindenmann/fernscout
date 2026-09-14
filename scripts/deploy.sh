@@ -219,9 +219,32 @@ trap 'rm -rf "$LOCK_DIR"' EXIT
 #
 # $STATE_FILE is now only the bootstrap for when nothing answers yet — a
 # fresh machine before the service has ever been started once.
+# /api/health, with the detail this caller is entitled to.
+#
+# The page redacts `lastSuccessAt`, `ageHours` and `reason` from anyone without
+# `HEALTH_TOKEN` (B1045), which is right and is not softened here. But this
+# script runs on the server, has sourced $ENV_FILE above, and holds the token —
+# and asking anonymously is how `report_backup` came to print `backup: ok (last
+# success )` on every deploy, and `WARNING: backup failing —` with the reason
+# cut off on the one run where the line matters. B1698.
+#
+# Not `-H`: an argv is `/proc/<pid>/cmdline` and the service user can read it.
+# --config keeps the token on stdin. An unset token stays anonymous, so a fresh
+# install with no HEALTH_TOKEN behaves exactly as before, trimmed line and all.
+fetch_health() {
+  local url="http://127.0.0.1:${PORT:-3000}/api/health"
+  if [ -n "${HEALTH_TOKEN:-}" ]; then
+    curl -fsS --config - "$url" 2>/dev/null <<CONFIG
+header = "Authorization: Bearer ${HEALTH_TOKEN}"
+CONFIG
+  else
+    curl -fsS "$url" 2>/dev/null
+  fi
+}
+
 served_commit() {
   local health
-  health="$(curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" 2>/dev/null)" || return 1
+  health="$(fetch_health)" || return 1
   printf '%s' "$health" | node -e \
     'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const c=JSON.parse(s).commit;process.stdout.write(c?String(c):"")}catch{}})' \
     2>/dev/null
@@ -536,7 +559,7 @@ record_deployed() {
 
 log "waiting for health"
 for i in $(seq 1 30); do
-  if HEALTH="$(curl -fsS "http://127.0.0.1:${PORT:-3000}/api/health" 2>/dev/null)"; then
+  if HEALTH="$(fetch_health)"; then
     log "healthy"
 
     # The loud version of the footnote B559 nearly missed: this run just
