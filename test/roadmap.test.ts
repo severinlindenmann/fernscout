@@ -1,6 +1,6 @@
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { getRoadmap } from "@/lib/roadmap";
+import { getRoadmap, getTask, getTasks } from "@/lib/roadmap";
 
 /**
  * B675 — the trap this ticket is entirely about: `scripts/tasks.mjs` only
@@ -46,5 +46,55 @@ describe("getRoadmap()", () => {
   test("returns empty lanes rather than throwing when docs/tasks/ is absent", () => {
     const lanes = getRoadmap(path.join(FIXTURE_ROOT, "does-not-exist"));
     expect(lanes).toEqual([]);
+  });
+});
+
+/**
+ * B1721 — the board draws a card's whole shape from `complexity` and sorts
+ * Done by `date`, so both being carried is load-bearing rather than
+ * decorative. `getTask()` is the second door onto the same tree and needs the
+ * same `type: SECURITY` guard as the first.
+ */
+describe("getTasks()", () => {
+  test("carries complexity, a date and a repository path", () => {
+    const done = getTasks(FIXTURE_ROOT).find((t) => t.id === "BC02")!;
+    expect(done.complexity).toBe("low");
+    expect(done.date).toBe("2026-09-01T00:00:00Z");
+    expect(done.lane).toBe("completed");
+    expect(done.path).toContain("test/fixtures/roadmap-tasks/completed/");
+  });
+
+  test("marks backlog/superseded/ and backlog/wont-do/ shelved, and nothing else", () => {
+    const tasks = getTasks(FIXTURE_ROOT);
+    expect(tasks.find((t) => t.id === "BC04")?.shelved).toBe(true);
+    expect(tasks.find((t) => t.id === "BC01")?.shelved).toBe(false);
+    expect(tasks.find((t) => t.id === "BC02")?.shelved).toBe(false);
+  });
+
+  test("leaves complexity empty rather than guessing when the field is absent", () => {
+    const nosize = getTasks(FIXTURE_ROOT).find((t) => t.id === "BC03")!;
+    expect(nosize.complexity).toBe("");
+  });
+});
+
+describe("getTask()", () => {
+  test("returns the ticket with its body", () => {
+    const task = getTask("BC01", FIXTURE_ROOT);
+    expect(task?.title).toBe("An ordinary chore, nothing sensitive");
+    expect(task?.body).toBe("Body.");
+  });
+
+  test("refuses a type: SECURITY ticket in every lane, folder or not", () => {
+    // The same three the board filters: BS01 under backlog/security/, BS02 in
+    // completed/ and BS03 in testing/ with no folder to give them away.
+    expect(getTask("BS01", FIXTURE_ROOT)).toBeNull();
+    expect(getTask("BS02", FIXTURE_ROOT)).toBeNull();
+    expect(getTask("BS03", FIXTURE_ROOT)).toBeNull();
+  });
+
+  test("answers null for an unknown id, an unparseable file and a path attempt alike", () => {
+    expect(getTask("BZ99", FIXTURE_ROOT)).toBeNull();
+    expect(getTask("BB01", FIXTURE_ROOT)).toBeNull();
+    expect(getTask("../../../etc/passwd", FIXTURE_ROOT)).toBeNull();
   });
 });
