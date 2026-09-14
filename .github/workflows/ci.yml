@@ -13,11 +13,16 @@ concurrency:
 
 env:
   # Pinned to an exact patch, not "24". A floating major silently changes
-  # the bundled npm underneath us: 24.20.0 ships npm 11.19.0, which expands
+  # the bundled npm underneath us: 24.20.0 shipped npm 11.19.0, which expands
   # bundled/optional wasm deps that older npm did not, and rejected a
   # lockfile every local `npm install` reported as up to date. Bump this
   # deliberately, and regenerate package-lock.json with the matching npm.
-  NODE_VERSION: "24.20.0"
+  #
+  # 24.21.0 since B1710, to follow the VPS: an unattended-upgrades run moved
+  # nodejs there, and an exact pin the box has passed refuses every deploy at
+  # the build guard. This bump carried no lockfile change because 24.21.0
+  # ships npm 11.19.0 too — check `npm -v` before assuming that of the next one.
+  NODE_VERSION: "24.21.0"
 
 jobs:
   lint:
