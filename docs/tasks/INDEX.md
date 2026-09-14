@@ -312,15 +312,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1719](in-development/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low | `3309c078` |
 | [B1721](in-development/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium | `8ad8d82a` |
 | [B1724](in-development/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low | `68f03fd3` |
 
-## testing (163)
+## testing (164)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -409,6 +408,7 @@ _Nothing here._
 | [B1714](testing/B1714-the-v2-contract-declares-openapi-3.md) | The v2 contract declares OpenAPI 3.1.0 and emits request where the specification says requestBody, so no standard tool sees a body on any write | ISSUE | high | low | — |
 | [B1717](testing/B1717-the-landing-page-describes-the-chat.md) | The landing page describes the chat, the postcard and the book instead of showing them | FEATURE | high | medium | — |
 | [B1718](testing/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium | — |
+| [B1719](testing/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
