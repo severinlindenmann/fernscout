@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: whatsapp, logging, billing
 found: "2026-09-14T06:17:43Z"
+merged: "2026-09-14T06:41:07Z"
 ---
 
 # B1696 — A billed WhatsApp send has no matching application log line

@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (203)
+## backlog (202)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (33)
+### issue (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -97,7 +97,6 @@ Do not edit them by hand; run the script.
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 | [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
-| [B1696](backlog/issue/B1696-a-billed-whatsapp-send-has-no.md) | A billed WhatsApp send has no matching application log line | ISSUE | low | low |
 
 ### big-feature (17)
 
@@ -311,7 +310,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (146)
+## testing (147)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -460,6 +459,7 @@ _Nothing here._
 | [B1672](testing/B1672-web-purchases-route-silently-accepts-a.md) | web purchases route silently accepts a bearer token despite its own cookie-only comment | ISSUE | low | low | — |
 | [B1678](testing/B1678-lib-trips-ts-new-is-a.md) | lib/trips.ts.new is a committed editor scratch file | CHORE | low | low | — |
 | [B1679](testing/B1679-nine-content-files-do-not-round.md) | Nine content files do not round-trip byte-identically through the serializers | ISSUE | low | low | — |
+| [B1696](testing/B1696-a-billed-whatsapp-send-has-no.md) | A billed WhatsApp send has no matching application log line | ISSUE | low | low | — |
 | [B1697](testing/B1697-b1232-s-authentication-template-blocker-no.md) | B1232's authentication-template blocker no longer blocks anything live | OPS | low | low | — |
 
 ## completed (1306)
