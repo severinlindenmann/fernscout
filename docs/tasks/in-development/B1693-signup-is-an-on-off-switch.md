@@ -26,6 +26,9 @@ people they have invited to be able to make a journal, and nobody else — so
 today they either leave signup off and create journals by hand, or leave it on
 and take whoever finds the domain.
 
+**Valid** when taken: `lib/capabilities.ts:355` and the five doors named
+below all read the one boolean, and there was no third state.
+
 ## Work
 
 Decided with the owner on 2026-09-14:
@@ -65,6 +68,32 @@ Not in scope: invite *links* (B1690 and the invite routes are a different
 thing — that flow adds somebody to an existing journal). No bulk import, no
 expiry on an entry, no self-service request-an-invite form.
 
+### What building it changed
+
+- **`signup` stays in `FEATURE_NAMES`.** Removing it would have rippled
+  through `/api/health`, the v2 status schema, the OpenAPI vocabulary and
+  their contract tests for no gain: the entry still carries real information
+  (this capability needs a database and `SESSION_SECRET`, and `/api/health`
+  explains when it has neither). What went is the *switch* — `parseFeatures`
+  neither requires nor obeys `enabled` for `signup`, so an instance carrying
+  the old `enabled: false` boots into invite-only with an empty list rather
+  than failing on a field that stopped existing.
+- **`assertCapabilities` skips `signup`.** It refuses to boot for anything
+  "enabled but not configured", and with no switch left to have thrown, "you
+  enabled this and did not configure it" became a false accusation — an
+  instance with no `DATABASE_URL` would have refused to start. An instance
+  that cannot take signups is a legitimate instance.
+- **The wizard no longer moves on blindly.** `requestCode` deliberately
+  ignored the response, because the door answers 202 whatever the address.
+  Invite-only is the one refusal that is about the *instance* rather than the
+  address, and without reading it the person sat on "a code is on its way"
+  for a mail that was never coming. Found in a browser, not by the suite.
+- **`owner_id`, like every other table.** `signup_invites` rows are the
+  instance's and carry `NO_JOURNAL`, the same shape as `admin_acks`.
+- Every test that wrote `signup: { enabled: true }` now writes
+  `signup: { inviteOnly: false }` — the honest statement of what those suites
+  assume, since the default is now closed.
+
 ## Acceptance
 
 - `site/config.json` with no `features.signup` block at all: a fresh instance
@@ -79,3 +108,18 @@ expiry on an entry, no self-service request-an-invite form.
 - `inviteOnly: false` lets an address that is not listed sign up.
 - `npm run verify` passes, including `test/depersonalised.test.ts`, and the
   contract audit is clean.
+
+### Evidence
+
+Driven against a local checkout with `inviteOnly` at its default:
+
+- `POST /api/auth/codes` `{"for":"signup"}` for an unnamed address → `403
+  signup_not_invited`, no `.eml` written.
+- `/admin` People tab at 390px: added and removed an address with the real
+  buttons, no console errors — `/tmp/b1693-shots2/invites-added-390.png`,
+  `invites-removed-390.png`, `invites.json`.
+- The listed address then completed the whole normal signup by hand: code →
+  redeem → `/api/auth/signup/phone` → redeem → `POST /api/v2/journals` 200.
+- The wizard's own refusal at 390px, with the address still in the field —
+  `/tmp/b1693-shots2/wizard-refused-390.png`.
+- `npm run verify`: all five passed.
