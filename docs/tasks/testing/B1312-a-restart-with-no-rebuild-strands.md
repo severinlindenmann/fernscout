@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: deploy, vps, turbopack
 found: "2026-09-10T15:19:26Z"
+merged: "2026-09-14T05:31:44Z"
 ---
 
 # B1312 — A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared

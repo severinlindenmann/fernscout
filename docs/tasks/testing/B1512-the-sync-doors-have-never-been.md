@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: sync, api, live instance
 found: "2026-09-11T19:22:29Z"
+merged: "2026-09-14T05:31:45Z"
 ---
 
 # B1512 — The sync doors have never been driven against the live instance or a real journal

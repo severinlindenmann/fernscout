@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: ops, deploy
 found: "2026-09-10T06:40:00Z"
+merged: "2026-09-14T05:31:43Z"
 ---
 
 # B1311 — A config.json written as root takes the whole site down at the next build

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: deploy, ops
 found: "2026-09-10T15:20:01Z"
+merged: "2026-09-14T05:31:44Z"
 ---
 
 # B1313 — Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD
