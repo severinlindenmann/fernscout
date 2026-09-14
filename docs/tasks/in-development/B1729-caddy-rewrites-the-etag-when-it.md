@@ -74,3 +74,48 @@ send no `accept-encoding`, i.e. hand-written `curl`.
 fernscout-helper strips a trailing `-gzip` from the ETag before sending it
 back (`shared/api.mjs`), so the port is not blocked. That workaround comes out
 when this lands.
+
+---
+
+## Revalidated, 2026-09-14 — valid, and measured rather than argued
+
+```
+$ curl -sD- .../days/2025-11-14-tram-28-both-ways            # no accept-encoding
+etag: "f16ecbb22fc33f4cd0dfd75310633eb2"
+$ curl -sD- ... -H 'accept-encoding: gzip'
+etag: "f16ecbb22fc33f4cd0dfd75310633eb2-gzip"
+```
+
+`deploy/fernscout.caddy:29` is `encode gzip zstd`, and that is where the suffix
+comes from.
+
+## Done, 2026-09-14
+
+Fixed in `ifMatchStale` (lib/api/v2/route.ts) rather than in the Caddyfile, for
+two reasons that both point the same way:
+
+- **Suffix-appending is correct for `If-None-Match` and wrong for
+  `If-Match`.** A gzipped body genuinely is a different representation and a
+  cache validator must tell them apart; `If-Match` on a write asks about the
+  state of the *resource*, which no content coding changes. So the place to
+  undo it is the write path, not the proxy.
+- Excluding `/api/v2/**` from `encode` would fix this instance and nothing
+  else. Any proxy that relabels a compressed ETag — and several do — breaks
+  every client the same way. This holds for all of them.
+
+`withoutProxyEncoding` strips a trailing `-gzip`/`-br`/`-zstd`/`-deflate`/
+`-compress` from the **incoming** tag only, and the unmodified tag is still
+tried first, so the change can only accept a header that was previously
+refused. Every ETag this server issues is a quoted hex hash (`etagFor`), so
+none can end in one of those names and lose a character to it.
+
+Five cases in `test/api-v2-route.test.ts`: each of the four codings matches the
+document it names, and a genuinely different document is still stale with a
+suffix on it.
+
+**Still to check after the deploy:** a real `GET` then `PATCH` with
+`accept-encoding: gzip` against fernscout.ch. Without that header the bug is
+invisible, which is how it survived this long.
+
+Once that passes, fernscout-helper's workaround in `shared/api.mjs`
+(`etagOf`) comes out — it is marked as a workaround and names this ticket.
