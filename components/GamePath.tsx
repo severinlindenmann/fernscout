@@ -188,7 +188,7 @@ export default function GamePath({
         <path
           d={pathD}
           fill="none"
-          stroke="var(--color-navy-200)"
+          stroke="var(--line-quiet)"
           strokeWidth={8}
           strokeLinecap="round"
         />
@@ -249,14 +249,14 @@ export default function GamePath({
               </span>
             </span>
             <span
-              className={`mt-1 max-w-[104px] truncate font-display text-xs font-semibold ${
+              className={`relative z-10 mt-1 inline-block max-w-[104px] truncate rounded bg-surface-base px-1 font-display text-xs font-semibold ${
                 isCurrent ? "text-ink-strong" : "text-ink-secondary"
               }`}
             >
               {day.location}
             </span>
             {/* The same second line the mobile day list draws. */}
-            <span className="max-w-[112px] truncate text-[10px] leading-tight text-ink-secondary tabular-nums">
+            <span className="relative z-10 inline-block max-w-[112px] truncate rounded bg-surface-base px-1 text-[10px] leading-tight text-ink-secondary tabular-nums">
               {formatShortDate(day.date)}
               {day.updates > 1 && ` · ${day.updates} ${t("day.updates")}`}
               {day.cost > 0 && ` · ${spend(day.cost, day.costLocal)}`}

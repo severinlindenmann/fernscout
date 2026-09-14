@@ -134,7 +134,7 @@ export default function Pricing({ locale }: { locale: string }) {
             {/* The signup gift, first and highlighted: the one place credits
                 lead, because it is a credit balance a new journal actually
                 receives (`SIGNUP_CREDIT_GRANT`, granted once at signup). */}
-            <li className="-mx-2 flex gap-2 rounded-lg bg-yellow-300/60 px-2 py-1 text-yellow-950">
+            <li className="-mx-2 flex gap-2 rounded-lg bg-yellow-400 px-2 py-1 text-yellow-950">
               <Check className="mt-1 h-4 w-4 shrink-0" aria-hidden strokeWidth={2.4} />
               <span>
                 <span className="block font-semibold">

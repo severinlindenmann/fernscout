@@ -6,6 +6,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import LocaleProvider from "@/components/LocaleProvider";
 import ThemePicker from "@/components/ThemePicker";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { dictionaryFor } from "@/lib/locales";
 import { THEME_BOOTSTRAP, THEME_STORAGE_KEY, themeChoice } from "@/lib/theme";
 
@@ -47,11 +48,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function render() {
+function render(Component = ThemePicker) {
   act(() => {
     root.render(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-        <ThemePicker />
+        <Component />
       </LocaleProvider>,
     );
   });
@@ -122,6 +123,22 @@ describe("theme preference", () => {
     render();
     expect(option("Automatic").checked).toBe(true);
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
+  });
+
+  test("the compact switcher offers the same browser-local choices in page chrome", () => {
+    render(ThemeSwitcher);
+    const trigger = host.querySelector<HTMLButtonElement>('button[aria-label="Appearance"]');
+    if (!trigger) throw new Error("No compact appearance switcher");
+    act(() => trigger.click());
+
+    const darkChoice = [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(
+      (button) => button.textContent?.includes("Dark"),
+    );
+    if (!darkChoice) throw new Error("No Dark compact appearance choice");
+    act(() => darkChoice.click());
+
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
   });
 
   test("an explicit choice also overrides the browser chrome colour", () => {

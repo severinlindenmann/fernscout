@@ -156,7 +156,11 @@ export default function TripSwitcher() {
                       <span className="block truncate">
                         {localizedTrip(tr).title}
                       </span>
-                      <span className="block text-[11px] text-ink-secondary">
+                      <span
+                        className={`block text-[11px] ${
+                          isActive ? "text-yellow-950/80" : "text-ink-secondary"
+                        }`}
+                      >
                         {tr.start.slice(0, 4)}
                         {tr.end.slice(0, 4) !== tr.start.slice(0, 4)
                           ? `–${tr.end.slice(0, 4)}`
