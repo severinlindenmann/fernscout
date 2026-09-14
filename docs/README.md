@@ -27,6 +27,7 @@ maintained guidance for an agent; this folder is the long form for a person.
 | [screenshots/](screenshots/) | how the pictures in the root `README.md` were made, and the byte ceiling they are kept under |
 | [tasks/](tasks/) | everything to build and everything found broken |
 | [plans/](plans/) | the record of intent, written before the work |
+| [superpowers/](superpowers/) | the same kind of record, from before this repo folded dated plans into `plans/` directly — kept, never corrected, same as `plans/` |
 
 ## How much to trust this
 
@@ -86,3 +87,13 @@ becomes folklore.
 Do not correct a plan, and do not move one out. When a plan has an unbuilt
 remainder, open a task pointing at it. Anything you want to be *true* goes in
 one of the files above, or in a task.
+
+`superpowers/plans/` and `superpowers/specs/` are the same convention, one
+level earlier: dated plan-and-spec pairs the `superpowers` skill wrote for
+work packages before this repo started landing its own dated plans straight
+into `plans/` (`2026-08-31-w37-owner-and-guests.md` onward). They cover the
+photobook ordering and Gelato print work, the docs information-architecture
+pass, the managed-instance testing framework, and the inbox day-assembly
+phases (B1595 and siblings) — real, current design intent, not scratch
+output. Same rule as `plans/`: read them, do not correct them, and do not move
+one out (B1415).
