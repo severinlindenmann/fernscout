@@ -312,15 +312,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1715](in-development/B1715-fernscout-helper-cannot-reach-this-instance.md) | fernscout-helper cannot reach this instance at all since v2, and its own self-test reports green | FEATURE | high | high | `3309c078` |
-| [B1726](in-development/B1726-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low | `7c5b9049` |
 | [B1728](in-development/B1728-the-back-arrow-means-two-different.md) | The back arrow means two different things and the reader cannot tell which | ISSUE | medium | medium | `c7a2f6dd` |
 
-## testing (167)
+## testing (168)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -464,6 +463,7 @@ _Nothing here._
 | [B1721](testing/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium | — |
 | [B1722](testing/B1722-the-hero-chat-has-finished-animating.md) | The hero chat has finished animating before it is scrolled to, and the photobook drawing does not read as a book | ISSUE | medium | low | — |
 | [B1724](testing/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low | — |
+| [B1726](testing/B1726-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
