@@ -110,8 +110,92 @@ says explicitly when a failure carried no HTTP status. Batch size dropped from
 20 to 10 — a batch is one request with no progress of its own, so a large one
 on mobile data is a long silence.
 
-Still unanswered: all three original questions. Nothing has yet been observed
-about EXIF survival, the selection ceiling, or background behaviour.
+### Run 2, 2026-09-14, iPhone (iOS 18.7 / build 26.5), Safari — 36 files, all arrived
+
+36 selected, 36 delivered, in four batches of 10/10/10/6. Nothing was refused
+and nothing was truncated. 34 images and two `.mov` clips, spanning 2026-07-02
+to 2026-07-11 — a real ten-day stretch, not a fixture.
+
+**Q1, does EXIF survive: yes, completely — but the file is not the original.**
+
+The 22 camera-original images arrived with 157 EXIF tags each, Apple MakerNotes
+intact: `Make`, `Model`, `LensModel` ("iPhone 15 back dual wide camera 5.96mm
+f/1.6"), `DateTimeOriginal` with `OffsetTimeOriginal`, full GPS including
+`GPSAltitude` and `GPSHPositioningError`, `ContentIdentifier`, `HDRGain`,
+`FocusDistanceRange`. Full resolution, 5712×4284. Safari strips nothing.
+
+What it does do is **re-encode**. Every file arrived as `image/jpeg` with a
+JFIF header, from a phone that shoots HEIC, and — the decisive part — **every
+file's `lastModified` is the moment of upload**, not the moment of capture:
+
+```
+IMG_5616.jpeg   lastModified 2026-09-14T22:25:48   exif takenAt 2026-07-11T10:07
+IMG_5615.jpeg   lastModified 2026-09-14T22:25:48   exif takenAt 2026-07-11T10:06
+```
+
+iOS generated those files during the pick. Two consequences, both load-bearing
+for B1751:
+
+1. **There is no print master to keep.** AGENTS.md requires an upload to keep
+   its original, and over this door the original never leaves the phone. A
+   web-quality JPEG is what arrives. Either B1751 accepts that and says so, or
+   the flow needs a second path for the original; it cannot quietly claim to
+   hold a master it does not have. *(Not yet separated: whether this phone is
+   set to capture HEIC and Safari converts, or captures JPEG outright —
+   Settings → Camera → Formats answers it in one look. The `lastModified`
+   evidence says a file was generated either way.)*
+2. **File mtime is not a fallback here, it is a wrong answer.**
+   `lib/ingest/index.ts:230` falls back `exif.takenAt ?? probe?.takenAt ??
+   fromDate(stat.mtime)`, and `lib/ingest/exif.ts:22` describes mtime as
+   "usually close enough for anything straight off a card". Straight off a
+   card, yes. Off a phone through a browser, mtime is *today* for every file in
+   the selection, so the fallback silently dates a 2019 trip to the day it was
+   imported. B1751 must not use it; a file with no capture time should be
+   placed from its neighbours or left for the person to answer.
+
+**Q1b, the files without GPS were never ours to lose.** 14 of 36 carried no
+position, and the split is clean rather than random:
+
+| | count | filenames | Make/Model | GPS |
+| --- | --- | --- | --- | --- |
+| Camera originals | 22 | `IMG_####.jpeg` | Apple iPhone 15 / 12 Pro | yes, all 22 |
+| Saved from elsewhere | 12 | UUID `.jpeg` | absent | none |
+| Clips | 2 | `IMG_####.mov` | (see below) | not read |
+
+Every UUID-named file is progressive-DCT JPEG with IPTC and a Photoshop
+`IPTCDigest`, no `Make`, no `Model`, no MakerNotes — and it keeps
+`DateTimeOriginal` and `OffsetTime`. That is not a camera file: it is an image
+saved into the library from somewhere else, already stripped of its camera and
+its position before it ever reached this phone. iOS hands such assets a UUID
+filename precisely because they have no camera filename. **22/22 camera
+originals kept their GPS; 0/12 non-originals ever had any.** Nothing in the
+upload path lost a coordinate.
+
+Worth carrying into B1751 as a product fact rather than a bug: in one ordinary
+camera roll, a third of the photographs have no location at all, and they will
+cluster on the days somebody was sent pictures by the people they were with.
+Those days need to be placeable by asking, not by inference.
+
+**The two clips are a real gap, and it is ours.** `lib/ingest/video.ts:183`
+asks ffprobe for `format_tags` and reads only the creation date from the
+response. `com.apple.quicktime.location.ISO6709` is in that same response and
+nothing reads it, so a clip filmed on the same walk gets no position while the
+photographs beside it do. Filed as **B1755**. The date half is already right:
+`readCreationTime` prefers `com.apple.quicktime.creationdate`
+(`2026-07-06T19:35:08+0200`, correct) over the generic `creation_time`, which
+on this file is the upload instant — the same export stamp as above. The probe
+route itself reports nothing for a `.mov` because `readExif` handles JPEG, HEIC
+and WebP only; that is the probe's limit, not the ingest path's.
+
+**Q2, the ceiling: not found.** 36 went through without complaint, largest
+single file 33.9 MB (a clip), largest batch about 45 MB. The only failure so
+far was the proxy cap in Run 1, which was ours. A run of 200+ would still be
+worth doing before B1751 commits to "select an album".
+
+**Q3, backgrounding: not yet tested.** No visibility changes were recorded
+during this run, so nothing is known about what happens when the screen locks
+mid-upload. Outstanding, along with the standalone/PWA support matrix and any
+Android result.
 
 ## Work
 
