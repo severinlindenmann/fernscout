@@ -215,6 +215,7 @@ export function DayCard({
   summary,
   dayIndex,
   canPublish,
+  tripTest,
 }: {
   day: Day;
   summary: DaySummary;
@@ -223,6 +224,11 @@ export function DayCard({
    *  leaves this out and reads the real `TripProvider` in scope, as before;
    *  the helper room's preview pane, which has none, passes `true`. */
   canPublish?: boolean;
+  /** The trip's own `test` flag, for a caller with no `TripProvider` in
+   *  scope — B1426. Every public caller leaves this out and the real
+   *  context answers instead; the helper room's preview pane has no
+   *  provider to read, so it passes the trip's own flag through. */
+  tripTest?: boolean;
 }) {
   // Trip-relative: URLs carry a username now, so a bare "/costs" would send a
   // reader to somebody else's site — or to nothing at all.
@@ -247,7 +253,8 @@ export function DayCard({
   // gets the banner: a day that is half-invented is not a day anybody should
   // be reading as a record of anything.
   // `trip` here is the context, whose `.trip` is the trip itself.
-  const isTest = trip?.trip.test === true || day.entries.some((e) => e.test);
+  const isTest =
+    (tripTest ?? trip?.trip.test === true) || day.entries.some((e) => e.test);
 
   const card = (
     <article

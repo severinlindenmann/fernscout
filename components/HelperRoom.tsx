@@ -113,7 +113,7 @@ const PREVIEW_MAX = 440;
  *  re-read after a write rather than showing what it read before one. */
 type Subject = { trip: string; slug: string; at: number };
 
-type Preview = { day: Day; summary: DaySummary; dayIndex: number };
+type Preview = { day: Day; summary: DaySummary; dayIndex: number; tripTest: boolean };
 
 export default function HelperRoom({
   username,
@@ -2900,8 +2900,20 @@ function PreviewPane({
             somebody else's to ask for. The room is owner-only by
             construction (`app/agent/page.tsx` gates on `role === "owner"`
             and `isHelperOwner`), so `true` here is simply correct rather
-            than a real trip this route would have to thread through. */}
-        <DayCard day={preview.day} summary={preview.summary} dayIndex={preview.dayIndex} canPublish />
+            than a real trip this route would have to thread through.
+
+            `tripTest` — B1426, the same gap one level up: `DayCard`'s own
+            `trip?.trip.test` read can never be true with no provider, so a
+            trip marked `test: true` previewed here never showed the test
+            banner. `previewOf` reads the trip's own flag server-side and
+            sends it along in `preview.tripTest`. */}
+        <DayCard
+          day={preview.day}
+          summary={preview.summary}
+          dayIndex={preview.dayIndex}
+          canPublish
+          tripTest={preview.tripTest}
+        />
       </CurrencyProvider>
     </div>
   );
