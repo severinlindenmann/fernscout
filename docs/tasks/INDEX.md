@@ -310,13 +310,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1732](in-development/B1732-a-day-the-server-looked-the.md) | A day the server looked the weather up for cannot be written back, so a mirrored folder refuses on every correction | ISSUE | high | low | `3309c078` |
+_Nothing here._
 
-## testing (174)
+## testing (175)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -409,6 +407,7 @@ _Nothing here._
 | [B1718](testing/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium | — |
 | [B1719](testing/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low | — |
 | [B1729](testing/B1729-caddy-rewrites-the-etag-when-it.md) | Caddy rewrites the ETag when it compresses, so no client that accepts gzip can ever send a matching If-Match | ISSUE | high | low | — |
+| [B1732](testing/B1732-a-day-the-server-looked-the.md) | A day the server looked the weather up for cannot be written back, so a mirrored folder refuses on every correction | ISSUE | high | low | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
