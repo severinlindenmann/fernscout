@@ -145,17 +145,36 @@ link could be stranded by `/api/v1` returning 404: anything that survived
 long enough to be affected had already expired on its own first.
 
 **Verify:** `VERIFY_WILL_WAIT=1 npm run verify` — build, TypeScript,
-ESLint, Vitest (604 files, 7723 passed, 4 skipped, unrelated to this
+ESLint, Vitest (604 files, 7726 passed, 4 skipped, unrelated to this
 ticket), knip — all green.
 
-**Left for a person, not folded into this ticket:** deleting
-`test/openapi-contract.test.ts` also deleted the one place that checked
-*every* error code the whole API (v1 and v2 together) answers with is in
-`ERROR_CODES`, and vice versa — `test/openapi-v2-contract.test.ts` has no
-equivalent "every documented code is answered, every answered code is
-documented" sweep across `app/api/v2` and `app/api/auth`. Nothing in this
-change is untested (schemas still generate refusal examples, and `ref()`
-in `lib/api/v2/openapi.ts` throws on an unknown code), but the specific
-"dead code in ERROR_CODES" / "undocumented code a route answers with"
-double-check that file used to do for the whole API is gone with it.
-Worth a backlog ticket if that coverage is wanted back, scoped to v2.
+**The error-vocabulary sweep was carried across, not lost.** Deleting
+`test/openapi-contract.test.ts` legitimately dropped its route-inventory and
+enum halves — those describe a document that no longer exists. It also
+would have silently dropped the one place that checked *every* error code
+the whole API answers with is in `ERROR_CODES`, and vice versa
+(AGENTS.md: "keep every existing keeper unless the ticket explicitly
+changes its contract" — retiring the v1 document did not change that
+contract). Ported both assertions, plus their guard-rail sanity check and
+doc comments, into a new `describe("every error code a route answers with
+is published", …)` at the bottom of `test/openapi-v2-contract.test.ts`.
+Scan roots updated for what exists now: `app/api/auth` + `app/api/v2` +
+the same `SPEAKS_TO_CALLERS` domain modules for the "is it documented"
+direction; `app/api/helper` + `app/[user]` + `app/api/web` (the same
+cookie-only allowlist, same reasoning kept in the comment) for the
+"nothing is dead" direction.
+
+Proved it still bites: added a throwaway `return Response.json({error:
+"not_a_real_code"})` behind `if (false as boolean)` to
+`app/api/v2/status/route.ts`, ran `npx vitest run
+test/openapi-v2-contract.test.ts` —
+
+```
+FAIL  test/openapi-v2-contract.test.ts > every error code a route answers with is published > is in ERROR_CODES, so an agent can look it up
+AssertionError: add these to lib/api/errorCodes.ts, saying what to do about each: not_a_real_code: expected [ 'not_a_real_code' ] to deeply equal []
+Tests  1 failed | 93 passed (94)
+```
+
+— then removed the throwaway line and reran clean (94/94 passed, no diff
+left in the route file). Full `VERIFY_WILL_WAIT=1 npm run verify` is green
+again with the sweep in place.
