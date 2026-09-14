@@ -231,6 +231,39 @@ describe("resolveCapabilities", () => {
     expect(live.enabled === true && live.note).not.toMatch(/draft/);
   });
 
+  // B1694. Since B1693 `signup` has no `enabled` switch — it is on wherever
+  // the server can do it, and `inviteOnly` (default true) is what narrows it.
+  // So the ordinary state of a closed instance is `enabled: true` while every
+  // uninvited address is refused with 403 `signup_not_invited`, and an
+  // operator reading /api/health was told their alpha was open to the public.
+  // Both halves were right; the pair read as a contradiction.
+  test("signup says who it will actually take, not just that it is on", () => {
+    process.env.SESSION_SECRET = "s";
+    process.env.DATABASE_URL = "sqlite:./x.db";
+    writeConfig({ signup: { inviteOnly: true } });
+    const closed = resolveCapabilities().signup;
+    expect(closed.enabled).toBe(true);
+    expect(closed.enabled === true && closed.note).toMatch(/inviteOnly is true/);
+    expect(closed.enabled === true && closed.note).toMatch(/signup_not_invited/);
+
+    writeConfig({ signup: { inviteOnly: false } });
+    const open = resolveCapabilities().signup;
+    expect(open.enabled).toBe(true);
+    expect(open.enabled === true && open.note).toMatch(/inviteOnly is false/);
+    expect(open.enabled === true && open.note).toMatch(/anybody/);
+  });
+
+  // The default is the case an operator is most likely to be reading about,
+  // and the one a config that never mentions signup lands in.
+  test("an instance that never mentions signup still says it is invite-only", () => {
+    process.env.SESSION_SECRET = "s";
+    process.env.DATABASE_URL = "sqlite:./x.db";
+    writeConfig({});
+    const state = resolveCapabilities().signup;
+    expect(state.enabled).toBe(true);
+    expect(state.enabled === true && state.note).toMatch(/inviteOnly is true/);
+  });
+
   test("a capability with no dry-run concept never carries a note", () => {
     process.env.SESSION_SECRET = "s";
     process.env.DATABASE_URL = "sqlite:./x.db";

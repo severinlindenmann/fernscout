@@ -1282,7 +1282,12 @@ export function openApiDocument() {
                         type: "object",
                         description:
                           "One entry per capability. `{ enabled: false, reason }` says why " +
-                          "an absent feature is absent.",
+                          "an absent feature is absent. `{ enabled: true, note }` says the " +
+                          "thing `enabled: true` on its own does not: a print provider set " +
+                          "to `dry-run` composes orders and posts nothing, and `signup` is " +
+                          "on everywhere the server can take a signup at all while " +
+                          "`inviteOnly` decides whether anybody uninvited actually can. " +
+                          "Read the note before concluding what a capability will do.",
                         properties: Object.fromEntries(
                           FEATURE_NAMES.map((name) => [
                             name,
@@ -1291,6 +1296,7 @@ export function openApiDocument() {
                               properties: {
                                 enabled: { type: "boolean" },
                                 reason: { type: "string" },
+                                note: { type: "string" },
                               },
                             },
                           ]),
