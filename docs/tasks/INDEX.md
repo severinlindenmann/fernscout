@@ -307,11 +307,12 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1706](in-development/B1706-a-root-owned-restic-lock-silently.md) | A lock the service user cannot read fails the whole nightly backup, and only a person can clear it | ISSUE | high | low | `cbe9e605` |
+| [B1708](in-development/B1708-an-owner-s-own-journal-disappears.md) | An owner's own journal disappears from Your journals while it has no trips | ISSUE | high | low | `87520719` |
 
 ## testing (152)
 
