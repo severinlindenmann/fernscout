@@ -307,10 +307,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1710](in-development/B1710-an-unattended-nodejs-upgrade-on-the.md) | An unattended nodejs upgrade on the VPS moved past the repo's exact Node pin and every deploy fails at the build guard | OPS | high | low | `cbe9e605` |
 | [B1709](in-development/B1709-analytics-on-a-trip-with-nothing.md) | Analytics on a trip with nothing measured says the trip was taken down | ISSUE | medium | low | `87520719` |
 
 ## testing (154)
