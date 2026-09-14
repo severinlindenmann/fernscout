@@ -316,14 +316,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1754](in-development/B1754-the-bench-scores-one-clarifying-question.md) | The bench scores one clarifying question as total failure, which is not how the product is meant to work | ISSUE | high | low | `47321abb` |
 
-## testing (7)
+## testing (8)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -332,6 +331,7 @@ _Nothing here._
 | [B1747](testing/B1747-the-bench-runs-five-scenarios-serially.md) | The bench runs five scenarios serially, so it cannot cover the conversation or be run often | FEATURE | high | medium | — |
 | [B1748](testing/B1748-a-whatsapp-first-scenario-corpus-large.md) | A WhatsApp-first scenario corpus large enough to find what one person's testing cannot | FEATURE | high | medium | — |
 | [B1750](testing/B1750-nobody-knows-whether-a-phone-s.md) | Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background | OPS | high | low | — |
+| [B1754](testing/B1754-the-bench-scores-one-clarifying-question.md) | The bench scores one clarifying question as total failure, which is not how the product is meant to work | ISSUE | high | low | — |
 | [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
 | [B1745](testing/B1745-buying-extra-storage-is-only-offered.md) | Buying extra storage is only offered once the journal is nearly full | FEATURE | low | low | — |
 

@@ -7,8 +7,7 @@ complexity: low
 area: helper, testing
 found: "2026-09-14T20:25:42Z"
 started: "2026-09-14T20:26:02Z"
-session: 47321abb-ce05-46ca-8dfe-58c5b70fa908
-claimed: "2026-09-14T20:26:02Z"
+merged: "2026-09-14T20:44:35Z"
 ---
 
 # B1754 — One clarifying question is scored as total failure
