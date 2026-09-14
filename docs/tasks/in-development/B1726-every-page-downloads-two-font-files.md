@@ -61,3 +61,43 @@ unpreloaded, which is the half of B1044 that does work.
 - No "preloaded ... but not used" warning in the console at desktop and phone
   width.
 - Hungarian prose still renders in Fredoka/Jakarta, not a fallback.
+
+## Verdict
+
+**Valid.** Confirmed against the deployed stylesheet before touching anything:
+`https://fernscout.ch/_next/static/chunks/23yctgv02xx-n.css` carries two
+identical latin `@font-face` rules for `Fredoka` and two for `Plus Jakarta
+Sans`, the first pointing at the preloaded `-s.p.` copy and the second — the
+one that wins — at the plain `-s.` copy. `app/layout.tsx:12-55` is where the
+second call comes from.
+
+## What was done
+
+`preload: false` on `fredoka`, `jakarta` and `plexMono` in `app/layout.tsx`,
+with the comments rewritten to say what the split actually does. The
+latin-ext declarations are untouched.
+
+No keeper added. The thing worth asserting is a property of the build output
+(`no -s.p.` file in `.next/static/media`), and a test that reads build
+artefacts is green-when-unbuilt, which is worse than no test. The comment in
+`app/layout.tsx` carries the reason instead.
+
+## Evidence
+
+- `npm run verify` — all 5 passed in 194s, 604 test files, 7692 tests.
+- Built output: `ls .next/static/media/*.woff2 | grep -c -- -s.p.` → `0`. Each
+  family's latin face now appears once in the shipped CSS
+  (`5d52bd6c…-s`, `fba5a26e…-s`, `99e60927…-s`).
+- Served document: `curl http://127.0.0.1:3456/ | grep -c 'HL\[…font…\]'` → `0`
+  font preload hints, against `3` on the live build.
+- Browser, on content that predates the branch (`/example`, the demo journal's
+  USA trip), 1280 and 390: `/tmp/b1726/index-{1280,390}.png`,
+  `example-{1280,390}.png`, `example.json` — status 200, 0 console errors.
+- Hungarian: `/tmp/b1726/example-hu-1280.png` with `fs.locale=hu`. `Oda és
+  vissza`, `Áttekintés`, `Idő országonként` all render in Fredoka/Jakarta, not
+  a fallback face.
+
+The one failed request in `/tmp/b1726/index.json` is `401
+/api/auth/identity/upgrade` — that is B1727, not this branch. The `404
+/api/reactions` on `/example` is the capability being off locally, which
+`app/api/reactions/route.ts:34` documents as deliberate.

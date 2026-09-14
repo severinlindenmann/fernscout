@@ -9,17 +9,31 @@ import { DARK_THEME_COLOR, LIGHT_THEME_COLOR } from "@/lib/theme";
 import ThemeScript from "@/components/ThemeScript";
 import "./globals.css";
 
+// B1726 — `preload: false` on the latin half too, and it is the opposite of
+// what it looks like: it *removes* a download rather than deferring one.
+//
+// Asking next/font for a second subset of a family emits that family's
+// **latin** face a second time as well, byte-identical but pointing at the
+// unpreloaded copy of the same file — and the second rule is the one that
+// wins the cascade. So the shipped stylesheet held both
+// `<hash>-s.p.<build>.woff2` and `<hash>-s.<build>.woff2`, the preload
+// fetched the first and every page rendered from the second. Two files down
+// the wire, one of them thrown away, on every cold load.
+//
+// Nothing is lost by dropping the hint: the @font-face rules live in the
+// render-blocking stylesheet the document head already links, so the browser
+// still finds them before it paints, and `font-display: swap` covers the gap.
 const fredoka = Fredoka({
   variable: "--font-fredoka",
   subsets: ["latin"],
+  preload: false,
 });
 
 // B1044 — latin-ext carries the glyphs Hungarian prose needs outside latin-1.
-// Every page paints Fredoka above the fold, but not every reader needs this
-// subset, so it stays declared (never cut — a silent fallback-glyph
-// regression is not cheaply reversible) and just isn't preloaded. Combined
-// with `fredoka` in the --font-display stack in globals.css: the browser
-// reaches for this family only when a character the first one lacks shows up.
+// It stays declared (never cut — a silent fallback-glyph regression is not
+// cheaply reversible). Combined with `fredoka` in the --font-display stack in
+// globals.css: the browser reaches for this family only when a character the
+// first one lacks shows up.
 const fredokaExt = Fredoka({
   variable: "--font-fredoka-ext",
   subsets: ["latin-ext"],
@@ -29,6 +43,7 @@ const fredokaExt = Fredoka({
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
+  preload: false,
 });
 
 // Same reasoning as fredokaExt above.
@@ -38,11 +53,15 @@ const jakartaExt = Plus_Jakarta_Sans({
   preload: false,
 });
 
-// B733 — the mono voice for kickers, labels, pills, ids and counts.
+// B733 — the mono voice for kickers, labels, pills, ids and counts. This one
+// has no duplicate to lose to, but B1726 unpreloads it for a plainer reason:
+// the landing page paints no mono text at all, so on the instance's most
+// visited page the preload was a file fetched for nothing.
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
   subsets: ["latin"],
   weight: "400",
+  preload: false,
 });
 
 // B1044 — weight 500 is the rare one: nothing in the shipped UI currently
