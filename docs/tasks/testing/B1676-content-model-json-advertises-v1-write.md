@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: docs
 found: "2026-09-13T14:28:32Z"
+merged: "2026-09-14T07:06:46Z"
 ---
 
 # B1676 — content-model.json advertises v1 write doors and retired journal fields

@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: api
 found: "2026-09-13T14:28:33Z"
+merged: "2026-09-14T07:06:47Z"
 ---
 
 # B1677 — Runtime responses name v1 routes that were deleted
