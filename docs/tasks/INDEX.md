@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (205)
+## backlog (203)
 
 ### security (5)
 
@@ -157,7 +157,7 @@ Do not edit them by hand; run the script.
 | [B1688](backlog/chore/B1688-retracting-a-photographs-decline-is-written.md) | Retracting a photographs decline is written out four times instead of once | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 
-### ops (9)
+### ops (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -165,11 +165,9 @@ Do not edit them by hand; run the script.
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
 | [B1183](backlog/ops/B1183-whether-an-eu-art-27-representative.md) | Whether an EU Art. 27 representative is owed is a lawyer's question nobody has asked | OPS | medium | low |
 | [B1536](backlog/ops/B1536-enable-the-stannp-webhook-on-the.md) | Enable the Stannp webhook on the live instance | OPS | medium | low |
-| [B1695](backlog/ops/B1695-b403-s-account-of-never-having.md) | B403's account of never having delivered a WhatsApp announcement is stale | OPS | medium | low |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
-| [B1697](backlog/ops/B1697-b1232-s-authentication-template-blocker-no.md) | B1232's authentication-template blocker no longer blocks anything live | OPS | low | low |
 
 ### docs-and-skills (5)
 
@@ -313,13 +311,12 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (144)
+## testing (146)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1067](testing/B1067-it-is-not-written-down-where.md) | It is not written down where this instance's telephone number comes from, or what one message costs | OPS | high | low | — |
 | [B1146](testing/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low | — |
-| [B1232](testing/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | high | low | — |
 | [B1287](testing/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low | — |
 | [B1311](testing/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low | — |
 | [B1313](testing/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low | — |
@@ -437,11 +434,13 @@ _Nothing here._
 | [B1686](testing/B1686-the-signup-wizard-holds-a-bearer.md) | The signup wizard holds a bearer token in a browser | ISSUE | medium | medium | — |
 | [B1687](testing/B1687-the-publish-route-sends-the-day.md) | The publish route sends the day letter with no channel claim, so two concurrent publishes mail it twice | ISSUE | medium | low | — |
 | [B1693](testing/B1693-signup-is-an-on-off-switch.md) | Signup is an on/off switch, so an instance cannot be open to a named few | FEATURE | medium | medium | — |
+| [B1695](testing/B1695-b403-s-account-of-never-having.md) | B403's account of never having delivered a WhatsApp announcement is stale | OPS | medium | low | — |
 | [B1698](testing/B1698-the-deploy-s-own-backup-line.md) | The deploy's own backup line is blank because it reads health unauthenticated | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
 | [B1191](testing/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low | — |
+| [B1232](testing/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | low | low | — |
 | [B1266](testing/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low | — |
 | [B1413](testing/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low | — |
 | [B1415](testing/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low | — |
@@ -461,6 +460,7 @@ _Nothing here._
 | [B1672](testing/B1672-web-purchases-route-silently-accepts-a.md) | web purchases route silently accepts a bearer token despite its own cookie-only comment | ISSUE | low | low | — |
 | [B1678](testing/B1678-lib-trips-ts-new-is-a.md) | lib/trips.ts.new is a committed editor scratch file | CHORE | low | low | — |
 | [B1679](testing/B1679-nine-content-files-do-not-round.md) | Nine content files do not round-trip byte-identically through the serializers | ISSUE | low | low | — |
+| [B1697](testing/B1697-b1232-s-authentication-template-blocker-no.md) | B1232's authentication-template blocker no longer blocks anything live | OPS | low | low | — |
 
 ## completed (1306)
 

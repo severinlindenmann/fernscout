@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: whatsapp, signup, meta
 found: "2026-09-14T06:18:07Z"
+merged: "2026-09-14T06:35:42Z"
 ---
 
 # B1697 — B1232's authentication-template blocker no longer blocks anything live

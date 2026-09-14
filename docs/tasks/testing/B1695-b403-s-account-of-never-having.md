@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: whatsapp, live instance
 found: "2026-09-14T06:17:18Z"
+merged: "2026-09-14T06:35:42Z"
 ---
 
 # B1695 — B403's account of never having delivered a WhatsApp announcement is stale
