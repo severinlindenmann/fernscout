@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: day page, owner tools, edit route
 found: "2026-09-12T13:44:00Z"
+merged: "2026-09-14T04:54:34Z"
 ---
 
 # B1586 — Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it

@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: auth, accounts, signup
 found: "2026-09-11T17:58:35Z"
+merged: "2026-09-14T04:54:35Z"
 ---
 
 # B1498 — A guest or buddy who signs up for their own journal is unverified territory

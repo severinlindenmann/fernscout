@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: Testing
 found: "2026-09-12T18:39:07Z"
+merged: "2026-09-14T04:54:42Z"
 ---
 
 # B1610 — analytics-visitors asserts a hash does not contain a substring — it fails by chance

@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: api, media
 found: "2026-09-11T18:31:59Z"
+merged: "2026-09-14T04:54:40Z"
 ---
 
 # B1503 — A media file belonging to no day cannot be written through any door

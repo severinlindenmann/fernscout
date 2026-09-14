@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: journal config
 found: "2026-09-12T15:06:13Z"
+merged: "2026-09-14T04:54:42Z"
 ---
 
 # B1592 — units (metric/imperial) is stored and editable but nothing converts by it

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: credits / payments
 found: "2026-09-10T20:05:26Z"
+merged: "2026-09-14T04:54:38Z"
 ---
 
 # B1411 — a payment abandoned at Stripe leaves the checkout page with no way to pay again

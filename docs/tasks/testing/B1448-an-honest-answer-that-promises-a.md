@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: helper honesty guards
 found: "2026-09-11T11:44:56Z"
+merged: "2026-09-14T04:54:33Z"
 ---
 
 # B1448 — An honest answer that promises a button next turn is caught as a claim about this one

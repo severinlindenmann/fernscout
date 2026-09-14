@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: deletions, mail, rate limits
 found: "2026-09-11T16:59:52Z"
+merged: "2026-09-14T04:54:30Z"
 ---
 
 # B1491 — The deletion mail has no rate limit on any of its three callers

@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: Money
 found: 2026-09-13T00:00:00Z
+merged: "2026-09-14T04:54:30Z"
 ---
 
 ## Why

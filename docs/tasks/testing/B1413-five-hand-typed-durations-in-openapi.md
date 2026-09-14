@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: docs
 found: "2026-09-11T04:48:45Z"
+merged: "2026-09-14T04:54:41Z"
 ---
 
 # B1413 — Five hand-typed durations in openapi.ts have no exported minutes constant to import

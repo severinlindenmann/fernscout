@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: helper
 found: "2026-09-11T09:47:56Z"
+merged: "2026-09-14T04:54:39Z"
 ---
 
 # B1435 — day/media's two-phase original upload may have no live caller since the wizard retired

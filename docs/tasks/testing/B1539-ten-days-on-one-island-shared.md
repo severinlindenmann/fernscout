@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: helper, content
 found: "2026-09-11T18:30:00Z"
+merged: "2026-09-14T04:54:37Z"
 ---
 
 # B1539 — Ten days on one island shared one media folder and one slug, and two thirds of the photographs were lost

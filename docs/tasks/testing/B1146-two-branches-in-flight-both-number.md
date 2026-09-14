@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: db, migrations
 found: "2026-09-09T18:36:53Z"
+merged: "2026-09-14T04:54:41Z"
 ---
 
 # B1146 — Two branches in flight both number their migration 028, so the second to merge has two

@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: exportZip, deletions
 found: "2026-09-12T17:35:27Z"
+merged: "2026-09-14T04:54:39Z"
 ---
 
 # B1603 — Journal and trip exports drop the original photo/video files

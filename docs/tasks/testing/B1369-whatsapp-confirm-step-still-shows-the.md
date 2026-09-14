@@ -6,6 +6,8 @@ priority: high
 complexity: low
 area: signup wizard
 found: "2026-09-10T19:11:57Z"
+superseded: \"B1370 — the same finding, captured six seconds apart in one batch; B1370 shipped that day\"
+merged: "2026-09-14T04:54:29Z"
 ---
 
 # B1369 — WhatsApp confirm step still shows the intro text above it

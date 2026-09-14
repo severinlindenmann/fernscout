@@ -6,6 +6,7 @@ priority: low
 complexity: medium
 area: postcards
 found: "2026-09-11T20:22:23Z"
+merged: "2026-09-14T04:54:38Z"
 ---
 
 # B1532 — A card Stannp cancels after acceptance is never refunded

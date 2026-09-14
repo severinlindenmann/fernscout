@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: helper, room
 found: "2026-09-11T11:10:53Z"
+merged: "2026-09-14T04:54:36Z"
 ---
 
 # B1442 — A day started in the room is titled with its own date, so every surface shows an ISO date

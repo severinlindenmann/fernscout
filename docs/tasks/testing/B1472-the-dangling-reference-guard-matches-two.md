@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: tasks, tests
 found: "2026-09-11T15:19:49Z"
+merged: "2026-09-14T04:54:33Z"
 ---
 
 # B1472 — The dangling-reference guard matches two and three digit ids, and every id since B1000 has four

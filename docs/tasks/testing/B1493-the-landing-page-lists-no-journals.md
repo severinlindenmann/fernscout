@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: auth, home
 found: "2026-09-11T17:16:54Z"
+merged: "2026-09-14T04:54:35Z"
 ---
 
 # B1493 — The landing page lists no journals for a reader holding only a journal cookie

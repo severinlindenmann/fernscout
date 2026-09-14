@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: helper
 found: "2026-09-10T18:20:03Z"
+merged: "2026-09-14T04:54:29Z"
 ---
 
 # B1358 — The Guthaben sheet shows no numbers in the installed PWA

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: postcards
 found: "2026-09-10T10:53:37Z"
+merged: "2026-09-14T04:54:28Z"
 ---
 
 # B1287 — The send button says it prints and posts real cards while the instance is set to render free samples and post none

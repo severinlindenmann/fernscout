@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: contacts, buddy invites
 found: "2026-09-10T19:54:58Z"
+merged: "2026-09-14T04:54:36Z"
 ---
 
 # B1410 — A returning identity-holder's buddy invite looks redeemed but the confirm step is never submitted
