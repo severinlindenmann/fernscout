@@ -49,16 +49,16 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (221)
+## backlog (222)
 
 ### security (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | high | low |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1690](backlog/security/B1690-the-deletion-confirmation-link-and-the.md) | The deletion confirmation link and the two invite links carry their token in the URL path | SECURITY | medium | medium |
+| [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
 ### issue (40)
@@ -128,7 +128,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (21)
+### small-feature (22)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -142,6 +142,7 @@ Do not edit them by hand; run the script.
 | [B1398](backlog/small-feature/B1398-choosing-the-postcard-picture-means-picking.md) | Choosing the postcard picture means picking a day from a list of titles, never seeing a photograph | FEATURE | medium | medium |
 | [B1528](backlog/small-feature/B1528-a-heic-photograph-prints-from-the.md) | A HEIC photograph prints from the web copy because nothing kept a JPEG the printer can embed | FEATURE | medium | medium |
 | [B1530](backlog/small-feature/B1530-a-book-warned-about-resolution-can.md) | A book warned about resolution can only be made smaller, never given the bigger photograph | FEATURE | medium | medium |
+| [B1693](backlog/small-feature/B1693-signup-is-an-on-off-switch.md) | Signup is an on/off switch, so an instance cannot be open to a named few | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
@@ -318,6 +319,10 @@ Do not edit them by hand; run the script.
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
 ## open (0)
+
+_Nothing here._
+
+## waiting (0)
 
 _Nothing here._
 

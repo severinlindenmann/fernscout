@@ -2,7 +2,7 @@
 id: B1446
 title: Anthropic API key may be exposed and needs rotation
 type: SECURITY
-priority: high
+priority: low
 complexity: low
 area: vps, secrets
 found: "2026-09-11T11:32:31Z"
@@ -107,3 +107,17 @@ category check, not only the dangling-reference sweep that happened to notice.
 Refiled to `backlog/security/`, matching its `type: SECURITY` and the folder
 `categoryFor()` already derives for it. The "waiting on the owner" state is
 still on the record above; it just is not a lane.
+
+
+## Owner's decision, 2026-09-14 — back to backlog, low
+
+> "not important right now, not a big security risk"
+
+Parked rather than closed: the key is still worth rotating eventually, and the
+checks already done stand — the repository is clean (every `sk-ant-` match is a
+placeholder, and `git log -S` across all branches shows no key was ever
+committed).
+
+The stale `env.bak-*` files on the box were **deleted** on the same decision,
+so the "old key survives the rotation" half of this is gone. What remains is
+only the rotation itself, whenever the owner wants it.
