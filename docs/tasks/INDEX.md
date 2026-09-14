@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (210)
+## backlog (209)
 
 ### security (5)
 
@@ -162,11 +162,10 @@ Do not edit them by hand; run the script.
 | [B1688](backlog/chore/B1688-retracting-a-photographs-decline-is-written.md) | Retracting a photographs decline is written out four times instead of once | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 
-### ops (8)
+### ops (7)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1750](backlog/ops/B1750-nobody-knows-whether-a-phone-s.md) | Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background | OPS | high | low |
 | [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
 | [B1183](backlog/ops/B1183-whether-an-eu-art-27-representative.md) | Whether an EU Art. 27 representative is owed is a lawyer's question nobody has asked | OPS | medium | low |
@@ -306,9 +305,11 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (0)
+## open (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B1750](open/B1750-nobody-knows-whether-a-phone-s.md) | Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background | OPS | high | low |
 
 ## waiting (0)
 
