@@ -147,6 +147,45 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 APP_DIR="${APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+
+# Never as root, and this refusal is worth more than the run it costs.
+#
+# restic locks are owned by whoever creates them, and the repository's own
+# directories are 0700 fernscout. One `sudo ./scripts/backup.sh` — the obvious
+# thing to type when a nightly run has failed and you want to see it work —
+# leaves a root-owned lock behind, and then *every* subsequent nightly run is
+# refused with `unable to create lock in backend: permission denied`. The hand
+# run succeeds, prints a healthy snapshot, and quietly ends the schedule.
+#
+# That is a bad failure twice over: silent unless somebody reads `/api/health`,
+# and it starts at exactly the moment somebody was worried enough about backups
+# to run one by hand. Observed here after a manual run on 2026-09-13 — the next
+# night's backup was the first failure since 10 September, and it went unnoticed
+# for 27 hours. B1691.
+#
+# BACKUP_ALLOW_ROOT= is the escape hatch for a restore drill on a box with no
+# service user yet; it is deliberately ugly to type.
+if [ "$(id -u)" = 0 ] && [ -z "${BACKUP_ALLOW_ROOT:-}" ]; then
+  cat >&2 <<'ROOT'
+backup.sh must not run as root: restic locks and repository files inherit the
+owner that made them, so a root-owned lock refuses every later run by the
+fernscout service user — silently, until somebody reads /api/health.
+
+Run it the way the timer does, which is as the service user:
+
+    sudo systemctl start fernscout-backup     # one run, now
+    systemctl status fernscout-backup         # how it ended
+
+or, for a one-off outside systemd:
+
+    sudo -u fernscout ./scripts/backup.sh
+
+If a root-owned lock is already in the repository, clear it with
+`sudo -u fernscout restic unlock` (and check `find /var/backups/fernscout
+! -user fernscout` for anything else left behind).
+ROOT
+  exit 1
+fi
 CONTENT_DIR="${CONTENT_DIR:-$APP_DIR/content}"
 ENV_FILE="${ENV_FILE:-/etc/fernscout/env}"
 
