@@ -302,22 +302,21 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (1)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B1727](open/B1727-a-stranger-opening-the-landing-page.md) | A stranger opening the landing page gets a 401 in their console | ISSUE | low | low |
+_Nothing here._
 
 ## waiting (0)
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1715](in-development/B1715-fernscout-helper-cannot-reach-this-instance.md) | fernscout-helper cannot reach this instance at all since v2, and its own self-test reports green | FEATURE | high | high | `3309c078` |
 | [B1728](in-development/B1728-the-back-arrow-means-two-different.md) | The back arrow means two different things and the reader cannot tell which | ISSUE | medium | medium | `c7a2f6dd` |
+| [B1727](in-development/B1727-a-stranger-opening-the-landing-page.md) | A stranger opening the landing page gets a 401 in their console | ISSUE | low | low | `7c5b9049` |
 
 ## testing (168)
 
