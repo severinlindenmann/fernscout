@@ -1,10 +1,43 @@
+![Fernscout — travel mail: news from far away, arriving at home](docs/branding/readme-hero.svg)
+
 # Fernscout™
 
 *Travel mail — news from far away, arriving at home.*
 
-A travel journal your agent writes for you. Markdown entries with photos and
-video, a winding day-by-day path, and a scroll-driven animation of the
-travellers moving between stops.
+**A travel journal your agent writes — from a voice note on a night bus to a
+printed book of the trip.** You tell it about the day the way you would tell a
+friend; it writes the day up with the route, the place and what it cost, posts
+real postcards to the people who asked for one, and lays the whole trip out as
+a printed book. Your days stay JSON and photographs in a folder you own.
+
+[See a real journal](https://fernscout.ch/example) ·
+[Start your own, free](https://fernscout.ch) ·
+[Docs](docs/) ·
+[![CI](https://github.com/severinlindenmann/fernscout/actions/workflows/ci.yml/badge.svg)](https://github.com/severinlindenmann/fernscout/actions/workflows/ci.yml)
+
+| | |
+| --- | --- |
+| [![A trip's story page: the winding day-by-day path, the day card, the route map](docs/screenshots/trip-story.jpg)](https://fernscout.ch/example) | [![One day's entry: the prose, three photographs, the reaction row](docs/screenshots/day-entry.jpg)](https://fernscout.ch/example) |
+| The story page — the rail on the left *is* the trip, one stop per day. | One day: prose, its gallery, what it cost, and the reactions readers leave. |
+
+## Start
+
+**Hosted**, at [fernscout.ch](https://fernscout.ch) — sign up with your email,
+no password and no install, then hand your agent one address:
+
+```
+https://fernscout.ch/documentation.txt
+```
+
+It reads from there, asks you for a six-digit code, and starts writing.
+
+**Your own**, anywhere Node runs. That is the whole setup for a public journal
+— no database, no keys, nothing to sign up for:
+
+```bash
+npm install
+npm run dev            # http://localhost:3000
+```
 
 **There is no CMS, and there will not be one.** Writing happens through an
 agent holding a token, over REST — your own, or the guided helper this
@@ -13,18 +46,10 @@ in a browser, where you may also correct a day you already have in place, but
 nothing there composes a new one out of form fields. Everything an agent
 writes arrives as a draft, so you can read a day back before it goes up.
 
-## Use it hosted: [fernscout.ch](https://fernscout.ch)
+## What the hosted instance adds
 
-Sign up with your email — no password, no install — and hand your agent one
-address:
-
-```
-https://fernscout.ch/documentation.txt
-```
-
-It reads from there, asks you for a six-digit code, and starts writing. The
-hosted instance runs the optional capabilities a self-hosted one has to
-configure:
+The optional capabilities a self-hosted instance has to configure are all
+switched on at [fernscout.ch](https://fernscout.ch):
 
 | | |
 | --- | --- |
@@ -51,15 +76,9 @@ a folder you own — JSON documents and photographs — whoever hosts it: `npm r
 journal back as a zip at any time, so self-hosting the same content later is
 the documented way out, not a downgrade.
 
-## Or self-host it
+## Self-hosting it
 
-```bash
-npm install
-npm run dev            # http://localhost:3000
-```
-
-That is the whole setup for a public journal. **Your content is JSON documents and
-photographs in a folder you own** — no database needed, and everything exports
+**Your content is JSON documents and photographs in a folder you own** — no database needed, and everything exports
 as the files it already is. The prose inside a day is still prose you wrote;
 what changed in B1598 is the envelope around it, from YAML frontmatter to one
 JSON file per day and per trip. One instance serves many people:
@@ -114,15 +133,7 @@ a flag changes — read it live from
 Every picture below is the demo journal, on a production build. Nothing in it
 belongs to a real person.
 
-![A trip's story page: the winding day-by-day path down the left, the day card, and the route map beneath it](docs/screenshots/trip-story.jpg)
-
-The story page. The rail on the left *is* the trip — one stop per day, with
-what it cost. Scrolling it walks the travellers from stop to stop.
-
-![One day's entry: the prose, three photographs, and the reaction row](docs/screenshots/day-entry.jpg)
-
-One day: markdown prose, its gallery, the day's spend, and the reactions
-readers leave. This is one file in `entries/`, rendered.
+The story page and one day's entry are at the top of this file. The other two:
 
 ![The trip map: eighteen stops joined by the route travelled](docs/screenshots/trip-map.jpg)
 

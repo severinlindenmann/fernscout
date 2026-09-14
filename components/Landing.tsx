@@ -7,6 +7,7 @@ import {
   Colophon,
   DocsLink,
   LandingHero,
+  LandingPitch,
   LandingSteps,
   PublicJournals,
   ReaderInvite,
@@ -86,6 +87,8 @@ export default function Landing({
   codeMinutes,
   helperEnabled = false,
   whatsappNumber,
+  postcardsEnabled = false,
+  photobookEnabled = false,
   pricing,
 }: {
   siteName: string;
@@ -120,6 +123,16 @@ export default function Landing({
    * none configured, and `LandingHero` renders nothing for it.
    */
   whatsappNumber?: string;
+  /**
+   * Whether this instance can actually print and post a card, and lay a trip
+   * out as a book — B1711. They are two of the three things the pitch below
+   * the hero is made of, and a card claiming either on an instance that has
+   * the capability switched off is the one kind of untruth this page cannot
+   * afford: its whole audience is people deciding whether to trust it.
+   * Resolved server-side in `app/page.tsx` like every other gate here.
+   */
+  postcardsEnabled?: boolean;
+  photobookEnabled?: boolean;
   /** The pricing table, rendered by the page and handed over — B840. A server
    * component (`components/Pricing.tsx`) because every price it prints is
    * read from the `server-only` module that charges it, which is why it
@@ -310,6 +323,11 @@ export default function Landing({
         ) : (
           <>
             <LandingHero helperEnabled={helperEnabled} whatsappNumber={whatsappNumber} />
+            {/* Directly under the hero — B1711. The hero says a day goes in;
+                this says what comes out of it, which is the half of the
+                product the page never mentioned. Signed-out only: somebody
+                who already owns a journal here is not being sold one. */}
+            <LandingPitch postcards={postcardsEnabled} photobook={photobookEnabled} />
             {/* Only when the helper is on — with it off there is no other
                 door, so this material stays where it is, open, on the first
                 screen (B732). */}

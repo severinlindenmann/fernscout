@@ -94,7 +94,12 @@ afterEach(() => {
 });
 
 /** Mirrors app/page.tsx, which is a thin wrapper around this component. */
-function renderLanding(locale = "en", helperEnabled = false, whatsappNumber?: string) {
+function renderLanding(
+  locale = "en",
+  helperEnabled = false,
+  whatsappNumber?: string,
+  print: { postcards?: boolean; photobook?: boolean } = {},
+) {
   const journals = getUsernames().flatMap((username) => {
     const user = getUser(username);
     if (!user) return [];
@@ -113,6 +118,8 @@ function renderLanding(locale = "en", helperEnabled = false, whatsappNumber?: st
         locales={installedLocales()}
         helperEnabled={helperEnabled}
         whatsappNumber={whatsappNumber}
+        postcardsEnabled={print.postcards}
+        photobookEnabled={print.photobook}
       />
     </LocaleProvider>,
   );
@@ -180,6 +187,48 @@ describe("the landing page", () => {
     // B1314 — the divider between "Start writing" and the WhatsApp button.
     expect(html).toContain('role="separator"');
     expect(html).toContain(">or<");
+  });
+
+  /**
+   * B1711 — the pitch under the hero, and the two headlines above it.
+   *
+   * Both are the same bargain the rest of this page makes: the page may only
+   * say what this instance can actually do. A stranger deciding whether to
+   * trust a travel journal with a trip is the last reader who should be shown
+   * a promise the server cannot keep.
+   */
+  describe("what the signed-out page claims", () => {
+    test("leads with the WhatsApp headline only when a number is configured", () => {
+      const withNumber = renderLanding("en", false, "41780000000");
+      expect(withNumber).toContain("Send a voice note. Get a travel journal.");
+      expect(withNumber).toContain("The night train north");
+
+      const without = renderLanding();
+      expect(without).toContain("A travel journal your agent writes for you.");
+      expect(without).not.toContain("Send a voice note");
+      expect(without).not.toContain("The night train north");
+    });
+
+    test("names a postcard and a book only where they can be printed", () => {
+      const both = renderLanding("en", false, undefined, {
+        postcards: true,
+        photobook: true,
+      });
+      expect(both).toContain("Real postcards, from the road");
+      expect(both).toContain("The whole trip, printed");
+
+      const cardsOnly = renderLanding("en", false, undefined, { postcards: true });
+      expect(cardsOnly).toContain("Real postcards, from the road");
+      expect(cardsOnly).not.toContain("The whole trip, printed");
+    });
+
+    test("drops the whole section when neither can be printed", () => {
+      // The default — every self-hosted instance. The ownership card alone
+      // under that heading only repeats the lede and the colophon.
+      const html = renderLanding();
+      expect(html).not.toContain("What happens to the day after you send it");
+      expect(html).not.toContain("Real postcards");
+    });
   });
 
   test("has no WhatsApp link when this instance has no number configured", () => {

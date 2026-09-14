@@ -2507,5 +2507,19 @@
   "postcard.status.withPrinterNote": "A nyomda átvette a megrendelést. A lapok a következő napokban indulnak útnak.",
   "postcard.page.fits": "Ráfér a lapra.",
   "postcard.page.overflows": "{count} sorral több, mint amennyi a lapra fér — ezek nem kerülnek nyomtatásra.",
-  "postcard.page.overflows.one": "Egy sorral több, mint amennyi a lapra fér — ez nem kerül nyomtatásra."
+  "postcard.page.overflows.one": "Egy sorral több, mint amennyi a lapra fér — ez nem kerül nyomtatásra.",
+  "landing.heroWhatsapp": "Küldj egy hangüzenetet. Kapsz egy útinaplót.",
+  "landing.ledeWhatsapp": "Nincs alkalmazás, nincs űrlap. Mesélj a naplódnak a napodról úgy, ahogy egy barátodnak mesélnél — egy üzenet, egy hangüzenet, az imént készült fényképek — és megírja a napot, az útvonallal, a hellyel és azzal, hogy mennyibe került.",
+  "landing.threadVoiceLabel": "Hangüzenet",
+  "landing.threadVoice": "Tizenhárom óra hálókocsiban fel Chiang Maiba. Lampangon túl ébredtem, az ablak tele zölddel.",
+  "landing.threadPhotos": "Három fénykép",
+  "landing.threadReply": "Megírtam „Az éjszakai vonat északra” címmel, január 24., Bangkokból Chiang Maiba, a 881 ฿-os fekvőhellyel. Piszkozatként vár — elolvasod?",
+  "landing.threadCaption": "A beszélgetésben szereplő nap valódi, a bemutató naplóból való. Semmi nem jelenik meg, amíg nem mondod.",
+  "landing.pitchHeading": "Mi történik a nappal, miután elküldted",
+  "landing.pitchPostcardsTitle": "Igazi képeslapok, útközben feladva",
+  "landing.pitchPostcardsBody": "Valaki képeslapot kér a naplódtól. Kiválasztod a reggeli fényképek egyikét, megírod a hátulját, és elküldöd — kinyomtatják és postázzák neki. A cím a naplónál marad; az ügynököd sosem látja.",
+  "landing.pitchPhotobookTitle": "Az egész út, kinyomtatva",
+  "landing.pitchPhotobookBody": "Minden nap meg van írva, dátumozva és helyhez kötve, így a könyv nem projekt, hanem egy renderelés. Eldöntöd, hogyan nézzen ki egy nap, kihagyod a puszta utazós napokat, és az út megszerkeszti magát.",
+  "landing.pitchOwnTitle": "A te mappád, és el is viheted",
+  "landing.pitchOwnBody": "A napló JSON-fájlokból és fényképekből áll egy mappában, ami a tiéd, a saját címeden. Egy paranccsal az egészet visszakapod zipben, és ugyanaz a napló elfut a saját gépeden is. Pénzbe csak a papír kerül."
 }
