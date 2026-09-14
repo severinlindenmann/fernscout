@@ -37,7 +37,6 @@ export const ERROR_CODES = {
   forbidden: "This call is the journal owner's, and the credential is not theirs. A trip-scoped token cannot do it either.",
   not_authorised: "This credential cannot do this. Read /documentation.txt on which credential each door takes.",
   not_signed_in: "This route takes a browser session cookie, not a bearer token. An agent cannot call it.",
-  no_session: "No session cookie, and this route takes nothing else.",
   invalid_handover: "The 20-minute handover credential is spent, expired or not for this journal. The owner makes a new one from their own page.",
   invalid_code: "The six-digit code is wrong, used, or more than 30 minutes old. Ask for a new one; the newest is the only live one.",
   too_many_journals: "This address already owns as many journals as this server allows (the refusal names them). Do not sign up again: ask for a write token for the journal it owns, via /api/auth/codes and /api/auth/codes/redeem with `\"for\": \"write\"`.",
