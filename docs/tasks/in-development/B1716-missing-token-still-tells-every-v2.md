@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: api, copy
 found: "2026-09-14T09:23:20Z"
+started: "2026-09-14T09:51:45Z"
+session: 3309c078-d934-4ee7-ad04-6cd719fc543a
+claimed: "2026-09-14T09:51:45Z"
 ---
 
 # B1716 — `missing_token` still tells every v2 caller that `/api/v1` needs a token

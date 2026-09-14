@@ -300,7 +300,7 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (5)
+## open (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -308,17 +308,17 @@ Do not edit them by hand; run the script.
 | [B1713](open/B1713-a-day-written-through-api-v2.md) | A day written through /api/v2 gets no weather until the next night, and the owner never knew a nightly sweep was what filled it | ISSUE | high | medium |
 | [B1714](open/B1714-the-v2-contract-declares-openapi-3.md) | The v2 contract declares OpenAPI 3.1.0 and emits request where the specification says requestBody, so no standard tool sees a body on any write | ISSUE | high | low |
 | [B1719](open/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low |
-| [B1716](open/B1716-missing-token-still-tells-every-v2.md) | missing_token still tells every v2 caller that /api/v1 needs a token | ISSUE | low | low |
 
 ## waiting (0)
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1718](in-development/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium | `68f03fd3` |
+| [B1716](in-development/B1716-missing-token-still-tells-every-v2.md) | missing_token still tells every v2 caller that /api/v1 needs a token | ISSUE | low | low | `3309c078` |
 
 ## testing (158)
 
