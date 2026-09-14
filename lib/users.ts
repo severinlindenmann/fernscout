@@ -14,8 +14,13 @@ import { isDeletedUsername } from "./tombstones";
  * is always a directory lookup rather than string concatenation.
  */
 
-/** Same shape as a trip id: lowercase, digits, dashes, no leading dash. */
-const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
+/** Same shape as a trip id: lowercase, digits, dashes, no leading dash.
+ *
+ * Exported since B1720 so the published contract can state it rather than
+ * carry a second copy: every `{user}` in `/api/v2/openapi.json` declares this
+ * pattern, read from here. A caller building a URL from the document is then
+ * checking against the same rule the server resolves with. */
+export const USERNAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 
 /**
  * Not people: shared currency rates, shared UI dictionaries, and the

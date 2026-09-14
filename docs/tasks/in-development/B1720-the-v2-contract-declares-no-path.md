@@ -53,3 +53,56 @@ build a URL from the document alone — it has to be told out of band what a
 
 - `npx @redocly/cli lint` reports no `path-parameters-defined` error.
 - A generated client can fill every path from the document alone.
+
+## Done, 2026-09-14
+
+Changed:
+- `lib/api/v2/openapi.ts` — added a `PATH_PARAMETERS` vocabulary keyed by hole
+  name (`user`, `trip`, `slug`, `id`, `src`, `path`), a `parametersFor(path)`
+  function that walks the path string with `/\{([^}]+)\}/g` and emits an
+  OpenAPI `parameters` entry for every hole (falling back to a bare
+  `{type: "string", minLength: 1}` schema and no description for a name with
+  no vocabulary entry, rather than throwing), and a loop at the end of
+  `buildPaths()` that attaches `item.parameters` once per path item (3.1
+  allows declaring parameters at the item level since every verb on a path
+  shares the same holes). Patterns are read from source of truth rather than
+  retyped: `USERNAME_RE` (`lib/users.ts`), `ID_RE` (`lib/tripWrite.ts`), and
+  `daySlug` (`lib/api/v2/schemas/day.ts`).
+- `lib/users.ts` — exported `USERNAME_RE` so the contract states the same
+  pattern the server resolves with.
+- `test/openapi-v2-contract.test.ts` — added a structural test asserting
+  every path hole has a declared parameter, every declared parameter names a
+  hole the path actually has, and each is `in: "path"`, `required: true`,
+  carries a `schema` and a `description`. Existing tests that iterate "the
+  operations on a path item" were updated to filter out the new
+  `parameters` key via `operationEntries()` so it doesn't read as a sixth,
+  bodyless verb.
+
+Verify (foreground, `VERIFY_WILL_WAIT=1 npm run verify`): all 5 gates green —
+build, typecheck, lint, vitest (605 files / 7730 passed, 4 skipped), knip.
+
+Red-gate proof: temporarily removed the `trip:` entry from
+`PATH_PARAMETERS` and ran `npx vitest run test/openapi-v2-contract.test.ts`.
+The new test failed as expected (10 `{trip}` parameters left with no
+description, since the fallback schema still applies but the vocabulary
+description does not):
+
+```
+FAIL  test/openapi-v2-contract.test.ts > the v2 openapi document covers every route on disk > every path hole has a declared parameter, and no declared parameter names a hole the path lacks
+AssertionError: declared parameters missing in/required/schema/description:
+/api/v2/{user}/trips/{trip} — {trip} has no description
+/api/v2/{user}/trips/{trip}/days — {trip} has no description
+/api/v2/{user}/trips/{trip}/days/{slug} — {trip} has no description
+/api/v2/{user}/trips/{trip}/days/{slug}/media — {trip} has no description
+/api/v2/{user}/trips/{trip}/days/{slug}/publish — {trip} has no description
+/api/v2/{user}/trips/{trip}/days/{slug}/unpublish — {trip} has no description
+/api/v2/{user}/trips/{trip}/days/{slug}/send — {trip} has no description
+/api/v2/{user}/trips/{trip}/costs/apply — {trip} has no description
+/api/v2/{user}/trips/{trip}/media/duplicates — {trip} has no description
+/api/v2/{user}/trips/{trip}/travellers/from-photo — {trip} has no description
+
+Tests  1 failed | 80 passed (81)
+```
+
+The `trip:` entry was restored immediately after; `git diff --stat` matches
+the state before this check (159 insertions across the three files).
