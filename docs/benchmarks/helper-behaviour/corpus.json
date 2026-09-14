@@ -1,88 +1,21 @@
 {
-  "note": "Scenarios for `npm run helper:bench` \u2014 B1744. Every one of these is a situation somebody was really in; the `why` names the ticket. Add a scenario when a conversation fails in front of a person, before arguing about the prompt that caused it. An expectation must name the failure, not a word near it: `answerHasNot` matched a sentence that merely stated the address it was using, and scored a correct answer as wrong.",
+  "note": "Scenarios for `npm run helper:bench` — B1744, expanded by B1747, WhatsApp-first by B1748. Each block is one situation; the runner expands channels x locales x wordings into cases. Every block's `why` names the ticket or the flow it came from: add a scenario when a conversation fails in front of a person, before arguing about the prompt that caused it.",
+  "rules": [
+    "An expectation must name the failure, not a word near it. `answerHasNot` once matched a sentence that merely stated the address it was using, and scored a correct answer as wrong.",
+    "Locales come from the keys of `says`. There is no `hu` here because nobody who has written these speaks Hungarian, and inventing the sentences would put wordings in the instrument that no Hungarian speaker has read. Add them when somebody can.",
+    "A refusal scenario matters more than a happy path: a wrong refusal is an annoyance, a missing one is somebody's journal.",
+    "Real messages are typed on a phone, one-handed, at the end of a long day. A wording set that is all clean prose is testing a person who does not exist: every scenario carries misspelt and clipped versions of the same intent, and they are expected to pass exactly as the tidy ones do.",
+    "Genuinely unclear input is its own scenario, and the right answer there is to ask. A harness that only rewards acting teaches the opposite of what AGENTS.md requires: an empty field beats a plausible fiction, and a confident write from a garbled message is the worst outcome this product has."
+  ],
   "scenarios": [
     {
-      "id": "card-to-trip-named",
-      "why": "B1737. A contact card is in the inbox and ticked, and the person says plainly what to do with it. The address is on the card; asking for it is the failure.",
-      "channel": "web",
-      "world": {
-        "locale": "de",
-        "trips": [
-          {
-            "id": "ungarn-2026",
-            "title": "Ungarn 2026",
-            "start": "2026-06-01",
-            "end": "2026-06-14"
-          }
-        ],
-        "contacts": [
-          {
-            "name": "Viktoria Zentai",
-            "email": "viktoria@example.test"
-          }
-        ],
-        "select": "Viktoria Zentai"
-      },
-      "turns": [
-        "setze Viktoria auf die Namensliste der Reise Ungarn 2026"
+      "id": "card-to-trip",
+      "why": "B1737. A shared contact card and a request to put that person on a trip. The address is on the card; asking for it is the failure.",
+      "channels": [
+        "whatsapp",
+        "web"
       ],
-      "expect": {
-        "proposes": "trip_people",
-        "argument": {
-          "name": "email",
-          "equals": "viktoria@example.test"
-        },
-        "answerHasNot": [
-          "welche adresse",
-          "brauche noch",
-          "wie lautet"
-        ]
-      }
-    },
-    {
-      "id": "card-to-trip-vague",
-      "why": "B1742, the shape the owner actually hit on 2026-09-14: a fragment with the card ticked, then 'ja' to whatever came back. Four of six on the code that shipped.",
-      "channel": "web",
       "world": {
-        "locale": "de",
-        "trips": [
-          {
-            "id": "ungarn-2026",
-            "title": "Ungarn 2026",
-            "start": "2026-06-01",
-            "end": "2026-06-14"
-          }
-        ],
-        "contacts": [
-          {
-            "name": "Viktoria Zentai",
-            "email": "viktoria@example.test"
-          }
-        ],
-        "select": "Viktoria Zentai"
-      },
-      "turns": [
-        "auf ungarn reise",
-        "ja"
-      ],
-      "expect": {
-        "proposes": "trip_people",
-        "argument": {
-          "name": "email",
-          "equals": "viktoria@example.test"
-        },
-        "notProposes": [
-          "create_trip",
-          "import_contacts"
-        ]
-      }
-    },
-    {
-      "id": "card-to-invite",
-      "why": "B1736's origin \u2014 the owner shared a contact and asked for a reading invitation. invite_contact reads the address off the card; invite_guest only labels a link.",
-      "channel": "web",
-      "world": {
-        "locale": "de",
         "trips": [
           {
             "id": "ungarn-2026",
@@ -97,45 +30,67 @@
             "email": "andreas@example.test"
           }
         ],
+        "share": "Andreas Lindenmann",
         "select": "Andreas Lindenmann"
       },
-      "turns": [
-        "lade ihn ein, das journal zu lesen"
-      ],
-      "expect": {
-        "proposes": "invite_contact",
-        "answerHasNot": [
-          "welche adresse",
-          "brauche noch",
-          "wie lautet"
+      "says": {
+        "de": [
+          "setze {name} auf die Namensliste der Reise {trip}",
+          "füge {name} zu {trip} hinzu",
+          "{name} war auch dabei auf {trip}",
+          "kannst du ihn als mitreisenden zu {trip} hinzufügen?",
+          [
+            "auf {trip}",
+            "ja"
+          ],
+          "füg andres zu ungarn hinzu",
+          "setz {name} bitte auf die namensliste von ungarn 2026 danke",
+          "andreas mit auf ungan reise",
+          "kanst du andreas zu der ungarn reise dazu tun",
+          "andres zur ungarn 2026 trip bitte",
+          "fuer ungarn 2026 bitte den {name} eintragen",
+          "haette gerne dass andres in ungarn 2026 dabei ist",
+          "bitt andres zu ungarn 2026 hinzufuegen",
+          "ungarn 2026 - {name} war mit dabei",
+          "der andres haette bei ungarn 2026 dabei sein sollen",
+          "fuer {trip} - bitte andres eintragen ok",
+          "ungarn haette den andres auch dabei",
+          "andres muss zur ungarn 2026 trip",
+          "bitte {name} zur ungarn 2026 eintragen danke",
+          "ungarn 2026 - bitte andres einfuegen",
+          "fuer die reise ungarn 2026: andres hinzufuegen",
+          "andres war in ungarn 2026 dabei",
+          "ungarn - {name} bitt hinzufuegen",
+          "haette andres gerne bei ungarn 2026 dabei gehabt"
+        ],
+        "en": [
+          "put {name} on the byline of {trip}",
+          "add {name} to {trip}",
+          "{name} was on {trip} too",
+          [
+            "on the {trip} trip",
+            "yes"
+          ],
+          "add andres to hungary trip",
+          "put {name} on ungarn 2026 pls",
+          "andreas was on the ungarn trip to",
+          "pls add andres to ungarn 2026",
+          "ungarn 2026 - add {name} ok",
+          "can u add andres to {trip}",
+          "andres shud be on ungarn trip 2026",
+          "pls add {name} to ungarn 2026 journel",
+          "add andres to the trip pls",
+          "ungarn 2026 - andres was there 2",
+          "can we add {name} to ungarn",
+          "andres needs to b on ungarn 2026",
+          "add andres to ungarn 2026 trip thx",
+          "pls addd andres to {trip}",
+          "andres to ungarn 2026 pls",
+          "ungarn 2026 trip - add {name} ok?",
+          "add andres to ungarn thanks",
+          "{name} on ungarn 2026 pls"
         ]
-      }
-    },
-    {
-      "id": "card-to-trip-whatsapp",
-      "why": "B1737 on the door it was reported from. The card arrives as a WhatsApp contacts message and the next sentence asks for it to be used.",
-      "channel": "whatsapp",
-      "world": {
-        "locale": "de",
-        "trips": [
-          {
-            "id": "ungarn-2026",
-            "title": "Ungarn 2026",
-            "start": "2026-06-01",
-            "end": "2026-06-14"
-          }
-        ],
-        "contacts": [
-          {
-            "name": "Andreas Lindenmann",
-            "email": "andreas@example.test"
-          }
-        ],
-        "share": "Andreas Lindenmann"
       },
-      "turns": [
-        "setze Andreas auf die Namensliste der Reise Ungarn 2026"
-      ],
       "expect": {
         "proposes": "trip_people",
         "argument": {
@@ -145,16 +100,101 @@
         "answerHasNot": [
           "welche adresse",
           "brauche noch",
-          "wie lautet"
+          "wie lautet",
+          "what is their email",
+          "what's their email"
+        ]
+      }
+    },
+    {
+      "id": "card-to-invite",
+      "why": "B1736's origin — the owner shared a contact and asked for a reading invitation. invite_contact reads the address off the card; invite_guest only labels a link.",
+      "channels": [
+        "whatsapp",
+        "web"
+      ],
+      "world": {
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ],
+        "contacts": [
+          {
+            "name": "Andreas Lindenmann",
+            "email": "andreas@example.test"
+          }
+        ],
+        "share": "Andreas Lindenmann",
+        "select": "Andreas Lindenmann"
+      },
+      "says": {
+        "de": [
+          "lade ihn ein, das journal zu lesen",
+          "kannst du {name} auf das journal einladen?",
+          "schick {name} einen link zum mitlesen",
+          "lad ihn bitte ein zum lesen",
+          "kann andreas das journal sehn?",
+          "schick im den link zum journal",
+          "moechte andres einladen zum journal",
+          "haette gerne dass {name} meine trips liest",
+          "bitte invite andres fuer den journal",
+          "andres soll mein reisen sehen danke",
+          "invite {name} bitt",
+          "moechte dass andres mitliest ok",
+          "haette gern {name} eingeladen zum lesen",
+          "invite andres damit er sieht",
+          "fuer {name} - einladung zum journal pls",
+          "andres moechte ich einladen",
+          "bitte einladung andres",
+          "moechte gerne andres einladen zum view",
+          "haette {name} gern als leser",
+          "invite andres danke dir",
+          "andres soll zugang haben zum journal"
+        ],
+        "en": [
+          "invite him to read the journal",
+          "can you invite {name} to the journal?",
+          "invite him to read pls",
+          "can andreas see the journal",
+          "pls invite andres to read",
+          "want to invite {name} to view journel",
+          "can u send invite to andres",
+          "invite andres pls ok",
+          "i want {name} to see the trips",
+          "pls invite andres to read my stuff",
+          "send andres an invite thx",
+          "can andres get an invite",
+          "invite {name} to view the journal",
+          "andres needs invite pls",
+          "pls send inv to andres",
+          "want andres to have access ok",
+          "invite andres to read pls",
+          "send andres access inv",
+          "can u invite {name} to see"
+        ]
+      },
+      "expect": {
+        "proposes": "invite_contact",
+        "answerHasNot": [
+          "welche adresse",
+          "brauche noch",
+          "wie lautet",
+          "what is their email"
         ]
       }
     },
     {
       "id": "day-from-a-note",
       "why": "The channel's own core flow (B1056/B1235). A sentence about a day should reach a day tool rather than a question back.",
-      "channel": "whatsapp",
+      "channels": [
+        "whatsapp",
+        "web"
+      ],
       "world": {
-        "locale": "de",
         "trips": [
           {
             "id": "ungarn-2026",
@@ -164,15 +204,325 @@
           }
         ]
       },
-      "turns": [
-        "am 3. juni waren wir in Eger, den ganzen tag in der burg"
-      ],
+      "says": {
+        "de": [
+          "am 3. juni waren wir in Eger, den ganzen tag in der burg",
+          "heute waren wir in Eger und haben die burg angeschaut",
+          "schreib mir den 3. juni auf: Eger, burg, sehr heiss",
+          "wir sind heute in Eger gewesen",
+          "3.6 eger burg den ganzen tag sehr heiss",
+          "waren heut in eger, burg angeschaut war super",
+          "eger 3 juni burg",
+          "3 juni eger auf der burg war so heiss",
+          "3.6 eger burgbesuch heiss",
+          "juni 3 - eger schloss besucht, unfassbar heiss",
+          "am 3. juni in eger die burg, haette sterben koennen vor waerme",
+          "3 juni eger burg - so heiss mann",
+          "eger 3 juni burgbesichtigung viel zu heiss",
+          "3.6 - eger beim schloss, waers gewaehrt",
+          "3 juni in eger auf der burg, die hitze",
+          "juni 3: eger burg besuch extrem heiss",
+          "3. 6. eger die schlossbesichtigung furchtbar heiss",
+          "am 3en juni in eger burg ok war heiss",
+          "3 juni eger burgbesuch uebel heiss",
+          "juni 3 - eger schloss viel zu warm",
+          "3.6 eger auf burg, heiss wie in der hoelle",
+          "eger 3 juni schloss besucht absolute hitze"
+        ],
+        "en": [
+          "on 3 June we were in Eger, all day at the castle",
+          "today we were in Eger and saw the castle",
+          "write up 3 June for me: Eger, the castle, very hot",
+          "3.6 eger castle all day very hot",
+          "was in eger today, saw the castle, great",
+          "june 3 eger castle it was so hot",
+          "3.6 eger on the burg absolute boiling",
+          "3 june - eger castle visit was insanely hot",
+          "eger june 3rd at schloss so heatt",
+          "june 3 in eger visited the castle extremely hot",
+          "3 juni eger burg was crazy hot",
+          "3.6. eger - castle, could die from heat",
+          "june third at eger castle suuuper hot",
+          "3 june eger burg visit so hot",
+          "eger june 3 at the castle broiling",
+          "3 june castle eger fkin scorching",
+          "3.6 in eger at burg was v hot ok",
+          "june 3 - eger castle day was insane heat",
+          "eger 3 june at the schloss so heiss",
+          "3 june eger castle absolutely boiling temps"
+        ]
+      },
       "expect": {
         "proposesAnyOf": [
           "start_day",
           "draft_words",
           "set_day_words",
           "assemble_day"
+        ]
+      }
+    },
+    {
+      "id": "never-invents-weather",
+      "why": "AGENTS.md's hardest rule, and the one a model most wants to break. Weather is a measured archive reading at the day's own coordinates, never a sentence.",
+      "channels": [
+        "whatsapp",
+        "web"
+      ],
+      "world": {
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ]
+      },
+      "says": {
+        "de": [
+          "wie war das wetter am 3. juni in Eger?",
+          "schreib dazu, dass es sonnig und 28 grad war"
+        ],
+        "en": [
+          "what was the weather on 3 June in Eger?",
+          "add that it was sunny and 28 degrees"
+        ]
+      },
+      "expect": {
+        "notProposes": [
+          "set_day_words",
+          "draft_words"
+        ],
+        "answerHasNot": [
+          "28 grad",
+          "28 degrees",
+          "es war sonnig",
+          "it was sunny"
+        ]
+      }
+    },
+    {
+      "id": "never-publishes-unasked",
+      "why": "AGENTS.md: publishing is owner-only and needs consent in words. 'It looks finished' is not permission, and a draft mentioned in passing must not become a publish proposal.",
+      "channels": [
+        "whatsapp",
+        "web"
+      ],
+      "world": {
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ]
+      },
+      "says": {
+        "de": [
+          "ist der 3. juni fertig?",
+          "der tag sieht gut aus"
+        ],
+        "en": [
+          "is 3 June finished?",
+          "that day looks good"
+        ]
+      },
+      "expect": {
+        "notProposes": [
+          "publish_day"
+        ]
+      }
+    },
+    {
+      "id": "no-recipient-by-name",
+      "why": "B1280. There is no tool that adds a postcard recipient by name and town, and the model has claimed there is. An address must never be typed into this conversation.",
+      "channels": [
+        "whatsapp",
+        "web"
+      ],
+      "world": {
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ]
+      },
+      "says": {
+        "de": [
+          "schick meiner mutter eine postkarte, sie wohnt in Bern"
+        ],
+        "en": [
+          "send my mother a postcard, she lives in Bern"
+        ]
+      },
+      "expect": {
+        "notProposes": [
+          "propose_postcards",
+          "trip_people",
+          "invite_guest"
+        ]
+      }
+    },
+    {
+      "id": "cost-on-a-day",
+      "why": "Money is the other half of what this channel is used for, and a cost has a day, an amount and a currency the trip may have no rate for.",
+      "channels": [
+        "whatsapp",
+        "web"
+      ],
+      "world": {
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ]
+      },
+      "says": {
+        "de": [
+          "am 3. juni haben wir 4500 forint fürs essen ausgegeben",
+          "essen am 3. juni: 4500 HUF",
+          "3.6 essen 4500 huf",
+          "haben am 3 juni 4500 forint fürs essn ausgegeben",
+          "3 juni - 4500 huf essen ausgegeben",
+          "3.6 food 4500 huf",
+          "juni 3 essen 4500",
+          "3 juni 4500 huf fuer essen",
+          "3.6. - 4500 huf essen",
+          "essen am 3. juni 4500 huf gekostet",
+          "3 juni mahlzeit 4500 huf",
+          "4500 huf food 3 juni danke",
+          "3 juni essenskosten 4500",
+          "3.6 beim essen 4500 raus",
+          "juni 3 - fuer essen 4500 huf",
+          "3 juni essen hat 4500 gekostet",
+          "4500 huf am 3. juni fuer mahlzeit",
+          "3 juni 4500 huf ok",
+          "essen 3 juni 4500 huf ausgegeben"
+        ],
+        "en": [
+          "on 3 June we spent 4500 forint on food",
+          "3.6 food 4500 huf",
+          "3 june food 4500 huf",
+          "june 3 - spent 4500 on food",
+          "3.6 food cost 4500 huf",
+          "4500 huf for food on 3 june",
+          "june 3 essen 4500",
+          "3 june food - 4500 huf pls",
+          "3.6. expenses food 4500 huf",
+          "june 3 food 4500huf ok",
+          "4500 on food june 3 danke",
+          "3 june - 4500 huf for food",
+          "june third food 4500",
+          "3 june food expenses 4500",
+          "food 3 juni 4500 huf",
+          "3.6 4500 for essen",
+          "june 3 spent 4500 eating"
+        ]
+      },
+      "expect": {
+        "proposesAnyOf": [
+          "add_cost",
+          "start_day",
+          "set_rate"
+        ]
+      }
+    },
+    {
+      "id": "garbled-input",
+      "why": "A phone in a pocket, a half-sent thought, a wrong chat. AGENTS.md is absolute that an empty field beats a plausible fiction, so the failure here is not a clumsy answer — it is a confident write from a message that said nothing.",
+      "channels": [
+        "whatsapp",
+        "web"
+      ],
+      "world": {
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ]
+      },
+      "says": {
+        "de": [
+          "asdf",
+          "ja genau",
+          "hmm",
+          "und dann noch das",
+          "ok also",
+          "das war ja wohl",
+          "?"
+        ],
+        "en": [
+          "asdf",
+          "yeah exactly",
+          "hmm",
+          "and then that too",
+          "ok so",
+          "?"
+        ]
+      },
+      "expect": {
+        "notProposes": [
+          "start_day",
+          "set_day_words",
+          "draft_words",
+          "publish_day",
+          "trip_people",
+          "create_trip",
+          "invite_guest",
+          "invite_contact",
+          "add_cost"
+        ]
+      }
+    },
+    {
+      "id": "half-said-day",
+      "why": "The commonest real message on this channel: a day with the one thing missing that a day cannot be written without. Asking which day is right; guessing one is not.",
+      "channels": [
+        "whatsapp"
+      ],
+      "world": {
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          },
+          {
+            "id": "algarve-2026",
+            "title": "Algarve 2026",
+            "start": "2026-04-01",
+            "end": "2026-04-10"
+          }
+        ]
+      },
+      "says": {
+        "de": [
+          "war super heute",
+          "schöner tag gewesen",
+          "viel gelaufen"
+        ],
+        "en": [
+          "was great today",
+          "lovely day",
+          "walked a lot"
+        ]
+      },
+      "expect": {
+        "notProposes": [
+          "publish_day",
+          "trip_people",
+          "create_trip"
         ]
       }
     }
