@@ -13,6 +13,7 @@ import RoomOpening from "@/components/RoomOpening";
 import AnswerText from "@/components/AnswerText";
 import type { Opening } from "@/lib/helper/opening";
 import { decisionKind } from "@/lib/helper/blocks";
+import { matchesPhraseList } from "@/lib/phrases";
 import type { Block, Option, Proposal, ProposalField } from "@/lib/helper/blocks";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -513,6 +514,17 @@ export default function HelperAsk({
    *  one-press retry — B1212 (D20). */
   const [lastFailed, setLastFailed] = useState("");
   /**
+   * Proposals pressed by typing rather than by the button — B1743.
+   *
+   * A card owns its own `settled` state, which is what stops it being pressed
+   * twice. A typed press goes straight to `accept()` and never touches that
+   * state, so without this the card would stay pressable in the scrollback
+   * and a second press would write a second time. Kept as React state rather
+   * than a ref because the card has to re-render as settled the moment it
+   * happens.
+   */
+  const [typedPressed, setTypedPressed] = useState<Proposal[]>([]);
+  /**
    * What to offer after a write went through — B1212 (D18): a small,
    * deterministic set of next sentences per kind of write, drawn as chips
    * over the composer. No model involved; pressing one sends it through
@@ -809,11 +821,76 @@ export default function HelperAsk({
     return done;
   }
 
+  /**
+   * The one proposal a typed word could mean — B1743: the newest turn's, and
+   * only while it is still pressable. Older cards in the scrollback are not
+   * candidates; "ja" means the thing on screen.
+   */
+  function waitingProposal(): Proposal | null {
+    const last = turns.at(-1);
+    if (!last) return null;
+    for (const block of [...last.blocks].reverse()) {
+      if (!isProposal(block)) continue;
+      const proposal = block.proposal;
+      if (!proposal) continue;
+      if (decisionKind(proposal.tool) === "destroy") return null;
+      if (typedPressed.includes(proposal)) return null;
+      return proposal;
+    }
+    return null;
+  }
+
   async function ask(override?: string) {
     // B984 — a chip in the opening sends its sentence through here rather than
     // through anything of its own. State would not have settled by the time
     // this ran, which is why the words are an argument and not a `setSaid`.
     const words = override ?? said;
+    /**
+     * A typed press — B1743, and B1302's own finding arriving on the other
+     * door a year late.
+     *
+     * Somebody with a card on screen that asks a yes/no question types "ja".
+     * Nothing recognised that here, so the word reached the model, which
+     * holds no handle on the waiting proposal; the honesty guard then caught
+     * its attempt to claim the write and replaced the answer with *"nothing
+     * is waiting for a confirmation"* — said while the thing waiting was
+     * visible directly above it. The owner who reported it had never used
+     * WhatsApp's typed press and did not know it existed: typing "yes" under
+     * a question is simply what a person does.
+     *
+     * Matched before the request goes out, so it spends no credit and calls
+     * no model, exactly as `lib/whatsapp/dispatch.ts` does it. Two things
+     * count as a press: the journal's own yes words (`wa.yes`, the same list
+     * `isAcknowledgement` reads) and the proposal's own accept sentence.
+     *
+     * **Never a destroy-shaped tool.** Those draw a `ConfirmPanel` and take
+     * two presses on purpose (see `ProposalView` below); a typed word must
+     * not be a way around the second one.
+     */
+    const waiting = waitingProposal();
+    if (waiting && (matchesPhraseList(words, t("wa.yes")) || words.trim() === waiting.accept.trim())) {
+      setSaid("");
+      try {
+        await accept(waiting, Object.fromEntries(waiting.fields.map((f) => [f.name, f.value])));
+      } catch (thrown) {
+        /**
+         * A refused press must not read as a made one.
+         *
+         * The first version of this settled the card *before* awaiting, and
+         * a live check caught it at once: the route answered 422 and the
+         * card said "The trip is made." — the exact claim AGENTS.md forbids,
+         * arrived at by settling on the attempt rather than the outcome.
+         * `ProposalView`'s own button has always had this right (B916); this
+         * is the same discipline for the typed path. Their word goes back in
+         * the box, so the press is theirs to make again.
+         */
+        setSaid(words);
+        failed(thrown);
+        return;
+      }
+      setTypedPressed((was) => [...was, waiting]);
+      return;
+    }
     setBusy(true);
     // The shape of an ordinary ask is never known ahead of the answer —
     // B1124's fallback, always, here.
@@ -1267,6 +1344,13 @@ export default function HelperAsk({
                     // to edit before sending in the ordinary case.
                     onChoose={(label) => go(label)}
                     onAccept={accept}
+                    // B1743 — this card was pressed by a typed word, so it
+                    // draws as settled and offers no second press.
+                    typedPressed={
+                      isProposal(block) &&
+                      block.proposal !== undefined &&
+                      typedPressed.includes(block.proposal)
+                    }
                   />
                   );
                 })}
@@ -1667,6 +1751,7 @@ function BlockView({
   busy,
   onChoose,
   onAccept,
+  typedPressed,
 }: {
   block: Block;
   focusRef?: React.RefObject<HTMLDivElement | null>;
@@ -1676,6 +1761,8 @@ function BlockView({
     proposal: Proposal,
     values: Record<string, string>,
   ) => Promise<void>;
+  /** Pressed by typing rather than by this card's own button — B1743. */
+  typedPressed?: boolean;
 }) {
   const { t } = useI18n();
 
@@ -1763,6 +1850,7 @@ function BlockView({
         focusRef={focusRef}
         busy={busy}
         onAccept={onAccept}
+        typedPressed={typedPressed}
       />
     );
   }
@@ -1794,6 +1882,7 @@ function ProposalView({
   focusRef,
   busy,
   onAccept,
+  typedPressed,
 }: {
   proposal: Proposal;
   fields: ProposalField[];
@@ -1803,6 +1892,10 @@ function ProposalView({
     proposal: Proposal,
     values: Record<string, string>,
   ) => Promise<void>;
+  /** This card was pressed by a typed word — B1743. The press itself and
+   *  everything after it is the parent's; all this does is stop the button
+   *  offering a second one. */
+  typedPressed?: boolean;
 }) {
   const { t } = useI18n();
   const [values, setValues] = useState<Record<string, string>>(
@@ -1908,12 +2001,16 @@ function ProposalView({
     };
   }, [fieldFocused]);
 
-  if (settled !== "") {
+  // B1743 — a typed press settles this card too. `settled` is this card's own
+  // record of its own button; the parent's flag is the same fact arriving
+  // from the composer instead, and it has to close the button just as firmly.
+  const closed = settled !== "" ? settled : typedPressed ? "accepted" : "";
+  if (closed !== "") {
     return (
       <div className="rounded-xl border border-line-quiet bg-surface-raised p-4">
         <p className="text-base leading-6 text-ink-strong">{proposal.sentence}</p>
         <p className="mt-2 text-sm leading-6 text-ink-secondary">
-          {settled === "accepted" ? proposal.done : t("agent.chat.leftIt")}
+          {closed === "accepted" ? proposal.done : t("agent.chat.leftIt")}
         </p>
       </div>
     );

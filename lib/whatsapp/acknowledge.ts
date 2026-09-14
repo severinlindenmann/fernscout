@@ -1,5 +1,6 @@
 import "server-only";
 import { translateIn } from "../locales";
+import { matchesFirstWord, matchesPhraseList } from "../phrases";
 
 /**
  * Whether one message counts as agreeing to the AI/consent disclosure the
@@ -19,25 +20,14 @@ import { translateIn } from "../locales";
  * Hungarian is looking at when it is reviewed.
  */
 export function isAcknowledgement(text: string, locale: string): boolean {
-  if (matchesPhrase(text, locale, "wa.yes")) return true;
-  /**
-   * A narrow widening, not a loosened match — B1302, scenario-margrit.md
-   * finding 4. "jaa gerne" ("yes, gladly") is not the exact phrase and got
-   * total silence; the fix is not fuzzy-matching a "yes" out of an ordinary
-   * sentence (the exact list above is still the whole grant), only reading
-   * an emphatic spelling of the *first word* as the word it obviously is —
-   * "jaa" collapses to "ja", "yesss" collapses to "yes". A first word with no
-   * repeated letters is compared as written, so "jamais" never collapses
-   * into "ja" and stays a miss.
-   */
-  const firstWord = text.trim().toLowerCase().split(/\s+/)[0]?.replace(/[.,!?]+$/, "") ?? "";
-  if (firstWord === "") return false;
-  const collapsed = firstWord.replace(/(.)\1+/g, "$1");
-  const phrases = translateIn(locale, "wa.yes")
-    .split(",")
-    .map((word) => word.trim().toLowerCase())
-    .filter((word) => word !== "");
-  return phrases.includes(collapsed);
+  // Both halves live in `../phrases` since B1743 — the exact list and
+  // B1302's emphatic-first-word collapse, which used to be written out a
+  // second time here. They are two functions rather than one flag because
+  // `components/HelperAsk.tsx`'s typed press may only ever have the first:
+  // "ja aber erst den Titel ändern" is a fair acknowledgement and a
+  // catastrophic press.
+  const list = translateIn(locale, "wa.yes");
+  return matchesPhraseList(text, list) || matchesFirstWord(text, list);
 }
 
 /** The shared matcher: trimmed, case-folded, exact, against a comma-separated
@@ -49,13 +39,7 @@ function matchesPhrase(
   locale: string,
   key: Parameters<typeof translateIn>[1],
 ): boolean {
-  const said = text.trim().toLowerCase();
-  if (said === "") return false;
-  const phrases = translateIn(locale, key)
-    .split(",")
-    .map((word) => word.trim().toLowerCase())
-    .filter((word) => word !== "");
-  return phrases.includes(said);
+  return matchesPhraseList(text, translateIn(locale, key));
 }
 
 /**
