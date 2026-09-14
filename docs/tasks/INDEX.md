@@ -311,13 +311,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1730](in-development/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low | `cd69dd04` |
+_Nothing here._
 
-## testing (172)
+## testing (173)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -465,6 +463,7 @@ _Nothing here._
 | [B1724](testing/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low | — |
 | [B1726](testing/B1726-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low | — |
 | [B1728](testing/B1728-the-back-arrow-means-two-different.md) | The back arrow means two different things and the reader cannot tell which | ISSUE | medium | medium | — |
+| [B1730](testing/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |

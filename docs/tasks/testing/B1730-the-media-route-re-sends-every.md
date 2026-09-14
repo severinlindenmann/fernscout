@@ -7,8 +7,7 @@ complexity: low
 area: media serving, caching
 found: "2026-09-14T11:33:49Z"
 started: "2026-09-14T11:34:54Z"
-session: cd69dd04-0237-43b9-85b4-8f912f75efd3
-claimed: "2026-09-14T11:34:54Z"
+merged: "2026-09-14T11:49:51Z"
 ---
 
 # B1730 — The media route re-sends every photograph hourly and reads each file whole into memory
