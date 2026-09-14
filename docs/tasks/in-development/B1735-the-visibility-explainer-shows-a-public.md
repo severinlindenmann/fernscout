@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: Visibility badge
 found: "2026-09-14T13:15:12Z"
+started: "2026-09-14T13:15:32Z"
+session: 31cc0a46-22e5-4b2f-b47f-12cdb03d8a02
+claimed: "2026-09-14T13:15:32Z"
 ---
 
 # B1735 — The visibility explainer shows a Public badge on a Guests trip, and its ? sits below the badge
