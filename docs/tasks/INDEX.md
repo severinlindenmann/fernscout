@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (202)
+## backlog (201)
 
 ### security (5)
 
@@ -61,11 +61,10 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (32)
+### issue (31)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1694](backlog/issue/B1694-api-health-reports-signup-enabled-while.md) | api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -310,7 +309,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (147)
+## testing (148)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -388,6 +387,7 @@ _Nothing here._
 | [B1683](testing/B1683-live-instance-serves-500-on-three.md) | Live instance serves 500 on three document routes: the build and node_modules disagree about sharp | OPS | high | low | — |
 | [B1685](testing/B1685-a-photograph-attached-through-the-media.md) | A photograph attached through the media door never reaches the day it names | ISSUE | high | medium | — |
 | [B1691](testing/B1691-a-full-deploy-leaves-a-root.md) | A full deploy leaves a root-owned restic lock, so every later nightly backup is refused | OPS | high | low | — |
+| [B1694](testing/B1694-api-health-reports-signup-enabled-while.md) | api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate | ISSUE | high | medium | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |

@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: Capabilities
 found: "2026-09-14T06:00:37Z"
+merged: "2026-09-14T06:48:46Z"
 ---
 
 # B1694 — api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate
@@ -80,3 +81,48 @@ With `features.signup.enabled` false in the instance config, `/api/health`
 reports `signup: {enabled: false, reason: …}`, and a test pins that a
 capability disabled in the server config reports disabled — whichever branch of
 `resolveOne` it takes.
+
+
+---
+
+## What it turned out to be, 2026-09-14
+
+**The premise moved, and neither candidate in "What is established" was it.**
+Checked against the live instance before touching anything:
+
+- The live `/var/lib/fernscout/config.json` no longer carries
+  `signup.enabled: false` at all — it reads
+  `{"phoneBackend": "whatsapp-inbound", "inviteOnly": true}`.
+- `POST /api/auth/codes` with `for: "signup"` answers **403
+  `signup_not_invited`**, not a `signup_disabled` refusal.
+- `/signup` is 404 because there is no `app/signup/` route in this codebase,
+  not because a gate refused.
+
+So there was no lost `enabled: false`. **B1693 had already deleted that
+switch**: signup is on wherever the server can do it — a database and
+`SESSION_SECRET` — and `features.signup.inviteOnly` is what narrows it.
+`enabled: true` was the correct answer, and 403 `signup_not_invited` was the
+correct refusal.
+
+**The complaint survives its own premise, which is why this was still worth
+fixing.** The ticket's real sentence is "an operator reading this would
+conclude their alpha is open to the public", and that was true of a health
+page saying `signup: {"enabled": true}` and nothing else. The limit was
+discoverable only by being refused by it.
+
+`resolveOne` already had the seam: `enabled: true` carries an optional `note`,
+which is how a print provider on `dry-run` reports that it composes orders and
+posts nothing (B492). `signup` now uses the same one to say which of the two
+instances it is. Not `enabled: false` — an invited address completes a signup
+today, so the capability genuinely is on.
+
+Two things found alongside:
+
+- **`note` was in no schema.** It has been emitted since B492 and
+  `/openapi.json` documented only `enabled` and `reason`, so every caller
+  reading the contract rather than the response was told a dry-run printer and
+  a real one look identical. Added, with both cases named.
+- The `enabled` key still written in the live config is ignored rather than
+  obeyed, exactly as `lib/config.ts` says. Harmless, and worth deleting from
+  the live file when somebody next edits it, so it cannot be read as a switch
+  that stopped working.
