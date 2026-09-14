@@ -309,6 +309,40 @@ function addressLookupNote(name: FeatureName): string | undefined {
   return `reverse lookups are sent to ${addressLookupEndpoints().reverseUrl}`;
 }
 
+/**
+ * Who this instance will actually take, which `enabled: true` does not say.
+ *
+ * Since B1693 `signup` has no `enabled` switch: it is on wherever the server
+ * can do it at all — a database and a `SESSION_SECRET` — and
+ * `features.signup.inviteOnly` is what narrows it. That default is `true`, so
+ * the ordinary state of a fresh instance is a capability reporting `enabled:
+ * true` while `POST /api/auth/codes` answers `403 signup_not_invited` to
+ * everybody the operator has not named.
+ *
+ * Both halves are right and the pair reads as a contradiction, which is what
+ * B1694 found: an operator checking `/api/health` on a closed alpha is told
+ * their instance is open to the public. `/api/health` is the one place they
+ * look to find out what their own instance is doing, so being technically
+ * correct there is not enough — a limit belongs where a caller can read it
+ * before they hit it, and this one is currently only discoverable by being
+ * refused.
+ *
+ * A note rather than `enabled: false`, for the same reason `dryRunNote` is
+ * one: the capability genuinely is on. An invited address completes a signup
+ * today.
+ */
+function signupNote(name: FeatureName, feature: Record<string, unknown>): string | undefined {
+  if (name !== "signup") return undefined;
+  // The same expression `inviteOnly()` in lib/inviteList.ts uses, read off the
+  // same merged config object rather than by importing it: that module is
+  // `server-only` and pulls in ./db, and this one deliberately touches neither
+  // — `hasDatabase()` below reads the environment variable rather than opening
+  // a handle, for the same reason.
+  return feature.inviteOnly !== false
+    ? 'features.signup.inviteOnly is true — only addresses this instance\'s operator has named in /admin can make a journal; everybody else is refused with "signup_not_invited"'
+    : "features.signup.inviteOnly is false — anybody with an email address can make a journal on this instance";
+}
+
 function optionOf(feature: Record<string, unknown>, key: string): string | undefined {
   const v = feature[key];
   return typeof v === "string" ? v : undefined;
@@ -563,7 +597,11 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
       reason: `features.${name} is enabled but ${missing.join(", ")} ${missing.length === 1 ? "is" : "are"} not set`,
     };
   }
-  const note = dryRunNote(name, feature) ?? addressLookupNote(name) ?? paymentProviderNote(name);
+  const note =
+    dryRunNote(name, feature) ??
+    addressLookupNote(name) ??
+    paymentProviderNote(name) ??
+    signupNote(name, feature);
   return note ? { name, enabled: true, note } : { name, enabled: true };
 }
 
