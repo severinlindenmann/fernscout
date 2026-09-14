@@ -28,6 +28,19 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 });
 
+/**
+ * git, with an identity. A GitHub runner configures neither `user.email` nor
+ * `user.name`, and its hostname carries no domain for git to guess one from, so
+ * a bare `git commit` in a throwaway repository fails there and succeeds on a
+ * laptop — leaving these fixtures in a state the guard under test never sees
+ * (B1705). Same helper as `test/tasks-script.test.ts`.
+ */
+function git(...args: string[]) {
+  const done = spawnSync("git", ["-c", "user.email=t@example.com", "-c", "user.name=T", ...args]);
+  if (done.status !== 0) throw new Error(`git ${args.join(" ")} failed: ${done.stderr}`);
+  return done;
+}
+
 /** A PID nothing on this machine holds right now — spawn and let it exit. */
 function deadPid(): number {
   const child = spawnSync(process.execPath, ["-e", ""]);
@@ -74,9 +87,9 @@ describe("B1313: a lock stops two deploys from running against the same checkout
 describe("B1313: a detached HEAD fails the first git step by name, not by git's own wording", () => {
   test("says what happened and what to run, before ever pulling", async () => {
     const appDir = tmpAppDir();
-    spawnSync("git", ["init", "-q", "-b", "main", appDir]);
-    spawnSync("git", ["-C", appDir, "commit", "-q", "--allow-empty", "-m", "init"]);
-    spawnSync("git", ["-C", appDir, "checkout", "-q", "--detach", "HEAD"]);
+    git("init", "-q", "-b", "main", appDir);
+    git("-C", appDir, "commit", "-q", "--allow-empty", "-m", "init");
+    git("-C", appDir, "checkout", "-q", "--detach", "HEAD");
 
     await expect(
       run("bash", [script], {
@@ -98,25 +111,25 @@ describe("B1311: an unreadable config.json fails the build before .next is touch
   test("names the file and the user, and never runs the build", async () => {
     const appDir = tmpAppDir();
     const bareRemote = tmpAppDir();
-    spawnSync("git", ["init", "-q", "--bare", "-b", "main", bareRemote]);
-    spawnSync("git", ["clone", "-q", bareRemote, appDir]);
+    git("init", "-q", "--bare", "-b", "main", bareRemote);
+    git("clone", "-q", bareRemote, appDir);
 
     fs.writeFileSync(
       path.join(appDir, "package.json"),
       JSON.stringify({ name: "fixture", version: "1.0.0", scripts: { build: "echo BUILD-RAN" } }),
     );
-    spawnSync("git", ["-C", appDir, "add", "-A"]);
-    spawnSync("git", ["-C", appDir, "commit", "-q", "-m", "baseline"]);
-    spawnSync("git", ["-C", appDir, "push", "-q", "origin", "main"]);
-    const baseline = spawnSync("git", ["-C", appDir, "rev-parse", "HEAD"]).stdout.toString().trim();
+    git("-C", appDir, "add", "-A");
+    git("-C", appDir, "commit", "-q", "-m", "baseline");
+    git("-C", appDir, "push", "-q", "origin", "main");
+    const baseline = git("-C", appDir, "rev-parse", "HEAD").stdout.toString().trim();
     fs.writeFileSync(path.join(appDir, ".deploy-state"), baseline);
 
     // A change that costs a build without costing an install, so the run
     // reaches the build step without needing a real `npm ci`.
     fs.writeFileSync(path.join(appDir, "lib-marker.ts"), "// touch");
-    spawnSync("git", ["-C", appDir, "add", "-A"]);
-    spawnSync("git", ["-C", appDir, "commit", "-q", "-m", "build-worthy change"]);
-    spawnSync("git", ["-C", appDir, "push", "-q", "origin", "main"]);
+    git("-C", appDir, "add", "-A");
+    git("-C", appDir, "commit", "-q", "-m", "build-worthy change");
+    git("-C", appDir, "push", "-q", "origin", "main");
 
     const configPath = path.join(appDir, "config.json");
     fs.writeFileSync(configPath, "{}");

@@ -113,7 +113,14 @@ jobs:
       CADDY_VERSION: "2.11.4"
       CADDY_SHA512: "8220d1f013b6f27510247b2360c9e0ca9f018feebd82515f07635318b34ff9777ccc8fd0b6e6f2486ce3a33fe389fbb7db12d05baa474f4587509fb4f5ebf1c9"
     steps:
+      # B1705. `scripts/agent-context.mjs` finds a task's files with
+      # `git log --all --grep=<id>`, and `test/agent-efficiency-tools.test.ts`
+      # asserts what it finds. The default `fetch-depth: 1` leaves that history
+      # off the runner, so the tool returns nothing and the keeper fails here
+      # while passing everywhere else. This job is the only one that needs it.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -228,7 +235,10 @@ jobs:
           pg_dump --version | grep -qE ' 17(\.|$)' \
             || { echo "pg_dump is not 17 and cannot dump the postgres:17 service"; exit 1; }
       - run: npm ci
-      - run: npx vitest run test/backup-script.test.ts
+      # B1705. `test/backup-script.test.ts` was split into these five; naming
+      # the old path made vitest exit "No test files found" and the drill stopped
+      # running. Keep this in step with `test/backup-script-*.test.ts`.
+      - run: npx vitest run test/backup-script-content.test.ts test/backup-script-database.test.ts test/backup-script-monitoring.test.ts test/backup-script-recovery.test.ts test/backup-script-repository.test.ts
 
   build:
     runs-on: ubuntu-latest
