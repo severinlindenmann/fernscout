@@ -310,14 +310,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1729](in-development/B1729-caddy-rewrites-the-etag-when-it.md) | Caddy rewrites the ETag when it compresses, so no client that accepts gzip can ever send a matching If-Match | ISSUE | high | low | `3309c078` |
 | [B1730](in-development/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low | `cd69dd04` |
 
-## testing (171)
+## testing (172)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -409,6 +408,7 @@ _Nothing here._
 | [B1717](testing/B1717-the-landing-page-describes-the-chat.md) | The landing page describes the chat, the postcard and the book instead of showing them | FEATURE | high | medium | — |
 | [B1718](testing/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium | — |
 | [B1719](testing/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low | — |
+| [B1729](testing/B1729-caddy-rewrites-the-etag-when-it.md) | Caddy rewrites the ETag when it compresses, so no client that accepts gzip can ever send a matching If-Match | ISSUE | high | low | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
