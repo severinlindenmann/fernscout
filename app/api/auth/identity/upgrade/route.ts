@@ -59,8 +59,23 @@ export async function POST(request: Request) {
   // A journal cookie and nothing else. `resolveSession` enforces the kind, so
   // an agent's bearer token cannot arrive here down the cookie channel and an
   // identity cannot mint itself a second one.
+  //
+  // Nothing to upgrade is `issued: false`, not `401` — B1727. This used to
+  // answer `401 no_session`, which was true of the jar and wrong about what
+  // happened: the caller asked whether it had anything to upgrade and got an
+  // answer. The landing page has to ask blind — both cookies are httpOnly, so
+  // a reader who signed in before B410 is indistinguishable from a stranger
+  // until the server says so (B1493) — and every stranger on the instance's
+  // most visited page was therefore shown a red line in their console for a
+  // question that was answered correctly.
+  //
+  // Refusing and answering are the same act here, which is why the status can
+  // move without anything else moving: no cookie is written on this path in
+  // either shape, the kind check above still turns away an agent token
+  // presented down the cookie channel, and it turns it away by minting
+  // nothing — which is the whole of what that check is for.
   const session = await resolveSession(jar.get(GUEST_COOKIE)?.value, "guest");
-  if (!session) return Response.json({ error: "no_session" }, { status: 401 });
+  if (!session) return Response.json({ ok: true, issued: false });
 
   await issueIdentityCookie(session.email, request.headers.get("user-agent"));
   return Response.json({ ok: true, issued: true });

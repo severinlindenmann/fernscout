@@ -123,7 +123,10 @@ describe("the root page's identity-upgrade retry", () => {
           return new Response(JSON.stringify({ id: null, email: null, journals: [], devices: [], admin: false }));
         }
         if (url === "/api/auth/identity/upgrade") {
-          return new Response(JSON.stringify({ error: "no_session" }), { status: 401 });
+          // B1727 — what the route actually answers an empty jar now: an
+          // answer rather than a refusal. `issued: false` is still what
+          // stops the probe, which is the thing this keeper is about.
+          return new Response(JSON.stringify({ ok: true, issued: false }));
         }
         throw new Error(`unexpected fetch: ${url}`);
       }),

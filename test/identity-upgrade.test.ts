@@ -116,11 +116,19 @@ describe("upgrading a pre-B410 reader", () => {
     expect(written.fs_identity).toBeUndefined();
   });
 
-  test("nothing in the jar mints nothing", async () => {
+  /**
+   * B1727 moved this off `401`. The assertion that matters is the second
+   * line and it is unchanged: an empty jar mints nothing. What changed is
+   * what the route *says* about that — "you have nothing to upgrade" is an
+   * answer, and the landing page, which must ask this blind for every
+   * visitor, was printing a console error for each one.
+   */
+  test("nothing in the jar mints nothing, and says so without refusing", async () => {
     const { POST } = await import("@/app/api/auth/identity/upgrade/route");
     const res = await POST(post());
 
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, issued: false });
     expect(written.fs_identity).toBeUndefined();
   });
 
@@ -137,7 +145,9 @@ describe("upgrading a pre-B410 reader", () => {
     const { POST } = await import("@/app/api/auth/identity/upgrade/route");
     const res = await POST(post());
 
-    expect(res.status).toBe(401);
+    // B1727: the refusal is the empty `issued`, not the status. A token that
+    // may write a journal still buys no browser credential here.
+    expect(await res.json()).toMatchObject({ issued: false });
     expect(written.fs_identity).toBeUndefined();
   });
 });
