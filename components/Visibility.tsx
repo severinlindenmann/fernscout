@@ -140,7 +140,8 @@ export function VisibilityBadge({
  * So a trigger is genuinely the size it claims, and never a small box wearing
  * a large invisible one.
  */
-const TRIGGER = "inline-flex h-11 items-center transition-transform duration-100 active:scale-[0.94]";
+const TRIGGER =
+  "inline-flex h-11 items-center align-middle transition-transform duration-100 active:scale-[0.94]";
 
 /**
  * The `?` — where to press, and the one fact the chooser does not already say.
@@ -150,7 +151,7 @@ const TRIGGER = "inline-flex h-11 items-center transition-transform duration-100
  * then says what **pale** means, because that is nowhere else: a dimmed badge
  * is a thing with no setting of its own, following the trip above it.
  */
-function VisibilityHelp({ journal = false }: { journal?: boolean }) {
+function VisibilityHelp({ audience, journal = false }: { audience: Audience; journal?: boolean }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const button = useRef<HTMLButtonElement>(null);
@@ -192,7 +193,7 @@ function VisibilityHelp({ journal = false }: { journal?: boolean }) {
           ) : (
             <>
               <span className="mr-1.5 align-[1px] opacity-70">
-                <VisibilityBadge audience="public" inherited="trip" />
+                <VisibilityBadge audience={audience} inherited="trip" />
               </span>
               {t("visibility.hintPale")}
             </>
@@ -301,7 +302,7 @@ function VisibilityControl({
           deciding to change it. Rendered by the control rather than by each
           caller, because a mount point that forgot it is a mount point with
           no explanation and nothing to say so. */}
-      <VisibilityHelp journal={journal} />
+      <VisibilityHelp audience={audience} journal={journal} />
 
       <VisibilityPopover
         open={open}
