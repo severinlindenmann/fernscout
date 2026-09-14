@@ -1191,9 +1191,9 @@ describe("the documents that describe them", () => {
   test("the v2 schema names email, and the guide's table carries it", async () => {
     const { openApiDocumentV2 } = await import("@/lib/api/v2/openapi");
     const doc = openApiDocumentV2() as unknown as {
-      paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
+      paths: Record<string, Record<string, { requestBody?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
     };
-    const schema = doc.paths["/api/v2/{user}/invites/{id}"].put.request!.content!["application/json"]!.schema!;
+    const schema = doc.paths["/api/v2/{user}/invites/{id}"].put.requestBody!.content!["application/json"]!.schema!;
     expect(schema.properties).toHaveProperty("email");
 
     const { skillDoc } = await import("@/lib/api/skillDocs");

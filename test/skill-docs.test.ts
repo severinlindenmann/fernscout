@@ -88,7 +88,7 @@ describe("the nine v2 task guides (B311, step 6 of the v2 migration)", () => {
     // it. A field renamed in lib/api/v2/schemas/day.ts without this test
     // failing would mean the generator itself is broken, not this guide.
     const openapi = openApiDocumentV2() as unknown as {
-      paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
+      paths: Record<string, Record<string, { requestBody?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
     };
     const schema =
       openapi.paths["/api/v2/{user}/trips/{trip}/days/{slug}"].put.requestBody!.content!["application/json"]!.schema!;
@@ -100,7 +100,7 @@ describe("the nine v2 task guides (B311, step 6 of the v2 migration)", () => {
 
   test("add-a-trip.md carries every field name of the v2 trip PUT, generated from the schema", () => {
     const openapi = openApiDocumentV2() as unknown as {
-      paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
+      paths: Record<string, Record<string, { requestBody?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
     };
     const schema = openapi.paths["/api/v2/{user}/trips/{trip}"].put.requestBody!.content!["application/json"]!.schema!;
     const rendered = skillDoc("add-a-trip");

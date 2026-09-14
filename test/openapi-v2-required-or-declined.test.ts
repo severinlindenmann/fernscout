@@ -23,7 +23,7 @@ type Schema = {
 };
 
 const document = openApiDocumentV2() as unknown as {
-  paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: Schema } } } }>>;
+  paths: Record<string, Record<string, { requestBody?: { content?: { "application/json"?: { schema?: Schema } } } }>>;
 };
 
 function bodySchema(path: string, verb: string): Schema {
