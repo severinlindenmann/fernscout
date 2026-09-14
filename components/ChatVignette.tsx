@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useI18n } from "@/components/LocaleProvider";
@@ -57,9 +58,51 @@ const DAY_HREF = `/${DAY.user}/trips/${DAY.trip}/day/${DAY.slug}`;
 
 export default function ChatVignette({ caption = false }: { caption?: boolean }) {
   const { t } = useI18n();
+  const stage = useRef<HTMLDivElement>(null);
+  /**
+   * Whether the conversation has been looked at yet — B1722.
+   *
+   * Starts held, which is `animation-play-state: paused` on everything
+   * inside, and is released the first time any part of the vignette enters
+   * the viewport. Released once and never re-held: this is an arrival, not a
+   * loop, and replaying it under somebody scrolling up and down would be a
+   * fidget rather than a demonstration.
+   *
+   * On `/agent` the vignette is already on screen at first paint, so the
+   * observer fires immediately and nothing about that page changes.
+   *
+   * A browser with no `IntersectionObserver` releases it at once rather than
+   * holding a conversation nobody can start — the animation is the garnish
+   * and the words are the content.
+   */
+  const [held, setHeld] = useState(true);
+
+  useEffect(() => {
+    const el = stage.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setHeld(false);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setHeld(false);
+          observer.disconnect();
+        }
+      },
+      // A little before the edge, so the first bubble is already moving by
+      // the time the block is properly in the reader's field of view.
+      { rootMargin: "0px 0px -10% 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div className="mt-5 flex max-w-sm flex-col gap-2">
+    <div
+      ref={stage}
+      className={`mt-5 flex max-w-sm flex-col gap-2${held ? " fs-hold-animation" : ""}`}
+    >
       <OwnBubble delayMs={500}>
         <div className="mb-1.5 flex gap-1.5">
           {THUMBS.map((src) => (
