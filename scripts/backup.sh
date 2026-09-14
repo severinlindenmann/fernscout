@@ -180,9 +180,11 @@ or, for a one-off outside systemd:
 
     sudo -u fernscout ./scripts/backup.sh
 
-If a root-owned lock is already in the repository, clear it with
-`sudo -u fernscout restic unlock` (and check `find /var/backups/fernscout
-! -user fernscout` for anything else left behind).
+A root-owned lock already in the repository is cleared by the next run itself
+once it is over 30 minutes old (B1706) — `restic unlock` does NOT clear this
+one, because unlock has to read a lock to judge it stale and that read is the
+thing failing. Check `find /var/backups/fernscout ! -user fernscout` for
+anything else left behind.
 ROOT
   exit 1
 fi
@@ -704,6 +706,55 @@ fi
 # test/backup-script-*.test.ts runs on a maintainer's laptop, and a backup script
 # that cannot be exercised where it is edited is worse than an unbounded probe
 # on a machine that has no repository to reach.
+# B1706. A lock in the repository that this user cannot read refuses the whole
+# repository: the `restic cat config` probe below dies on "Load(<lock/…>) …
+# permission denied", and the run ends having backed nothing up. That happened
+# on 2026-09-14 and cost one night.
+#
+# B1691 stopped `sudo ./scripts/backup.sh` from leaving such a lock. It cannot
+# stop a bare `sudo restic` against the same repository, which leaves exactly
+# the same artifact — so prevention alone was never going to hold this shut.
+# Nor could the remedy this script used to recommend: `restic unlock` has to
+# read each lock to judge whether it is stale, so on the lock that actually
+# causes this it fails in the same place the backup did.
+#
+# Removing a file needs write permission on the *directory*, not on the file,
+# so the service user can clear a lock it cannot read. It may only do that when
+# nothing can still be holding it. restic refreshes a held lock well inside
+# thirty minutes and treats anything older as stale; that is the line here too.
+# Younger than that may be live, and removing a live lock would let two writers
+# into one repository — so that case stops the run rather than guessing.
+#
+# Local repositories only. `$RESTIC_REPOSITORY/locks` is not a directory when
+# the repository is an object store, which has no unix ownership to get wrong.
+lock_dir="$RESTIC_REPOSITORY/locks"
+if [ -d "$lock_dir" ]; then
+  if ! [ -r "$lock_dir" ] || ! [ -x "$lock_dir" ]; then
+    log "ERROR: $lock_dir cannot be listed by this user ($(id -un)), so its locks cannot be checked and the repository cannot be used."
+    log "ERROR: the locks directory must be owned by the user this unit runs as. Check 'find $RESTIC_REPOSITORY ! -user $(id -un)'."
+    exit 1
+  fi
+  held_lock=0
+  for lock_file in "$lock_dir"/*; do
+    [ -f "$lock_file" ] || continue
+    [ -r "$lock_file" ] && continue
+    if [ -n "$(find "$lock_file" -mmin -30 2>/dev/null)" ]; then
+      log "ERROR: $lock_file cannot be read by this user ($(id -un)) and was written in the last 30 minutes, so something may still be holding it."
+      held_lock=1
+    elif rm -f -- "$lock_file" 2>/dev/null; then
+      log "clearing an unreadable stale lock: $lock_file — untouched for over 30 minutes, so nothing is holding it, and it would otherwise refuse this whole repository"
+    else
+      log "ERROR: $lock_file cannot be read by this user ($(id -un)) and could not be removed either, so $lock_dir is not writable by this user."
+      held_lock=1
+    fi
+  done
+  if (( held_lock )); then
+    log "ERROR: refusing to run with a lock that may be live — removing one would let two writers into a single repository."
+    log "ERROR: find out what holds it, or if nothing does, remove the file named above once it is over 30 minutes old and this run will clear it itself."
+    exit 1
+  fi
+fi
+
 probe_timeout="${BACKUP_PROBE_TIMEOUT:-120}"
 probe_runner=()
 if command -v timeout >/dev/null 2>&1; then
