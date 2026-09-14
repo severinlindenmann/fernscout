@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import {
   BookOpen,
@@ -10,7 +11,9 @@ import {
   MessageCircle,
   Mic,
 } from "lucide-react";
+import ChatVignette from "@/components/ChatVignette";
 import CopyLine from "@/components/CopyLine";
+import { mediaLoader } from "@/components/mediaLoader";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
@@ -399,54 +402,154 @@ export function LandingHero({
       )}
       {/* Shown with the WhatsApp headline and only then: it illustrates that
           sentence, and beside "hand your agent a link" it would illustrate
-          nothing. */}
-      {whatsappNumber && <LandingThread />}
+          nothing.
+
+          `ChatVignette` rather than a second, static copy of it — B1717. The
+          same component is `/agent`'s first screen, and B1711 shipped a
+          hand-written imitation of it here: four bubbles became three, the
+          typing indicators were gone, and the two pages answered "what does
+          talking to it look like" differently. Nothing about this one is
+          landing-specific except the caption. */}
+      {whatsappNumber && <ChatVignette caption />}
     </>
   );
 }
 
 /**
- * The exchange the hero is about — B1711.
+ * The photographs both print drawings borrow — B1717.
  *
- * Not a WhatsApp skin. It is drawn in this site's own tokens, so it themes
- * with the page and does not imitate somebody else's product chrome; what it
- * borrows is only the shape everybody recognises, two columns of bubbles.
- *
- * The day it names is a real one in the demo journal
- * (`content/example/trips/asia-2023/entries/2023-01-24-night-train-north.json`)
- * — its title, its date, its route and its berth fare. The rule against
- * invented content does not stop at `content/`: a marketing illustration that
- * quotes a day nobody wrote is the same fiction one screen further out. The
- * caption underneath says where it comes from.
+ * The demo journal's own published pictures, read through the ordinary media
+ * route like `ChatVignette`'s, so the gate that decides whether any trip photo
+ * is visible decides these too. Never new binaries in the repository.
  */
-function LandingThread() {
-  const { t } = useI18n();
-  const bubble =
-    "max-w-[88%] rounded-2xl px-4 py-2.5 text-sm leading-6 sm:text-base sm:leading-7";
+const PRINT_PHOTOS = [
+  "/example/media/usa-2026/oregon-coast/01.jpg",
+  "/example/media/usa-2026/oregon-coast/02.jpg",
+  "/example/media/usa-2026/oregon-coast/03.jpg",
+];
+
+/**
+ * A card, at the size one gets printed — B1717.
+ *
+ * The aspect ratios are `A6_LANDSCAPE`'s own millimetres, 148 × 105, written
+ * here as a bare ratio rather than imported: `lib/postcard/spec.ts` is
+ * reached through a chain that pulls the renderer into the landing page's
+ * bundle, and this needs one number from it. If the printer's card ever stops
+ * being A6 landscape, `test/postcard-spec.test.ts` is where that shows up and
+ * this comment is the pointer.
+ *
+ * **The address side is deliberately blank.** Ruled lines, no name, no
+ * street — which is both the honest drawing (nobody has addressed this card
+ * yet) and the claim the card beside it makes in words: the address stays
+ * with the journal and the agent never sees one. Writing a plausible address
+ * here would contradict the sentence it illustrates.
+ *
+ * The message side is ruled for the same reason. A quotation would have to be
+ * either somebody's real words, which are not ours to print on a marketing
+ * page, or invented ones.
+ */
+function PostcardProof() {
   return (
-    <figure className="mt-6 mb-0">
-      <div className="flex flex-col gap-2 rounded-2xl border border-line-quiet bg-surface-subtle p-3 sm:p-4">
-        <p className={`self-end bg-surface-muted text-ink-strong ${bubble}`}>
-          <span className="flex items-center gap-2 font-medium">
-            <Mic className="h-4 w-4 shrink-0 text-green-700" aria-hidden />
-            {t("landing.threadVoiceLabel")}
-          </span>
-          <span className="mt-1 block text-ink-body">{t("landing.threadVoice")}</span>
-        </p>
-        <p className={`self-end bg-surface-muted text-ink-body ${bubble}`}>
-          <span className="flex items-center gap-2">
-            <ImageIcon className="h-4 w-4 shrink-0 text-green-700" aria-hidden />
-            {t("landing.threadPhotos")}
-          </span>
-        </p>
-        <p className={`self-start border border-line-quiet bg-surface-raised text-ink-body ${bubble}`}>
-          {t("landing.threadReply")}
-        </p>
+    <div aria-hidden className="mt-4 grid pb-5">
+      {/* The back, behind and offset — enough of it showing to say "this has
+          a written side and an address side", not so much that it competes
+          with the photograph. */}
+      <div
+        className="col-start-1 row-start-1 ml-auto mt-0 flex w-[80%] -rotate-2 gap-2 rounded-md
+                   border border-line-strong bg-surface-subtle p-2.5"
+        style={{ aspectRatio: "148 / 105" }}
+      >
+        <div className="flex flex-1 flex-col gap-[5px] pt-0.5">
+          {[100, 96, 88, 92, 64].map((width, i) => (
+            <span key={i} className="block h-px bg-line-strong" style={{ width: `${width}%` }} />
+          ))}
+        </div>
+        <span className="w-px self-stretch bg-line-strong" />
+        <div className="flex flex-1 flex-col gap-[5px]">
+          <span className="ml-auto block h-5 w-4 rounded-[2px] border border-dashed border-line-strong" />
+          <span className="mt-auto block h-px w-full bg-line-strong" />
+          <span className="block h-px w-5/6 bg-line-strong" />
+          <span className="block h-px w-2/3 bg-line-strong" />
+        </div>
       </div>
-      <figcaption className="mt-2 text-xs leading-5 text-ink-secondary">
-        {t("landing.threadCaption")}
-      </figcaption>
-    </figure>
+      {/* The front, in front, with the white margin a printed card has. */}
+      <div
+        className="col-start-1 row-start-1 mt-4 w-[80%] rotate-2 overflow-hidden rounded-md border
+                   border-line-strong bg-surface-raised p-1 shadow-lg"
+      >
+        <div className="overflow-hidden rounded-sm" style={{ aspectRatio: "148 / 105" }}>
+          <Image
+            src={PRINT_PHOTOS[0]}
+            loader={mediaLoader}
+            alt=""
+            width={296}
+            height={210}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * An open book, at the proportions one gets printed — B1717.
+ *
+ * Two 200 mm square pages side by side, which is `BOOK_SIZES.square` in
+ * `lib/photobook/spec.ts` — the shape the composer defaults to, and the one
+ * where neither photograph orientation is a second-class citizen. Same
+ * reasoning as `PostcardProof` for the ruled lines: a spread of real
+ * photographs with invented prose under them would be a page of fiction.
+ *
+ * The spine is the whole trick. Without the gradient down the middle this
+ * reads as two pictures beside each other rather than as one open book, which
+ * is the only thing the drawing is here to say.
+ */
+function PhotobookProof() {
+  return (
+    <div
+      aria-hidden
+      className="relative mt-4 flex overflow-hidden rounded-md border border-line-strong
+                 bg-surface-raised shadow-lg"
+      style={{ aspectRatio: "400 / 200" }}
+    >
+      <div className="flex-1 p-1.5">
+        <Image
+          src={PRINT_PHOTOS[1]}
+          loader={mediaLoader}
+          alt=""
+          width={200}
+          height={200}
+          className="h-full w-full rounded-sm object-cover"
+        />
+      </div>
+      <div className="flex flex-1 flex-col gap-1.5 p-1.5">
+        <Image
+          src={PRINT_PHOTOS[2]}
+          loader={mediaLoader}
+          alt=""
+          width={200}
+          height={112}
+          className="h-[58%] w-full rounded-sm object-cover"
+        />
+        <div className="flex flex-col gap-[5px] pt-0.5">
+          {[92, 100, 86, 70].map((width, i) => (
+            <span key={i} className="block h-px bg-line-strong" style={{ width: `${width}%` }} />
+          ))}
+        </div>
+      </div>
+      {/* The fold, and it is the whole trick: without it this is two
+          photographs beside each other rather than one open book.
+
+          Drawn as a band of the page's own surface between two hairlines
+          rather than as a shadow. A shadow is a dark colour, and on the dark
+          theme's dark ground it disappears entirely — which is exactly what
+          the first attempt did. A surface and a line are tokens, so they
+          hold in both. */}
+      <span className="pointer-events-none absolute inset-y-0 left-1/2 w-2.5 -translate-x-1/2 bg-surface-subtle" />
+      <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-[6px] bg-line-strong" />
+      <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px translate-x-[5px] bg-line-strong" />
+    </div>
   );
 }
 
@@ -480,13 +583,20 @@ export function LandingPitch({
   // the colophon already say, twice. A section heading over one card about
   // something the page has said before is worse than no section.
   if (!postcards && !photobook) return null;
-  const cards: { key: string; icon: React.ReactNode; title: string; body: string }[] = [];
+  const cards: {
+    key: string;
+    icon: React.ReactNode;
+    title: string;
+    body: string;
+    proof?: React.ReactNode;
+  }[] = [];
   if (postcards) {
     cards.push({
       key: "postcards",
       icon: <Mail className="h-5 w-5 text-ink-secondary" aria-hidden />,
       title: t("landing.pitchPostcardsTitle"),
       body: t("landing.pitchPostcardsBody"),
+      proof: <PostcardProof />,
     });
   }
   if (photobook) {
@@ -495,6 +605,7 @@ export function LandingPitch({
       icon: <BookOpen className="h-5 w-5 text-ink-secondary" aria-hidden />,
       title: t("landing.pitchPhotobookTitle"),
       body: t("landing.pitchPhotobookBody"),
+      proof: <PhotobookProof />,
     });
   }
   cards.push({
@@ -530,6 +641,7 @@ export function LandingPitch({
               {card.title}
             </h3>
             <p className="mt-2 text-sm leading-6 text-ink-body">{card.body}</p>
+            {card.proof}
           </li>
         ))}
       </ul>

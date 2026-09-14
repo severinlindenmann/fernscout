@@ -62,6 +62,32 @@ Bubbles keep their brand yellow (B1329: the same conversation on every
 channel), not WhatsApp green. Both drawings stay inside the capability gate
 their card already has.
 
+## What was built
+
+**Valid** — `LandingSections.tsx` carried its own three-bubble `LandingThread`
+beside `ChatVignette`'s four animated ones on `/agent`, and both print claims
+were paragraphs.
+
+- The hero renders `ChatVignette caption`. `LandingThread` and its five
+  `landing.thread*` keys are gone, so the landing diff is smaller than what
+  B1711 shipped.
+- ChatVignette's four strings now describe the day its photographs belong to,
+  in all three languages. `test/agent-door-whatsapp.test.tsx` moved with them,
+  with the reason in the test.
+- `DAY`/`DAY_HREF` sit beside `THUMBS` in ChatVignette, so the pictures and
+  the day they are captioned as can only be edited together. The caption
+  links to `/example/trips/usa-2026/day/oregon-coast`.
+- `PostcardProof` — the back behind, the photographed front in front, both at
+  A6 landscape's 148 × 105. `PhotobookProof` — a 400 × 200 spread, the square
+  book's two pages, with a token-drawn spine.
+- **Both drawings are deliberately unwritten.** Ruled lines, no address, no
+  prose: an invented address would contradict the sentence beside it ("the
+  address stays with the journal"), and invented diary prose under real
+  photographs is the thing this repository forbids everywhere else.
+- The book's fold was first drawn as a navy shadow, which is invisible on the
+  dark theme's dark ground. It is now a surface token between two line
+  tokens, which holds in both.
+
 ## Acceptance
 
 - The hero's exchange animates, and `LandingThread` no longer exists.

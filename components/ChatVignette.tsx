@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { useI18n } from "@/components/LocaleProvider";
 import { mediaLoader } from "@/components/mediaLoader";
 import type { TranslationKey } from "@/lib/i18n";
@@ -40,7 +41,21 @@ const THUMBS = [
   "/example/media/usa-2026/oregon-coast/01.jpg",
 ];
 
-export default function ChatVignette() {
+/**
+ * The day those photographs belong to — B1717.
+ *
+ * Beside `THUMBS` and not anywhere else, because the two have to name the
+ * same day and the way that breaks is one of them being edited alone. Until
+ * B1717 the bubbles described a different day from the pictures: they said
+ * "the kids went looking for amber" on "September 10" over three photographs
+ * from *Down the Oregon coast*, 24 August. Nobody had invented a journal —
+ * the words were written as filler and the photographs chosen later — but the
+ * landing page now captions this as a real exchange, and a caption is a claim.
+ */
+const DAY = { user: "example", trip: "usa-2026", slug: "oregon-coast" };
+const DAY_HREF = `/${DAY.user}/trips/${DAY.trip}/day/${DAY.slug}`;
+
+export default function ChatVignette({ caption = false }: { caption?: boolean }) {
   const { t } = useI18n();
 
   return (
@@ -71,6 +86,27 @@ export default function ChatVignette() {
       </OwnBubble>
 
       <AgentTurn dotsDelayMs={3900} bubbleDelayMs={4900} textKey="agent.chatAgent2" />
+
+      {/* The landing page's half — B1717. `/agent` shows the vignette to
+          somebody who has already decided and is about to sign in, so a line
+          sending them off to read a stranger's holiday would be a step
+          backwards; the root shows it to somebody still deciding, for whom
+          the finished day is the most persuasive thing on the instance. It
+          links to the day itself rather than to the journal's front page:
+          watching a day be written and landing on that exact day finished is
+          the whole argument in two clicks. */}
+      {caption && (
+        <p className="mt-1 text-xs leading-5 text-ink-secondary">
+          {t("landing.vignetteCaption")}{" "}
+          <Link
+            href={DAY_HREF}
+            className="font-semibold underline decoration-blue-500 decoration-2 underline-offset-2
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            {t("landing.vignetteDay")}
+          </Link>
+        </p>
+      )}
     </div>
   );
 }
