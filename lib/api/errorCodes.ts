@@ -60,6 +60,8 @@ export const ERROR_CODES = {
   no_such_device: "No device of that id on this account.",
   not_found: "Nothing at this address.",
   gone: "This journal or trip was deleted. Its name stays reserved and its old URLs answer 410 rather than 404, so this is not a typo — it is a thing that used to be here.",
+  deletion_link_used: "This deletion link has already been used. It cannot be used again; the confirmation page names what actually happened.",
+  deletion_link_expired: "This deletion link is older than its own TTL. Ask the owner's page to send the deletion mail again.",
 
   // ── the body is wrong ──────────────────────────────────────────────────
   invalid_json: "The body did not parse as JSON. Check the content-type header and the quoting.",

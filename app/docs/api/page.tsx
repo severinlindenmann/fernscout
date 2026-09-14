@@ -36,9 +36,10 @@ const METHOD_ORDER = ["get", "post", "patch", "delete", "put"];
  * **It renders v2, and B1675 is why that is written down.** It rendered
  * `lib/api/openapi.ts` — the v1 document — for the whole of the migration and
  * after it, so the one page a person reads to learn this API described doors
- * that had been deleted. `lib/api/openapi.ts` survives only to document the
- * three v1 routes that still stand, and a reader who wants those has
- * `/openapi.json`; the contract is v2.
+ * that had been deleted. `lib/api/openapi.ts` is gone now too (B1734): the
+ * sign-in doors and the two v1 routes that outlived v1 (`track`,
+ * `deletions/{token}`) all moved into this v2 document, and `/openapi.json`
+ * itself answers 410.
  *
  * No client JS: `<details>` does the collapsing, and this is a reading
  * surface rather than a request sender (see B299) — nothing here needs a

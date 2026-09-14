@@ -7,7 +7,6 @@ import { clearUserCache } from "@/lib/users";
 import { instanceDocumentation, userDocumentation } from "@/lib/api/documentation";
 import { skillDoc } from "@/lib/api/skillDocs";
 import { SKILL_DOC_SLUGS, type SkillDocSlug } from "@/lib/api/skillDocMeta";
-import { openApiDocument } from "@/lib/api/openapi";
 import { openApiDocumentV2 } from "@/lib/api/v2/openapi";
 
 let dir: string;
@@ -271,15 +270,9 @@ describe("the nine v2 task guides (B311, step 6 of the v2 migration)", () => {
     }
   });
 
-  // v1's own document is untouched by this ticket (rule 5) — a smoke check
-  // that it still parses, so a change here cannot silently have reached it.
-  // `/api/v1/{user}/invites` was the canary until B1632 retired that route
-  // (and the v1 door it documented) along with several siblings; `import`
-  // was the canary after that until its own v2 door arrived and it was
-  // retired in turn; `trips/{trip}/track` has no v2 equivalent yet, so it is
-  // the canary now.
-  test("v1's own hand-written openapi document is unaffected", () => {
-    const doc = openApiDocument() as unknown as { paths: Record<string, unknown> };
-    expect(doc.paths["/api/v1/{user}/trips/{trip}/track"]).toBeTruthy();
-  });
+  // `lib/api/openapi.ts` (v1's hand-written document) and /openapi.json are
+  // retired as of B1734 — the auth doors and the two surviving v1 routes
+  // (track, deletions/{token}) all moved into /api/v2/openapi.json, which
+  // `test/openapi-v2-contract.test.ts` already checks route-for-route. There
+  // is no v1 document left for a canary test here to watch.
 });

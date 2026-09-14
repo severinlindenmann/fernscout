@@ -32,7 +32,8 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * invisible and irreversible. Deleting a journal is far past the second case.
  *
  * So this renders, and the deletion happens on a POST from the button — see
- * `components/DeleteConfirm.tsx` and `app/api/v1/[user]/deletions/[token]`.
+ * `components/DeleteConfirm.tsx` and `app/api/v2/[user]/deletions/[token]`
+ * (moved from `app/api/v1/[user]/deletions/[token]`, B1734).
  *
  * The export comes **above** the button, in the journal's own language and
  * with private trips and drafts in it. Somebody about to remove five years of
@@ -123,7 +124,7 @@ export default async function DeletePage({ params }: PageProps<"/[user]/delete/[
       <p className="mt-10 text-lg leading-8 text-ink-body">{t("del.backups")}</p>
 
       <DeleteConfirm
-        endpoint={`/api/v1/${username}/deletions/${token}`}
+        endpoint={`/api/v2/${username}/deletions/${token}`}
         keepHref={`/${username}`}
         labels={{
           remove: t("del.deleteButton"),

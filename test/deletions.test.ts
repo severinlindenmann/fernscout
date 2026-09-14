@@ -28,7 +28,7 @@ import {
 } from "@/lib/deletions";
 import { DELETE as deleteJournalRoute } from "@/app/api/v2/[user]/route";
 import { DELETE as deleteTripRoute, PATCH as patchTripRoute } from "@/app/api/v2/[user]/trips/[trip]/route";
-import * as confirmRoute from "@/app/api/v1/[user]/deletions/[token]/route";
+import * as confirmRoute from "@/app/api/v2/[user]/deletions/[token]/route";
 import DeletePage from "@/app/[user]/delete/[token]/page";
 import { GET as deletionExport } from "@/app/[user]/delete/[token]/export.zip/route";
 
@@ -436,17 +436,20 @@ describe("the link", () => {
     const token = takeToken(user);
 
     const first = await confirmRoute.POST(
-      new Request(`https://t.test/api/v1/${user}/deletions/${token}`, { method: "POST" }),
+      new Request(`https://t.test/api/v2/${user}/deletions/${token}`, { method: "POST" }),
       { params: Promise.resolve({ user, token }) },
     );
     expect(first.status).toBe(200);
 
     const second = await confirmRoute.POST(
-      new Request(`https://t.test/api/v1/${user}/deletions/${token}`, { method: "POST" }),
+      new Request(`https://t.test/api/v2/${user}/deletions/${token}`, { method: "POST" }),
       { params: Promise.resolve({ user, token }) },
     );
     expect(second.status).toBe(409);
-    expect((await second.json()).deleted).toBe(false);
+    // B1734: the v2 door answers the shared error envelope (`error`/`message`),
+    // not v1's `{error: reason, deleted: false}` — nothing here deletes on a
+    // refusal either way, there is simply no `deleted` field to say so anymore.
+    expect((await second.json()).error).toBe("deletion_link_used");
 
     const page = (await DeletePage({ params: Promise.resolve({ user, token }), searchParams: Promise.resolve({}) })) as {
       props: { title: string; body: string; actions: { href: string }[] };
@@ -470,7 +473,7 @@ describe("the link", () => {
 
     expect(await resolveDeletionToken(user, token)).toMatchObject({ ok: false, reason: "expired" });
     const response = await confirmRoute.POST(
-      new Request(`https://t.test/api/v1/${user}/deletions/${token}`, { method: "POST" }),
+      new Request(`https://t.test/api/v2/${user}/deletions/${token}`, { method: "POST" }),
       { params: Promise.resolve({ user, token }) },
     );
     expect(response.status).toBe(409);
@@ -497,7 +500,7 @@ describe("the link", () => {
       reason: "unknown",
     });
     const response = await confirmRoute.POST(
-      new Request(`https://t.test/api/v1/${bruno}/deletions/${annasToken}`, { method: "POST" }),
+      new Request(`https://t.test/api/v2/${bruno}/deletions/${annasToken}`, { method: "POST" }),
       { params: Promise.resolve({ user: bruno, token: annasToken }) },
     );
     expect(response.status).toBe(404);

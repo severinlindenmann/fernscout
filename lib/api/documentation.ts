@@ -5,7 +5,6 @@ import { getTrips } from "../trips";
 import { isIndexable } from "../access";
 import { CODE_TTL_MINUTES } from "../auth";
 import { whatsappNumberForDisplay } from "../whatsapp/settings";
-import { openApiDocument } from "./openapi";
 import { SKILL_DOC_SLUGS, SKILL_DOC_SUMMARY, SKILL_DOC_TITLE } from "./skillDocMeta";
 // The sentences this document shares with the skill docs and /openapi.json,
 // kept in one place so they cannot come to disagree.

@@ -1158,25 +1158,19 @@ describe("the documents that describe them", () => {
     expect(guide.toLowerCase()).toContain("group chat");
   });
 
-  // Superseded by B1595 — this used to assert v1's invites endpoints were
-  // still documented ("untouched by this ticket"); this is the ticket that
-  // touches them; they are gone from v1's hand-written openapi document now,
-  // and the two entries this asserted have no replacement there because the
-  // replacement (v2's own, schema-generated) is `test/openapi-contract.test.ts`'s
-  // job, not this file's.
-  test("v1's openapi no longer lists invites, and other v1 doors are unaffected", async () => {
+  // Superseded by B1595, then retired outright by B1734: v1's hand-written
+  // openapi document (and /openapi.json, which served it) is gone. The two
+  // v1 invites entries this test used to watch have no replacement to watch
+  // there — the v2 door (`test/openapi-v2-contract.test.ts`'s job) already
+  // covers `/api/v2/{user}/invites/{id}` — so what is left to assert is only
+  // that the retired address says so rather than lying with a 404.
+  test("/openapi.json is retired and names its replacement", async () => {
     const { GET } = await import("@/app/openapi.json/route");
-    const document = (await (await GET()).json()) as { paths: Record<string, unknown> };
-    expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/invites");
-    expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/invites/{id}");
-    expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/channels");
-    // `config` used to be the control here — a door this ticket had no
-    // reason to touch, kept deliberately while B1666 was still open
-    // (`features` and `manualRates` were still read by live code). B1666
-    // closed that gap and deleted the route with it, so the control this
-    // test wants is now the opposite assertion: the door is gone, on
-    // purpose, and nothing else under v1 moved when it went.
-    expect(Object.keys(document.paths)).not.toContain("/api/v1/{user}/config");
+    const res = GET();
+    expect(res.status).toBe(410);
+    const body = (await res.json()) as { error: string; replacedBy: string };
+    expect(body.error).toBe("gone");
+    expect(body.replacedBy).toContain("/api/v2/openapi.json");
   });
 
   /**
