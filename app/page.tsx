@@ -129,6 +129,12 @@ export default async function Root() {
         // whether the link is there, so there is nothing to flash in after
         // the first paint.
         whatsappNumber={whatsappNumberForUrl()}
+        // What the pitch under the hero may claim — B1711. Same gate as
+        // everything else on this page: the server decides, so a card for a
+        // capability this instance does not have is absent from the document
+        // rather than flashed in and removed.
+        postcardsEnabled={isEnabled("postcards")}
+        photobookEnabled={isEnabled("photobook")}
         // Rendered here and handed over, because `Landing` is a client
         // component and `Pricing` is a server one: it reads a price from the
         // `server-only` module that charges it rather than having a dozen

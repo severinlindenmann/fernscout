@@ -2507,5 +2507,19 @@
   "postcard.status.withPrinterNote": "The printer has taken this order. Cards go out over the days that follow.",
   "postcard.page.fits": "It fits on the card.",
   "postcard.page.overflows": "{count} lines more than the card holds — they will not be printed.",
-  "postcard.page.overflows.one": "One line more than the card holds — it will not be printed."
+  "postcard.page.overflows.one": "One line more than the card holds — it will not be printed.",
+  "landing.heroWhatsapp": "Send a voice note. Get a travel journal.",
+  "landing.ledeWhatsapp": "No app to install, no forms to fill in. Tell your journal about the day the way you would tell a friend — a message, a voice note, the photographs you just took — and it writes the day up, with the route, the place and what it cost.",
+  "landing.threadVoiceLabel": "Voice note",
+  "landing.threadVoice": "Thirteen hours on the sleeper up to Chiang Mai. Woke up past Lampang with the window full of green.",
+  "landing.threadPhotos": "Three photographs",
+  "landing.threadReply": "Written up as “The night train north”, 24 January, Bangkok to Chiang Mai, with the 881 ฿ berth. It is waiting as a draft — have a read?",
+  "landing.threadCaption": "The day in this exchange is a real one from the demo journal. Nothing is published until you say so.",
+  "landing.pitchHeading": "What happens to the day after you send it",
+  "landing.pitchPostcardsTitle": "Real postcards, from the road",
+  "landing.pitchPostcardsBody": "Somebody asks your journal for a card. You pick one of this morning's photographs, write the back, and press send — it is printed and posted to them. The address stays with the journal; your agent never sees one.",
+  "landing.pitchPhotobookTitle": "The whole trip, printed",
+  "landing.pitchPhotobookBody": "Every day is already written, dated and placed, so the book is a render rather than a project. Choose how a day should look, leave out the ones that were only driving, and the trip lays itself out.",
+  "landing.pitchOwnTitle": "Your folder, and yours to take away",
+  "landing.pitchOwnBody": "The journal is JSON and photographs in a folder you own, on your own address. One command hands the whole thing back as a zip, and you can run the same journal on your own machine. Only paper costs money."
 }

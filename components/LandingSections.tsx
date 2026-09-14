@@ -1,7 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, ChevronDown, MessageCircle } from "lucide-react";
+import {
+  BookOpen,
+  ChevronDown,
+  FolderOpen,
+  Image as ImageIcon,
+  Mail,
+  MessageCircle,
+  Mic,
+} from "lucide-react";
 import CopyLine from "@/components/CopyLine";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
@@ -344,11 +352,17 @@ export function LandingHero({
       <div className="mt-12">
         <Kicker>{t("landing.heroKicker")}</Kicker>
       </div>
+      {/* Two headlines, and which one shows is not a style choice — B1711.
+          With a WhatsApp number configured, the first thing a stranger reads
+          is the one claim nothing else in this category makes: you talk to it
+          and a journal comes out. Without a number that sentence would be a
+          lie on this instance, so the page falls back to what it always said
+          — the same bargain every other gate on this page makes. */}
       <h1 className="mt-3 font-display text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.12] text-ink-strong">
-        {t("landing.hero")}
+        {t(whatsappNumber ? "landing.heroWhatsapp" : "landing.hero")}
       </h1>
       <p className="mt-4 text-lg leading-7 text-ink-body">
-        {t("landing.lede")}
+        {t(whatsappNumber ? "landing.ledeWhatsapp" : "landing.lede")}
       </p>
       {/* B1325: on desktop the two doors sit side by side in one row, with
           the divider shrunk to the inline word between them; on mobile they
@@ -383,7 +397,143 @@ export function LandingHero({
           )}
         </div>
       )}
+      {/* Shown with the WhatsApp headline and only then: it illustrates that
+          sentence, and beside "hand your agent a link" it would illustrate
+          nothing. */}
+      {whatsappNumber && <LandingThread />}
     </>
+  );
+}
+
+/**
+ * The exchange the hero is about — B1711.
+ *
+ * Not a WhatsApp skin. It is drawn in this site's own tokens, so it themes
+ * with the page and does not imitate somebody else's product chrome; what it
+ * borrows is only the shape everybody recognises, two columns of bubbles.
+ *
+ * The day it names is a real one in the demo journal
+ * (`content/example/trips/asia-2023/entries/2023-01-24-night-train-north.json`)
+ * — its title, its date, its route and its berth fare. The rule against
+ * invented content does not stop at `content/`: a marketing illustration that
+ * quotes a day nobody wrote is the same fiction one screen further out. The
+ * caption underneath says where it comes from.
+ */
+function LandingThread() {
+  const { t } = useI18n();
+  const bubble =
+    "max-w-[88%] rounded-2xl px-4 py-2.5 text-sm leading-6 sm:text-base sm:leading-7";
+  return (
+    <figure className="mt-6 mb-0">
+      <div className="flex flex-col gap-2 rounded-2xl border border-line-quiet bg-surface-subtle p-3 sm:p-4">
+        <p className={`self-end bg-surface-muted text-ink-strong ${bubble}`}>
+          <span className="flex items-center gap-2 font-medium">
+            <Mic className="h-4 w-4 shrink-0 text-green-700" aria-hidden />
+            {t("landing.threadVoiceLabel")}
+          </span>
+          <span className="mt-1 block text-ink-body">{t("landing.threadVoice")}</span>
+        </p>
+        <p className={`self-end bg-surface-muted text-ink-body ${bubble}`}>
+          <span className="flex items-center gap-2">
+            <ImageIcon className="h-4 w-4 shrink-0 text-green-700" aria-hidden />
+            {t("landing.threadPhotos")}
+          </span>
+        </p>
+        <p className={`self-start border border-line-quiet bg-surface-raised text-ink-body ${bubble}`}>
+          {t("landing.threadReply")}
+        </p>
+      </div>
+      <figcaption className="mt-2 text-xs leading-5 text-ink-secondary">
+        {t("landing.threadCaption")}
+      </figcaption>
+    </figure>
+  );
+}
+
+/**
+ * What a day becomes once the journal has it — B1711.
+ *
+ * The page used to stop at the mechanism: an agent, a token, a folder. It
+ * never said that a printed card can arrive at somebody's letterbox, that the
+ * trip prints itself as a book, or that the whole thing is yours to take
+ * away. Those were rows in the README's capability table, beside the
+ * environment variables they need.
+ *
+ * Each card is gated on the capability that makes it true, resolved on the
+ * server in `app/page.tsx`. A disabled capability's card is **absent**, not
+ * greyed out: this page is read by people deciding, and a promise an instance
+ * cannot keep is worse here than anywhere else on the site. The last card
+ * needs no gate — files in a folder is what this is with everything switched
+ * off.
+ */
+export function LandingPitch({
+  postcards = false,
+  photobook = false,
+}: {
+  postcards?: boolean;
+  photobook?: boolean;
+}) {
+  const { t } = useI18n();
+  // Nothing to say here on an instance that prints nothing. The heading asks
+  // what becomes of a day once it is sent, and with both print capabilities
+  // off the honest answer is only "it is a file you own" — which the lede and
+  // the colophon already say, twice. A section heading over one card about
+  // something the page has said before is worse than no section.
+  if (!postcards && !photobook) return null;
+  const cards: { key: string; icon: React.ReactNode; title: string; body: string }[] = [];
+  if (postcards) {
+    cards.push({
+      key: "postcards",
+      icon: <Mail className="h-5 w-5 text-ink-secondary" aria-hidden />,
+      title: t("landing.pitchPostcardsTitle"),
+      body: t("landing.pitchPostcardsBody"),
+    });
+  }
+  if (photobook) {
+    cards.push({
+      key: "photobook",
+      icon: <BookOpen className="h-5 w-5 text-ink-secondary" aria-hidden />,
+      title: t("landing.pitchPhotobookTitle"),
+      body: t("landing.pitchPhotobookBody"),
+    });
+  }
+  cards.push({
+    key: "own",
+    icon: <FolderOpen className="h-5 w-5 text-ink-secondary" aria-hidden />,
+    title: t("landing.pitchOwnTitle"),
+    body: t("landing.pitchOwnBody"),
+  });
+
+  return (
+    <section aria-labelledby="pitch" className="mt-12">
+      <h2
+        id="pitch"
+        className="border-b border-line-quiet pb-3 font-display text-xl font-semibold text-ink-strong"
+      >
+        {t("landing.pitchHeading")}
+      </h2>
+      <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+        {cards.map((card, index) => (
+          <li
+            key={card.key}
+            /* Three cards in two columns leaves one alone in a half-width box
+               beside empty space. The odd one out spans instead — which is
+               also the right emphasis, since the card that is always present
+               is the one about the files being yours. */
+            className={
+              "rounded-2xl border border-line-quiet bg-surface-base px-5 py-5" +
+              (cards.length % 2 === 1 && index === cards.length - 1 ? " sm:col-span-2" : "")
+            }
+          >
+            <h3 className="flex items-center gap-2 font-display text-base font-semibold text-ink-strong">
+              {card.icon}
+              {card.title}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-ink-body">{card.body}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

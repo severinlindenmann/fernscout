@@ -54,6 +54,41 @@ Decided with the owner on 2026-09-14:
 - **Languages** — English, German and Hungarian together, as AGENTS.md
   requires for any new UI string.
 
+## What was built
+
+**Valid** — `components/LandingSections.tsx:356` set one headline from
+`landing.hero` with no alternative, and nothing between the hero and
+`PublicJournals` named a postcard, a book or the folder. Confirmed before
+changing anything.
+
+- `LandingHero` now has two headlines. With a WhatsApp number configured it
+  leads with "Send a voice note. Get a travel journal." and shows the
+  exchange that produces a day; without one it renders exactly what it always
+  did, because that sentence would be untrue on an instance with no number.
+- `LandingPitch`, new, sits directly under the hero on the signed-out page:
+  postcards, the printed book, and the folder being yours. Each print card is
+  gated on its own capability, and the section returns `null` when neither is
+  on — the ownership claim alone under that heading only repeats the lede and
+  the colophon.
+- The thread quotes a real day from the demo journal (`asia-2023`,
+  `2023-01-24-night-train-north`) — its title, date, route and berth fare —
+  and says so in its caption. It is drawn in this site's own tokens rather
+  than as a WhatsApp skin.
+- `OrDivider` in the hero now only renders when there is a first door for it
+  to be an alternative to. With the helper off — every self-hosted instance —
+  the word sat in front of the WhatsApp button separating it from nothing.
+  Surfaced by this branch's headline, so fixed here.
+- README: a drawn hero (`docs/branding/readme-hero.svg`, new), the pitch in
+  one bold sentence, links and the CI badge, two screenshots, and both quick
+  starts — all inside the first screen. Everything below is the prose that
+  was already there; the two lifted screenshots were removed from "What it
+  looks like" so they do not appear twice.
+
+**The root `*.png` acceptance line was wrong.** `.gitignore:103` is `/*.png`,
+so those captures were never in the repository and nobody arriving from
+GitHub has ever seen them. Nothing to delete; the owner's local scratch files
+are left alone.
+
 ## Acceptance
 
 - The signed-out root leads with the WhatsApp claim and names postcards, the

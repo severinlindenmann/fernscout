@@ -2507,5 +2507,19 @@
   "postcard.status.withPrinterNote": "Die Druckerei hat den Auftrag angenommen. Die Karten gehen in den nächsten Tagen raus.",
   "postcard.page.fits": "Passt auf die Karte.",
   "postcard.page.overflows": "{count} Zeilen mehr, als auf die Karte passen — sie werden nicht gedruckt.",
-  "postcard.page.overflows.one": "Eine Zeile mehr, als auf die Karte passt — sie wird nicht gedruckt."
+  "postcard.page.overflows.one": "Eine Zeile mehr, als auf die Karte passt — sie wird nicht gedruckt.",
+  "landing.heroWhatsapp": "Schick eine Sprachnachricht. Bekomm ein Reisetagebuch.",
+  "landing.ledeWhatsapp": "Keine App, keine Formulare. Erzähl deinem Tagebuch vom Tag, wie du es einer Freundin erzählen würdest — eine Nachricht, eine Sprachnachricht, die Fotos von eben — und es schreibt den Tag auf, mit Route, Ort und dem, was er gekostet hat.",
+  "landing.threadVoiceLabel": "Sprachnachricht",
+  "landing.threadVoice": "Dreizehn Stunden im Nachtzug hoch nach Chiang Mai. Hinter Lampang aufgewacht, das Fenster voller Grün.",
+  "landing.threadPhotos": "Drei Fotos",
+  "landing.threadReply": "Aufgeschrieben als „Der Nachtzug nach Norden“, 24. Januar, Bangkok nach Chiang Mai, mit den 881 ฿ für die Liege. Liegt als Entwurf bereit — magst du lesen?",
+  "landing.threadCaption": "Der Tag in diesem Verlauf ist ein echter aus dem Demo-Tagebuch. Veröffentlicht wird nichts, bevor du es sagst.",
+  "landing.pitchHeading": "Was mit dem Tag passiert, nachdem du ihn geschickt hast",
+  "landing.pitchPostcardsTitle": "Echte Postkarten, unterwegs aufgegeben",
+  "landing.pitchPostcardsBody": "Jemand bittet dein Tagebuch um eine Karte. Du suchst ein Foto von heute Morgen aus, schreibst die Rückseite und drückst ab — gedruckt und verschickt. Die Adresse bleibt beim Tagebuch; dein Agent sieht sie nie.",
+  "landing.pitchPhotobookTitle": "Die ganze Reise, gedruckt",
+  "landing.pitchPhotobookBody": "Jeder Tag ist schon geschrieben, datiert und verortet — das Buch ist also ein Rendern und kein Projekt. Wähl, wie ein Tag aussehen soll, lass die reinen Fahrtage weg, und die Reise setzt sich selbst.",
+  "landing.pitchOwnTitle": "Dein Ordner, und du kannst ihn mitnehmen",
+  "landing.pitchOwnBody": "Das Tagebuch sind JSON-Dateien und Fotos in einem Ordner, der dir gehört, unter deiner eigenen Adresse. Ein Befehl gibt dir alles als Zip zurück, und dasselbe Tagebuch läuft auch auf deinem eigenen Rechner. Geld kostet nur Papier."
 }
