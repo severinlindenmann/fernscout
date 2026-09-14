@@ -23,11 +23,11 @@ type Schema = {
 };
 
 const document = openApiDocumentV2() as unknown as {
-  paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: Schema } } } }>>;
+  paths: Record<string, Record<string, { requestBody?: { content?: { "application/json"?: { schema?: Schema } } } }>>;
 };
 
 function bodySchema(path: string, verb: string): Schema {
-  const schema = document.paths[path]?.[verb]?.request?.content?.["application/json"]?.schema;
+  const schema = document.paths[path]?.[verb]?.requestBody?.content?.["application/json"]?.schema;
   if (!schema) throw new Error(`no request body schema at ${verb.toUpperCase()} ${path}`);
   return schema;
 }

@@ -88,6 +88,83 @@ describe("the v2 openapi document covers every route on disk", () => {
     }
   });
   /**
+   * B1714. The document declares `openapi: 3.1.0`, and for a year it put the
+   * request body under `request` — a key the specification does not have. Every
+   * generator, validator and client library therefore read two dozen write
+   * operations as taking no body at all, and a caller had no reason to suspect
+   * a house-private key in a document that names its own version. An agent
+   * migrating a real journal reached for `requestBody`, read `undefined`, and
+   * wrote every call by hand.
+   *
+   * So: an operation may carry only what 3.1 defines for one, plus `x-`
+   * extensions. Fernscout's own vocabulary already lives correctly as
+   * `x-required-or-declined` inside the body schema, which is the shape any
+   * future addition has to take too.
+   */
+  test("every operation carries only keys OpenAPI 3.1 defines, or an x- extension", () => {
+    const ALLOWED = new Set([
+      "tags",
+      "summary",
+      "description",
+      "externalDocs",
+      "operationId",
+      "parameters",
+      "requestBody",
+      "responses",
+      "callbacks",
+      "deprecated",
+      "security",
+      "servers",
+    ]);
+    const strays: string[] = [];
+    for (const [path, methods] of Object.entries(document.paths)) {
+      for (const [verb, operation] of Object.entries(methods)) {
+        for (const key of Object.keys(operation)) {
+          if (ALLOWED.has(key) || key.startsWith("x-")) continue;
+          strays.push(`${path} ${verb} — ${key}`);
+        }
+      }
+    }
+    expect(
+      strays,
+      "These keys are not in OpenAPI 3.1, so every standard tool ignores them. " +
+        'Use the specified key, or prefix an extension with "x-".\n' +
+        strays.join("\n"),
+    ).toEqual([]);
+  });
+
+  /**
+   * The other half of B1714: the rename is only worth anything if the key is
+   * actually there. These six take no body at all — the call itself is the
+   * whole instruction — and naming them is what makes a seventh a failure
+   * rather than a number nobody checks.
+   */
+  test("every write operation publishes a request body, bar the six that take none", () => {
+    const BODYLESS = new Set([
+      "/api/v2/{user}/trips/{trip}/days/{slug}/unpublish post",
+      "/api/v2/{user}/trips/{trip}/travellers/from-photo post",
+      "/api/v2/{user}/contacts/self post",
+      "/api/v2/{user}/contacts/{id}/approve post",
+      "/api/v2/{user}/contacts/{id}/revoke post",
+      "/api/v2/{user}/contacts/{id}/resend post",
+    ]);
+    const missing: string[] = [];
+    for (const [path, methods] of Object.entries(document.paths)) {
+      for (const [verb, operation] of Object.entries(methods)) {
+        if (verb === "get" || verb === "delete") continue;
+        if ((operation as { requestBody?: unknown }).requestBody) continue;
+        if (BODYLESS.has(`${path} ${verb}`)) continue;
+        missing.push(`${path} ${verb}`);
+      }
+    }
+    expect(
+      missing,
+      "A write whose body vanished from the document — a caller is told to send nothing.\n" +
+        missing.join("\n"),
+    ).toEqual([]);
+  });
+
+  /**
    * B1675. `/docs/api` is the one page a person reads to learn this API, and
    * it rendered `lib/api/openapi.ts` — the **v1** document — through the whole
    * migration and past the end of it, so the human-facing contract described
