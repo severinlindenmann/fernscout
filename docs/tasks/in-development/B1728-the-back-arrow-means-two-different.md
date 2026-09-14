@@ -58,6 +58,52 @@ serve the reader who arrives deep on a shared link. That reader is served
 better by an Up link that names a real destination than by a Back button that
 names none.
 
+## Validity
+
+**Valid**, confirmed by reading the code before taking it. `components/BackLink.tsx`
+still had both modes; `components/useBackHistory.ts` still answered "has this
+tab navigated once" and never cleared the flag; `components/PageHeader.tsx:138`
+still passed `showLabel={false}` on the phone row. All four consequences above
+were reachable from the code on disk.
+
+## What was built, where it differs from the plan above
+
+Eight decisions were made in the code that this section did not settle, and
+each is written where it applies as well:
+
+1. **The journal's crumb is called "Trips", not the journal's title.** The
+   journal's title is the header's own heading, directly below the trail and
+   again beside the phone row's arrow. A crumb carrying it printed one word
+   twice, on two controls leading to different pages. The trip list is called
+   Trips everywhere else in the site (`SiteNav`), so it is called Trips here.
+2. **The trail lists ancestors only** — the current page is not a crumb. The
+   row below it is the journal's title and `SiteNav` marks the section with
+   the yellow waymark it has always used; a third naming of the page you are
+   looking at would be the only crumb nobody could click.
+3. **`/{user}/me`, `/search` and `/account` go up to the trip list**, not to
+   `/{user}`. They belong to the journal rather than to whichever trip is
+   current, and `/{user}` is a trip.
+4. **The trip gate and the invite go up to the trip list too.** `/{user}` is
+   the current trip's story, and on a gate refusing exactly that trip the old
+   link put the reader back on the page they had just been refused.
+5. **`components/ContactForm.tsx` was in scope after all.** It had its own
+   hand-written `← Back to {title}` pointing at `/{user}` — the same control,
+   the same two-meanings problem, written out a second time rather than
+   shared. Fixing only the ones routed through `BackLink` would have left it.
+   `nav.toJournal` has no callers now and is gone from all three locales.
+6. **`HelperRoom` keeps its icon-only arrow**, with the destination as its
+   accessible name. It is chrome on a full-height conversation and the word
+   would push the journal switcher off a phone — the opposite of the header's
+   row, which had space for it and is read by people who are not signed in.
+7. **`/docs` gained a step it never had.** Every page under it linked straight
+   out to `/`, so the only way from `/docs/hosting` to the hub that lists it
+   was the browser's own Back. A guide now goes up to the hub and the hub goes
+   up to the site (`components/DocsUpLink.tsx`).
+8. **`SiteSummary` carries `name`**, the instance's own name from config. The
+   crumb for `/` says "Your journals" to a reader holding an identity and
+   names the instance to everybody else, and a client component in the header
+   had no other way to ask.
+
 ## Work
 
 **Fernscout never draws Back. Fernscout draws Up.** The browser and the phone
@@ -119,3 +165,36 @@ New UI strings need real English, German and Hungarian entries; run
   day, `/docs`, `/agent`, and the trip gate goes exactly where its word says,
   and says the same thing twice in a row from the same page.
 - `npm run verify` passes.
+
+### Evidence
+
+`test/nav-up.test.ts` — 21 assertions, both halves: the parent map for every
+route in the table, and the source scan (no `back()` or `go(-1)` anywhere in
+`app/` or `components/`, with comments stripped so the files that explain the
+removal may name it; and the three deleted files stay deleted). Registered in
+`scripts/check-changed.mjs` so an edit under `app/` or `components/` selects it.
+
+`test/back-to-journals.test.tsx` — B433's keeper, rewritten to the new
+contract: a stranger is now offered a way out under the instance's name, the
+journal's crumb is its trip list named for that page, a way up renders at both
+widths and carries a word at both, and nothing in the title box is a
+`<button>`.
+
+Browser, `/tmp/b1728-shots/`, at 1280 and 390 against `content/example/`, which
+predates this branch. Header links read out of the served HTML:
+
+| page | trail |
+| --- | --- |
+| `/example` | `Fernscout` → `/`, `Trips` → `/example/trips` |
+| `/example/trips` | `Fernscout` → `/` |
+| `/example/gallery` | `Fernscout`, `Trips`, `Across and back` → `/example` |
+| `/example/trips/asia-2023/gallery` | `Fernscout`, `Trips`, `Five months east` → `/example/trips/asia-2023` |
+| `/example/me` | `Fernscout`, `Trips` |
+| `/docs` | `Fernscout` → `/` |
+| `/docs/hosting` | `Documentation` → `/docs` |
+| `/agent` | `Fernscout` → `/` |
+| `/example/trips/a-wedding-2026` (the gate) | `Fernscout Demo` → `/example/trips` |
+
+Zero console errors on every page. The one failed request on the two story
+pages is `/api/reactions` answering 404 with the capability off, which is this
+repository's absent-rather-than-broken rule and predates the branch.

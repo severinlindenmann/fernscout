@@ -50,6 +50,12 @@ const KEEPERS = [
     ],
   },
   {
+    name: "where up is, and that nothing navigates by history",
+    matches: (file) =>
+      file === "lib/navUp.ts" || file.startsWith("app/") || file.startsWith("components/"),
+    tests: ["test/nav-up.test.ts", "test/back-to-journals.test.tsx"],
+  },
+  {
     name: "brand and colour source scans",
     matches: (file) =>
       file === "lib/theme.ts" ||

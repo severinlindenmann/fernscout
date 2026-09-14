@@ -8,8 +8,8 @@ import type { RoomFiles } from "@/lib/helper/server";
 import { dictionaryFor } from "@/lib/locales";
 import { typeInto } from "./support/type-input";
 
-// The room's own header carries a `BackLink` since B1121, which reads
-// `useRouter()` and renders `next/link` — the same stubs
+// The room's own header carries an `UpLink` since B1121 (B1728 renamed it),
+// which renders `next/link`; the room itself reads `useRouter()` — the same stubs
 // `test/agent-short-consent.test.tsx` and `test/signup-wizard.test.tsx`
 // already use for the same component tree.
 vi.mock("next/navigation", () => ({

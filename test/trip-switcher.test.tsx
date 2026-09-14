@@ -29,6 +29,7 @@ const site: SiteSummary = {
   base: "/alex",
   travellerFigures: [],
   signedIn: false,
+  name: "Fernscout",
   hasIdentity: false,
   canSignIn: false,
   analyticsEnabled: true,

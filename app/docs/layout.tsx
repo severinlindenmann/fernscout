@@ -1,4 +1,4 @@
-import BackLink from "@/components/BackLink";
+import DocsUpLink from "@/components/DocsUpLink";
 import LocaleProvider from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import { dictionaryFor, installedLocales, requestLocale, translateIn } from "@/lib/locales";
@@ -25,10 +25,12 @@ export default async function DocsLayout({ children }: LayoutProps<"/docs">) {
     <div className="min-h-full">
       <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          <BackLink
-            fallbackHref="/"
-            fallbackLabel={translateIn(locale, "docs.backToSite", { name: site.name })}
-            retraceLabel={translateIn(locale, "nav.back")}
+          {/* One step up, not one page back — B1728. On a guide that is the
+              hub; on the hub it is the site. */}
+          <DocsUpLink
+            hubHref="/docs"
+            hubLabel={translateIn(locale, "docs.title")}
+            siteLabel={site.name}
             className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
                        transition-colors hover:text-ink-strong
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"

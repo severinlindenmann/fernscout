@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AgentBlock, OrDivider, WhatsAppButton } from "@/components/LandingSections";
-import BackLink from "@/components/BackLink";
+import UpLink from "@/components/UpLink";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import IdentitySignIn from "@/components/IdentitySignIn";
 import SignupWizard from "@/components/SignupWizard";
@@ -116,10 +116,9 @@ export default function AgentDoor({
         {/* B1121 — `app/agent/layout.tsx` used to draw this above every page
             under `/agent`; it draws nothing now, so the door carries its own
             way back to the landing page. */}
-        <BackLink
-          fallbackHref="/"
-          fallbackLabel={t("docs.backToSite", { name: siteName })}
-          retraceLabel={t("nav.back")}
+        <UpLink
+          href="/"
+          label={siteName}
           className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
                      transition-colors hover:text-ink-strong
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"

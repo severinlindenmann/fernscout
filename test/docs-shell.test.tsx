@@ -19,11 +19,13 @@ function read(file: string): string {
 describe("the docs shell", () => {
   test("a layout exists and links back to the site", () => {
     const layout = read("app/docs/layout.tsx");
-    // B822: the way home is `BackLink`'s fallback rather than a bare `<Link>`
-    // now, so a reader who arrived at `/docs` from elsewhere in the app
-    // retraces there instead of always landing on "/".
-    expect(layout).toContain('fallbackHref="/"');
-    expect(layout).toContain("docs.backToSite");
+    // B1728: one step up rather than one page back. B822 had made this the
+    // fallback of a control that otherwise called `router.back()`; the arrow
+    // is a plain link again, and on a guide it goes to the hub rather than
+    // straight out to "/", which is a route `/docs` never had before.
+    expect(layout).toContain("DocsUpLink");
+    expect(layout).toContain('hubHref="/docs"');
+    expect(layout).not.toContain("fallbackHref");
   });
 
   test("the shell owns the only language switcher", () => {

@@ -9,12 +9,21 @@ import { dictionaryFor } from "@/lib/locales";
 import type { SiteSummary } from "@/lib/site";
 
 /**
- * B433 — the way back out of a journal.
+ * The way up and out of a journal — B433, rebuilt by B1728.
  *
  * B411 gave a signed-in reader a page listing every journal they may open, and
  * opening one was a one-way trip: the header's title links to the journal's
  * own home, and nothing in the chrome pointed anywhere above it. A reader with
  * three journals had to know to edit the address bar.
+ *
+ * B433's answer was one arrow to `/`, drawn only for a reader holding an
+ * identity. B822 then gave that arrow a second mode — `router.back()`, chosen
+ * by a `sessionStorage` flag — and the flag latched on the first soft
+ * navigation, so the breadcrumb went one page sideways rather than one level
+ * up for the rest of the visit. B1728 replaced both with the chain of
+ * ancestors, every crumb a real link, and drew it for everybody: a reader who
+ * followed a shared link into one day is the person most stuck without it, and
+ * they are exactly the one holding no identity.
  */
 
 vi.mock("next/link", () => ({
@@ -32,7 +41,8 @@ vi.mock("next/navigation", () => ({
 
 const base: SiteSummary = {
   username: "alex",
-  title: "Fernscout Demo",
+  title: "Journal of Five",
+  name: "Fernscout",
   tagline: "Five journeys",
   url: "https://example.test",
   startLocation: "X",
@@ -62,37 +72,74 @@ function markup(site: SiteSummary, locale = "en"): string {
   );
 }
 
-describe("the way back to the other journals", () => {
-  test("a reader holding an identity is offered it", () => {
+/** Every `<a>` in the rendered header, as href plus its visible text. */
+function links(html: string): { href: string; text: string }[] {
+  return [...html.matchAll(/<a href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/g)].map((m) => ({
+    href: m[1],
+    text: m[2].replace(/<[^>]*>/g, "").trim(),
+  }));
+}
+
+describe("the way up, out of a journal", () => {
+  test("a reader holding an identity is offered their journals by name", () => {
     const html = markup({ ...base, hasIdentity: true });
-    expect(html).toContain("Your journals");
-    expect(html).toMatch(/<a href="\/"[^>]*>/);
+    expect(links(html).some((l) => l.href === "/" && l.text === "Your journals")).toBe(true);
   });
 
   /**
-   * The link is drawn from `hasIdentity` and not from `signedIn`, and the two
-   * genuinely come apart: every session issued before B410, and every one a
-   * journal's own `/<user>/me` form issues, is a guest session on this journal
-   * with no identity behind it. Sending those readers to `/` would land them
-   * on the public landing page having promised them "your journals".
+   * The crumb is drawn for everyone; only its *word* turns on `hasIdentity`,
+   * and the two genuinely come apart from `signedIn`. Every session issued
+   * before B410, and every one a journal's own `/<user>/me` form issues, is a
+   * guest session on this journal with no identity behind it — promising those
+   * readers "your journals" and landing them on the public pitch is the bug
+   * `hasIdentity` exists for.
    */
-  test("a guest session on this journal alone is not offered it", () => {
+  test("a guest session on this journal alone is shown the instance, not 'your journals'", () => {
     const html = markup({ ...base, signedIn: true, hasIdentity: false });
     expect(html).not.toContain("Your journals");
+    expect(links(html).some((l) => l.href === "/" && l.text === "Fernscout")).toBe(true);
   });
 
-  test("a stranger is not offered it", () => {
-    expect(markup(base)).not.toContain("Your journals");
+  test("a stranger still gets a way out, named for where it goes", () => {
+    const html = markup(base);
+    expect(html).not.toContain("Your journals");
+    expect(links(html).some((l) => l.href === "/" && l.text === "Fernscout")).toBe(true);
   });
 
-  /** Not a mobile affordance with a desktop equivalent elsewhere: a reader is
-   * equally stuck on either, so it renders at every width. `hidden` would be
-   * how that regressed. */
-  test("it is not hidden at any breakpoint", () => {
-    const html = markup({ ...base, hasIdentity: true });
-    const link = /<a href="\/" class="([^"]*)"/.exec(html)?.[1] ?? "";
-    expect(link).not.toMatch(/\bhidden\b/);
-    expect(link).not.toMatch(/\b(sm|md|lg|xl):(inline|block|flex)\b/);
+  /**
+   * The journal is its trip list, not `/<user>` — that address is the current
+   * trip's story (`TripProvider`), so a crumb pointing there would have said
+   * "journal" and gone to a trip.
+   *
+   * Named for the page rather than for the journal, and that is the second
+   * half of the same point: the journal's title is already the heading right
+   * below the trail and again beside the phone row's arrow, so a crumb
+   * carrying it printed one word twice on two controls that go to different
+   * places.
+   */
+  test("the journal's own crumb is its trip list, named for that page", () => {
+    const html = markup(base);
+    expect(links(html).some((l) => l.href === "/alex/trips" && l.text === "Trips")).toBe(true);
+    expect(links(html).some((l) => l.href === "/alex/trips" && l.text === "Journal of Five")).toBe(
+      false,
+    );
+  });
+
+  /**
+   * Not a mobile affordance with a desktop equivalent elsewhere: a reader is
+   * equally stuck on either. Two renderings, because one line cannot hold both
+   * the full chain and the journal's title on a phone — the trail from `sm`
+   * up, the nearest crumb alone below it. Both must exist.
+   */
+  test("a way up renders at both widths", () => {
+    const html = markup(base);
+    const up = links(html).filter((l) => l.href === "/alex/trips");
+    expect(up.length).toBeGreaterThanOrEqual(2);
+    // And the phone one carries its word. An unlabelled arrow there is what
+    // made the old control unreadable — the label was the only thing that
+    // ever said which of its two meanings was in force, and that row never
+    // drew it.
+    expect(up.every((l) => l.text.length > 0)).toBe(true);
   });
 
   test("it speaks the reader's language", () => {
@@ -102,14 +149,24 @@ describe("the way back to the other journals", () => {
   /**
    * The nav row is measured twice in PageHeader's own comments and was the
    * cause of B170 and B212; seven controls already wrap onto their own line on
-   * a phone. This link belongs to the title box, above the journal's name.
+   * a phone. This belongs to the title box, above the journal's name.
    */
   test("it sits in the title box rather than in the crowded nav row", () => {
-    const html = markup({ ...base, hasIdentity: true });
-    const back = html.indexOf("Your journals");
-    const title = html.indexOf("Fernscout Demo");
-    const nav = html.indexOf("<nav");
-    expect(back).toBeLessThan(title);
-    expect(back).toBeLessThan(nav);
+    // The `sm`-and-up half of the header, which is the one with both a trail
+    // and a title to order against each other.
+    const wide = markup({ ...base, hasIdentity: true });
+    const block = wide.slice(wide.indexOf("max-w-7xl"));
+    expect(block.indexOf("Your journals")).toBeLessThan(block.indexOf("Journal of Five"));
+  });
+
+  /**
+   * The whole point of the change: there is one destination per control and
+   * the browser can show it before you commit. A `<button>` in this box would
+   * mean history navigation had come back.
+   */
+  test("every way up is a link with an address, never a button", () => {
+    const html = markup(base);
+    const box = html.slice(0, html.indexOf("Journal of Five"));
+    expect(box).not.toContain("<button");
   });
 });

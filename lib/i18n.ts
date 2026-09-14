@@ -1802,7 +1802,7 @@ export type TranslationKey =
   | "nav.search"
   | "nav.signIn"
   | "nav.story"
-  | "nav.toJournal"
+  | "nav.trail"
   | "nav.trips"
   | "notify.button"
   | "notify.cancel"
