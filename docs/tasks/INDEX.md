@@ -310,11 +310,12 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
+| [B1744](in-development/B1744-there-is-no-way-to-tell.md) | There is no way to tell whether a change to the conversation made it better or worse | FEATURE | high | medium | `47321abb` |
 
 ## testing (2)
 
