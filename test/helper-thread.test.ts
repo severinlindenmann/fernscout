@@ -808,7 +808,20 @@ describe("what a turn costs", () => {
   // the same "no sentence pays for the same rule twice" trade every earlier
   // raise made. What is left to buy is the capability itself: four fields a
   // day could never be asked about before this ticket.
-  const CEILING = 8500;
+  //
+  // Raised to 8550 for B1737, and 26 of the 50 are spent: `trip_people` gains
+  // a `contact` argument, one property and one ten-word description. What it
+  // buys is a conversation that stops asking for what the journal already
+  // holds. A contact card shared on WhatsApp was stored, acknowledged, and
+  // then — twenty-three seconds later, on the live instance — denied: "I have
+  // no access to your contacts", about a file this software had just written
+  // and answered for. The address was on disk the whole time and no tool could
+  // reach it, so the owner retyped a name and an email they had already sent.
+  // The argument is the door to that card; the rule about when to use it is
+  // `describeWaiting`'s own line (lib/helper/server.ts), which rides on the
+  // turn rather than on the tool list, so this ceiling pays for the door and
+  // not for the sentence explaining it.
+  const CEILING = 8550;
 
   /**
    * **What to do when this fails** — B930, and it is the half the number never
