@@ -222,7 +222,7 @@ export function v2Slug(date: string, bareSlug: string): string {
  *
  * `weather: true` is the one field on a day that asks the server to *do*
  * something rather than store what it was sent. An instance that cannot reach
- * the archive would never service it, now or in the nightly sweep, so the
+ * the archive would never service it, so the
  * request is refused rather than banked: "absent rather than broken when
  * disabled" (AGENTS.md).
  *
@@ -245,7 +245,7 @@ export function weatherLookupRefused(body: { weather?: unknown }): string | null
   if (body.weather !== true || isEnabled("weather")) return null;
   return (
     "weather: true asks this server to look the day up in a public archive, and this " +
-    "server does not do weather — no lookup would happen, now or in the nightly sweep, so " +
+    "server does not do weather — no lookup would happen at all, so " +
     "nothing was written rather than accepting a request nobody will service. /api/health " +
     "says which capabilities this instance has and why each is off. Send the day without " +
     "the field, or decline it (declined.weather) if there is simply none to record. A " +

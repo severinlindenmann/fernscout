@@ -51,7 +51,7 @@ export function forgetEntries(ref: string): void {
  *
  * B643: a day was read, costs and a weather reading were written to it by
  * one call, three photographs by another, and some hours later all of it was
- * gone — because a *different* writer (a `weather:update` sweep, a second
+ * gone — because a *different* writer (a weather lookup landing on the same day, a second
  * session, the old half of a rolling restart) had read the same file
  * earlier, computed its own change from that older copy, and written the
  * whole file back after the newer writes had already landed. Every call

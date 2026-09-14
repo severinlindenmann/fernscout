@@ -162,7 +162,7 @@ export const ERROR_CODES = {
   consent_required: "This journal has not agreed to send photographs to a model. That is asked for on the journal's own page, not by an agent — an owner has to say yes to this themselves.",
   model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
   weather_disabled:
-    "`weather: true` asks this server to look the day up in a public archive, and the weather capability is off for this journal — no lookup would happen, now or in the nightly sweep. Nothing was written, rather than storing a request nobody will service. Send the day without the field; /api/health says whether this server provides weather at all. A reading somebody actually took goes in `weather` as an object with its own `source` — never one you believe.",
+    "`weather: true` asks this server to look the day up in a public archive, and the weather capability is off for this journal — no lookup would happen at all. Nothing was written, rather than storing a request nobody will service. Send the day without the field; /api/health says whether this server provides weather at all. A reading somebody actually took goes in `weather` as an object with its own `source` — never one you believe.",
   address_lookup_disabled:
     "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
 

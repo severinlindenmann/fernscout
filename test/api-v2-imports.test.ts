@@ -81,6 +81,14 @@ const LIB_API_ALLOWLIST = [
   // shaping of its own; v2's `.../media/duplicates` door reuses it verbatim
   // rather than recomputing the same fingerprint cache a second way.
   "lib/api/media",
+  // `fillDayWeatherQuietly` — B1713. A lookup and a write into a day's own
+  // file: no `Request` read, no `Response` built, which is this rule's own
+  // test for the difference. `lib/api/v2/days.ts` had already said so in
+  // prose ("the lookup itself is domain and stays where it is") while the
+  // only thing calling it was v1's route glue; now the v2 day write calls it
+  // in the write that asks for the weather, and the sentence has an import
+  // behind it.
+  "lib/api/weather",
 
 ];
 

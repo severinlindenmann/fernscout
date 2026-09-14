@@ -246,6 +246,33 @@ export const dayWrite = dayBase.superRefine((doc, ctx) =>
 );
 
 /**
+ * The **merged** document a `PATCH` re-validates — B1713.
+ *
+ * A patch is checked as a patch (`dayPatch`), and then the stored day with the
+ * patch laid over it is checked again in full, so a day that was complete
+ * stays provably complete. That second check ran `dayWrite`, which refuses
+ * `source: "open-meteo"` — and once the server started answering
+ * `weather: true` in the write itself, the stored half of that merge is very
+ * often exactly such a reading. The result was a `400` on
+ * `weather.source: "this source name is the server's own — a caller may never
+ * claim it"` for a caller who had sent no weather at all: correcting a typo on
+ * a day the server had looked up became impossible.
+ *
+ * So this is `dayWrite` with the *read* reading allowed, and nothing else
+ * changed. The rule it must not weaken — a caller may never claim the
+ * server's own source — is enforced where the caller's own bytes are:
+ * `dayPatch` for a correction and `dayWrite` for a create, both of which still
+ * refuse it. Same asymmetry as `dayDoc`, and the same reasoning as B1645,
+ * which found the read shape refusing what the server itself had written.
+ */
+export const dayMerged = z
+  .strictObject({
+    ...dayBase.def.shape,
+    weather: z.union([z.literal(true), weatherReading]).optional(),
+  })
+  .superRefine((doc, ctx) => checkRequiredOrDeclined(doc, DAY_DECLINABLES, ctx));
+
+/**
  * Correcting a day (V2): JSON-merge-patch semantics over the same shape.
  * Nothing is asked — attaching one photograph must not re-open 14 questions
  * — but a patch cannot contradict itself, and supplying a previously
