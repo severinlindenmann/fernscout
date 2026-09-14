@@ -7,8 +7,7 @@ complexity: low
 area: Deploy
 found: "2026-09-14T08:41:13Z"
 started: "2026-09-14T08:41:29Z"
-session: cbe9e605-52aa-4a47-affd-e1ef326bdda5
-claimed: "2026-09-14T08:41:29Z"
+merged: "2026-09-14T08:45:58Z"
 ---
 
 # B1710 — An unattended nodejs upgrade on the VPS moved past the repo's exact Node pin and every deploy fails at the build guard
