@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: tests
 found: "2026-09-09T16:38:24Z"
+merged: "2026-09-14T05:38:28Z"
 ---
 
 # B1106 — The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red

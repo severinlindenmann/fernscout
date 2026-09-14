@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (217)
+## backlog (215)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (40)
+### issue (39)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -91,7 +91,6 @@ Do not edit them by hand; run the script.
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
-| [B1106](backlog/issue/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low |
 | [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
@@ -182,12 +181,11 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (7)
+### docs-and-skills (6)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1144](backlog/docs-and-skills/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
-| [B1462](backlog/docs-and-skills/B1462-a-dispatched-agent-reaches-for-a.md) | A dispatched agent reaches for a background verify and strands itself, and no building skill warns it | DOCS | high | low |
 | [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
 | [B1478](backlog/docs-and-skills/B1478-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B1483](backlog/docs-and-skills/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
@@ -327,7 +325,7 @@ _Nothing here._
 | --- | --- | --- | --- | --- | --- |
 | [B1693](in-development/B1693-signup-is-an-on-off-switch.md) | Signup is an on/off switch, so an instance cannot be open to a named few | FEATURE | medium | medium | `b09bcb65` |
 
-## testing (126)
+## testing (128)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -341,6 +339,7 @@ _Nothing here._
 | [B1411](testing/B1411-a-payment-abandoned-at-stripe-leaves.md) | a payment abandoned at Stripe leaves the checkout page with no way to pay again | ISSUE | high | low | — |
 | [B1442](testing/B1442-a-day-started-in-the-room.md) | A day started in the room is titled with its own date, so every surface shows an ISO date | ISSUE | high | low | — |
 | [B1448](testing/B1448-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium | — |
+| [B1462](testing/B1462-a-dispatched-agent-reaches-for-a.md) | A dispatched agent reaches for a background verify and strands itself, and no building skill warns it | DOCS | high | low | — |
 | [B1472](testing/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low | — |
 | [B1498](testing/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium | — |
 | [B1512](testing/B1512-the-sync-doors-have-never-been.md) | The sync doors have never been driven against the live instance or a real journal | OPS | high | medium | — |
@@ -444,6 +443,7 @@ _Nothing here._
 | [B1684](testing/B1684-the-demo-journal-s-lisbon-trip.md) | The demo journal's Lisbon trip names photographs that do not exist, and nothing checks that a media src resolves | ISSUE | medium | low | — |
 | [B1686](testing/B1686-the-signup-wizard-holds-a-bearer.md) | The signup wizard holds a bearer token in a browser | ISSUE | medium | medium | — |
 | [B1687](testing/B1687-the-publish-route-sends-the-day.md) | The publish route sends the day letter with no channel claim, so two concurrent publishes mail it twice | ISSUE | medium | low | — |
+| [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
 | [B1413](testing/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low | — |
 | [B1435](testing/B1435-day-media-s-two-phase-original.md) | day/media's two-phase original upload may have no live caller since the wizard retired | ISSUE | low | low | — |
 | [B1445](testing/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: skills
 found: "2026-09-11T14:17:22Z"
+merged: "2026-09-14T05:38:29Z"
 ---
 
 # B1462 — A dispatched agent reaches for a background verify and strands itself, and no building skill warns it
