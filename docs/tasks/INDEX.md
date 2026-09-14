@@ -315,15 +315,15 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (1)
-
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B1541](open/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
-
-## in-development (0)
+## open (0)
 
 _Nothing here._
+
+## in-development (1)
+
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1541](in-development/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high | — |
 
 ## testing (121)
 

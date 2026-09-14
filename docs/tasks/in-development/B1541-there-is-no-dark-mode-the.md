@@ -6,6 +6,7 @@ priority: medium
 complexity: high
 area: UI / theming
 found: "2026-09-11T21:02:39Z"
+started: "2026-09-14T04:55:54Z"
 ---
 
 # B1541 — There is no dark mode; the whole app is cream and yellow at 2am
@@ -35,6 +36,17 @@ palette, and there is no site-wide theme preference. The one dark treatment is
 the room-scoped `.fs-room-dark` exception driven by `fs.agent.dark` in
 `components/HelperRoom.tsx`; it does not affect the landing page, journals,
 trips or days and is one of the conflicting controls this work replaces.
+
+**Valid — 2026-09-14.** The initial implementation is present, but five dark
+mode regressions remain. `components/GamePath.tsx` draws its full opaque
+`--color-navy-200` rail behind transparent location and date labels;
+`components/TripSwitcher.tsx` does not make the active trip's state distinct
+enough in the dark menu; and `components/LocaleSwitcher.tsx` uses a
+`yellow-950` check that is too quiet against the dark menu. `components/Pricing.tsx`
+uses a translucent `yellow-300/60` gift callout, which muddies the intended
+highlight on the dark surface. Finally, the landing chrome beside
+`LocaleSwitcher` offers no compact appearance control, leaving the only
+explicit chooser buried on `/me`. The supplied captures show each regression.
 
 ## Work
 
