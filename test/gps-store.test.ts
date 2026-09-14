@@ -220,7 +220,6 @@ describe("the rules that keep it private", () => {
     for (const refused of [
       "gps/2026-06.jsonl",
       "gps/exclude.json",
-      "trips/algarve/originals/01.jpg",
       "trips/algarve/track.json",
       // Shouted, because the filesystem under this is usually
       // case-insensitive: on APFS these resolve to the real files, so a
@@ -228,8 +227,6 @@ describe("the rules that keep it private", () => {
       // serve them to anybody who asked in capitals.
       "GPS/2026-06.jsonl",
       "Gps/2026-06.jsonl",
-      "trips/algarve/ORIGINALS/01.jpg",
-      "trips/algarve/Originals/01.jpg",
       "trips/algarve/TRACK.json",
       "postcards/a.pdf",
       "photobooks/b.pdf",
@@ -246,6 +243,9 @@ describe("the rules that keep it private", () => {
       "trips/algarve/trip.md",
       "trips/algarve/entries/2026-06-22-a.md",
       "trips/algarve/media/a-day/01.jpg",
+      // In the sync since B1719 — the masters are on the server and the owner
+      // of a hosted journal has no other way to reach them.
+      "trips/algarve/originals/a-day/01.jpg",
       "trips/algarve/costs.md",
       "inbox/media/a3f1c2-sunset.jpg",
       "inbox/media/a3f1c2-sunset.jpg.meta.json",

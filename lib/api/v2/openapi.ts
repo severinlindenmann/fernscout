@@ -491,9 +491,6 @@ const syncManifestEntry = z.strictObject({ path: z.string(), size: z.number().in
 const syncManifest = z.strictObject({
   user: z.string(),
   files: z.array(syncManifestEntry),
-  omitted: z.strictObject({
-    originals: z.strictObject({ files: z.number().int().nonnegative(), bytes: z.number().int().nonnegative() }),
-  }),
   bytes: z.number().int().nonnegative(),
   next: z.string(),
 });
@@ -765,7 +762,11 @@ function buildPaths(): Record<string, PathItem> {
   const hiddenNotFound = () => ref("not_found", 404, "the same refusal whether the journal is unknown, the token is for a different one, or it is merely trip-scoped");
   paths["/api/v2/{user}/sync/manifest"] = {
     get: {
-      summary: "Every file this journal's folder holds, with a hash — the up-to-date check for a local mirror. Owner only.",
+      summary:
+        "Every file this journal's folder holds, with a hash — the up-to-date check for a local " +
+        "mirror, and a complete one: the full-resolution originals are included, so a first pull " +
+        "is large and a later one carries only what the hashes say changed. This journal's " +
+        "position history is in no manifest and behind no route. Owner only.",
       responses: { ...jsonResponse(200, syncManifest, "path, size and hash of every syncable file"), ...refusalResponses([...authRefusals, hiddenNotFound()]) },
     },
   };

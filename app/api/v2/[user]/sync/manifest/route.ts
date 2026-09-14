@@ -30,13 +30,10 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
     ...manifest,
     bytes,
     next:
-      manifest.omitted.originals.files > 0
-        ? `${manifest.files.length} files, ${bytes} bytes. Not included: ` +
-          `${manifest.omitted.originals.files} full-resolution originals ` +
-          `(${manifest.omitted.originals.bytes} bytes), which the site does not serve and ` +
-          "this call does not carry — back those up from the filesystem. Fetch a file with " +
-          `GET /api/v2/${user}/sync/file/<path>.`
-        : `${manifest.files.length} files, ${bytes} bytes. Fetch one with ` +
-          `GET /api/v2/${user}/sync/file/<path>.`,
+      `${manifest.files.length} files, ${bytes} bytes — the whole journal, including the ` +
+      "full-resolution originals (B1719), so a first pull is as large as the journal really " +
+      "is and a second one carries only what changed. Nothing is left out except this " +
+      "journal's position history and what this server derives for itself. Fetch a file " +
+      `with GET /api/v2/${user}/sync/file/<path>.`,
   });
 }

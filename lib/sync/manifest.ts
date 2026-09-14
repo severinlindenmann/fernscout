@@ -49,12 +49,19 @@ import { contentHash } from "../ingest/hash";
  *   `track.json`, which the server derives from a position history the client
  *   will never hold. Syncing a derived file up at the thing that derives it is
  *   a conflict waiting to happen with nothing on either side worth keeping.
- * - **`originals/`** — the full-resolution photographs a photobook prints
- *   from, an order of magnitude larger than what the site serves. This is the
- *   call `lib/exportZip.ts:152` already made for the same folder in the same
- *   words: back them up with the filesystem, not through a browser. A client
- *   is told the count and the bytes it did not fetch rather than left to
- *   assume it has everything.
+ * **`originals/` is IN, since B1719.** It was out, on the same reasoning
+ * `lib/exportZip.ts` used for the same folder — an order of magnitude larger
+ * than what the site serves, back them up with the filesystem rather than
+ * through a browser. The owner of a hosted journal has no filesystem to back
+ * them up from, so what that actually said was: the masters live on the
+ * server and nothing can read them back. A pull restored every day, every
+ * translation and every photograph at a quarter of its pixels, and reported
+ * the omission honestly enough that nobody had to notice what it cost.
+ *
+ * A first pull is now as large as the journal really is. A second one is not:
+ * an entry is `{path, size, hash}` over the whole file, so a client fetches
+ * only what changed, and `hashCache` turns an unchanged file on this side
+ * into a `stat()`.
  * - **Dotfiles, at any depth** — `.DS_Store` wherever the Finder left one,
  *   `.fingerprints/`, and the client's own `.fernscout-sync.json`, which must
  *   never be uploaded by the thing that writes it.
@@ -95,12 +102,6 @@ export type SyncManifest = {
   user: string;
   /** Every file in the sync, sorted by path so two runs compare cleanly. */
   files: ManifestEntry[];
-  /**
-   * What was deliberately left out, so a client can say so rather than
-   * quietly presenting a partial copy as a backup. `originals` is the only
-   * one with bytes worth reporting; the rest are small or derived.
-   */
-  omitted: { originals: { files: number; bytes: number } };
 };
 
 /**
@@ -192,13 +193,15 @@ export function inSync(relative: string): boolean {
   if (segments.length === 1) return relative.toLowerCase() === "config.json";
 
   // **Lowercased before every comparison**, because the filesystem under this
-  // is usually case-insensitive. On APFS a request for `ORIGINALS/01.jpg`
-  // resolves to the real `originals/01.jpg`, so a case-sensitive check here
-  // would exclude a folder from the listing and then serve it anyway to
-  // anybody who shouted. Found by the security pass on this branch's own
-  // code, which is exactly the shape a reviewer catches and a test written
-  // beside the implementation does not: the fixture spells it the way the
-  // implementation does.
+  // is usually case-insensitive. The example that made the point was
+  // `ORIGINALS/01.jpg` resolving to the real `originals/01.jpg` on APFS, back
+  // when that folder was excluded — a case-sensitive check would have left it
+  // out of the listing and served it anyway to anybody who shouted. Originals
+  // are in the sync now (B1719) and that particular example is gone, but the
+  // rule it proved is not: `POSTCARDS/` and `GPS/` are the same shape, and
+  // `gps/` is the one folder in this repository that must never be reachable.
+  // Found by a security pass rather than by a test written beside the
+  // implementation, which spells things the way the implementation does.
   //
   // The top level needs no such care to be *safe* — it is an allow-list, so
   // `GPS/` is refused for not being `trips`, `inbox` or `config.json` rather
@@ -211,7 +214,6 @@ export function inSync(relative: string): boolean {
 
   // trips/<id>/...
   if (segments.length < 3) return false;
-  if (segments[2].toLowerCase() === "originals") return false;
   if (segments.length === 3 && DERIVED_FILES.has(segments[2].toLowerCase())) return false;
   return true;
 }
@@ -252,25 +254,6 @@ export function resolveSyncPath(username: string, relative: string): string | nu
   }
 }
 
-/** What was left on the server, so the client can say so out loud. */
-function countOriginals(username: string): { files: number; bytes: number } {
-  const tripsRoot = path.join(userDir(username), "trips");
-  let files = 0;
-  let bytes = 0;
-  for (const trip of walkFiles(tripsRoot)) {
-    const relative = path.relative(tripsRoot, trip).split(path.sep);
-    if (relative[1] !== "originals") continue;
-    files += 1;
-    try {
-      bytes += fs.statSync(trip).size;
-    } catch {
-      // Vanished between the walk and the stat. Counting it as nothing is
-      // closer to true than refusing the whole manifest over one file.
-    }
-  }
-  return { files, bytes };
-}
-
 /**
  * Every file of one journal a sync carries, with its hash.
  *
@@ -294,5 +277,5 @@ export function buildManifest(username: string): SyncManifest {
   }
 
   files.sort((a, b) => a.path.localeCompare(b.path));
-  return { user: username, files, omitted: { originals: countOriginals(username) } };
+  return { user: username, files };
 }

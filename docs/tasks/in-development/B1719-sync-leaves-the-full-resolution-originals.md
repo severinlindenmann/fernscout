@@ -89,3 +89,48 @@ server into a `stat()`.
 - `gps/` is still refused, by the same function, with a test that says so.
 - The published contract no longer promises an `omitted.originals` count that
   is always zero.
+
+---
+
+## Revalidated, 2026-09-14 — valid
+
+`lib/sync/manifest.ts:214` refused any path whose third segment was
+`originals`, and `resolveSyncPath` asks the same function, so the listing and
+the file door were shut together — exactly as the ticket says.
+
+## Done, 2026-09-14
+
+One line of behaviour, as expected, and four things around it:
+
+- the `originals` refusal is gone from `inSync()`, so the manifest lists the
+  masters and `GET .../sync/file/...` serves them;
+- `omitted`/`countOriginals` are retired — from `SyncManifest`, from the
+  manifest route, and from the `syncManifest` schema that generates
+  `/api/v2/openapi.json`. Nothing left to report, and a key that is always
+  `{files: 0, bytes: 0}` is a contract promising something untrue;
+- the manifest's `next` line and the operation's summary now say a pull is the
+  whole journal, that a first one is as large as the journal really is, and
+  that a later one carries only what changed;
+- the case-sensitivity comment in `inSync` kept its rule and changed its
+  example: `ORIGINALS/01.jpg` was the case that proved it and is no longer an
+  exclusion, so it now reads on `GPS/`, which is the folder that must never be
+  reachable.
+
+Three tests inverted rather than deleted, which is the point of them:
+
+- `sync-manifest.test.ts` asserted originals were excluded *and the count
+  reported*; it now asserts the master is listed at its real size with a
+  32-character hash, and comes back byte-for-byte through the file door;
+- "a file the manifest does not list is refused, even though it is on disk"
+  used `originals/` as its example and now uses `gps/`, which is the better
+  example anyway;
+- the "shouted path" case (`ORIGINALS/01.jpg` on a case-insensitive
+  filesystem) moved to `GPS/`, keeping the guard that found it;
+- `gps-store.test.ts`'s refused/allowed lists moved `trips/*/originals/*`
+  across, so the one test that reads as the whole boundary still does.
+
+`npm run verify` — all 5 passed.
+
+**Not yet done, and it is an acceptance line:** the hashing cost measured on
+the live box, and the byte-for-byte 3000×4000 fetch against a real journal.
+Both need the deploy.
