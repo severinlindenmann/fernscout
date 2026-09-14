@@ -17,11 +17,26 @@ import { openApiDocumentV2 } from "@/lib/api/v2/openapi";
 type Operation = {
   responses?: Record<string, unknown>;
 };
+type PathParameter = {
+  name?: string;
+  in?: string;
+  required?: boolean;
+  schema?: unknown;
+  description?: string;
+};
 type Document = {
-  paths: Record<string, Record<string, Operation>>;
+  paths: Record<string, Record<string, Operation> & { parameters?: PathParameter[] }>;
 };
 
 const document = openApiDocumentV2() as unknown as Document;
+
+// B1720 added a path-item-level `parameters` key alongside the verbs — every
+// place below that walks "the operations on a path item" has to skip it, or
+// it reads as a sixth, bodyless, refusal-less, keyless verb named "parameters".
+const VERBS = new Set(["get", "post", "put", "patch", "delete"]);
+function operationEntries(methods: Record<string, Operation>): [string, Operation][] {
+  return Object.entries(methods).filter(([key]) => VERBS.has(key));
+}
 
 const VERB_RE = /export async function (GET|POST|PATCH|PUT|DELETE)\b/g;
 
@@ -70,7 +85,7 @@ describe("the v2 openapi document covers every route on disk", () => {
   test("the document names no route the filesystem does not have", () => {
     const onDiskSet = new Set(onDisk.map(({ path, verb }) => `${path} ${verb}`));
     const documented = Object.entries(document.paths).flatMap(([path, methods]) =>
-      Object.keys(methods).map((verb) => `${path} ${verb}`),
+      operationEntries(methods).map(([verb]) => `${path} ${verb}`),
     );
     const stale = documented.filter((entry) => !onDiskSet.has(entry));
     expect(stale, "documented operations with no matching route.ts export").toEqual([]);
@@ -78,7 +93,7 @@ describe("the v2 openapi document covers every route on disk", () => {
 
   test("every documented operation has at least one refusal (a response 400 or above)", () => {
     for (const [path, methods] of Object.entries(document.paths)) {
-      for (const [verb, operation] of Object.entries(methods)) {
+      for (const [verb, operation] of operationEntries(methods)) {
         const statuses = Object.keys(operation.responses ?? {}).map(Number);
         const hasRefusal = statuses.some((status) => status >= 400);
         expect(hasRefusal, `${path} ${verb} documents no refusal at all`).toBe(true);
@@ -118,7 +133,7 @@ describe("the v2 openapi document covers every route on disk", () => {
     ]);
     const strays: string[] = [];
     for (const [path, methods] of Object.entries(document.paths)) {
-      for (const [verb, operation] of Object.entries(methods)) {
+      for (const [verb, operation] of operationEntries(methods)) {
         for (const key of Object.keys(operation)) {
           if (ALLOWED.has(key) || key.startsWith("x-")) continue;
           strays.push(`${path} ${verb} — ${key}`);
@@ -150,7 +165,7 @@ describe("the v2 openapi document covers every route on disk", () => {
     ]);
     const missing: string[] = [];
     for (const [path, methods] of Object.entries(document.paths)) {
-      for (const [verb, operation] of Object.entries(methods)) {
+      for (const [verb, operation] of operationEntries(methods)) {
         if (verb === "get" || verb === "delete") continue;
         if ((operation as { requestBody?: unknown }).requestBody) continue;
         if (BODYLESS.has(`${path} ${verb}`)) continue;
@@ -177,5 +192,45 @@ describe("the v2 openapi document covers every route on disk", () => {
     const page = readFileSync(join(process.cwd(), "app/docs/api/page.tsx"), "utf8");
     expect(page).toContain("openApiDocumentV2");
     expect(page).not.toMatch(/from "@\/lib\/api\/openapi"/);
+  });
+
+  /**
+   * B1720. Every templated segment (`{user}`, `{trip}`, `{slug}`, `{id}`,
+   * `{src}`, `{path}`) was declared in the path string and nowhere else —
+   * OpenAPI 3.1 requires a `parameters` entry per hole (`in: "path"`,
+   * `required: true`, a `schema`), and there were none, so a generated
+   * client had no type, no pattern and no sentence for the values it must
+   * substitute; `npx @redocly/cli lint` counted 100 `path-parameters-defined`
+   * errors while plain JSON-Schema validation passed, because the
+   * requirement lives in the specification's prose rather than its schema.
+   * Both directions matter: a hole with no declared parameter leaves a
+   * client guessing, and a declared parameter for a hole the path does not
+   * have describes a substitution nobody can make.
+   */
+  test("every path hole has a declared parameter, and no declared parameter names a hole the path lacks", () => {
+    const missing: string[] = [];
+    const stray: string[] = [];
+    const malformed: string[] = [];
+    for (const [path, item] of Object.entries(document.paths)) {
+      const holes = new Set([...path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1]));
+      const params = item.parameters ?? [];
+      const declared = new Set(params.map((p) => p.name));
+      for (const hole of holes) {
+        if (!declared.has(hole)) missing.push(`${path} — {${hole}} has no declared parameter`);
+      }
+      for (const param of params) {
+        if (!param.name || !holes.has(param.name)) {
+          stray.push(`${path} — parameter "${param.name}" names a hole the path does not have`);
+          continue;
+        }
+        if (param.in !== "path") malformed.push(`${path} — {${param.name}} is not declared in: "path"`);
+        if (param.required !== true) malformed.push(`${path} — {${param.name}} is not declared required: true`);
+        if (!param.schema) malformed.push(`${path} — {${param.name}} has no schema`);
+        if (!param.description) malformed.push(`${path} — {${param.name}} has no description`);
+      }
+    }
+    expect(missing, "path holes with no declared parameter:\n" + missing.join("\n")).toEqual([]);
+    expect(stray, "declared parameters naming a hole the path does not have:\n" + stray.join("\n")).toEqual([]);
+    expect(malformed, "declared parameters missing in/required/schema/description:\n" + malformed.join("\n")).toEqual([]);
   });
 });
