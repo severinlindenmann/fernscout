@@ -72,7 +72,18 @@ export type InboundMessage =
       id: string;
       from: string;
       timestamp: string;
-      contacts: Array<{ name?: string; phones?: string[]; emails?: string[] }>;
+      contacts: Array<{
+        name?: string;
+        phones?: string[];
+        emails?: string[];
+        addresses?: Array<{
+          street?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+          country?: string;
+        }>;
+      }>;
     }
   | {
       kind: "interactive";
@@ -100,6 +111,15 @@ type MetaMessage = {
     name?: { formatted_name?: string };
     phones?: Array<{ wa_id?: string; phone?: string }>;
     emails?: Array<{ email?: string }>;
+    addresses?: Array<{
+      street?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+      country?: string;
+      country_code?: string;
+      type?: string;
+    }>;
   }>;
   interactive?: {
     type?: string;
@@ -166,6 +186,17 @@ function normaliseOne(m: MetaMessage): InboundMessage {
             : {}),
           ...(c.emails?.length
             ? { emails: c.emails.map((e) => e.email ?? "").filter(Boolean) }
+            : {}),
+          ...(c.addresses?.length
+            ? {
+                addresses: c.addresses.map((a) => ({
+                  ...(a.street ? { street: a.street } : {}),
+                  ...(a.city ? { city: a.city } : {}),
+                  ...(a.state ? { state: a.state } : {}),
+                  ...(a.zip ? { zip: a.zip } : {}),
+                  ...(a.country ? { country: a.country } : {}),
+                })),
+              }
             : {}),
         })),
       };

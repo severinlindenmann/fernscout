@@ -15,6 +15,17 @@ claimed: "2026-09-14T15:50:55Z"
 
 ## Why
 
+valid — confirmed by reading `lib/whatsapp/inbound.ts:99-103` (`MetaMessage.contacts`
+declared only `name.formatted_name`, `phones[]`, `emails[]`), `inbound.ts:75`
+(`InboundMessage`'s `contacts` variant, same three fields) and
+`lib/whatsapp/vcard.ts:41-48` (`toVCard` only ever emits `FN`/`TEL`/`EMAIL`).
+`handleContactCard` (`lib/whatsapp/dispatch.ts:672-688`) passes the whole
+parsed contact straight to `toVCard`, so nothing else needed to change to
+carry a new field through. `unescapeVCardValue`'s only reader
+(`app/api/helper/[user]/invite-contact/route.ts:78-79`) reads only
+`^FN:(.*)$` and `^EMAIL:(.*)$` via anchored regexes — an `ADR:` line added
+elsewhere in the file cannot be matched by either, so it is unaffected.
+
 `lib/whatsapp/inbound.ts`'s `MetaMessage.contacts` declares only
 `name.formatted_name`, `phones[]` and `emails[]`. Meta's contacts message also
 carries `addresses[]` (street, city, state, zip, country, type), `org` and

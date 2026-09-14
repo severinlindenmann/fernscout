@@ -38,11 +38,27 @@ export function unescapeVCardValue(value: string): string {
  * restructured into the standard format `storeInboxFile` can hold as
  * ordinary bytes.
  */
-export function toVCard(contact: { name?: string; phones?: string[]; emails?: string[] }): string {
+export function toVCard(contact: {
+  name?: string;
+  phones?: string[];
+  emails?: string[];
+  addresses?: Array<{ street?: string; city?: string; state?: string; zip?: string; country?: string }>;
+}): string {
   const lines = ["BEGIN:VCARD", "VERSION:3.0"];
   if (contact.name) lines.push(`FN:${escapeVCardValue(contact.name)}`);
   for (const phone of contact.phones ?? []) lines.push(`TEL:${escapeVCardValue(phone)}`);
   for (const email of contact.emails ?? []) lines.push(`EMAIL:${escapeVCardValue(email)}`);
+  // RFC 6350 §6.3.1's seven semicolon-separated components: post-office-box,
+  // extended, street, locality, region, postal-code, country. Meta's message
+  // only ever fills street/city/state/zip/country, so post-office-box and
+  // extended are always empty here. Each component goes through
+  // `escapeVCardValue` (which escapes a literal `;` inside a value) and the
+  // seven results are joined with a *literal*, unescaped `;` — that is the
+  // structural separator RFC 6350 itself defines, not a value to protect.
+  for (const a of contact.addresses ?? []) {
+    const components = ["", "", a.street ?? "", a.city ?? "", a.state ?? "", a.zip ?? "", a.country ?? ""];
+    lines.push(`ADR:${components.map(escapeVCardValue).join(";")}`);
+  }
   lines.push("END:VCARD");
   return lines.join("\n") + "\n";
 }
