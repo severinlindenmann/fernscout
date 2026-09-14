@@ -1,19 +1,48 @@
 ---
 id: B1733
-title: owner.email is patchable with an owner token and no proof of the new address, and it is the address that mints owner tokens
-type: SECURITY
+title: There is no way to hand a journal to another address, because owner.email is immutable and nothing can prove a new one
+type: FEATURE
 priority: medium
 complexity: medium
 area: auth, journal document
 found: "2026-09-14T12:03:19Z"
 started: "2026-09-14T13:14:48Z"
-session: 3309c078-d934-4ee7-ad04-6cd719fc543a
-claimed: "2026-09-14T13:14:48Z"
+merged: "2026-09-14T15:57:21Z"
 ---
 
 # B1733 — owner.email is patchable with an owner token and no proof of the new address, and it is the address that mints owner tokens
 
-## Why
+## The premise of this ticket was wrong — corrected 2026-09-14
+
+**`owner.email` was never patchable.** `JOURNAL_IMMUTABLE_FIELDS`
+(lib/api/v2/write.ts) has refused any changed value since before this ticket
+existed, and the live instance says so in its own words:
+
+```
+$ curl -X PATCH 'https://fernscout.ch/api/v2/test-freshagent?dryRun=true' \
+       -d '{"owner":{"name":"Agent","nickname":"Agent","email":"attacker@example.test"}}'
+{"error":"invalid_request","message":"owner.email is not writable. It is the address
+ that decides who can get a token for this journal, so a token can never move it.
+ Send it back exactly as GET returned it, or leave owner out of the patch."}
+HTTP 400
+```
+
+I filed this as a SECURITY finding on an inference — `owner` appears in
+`journalPatch`'s properties, so I concluded the field inside it was writable —
+and stated it to the owner as fact. An external audit reached the same
+conclusion and asked for it to be confirmed rather than assumed; neither of us
+confirmed it. One call would have.
+
+The agent that built this revalidated first and found the same thing, which is
+the only reason it was caught before merge.
+
+**What is real, and what this ticket now is:** a self-hoster who genuinely
+changes address cannot move their journal to it at all, short of editing
+`config.json` on the box by hand. The owner's decision stands — make the
+handoff possible, and make it provable, the way `tel` is. That is a FEATURE,
+and the type has been corrected.
+
+## Why (as originally filed — read the correction above first)
 
 Raised by an audit of `config.json` round-tripping, which asked the question
 rather than assuming the answer: **should changing the address that can mint

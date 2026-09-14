@@ -309,17 +309,16 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (5)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1736](in-development/B1736-a-press-from-whatsapp-says-here.md) | A press from WhatsApp says Here is the link and sends no link | ISSUE | high | low | `47321abb` |
 | [B1737](in-development/B1737-a-shared-contact-card-is-saved.md) | A shared contact card is saved and then denied - nothing tells the model it is waiting | ISSUE | high | medium | `47321abb` |
-| [B1733](in-development/B1733-owner-email-is-patchable-with-an.md) | owner.email is patchable with an owner token and no proof of the new address, and it is the address that mints owner tokens | SECURITY | medium | medium | `3309c078` |
 | [B1734](in-development/B1734-the-v2-contract-documents-no-way.md) | The v2 contract documents no way to sign in, so /openapi.json cannot be retired | ISSUE | medium | medium | `3309c078` |
 | [B1738](in-development/B1738-a-shared-contact-card-s-postal.md) | A shared contact card's postal address is dropped by the inbound parser | ISSUE | medium | low | `47321abb` |
 
-## testing (177)
+## testing (178)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -471,6 +470,7 @@ _Nothing here._
 | [B1728](testing/B1728-the-back-arrow-means-two-different.md) | The back arrow means two different things and the reader cannot tell which | ISSUE | medium | medium | — |
 | [B1730](testing/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low | — |
 | [B1731](testing/B1731-two-route-files-tell-a-caller.md) | Two route files tell a caller to POST /api/v1/{user}/import, and the dead-route guard skips every string in a route file | ISSUE | medium | low | — |
+| [B1733](testing/B1733-owner-email-is-patchable-with-an.md) | There is no way to hand a journal to another address, because owner.email is immutable and nothing can prove a new one | FEATURE | medium | medium | — |
 | [B1735](testing/B1735-the-visibility-explainer-shows-a-public.md) | The visibility explainer shows a Public badge on a Guests trip, and its ? sits below the badge | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
