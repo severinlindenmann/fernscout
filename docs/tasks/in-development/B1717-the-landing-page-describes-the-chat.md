@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: landing
 found: "2026-09-14T10:10:00Z"
+started: "2026-09-14T09:36:19Z"
+session: 68f03fd3-84f8-42b3-b482-61bfc4440340
+claimed: "2026-09-14T09:36:19Z"
 ---
 
 # B1717 — The landing page describes the chat, the postcard and the book instead of showing them
