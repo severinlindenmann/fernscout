@@ -48,3 +48,32 @@ Whichever is chosen, record it as a delta row in
 - No retired field appears in it.
 - A test walks the document's route strings and asserts each resolves to a
   route file on disk.
+
+
+---
+
+## Done, 2026-09-14 — doors kept, and the reason is recorded as D22
+
+The plan's checklist said delete the `doors` section. It is kept, because
+**B1577 made it load-bearing after that checklist was written**:
+`test/content-model-doors.test.ts` is a two-way gate — add a key without saying
+which call writes it and it is red, name a door for a key the file does not
+have and it is red the other way. It exists because the same failure happened
+twice a year apart (B1518, B1569): a field accepted by a client's local check,
+never sent, and reported to the person as a success. Nothing in v2 replaces it,
+because the gate is about a client in another repository rather than this
+server's own schemas.
+
+So every door is repointed at its v2 route instead, and `tracks` — retired — is
+dropped from the trip's model. `docs/v2-migration/06-contract-deltas.md` D22
+carries the table and the argument.
+
+Verified live: `curl -s https://fernscout.ch/content-model.json` names no
+`/api/v1` route.
+
+**What is not fixed is larger than what is, and it is B1700.** The document
+still describes v1's *content model*: `trip.md`, `costs.md`, `plan.md`,
+"the prose under the frontmatter", `start`/`end` where a trip carries `dates`,
+`startLocation` and `features` on a config that has neither — and no `declined`
+at all, on an instance where that key is the contract. Repointing the doors
+stops it sending an agent to a 404; it does not make the document true.

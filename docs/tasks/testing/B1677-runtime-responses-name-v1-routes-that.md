@@ -53,3 +53,39 @@ code came from and is correct as history.
 
 - Every route path named in a v2 response resolves to a route file on disk.
 - A test enforces it.
+
+
+---
+
+## Done, 2026-09-14
+
+Every caller-facing `/api/v1` string repointed, and
+`test/no-dead-route-in-copy.test.ts` walks `lib/` and `app/` for route paths
+with no file behind them. Comment lines are excluded (a module comment naming
+the route its code used to be is correct as history); so is a path written
+after `moved from` or `was`, which is the one narrow way to name a dead door in
+a string on purpose.
+
+Two things the sweep turned up that the ticket had not:
+
+- **Eight orphaned schemas in `lib/api/openapi.ts`** — declared in
+  `components.schemas`, referenced by no operation — so `/openapi.json`
+  published request shapes nothing would accept. Deleted, with four enum
+  assertions that guarded them: those existed because the file hand-copied a
+  list the validator owned, and v2 writes `z.enum(TRANSPORT_MODES)` and
+  generates its document from that schema, so there is no second copy to drift.
+- **`lib/validate/body.ts` is dead.** B535 built it because a route read the
+  keys it knew and dropped the rest silently; v2's `strictObject` refuses an
+  unknown key by construction, and nothing but the module's own test had
+  imported it since. Deleted. The one thing it did that v2 does not is suggest
+  the near miss (`transport_mode` → `transportMode`), which is now B1703 rather
+  than a loss nobody wrote down.
+
+On `draftQueue` (`lib/api/status.ts`), which the ticket asked about: it stays.
+It is reached only from a test, but that test pins B134 — `test` inherited from
+the trip, so invented content cannot be reported as something somebody lived —
+and v2's status does not carry the flag yet. That is B1620. Its URL is
+repointed; deleting the function would delete the only guard for the property.
+
+Verified live: `/content-model.json` contains no `/api/v1` string, and
+`/openapi.json` publishes four schemas, all referenced.
