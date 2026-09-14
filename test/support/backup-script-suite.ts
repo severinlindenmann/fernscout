@@ -210,7 +210,7 @@ const isGeneratedOutput = (rel: string) => {
 };
 
 /**
- * The 37 cases in source order, divided where their fixture state is truly
+ * The 39 cases in source order, divided where their fixture state is truly
  * isolated. Each wrapper registers every title but runs only its group, so
  * Vitest schedules five independent restic repositories in parallel without
  * making tests inside one shared repository concurrent. B1665.
@@ -219,6 +219,7 @@ const TEST_GROUPS: BackupScriptGroup[] = [
   "content", "content", "content", "content", "content",
   "database", "database", "database",
   "repository", "repository", "repository", "repository", "repository", "repository", "repository",
+  "repository", "repository",
   "monitoring", "monitoring", "monitoring", "monitoring", "monitoring", "monitoring", "monitoring",
   "monitoring", "monitoring", "monitoring", "monitoring",
   "recovery", "recovery", "recovery", "recovery",
@@ -871,6 +872,64 @@ export function registerBackupScriptTests(group: BackupScriptGroup): void {
       } finally {
         fs.chmodSync(unreadable, 0o700);
       }
+    },
+    180_000,
+  );
+
+  // B1706. Both of these are the live failure of 2026-09-14T01:32:11Z, which
+  // cost one night: a lock in `locks/` that the service user could not read
+  // refused the whole repository, and the script's own advice — `restic
+  // unlock` — could not clear it, because unlock has to read a lock to judge
+  // it stale. chmod is advisory to root, so an unreadable lock is readable
+  // there and both cases would pass vacuously.
+  nextTest(!IS_ROOT)(
+    "a stale lock this user cannot read is cleared by the run itself, not by a person",
+    () => {
+      const withLock = path.join(scratch, "restic-repo-stale-lock");
+      fs.cpSync(repo, withLock, { recursive: true });
+      const lock = path.join(withLock, "locks", "a".repeat(64));
+      fs.mkdirSync(path.dirname(lock), { recursive: true });
+      fs.writeFileSync(lock, "not readable, and not parseable either");
+      fs.chmodSync(lock, 0o000);
+      // Older than restic's own 30-minute staleness threshold, so nothing can
+      // still be holding it.
+      const longAgo = new Date(Date.now() - 90 * 60 * 1000);
+      fs.utimesSync(lock, longAgo, longAgo);
+
+      const run = runBackup({ RESTIC_REPOSITORY: withLock });
+
+      expect(run.status, "a stale lock must not cost a night of backups").toBe(0);
+      expect(run.stdout).toContain("clearing an unreadable stale lock");
+      expect(fs.existsSync(lock), "the lock must actually be gone").toBe(false);
+      // And it got all the way through, rather than merely past the sweep.
+      expect(run.stdout).toContain("repository is there and readable");
+      expect(snapshotCount(withLock)).toBeGreaterThan(0);
+    },
+    180_000,
+  );
+
+  nextTest(!IS_ROOT)(
+    "a lock this user cannot read but which is still being refreshed is left alone",
+    () => {
+      // The other half: removing a lock something is genuinely holding would
+      // let two writers into one repository. Recent means possibly live, and
+      // possibly live means stop and say so.
+      const withLock = path.join(scratch, "restic-repo-live-lock");
+      fs.cpSync(repo, withLock, { recursive: true });
+      const lock = path.join(withLock, "locks", "b".repeat(64));
+      fs.mkdirSync(path.dirname(lock), { recursive: true });
+      fs.writeFileSync(lock, "held by somebody else, right now");
+      fs.chmodSync(lock, 0o000);
+
+      const run = runBackup({ RESTIC_REPOSITORY: withLock });
+
+      expect(run.status, "a possibly-live lock must fail the run").not.toBe(0);
+      expect(run.stdout).toContain("cannot be read by this user");
+      expect(run.stdout).toContain("b".repeat(64));
+      expect(fs.existsSync(lock), "a lock that may be live must survive").toBe(true);
+      expect(run.stdout).not.toContain("clearing an unreadable stale lock");
+      expect(run.stdout).not.toContain("creating a NEW, EMPTY repository");
+      fs.chmodSync(lock, 0o600);
     },
     180_000,
   );
