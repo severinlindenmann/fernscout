@@ -121,14 +121,17 @@ async function putTrip() {
   return { status: response.status, body: (await response.json()) as Body };
 }
 
-async function putDay(overrides: Record<string, unknown>) {
+async function putDay(overrides: Record<string, unknown>, ifMatch?: string) {
   const { PUT } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/route");
   const body = fullDayBody(overrides);
   const slug = String(body.slug);
   const response = await PUT(
     new Request(`https://t.test/api/v2/${OWNER}/trips/${TRIP_ID}/days/${slug}`, {
       method: "PUT",
-      headers: headers({ authorization: `Bearer ${await token()}` }),
+      headers: headers({
+        authorization: `Bearer ${await token()}`,
+        ...(ifMatch ? { "if-match": ifMatch } : {}),
+      }),
       body: JSON.stringify(body),
     }),
     { params: Promise.resolve({ user: OWNER, trip: TRIP_ID, slug }) },
@@ -274,6 +277,68 @@ describe("v2's day route and weather (see the file comment: asked in this call, 
     const reasked = await patchDay("2026-08-26-hoi-an", { weather: true }, etag);
     expect(reasked.status, JSON.stringify(reasked.body)).toBe(200);
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * B1732 — the day the server wrote, written back.
+   *
+   * The folder a client keeps is a mirror of the instance, so the ordinary
+   * correction is: read the day, change one field, send it back. What comes
+   * back from a `GET` carries the reading the server looked up, sourced
+   * `open-meteo` — a source the write shapes refuse by name, and rightly, for
+   * a caller CLAIMING it. Echoing it is not claiming it, and refusing the echo
+   * made every day the server has weather for uncorrectable: 36 of the demo
+   * journal's 44, all 47 of the first real migration's.
+   */
+  test("a day's own stored reading can be sent straight back, by PATCH and by PUT", async () => {
+    const fetchSpy = archive();
+    const created = await putDay({
+      coordinates: { lat: 15.88, lng: 108.34 },
+      weather: true,
+      declined: { ...fullDayBody().declined, coordinates: undefined, weather: undefined },
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    const stored = created.body.weather as Record<string, unknown>;
+    expect(stored, JSON.stringify(created.body)).toMatchObject({ source: "open-meteo" });
+
+    // The correction a person actually makes: the whole document back, one
+    // field different, the reading untouched.
+    const corrected = await patchDay(
+      "2026-08-26-hoi-an",
+      { content: "Erster Tag, korrigiert.", weather: stored },
+      created.etag ?? undefined,
+    );
+    expect(corrected.status, JSON.stringify(corrected.body)).toBe(200);
+    expect(corrected.body.weather).toMatchObject({ source: "open-meteo", tempMax: 31.2 });
+    // Echoing is not asking: no second lookup happened.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    const replaced = await putDay({
+      coordinates: { lat: 15.88, lng: 108.34 },
+      weather: stored,
+      content: "Erster Tag, ganz neu geschrieben.",
+      declined: { ...fullDayBody().declined, coordinates: undefined, weather: undefined },
+    }, corrected.etag ?? undefined);
+    expect(replaced.status, JSON.stringify(replaced.body)).toBe(200);
+    expect(replaced.body.weather).toMatchObject({ source: "open-meteo" });
+  });
+
+  test("but a CHANGED reading claiming the server's own source is still refused", async () => {
+    archive();
+    const created = await putDay({
+      coordinates: { lat: 15.88, lng: 108.34 },
+      weather: true,
+      declined: { ...fullDayBody().declined, coordinates: undefined, weather: undefined },
+    });
+    const stored = created.body.weather as Record<string, unknown>;
+
+    const lied = await patchDay(
+      "2026-08-26-hoi-an",
+      { weather: { ...stored, tempMax: 44.4 } },
+      created.etag ?? undefined,
+    );
+    expect(lied.status, JSON.stringify(lied.body)).toBe(400);
+    expect(JSON.stringify(lied.body)).toContain("a caller may never claim it");
   });
 
   test("declining weather is accepted even with the capability on, and still never fetches", async () => {

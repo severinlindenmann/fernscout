@@ -23,6 +23,7 @@ import { serverSite } from "@/lib/site";
 import { readTripFile, readDayFile, writeDayFile, deleteDayFile } from "@/lib/api/v2/store";
 import {
   stripMediaEcho,
+  stripWeatherEcho,
   toStoredMedia,
   dayEchoInput,
   withResolvedTest,
@@ -32,6 +33,7 @@ import {
 import type { DayFile, TripFile } from "@/lib/api/v2/documents";
 import type { Trip } from "@/lib/types";
 import { getUser } from "@/lib/users";
+import { deepEqual } from "@/lib/api/v2/write";
 import { fillDayWeatherQuietly } from "@/lib/api/weather";
 import { tripRef } from "@/lib/trips";
 
@@ -201,7 +203,19 @@ export async function PUT(request: Request, { params }: RouteCtx) {
   const dayJournal = getUser(user);
   const injectedTranslations = exemptSingleLocaleTranslations(raw, dayJournal?.locales ?? []);
 
-  const parsed = dayWrite.safeParse(raw);
+  // B1732 — a `PUT` replaces the document, so an unchanged reading cannot
+  // simply be dropped: the day would then answer nothing for `weather` and
+  // come back `422 incomplete`. It is validated with the shape that accepts
+  // what the server itself wrote instead, and only when the value is
+  // byte-for-byte what is already stored. Anything else, including a changed
+  // reading claiming the server's source, goes through `dayWrite` and is
+  // refused exactly as before.
+  const echoesStoredWeather =
+    raw.weather !== undefined &&
+    raw.weather !== true && // an instruction, not an echo — see stripWeatherEcho
+    stored !== null &&
+    deepEqual(raw.weather, stored.weather);
+  const parsed = (echoesStoredWeather ? dayMerged : dayWrite).safeParse(raw);
   if (!parsed.success) {
     const shape = dayDoc.shape as unknown as Record<string, ZodType>;
     const { incomplete, problems } = splitIssues(parsed.error, shape, DAY_DECLINABLE_FIELDS);
@@ -307,7 +321,7 @@ export async function applyDayPatch(
     return fail("invalid_request", `${ERROR_CODES.invalid_request} The body must be a JSON object.`, undefined, 400);
   }
 
-  const mediaStripped = stripMediaEcho(body.value as Record<string, unknown>);
+  const mediaStripped = stripWeatherEcho(stripMediaEcho(body.value as Record<string, unknown>), stored);
   const statusResolved = resolveStatusEcho(mediaStripped, stored.status);
   if (!statusResolved.ok) return fail("invalid_request", statusResolved.message, undefined, 400);
   const stripped = stripEchoedFields(

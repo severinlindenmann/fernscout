@@ -23,6 +23,7 @@ import { mediaKey, type PhotoVisibility } from "@/lib/photos";
 import { resolveMediaFile } from "@/lib/media";
 import type { Trip } from "@/lib/types";
 import type { DayFile, TripFile } from "./documents";
+import { deepEqual } from "./write";
 import { readDayFile, writeDayFile } from "./store";
 import type { ProblemRow } from "./incomplete";
 
@@ -39,6 +40,45 @@ type WireMediaItem = NonNullable<DayWrite["media"]>[number];
  * instead, unconditionally (these four are never trusted from the wire in
  * the first place, so there is no value to compare against stored).
  */
+/**
+ * A `weather` the caller is handing straight back, dropped — B1732.
+ *
+ * The server writes a day's weather itself when the day asks for it
+ * (`weather: true`, B1713), and what it writes carries `source: "open-meteo"`.
+ * The write shapes refuse that source by name, and rightly: a caller may not
+ * claim the server measured something. But the server then *hands that
+ * document back* on every `GET`, and the documented way to correct a day is to
+ * read it, change one field and write it back — so the ordinary
+ * read-modify-write refused with
+ * `weather.source: "this source name is the server's own — a caller may never
+ * claim it"`, on a value the caller never chose.
+ *
+ * Since the folder a client keeps is now a mirror of the instance, that is
+ * every day the server has weather for: 36 of the demo journal's 44, and all
+ * 47 of the first real migration's.
+ *
+ * **Echoing is not claiming, and changing it still is.** An unchanged value is
+ * dropped from the body — there is nothing to write — and anything else is
+ * left exactly where it was for the schema to refuse. Same reasoning as
+ * `stripMediaEcho` above; the difference is that this one must compare against
+ * what is stored, because for weather the two cases are not the same fact.
+ */
+export function stripWeatherEcho(
+  body: Record<string, unknown>,
+  stored: DayFile | null,
+): Record<string, unknown> {
+  if (body.weather === undefined || !stored) return body;
+  // `weather: true` is an INSTRUCTION, not a value being handed back — it
+  // asks this server to look the day up. A day whose lookup came back empty
+  // keeps `weather: true` stored, so treating that as an echo swallowed the
+  // one way a caller has to ask again (B1713), silently. Caught by the test
+  // that pins the retry.
+  if (body.weather === true) return body;
+  if (!deepEqual(body.weather, stored.weather)) return body;
+  const { weather: _echoed, ...rest } = body;
+  return rest;
+}
+
 export function stripMediaEcho(body: Record<string, unknown>): Record<string, unknown> {
   if (!Array.isArray(body.media)) return body;
   return {
