@@ -306,13 +306,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1705](in-development/B1705-ci-on-main-is-red-three.md) | CI on main is red: three independent breakages in the test and backup-drill jobs | ISSUE | high | low | `cbe9e605` |
+_Nothing here._
 
-## testing (151)
+## testing (152)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -392,6 +390,7 @@ _Nothing here._
 | [B1691](testing/B1691-a-full-deploy-leaves-a-root.md) | A full deploy leaves a root-owned restic lock, so every later nightly backup is refused | OPS | high | low | — |
 | [B1694](testing/B1694-api-health-reports-signup-enabled-while.md) | api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate | ISSUE | high | medium | — |
 | [B1702](testing/B1702-everything-but-fernscout-runs-as-root.md) | Everything but Fernscout runs as root on the VPS, and SSH takes passwords with nothing throttling it | OPS | high | medium | — |
+| [B1705](testing/B1705-ci-on-main-is-red-three.md) | CI on main is red: three independent breakages in the test and backup-drill jobs | ISSUE | high | low | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |

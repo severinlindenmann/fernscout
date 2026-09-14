@@ -7,8 +7,7 @@ complexity: low
 area: CI
 found: "2026-09-14T07:58:50Z"
 started: "2026-09-14T07:59:21Z"
-session: cbe9e605-52aa-4a47-affd-e1ef326bdda5
-claimed: "2026-09-14T07:59:21Z"
+merged: "2026-09-14T08:04:55Z"
 ---
 
 # B1705 — CI on main is red: three independent breakages in the test and backup-drill jobs
