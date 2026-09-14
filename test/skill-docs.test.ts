@@ -91,7 +91,7 @@ describe("the nine v2 task guides (B311, step 6 of the v2 migration)", () => {
       paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
     };
     const schema =
-      openapi.paths["/api/v2/{user}/trips/{trip}/days/{slug}"].put.request!.content!["application/json"]!.schema!;
+      openapi.paths["/api/v2/{user}/trips/{trip}/days/{slug}"].put.requestBody!.content!["application/json"]!.schema!;
     const rendered = skillDoc("add-a-day");
     for (const field of Object.keys(schema.properties ?? {})) {
       expect(rendered, `add-a-day.md should name the field \`${field}\``).toContain(`\`${field}\``);
@@ -102,7 +102,7 @@ describe("the nine v2 task guides (B311, step 6 of the v2 migration)", () => {
     const openapi = openApiDocumentV2() as unknown as {
       paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
     };
-    const schema = openapi.paths["/api/v2/{user}/trips/{trip}"].put.request!.content!["application/json"]!.schema!;
+    const schema = openapi.paths["/api/v2/{user}/trips/{trip}"].put.requestBody!.content!["application/json"]!.schema!;
     const rendered = skillDoc("add-a-trip");
     for (const field of Object.keys(schema.properties ?? {})) {
       expect(rendered, `add-a-trip.md should name the field \`${field}\``).toContain(`\`${field}\``);

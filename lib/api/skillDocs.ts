@@ -70,9 +70,9 @@ function typeOf(def: JsonSchemaField): string {
  * so this can never name a field the served contract does not. */
 function requestSchema(path: string, method: "put" | "post" | "patch"): JsonSchema {
   const openapi = openApiDocumentV2() as unknown as {
-    paths: Record<string, Record<string, { request?: { content?: { "application/json"?: { schema?: JsonSchema } } } }>>;
+    paths: Record<string, Record<string, { requestBody?: { content?: { "application/json"?: { schema?: JsonSchema } } } }>>;
   };
-  const schema = openapi.paths[path]?.[method]?.request?.content?.["application/json"]?.schema;
+  const schema = openapi.paths[path]?.[method]?.requestBody?.content?.["application/json"]?.schema;
   if (!schema) throw new Error(`skillDocs: no request schema at ${method.toUpperCase()} ${path}`);
   return schema;
 }

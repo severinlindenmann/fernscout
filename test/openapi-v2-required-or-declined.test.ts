@@ -27,7 +27,7 @@ const document = openApiDocumentV2() as unknown as {
 };
 
 function bodySchema(path: string, verb: string): Schema {
-  const schema = document.paths[path]?.[verb]?.request?.content?.["application/json"]?.schema;
+  const schema = document.paths[path]?.[verb]?.requestBody?.content?.["application/json"]?.schema;
   if (!schema) throw new Error(`no request body schema at ${verb.toUpperCase()} ${path}`);
   return schema;
 }

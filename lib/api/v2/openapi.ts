@@ -601,7 +601,7 @@ const fromPhotoResult = z.strictObject({
 
 type Operation = {
   summary: string;
-  request?: ReturnType<typeof jsonBody>;
+  requestBody?: ReturnType<typeof jsonBody>;
   responses: Record<string, unknown>;
 };
 
@@ -644,7 +644,7 @@ function buildPaths(): Record<string, PathItem> {
   paths["/api/v2/journals"] = {
     post: {
       summary: "Create a journal, spending a signup token minted by POST /api/auth/codes.",
-      request: jsonBody(journalCreate, "the new journal's document"),
+      requestBody: jsonBody(journalCreate, "the new journal's document"),
       responses: {
         ...jsonResponse(201, journalCreated, "the journal exists; a one-time sign-in link and the agent token ride along"),
         ...refusalResponses([
@@ -691,7 +691,7 @@ function buildPaths(): Record<string, PathItem> {
   paths["/api/v2/geocode"] = {
     post: {
       summary: "A place name into candidate coordinates, never a guess.",
-      request: jsonBody(geocodeRequest, "a query, and optional hints"),
+      requestBody: jsonBody(geocodeRequest, "a query, and optional hints"),
       responses: {
         ...jsonResponse(200, geocodeResponse, "a ranked shortlist, possibly empty"),
         ...refusalResponses([
@@ -716,7 +716,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     patch: {
       summary: "Merge-patch the journal document.",
-      request: jsonBody(journalPatch, "only the fields being changed"),
+      requestBody: jsonBody(journalPatch, "only the fields being changed"),
       responses: {
         ...jsonResponse(200, journalDoc, "the merged, re-validated document"),
         ...refusalResponses([
@@ -790,7 +790,7 @@ function buildPaths(): Record<string, PathItem> {
         "Import a location history (`kind: \"gps\"`, stored as read) or a phone's address book " +
         '(`kind: "contacts"`, read and reported — nothing is written until the agreed rows are ' +
         "sent to POST .../contacts/import). Send ?dryRun to preview. JSON `{kind, format?, inbox|text}`, or multipart with `file`.",
-      request: jsonBody(
+      requestBody: jsonBody(
         z.strictObject({ kind: z.enum(IMPORT_KINDS), format: z.string().optional(), inbox: z.string().optional(), text: z.string().optional() }),
         "name the kind; give the bytes as inbox, text, or (multipart only) file",
       ),
@@ -828,7 +828,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     patch: {
       summary: "Switch mail and/or WhatsApp sending on or off for this journal.",
-      request: jsonBody(channelsPatch, "at least one of mail/whatsapp"),
+      requestBody: jsonBody(channelsPatch, "at least one of mail/whatsapp"),
       responses: {
         ...jsonResponse(200, channelsDoc, "the channels as they now stand"),
         ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("capability_unavailable", 409)]),
@@ -861,7 +861,7 @@ function buildPaths(): Record<string, PathItem> {
   paths["/api/v2/{user}/owner/tel/verify"] = {
     post: {
       summary: "Start proving a number for the owner's own telephone field — sends a one-time code.",
-      request: jsonBody(ownerTelVerifyRequest, 'a telephone number with its country code, e.g. "+41 76 000 00 00"'),
+      requestBody: jsonBody(ownerTelVerifyRequest, 'a telephone number with its country code, e.g. "+41 76 000 00 00"'),
       responses: {
         ...jsonResponse(202, ownerTelVerifyStarted, "an opaque id — bring it, with the code, to `.../verify/redeem`"),
         ...refusalResponses([
@@ -878,7 +878,7 @@ function buildPaths(): Record<string, PathItem> {
   paths["/api/v2/{user}/owner/tel/verify/redeem"] = {
     post: {
       summary: "Finish proving a number — the code from `.../verify` writes owner.tel, proven, for good.",
-      request: jsonBody(ownerTelVerifyRedeem, "the id from `.../verify`, and the code the number received"),
+      requestBody: jsonBody(ownerTelVerifyRedeem, "the id from `.../verify`, and the code the number received"),
       responses: {
         ...jsonResponse(200, ownerTelDoc, "the number, now proven"),
         ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("invalid_code", 401), ref("too_many_requests", 429)]),
@@ -909,7 +909,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     put: {
       summary: "Create a trip at a client-chosen id, or replace one (with a matching If-Match).",
-      request: jsonBody(tripCreate, "the whole trip document", TRIP_DECLINABLES),
+      requestBody: jsonBody(tripCreate, "the whole trip document", TRIP_DECLINABLES),
       responses: {
         ...jsonResponse(201, tripCreatedFirst, "created — carries `next` when this is the journal's first trip"),
         ...jsonResponse(200, tripDoc, "replaced (If-Match matched the stored ETag)"),
@@ -927,7 +927,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     patch: {
       summary: "Merge-patch a trip.",
-      request: jsonBody(tripPatch, "only the fields being changed"),
+      requestBody: jsonBody(tripPatch, "only the fields being changed"),
       responses: {
         ...jsonResponse(200, tripDoc, "the merged, re-validated document"),
         ...refusalResponses([
@@ -974,7 +974,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     put: {
       summary: "Create a day at a client-chosen slug, or replace a draft (with a matching If-Match).",
-      request: jsonBody(dayWrite, "the whole day document", DAY_DECLINABLES),
+      requestBody: jsonBody(dayWrite, "the whole day document", DAY_DECLINABLES),
       responses: {
         ...jsonResponse(201, dayCreatedFirst, "created — carries `next` when this is the trip's first day"),
         ...jsonResponse(200, dayDoc, "replaced"),
@@ -992,7 +992,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     patch: {
       summary: "Merge-patch a day. Never moves it between draft and published.",
-      request: jsonBody(dayPatch, "only the fields being changed"),
+      requestBody: jsonBody(dayPatch, "only the fields being changed"),
       responses: {
         ...jsonResponse(200, dayDoc, "the merged, re-validated document"),
         ...refusalResponses([
@@ -1021,7 +1021,7 @@ function buildPaths(): Record<string, PathItem> {
       summary:
         "Attach already-stored photographs to this day's gallery — never uploads bytes itself " +
         "(POST /api/v2/{user}/media does that first). Retracts a stale declined.media.",
-      request: jsonBody(dayMediaAttachRequest, "the srcs an earlier upload already answered with"),
+      requestBody: jsonBody(dayMediaAttachRequest, "the srcs an earlier upload already answered with"),
       responses: {
         ...jsonResponse(200, dayDoc, "the day, with the photographs attached"),
         ...refusalResponses([
@@ -1037,7 +1037,7 @@ function buildPaths(): Record<string, PathItem> {
       summary:
         "Take photographs off this day's gallery by src — the reversible half; the bytes stay " +
         "on disk (DELETE /api/v2/{user}/media removes those, and detaches from every day too).",
-      request: jsonBody(dayMediaDetachRequest, "the srcs to remove, exactly as the day carries them"),
+      requestBody: jsonBody(dayMediaDetachRequest, "the srcs to remove, exactly as the day carries them"),
       responses: {
         ...jsonResponse(200, dayDoc, "the day, with the photographs detached"),
         ...refusalResponses([
@@ -1054,7 +1054,7 @@ function buildPaths(): Record<string, PathItem> {
   paths["/api/v2/{user}/trips/{trip}/days/{slug}/publish"] = {
     post: {
       summary: "Owner only: put a draft day on the site.",
-      request: jsonBody(publishRequest, "which tracked facts to decline, and whether to send it"),
+      requestBody: jsonBody(publishRequest, "which tracked facts to decline, and whether to send it"),
       responses: {
         ...jsonResponse(200, dayPublished, "published"),
         ...jsonResponse(200, dayPublishPreview, "dryRun — nothing written"),
@@ -1089,7 +1089,7 @@ function buildPaths(): Record<string, PathItem> {
   paths["/api/v2/{user}/trips/{trip}/days/{slug}/send"] = {
     post: {
       summary: "Owner only: send (or resend) a published day by mail and/or WhatsApp. The one send door.",
-      request: jsonBody(sendRequest, "which channels to send on"),
+      requestBody: jsonBody(sendRequest, "which channels to send on"),
       responses: {
         ...jsonResponse(200, daySendResult, "per-channel send summaries"),
         ...refusalResponses([
@@ -1108,7 +1108,7 @@ function buildPaths(): Record<string, PathItem> {
   paths["/api/v2/{user}/trips/{trip}/costs/apply"] = {
     post: {
       summary: "Write agreed bank-statement rows onto the days they belong to.",
-      request: jsonBody(costsApplyRequest, "the rows a person agreed, from GET .../statements/{src}"),
+      requestBody: jsonBody(costsApplyRequest, "the rows a person agreed, from GET .../statements/{src}"),
       responses: {
         ...jsonResponse(200, costsApplyResult, "how many rows landed, and which dates had no day yet"),
         ...refusalResponses([...tripWriteRefusals, ref("invalid_costs", 400)]),
@@ -1129,7 +1129,7 @@ function buildPaths(): Record<string, PathItem> {
       summary:
         "Upload bytes: JSON `{intent, url|inbox}` fetching/resolving the bytes, or `multipart/form-data` with `file` and `intent`. " +
         `\`intent.kind\` is one of ${MEDIA_KINDS.join(", ")}.`,
-      request: jsonBody(mediaIntent, "the JSON form's `intent` field — the multipart form carries the same shape as a form field"),
+      requestBody: jsonBody(mediaIntent, "the JSON form's `intent` field — the multipart form carries the same shape as a form field"),
       responses: {
         ...jsonResponse(201, mediaItem, "stored"),
         ...refusalResponses([
@@ -1202,7 +1202,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     put: {
       summary: "Create a figure at a client-chosen id, or replace one (with a matching If-Match).",
-      request: jsonBody(figureDoc, "the whole figure document"),
+      requestBody: jsonBody(figureDoc, "the whole figure document"),
       responses: {
         ...jsonResponse(201, figureDoc, "created"),
         ...jsonResponse(200, figureDoc, "replaced"),
@@ -1274,7 +1274,7 @@ function buildPaths(): Record<string, PathItem> {
     put: {
       summary:
         "Propose buying credits at a client-chosen id. Files a pending transaction and mails the owner — grants nothing itself.",
-      request: jsonBody(purchaseCreate, "the amount of credits wanted"),
+      requestBody: jsonBody(purchaseCreate, "the amount of credits wanted"),
       responses: {
         ...jsonResponse(201, purchaseDoc, "created; mail sent"),
         ...jsonResponse(200, purchaseDoc, "the same id was already this exact amount — a no-op re-read"),
@@ -1305,7 +1305,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     post: {
       summary: "File a pending contact and mail it a confirmation link.",
-      request: jsonBody(contactCreate, "a name and an email"),
+      requestBody: jsonBody(contactCreate, "a name and an email"),
       responses: {
         ...jsonResponse(201, contactDoc, "pending"),
         ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("invalid_request", 400), ref("contact_exists", 409)]),
@@ -1315,7 +1315,7 @@ function buildPaths(): Record<string, PathItem> {
   paths["/api/v2/{user}/contacts/import"] = {
     post: {
       summary: "File many pending contacts at once, from rows a person already agreed.",
-      request: jsonBody(z.strictObject({ rows: z.array(z.record(z.string(), z.unknown())).min(1) }), "{rows: [{name, email, tel?}, ...]}"),
+      requestBody: jsonBody(z.strictObject({ rows: z.array(z.record(z.string(), z.unknown())).min(1) }), "{rows: [{name, email, tel?}, ...]}"),
       responses: {
         ...jsonResponse(200, contactImportResult, "per-row outcomes"),
         ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("invalid_request", 400)]),
@@ -1338,7 +1338,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     patch: {
       summary: "Correct a contact's name, email or locale. Never its status.",
-      request: jsonBody(contactPatch, "only the fields being changed"),
+      requestBody: jsonBody(contactPatch, "only the fields being changed"),
       responses: {
         ...jsonResponse(200, contactDoc, "the corrected contact"),
         ...refusalResponses([
@@ -1405,7 +1405,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     put: {
       summary: "Create a guest or buddy link at a client-chosen id. An invite has no update once created.",
-      request: jsonBody(inviteWrite, "the invite to create"),
+      requestBody: jsonBody(inviteWrite, "the invite to create"),
       responses: {
         ...jsonResponse(201, inviteCreated, "created — `url` is the link, present only in this response"),
         ...refusalResponses([
@@ -1465,7 +1465,7 @@ function buildPaths(): Record<string, PathItem> {
     },
     put: {
       summary: "Propose a postcard order at a client-chosen id. Charges nothing and prints nothing — the owner presses Send.",
-      request: jsonBody(postcardOrderWrite, "the whole order proposal"),
+      requestBody: jsonBody(postcardOrderWrite, "the whole order proposal"),
       responses: {
         ...jsonResponse(201, postcardOrderDoc, "proposed"),
         ...jsonResponse(200, postcardOrderDoc, "the id already exists — echoed back, nothing rewritable through this door"),
