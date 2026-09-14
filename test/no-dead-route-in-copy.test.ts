@@ -40,6 +40,21 @@ const ROOTS = ["lib", "app"];
  */
 const MENTION = /([Mm]oved from |was )?(?<![A-Za-z0-9])(\/api\/v[12]\/[A-Za-z0-9{}<>[\]_.:/-]*)/g;
 
+/**
+ * The version named on its own, with no path after it — B1716.
+ *
+ * `missing_token` survived the sweep above for a year of this test's life by
+ * saying "Every /api/v1 call needs one": a prefix in prose, not a path, so
+ * `MENTION` never matched it and `routeExists` was never asked. It is the
+ * first sentence an unauthenticated caller of *any* door reads, and it sent
+ * every one of them to a version whose write surface is gone.
+ *
+ * Only `v1`, and deliberately: `/api/v2` is the API this server serves, so a
+ * string naming it is telling the truth. There is no equivalent way to be
+ * wrong about it short of naming a door, which `MENTION` already covers.
+ */
+const BARE_V1 = /([Mm]oved from |was )?(?<![A-Za-z0-9])\/api\/v1(?![A-Za-z0-9/])/g;
+
 function sources(dir: string): string[] {
   const out: string[] = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -107,6 +122,10 @@ describe("every API route named in something a caller reads", () => {
             if (/\/route(\.ts)?$/.test(cleaned)) continue;
             if (routeExists(cleaned)) continue;
             dead.push(`${file}:${index + 1} — ${cleaned}`);
+          }
+          for (const match of flattened.matchAll(BARE_V1)) {
+            if (match[1]) continue;
+            dead.push(`${file}:${index + 1} — /api/v1, named as the API a caller should use`);
           }
         });
       }

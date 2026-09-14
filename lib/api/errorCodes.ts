@@ -29,7 +29,9 @@
  */
 export const ERROR_CODES = {
   // ── who you are, and what you may touch ────────────────────────────────
-  missing_token: "No `Authorization: Bearer` header. Every /api/v1 call needs one; get a token from /api/auth/codes and /api/auth/codes/redeem, both with `\"for\": \"write\"`.",
+  // Names no version: this refusal is returned by v1, v2 and the auth doors
+  // alike, and the one version it used to name is the one that is gone — B1716.
+  missing_token: "No `Authorization: Bearer` header. Every call to this API needs one; get a token from /api/auth/codes and /api/auth/codes/redeem, both with `\"for\": \"write\"`.",
   invalid_token: "The token is not one this server issued, or it has expired. Tokens last seven days — ask for a new one the same way.",
   out_of_scope: "The token is valid, and it belongs to a different journal or a different trip than the one in the URL. Do not retry: ask for a token for this journal.",
   forbidden: "This call is the journal owner's, and the credential is not theirs. A trip-scoped token cannot do it either.",

@@ -45,3 +45,30 @@ B1677, which is in `testing/` and whose own work landed.
   names no dead version.
 - A test fails if `/api/v1` reappears in a returned string outside the three
   surviving v1 routes.
+
+---
+
+## Revalidated, 2026-09-14 — valid
+
+`lib/api/errorCodes.ts:32` still carried the sentence, and
+`https://fernscout.ch/api/v2/example/trips` still answered with it. The reason
+B1677's guard missed it is confirmed in `test/no-dead-route-in-copy.test.ts:41`:
+`MENTION` requires `/api/v[12]/` — a trailing slash and a path after it — so a
+version named as a bare prefix in prose never reaches `routeExists`.
+
+## Done, 2026-09-14
+
+The sentence now names no version at all ("Every call to this API needs one"),
+which is the honest form: `missing_token` is returned by the surviving v1
+routes, by every v2 door and by the auth doors, so naming any one of them was
+wrong even before v1's write surface went.
+
+`BARE_V1` in the same test catches `/api/v1` with no path after it, in the same
+non-comment lines the existing scan walks, with the same `moved from` / `was`
+escape hatch for history. Only `v1`: `/api/v2` is the API this server serves,
+so a string naming it tells the truth, and a string naming a v2 *door* that
+does not exist is what `MENTION` already covers.
+
+Proved rather than assumed — with the old wording put back, the test fails with
+`lib/api/errorCodes.ts:34 — /api/v1, named as the API a caller should use`; with
+the new wording it passes.
