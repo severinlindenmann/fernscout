@@ -5,7 +5,7 @@ import type { Say } from "../../intents";
 import { ALL_TRACKED, CARD_PREFILL_TRACKS, TRACK_ROWS, UNKNOWN, missingFrom } from "../../../tracks";
 import { AS_AUTHOR, getAllEntries } from "../../../entries";
 import { DAY_ARGS, DAY_REF_ARGS, PREVIEW_CHARACTERS, TRIP_ARG } from "../args";
-import { draftsForWizard } from "../../server";
+import { draftsForWizard, lastDayForWizard } from "../../server";
 import { type CatalogueRow, searchCatalogueFor } from "../../../search";
 import { factsOfEntry } from "../../../api/entries";
 import { isWritten } from "../../draft";
@@ -148,6 +148,32 @@ export const DAYS_TOOLS: readonly Tool[] = [
           label: day.title,
           detail: day.date,
         })),
+      };
+    },
+  },
+  {
+    /**
+     * "The last day" as a person actually means it — B1266. `unfinished`
+     * above answers "what's waiting" and stays drafts-only on purpose; a
+     * person asking for their last day just as often means one already
+     * published, and until this existed the only cross-trip read that needed
+     * no trip name was that drafts-only list. This is the single most recent
+     * day in the whole journal, whichever state it is in, so the model has
+     * something honest to call when nothing else names a trip or a date.
+     */
+    name: "last_day",
+    kind: "read",
+    renders: "preview",
+    describe: "Newest day, any trip.",
+    properties: {},
+    run: async (username) => lastDayForWizard(username),
+    block: (data, say) => {
+      if (!data) return null;
+      const day = data as { date: string; title: string };
+      return {
+        shape: "preview",
+        text: say("agent.block.lastDay"),
+        lines: [day.date, day.title].filter((line) => line !== ""),
       };
     },
   },

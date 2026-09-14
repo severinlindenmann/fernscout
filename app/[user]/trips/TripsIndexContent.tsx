@@ -125,6 +125,7 @@ export type BrokenFolder = Pick<MalformedTrip, "folder" | "reason">;
  */
 const REASON_COPY: Record<MalformedTripReason, TranslationKey> = {
   "no-file": "trips.malformedNoFile",
+  "old-format": "trips.malformedOldFormat",
   unparseable: "trips.malformedUnparseable",
   "missing-id": "trips.malformedMissingId",
   "id-mismatch": "trips.malformedIdMismatch",
