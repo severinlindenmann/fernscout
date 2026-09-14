@@ -60,3 +60,20 @@ because there is a second document to require.
 - A client can sign in using `/api/v2/openapi.json` alone.
 - `/openapi.json` either 410s naming its replacement, or says in its own title
   that it is not the API's contract.
+
+## Interim half done, 2026-09-14
+
+The document now says what it is, in its own title and description:
+
+```
+title: "Fernscout — sign-in and the last v1 doors (NOT the API contract)"
+```
+
+with the description naming `/api/v2/openapi.json`, saying why the two v1
+routes survive (neither is a document: one derives a clipped public line from
+a position history no route may return, the other is the human-only half of a
+deletion), and telling a caller to require `info.version === 2` of whatever it
+caches — which is the check that would have caught B1715.
+
+The ticket stays open for the half that matters: auth belongs in the v2
+document, and until it is there this file cannot be retired.

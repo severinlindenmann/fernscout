@@ -130,21 +130,25 @@ export function openApiDocument() {
   const document = {
     openapi: "3.1.0",
     info: {
-      title: `${site.name} API`,
+      title: `${site.name} — sign-in and the last v1 doors (NOT the API contract)`,
       version: "1",
-      summary: "Read and write a travel journal.",
+      summary:
+        "How to sign in, plus the two v1 routes that outlived v1. The API itself is " +
+        "documented at /api/v2/openapi.json.",
       description:
-        "The agent is the editor here: it writes, it publishes, it corrects. " +
-        "Everything created arrives as a draft first, so the person can read it " +
-        "back; putting it on the site is a second call, POST .../days/{slug}/publish, " +
-        "and that call is not how you edit a day — PATCH the same URL as the day " +
-        "itself for that. " +
-        "Nothing that spends this instance's own model or transcription budget " +
-        "is here — drafting prose, captioning photos, transcribing audio and " +
-        "conversation search stay inside the helper at /agent and the WhatsApp " +
-        "channel, because a v1 door onto them would sell the operator's own " +
-        "Anthropic/Deepgram key in credits you did not buy for that purpose; " +
-        "bring your own model and hand this API the finished content. " +
+        `**This is not the contract for reading or writing a journal.** That is ${site.url}` +
+        "/api/v2/openapi.json, and it is generated from the schemas the routes parse with. " +
+        "This document survives for two reasons and describes nothing else: the sign-in flow " +
+        "(`/api/auth/**`, which is current — it is how every client, v2 included, gets a " +
+        "token), and the two routes the v2 migration deliberately kept, because neither is a " +
+        "document: `POST /api/v1/{user}/trips/{trip}/track` derives a clipped public line from " +
+        "a position history no route may ever return, and " +
+        "`POST /api/v1/{user}/deletions/{token}` is the second, human-only half of deleting a " +
+        "journal. " +
+        "A client that discovers this file and stops here will find no way to write a day — " +
+        "and that is the failure this title exists to prevent: a helper cached exactly this " +
+        "document, reported discovery a success, and then answered 404 on every call it made " +
+        "(B1715). Require `info.version === 2` of whatever you cache. " +
         `The prose guides are at ${site.url}/skill/*.md, indexed from ${site.url}/documentation.txt.`,
       // No SPDX identifier exists for PolyForm Shield, so this is name+url
       // rather than `identifier` — B652.
