@@ -37,8 +37,12 @@ clicked, so "ja" is an ordinary message, reaches a model that holds no
 handle on the waiting card, and the guard catches the model's attempt to
 claim it did something.
 
-An owner who has just used the WhatsApp side — where typing "ja" works — has
-been taught the wrong thing by this product's own other door.
+**Corrected by the owner, 2026-09-14:** the first draft of this ticket said
+the owner had been taught to type "ja" by the WhatsApp side. They had not —
+they did not know the typed press existed. That makes this worse, not better.
+Typing "yes" under a card that asks a yes/no question is simply what a person
+does; it needs no prior training, and the answer it gets is a flat denial that
+the card is there.
 
 ## Work
 
