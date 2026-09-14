@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: layout, fonts
 found: "2026-09-14T10:47:36Z"
+started: "2026-09-14T10:50:30Z"
+session: 7c5b9049-8b95-4498-9456-3bc0d44db73e
+claimed: "2026-09-14T10:50:30Z"
 ---
 
 # B1726 — Every page downloads two font files it never uses, and warns about it
