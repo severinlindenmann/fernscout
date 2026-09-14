@@ -18,28 +18,25 @@ vi.mock("next/headers", () => ({
  * every subsequent edit — ten corrections to a typo made ten requests to
  * open-meteo.com for edits that never came near the weather.
  *
- * That property has no v2 counterpart to repoint onto, because the
- * mechanism it protected against is not there to protect against: v2's
- * `PUT`/`PATCH .../days/{slug}` (`app/api/v2/.../days/[slug]/route.ts`)
- * calls `weatherOffRefusal` (refusing `weather: true` outright when the
- * capability is off — B1617, this migration's own finding) and nothing
- * else weather-shaped. Neither route imports or calls
- * `fillDayWeatherQuietly`/`fillDayWeather` at all — a grep of
- * `app/api/v2/` turns up zero callers. The synchronous lookup-on-write
- * B538 was about fetching too eagerly simply is not wired into the v2 REST
- * write path; `npm run weather:update`'s nightly sweep (AGENTS.md) is the
- * only place a v2-native day's weather is ever actually looked up.
+ * For a while that property had no v2 counterpart, because v2's write routes
+ * fetched nothing at all: they refused `weather: true` when the capability
+ * was off and otherwise banked it, and the only thing that ever serviced the
+ * field was a nightly sweep off the backup timer. B1713 ended that — the
+ * lookup happens in the write that asks for it — so B538's question is live
+ * again and this file is where it is answered.
  *
- * Whether that is the intended shape of v2 (kill the on-write fetch,
- * uniformly defer to the batch job — consistent with the v2 design note
- * that duplicated, ad-hoc triggers are the thing being killed) or a gap
- * nobody has filed is a question for a person, not this repoint: it is
- * called out in B1617's own "Work" section ("which other capabilities does
- * a v2 route fail to check") without naming this one specifically. What is
- * tested below is the actual, current, honest behaviour — a v2 write never
- * calls `fetch` for weather, on create or on correction — rather than
- * B538's original claim, which presupposes a fetch this route does not
- * make.
+ * The rule the tests below pin, and it is the whole of it: **a lookup happens
+ * when the caller asks in that call, and never otherwise.**
+ *
+ * - a `PUT` carrying `weather: true` fetches once, and the day comes back
+ *   with the reading in the same response;
+ * - a later `PATCH` of the prose does not fetch, even though the day still
+ *   asks — that is B538's exact complaint, and reading the *patch* rather
+ *   than the merged document is what prevents it;
+ * - a `PATCH` that itself carries `weather: true` fetches, because re-asking
+ *   is how a day whose lookup came back empty gets a second attempt now that
+ *   no sweep comes back for it;
+ * - declining weather fetches nothing, ever.
  */
 
 const OWNER = "ana";
@@ -204,11 +201,54 @@ afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("v2's day route and weather (see the file comment: B538 has no v2 counterpart)", () => {
-  test("a day asking for weather, with coordinates, is created and corrected without ever fetching", async () => {
+describe("v2's day route and weather (see the file comment: asked in this call, or not at all)", () => {
+  /** One Open-Meteo answer, and a count of how often it was asked for. */
+  function archive() {
+    return vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        daily: {
+          time: ["2026-08-26"],
+          temperature_2m_min: [18.4],
+          temperature_2m_max: [31.2],
+          weathercode: [2],
+          precipitation_sum: [0],
+          windspeed_10m_max: [9.1],
+        },
+      }),
+    } as unknown as Response);
+  }
+
+  test("a PUT that asks for weather is answered with the reading, in the same response", async () => {
+    const fetchSpy = archive();
+
+    const created = await putDay({
+      coordinates: { lat: 15.88, lng: 108.34 },
+      weather: true,
+      declined: { ...fullDayBody().declined, coordinates: undefined, weather: undefined },
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // The echo carries it, which is the point of B1713: a caller learns what
+    // happened to the field it asked about, in the answer to its own write.
+    const weather = created.body.weather as Record<string, unknown>;
+    expect(weather, JSON.stringify(created.body)).toMatchObject({ source: "open-meteo", tempMax: 31.2 });
+
+    // B538: correcting the prose afterwards asks for nothing. The day's
+    // `weather` is a reading now, and even if it were not, this patch does
+    // not mention weather.
+    const corrected = await patchDay("2026-08-26-hoi-an", { content: "Erster Tag, korrigiert." }, created.etag ?? undefined);
+    expect(corrected.status, JSON.stringify(corrected.body)).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a day the archive cannot answer for is not re-fetched by an unrelated correction, and is by asking again", async () => {
+    // No `daily` at all: `fetchDayWeather` reads this as no answer, and the
+    // day keeps a bare `weather: true`.
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
-      json: async () => ({ daily: { time: ["2026-08-26"], temperature_2m_max: [null] } }),
+      json: async () => ({}),
     } as unknown as Response);
 
     const created = await putDay({
@@ -217,12 +257,23 @@ describe("v2's day route and weather (see the file comment: B538 has no v2 count
       declined: { ...fullDayBody().declined, coordinates: undefined, weather: undefined },
     });
     expect(created.status, JSON.stringify(created.body)).toBe(201);
-    // Unlike v1's create route, v2's PUT never calls `fillDayWeatherQuietly` —
-    // asking for a lookup here is stored, not serviced.
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(created.body.weather).toBe(true);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
 
-    await patchDay("2026-08-26-hoi-an", { content: "Erster Tag, korrigiert." }, created.etag ?? undefined);
-    expect(fetchSpy).not.toHaveBeenCalled();
+    // Ten corrections to a typo, none of them about weather — B538's own
+    // scenario, and the one this file exists for.
+    let etag = created.etag ?? undefined;
+    for (let i = 0; i < 3; i += 1) {
+      const edit = await patchDay("2026-08-26-hoi-an", { content: `Erster Tag, Fassung ${i}.` }, etag);
+      expect(edit.status, JSON.stringify(edit.body)).toBe(200);
+      etag = edit.etag ?? undefined;
+    }
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // Asking again is how a caller retries, now that nothing sweeps.
+    const reasked = await patchDay("2026-08-26-hoi-an", { weather: true }, etag);
+    expect(reasked.status, JSON.stringify(reasked.body)).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
   });
 
   test("declining weather is accepted even with the capability on, and still never fetches", async () => {

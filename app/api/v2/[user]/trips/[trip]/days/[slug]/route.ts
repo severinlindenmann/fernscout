@@ -3,7 +3,7 @@
 // schema.parse -> shared domain function -> full stored-document echo, same
 // shape as the journal and trip document routes.
 import type { ZodType } from "zod";
-import { dayWrite, dayPatch, dayDoc, daySlug, DAY_DECLINABLES } from "@/lib/api/v2/schemas";
+import { dayWrite, dayMerged, dayPatch, dayDoc, daySlug, DAY_DECLINABLES } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import {
@@ -32,10 +32,48 @@ import {
 import type { DayFile, TripFile } from "@/lib/api/v2/documents";
 import type { Trip } from "@/lib/types";
 import { getUser } from "@/lib/users";
+import { fillDayWeatherQuietly } from "@/lib/api/weather";
+import { tripRef } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
 
 const DAY_DECLINABLE_FIELDS = DAY_DECLINABLES.map((d) => d.field);
+
+/**
+ * Service a `weather: true` the caller sent, and answer with the reading —
+ * B1713.
+ *
+ * `weather: true` is the one field on a day that asks this server to *do*
+ * something. v1's write routes did it; v2's did not, and the only thing that
+ * ever serviced the field was a nightly sweep off the backup timer that the
+ * owner did not know existed. A real migration wrote 47 days asking for
+ * weather and read all 47 back as a bare `true`, hours later, with nothing in
+ * the response saying anything was pending. That sweep is gone as of this
+ * ticket, and this is what replaces it.
+ *
+ * **Only when the caller asked in this call.** The PUT passes the body's own
+ * `weather`, and the PATCH passes the *patch's*, not the merged document's.
+ * A day whose lookup came back empty keeps `weather: true`, so reading the
+ * merged document instead would re-fetch on every later correction of a typo
+ * — which is B538 exactly, ten requests to open-meteo for ten edits that never
+ * came near the weather. Re-sending `weather: true` is how a caller asks
+ * again; nothing else re-asks on their behalf.
+ *
+ * Awaited, and its failure swallowed: the day is already on disk, and a third
+ * party that did not answer must not turn a written day into an error. What
+ * comes back is the day as it now stands, so the echo carries the reading.
+ */
+async function serviceWeather(
+  user: string,
+  tripId: string,
+  slug: string,
+  asked: unknown,
+  written: DayFile,
+): Promise<DayFile> {
+  if (asked !== true) return written;
+  await fillDayWeatherQuietly(tripRef(user, tripId), slug);
+  return readDayFile(user, tripId, slug) ?? written;
+}
 
 type RouteCtx = RouteContext<"/api/v2/[user]/trips/[trip]/days/[slug]">;
 
@@ -206,7 +244,13 @@ export async function PUT(request: Request, { params }: RouteCtx) {
   }
 
   writeDayFile(user, tripId, slug, toWrite);
-  const echo = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), gate.trip, toWrite));
+  // A PUT replaces the whole document, so a day that already carried a reading
+  // and is written again with `weather: true` is asking for it afresh — the
+  // caller cannot send the old reading back (a caller may never claim the
+  // server's own source), so the lookup is the only way the field gets an
+  // answer at all.
+  const day = await serviceWeather(user, tripId, slug, toWrite.weather, toWrite);
+  const echo = dayDoc.parse(withResolvedTest(dayEchoInput(day), gate.trip, day));
   // The next link in B311's chain — see the trip route's own comment. B1621.
   const echoBody = stored
     ? echo
@@ -221,7 +265,7 @@ export async function PUT(request: Request, { params }: RouteCtx) {
 
 /**
  * Merge-patch (V2). Nothing is asked beyond what the patch raises; the
- * merged document is re-validated in full (`dayWrite`) so a day that was
+ * merged document is re-validated in full (`dayMerged`) so a day that was
  * complete stays provably complete after every change.
  */
 export async function PATCH(request: Request, { params }: RouteCtx) {
@@ -319,7 +363,7 @@ export async function applyDayPatch(
   const patchJournal = getUser(user);
   const injectedTranslations = exemptSingleLocaleTranslations(merged, patchJournal?.locales ?? []);
 
-  const finalParsed = dayWrite.safeParse(merged);
+  const finalParsed = dayMerged.safeParse(merged);
   if (!finalParsed.success) {
     const shape = dayDoc.shape as unknown as Record<string, ZodType>;
     const { incomplete, problems } = splitIssues(finalParsed.error, shape, DAY_DECLINABLE_FIELDS);
@@ -358,7 +402,8 @@ export async function applyDayPatch(
   }
 
   writeDayFile(user, tripId, slug, toWrite);
-  const echo = dayDoc.parse(withResolvedTest(dayEchoInput(toWrite), trip, toWrite));
+  const day = await serviceWeather(user, tripId, slug, patch.weather, toWrite);
+  const echo = dayDoc.parse(withResolvedTest(dayEchoInput(day), trip, day));
   return ok(echo, { etag: etagFor(echo) });
 }
 

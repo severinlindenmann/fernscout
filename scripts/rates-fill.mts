@@ -6,7 +6,7 @@
  *   npm run rates:fill -- --user ana
  *   npm run rates:fill -- --dry-run
  *
- * The same shape as `npm run weather:update` (B325) — a *sweep*, never a
+ * A *sweep*, never a
  * build step. The costs page reads whatever is in `trip.md` and must succeed
  * with no network at all.
  *
@@ -18,7 +18,7 @@
  * already has a rate. Safe on a timer.
  *
  * Run through `tsx --conditions=react-server` (see package.json), for the
- * same reason `npm run weather:update` is: the modules it reaches are
+ * same reason `npm run photobook` is: the modules it reaches are
  * `server-only`.
  */
 import { fillTripRates, type RateFillOutcome } from "../lib/api/tripRates";
@@ -37,7 +37,7 @@ for (const username of getUsernames()) {
   if (wanted && username !== wanted) continue;
 
   // Said out loud rather than skipped in silence, the same reason
-  // weather:update does: "it did nothing" and "it is switched off for this
+  // the timezone backfill does: "it did nothing" and "it is switched off for this
   // journal" are two different answers somebody running this needs to tell
   // apart.
   if (!isEnabled("costs", username)) {

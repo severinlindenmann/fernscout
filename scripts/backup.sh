@@ -480,26 +480,15 @@ else
   log "WARNING: the reminder sweep failed — tonight's backup is unaffected"
 fi
 
-# --- 0c. Fill in weather for days that asked for it (B325, B1288) ----------
-# The same reasoning as the two steps above: this is the one thing on the box
-# that already runs every night, so it is where the weather lookup belongs
-# rather than a second timer nobody remembers to enable, or a fetch coupled to
-# a reader's own page load.
-#
-# `npm run weather:update` already sweeps every day in every trip with no date
-# filter, is idempotent, never overwrites a reading already on a day, and
-# leaves a day the archive cannot answer for the next run — so wiring it in
-# here IS the backfill; there is no separate script.
-#
-# Never fatal, for the same reason as the rates fetch: the lookup needs the
-# open internet, a backup does not, and a day that asked for weather simply
-# waits for tomorrow night.
-log "filling in weather for days that asked for it"
-if (cd "$APP_DIR" && npm run --silent weather:update); then
-  log "weather sweep done"
-else
-  log "WARNING: the weather sweep failed — tonight's backup is unaffected"
-fi
+# --- 0c. Weather: nothing here, deliberately (B1288, retired by B1713) -----
+# This step used to run `npm run weather:update`, a sweep over every day in
+# every journal that had asked for weather and not got it. It is gone, and so
+# is the script: the v2 day routes now look the weather up in the write itself,
+# which is where a caller asking for it can be told what happened. A nightly
+# job nobody knew about was servicing the field hours later, silently, and the
+# owner reading a day back had no way to tell "deferred until tonight" from
+# "failed". Re-sending `weather: true` is how a day whose lookup came back
+# empty asks again.
 
 # --- 1. Database dump, if this deployment has one -------------------------
 # The prototype tier (docs/ROADMAP.md §2.2) has no DATABASE_URL and Postgres is

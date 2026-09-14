@@ -15,7 +15,7 @@
 // when the v1 reader they depend on cannot see a v2-native trip (B1598) — so
 // a send requested against a v2-only day reports `attempted:false` honestly
 // rather than crashing, until that read layer is rebuilt.
-import { dayDoc, dayWrite, publishRequest, DAY_DECLINABLE_KEYS } from "@/lib/api/v2/schemas";
+import { dayDoc, dayMerged, publishRequest, DAY_DECLINABLE_KEYS } from "@/lib/api/v2/schemas";
 import { incompleteFrom, problemsFrom } from "@/lib/api/v2/incomplete";
 import { exemptSingleLocaleTranslations } from "@/lib/api/v2/write";
 import { fail, ok, readDryRun, readJson } from "@/lib/api/v2/route";
@@ -94,9 +94,15 @@ export async function POST(
   }
 
   const merged = { ...day, declined: Object.keys(declined).length > 0 ? declined : undefined, status: "draft" as const };
-  // Completeness is `dayWrite`'s own check (the `superRefine` `dayDoc` does
-  // not carry) — the media echo is stripped first, same as PATCH/PUT, since
-  // this day came off disk with server-added fields `dayWrite` refuses.
+  // Completeness is the write shape's own check (the `superRefine` `dayDoc`
+  // does not carry) — the media echo is stripped first, same as PATCH/PUT,
+  // since this day came off disk with server-added fields a write refuses.
+  // `dayMerged` rather than `dayWrite`, for the reason its own comment gives
+  // (B1713): this candidate came off disk, so its weather may be the reading
+  // the server itself fetched, and judging that by the rule against a caller
+  // claiming `open-meteo` made the check fail for a reason that is not
+  // incompleteness — which `incompleteFrom` then reported as nothing missing,
+  // so the completeness gate quietly passed every such day.
   // B1667 — same door-level exemption the write routes apply: a
   // single-locale journal has no honest answer for `translations` either
   // way, so this completeness recheck must not re-demand it here either.
@@ -104,7 +110,7 @@ export async function POST(
   // (written to disk below) never carries the synthesised value.
   const publishCandidate = stripMediaEcho({ ...merged });
   exemptSingleLocaleTranslations(publishCandidate, getUser(user)?.locales ?? []);
-  const check = dayWrite.safeParse(publishCandidate);
+  const check = dayMerged.safeParse(publishCandidate);
   if (!check.success) {
     const { missing } = incompleteFrom(
       check.error,

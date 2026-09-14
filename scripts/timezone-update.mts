@@ -13,7 +13,7 @@
  * already existed. Idempotent by construction — `fillDayTimezone` refuses a
  * day that already names a zone.
  *
- * Run through `tsx --conditions=react-server`, same reason `weather:update`
+ * Run through `tsx --conditions=react-server`, same reason `npm run photobook`
  * is: the modules it reaches are `server-only`.
  */
 import { fillDayTimezone, type TimezoneFillOutcome } from "../lib/api/timezoneBackfill";

@@ -99,3 +99,73 @@ weather when the day is written.
   weather sweep.
 - A day whose lookup returns nothing is described somewhere a caller reads,
   with the way to ask again.
+
+---
+
+## Revalidated, 2026-09-14 — valid, and worse than written
+
+Confirmed: `app/api/v2/[user]/trips/[trip]/days/[slug]/route.ts` called
+`weatherLookupRefused` on both write paths and nothing else, and
+`fillDayWeatherQuietly` had no caller under `app/api/v2/` at all.
+`test/weather-patch-refetch.test.ts` had already noticed and pinned the
+behaviour as "the actual, current, honest behaviour", explicitly leaving
+"whether that is the intended shape of v2" to a person. This ticket is that
+person's answer.
+
+**A second defect underneath it, found by the first test that asked for a
+lookup through a v2 slug.** `fillDayWeather` finds a day's file with
+`entrySlugFromFile(f) === slug`, which strips the date — so it matches
+`hoi-an` and never `2026-08-26-hoi-an`, which is exactly what a v2 route's
+slug is. Every v2-slugged day answered `unwritable`. Wiring the call in
+without this would have changed nothing at all: the fetch would have been
+skipped before it ever reached the network, silently, which is the same
+failure one layer deeper. It matches either spelling now.
+
+**And a third, which the fix made reachable.** A `PATCH` re-validates the
+merged document with `dayWrite`, whose `weather` refuses
+`source: "open-meteo"` — a caller may never claim the server's own source.
+Once the server itself starts writing that reading, the stored half of every
+later merge carries it, so correcting a typo on a day the server had looked up
+answered `400 weather.source`. `dayMerged` (lib/api/v2/schemas/day.ts) is
+`dayWrite` with the *read* reading allowed and nothing else changed; the rule
+itself is untouched, because it is enforced where a caller's own bytes are
+(`dayWrite` on create, `dayPatch` on correction). The publish route's
+completeness check had the same flaw with a quieter symptom — the parse failed
+for a reason that is not incompleteness, `incompleteFrom` found nothing
+missing, and the gate passed every such day — and now uses `dayMerged` too.
+
+## Done, 2026-09-14
+
+- `serviceWeather` in the day route, called by `PUT` and `PATCH` after the
+  write, awaited, failure swallowed, and the echo built from the day as it
+  stands afterwards — so the reading is in the response to the call that asked
+  for it.
+- **Only when the caller asked in that call**: the `PUT` passes the body's
+  `weather`, the `PATCH` passes the *patch's*, never the merged document's.
+  That is B538's property, which until now had no v2 counterpart: a day whose
+  lookup came back empty keeps `weather: true`, and reading the merged
+  document would have re-fetched on every later correction of a typo.
+- The sweep is gone: `scripts/weather-update.mts` deleted, the `weather:update`
+  script removed from `package.json`, and step 0c of `scripts/backup.sh`
+  replaced by a comment saying what used to be there and why it is not.
+- The prose that described the sweep as the mechanism: `lib/api/weather.ts`,
+  `lib/api/v2/days.ts`'s refusal, `ERROR_CODES.weather_disabled`,
+  `docs/agents/content-model.md`, the testing flow, and the incidental
+  references in `lib/entries.ts`, `scripts/rates-fill.mts` and
+  `scripts/timezone-update.mts`.
+- **What happens when the archive has no answer is now published**, in
+  `lib/api/skillDocs.ts` — the day comes back with `weather: true` and no
+  reading, that is "not yet" rather than a failure, nothing comes back for it,
+  and sending `weather: true` again is how to ask a second time.
+- `lib/api/weather` added to `LIB_API_ALLOWLIST` in
+  `test/api-v2-imports.test.ts`: a lookup that writes a file is a domain
+  function by that rule's own test (no `Request` read, no `Response` built),
+  and `lib/api/v2/days.ts` had already said so in prose.
+
+`test/weather-patch-refetch.test.ts` is rewritten around the new contract:
+a `PUT` that asks fetches once and answers with the reading; three later
+corrections fetch nothing; asking again fetches again; declining never
+fetches. `npm run verify` — all 5 passed.
+
+**Not verified yet, and it is an acceptance line:** the live round trip
+against fernscout.ch. That needs the deploy.

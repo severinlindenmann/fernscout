@@ -307,6 +307,12 @@ function addADay(): string {
       "get past a refusal — ask.",
     "**Weather has exactly two honest routes.** `weather: true` asks this server to look the " +
       "day's weather up itself, from its own `coordinates` and `date` — never guess one. " +
+      "The lookup happens inside this write, so the day it answers with already carries the " +
+      "reading. A public archive lags real time, so a day written the evening it happened " +
+      "can come back with `weather` still `true` and no reading: that is \"not yet\", not a " +
+      "failure, and nothing on this server comes back for it — send `weather: true` again " +
+      "later and it asks the archive again. A reading already on the day is never overwritten " +
+      "by asking. " +
       "`weatherData` is a reading somebody actually took: it must name a `source` and a " +
       "`recordedAt`, and `open-meteo` is refused as a source because that name means the " +
       "server looked it up.",

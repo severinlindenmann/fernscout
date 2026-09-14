@@ -101,10 +101,14 @@ B325 a day may carry `weather: true`, and the *server* looks it up — from a
 public archive, at the coordinates that day already carries, credited to the
 archive on the page. That does not soften the sentence above; it is what makes
 it survivable, because until there was a measurement, guessing was the only
-way to answer at all. `npm run weather:update` fills in every day that asked
-and has none yet, never overwrites one already there, and leaves a day the
-archive cannot answer for the next run rather than filling it with something
-plausible.
+way to answer at all. The lookup happens **in the write that asks for it** —
+the v2 day `PUT` and `PATCH` service `weather: true` before they answer, so
+the reading is in the response the caller reads (B1713). It never overwrites a
+reading already there, and it never invents one: a day the archive cannot
+answer for keeps a bare `weather: true`, and sending `weather: true` again is
+how a caller asks a second time. There is no sweep — a nightly job used to be
+the only thing that serviced the field, which meant a day written through the
+API had no weather until the next morning and nothing said so.
 
 **The second route is `weatherData`, and an agent may use it.** A reading that
 came from somewhere real — a person's own instrument, a station they run, a

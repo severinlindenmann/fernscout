@@ -13,18 +13,28 @@ import { spliceEntryFields } from "./entries";
  * Filling in a day's weather — B325, and the only place a lookup is turned
  * into a line on disk.
  *
- * Two callers and one function, which is the whole point: `POST .../days` and
- * `PATCH .../days/<slug>` call it after a write, and `npm run weather:update`
- * calls it in a sweep. A lookup that happened one way and not the other would
- * be a day whose weather depended on how it was written.
+ * One function and every caller, which is the whole point: the v2 day `PUT`
+ * and `PATCH` call it after a write (B1713), the guided helper's own day
+ * routes call it after theirs, and `/api/helper/<user>/day/weather` calls it
+ * on demand. A lookup that happened one way and not the other would be a day
+ * whose weather depended on how it was written — which is exactly what it
+ * became between the v1 routes being deleted and B1713, when only the helper
+ * looked anything up and a day written through the documented API waited for
+ * a nightly sweep nobody had been told about.
+ *
+ * **There is no sweep any more.** `npm run weather:update` and its step in
+ * `scripts/backup.sh` are gone with that ticket. A day whose lookup came back
+ * with nothing keeps `weather: true` and gets another attempt when a caller
+ * sends `weather: true` again; nothing re-asks on their behalf.
  *
  * **Nothing here throws and nothing here reports failure.** A day is saved
  * whether or not a third party answered; a missing reading is "not yet", and
- * the sweep comes back for it.
+ * asking again is the caller's to do.
  */
 
-/** Why a day was not filled. Only the sweep prints these; the routes ignore
- * them, because none of them is the caller's problem. */
+/** Why a day was not filled. `/api/helper/<user>/day/weather` turns these into
+ * a sentence for the person watching; the write routes ignore them, because
+ * none of them is a reason to fail a day that is already on disk. */
 export type FillOutcome =
   | "filled"
   /** `dryRun`: everything before the fetch said yes, and no request was made. */
@@ -46,8 +56,8 @@ export type FillOutcome =
  * - **the day did not ask** — `weather: true` is the request, and a day
  *   without it is left alone.
  * - **a reading is already recorded** — a hand-supplied one is never
- *   overwritten by a lookup, and neither is an earlier lookup. Re-running the
- *   sweep costs nothing and changes nothing.
+ *   overwritten by a lookup, and neither is an earlier lookup. Asking twice
+ *   costs nothing and changes nothing.
  * - **the day has no coordinates** — and it gets nothing. Not a guess from the
  *   trip's other days, not the nearest city, not the country. `lat`/`lng` are
  *   already all-or-nothing in the validator and this follows them.
@@ -67,7 +77,16 @@ export async function fillDayWeather(
   } catch {
     return "unwritable";
   }
-  const match = files.find((f) => entrySlugFromFile(f) === slug);
+  // Either spelling of a day's name, because the two doors that ask for a
+  // lookup disagree about it and both are right in their own vocabulary:
+  // `getAllEntries` (the helper's caller) hands over the slug with the date
+  // stripped — `hoi-an` — while a v2 route's slug IS the filename —
+  // `2026-08-26-hoi-an`. Matching only the stripped form silently answered
+  // `unwritable` for every day named the v2 way, which is half of why B1713's
+  // 47 days got nothing: even wiring the lookup into the v2 write would have
+  // found no file to write into.
+  const bare = (file: string) => file.replace(/\.json$/, "");
+  const match = files.find((f) => entrySlugFromFile(f) === slug || bare(f) === slug);
   if (!match) return "unwritable";
 
   const file = path.join(dir, match);
@@ -127,15 +146,15 @@ function writeWeather(file: string, ref: string, slug: string, reading: DayWeath
     if (spliced === null) return false;
     // Read back before it counts: a reading this software cannot parse is
     // worse than no weather, because `parseWeather` would drop it silently
-    // and the sweep would fetch it again every time it ran.
+    // and every later ask would fetch it again.
     if (!parseWeather(dayFromJson(slug, spliced).weather)) return false;
     // B643 — see `fileUnchangedSince` in lib/entries.ts. This function's own
     // read is already the last thing before this write, which is safe against
     // anything else in *this* process; it is not safe against a second
     // writer in another one — this is the ticket's own example of a second
     // writer landing on the same file mid-request. Refusing here means the
-    // day keeps whatever that other writer just wrote, and the sweep or the
-    // next request comes back for the weather instead of erasing it.
+    // day keeps whatever that other writer just wrote, and the next request
+    // that asks comes back for the weather instead of erasing it.
     if (!fileUnchangedSince(file, raw)) {
       console.warn(
         `[weather] ${ref}: "${file}" changed while a weather reading was being written — ` +
@@ -152,8 +171,8 @@ function writeWeather(file: string, ref: string, slug: string, reading: DayWeath
 }
 
 /**
- * What the two write routes call: the same lookup, with the outcome dropped
- * and every failure swallowed.
+ * What a write route calls: the same lookup, with the outcome dropped and
+ * every failure swallowed.
  *
  * Awaited by its callers rather than left floating, which is the one thing
  * worth saying about it. A detached promise in a request handler is a fetch

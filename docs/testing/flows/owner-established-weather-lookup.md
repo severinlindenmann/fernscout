@@ -1,8 +1,8 @@
 # Flow: owner-established-weather-lookup
 
 **Persona:** `owner-established` (docs/testing/personas/owner-established.md)
-**Interface:** agent (`/api/v2`), plus the `npm run weather:update` batch
-route
+**Interface:** agent (`/api/v2`) — the write itself, which is where the
+lookup happens (B1713)
 **Capabilities exercised:** `weather`
 **Device/locale:** run once at the requested viewport for the published
 day's weather line; the lookup itself has no UI of its own.
@@ -35,10 +35,11 @@ only ask for the server's own lookup, never supply an answer itself.
 3. With `features.weather` off, repeat step 1. Confirm `weather: true` is
    refused with `400 weather_disabled` and nothing is written (B778's own
    rule, generated into `/api/v2/openapi.json` from `lib/api/v2/openapi.ts`).
-4. Run `npm run weather:update` against the same journal. Confirm it fills
-   any day that asked (`weather: true`) and has no reading yet, and leaves
-   alone both a day that already has one and a day the archive cannot answer
-   for (no invented value written in either case).
+4. `PATCH` a day that already carries a reading with `weather: true` again.
+   Confirm the stored reading is left exactly as it was — a second ask never
+   overwrites an answer, whoever supplied it — and that a day the archive
+   cannot answer for keeps a bare `weather: true` rather than an invented
+   value.
 5. View the published day in a browser. Confirm the weather line renders
    with the archive's own credit line.
 
@@ -53,8 +54,8 @@ only ask for the server's own lookup, never supply an answer itself.
   guard fixed all of them").
 - `features.weather` off refuses the write with `weather_disabled` and
   changes nothing on disk (technical check).
-- `npm run weather:update` never overwrites a day that already has a
-  reading and never invents one for a day the archive cannot answer
-  (technical check, AGENTS.md's own description of the script).
+- A second `weather: true` never overwrites a reading already on the day,
+  and never invents one for a day the archive cannot answer (technical
+  check).
 - The published day's weather line renders correctly at the requested
   viewport, with its source credited (graphical check).
