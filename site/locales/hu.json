@@ -20,6 +20,7 @@
   "analytics.weatherBlurb": "Milyen volt valójában az időjárás, összegezve azokra a napokra, amelyekhez van mérés.",
   "analytics.measured": "{days} napból {measured} mérve",
   "analytics.measured.one": "{days} napból {measured} mérve",
+  "analytics.none": "Ezen az úton még nincs mit összeadni — sem kiadás, sem időjárási mérés nem került rögzítésre. Amint valamelyik meglesz, itt jelenik meg.",
   "a11y.closePhoto": "Bezárás",
   "a11y.nextPhoto": "Következő fénykép",
   "a11y.openPhoto": "Fénykép megnyitása",

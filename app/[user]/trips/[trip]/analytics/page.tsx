@@ -16,12 +16,6 @@ export function generateStaticParams() {
     const current = getCurrentTrip(user)?.id;
     return getTrips(user)
       .filter((t) => t.id !== current && t.status !== "upcoming")
-      // A trip with nothing to add up has no hub to prerender — the page
-      // below 404s for it, the same way the costs page does. B267.
-      .filter((t) => {
-        const cards = analyticsCardsFor(user, tripRef(user, t.id));
-        return cards.costs || cards.weather;
-      })
       .map((t) => ({ user, trip: t.id }));
   });
 }
@@ -32,9 +26,6 @@ export async function generateMetadata({
   const { user, trip: id } = await params;
   const trip = getTrip(tripRef(user, id));
   if (!trip) return {};
-  const cards = analyticsCardsFor(user, trip.ref);
-  // No description of a page that is not there. B165.
-  if (!cards.costs && !cards.weather) return {};
   const locale = await requestLocale();
   return {
     // The section name follows the reader; the trip's own title is the
@@ -56,8 +47,9 @@ export default async function TripAnalyticsPage({
   if (!trip) notFound();
 
   const { read, canPublish } = await readFor(trip);
+  // An empty hub says so rather than 404ing — see the sibling page under
+  // `(trip)` for why. B1709.
   const cards = analyticsCardsFor(user, trip.ref, read);
-  if (!cards.costs && !cards.weather) notFound();
   // The layout draws the gate; this stops the page from *running*.
   if (!(await mayReadTrip(trip))) return null;
   if (trip.status === "current") redirect(`/${user}/analytics`);

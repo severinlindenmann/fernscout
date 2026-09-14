@@ -54,6 +54,17 @@ export default function AnalyticsHubContent({
         </h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-secondary">{t("analytics.subtitle")}</p>
 
+        {/* Nothing measured on this trip — B1709. One sentence, no card: the
+            tab that led here is journal-wide and cannot know which trips have
+            figures, so this is a page a reader reaches by clicking a working
+            link, and it owes them the reason rather than a 404 claiming the
+            trip was taken down. */}
+        {!costs && !weather && (
+          <p className="mt-6 max-w-2xl text-base leading-6 text-ink-body">
+            {t("analytics.none")}
+          </p>
+        )}
+
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {costs && (
             <Card

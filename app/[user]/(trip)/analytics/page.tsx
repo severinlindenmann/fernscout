@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import AnalyticsHubContent from "./AnalyticsHubContent";
 import TripProvider from "@/components/TripProvider";
 import { analyticsCardsFor } from "@/lib/analytics";
@@ -27,8 +26,6 @@ export async function generateMetadata({
   const trip = getCurrentTrip(user);
   // No description of a page that is not there. B165.
   if (!trip) return {};
-  const cards = analyticsCardsFor(user, trip.ref);
-  if (!cards.costs && !cards.weather) return {};
   const locale = await requestLocale();
   return {
     title: translateIn(locale, "analytics.title"),
@@ -51,11 +48,18 @@ export default async function AnalyticsPage({ params }: PageProps<"/[user]/analy
   const { read, canPublish } = await readFor(trip);
   const cards = analyticsCardsFor(user, trip.ref, read);
   /**
-   * A hub with no cards is not an empty hub, it is a page that is not there —
-   * the same answer `/costs` gives for a journal with spending off or a trip
-   * that never wrote a costs section. Absent rather than broken. B165, B267.
+   * A hub with no cards is an empty hub, and says so — B1709.
+   *
+   * It used to `notFound()`, on the B165/B267 rule that an optional capability
+   * is absent rather than broken. The rule is right; this was the wrong place
+   * to apply it. The tab that leads here is hidden journal-wide
+   * (`analyticsAvailable`) and cannot be hidden per trip, so on a journal that
+   * measures anything at all the tab is on every trip — and the 404 it reached
+   * renders the journal's own not-found copy, *"That trip isn't here any
+   * more"*, about a trip the reader is standing on.
+   *
+   * A sentence saying nothing was measured is true. That page was not.
    */
-  if (!cards.costs && !cards.weather) notFound();
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts.
   if (!(await mayReadTrip(trip))) return null;
