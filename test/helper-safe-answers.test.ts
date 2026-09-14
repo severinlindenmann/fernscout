@@ -487,7 +487,7 @@ describe("a lapsed session says so — B807", () => {
     const refused = await read(await ask("how much storage", { authorization: "Bearer whatever" }));
     expect(refused.status).toBe(404);
     expect(refused.body.error).toBe("not_your_journal");
-    expect(String(refused.body.message)).toContain("/api/v1/<user>/");
+    expect(String(refused.body.message)).toContain("/api/v2/<user>/");
   });
 
   /**

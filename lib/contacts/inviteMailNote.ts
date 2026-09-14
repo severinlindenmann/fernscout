@@ -18,7 +18,7 @@ export function mailFailedNote(rawEmail: string, username: string): string {
   if (reason === "journal") {
     return (
       `Could not send to ${rawEmail} — this journal's own mail is switched off. Turn it ` +
-      `back on through PATCH /api/v1/${username}/config. ${suffix}`
+      `back on through PATCH /api/v2/${username}. ${suffix}`
     );
   }
   if (reason === "server") {

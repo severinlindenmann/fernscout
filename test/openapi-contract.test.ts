@@ -194,31 +194,19 @@ function sorted(values: readonly string[]): string[] {
 }
 
 describe("enums match their source", () => {
-  // Draft is the body of POST .../days; DayEdit is PATCH .../days/{slug}.
-  // Both accept transportMode, and both must offer exactly the modes
-  // checkTransportMode actually validates against — not a story an agent
-  // could not have discovered any other way, since /agent.md is prose and
-  // TRANSPORT_MODES is the only place this list is enforced.
-  test("Draft.transportMode enum equals TRANSPORT_MODES", () => {
-    const schemas = document.components?.schemas as Record<string, { properties?: Record<string, { enum?: string[] }> }>;
-    expect(sorted(schemas.Draft.properties!.transportMode.enum ?? [])).toEqual(sorted(TRANSPORT_MODES));
-  });
-
-  test("DayEdit.transportMode enum equals TRANSPORT_MODES", () => {
-    const schemas = document.components?.schemas as Record<string, { properties?: Record<string, { enum?: string[] }> }>;
-    expect(sorted(schemas.DayEdit.properties!.transportMode.enum ?? [])).toEqual(sorted(TRANSPORT_MODES));
-  });
-
-  test("Draft.travelScene enum equals TRAVEL_SCENE_VARIANTS", () => {
-    const schemas = document.components?.schemas as Record<string, { properties?: Record<string, { enum?: string[] }> }>;
-    expect(sorted(schemas.Draft.properties!.travelScene.enum ?? [])).toEqual(sorted(TRAVEL_SCENE_VARIANTS));
-  });
-
-  test("DayEdit.travelScene enum equals TRAVEL_SCENE_VARIANTS", () => {
-    const schemas = document.components?.schemas as Record<string, { properties?: Record<string, { enum?: string[] }> }>;
-    expect(sorted(schemas.DayEdit.properties!.travelScene.enum ?? [])).toEqual(sorted(TRAVEL_SCENE_VARIANTS));
-  });
-
+  // `Draft` and `DayEdit` used to be checked here, and are gone with the
+  // schemas themselves (B1677). Both described bodies of v1 day routes that
+  // no longer exist, and both were orphans in this document — declared in
+  // `components.schemas` and referenced by no operation, so /openapi.json
+  // published two request shapes nothing would accept.
+  //
+  // Nothing is left unguarded by their removal, and that is the whole reason
+  // it is safe. These assertions existed because this file hand-copied a list
+  // the validator owned, and a hand-copy can drift. v2 cannot: the day schema
+  // writes `z.enum(TRANSPORT_MODES)` and `z.enum(TRAVEL_SCENE_VARIANTS)`
+  // (`lib/api/v2/schemas/day.ts`), importing the same constants, and
+  // /api/v2/openapi.json is generated from that schema. There is no second
+  // copy to disagree with the first, which is what decision 7 was for.
   test("Cost.category enum equals COST_CATEGORIES", () => {
     const schemas = document.components?.schemas as Record<string, { properties?: Record<string, { enum?: string[] }> }>;
     expect(sorted(schemas.Cost.properties!.category.enum ?? [])).toEqual(sorted(COST_CATEGORIES));

@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     return ok({
       ok: true,
       tel: poll.phone,
-      next: "POST /api/v1/journals — the proven number is attached to this token automatically.",
+      next: "POST /api/v2/journals — the proven number is attached to this token automatically.",
     });
   }
 
@@ -93,6 +93,6 @@ export async function POST(request: Request) {
   return ok({
     ok: true,
     tel: result.phone,
-    next: "POST /api/v1/journals — the proven number is attached to this token automatically.",
+    next: "POST /api/v2/journals — the proven number is attached to this token automatically.",
   });
 }

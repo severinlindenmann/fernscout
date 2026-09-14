@@ -214,7 +214,7 @@ export async function POST(request: Request) {
             ? "This journal's own mail is switched off, so there is no way to send you the " +
               "six-digit code that redeeming a link needs — nothing was written and no code " +
               "was issued, including any code you already hold, which is still live. The " +
-              "owner can turn it back on through PATCH /api/v1/<user>/config."
+              "owner can turn it back on through PATCH /api/v2/<user>."
             : "This server cannot send the six-digit code that redeeming a link needs, so nothing " +
               "was written and no code was issued — including any code you already hold, which is " +
               "still live. The person who runs this server has to turn mail on; /api/health says " +

@@ -139,7 +139,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/auth
       "Give this to an agent. Its first call is `POST /api/auth/handover` with this as its " +
       "bearer token, which spends it and answers with a 7-day token of the agent's own. " +
       "Then `GET " +
-      `${base}/api/v1/${user}/status` +
+      `${base}/api/v2/${user}/status` +
       "` before anything else.",
   });
 }
