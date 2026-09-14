@@ -34,7 +34,8 @@
                             "/api/helper/*/inbox",
                             "/api/helper/*/day/media",
                             "/api/v1/*/import",
-                            "/api/v1/*/trips/*/travellers/from-photo"
+                            "/api/v1/*/trips/*/travellers/from-photo",
+                            "/api/probe/upload"
                           ]
                         }
                       ]
@@ -72,6 +73,7 @@
                                 "/api/helper/*/day/media",
                                 "/api/v1/*/import",
                                 "/api/v1/*/trips/*/travellers/from-photo",
+                                "/api/probe/upload",
                                 "/api/helper/*/transcribe"
                               ]
                             }
