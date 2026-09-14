@@ -36,6 +36,7 @@ Nothing here becomes part of a journal; the files are deleted after 48 hours.</p
 
 <div class="row">
   <button id="go" disabled>Upload</button>
+  <label><input id="awake" type="checkbox" checked> keep the screen awake</label>
   <span id="chosen"></span>
 </div>
 <progress id="bar" value="0" max="1" hidden></progress>
@@ -59,6 +60,7 @@ const support = {
   periodicSync: 'ServiceWorkerRegistration' in window
     && 'periodicSync' in ServiceWorkerRegistration.prototype,
   keepalive: 'keepalive' in new Request(location.href),
+  wakeLock: 'wakeLock' in navigator,
   deviceMemory: navigator.deviceMemory ?? null,
   screen: `${screen.width}x${screen.height}@${devicePixelRatio}`,
 };
@@ -71,7 +73,40 @@ const runId = (new URLSearchParams(location.search).get('run') || '')
 // around 40 MB, and a dropped connection costs that rather than the selection.
 const BATCH = 10;
 
+// Keep the screen on for the duration of an upload.
+//
+// Asked for after the 99-file run: a long upload means standing there keeping
+// the phone awake, because a sleeping screen backgrounds the tab and iOS
+// suspends a backgrounded tab's network. Whether it stalls outright is exactly
+// what question 3 still has to observe — this is so the person can choose not
+// to find out the hard way.
+//
+// The system drops the lock whenever the page is hidden and does not hand it
+// back, so it has to be re-taken on the way in. Without that it silently
+// protects only until the first interruption.
+let lock = null;
+let uploading = false;
+async function keepAwake(on) {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    if (on && !lock) {
+      lock = await navigator.wakeLock.request('screen');
+      lock.addEventListener('release', () => { lock = null; });
+      log('[wake] screen lock held');
+    } else if (!on && lock) {
+      await lock.release();
+      lock = null;
+      log('[wake] screen lock released');
+    }
+  } catch (err) {
+    // Refused (low battery, no user gesture, unsupported in this context). Not
+    // fatal — it just means the person has to keep the phone awake themselves.
+    log(`[wake] refused: ${err.message}`);
+  }
+}
+
 const pick = document.getElementById('pick');
+const awake = document.getElementById('awake');
 const go = document.getElementById('go');
 const bar = document.getElementById('bar');
 const logEl = document.getElementById('log');
@@ -86,6 +121,11 @@ function log(msg) {
 log('run ' + runId);
 log(JSON.stringify(support, null, 1));
 if (!key) log('WARNING: no ?k= token in the URL — every upload will 404.');
+if (!support.wakeLock) {
+  awake.checked = false;
+  awake.disabled = true;
+  log('No Screen Wake Lock on this browser — keep the screen on yourself.');
+}
 
 // Did the page get backgrounded mid-upload, and did the upload survive it?
 // Question 3 for the platforms with no Background Sync at all, which is the
@@ -94,6 +134,8 @@ const visibility = [];
 document.addEventListener('visibilitychange', () => {
   visibility.push({ state: document.visibilityState, at: Date.now() });
   log(`[visibility] ${document.visibilityState}`);
+  // The system drops the lock on hide and does not give it back on show.
+  if (document.visibilityState === 'visible' && uploading && awake.checked) keepAwake(true);
 });
 
 pick.addEventListener('change', () => {
@@ -141,6 +183,8 @@ async function send(batch, index) {
 go.addEventListener('click', async () => {
   const files = [...pick.files];
   go.disabled = true;
+  uploading = true;
+  if (awake.checked) await keepAwake(true);
   bar.hidden = false;
   bar.max = files.length;
   bar.value = 0;
@@ -168,6 +212,8 @@ go.addEventListener('click', async () => {
     }
     log('That failure is a finding — say what you were doing when it happened.');
   } finally {
+    uploading = false;
+    await keepAwake(false);
     go.disabled = false;
   }
 });

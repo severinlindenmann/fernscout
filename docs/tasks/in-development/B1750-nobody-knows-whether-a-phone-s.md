@@ -198,6 +198,51 @@ during this run, so nothing is known about what happens when the screen locks
 mid-upload. Outstanding, along with the standalone/PWA support matrix and any
 Android result.
 
+### Run 3, 2026-09-14, same phone — 99 unique files, all delivered
+
+63 more selected on top of the earlier 36, which were re-sent in the same page
+session: 135 deliveries, 99 distinct filenames, 15 batches. Nothing was
+refused, nothing truncated, no failed batch. 104 stills from the camera, 24
+saved from elsewhere, 7 clips. About 494 MB on disk.
+
+**The Run 2 correlation held exactly at three times the sample.** 104 of 104
+`IMG_*` camera originals carried GPS. 0 of 24 non-camera stills did. Not one
+camera original arrived without a position, and not one saved image arrived
+with one. 128 of 135 carried a capture time — the seven without are the seven
+`.mov` clips, which the probe route does not read (B1755).
+
+**Q2, the ceiling: still not found.** 99 files went through. The picker handed
+over everything selected both times.
+
+**Q2b, the bottleneck is not the network — it is iCloud.** Reported by the
+person doing the run and visible in the batch stamps: the fifteen batches span
+22:35:14 to 22:36:51, and the gaps between them are uneven in a way transfer
+size does not explain — 14s, 5s, 2s, then 15s, 10s, 9s, 23s. Photographs that
+are not on the device are fetched from iCloud while the batch is being built,
+so the wait is per-file download, not per-byte upload, and it is invisible: the
+page shows nothing during it.
+
+That is a finding B1751 has to design around rather than a problem to solve
+here. An import of three hundred old photographs — precisely the ones least
+likely to be resident on the phone — is largely spent waiting for iCloud, with
+no progress to show and an interface that looks hung. It needs its own state
+("fetching from iCloud"), and it cannot assume a file handed over by the picker
+is available immediately.
+
+**The screen has to stay on, so the page now asks to keep it on.** The other
+half of the same complaint: a long run means standing there tapping the phone,
+because a sleeping screen backgrounds the tab and iOS suspends a backgrounded
+tab's network. `public/probe.html` now takes a `navigator.wakeLock` screen lock
+for the duration of an upload, with a checkbox (on by default, disabled with an
+explanation where the API is absent). The lock is re-taken on
+`visibilitychange`, because the system drops it on hide and does not hand it
+back — without that it protects only until the first interruption. `wakeLock`
+is now in the support matrix the page reports.
+
+This does not answer Q3. Whether an upload survives being backgrounded is still
+unobserved; the wake lock is how somebody avoids finding out the hard way while
+answering Q1 and Q2.
+
 ## Work
 
 An engagement, not a diff. Run against a real iPhone and a real Android phone,
