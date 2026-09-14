@@ -6,8 +6,9 @@ priority: high
 complexity: low
 area: photos, uploads, pwa
 found: "2026-09-14T19:43:33Z"
-started: "2026-09-14T20:11:36Z"
-merged: "2026-09-14T20:18:42Z"
+started: "2026-09-14T20:37:43Z"
+session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
+claimed: "2026-09-14T20:37:43Z"
 ---
 
 # B1750 — Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background
