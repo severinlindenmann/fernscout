@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: whatsapp, helper
 found: "2026-09-14T19:41:28Z"
+started: "2026-09-14T19:42:11Z"
+session: 47321abb-ce05-46ca-8dfe-58c5b70fa908
+claimed: "2026-09-14T19:42:11Z"
 ---
 
 # B1748 — A WhatsApp-first corpus large enough to find what one person cannot

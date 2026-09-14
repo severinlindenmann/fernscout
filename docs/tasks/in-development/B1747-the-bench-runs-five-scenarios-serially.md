@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: helper, whatsapp, testing
 found: "2026-09-14T19:41:27Z"
+started: "2026-09-14T19:42:10Z"
+session: 47321abb-ce05-46ca-8dfe-58c5b70fa908
+claimed: "2026-09-14T19:42:10Z"
 ---
 
 # B1747 — The bench cannot cover the conversation or be run often
