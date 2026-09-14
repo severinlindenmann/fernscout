@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: helper room
 found: "2026-09-09T21:26:17Z"
+merged: "2026-09-14T06:15:21Z"
 ---
 
 # B1191 — Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile

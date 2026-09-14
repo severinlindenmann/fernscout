@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: docs
 found: "2026-09-11T05:28:32Z"
+merged: "2026-09-14T06:15:22Z"
 ---
 
 # B1415 — docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided

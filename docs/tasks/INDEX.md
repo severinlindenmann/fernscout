@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (208)
+## backlog (206)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (33)
+### issue (32)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -89,7 +89,6 @@ Do not edit them by hand; run the script.
 | [B1677](backlog/issue/B1677-runtime-responses-name-v1-routes-that.md) | Runtime responses name v1 routes that were deleted | ISSUE | medium | low |
 | [B1692](backlog/issue/B1692-the-sync-manifest-never-lists-content.md) | The sync manifest never lists content/<user>/figures/ | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
-| [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
 | [B1433](backlog/issue/B1433-the-main-checkout-guard-matches-a.md) | The main-checkout guard matches a path pattern, so it blocks edits in a different repository entirely | ISSUE | low | low |
@@ -173,7 +172,7 @@ Do not edit them by hand; run the script.
 | [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
 | [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (6)
+### docs-and-skills (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -182,7 +181,6 @@ Do not edit them by hand; run the script.
 | [B1478](backlog/docs-and-skills/B1478-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B1483](backlog/docs-and-skills/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
-| [B1415](backlog/docs-and-skills/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
 
 ### superseded (96)
 
@@ -316,7 +314,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (137)
+## testing (139)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -439,8 +437,10 @@ _Nothing here._
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
+| [B1191](testing/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low | — |
 | [B1266](testing/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low | — |
 | [B1413](testing/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low | — |
+| [B1415](testing/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low | — |
 | [B1426](testing/B1426-the-preview-s-istest-banner-has.md) | The preview's isTest banner has the same missing-context gap DraftNotice had | ISSUE | low | low | — |
 | [B1430](testing/B1430-a-failed-transcription-says-nothing-on.md) | A failed transcription says nothing, on the WhatsApp voice-note path | ISSUE | low | low | — |
 | [B1435](testing/B1435-day-media-s-two-phase-original.md) | day/media's two-phase original upload may have no live caller since the wizard retired | ISSUE | low | low | — |
