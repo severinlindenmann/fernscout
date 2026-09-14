@@ -146,6 +146,37 @@ export function draftsForWizard(username: string): WizardDraft[] {
 }
 
 /**
+ * The single most recently written day in this journal — draft **or
+ * published** — across every trip, or `null` when there are none — B1266.
+ *
+ * `draftsForWizard` above answers "what's waiting" and is drafts-only by
+ * design (it is the resume list). "The last day" is a different question a
+ * person actually asks, and until this existed the only cross-trip read that
+ * needed no trip name was that drafts-only list — so a person whose last day
+ * was already published got told there was nothing waiting, rather than
+ * being shown the day they meant.
+ */
+export function lastDayForWizard(username: string): WizardDraft | null {
+  let best: { tripId: string; entry: ReturnType<typeof getAllEntries>[number] } | null = null;
+  for (const trip of getTrips(username)) {
+    for (const entry of getAllEntries(trip.ref, AS_AUTHOR)) {
+      if (!best || entry.date > best.entry.date) best = { tripId: trip.id, entry };
+    }
+  }
+  if (!best) return null;
+  const { tripId, entry } = best;
+  return {
+    trip: tripId,
+    slug: entry.slug,
+    date: entry.date,
+    title: entry.title,
+    photos: entry.gallery.length,
+    written: isWritten(entry.content),
+    ...(entry.draft ? {} : { published: true as const }),
+  };
+}
+
+/**
  * One day the wizard is holding — draft **or published** (B816).
  *
  * `draftsForWizard` above is the resume list and stays drafts-only; this is

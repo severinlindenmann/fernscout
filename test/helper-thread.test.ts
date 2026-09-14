@@ -477,6 +477,9 @@ describe("the tools", () => {
       // B1042 — the keys that can write here, and this owner's own past
       // conversations (B1022).
       "keys",
+      // B1266 — "the last day" as a person means it, published or not;
+      // `unfinished` above stays drafts-only on purpose.
+      "last_day",
       "past_conversations",
       "postcard_recipients",
       "postcard_texts",
