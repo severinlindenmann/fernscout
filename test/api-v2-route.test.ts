@@ -173,6 +173,27 @@ describe("ifMatchStale", () => {
   it("a comma list containing a match is not stale", () => {
     expect(ifMatchStale(reqWithIfMatch(`"deadbeef", ${current}`), current)).toBe(false);
   });
+
+  /**
+   * B1729. Caddy's `encode` appends `-gzip` to the ETag of anything it
+   * compresses, and every client sends `accept-encoding: gzip` without being
+   * asked. So this is not an exotic case — it is what EVERY conditional write
+   * from a real program looked like, and all of them answered 409 on a
+   * document nobody had touched. The one client it did not affect was a
+   * hand-written `curl`, which is why it survived every check made by hand.
+   */
+  it.each(["gzip", "br", "zstd", "deflate"])(
+    "a tag a proxy re-labelled with -%s still matches the document it names",
+    (coding) => {
+      const relabelled = `${current.slice(0, -1)}-${coding}"`;
+      expect(ifMatchStale(reqWithIfMatch(relabelled), current)).toBe(false);
+    },
+  );
+
+  it("and a genuinely different document is still stale, suffix or not", () => {
+    const other = etagFor({ x: 2 });
+    expect(ifMatchStale(reqWithIfMatch(`${other.slice(0, -1)}-gzip"`), current)).toBe(true);
+  });
 });
 
 function reqWithQuery(query: string): Request {

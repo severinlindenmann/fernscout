@@ -106,7 +106,40 @@ export function ifMatchStale(request: Request, current: string): boolean {
   const header = request.headers.get("if-match");
   if (!header) return false;
   const tags = header.split(",").map((t) => t.trim());
-  return !tags.some((t) => t === "*" || t === current);
+  return !tags.some((t) => t === "*" || t === current || withoutProxyEncoding(t) === current);
+}
+
+/**
+ * The ETag as this server issued it, with a compressing proxy's own suffix
+ * taken back off — B1729.
+ *
+ * Caddy's `encode` (deploy/fernscout.caddy) appends `-gzip` to the ETag of
+ * anything it compresses, and every HTTP client sends `accept-encoding: gzip`
+ * without being asked — `fetch` does it by default. So the value a caller
+ * reads back is `"<hash>-gzip"`, the value this server compares against is
+ * `"<hash>"`, and **every conditional write fails**: `409 stale_document` on a
+ * document nobody else has touched, with a message that states confidently
+ * that somebody has. Since v2 made `If-Match` the only way to replace a trip,
+ * a day or a figure, that is the entire conditional-write surface. The one
+ * kind of client not affected is the one that sends no `accept-encoding`,
+ * which is a hand-written `curl` — so it looked fine in every check made by
+ * hand and failed for the first real program that tried it.
+ *
+ * **Suffix-appending is correct for `If-None-Match` and wrong for
+ * `If-Match`.** A gzipped body genuinely is a different representation, so a
+ * cache validator must distinguish them; `If-Match` on a write asks about the
+ * state of the *resource*, which no content coding changes. This is the write
+ * path, so the suffix is removed here rather than anywhere Caddy can see —
+ * which also means it is fixed for any proxy that does the same thing, not
+ * just the one in front of this instance today.
+ *
+ * Narrow on purpose: the original tag is still tried first and unmodified, so
+ * this can only ever accept a header it previously refused. Every ETag this
+ * server issues is a quoted hex hash (`etagFor`), so none of them can end in
+ * one of these names and lose a character to this.
+ */
+function withoutProxyEncoding(tag: string): string {
+  return tag.replace(/-(gzip|br|zstd|deflate|compress)("?)$/, "$2");
 }
 
 /**
