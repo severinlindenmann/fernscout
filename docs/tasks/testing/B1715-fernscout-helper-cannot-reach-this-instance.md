@@ -7,8 +7,7 @@ complexity: high
 area: fernscout-helper, migration
 found: "2026-09-14T09:23:10Z"
 started: "2026-09-14T10:51:55Z"
-session: 3309c078-d934-4ee7-ad04-6cd719fc543a
-claimed: "2026-09-14T10:51:55Z"
+merged: "2026-09-14T11:31:49Z"
 ---
 
 # B1715 — fernscout-helper cannot reach this instance at all since v2, and its own self-test reports green
@@ -168,3 +167,78 @@ never invents one. Publish refuses and names the open section instead.
 5. **the rest** — `gps-history`, `statement-costs`, `trip-budget`,
    `icloud-export`, and every `SKILL.md` and `AGENTS.md` sentence that
    describes v1.
+
+---
+
+## Done, 2026-09-14 — merged on fernscout-helper's `main` as `bd134d8`
+
+Five stages, each its own commit, −5408/+2219 lines across 38 files.
+
+**1. The contract reader.** `api.mjs` speaks `/api/v2/openapi.json` and
+`/api/v2/status`, and recognises a contract by `info.version === 2` rather than
+by it having answered — the one check that would have caught all of this. It
+reads the declinables (`x-required-or-declined`) and the limits off what the
+server just said, and it handles both `requestBody` and the old `request` key
+so it works against the instance before and after B1714. `contentModel.mjs`,
+its 761-line snapshot, `doors.mjs`, `pattern.mjs` and the three field lists are
+deleted: they mirrored the document B1700 retired, and would have fallen back
+to a stale snapshot forever.
+
+**2. publish: 969 lines → 235**, and the deletion is the fix. v1 needed to know
+which of eleven per-field doors wrote which key; v2 takes the document, so this
+decides create-or-correct and sends what is on disk. `PUT` creates, `PATCH`
+corrects with the `If-Match` from the `GET` before it, a photograph is matched
+by content hash, the ceiling comes from `/api/v2/status`, publishing stays a
+separate call, and a `422 incomplete` prints the server's own list and exits
+non-zero — never answered with an invented decline.
+
+**3. sync is a mirror again.** The routes move to v2 and the local walk stops
+excluding `originals/`, because the instance stopped (B1719) — the two rules
+agreeing is the whole basis on which the client's copy of `inSync()` is allowed
+to exist. The zero-paths-in-common problem is gone without being solved: the
+folder is the instance's own shape, so there is nothing to translate.
+
+**4. The validator asks the instance.** Every trip and day goes through
+`?dryRun=true`, which writes nothing and answers with what would have been
+accepted. That cannot drift from the rules the way `model.mjs` did and
+`/content-model.json` then did. What stays local is the half no server can
+answer: a `src` with no file, a folder no day names, a filename's date against
+the document's, two files claiming one slug, a day outside its trip.
+`selftest.mjs` now asserts that all 16 routes these skills call are in the
+published contract — proved by putting `POST /api/v1/{user}/trips` back into
+the list and watching it go red.
+
+**5. The rest.** `gps-history` and `statement-costs` stage through
+`POST .../media` with an intent and then call the v2 import, statement and
+costs-apply doors; the `track` route stays on v1 with a comment saying why (it
+is one of the three the migration kept). `trip-budget` writes JSON documents
+instead of doing YAML surgery, and `--before` now means preparation only.
+`icloud-export` writes day documents, files photographs under the whole day
+slug, and declines what a photograph cannot say. `AGENTS.md`, `README.md` and
+six `SKILL.md` files describe the instance that exists.
+
+### The owner's three decisions, all carried out
+
+The folder mirrors the instance's JSON; decline reasons are written in the
+folder and never invented; all five stages shipped in sequence.
+
+### Two things found along the way
+
+- **B1729** — Caddy appends `-gzip` to the ETag of anything it compresses, so
+  no client that accepts gzip can send a matching `If-Match`, and **every**
+  conditional write in v2 answers `409 stale_document` on a document nobody
+  touched. Found by the first client that tried to read a day and write it
+  back; the helper strips the suffix as a marked workaround until it lands.
+- **Two of my own new checks were wrong**, and real content found them: the
+  demo journal files photographs under a folder name of its own rather than the
+  day slug, and the ten-figure cap is per trip rather than per journal (the
+  demo journal holds sixteen). Both fixed before the merge.
+
+### What a person should look at
+
+- `node .claude/skills/shared/selftest.mjs` in fernscout-helper — all green,
+  including the route check.
+- `node .claude/skills/shared/convert.mjs <user>` against a real v1 folder, and
+  the report it prints: the trip-costs comparison and the rate conversion are
+  the two lines that need the owner's judgement.
+- A `--dry-run` publish of a converted journal against fernscout.ch.
