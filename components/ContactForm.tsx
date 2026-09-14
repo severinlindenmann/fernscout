@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import BusyButton from "@/components/BusyButton";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
 import {
@@ -573,13 +574,19 @@ export default function ContactForm({
           journal they have not joined yet still needs a way into it. Written
           out rather than sharing `BackToJournal`, because this form carries
           its own language picker and the link has to follow it, not the
-          cookie the rest of the site reads. */}
+          cookie the rest of the site reads.
+
+          The journal's trip list, and the journal's own name on it — B1728.
+          It used to say "Back to {title}" and point at `/<username>`, which
+          is the current trip's story rather than the journal, so the word and
+          the address disagreed about which of the two it meant. */}
       <p className="mt-12 border-t border-line-quiet pt-6 text-sm">
         <a
-          href={`/${username}`}
-          className="text-ink-secondary underline-offset-4 hover:text-ink-strong hover:underline"
+          href={`/${username}/trips`}
+          className="inline-flex items-center gap-1.5 text-ink-secondary underline-offset-4 hover:text-ink-strong hover:underline"
         >
-          ← {t("nav.toJournal", { title: journalTitle })}
+          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.4} />
+          {journalTitle}
         </a>
       </p>
     </main>

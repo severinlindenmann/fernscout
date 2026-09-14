@@ -1,6 +1,5 @@
-import BackLink from "@/components/BackLink";
+import UpLink from "@/components/UpLink";
 import { requestLocale, translateIn } from "@/lib/locales";
-import { serverSite } from "@/lib/site";
 
 /**
  * One thin frame over `/agent/<user>` and `/agent/<user>/inbox` — B697,
@@ -20,16 +19,17 @@ export default async function AgentLayout({
   children,
 }: LayoutProps<"/agent/[user]">) {
   const locale = await requestLocale();
-  const site = serverSite();
 
   return (
     <div className="min-h-full">
       <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 backdrop-blur sm:px-6">
         <div className="mx-auto max-w-3xl">
-          <BackLink
-            fallbackHref="/"
-            fallbackLabel={translateIn(locale, "docs.backToSite", { name: site.name })}
-            retraceLabel={translateIn(locale, "nav.back")}
+          {/* Up to the helper, not out to the landing page — B1728. Both
+              pages this frame covers sit under `/agent`, and that is what a
+              reader on the inbox is one level below. */}
+          <UpLink
+            href="/agent"
+            label={translateIn(locale, "nav.agent")}
             className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
                        transition-colors hover:text-ink-strong
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"

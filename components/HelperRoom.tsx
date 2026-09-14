@@ -20,7 +20,7 @@ import {
   Plus,
 } from "lucide-react";
 import AgentHandover from "@/components/AgentHandover";
-import BackLink from "@/components/BackLink";
+import UpLink from "@/components/UpLink";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import HelperAsk from "@/components/HelperAsk";
@@ -956,12 +956,16 @@ export default function HelperRoom({
         </div>
       )}
       <header className="flex items-center gap-2 border-b border-line-quiet bg-surface-raised px-2 py-2">
-        {/* "Zurück" moves here — a chevron before the journal name rather
-            than its own bar above the whole page — B1121. */}
-        <BackLink
-          fallbackHref="/"
-          fallbackLabel={t("nav.back")}
-          retraceLabel={t("nav.back")}
+        {/* One step up, as a chevron before the journal name rather than its
+            own bar above the whole page — B1121. Icon-only is right *here*
+            and nowhere else: this is application chrome on a full-height
+            conversation, and the word would push the journal switcher beside
+            it off a phone. The accessible name still says where it goes —
+            B1728, which took the unlabelled arrow out of the reader-facing
+            header for the opposite reason. */}
+        <UpLink
+          href="/"
+          label={t("nav.myJournals")}
           showLabel={false}
           iconClassName="h-5 w-5"
           className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-ink-body transition-colors hover:bg-surface-neutral hover:text-ink-strong"

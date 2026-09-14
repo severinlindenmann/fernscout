@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Bot, FileText, Menu, X } from "lucide-react";
-import BackLink from "./BackLink";
+import UpLink from "./UpLink";
+import UpTrail from "./UpTrail";
+import { useUpCrumbs } from "./useUpCrumbs";
 import SiteNav, { useNavEntries } from "./SiteNav";
 import SkipLink from "./SkipLink";
 import CurrencySwitcher from "./CurrencySwitcher";
@@ -35,6 +37,9 @@ export default function PageHeader({
     ? (localizedTrip(active.trip).tagline ?? site.tagline)
     : site.tagline;
   const navEntries = useNavEntries();
+  // The phone row takes the nearest ancestor only; `UpTrail` draws the whole
+  // chain from `sm` up. Both read the same source — B1728.
+  const crumbs = useUpCrumbs();
   const currentSection = navEntries.find((e) => e.active);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -130,20 +135,36 @@ export default function PageHeader({
       */}
       <div ref={wrapRef} className="sm:hidden">
         <div className="flex items-center gap-1">
-          {/* See the identical link in the `sm`-and-up block below for why
-              this exists and who it is drawn for. Icon-only here — the row
-              has no room for the sentence a laptop gets — with the same
-              accessible name carried by `aria-label` instead of visible text. */}
-          {site.hasIdentity && (
-            <BackLink
-              fallbackHref="/"
-              fallbackLabel={t("nav.myJournals")}
-              retraceLabel={t("nav.back")}
-              showLabel={false}
-              iconClassName="h-5 w-5"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-secondary
-                         transition-colors hover:bg-surface-selected/60 hover:text-ink-strong
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          {/*
+            One step up, with the destination's name on it — B1728.
+
+            It used to be a bare arrow (`showLabel={false}`), and that is half
+            of why the control was unreadable: `BackLink` swapped its meaning
+            between "your journals" and `router.back()` and announced the swap
+            by changing its label, which this row never drew. The word is here
+            now, truncating against the title beside it, and there is only one
+            meaning left for it to carry.
+
+            The nearest crumb only. The full trail needs a line of its own and
+            this row does not have one — see `UpTrail`.
+
+            No longer gated on `site.hasIdentity` (B433's rule, now retired
+            here): a reader who followed a shared link into one day is the
+            person most stuck without a way out, and they are exactly the one
+            holding no identity. The *word* still depends on it — "Your
+            journals" for a reader who has some, the instance's own name for a
+            stranger — which is what that gate was really protecting.
+          */}
+          {crumbs.length > 0 && (
+            <UpLink
+              href={crumbs[0].href}
+              label={crumbs[0].label}
+              iconClassName="h-5 w-5 shrink-0"
+              labelClassName="truncate max-w-[8rem]"
+              className="flex h-11 min-w-0 shrink items-center gap-1 rounded-full pl-1.5 pr-2 text-sm
+                         font-semibold text-ink-secondary transition-colors hover:bg-surface-selected/60
+                         hover:text-ink-strong focus-visible:outline-2 focus-visible:outline-offset-2
+                         focus-visible:outline-blue-500"
             />
           )}
           {onHome ? (
@@ -343,7 +364,7 @@ export default function PageHeader({
       <div className="mx-auto hidden max-w-7xl flex-wrap items-center gap-x-3 gap-y-2 sm:flex">
         <div className="min-w-0 flex-[1_1_12rem]">
           {/*
-            The way back out of this journal — B433.
+            Where this page sits — B433, rebuilt by B1728.
 
             Inside the title box rather than as an eighth entry in `SiteNav`.
             That row is measured, twice, in the comments above: seven controls
@@ -351,29 +372,21 @@ export default function PageHeader({
             of both B170 and B212. An eighth would be spent on the one control
             that is not about this journal at all.
 
-            Above the title because it is a breadcrumb: it names where this
-            journal sits, which is the same relationship `/` now has to it.
-            Small, quiet, and the same at every width — a reader who arrived on
-            a phone and one who arrived on a laptop are equally stuck without
-            it, so this is not a mobile affordance with a desktop equivalent
-            somewhere else.
+            Above the title because it is a breadcrumb — and B1728 is the
+            ticket that made it one in fact rather than only in this comment.
+            It was a single arrow that led to `/` on a fresh tab and to
+            `router.back()` once the tab had navigated anywhere, which is how
+            a reader clicking a breadcrumb ended up one page sideways instead
+            of one level up. Now it is the chain, every crumb a link, nothing
+            in it depending on what the reader did earlier in the tab.
 
-            Drawn only for a reader holding an identity, because only they have
-            somewhere to go: `/` is their journals, and for everybody else it
-            is the pitch. See `hasIdentity` in lib/site.ts for why that is not
-            `signedIn`.
+            Drawn for everybody. B433 gated it on `hasIdentity` because `/`
+            was its only destination and a stranger has no journals there; the
+            trail's nearest crumbs are this journal and this trip, which every
+            reader has, and the one crumb that is `/` takes the instance's own
+            name for a reader with no identity. See `useUpCrumbs`.
           */}
-          {site.hasIdentity && (
-            <BackLink
-              fallbackHref="/"
-              fallbackLabel={t("nav.myJournals")}
-              retraceLabel={t("nav.back")}
-              iconClassName="h-3.5 w-3.5"
-              className="-ml-1 mb-0.5 inline-flex min-h-6 items-center gap-1 rounded px-1 text-xs
-                         font-semibold text-ink-secondary transition-colors hover:text-ink-strong
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            />
-          )}
+          <UpTrail />
           {onHome ? (
             <button
               onClick={onHome}

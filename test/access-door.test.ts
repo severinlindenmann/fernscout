@@ -93,6 +93,11 @@ describe("what the header is told about signing in", () => {
       // whether this reader is the owner, not a fact the trip gate filtered.
       "isOwner",
       "locales",
+      // B1728. The instance's own name, from config — journal-wide and
+      // viewer-independent like `analyticsEnabled`. The breadcrumb's crumb
+      // for "/" names the instance to a reader with no identity, and a client
+      // component in the header has no other way to ask.
+      "name",
       "signedIn",
       "startLocation",
       "tagline",

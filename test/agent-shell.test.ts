@@ -26,21 +26,28 @@ describe("the agent shell", () => {
     // (the wizard) and app/agent/[user]/inbox/page.tsx without either page
     // having to bring its own.
     const layout = read("app/agent/[user]/layout.tsx");
-    // B822: the way home is `BackLink`'s fallback rather than a bare `<Link>`
-    // now, so a reader who arrived here from elsewhere in the app retraces
-    // there instead of always landing on "/".
-    expect(layout).toContain('fallbackHref="/"');
-    expect(layout).toContain("docs.backToSite");
+    // B1728: one step up, and for this frame that is `/agent` rather than
+    // "/". Both pages it wraps sit under the helper, so the landing page was
+    // never one level above them — it was just the only destination the old
+    // control knew.
+    expect(layout).toContain('<UpLink');
+    expect(layout).toContain('href="/agent"');
   });
 
   test("the door draws its own way back, now that the shared frame does not", () => {
     const door = read("components/AgentDoor.tsx");
-    expect(door).toContain('fallbackHref="/"');
-    expect(door).toContain("docs.backToSite");
+    // The door *is* `/agent`, so one level up really is the landing page.
+    expect(door).toContain('<UpLink');
+    expect(door).toContain('href="/"');
   });
 
   test("the room draws a chevron before the journal name, not a second bar", () => {
     const room = read("components/HelperRoom.tsx");
-    expect(room).toContain('fallbackHref="/"');
+    expect(room).toContain('<UpLink');
+    expect(room).toContain('href="/"');
+    // Icon-only here and nowhere else — this is chrome on a full-height
+    // conversation and the word would push the journal switcher off a phone.
+    // The accessible name still says where it goes. B1728.
+    expect(room).toContain("showLabel={false}");
   });
 });

@@ -131,6 +131,15 @@ export function travellerFullNamesOf(user: UserConfig, trip: Trip): string {
 export type SiteSummary = {
   username: string;
   title: string;
+  /**
+   * The instance's own name — `site.name` from config, "Fernscout" here.
+   *
+   * Journal-wide and viewer-independent, like `canSignIn` below it. The
+   * breadcrumb needs it (B1728): the crumb for `/` says "Your journals" to a
+   * reader holding an identity and names the instance to everybody else, and
+   * a client component in the header has no other way to ask.
+   */
+  name: string;
   tagline: string;
   url: string;
   startLocation: string;
@@ -275,6 +284,7 @@ export function siteSummaryFor(
   return {
     username: user.username,
     title: user.title,
+    name: serverSite().name,
     tagline: user.tagline,
     url: serverSite().url,
     startLocation: user.startLocation,
