@@ -59,6 +59,28 @@ locale cannot be claimed without wordings to back it.
   instrument's own noise is the one thing that cannot be measured away, and
   B1744 already spent an afternoon on two false zeroes of its own.
 
+## As built
+
+Templates expand `channels x locales x wordings`; `--jobs` shards over child
+processes; `--against` reports deltas and exits non-zero on a drop of ten
+points or more. `test/helper-bench-corpus.test.ts` checks the corpus in the
+ordinary suite — shape, unique ids, and above all that every tool a scenario
+names still exists.
+
+Two additions the first broad sweep forced, both of which had the bench lying
+about the product:
+
+- **`calls`, beside `proposes`.** A read tool answers with a block and never
+  proposes, so `proposes: "trips"` could not match however well the product
+  behaved. Three scenarios read 0% and went to 77%, 72% and 78% the moment the
+  expectation named the right thing.
+- **`world.days`.** A cost has nowhere to land on a journal with no days, so
+  the honest answer — "there is no day yet" — was scored a failure. 0% to 51%
+  with a day staged. Both authors of the new scenarios had flagged the missing
+  day staging before the sweep did.
+
+Neither was a product defect, and both would have been reported as one.
+
 ## Acceptance
 
 - A scenario with three German wordings and two channels expands to six cases,

@@ -1,12 +1,38 @@
 /**
  * Does the conversation still do the right thing? — B1744.
  *
- *   npm run helper:bench                      # the whole corpus, 5 runs each
- *   npm run helper:bench -- --runs 20         # enough to beat the noise
- *   npm run helper:bench -- --only card-to-trip-vague
- *   npm run helper:bench -- --channel web
- *   npm run helper:bench -- --show           # the answer behind every failure
+ *   npm run helper:bench                      # the whole corpus, once each
+ *   npm run helper:bench -- --jobs 6          # six child processes; see below
+ *   npm run helper:bench -- --runs 20 --only card-to-trip/web/de/1
+ *   npm run helper:bench -- --scenario card-to-trip     # every case of one
+ *   npm run helper:bench -- --channel whatsapp
+ *   npm run helper:bench -- --show            # the answer behind every failure
+ *   npm run helper:bench -- --against docs/benchmarks/helper-behaviour/baseline.json
  *   npm run helper:bench -- --out docs/benchmarks/helper-behaviour/baseline.json
+ *
+ * ## A scenario is a template, not a case — B1747
+ *
+ * The failures this repository keeps finding are *phrasing* failures: "setze X
+ * auf die Namensliste" passed eight times in eight and "auf ungarn reise"
+ * five in eight, on the same journal, wanting the same thing. A corpus with
+ * one wording per situation measures the wording and calls it the situation.
+ *
+ * So a scenario carries its wordings per locale and its doors, and the runner
+ * expands channels x locales x wordings into cases named
+ * `<scenario>/<channel>/<locale>/<n>`. Twenty readable blocks become two
+ * hundred cases, and `--only` still names exactly one of them.
+ *
+ * A wording is a string (one turn) or an array of strings (a conversation).
+ * **Locales come from the keys of `says`**, never from a list beside it — a
+ * locale cannot be claimed without wordings in it, which is what keeps
+ * somebody from adding `"hu"` to an array and inventing the sentences.
+ *
+ * ## Why `--jobs` spawns processes rather than promises
+ *
+ * `withWorld` sets `CONTENT_DIR` and `DATA_DIR`, which are process-global.
+ * Two cases cannot share a process, by construction, and that is not worth
+ * fighting: the case list is sharded and each shard runs in its own child,
+ * which writes its results to a file the parent reads.
  *
  * **This is a benchmark, not a test, and it must never enter `npm run verify`.**
  * It calls a real model, spends real money and does not give the same answer
@@ -50,6 +76,11 @@ const root = process.cwd();
 const corpusFile = path.join(root, "docs", "benchmarks", "helper-behaviour", "corpus.json");
 
 type Expectation = {
+  /** A tool that ran this turn, read or write. A *read* tool never proposes —
+   *  it answers with a block — so `proposes` can never match one, and a
+   *  scenario about `trips` or `trip_costs` that used it scored 0 of 22
+   *  against a product doing the right thing every time. B1747. */
+  calls?: string;
   proposes?: string;
   proposesAnyOf?: string[];
   notProposes?: string[];
@@ -57,14 +88,35 @@ type Expectation = {
   answerHasNot?: string[];
 };
 
+/** What the corpus holds: one situation, in as many wordings and doors as it
+ *  is worth asking about. */
+type Template = {
+  id: string;
+  why: string;
+  channels: ("web" | "whatsapp")[];
+  /** Locale -> wordings. One wording is a turn or a conversation. */
+  says: Record<string, (string | string[])[]>;
+  world: Scenario["world"];
+  expect: Expectation;
+};
+
+/** One expanded, runnable case. */
 type Scenario = {
   id: string;
+  template: string;
   why: string;
   channel: "web" | "whatsapp";
   world: {
     locale?: string;
     trips?: { id: string; title: string; start: string; end: string }[];
     contacts?: { name: string; email: string }[];
+    /**
+     * Days already on a trip — B1748. Without these, half the corpus asked
+     * unfair questions: a cost has nowhere to land on a journal with no days,
+     * so "we spent 4500 forint on the 3rd" was scored a failure for an answer
+     * that was correct ("there is no day yet"). `trip` names which trip.
+     */
+    days?: { trip: string; slug: string; date: string; title?: string; location?: string; content?: string; draft?: boolean }[];
     /** Ticked in the files pane — web only. */
     select?: string;
     /** Sent as a WhatsApp contacts message before the turns — whatsapp only. */
@@ -90,9 +142,35 @@ function flag(name: string): string | undefined {
   const at = args.indexOf(`--${name}`);
   return at === -1 ? undefined : args[at + 1];
 }
+/**
+ * One run per case by default — B1747. Depth comes from *wordings* now, not
+ * from repetition: a scenario with forty cases across two locales is forty
+ * samples of the same situation, which is a better measurement than the same
+ * sentence asked forty times. Raise `--runs` when the question is one case.
+ */
+const RUNS = Number(flag("runs") ?? "1");
+const ONLY = flag("only");
+const SCENARIO = flag("scenario");
+const CHANNEL = flag("channel");
+const LOCALE = flag("locale");
+const OUT = flag("out");
+const AGAINST = flag("against");
+const JOBS = Number(flag("jobs") ?? "1");
+const SHARD = flag("shard");
+const RESULT_FILE = flag("result-file");
+/** Print the answer behind every failure — what to reach for before guessing
+ *  at a prompt. A pass rate says something is wrong; this says what. */
+const SHOW = args.includes("--show");
 
-const RUNS = Number(flag("runs") ?? "5");
-
+/**
+ * The application talks to stdout — every dry-run reply, every inbound line.
+ * Across two hundred cases that is thousands of lines between the reader and
+ * the number they asked for, so it is silenced unless somebody asked to see
+ * the failures. `console.error` is left alone: a real error must never be
+ * swallowed by a benchmark's tidiness, and it is where this script's own
+ * progress and failures are written for the same reason.
+ */
+if (!SHOW) console.log = () => {};
 /**
  * A wamid is never reused, across the whole process — B1744.
  *
@@ -104,15 +182,7 @@ const RUNS = Number(flag("runs") ?? "5");
  * and globally unique; a harness has to earn that the same way.
  */
 let messageSeq = 0;
-const nextMessageId = (scenario: string) => `wamid.bench.${scenario}.${messageSeq++}`;
-const ONLY = flag("only");
-const CHANNEL = flag("channel");
-const OUT = flag("out");
-/** Print the answer behind every failure — what to reach for before guessing
- *  at a prompt. A pass rate says something is wrong; this says what. */
-const SHOW = args.includes("--show");
-
-/**
+const nextMessageId = (scenario: string) => `wamid.bench.${scenario}.${messageSeq++}`;/**
  * One throwaway journal per run — the same discipline `test/whatsapp-*.test.ts`
  * follow, for the same reason: a scenario that inherits the last one's trips,
  * inbox or thread is not the scenario it says it is.
@@ -121,11 +191,18 @@ async function withWorld<T>(
   scenario: Scenario,
   body: (ctx: { username: string; dir: string; contactIds: Record<string, string> }) => Promise<T>,
 ): Promise<T> {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-bench-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-bench-"));
+  // Two directories, as a real instance has them. One temporary folder for
+  // both made `whatsapp-replies/` (B1741) sit beside the journals, so
+  // `getUsernames` tried to read it as one and said so on every single turn.
+  const dir = path.join(root, "content");
+  const data = path.join(root, "data");
+  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(data, { recursive: true });
   const username = "bench";
   process.env.CONTENT_DIR = dir;
-  process.env.DATA_DIR = dir;
-  process.env.DATABASE_URL = `sqlite:${path.join(dir, "bench.db")}`;
+  process.env.DATA_DIR = data;
+  process.env.DATABASE_URL = `sqlite:${path.join(data, "bench.db")}`;
   process.env.WHATSAPP_APP_SECRET = "bench-secret";
   process.env.WHATSAPP_VERIFY_TOKEN = "bench-token";
   fs.writeFileSync(
@@ -150,7 +227,7 @@ async function withWorld<T>(
   const { grant } = await import("../lib/credits");
   const { storeInboxFile } = await import("../lib/inbox");
   const { toVCard } = await import("../lib/whatsapp/vcard");
-  const { writeTripFixture } = await import("../test/fixtures/content");
+  const { writeTripFixture, writeDayFixture } = await import("../test/fixtures/content");
 
   clearConfigCache();
   clearUserCache();
@@ -185,6 +262,16 @@ async function withWorld<T>(
   for (const trip of scenario.world.trips ?? []) {
     writeTripFixture(username, { ...trip, visibility: "private" });
   }
+  for (const day of scenario.world.days ?? []) {
+    writeDayFixture(dir, username, day.trip, {
+      slug: day.slug,
+      date: day.date,
+      ...(day.title ? { title: day.title } : {}),
+      ...(day.location ? { location: day.location } : {}),
+      ...(day.content ? { content: day.content } : {}),
+      ...(day.draft ? { status: "draft" as const } : {}),
+    });
+  }
 
   // Staged directly for the web door; the WhatsApp door sends a real contacts
   // message instead, so the card arrives the way it really arrives.
@@ -203,12 +290,12 @@ async function withWorld<T>(
   }
 
   try {
-    return await body({ username, dir, contactIds });
+    return await body({ username, dir: data, contactIds });
   } finally {
     await closeDatabase();
     clearConfigCache();
     clearUserCache();
-    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(root, { recursive: true, force: true });
   }
 }
 
@@ -312,13 +399,45 @@ async function runWhatsapp(scenario: Scenario): Promise<Outcome> {
     // Everything this turn actually sent, joined the way a person reads several
     // bubbles in a row — `dispatch.ts` joins its own record the same way.
     const answer = repliesTo(dir, username).slice(before).join("\n\n");
+    // Which tools *ran* is only in `helper_sessions`, and `recordTurn` is
+    // un-awaited on purpose — so poll for the row instead of reading once and
+    // calling the absence a fact. The proposal above is never taken from here.
+    const tools = await pollRecordedTools(username);
     forget(username);
     return {
-      tools: pending ? [pending.tool] : [],
+      tools,
       proposed: pending ? [{ tool: pending.tool, args: pending.arguments }] : [],
       answer,
     };
   });
+}
+
+/**
+ * The tools the last recorded turn ran — polled, never read once.
+ *
+ * `lib/whatsapp/dispatch.ts` records with `void recordTurn(…)`, deliberately
+ * un-awaited: losing an answer to an analytics insert would be trading the
+ * product for the bookkeeping. A single read after the turn therefore races
+ * the insert, and reading an absence as "no tools ran" is what scored a
+ * working scenario 0 of 8 once already (B1744). Half a second of patience is
+ * the honest version of the same read.
+ */
+async function pollRecordedTools(username: string): Promise<string[]> {
+  const { getDatabase } = await import("../lib/db");
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const rows = await (await getDatabase()).db
+      .selectFrom("helper_sessions")
+      .select(["tools"])
+      .where("owner_id", "=", username)
+      .where("kind", "=", "turn")
+      .orderBy("created_at", "desc")
+      .limit(1)
+      .execute();
+    const tools = (rows[0]?.tools ?? "").split(",").filter(Boolean);
+    if (tools.length > 0) return tools;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return [];
 }
 
 /** The dry-run backend's own record of what went out — `lib/whatsapp/reply.ts`,
@@ -335,6 +454,9 @@ function repliesTo(dir: string, username: string): string[] {
 
 function judge(outcome: Outcome, expect: Expectation): { pass: boolean; why: string } {
   const tools = outcome.proposed.map((one) => one.tool);
+  if (expect.calls && !outcome.tools.includes(expect.calls)) {
+    return { pass: false, why: `did not call ${expect.calls} (called: ${outcome.tools.join(",") || "nothing"})` };
+  }
   if (expect.proposes && !tools.includes(expect.proposes)) {
     return { pass: false, why: `did not propose ${expect.proposes} (proposed: ${tools.join(",") || "nothing"})` };
   }
@@ -359,21 +481,45 @@ function judge(outcome: Outcome, expect: Expectation): { pass: boolean; why: str
   }
   return { pass: true, why: "" };
 }
-
-async function main(): Promise<void> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    die("ANTHROPIC_API_KEY is not set. This benchmark calls a real model and spends real money.");
+/**
+ * Channels x locales x wordings — B1747. A case id is
+ * `<scenario>/<channel>/<locale>/<n>`, stable as long as the wordings keep
+ * their order, which is what lets `--only` name one and a baseline compare
+ * against the same thing next week.
+ *
+ * `{name}` and `{trip}` are filled from the world, so a wording is written
+ * once and stays true when a fixture's names change.
+ */
+function expand(templates: Template[]): Scenario[] {
+  const out: Scenario[] = [];
+  for (const template of templates) {
+    const name = template.world.share ?? template.world.select ?? template.world.contacts?.[0]?.name ?? "";
+    const trip = template.world.trips?.[0]?.title ?? "";
+    const fill = (text: string) => text.replaceAll("{name}", name).replaceAll("{trip}", trip);
+    for (const channel of template.channels) {
+      for (const [locale, wordings] of Object.entries(template.says)) {
+        wordings.forEach((wording, n) => {
+          out.push({
+            id: `${template.id}/${channel}/${locale}/${n}`,
+            template: template.id,
+            why: template.why,
+            channel,
+            world: { ...template.world, locale },
+            turns: (Array.isArray(wording) ? wording : [wording]).map(fill),
+            expect: template.expect,
+          });
+        });
+      }
+    }
   }
-  const corpus = JSON.parse(fs.readFileSync(corpusFile, "utf8")) as { scenarios: Scenario[] };
-  const chosen = corpus.scenarios
-    .filter((one) => !ONLY || one.id === ONLY)
-    .filter((one) => !CHANNEL || one.channel === CHANNEL);
-  if (chosen.length === 0) die("no scenario matched --only/--channel.");
+  return out;
+}
 
-  console.log(`helper-bench: ${chosen.length} scenario(s) x ${RUNS} run(s). This spends credits.\n`);
-  const results: { id: string; channel: string; passed: number; runs: number; failures: string[] }[] = [];
+type Result = { id: string; template: string; channel: string; passed: number; runs: number; failures: string[] };
 
-  for (const scenario of chosen) {
+async function runCases(cases: Scenario[]): Promise<Result[]> {
+  const results: Result[] = [];
+  for (const scenario of cases) {
     const failures: string[] = [];
     let passed = 0;
     for (let run = 0; run < RUNS; run++) {
@@ -388,34 +534,143 @@ async function main(): Promise<void> {
       if (verdict.pass) passed++;
       else {
         failures.push(verdict.why);
-        if (SHOW) console.log(`\n  [${scenario.id}] ${verdict.why}\n  tools: ${outcome.tools.join(",") || "none"}\n  answer: ${outcome.answer.replace(/\n/g, " ").slice(0, 300)}\n`);
+        if (SHOW)
+          console.error(
+            `\n  [${scenario.id}] ${verdict.why}\n  said: ${scenario.turns.join(" | ")}\n  answer: ${outcome.answer.replace(/\n/g, " ").slice(0, 300)}\n`,
+          );
       }
-      process.stdout.write(verdict.pass ? "." : "x");
     }
-    process.stdout.write("\n");
-    results.push({ id: scenario.id, channel: scenario.channel, passed, runs: RUNS, failures });
+    results.push({ id: scenario.id, template: scenario.template, channel: scenario.channel, passed, runs: RUNS, failures });
+    if (!RESULT_FILE) process.stderr.write(passed === RUNS ? "." : "x");
+  }
+  return results;
+}
+
+/**
+ * One child per shard — B1747, and processes rather than promises because
+ * `withWorld` sets `CONTENT_DIR` and `DATA_DIR`, which are process-global.
+ * Each child writes its own results file, so nothing has to be parsed back
+ * out of the application's own chatter on stdout.
+ */
+async function runInJobs(cases: Scenario[]): Promise<Result[]> {
+  const { spawn } = await import("node:child_process");
+  const shards = Array.from({ length: JOBS }, (_, i) => i);
+  const files = shards.map((i) => path.join(os.tmpdir(), `helper-bench-shard-${process.pid}-${i}.json`));
+  // `--out` and `--against` are the parent's business; a child that wrote the
+  // baseline would have every shard overwrite it with a sixth of the answer.
+  const drop = new Set(["--jobs", "--out", "--against"]);
+  const passthrough = args.filter((one, i) => !drop.has(one) && !drop.has(args[i - 1]));
+  await Promise.all(
+    shards.map(
+      (i) =>
+        new Promise<void>((resolve, reject) => {
+          const child = spawn(
+            process.execPath,
+            [...process.execArgv, process.argv[1], ...passthrough, "--shard", `${i}/${JOBS}`, "--result-file", files[i]],
+            { stdio: ["ignore", "ignore", "inherit"] },
+          );
+          child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`shard ${i} exited ${code}`))));
+        }),
+    ),
+  );
+  const all: Result[] = [];
+  for (const file of files) {
+    all.push(...(JSON.parse(fs.readFileSync(file, "utf8")) as Result[]));
+    fs.rmSync(file, { force: true });
+  }
+  const order = new Map(cases.map((one, i) => [one.id, i]));
+  return all.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+}
+
+/**
+ * Rolled up per scenario, because a per-case rate over three runs is noise and
+ * the same scenario across three wordings is a number. The cases are still in
+ * the `--out` file, for when one wording is the question.
+ */
+function byTemplate(results: Result[]): Map<string, { passed: number; runs: number; failures: string[]; channel: string }> {
+  const rolled = new Map<string, { passed: number; runs: number; failures: string[]; channel: string }>();
+  for (const one of results) {
+    const at = rolled.get(one.template) ?? { passed: 0, runs: 0, failures: [], channel: one.channel };
+    at.passed += one.passed;
+    at.runs += one.runs;
+    at.failures.push(...one.failures);
+    if (at.channel !== one.channel) at.channel = "both";
+    rolled.set(one.template, at);
+  }
+  return rolled;
+}
+
+async function main(): Promise<void> {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    die("ANTHROPIC_API_KEY is not set. This benchmark calls a real model and spends real money.");
+  }
+  const corpus = JSON.parse(fs.readFileSync(corpusFile, "utf8")) as { scenarios: Template[] };
+  let cases = expand(corpus.scenarios)
+    .filter((one) => !ONLY || one.id === ONLY)
+    .filter((one) => !SCENARIO || one.template === SCENARIO)
+    .filter((one) => !CHANNEL || one.channel === CHANNEL)
+    .filter((one) => !LOCALE || one.world.locale === LOCALE);
+  if (cases.length === 0) die("no case matched --only/--scenario/--channel/--locale.");
+
+  if (SHARD) {
+    const [index, of] = SHARD.split("/").map(Number);
+    cases = cases.filter((_, i) => i % of === index);
+    if (!RESULT_FILE) die("--shard needs --result-file");
+    fs.writeFileSync(RESULT_FILE, JSON.stringify(await runCases(cases)));
+    process.exit(0);
   }
 
-  console.log("");
-  for (const result of results) {
-    const rate = ((result.passed / result.runs) * 100).toFixed(0);
-    console.log(`${result.passed}/${result.runs}  ${rate.padStart(3)}%  ${result.id} (${result.channel})`);
-    // Only the distinct reasons: twenty runs failing the same way is one fact.
-    for (const why of [...new Set(result.failures)]) console.log(`            ${why}`);
+  const started = Date.now();
+  console.error(
+    `helper-bench: ${cases.length} case(s) x ${RUNS} run(s)${JOBS > 1 ? `, ${JOBS} jobs` : ""}. ` +
+      `This spends credits — one model turn per conversation turn, plus one small routing call each.\n`,
+  );
+  const results = JOBS > 1 ? await runInJobs(cases) : await runCases(cases);
+  process.stderr.write("\n\n");
+
+  const rolled = byTemplate(results);
+  const previous = AGAINST
+    ? byTemplate((JSON.parse(fs.readFileSync(path.resolve(root, AGAINST), "utf8")) as { results: Result[] }).results)
+    : null;
+  let regressed = false;
+  const lines: string[] = [];
+
+  for (const [template, one] of rolled) {
+    const rate = (one.passed / one.runs) * 100;
+    let delta = "";
+    if (previous?.has(template)) {
+      const was = previous.get(template) as { passed: number; runs: number };
+      const before = (was.passed / was.runs) * 100;
+      const change = rate - before;
+      // One case moving by one run is not a finding — B1744 paid for that
+      // lesson twice. Ten points is the smallest change worth printing.
+      if (change <= -10) {
+        delta = `  WORSE (was ${before.toFixed(0)}%)`;
+        regressed = true;
+      } else if (change >= 10) delta = `  better (was ${before.toFixed(0)}%)`;
+    }
+    lines.push(
+      `${String(one.passed).padStart(3)}/${String(one.runs).padEnd(3)} ${rate.toFixed(0).padStart(3)}%  ${template} (${one.channel})${delta}`,
+    );
+    for (const why of [...new Set(one.failures)]) lines.push(`             ${why}`);
   }
   const total = results.reduce((sum, one) => sum + one.passed, 0);
   const of = results.reduce((sum, one) => sum + one.runs, 0);
-  console.log(`\noverall ${total}/${of} (${((total / of) * 100).toFixed(0)}%)`);
+  lines.push(`\noverall ${total}/${of} (${((total / of) * 100).toFixed(0)}%) in ${Math.round((Date.now() - started) / 1000)}s`);
+  // Through stderr, because `--show` is the only thing allowed to own stdout
+  // and the report must print either way.
+  console.error(lines.join("\n"));
 
   if (OUT) {
     const file = path.resolve(root, OUT);
-    const relative = path.relative(root, file);
-    if (relative.startsWith("..")) die("--out must stay inside the repository.");
+    if (path.relative(root, file).startsWith("..")) die("--out must stay inside the repository.");
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, `${JSON.stringify({ runs: RUNS, results }, null, 2)}\n`);
-    console.log(`\nWrote ${relative}.`);
+    fs.writeFileSync(file, `${JSON.stringify({ runs: RUNS, overall: `${total}/${of}`, results }, null, 2)}\n`);
+    console.error(`\nWrote ${path.relative(root, file)}.`);
   }
-  process.exit(0);
+  // A regression is what makes this runnable before a merge rather than only
+  // during an investigation.
+  process.exit(regressed ? 1 : 0);
 }
 
 await main();

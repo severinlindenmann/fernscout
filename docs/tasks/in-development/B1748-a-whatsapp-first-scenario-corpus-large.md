@@ -58,6 +58,24 @@ that no Hungarian speaker has read, and the corpus is the thing everything
 else is measured against. Leave `hu` out and say so until somebody can write
 it.
 
+## As built
+
+33 scenarios, **884 cases**, majority on WhatsApp, written by three authors at
+different levels so the wordings do not all sound like one person: Haiku wrote
+the phone-typed mess (no capitals, missing umlauts, voice-to-text run-ons),
+Sonnet the ordinary flows, Opus the traps.
+
+Every scenario carries clean *and* misspelt wordings of the same intent,
+because the corpus's own rule now says a tidy wording set is testing a person
+who does not exist.
+
+`wanted` at the foot of the corpus lists what the runner still cannot stage —
+photographs, voice notes, location pins, existing invites, a credit balance —
+each with what it would need. Those are the next scenarios, not missing ones.
+
+Hungarian is deliberately absent and the corpus says so: the wordings have to
+be written by somebody who speaks it.
+
 ## Acceptance
 
 - At least 100 cases, the majority on WhatsApp, each traceable to something

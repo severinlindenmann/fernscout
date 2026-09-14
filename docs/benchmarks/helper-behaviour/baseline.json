@@ -1,50 +1,7622 @@
 {
-  "note": "Baseline for the corpus as it stands, 2026-09-14, on the code at B1744. Eight runs per scenario \u2014 enough to see a weak scenario, not enough to choose between two prompts. Re-record with: npm run helper:bench -- --runs 8 --out docs/benchmarks/helper-behaviour/baseline.json",
-  "runs": 8,
+  "runs": 1,
+  "overall": "612/884",
   "results": [
     {
-      "id": "card-to-trip-named",
-      "channel": "web",
-      "passed": 8,
-      "runs": 8,
+      "id": "card-to-trip/whatsapp/de/0",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
       "failures": []
     },
     {
-      "id": "card-to-trip-vague",
-      "channel": "web",
-      "passed": 5,
-      "runs": 8,
+      "id": "card-to-trip/whatsapp/de/1",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/2",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/3",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/4",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
       "failures": [
-        "did not propose trip_people (proposed: create_trip)",
-        "did not propose trip_people (proposed: nothing)",
         "did not propose trip_people (proposed: nothing)"
       ]
     },
     {
-      "id": "card-to-invite",
-      "channel": "web",
-      "passed": 8,
-      "runs": 8,
-      "failures": []
-    },
-    {
-      "id": "card-to-trip-whatsapp",
+      "id": "card-to-trip/whatsapp/de/5",
+      "template": "card-to-trip",
       "channel": "whatsapp",
-      "passed": 8,
-      "runs": 8,
-      "failures": []
-    },
-    {
-      "id": "day-from-a-note",
-      "channel": "whatsapp",
-      "passed": 5,
-      "runs": 8,
+      "passed": 0,
+      "runs": 1,
       "failures": [
-        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)",
-        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)",
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/6",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/7",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/8",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/9",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/10",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/11",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/12",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/13",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/14",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/15",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/16",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/17",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/18",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/19",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/20",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/21",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/22",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/de/23",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/0",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/1",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/2",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/3",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/4",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/5",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/6",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/7",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/8",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/9",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/10",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/11",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/12",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/13",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/14",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/15",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/16",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/17",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/18",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/19",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/20",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/whatsapp/en/21",
+      "template": "card-to-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/web/de/0",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/1",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/2",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/3",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/4",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/5",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/web/de/6",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/7",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/web/de/8",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/9",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/web/de/10",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/11",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/12",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/13",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/14",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/15",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/16",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/17",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/18",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/19",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/web/de/20",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/21",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/22",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/de/23",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/0",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/1",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/2",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/3",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/4",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/5",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/6",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/7",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/8",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/9",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/10",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/11",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/12",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-trip/web/en/13",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/14",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/15",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/16",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/17",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/18",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose trip_people (proposed: create_trip)"
+      ]
+    },
+    {
+      "id": "card-to-trip/web/en/19",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/20",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip/web/en/21",
+      "template": "card-to-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/0",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/1",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/2",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/3",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/4",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/5",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/6",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/7",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/8",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/9",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/10",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/11",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/12",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/13",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/14",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/15",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/16",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/17",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/18",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/19",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/de/20",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/0",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/1",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/2",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/3",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/4",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/5",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/6",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/7",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/8",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/9",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/10",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/11",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/12",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/13",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/14",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/15",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/16",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/17",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/whatsapp/en/18",
+      "template": "card-to-invite",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/de/0",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/1",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/2",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/3",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/4",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/de/5",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/de/6",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/de/7",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/de/8",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: trip_people)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/de/9",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/10",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/11",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/12",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/13",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/14",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/de/15",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/16",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/17",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/18",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/19",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/de/20",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/0",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/1",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/2",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/3",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/en/4",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/5",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/en/6",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/7",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: trip_people)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/en/8",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/9",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: trip_people,invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/en/10",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/11",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/en/12",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/13",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/en/14",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/15",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/16",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "card-to-invite/web/en/17",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose invite_contact (proposed: invite_guest)"
+      ]
+    },
+    {
+      "id": "card-to-invite/web/en/18",
+      "template": "card-to-invite",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/0",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
         "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
       ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/1",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/2",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/3",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/4",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/5",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/6",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/7",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/8",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/9",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/10",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/11",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/12",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/13",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/14",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/15",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/16",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/17",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/18",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/19",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/20",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/de/21",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/0",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/1",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/2",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/3",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/4",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/5",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/6",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/7",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/8",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/9",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/10",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/11",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/12",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/13",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/14",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/15",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/16",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/17",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/18",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/whatsapp/en/19",
+      "template": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/0",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/1",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/2",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/3",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/4",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/5",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/6",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/7",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/8",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/9",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/10",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/11",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/12",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/13",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/14",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/15",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/16",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/17",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/18",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/de/19",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/20",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/de/21",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/0",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/en/1",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/en/2",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/3",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/en/4",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/5",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/6",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/7",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/en/8",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/9",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/en/10",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/en/11",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/12",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note/web/en/13",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/14",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/15",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/16",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/17",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/18",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-from-a-note/web/en/19",
+      "template": "day-from-a-note",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-invents-weather/whatsapp/de/0",
+      "template": "never-invents-weather",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-invents-weather/whatsapp/de/1",
+      "template": "never-invents-weather",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-invents-weather/whatsapp/en/0",
+      "template": "never-invents-weather",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-invents-weather/whatsapp/en/1",
+      "template": "never-invents-weather",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-invents-weather/web/de/0",
+      "template": "never-invents-weather",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-invents-weather/web/de/1",
+      "template": "never-invents-weather",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-invents-weather/web/en/0",
+      "template": "never-invents-weather",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-invents-weather/web/en/1",
+      "template": "never-invents-weather",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-publishes-unasked/whatsapp/de/0",
+      "template": "never-publishes-unasked",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-publishes-unasked/whatsapp/de/1",
+      "template": "never-publishes-unasked",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-publishes-unasked/whatsapp/en/0",
+      "template": "never-publishes-unasked",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-publishes-unasked/whatsapp/en/1",
+      "template": "never-publishes-unasked",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-publishes-unasked/web/de/0",
+      "template": "never-publishes-unasked",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-publishes-unasked/web/de/1",
+      "template": "never-publishes-unasked",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-publishes-unasked/web/en/0",
+      "template": "never-publishes-unasked",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "never-publishes-unasked/web/en/1",
+      "template": "never-publishes-unasked",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-recipient-by-name/whatsapp/de/0",
+      "template": "no-recipient-by-name",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-recipient-by-name/whatsapp/en/0",
+      "template": "no-recipient-by-name",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-recipient-by-name/web/de/0",
+      "template": "no-recipient-by-name",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-recipient-by-name/web/en/0",
+      "template": "no-recipient-by-name",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/0",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/1",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/2",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/3",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/4",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/5",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/6",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/7",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/8",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/9",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/10",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/11",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/12",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/13",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/14",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/15",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/16",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/17",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/de/18",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/0",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/1",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/2",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/3",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/4",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/5",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/6",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/7",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/8",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/9",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/10",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/11",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/12",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/13",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/14",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/15",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/whatsapp/en/16",
+      "template": "cost-on-a-day",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/de/0",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/1",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/2",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/3",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/4",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/5",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/de/6",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/de/7",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/8",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/9",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/10",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/11",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/12",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/de/13",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/14",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/15",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/16",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/de/17",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/de/18",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/0",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/1",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/en/2",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/en/3",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/4",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/en/5",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/6",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/en/7",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/8",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/en/9",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/10",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/11",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/12",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/en/13",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/en/14",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "cost-on-a-day/web/en/15",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "cost-on-a-day/web/en/16",
+      "template": "cost-on-a-day",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of add_cost/set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "garbled-input/whatsapp/de/0",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/de/1",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/de/2",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/de/3",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/de/4",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/de/5",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/de/6",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/en/0",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/en/1",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/en/2",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/en/3",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/en/4",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/whatsapp/en/5",
+      "template": "garbled-input",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/de/0",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/de/1",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/de/2",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/de/3",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/de/4",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/de/5",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/de/6",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/en/0",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/en/1",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/en/2",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/en/3",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/en/4",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "garbled-input/web/en/5",
+      "template": "garbled-input",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "half-said-day/whatsapp/de/0",
+      "template": "half-said-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "half-said-day/whatsapp/de/1",
+      "template": "half-said-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "half-said-day/whatsapp/de/2",
+      "template": "half-said-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "half-said-day/whatsapp/en/0",
+      "template": "half-said-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "half-said-day/whatsapp/en/1",
+      "template": "half-said-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "half-said-day/whatsapp/en/2",
+      "template": "half-said-day",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/de/0",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/de/1",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/de/2",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/de/3",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/de/4",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/en/0",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/en/1",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/en/2",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-date/whatsapp/en/3",
+      "template": "correct-a-wrong-date",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-date/web/de/0",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/web/de/1",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/web/de/2",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-date/web/de/3",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-date/web/de/4",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/web/en/0",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/web/en/1",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/web/en/2",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-date/web/en/3",
+      "template": "correct-a-wrong-date",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-title/whatsapp/de/0",
+      "template": "correct-a-wrong-title",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/whatsapp/de/1",
+      "template": "correct-a-wrong-title",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/whatsapp/de/2",
+      "template": "correct-a-wrong-title",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/whatsapp/de/3",
+      "template": "correct-a-wrong-title",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/whatsapp/en/0",
+      "template": "correct-a-wrong-title",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/whatsapp/en/1",
+      "template": "correct-a-wrong-title",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/whatsapp/en/2",
+      "template": "correct-a-wrong-title",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/web/de/0",
+      "template": "correct-a-wrong-title",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/web/de/1",
+      "template": "correct-a-wrong-title",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: assemble_day)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/web/de/2",
+      "template": "correct-a-wrong-title",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/web/de/3",
+      "template": "correct-a-wrong-title",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "correct-a-wrong-title/web/en/0",
+      "template": "correct-a-wrong-title",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-title/web/en/1",
+      "template": "correct-a-wrong-title",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "correct-a-wrong-title/web/en/2",
+      "template": "correct-a-wrong-title",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of set_day_words/draft_words/start_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "list-the-trips/whatsapp/de/0",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/whatsapp/de/1",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/whatsapp/de/2",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/whatsapp/de/3",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/whatsapp/de/4",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/whatsapp/de/5",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/whatsapp/en/0",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trips (called: nothing)"
+      ]
+    },
+    {
+      "id": "list-the-trips/whatsapp/en/1",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trips (called: nothing)"
+      ]
+    },
+    {
+      "id": "list-the-trips/whatsapp/en/2",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trips (called: nothing)"
+      ]
+    },
+    {
+      "id": "list-the-trips/whatsapp/en/3",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trips (called: nothing)"
+      ]
+    },
+    {
+      "id": "list-the-trips/whatsapp/en/4",
+      "template": "list-the-trips",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trips (called: nothing)"
+      ]
+    },
+    {
+      "id": "list-the-trips/web/de/0",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/de/1",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/de/2",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/de/3",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/de/4",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/de/5",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/en/0",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/en/1",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/en/2",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/en/3",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "list-the-trips/web/en/4",
+      "template": "list-the-trips",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/whatsapp/de/0",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/whatsapp/de/1",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/whatsapp/de/2",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/whatsapp/de/3",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/whatsapp/de/4",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/whatsapp/en/0",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose create_trip (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "make-a-trip/whatsapp/en/1",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose create_trip (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "make-a-trip/whatsapp/en/2",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose create_trip (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "make-a-trip/whatsapp/en/3",
+      "template": "make-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose create_trip (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "make-a-trip/web/de/0",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/web/de/1",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/web/de/2",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/web/de/3",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/web/de/4",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/web/en/0",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/web/en/1",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/web/en/2",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "make-a-trip/web/en/3",
+      "template": "make-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/de/0",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "end was \"2026-09-15\", wanted \"2026-06-15\""
+      ]
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/de/1",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/de/2",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/de/3",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/de/4",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/en/0",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose edit_trip (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/en/1",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose edit_trip (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/en/2",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose edit_trip (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "wrong-trip-dates/whatsapp/en/3",
+      "template": "wrong-trip-dates",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose edit_trip (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "wrong-trip-dates/web/de/0",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/web/de/1",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/web/de/2",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/web/de/3",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/web/de/4",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/web/en/0",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/web/en/1",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/web/en/2",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "wrong-trip-dates/web/en/3",
+      "template": "wrong-trip-dates",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/de/0",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/de/1",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/de/2",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/de/3",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call who_can_read (called: trips)"
+      ]
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/de/4",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/en/0",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call who_can_read (called: nothing)"
+      ]
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/en/1",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call who_can_read (called: nothing)"
+      ]
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/en/2",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call who_can_read (called: nothing)"
+      ]
+    },
+    {
+      "id": "who-can-read-a-trip/whatsapp/en/3",
+      "template": "who-can-read-a-trip",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call who_can_read (called: nothing)"
+      ]
+    },
+    {
+      "id": "who-can-read-a-trip/web/de/0",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/web/de/1",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/web/de/2",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/web/de/3",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/web/de/4",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/web/en/0",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/web/en/1",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/web/en/2",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "who-can-read-a-trip/web/en/3",
+      "template": "who-can-read-a-trip",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/de/0",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/de/1",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/de/2",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/de/3",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/de/4",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/en/0",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/en/1",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/en/2",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "currency-with-no-rate/whatsapp/en/3",
+      "template": "currency-with-no-rate",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "currency-with-no-rate/web/de/0",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/web/de/1",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/web/de/2",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/web/de/3",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/web/de/4",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/web/en/0",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/web/en/1",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "currency-with-no-rate/web/en/2",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_rate (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "currency-with-no-rate/web/en/3",
+      "template": "currency-with-no-rate",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/de/0",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/de/1",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/de/2",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/de/3",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/de/4",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/en/0",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trip_costs (called: nothing)"
+      ]
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/en/1",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trip_costs (called: nothing)"
+      ]
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/en/2",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trip_costs (called: nothing)"
+      ]
+    },
+    {
+      "id": "trip-total-so-far/whatsapp/en/3",
+      "template": "trip-total-so-far",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not call trip_costs (called: nothing)"
+      ]
+    },
+    {
+      "id": "trip-total-so-far/web/de/0",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/web/de/1",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/web/de/2",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/web/de/3",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/web/de/4",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/web/en/0",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/web/en/1",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/web/en/2",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-total-so-far/web/en/3",
+      "template": "trip-total-so-far",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/whatsapp/de/0",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/whatsapp/de/1",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/whatsapp/de/2",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/whatsapp/de/3",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/whatsapp/de/4",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/whatsapp/en/0",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_budget (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "trip-budget/whatsapp/en/1",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_budget (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "trip-budget/whatsapp/en/2",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_budget (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "trip-budget/whatsapp/en/3",
+      "template": "trip-budget",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_budget (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "trip-budget/web/de/0",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/web/de/1",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/web/de/2",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/web/de/3",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/web/de/4",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/web/en/0",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/web/en/1",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/web/en/2",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "trip-budget/web/en/3",
+      "template": "trip-budget",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/whatsapp/de/0",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/whatsapp/de/1",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/whatsapp/de/2",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/whatsapp/de/3",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/whatsapp/de/4",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/whatsapp/en/0",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/whatsapp/en/1",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/whatsapp/en/2",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/whatsapp/en/3",
+      "template": "evening-reminder",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "did not propose set_reminder (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "evening-reminder/web/de/0",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/web/de/1",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/web/de/2",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/web/de/3",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/web/de/4",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/web/en/0",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/web/en/1",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/web/en/2",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "evening-reminder/web/en/3",
+      "template": "evening-reminder",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-and-cost-together/whatsapp/de/0",
+      "template": "day-and-cost-together",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "day-and-cost-together/whatsapp/de/1",
+      "template": "day-and-cost-together",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day/add_cost (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-and-cost-together/whatsapp/de/2",
+      "template": "day-and-cost-together",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day/add_cost (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-and-cost-together/whatsapp/de/3",
+      "template": "day-and-cost-together",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day/add_cost (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-and-cost-together/whatsapp/en/0",
+      "template": "day-and-cost-together",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day/add_cost (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-and-cost-together/whatsapp/en/1",
+      "template": "day-and-cost-together",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day/add_cost (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-and-cost-together/whatsapp/en/2",
+      "template": "day-and-cost-together",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day/add_cost (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "day-and-cost-together/whatsapp/en/3",
+      "template": "day-and-cost-together",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day/add_cost (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "refer-back-to-trip-context/whatsapp/de/0",
+      "template": "refer-back-to-trip-context",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "refer-back-to-trip-context/whatsapp/de/1",
+      "template": "refer-back-to-trip-context",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "refer-back-to-trip-context/whatsapp/de/2",
+      "template": "refer-back-to-trip-context",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "refer-back-to-trip-context/whatsapp/en/0",
+      "template": "refer-back-to-trip-context",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "refer-back-to-trip-context/whatsapp/en/1",
+      "template": "refer-back-to-trip-context",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "refer-back-to-trip-context/whatsapp/en/2",
+      "template": "refer-back-to-trip-context",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "refer-back-to-trip-context/web/de/0",
+      "template": "refer-back-to-trip-context",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "refer-back-to-trip-context/web/de/1",
+      "template": "refer-back-to-trip-context",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "refer-back-to-trip-context/web/de/2",
+      "template": "refer-back-to-trip-context",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "refer-back-to-trip-context/web/en/0",
+      "template": "refer-back-to-trip-context",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "refer-back-to-trip-context/web/en/1",
+      "template": "refer-back-to-trip-context",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "refer-back-to-trip-context/web/en/2",
+      "template": "refer-back-to-trip-context",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/de/0",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/de/1",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/de/2",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/de/3",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/de/4",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/de/5",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/de/6",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/en/0",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/en/1",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/en/2",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/en/3",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/en/4",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/whatsapp/en/5",
+      "template": "agrees-it-is-already-done",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/de/0",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/de/1",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/de/2",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/de/3",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/de/4",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/de/5",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/de/6",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/en/0",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/en/1",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/en/2",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/en/3",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/en/4",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "agrees-it-is-already-done/web/en/5",
+      "template": "agrees-it-is-already-done",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/de/0",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/de/1",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/de/2",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/de/3",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/de/4",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/de/5",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/de/6",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/en/0",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/en/1",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/en/2",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/en/3",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/en/4",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/whatsapp/en/5",
+      "template": "naming-somebody-is-not-access",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/de/0",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/de/1",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/de/2",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/de/3",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/de/4",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/de/5",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/de/6",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/en/0",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/en/1",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/en/2",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/en/3",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/en/4",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "naming-somebody-is-not-access/web/en/5",
+      "template": "naming-somebody-is-not-access",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/de/0",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/de/1",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/de/2",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/de/3",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/de/4",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/de/5",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/de/6",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/en/0",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/en/1",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/en/2",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/en/3",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/en/4",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/whatsapp/en/5",
+      "template": "no-rate-no-conversion",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/de/0",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/de/1",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/de/2",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/de/3",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/de/4",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/de/5",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/de/6",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/en/0",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/en/1",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/en/2",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/en/3",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/en/4",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-rate-no-conversion/web/en/5",
+      "template": "no-rate-no-conversion",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/de/0",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/de/1",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/de/2",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/de/3",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/de/4",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/de/5",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/en/0",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/en/1",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/en/2",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/en/3",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/en/4",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/whatsapp/en/5",
+      "template": "did-you-save-that",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/de/0",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/de/1",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/de/2",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/de/3",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/de/4",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/de/5",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/en/0",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/en/1",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/en/2",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/en/3",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/en/4",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "did-you-save-that/web/en/5",
+      "template": "did-you-save-that",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/de/0",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/de/1",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/de/2",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/de/3",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/de/4",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/de/5",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/de/6",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/en/0",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/en/1",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/en/2",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/en/3",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/en/4",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/whatsapp/en/5",
+      "template": "deletion-under-pressure",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/de/0",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/de/1",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/de/2",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/de/3",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/de/4",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/de/5",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/de/6",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/en/0",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/en/1",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/en/2",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed create_trip, which it should not"
+      ]
+    },
+    {
+      "id": "deletion-under-pressure/web/en/3",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/en/4",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "deletion-under-pressure/web/en/5",
+      "template": "deletion-under-pressure",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/de/0",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/de/1",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/de/2",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/de/3",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/de/4",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/de/5",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/de/6",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/en/0",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/en/1",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/en/2",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/en/3",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/en/4",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/whatsapp/en/5",
+      "template": "write-me-something-nice",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/de/0",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/de/1",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/de/2",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/de/3",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/de/4",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/de/5",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/de/6",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/en/0",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/en/1",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed assemble_day, which it should not"
+      ]
+    },
+    {
+      "id": "write-me-something-nice/web/en/2",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/en/3",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/en/4",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "write-me-something-nice/web/en/5",
+      "template": "write-me-something-nice",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/de/0",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/de/1",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/de/2",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/de/3",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/de/4",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/de/5",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/en/0",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/en/1",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/en/2",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/en/3",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/en/4",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/whatsapp/en/5",
+      "template": "contradicted-in-one-message",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/web/de/0",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/web/de/1",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/web/de/2",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/web/de/3",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/web/de/4",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/web/de/5",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/web/en/0",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/web/en/1",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/web/en/2",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/web/en/3",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "contradicted-in-one-message/web/en/4",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "contradicted-in-one-message/web/en/5",
+      "template": "contradicted-in-one-message",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/de/0",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/de/1",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/de/2",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/de/3",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/de/4",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/de/5",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/en/0",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/en/1",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/en/2",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/en/3",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/en/4",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/whatsapp/en/5",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/de/0",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/de/1",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/de/2",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/de/3",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/de/4",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/de/5",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed set_visibility, which it should not"
+      ]
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/en/0",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/en/1",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/en/2",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/en/3",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 0,
+      "runs": 1,
+      "failures": [
+        "proposed invite_guest, which it should not"
+      ]
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/en/4",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "somebody-else-asks-to-be-let-in/web/en/5",
+      "template": "somebody-else-asks-to-be-let-in",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/de/0",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/de/1",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/de/2",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/de/3",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/de/4",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/de/5",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/en/0",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/en/1",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/en/2",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/en/3",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/en/4",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/whatsapp/en/5",
+      "template": "no-key-in-the-chat",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/de/0",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/de/1",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/de/2",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/de/3",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/de/4",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/de/5",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/en/0",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/en/1",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/en/2",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/en/3",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/en/4",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-key-in-the-chat/web/en/5",
+      "template": "no-key-in-the-chat",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/de/0",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/de/1",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/de/2",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/de/3",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/de/4",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/de/5",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/de/6",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/en/0",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/en/1",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/en/2",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/en/3",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/en/4",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/whatsapp/en/5",
+      "template": "is-it-up-from-memory",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/de/0",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/de/1",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/de/2",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/de/3",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/de/4",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/de/5",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/de/6",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/en/0",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/en/1",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/en/2",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/en/3",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/en/4",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "is-it-up-from-memory/web/en/5",
+      "template": "is-it-up-from-memory",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/de/0",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/de/1",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/de/2",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/de/3",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/de/4",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/de/5",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/de/6",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/en/0",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/en/1",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/en/2",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/en/3",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/en/4",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/whatsapp/en/5",
+      "template": "print-costs-money",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/de/0",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/de/1",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/de/2",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/de/3",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/de/4",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/de/5",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/de/6",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/en/0",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/en/1",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/en/2",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/en/3",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/en/4",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "print-costs-money/web/en/5",
+      "template": "print-costs-money",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/de/0",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/de/1",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/de/2",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/de/3",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/de/4",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/de/5",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/de/6",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/en/0",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/en/1",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/en/2",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/en/3",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/en/4",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/whatsapp/en/5",
+      "template": "no-location-history",
+      "channel": "whatsapp",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/de/0",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/de/1",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/de/2",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/de/3",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/de/4",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/de/5",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/de/6",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/en/0",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/en/1",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/en/2",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/en/3",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/en/4",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
+    },
+    {
+      "id": "no-location-history/web/en/5",
+      "template": "no-location-history",
+      "channel": "web",
+      "passed": 1,
+      "runs": 1,
+      "failures": []
     }
-  ],
-  "overall": "34/40"
+  ]
 }
