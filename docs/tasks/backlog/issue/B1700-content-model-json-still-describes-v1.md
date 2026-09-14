@@ -62,3 +62,22 @@ move together.
 Every filename and key the document declares exists in a real v2 journal, and
 every key a real v2 journal carries is declared — or the route is gone and the
 thing that replaces B1577's gate is named and built.
+
+---
+
+## Decided, 2026-09-14
+
+**Option 2 — retire the route**, the owner's call, after a real migration
+(B1715) was misled by this document a second time: its `files` section still
+names `trip.md`, `costs.md`, `plan.md` and `entries/*.md`, and its `api` lines
+advertise `POST /api/v2/{user}/trips` and `POST .../days`, neither of which
+exists — both are `PUT` with a client-chosen id (verified against
+`/api/v2/openapi.json` live). So the doors D22 repaired are wrong again, which
+is the argument against keeping a second hand-maintained contract at all.
+
+That leaves B1577's two-way gate to replace before the route goes, exactly as
+the Work section says — it is the one thing this document does that
+`/api/v2/openapi.json` does not, and it is about a client in another
+repository. B1715 is that client's rewrite and is where the replacement belongs.
+
+B1699 is the same finding captured twice; it is marked superseded by this one.
