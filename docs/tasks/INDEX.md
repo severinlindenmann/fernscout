@@ -309,13 +309,14 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (3)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1736](in-development/B1736-a-press-from-whatsapp-says-here.md) | A press from WhatsApp says Here is the link and sends no link | ISSUE | high | low | `47321abb` |
 | [B1737](in-development/B1737-a-shared-contact-card-is-saved.md) | A shared contact card is saved and then denied - nothing tells the model it is waiting | ISSUE | high | medium | `47321abb` |
 | [B1738](in-development/B1738-a-shared-contact-card-s-postal.md) | A shared contact card's postal address is dropped by the inbound parser | ISSUE | medium | low | `47321abb` |
+| [B1740](in-development/B1740-trip-page-hero-shows-no-picture.md) | Trip page hero shows no picture, and trip.cover is never used there | ISSUE | medium | low | `73750c79` |
 
 ## testing (179)
 
