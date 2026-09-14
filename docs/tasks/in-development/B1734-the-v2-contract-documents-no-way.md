@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: api v2, contract
 found: "2026-09-14T12:03:19Z"
+started: "2026-09-14T13:14:47Z"
+session: 3309c078-d934-4ee7-ad04-6cd719fc543a
+claimed: "2026-09-14T13:14:47Z"
 ---
 
 # B1734 — The v2 contract documents no way to sign in, so /openapi.json cannot be retired

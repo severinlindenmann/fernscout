@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: auth, journal document
 found: "2026-09-14T12:03:19Z"
+started: "2026-09-14T13:14:48Z"
+session: 3309c078-d934-4ee7-ad04-6cd719fc543a
+claimed: "2026-09-14T13:14:48Z"
 ---
 
 # B1733 — owner.email is patchable with an owner token and no proof of the new address, and it is the address that mints owner tokens

@@ -49,20 +49,19 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (207)
+## backlog (205)
 
-### security (6)
+### security (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
 | [B1690](backlog/security/B1690-the-deletion-confirmation-link-and-the.md) | The deletion confirmation link and the two invite links carry their token in the URL path | SECURITY | medium | medium |
-| [B1733](backlog/security/B1733-owner-email-is-patchable-with-an.md) | owner.email is patchable with an owner token and no proof of the new address, and it is the address that mints owner tokens | SECURITY | medium | medium |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (35)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -89,7 +88,6 @@ Do not edit them by hand; run the script.
 | [B1707](backlog/issue/B1707-sudo-env-restic-password-writes-the.md) | sudo ENV=RESTIC_PASSWORD writes the repository password into the journal | ISSUE | medium | low |
 | [B1723](backlog/issue/B1723-sixty-one-task-files-have-unparseable.md) | Sixty-one task files have unparseable frontmatter, so they are invisible everywhere that reads docs tasks | ISSUE | medium | low |
 | [B1725](backlog/issue/B1725-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
-| [B1734](backlog/issue/B1734-the-v2-contract-documents-no-way.md) | The v2 contract documents no way to sign in, so /openapi.json cannot be retired | ISSUE | medium | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -311,11 +309,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1720](in-development/B1720-the-v2-contract-declares-no-path.md) | The v2 contract declares no path parameters, so a generated client cannot fill {user} or {trip} | ISSUE | medium | medium | `3309c078` |
+| [B1733](in-development/B1733-owner-email-is-patchable-with-an.md) | owner.email is patchable with an owner token and no proof of the new address, and it is the address that mints owner tokens | SECURITY | medium | medium | `3309c078` |
+| [B1734](in-development/B1734-the-v2-contract-documents-no-way.md) | The v2 contract documents no way to sign in, so /openapi.json cannot be retired | ISSUE | medium | medium | `3309c078` |
 
 ## testing (175)
 
