@@ -7,8 +7,7 @@ complexity: low
 area: journal pages
 found: "2026-09-14T12:30:00Z"
 started: "2026-09-14T10:29:10Z"
-session: 68f03fd3-84f8-42b3-b482-61bfc4440340
-claimed: "2026-09-14T10:29:10Z"
+merged: "2026-09-14T10:38:58Z"
 ---
 
 # B1724 — The demo journal asks readers to subscribe to notifications from a journal that is not theirs

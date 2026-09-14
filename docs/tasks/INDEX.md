@@ -310,15 +310,14 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1700](in-development/B1700-content-model-json-still-describes-v1.md) | content-model.json still describes v1 content — md filenames, frontmatter prose, start/end, no declined | ISSUE | high | high | `3309c078` |
 | [B1721](in-development/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium | `8ad8d82a` |
-| [B1724](in-development/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low | `68f03fd3` |
 
-## testing (164)
+## testing (165)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -459,6 +458,7 @@ _Nothing here._
 | [B1698](testing/B1698-the-deploy-s-own-backup-line.md) | The deploy's own backup line is blank because it reads health unauthenticated | ISSUE | medium | low | — |
 | [B1709](testing/B1709-analytics-on-a-trip-with-nothing.md) | Analytics on a trip with nothing measured says the trip was taken down | ISSUE | medium | low | — |
 | [B1722](testing/B1722-the-hero-chat-has-finished-animating.md) | The hero chat has finished animating before it is scrolled to, and the photobook drawing does not read as a book | ISSUE | medium | low | — |
+| [B1724](testing/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
