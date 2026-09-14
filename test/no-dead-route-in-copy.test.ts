@@ -102,9 +102,16 @@ describe("every API route named in something a caller reads", () => {
 
     for (const root of ROOTS) {
       for (const file of sources(root)) {
-        // A route file naming its own path is the authority on it; checking it
-        // against itself proves nothing.
-        if (file.startsWith(path.join("app", "api", "v"))) continue;
+        // A route file naming its OWN path is the authority on it, and
+        // checking it against itself proves nothing. Skipping the whole file
+        // proved something worse: two route files went on telling callers to
+        // `POST /api/v1/{user}/import` — 404 since the migration — and this
+        // test walked straight past both, because they live under
+        // `app/api/v*` and every string in them was exempt. B1731. Only the
+        // file's own path is exempt now.
+        const ownPath = file.startsWith(path.join("app", "api"))
+          ? `/${path.dirname(file).split(path.sep).slice(1).join("/")}`.replace(/\[\.\.\.([^\]]+)\]/g, "{$1}").replace(/\[([^\]]+)\]/g, "{$1}")
+          : null;
 
         const lines = fs.readFileSync(file, "utf8").split("\n");
         lines.forEach((line, index) => {
@@ -122,11 +129,13 @@ describe("every API route named in something a caller reads", () => {
             // `…/route` and `…/route.ts` point at the file implementing a
             // door, not at a URL anybody is told to call.
             if (/\/route(\.ts)?$/.test(cleaned)) continue;
+            if (ownPath && cleaned === ownPath) continue;
             if (routeExists(cleaned)) continue;
             dead.push(`${file}:${index + 1} — ${cleaned}`);
           }
           for (const match of flattened.matchAll(BARE_V1)) {
             if (match[1]) continue;
+            if (ownPath?.startsWith("/api/v1")) continue;
             dead.push(`${file}:${index + 1} — /api/v1, named as the API a caller should use`);
           }
         });
