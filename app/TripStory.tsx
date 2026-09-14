@@ -393,7 +393,17 @@ export default function TripStory({
   // The hero's cover comes from the window the server sent, which is centred
   // on today — so it is there on a normal visit and simply absent if a reader
   // deep-linked to the far end of the trip.
-  const heroCover = loaded[landingIndex]?.lead.gallery.find((g) => g.type === "image")?.src;
+  //
+  // B1740. `findLast`, not `find`: the landing day is the last day that has
+  // happened (`getDefaultDay`), so on a trip in progress this is the newest
+  // photograph of it — the picture just taken, rather than the one that
+  // opened the morning. `trip.cover` is the fallback and never the override:
+  // a cover somebody set mid-trip would otherwise freeze the hero on one
+  // picture for the rest of the journey. The trips index has the opposite
+  // precedence, and says so there.
+  const heroCover =
+    loaded[landingIndex]?.lead.gallery.findLast((g) => g.type === "image")?.src ??
+    trip?.trip.cover;
 
   const resumeIndex = resumeSlug ? index.findIndex((d) => d.slug === resumeSlug) : -1;
   const canResume = resumeIndex >= 0 && resumeIndex !== landingIndex;

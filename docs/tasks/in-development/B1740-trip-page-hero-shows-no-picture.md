@@ -68,3 +68,42 @@ active trip and the final day on a finished one.
 - The fallback picture respects photograph visibility for the reader.
 - `npm run verify` green, plus a browser capture of a real existing trip page
   and the trips index at 1280 and 390.
+
+## What was built
+
+**Valid** — confirmed on disk before building: `app/TripStory.tsx:396` read
+`gallery.find((g) => g.type === "image")` on the landing day and nothing else,
+and `trip.cover` appeared on this route only in `generateMetadata`.
+
+Two things in **Work** turned out to be wrong and were built differently:
+
+- **No prop threading.** `TripStory` already holds the whole `Trip` from
+  `TripProvider` (`const trip = useTrip()`, line 84), so `trip?.trip.cover` is
+  the fallback in place. The four call sites — both story pages and both day
+  pages — are untouched.
+- **No status branch, for the reason the Why gives**: `getDefaultDay` already
+  lands on the last day that has happened, so `findLast` on the landing day is
+  "today's newest photograph" on a trip in progress and "the trip's last
+  photograph" on a finished one, from one expression.
+
+`writeTripFixture` gained a `cover` field (`test/fixtures/content.ts`), applied
+to the written document the way `accent` and `tagline` already are —
+`createTrip` refuses `cover` on purpose and documents why.
+
+## Evidence
+
+- `test/hero-cover.test.tsx`, five keepers. Reverting `findLast` to `find`
+  fails the first two and nothing else, so they are pinned to this behaviour
+  rather than passing incidentally.
+- `npm run verify` green: 606 files, 7740 tests, knip clean.
+- Browser, on content that predates the branch —
+  `/example/trips/asia-2023` at 1280 and 390 (`/tmp/b1740/`). The hero draws
+  `last-week-hanoi/03.jpg`, the landing day's **last** picture: not `01.jpg`
+  (the old behaviour) and not the trip's `cover`
+  (`/media/asia-2023/mekong-slow-boat/01.jpg`), which is the precedence this
+  ticket specifies. `/example/trips` at both widths still shows each card's
+  set cover. No console errors; the one failed request is
+  `/api/reactions` 404, which is unrelated and present before the branch.
+- Security: the only visibility-relevant line is the card's fallback, which
+  reads at this reader's own level; the closed default covers a trip absent
+  from that map. A test asserts a `private` photograph is never offered.
