@@ -6,9 +6,26 @@ priority: medium
 complexity: low
 area: media serving, caching
 found: "2026-09-14T11:33:49Z"
+started: "2026-09-14T11:34:54Z"
+session: cd69dd04-0237-43b9-85b4-8f912f75efd3
+claimed: "2026-09-14T11:34:54Z"
 ---
 
 # B1730 — The media route re-sends every photograph hourly and reads each file whole into memory
+
+## Validity
+
+**Valid**, read at 66c847f4. `app/[user]/media/[...path]/route.ts:196-216`
+builds its header map with `Cache-Control`, `Vary`, `nosniff` and a CSP and no
+validator of any kind; nothing in the file reads `If-None-Match`, and
+`grep -rn "etag" lib app --include=*.ts -i` finds the header only in the v2
+document routes. `route.ts:246` is the `fs.readFileSync` whole-file read.
+
+Adjacent but not the same ticket: **B1729** is Caddy's `encode` appending
+`-gzip` to an ETag, which breaks `If-Match` on `/api/v2/**`. That suffix is
+*correct* for `If-None-Match` — Caddy compares against the value it handed
+out — so it does not affect this route, which only ever does conditional
+reads. Different file, different header, no overlap in the diff.
 
 ## Why
 

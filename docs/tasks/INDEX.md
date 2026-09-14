@@ -302,21 +302,20 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (1)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B1730](open/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low |
+_Nothing here._
 
 ## waiting (0)
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1729](in-development/B1729-caddy-rewrites-the-etag-when-it.md) | Caddy rewrites the ETag when it compresses, so no client that accepts gzip can ever send a matching If-Match | ISSUE | high | low | `3309c078` |
+| [B1730](in-development/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low | `cd69dd04` |
 
 ## testing (171)
 
