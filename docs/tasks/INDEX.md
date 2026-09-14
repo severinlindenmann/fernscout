@@ -310,17 +310,17 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1743](in-development/B1743-saying-yes-to-a-proposal-in.md) | Saying yes to a proposal in the web room presses nothing, and the guard then denies the card exists | ISSUE | high | medium | `47321abb` |
 
-## testing (1)
+## testing (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1743](testing/B1743-saying-yes-to-a-proposal-in.md) | Saying yes to a proposal in the web room presses nothing, and the guard then denies the card exists | ISSUE | high | medium | — |
 | [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
 
 ## completed (1489)
