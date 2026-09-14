@@ -11,6 +11,47 @@ import { getUser } from "../../../users";
 import { getOwnerTel } from "../../../ownerTel";
 import { reminderTemplate } from "../../../whatsapp/settings";
 import { noTrip, resolveTrip } from "../resolve";
+import fs from "node:fs";
+import { findInboxFile, listInbox } from "../../../inbox";
+import { readVCard } from "../../../whatsapp/vcard";
+
+/**
+ * A contact card waiting in the inbox, resolved to the name and address it
+ * carries — B1737.
+ *
+ * `invite_contact` (`./files.ts`) already finds a staged card this way; this
+ * is the same lookup for `trip_people`, which needs an email before it can
+ * propose anything at all. **The read happens here, on the server**, so the
+ * address goes straight into the proposal's own field, where the owner can
+ * see and correct it before pressing, and never through a prompt — the rule
+ * `app/api/helper/[user]/invite-contact/route.ts` states and
+ * `describeWaiting` follows.
+ *
+ * Returns nothing for an id or name that matches no card, which the caller
+ * reads as "they did not mean a card" rather than as an error.
+ */
+function stagedContact(username: string, asked: string, selected: string[]): { name?: string; email?: string } {
+  const ticked = selected.filter((id) => id.startsWith("inbox:")).map((id) => id.slice("inbox:".length));
+  const entry =
+    (asked !== "" ? findInboxFile(username, asked)?.entry : undefined) ??
+    Object.values(listInbox(username))
+      .flat()
+      .find(
+        (e) =>
+          e.kind === "contact" &&
+          (ticked.includes(e.id) || (asked !== "" && e.filename.toLowerCase().includes(asked.toLowerCase()))),
+      );
+  if (!entry || entry.kind !== "contact") return {};
+  const found = findInboxFile(username, entry.id);
+  if (!found) return {};
+  try {
+    return readVCard(fs.readFileSync(found.file, "utf8"));
+  } catch {
+    // A card that cannot be read is a card that was not there — the tool
+    // then refuses for the ordinary missing-email reason, which is true.
+    return {};
+  }
+}
 
 /**
  * The trip itself: what exists, who may read it, and making one.
@@ -327,13 +368,26 @@ export const TRIPS_TOOLS: readonly Tool[] = [
         description:
           "Their email address. Required before this can be proposed — it is how they get a token scoped to this trip.",
       },
+      // Deliberately terse — B930's ceiling is real, and `describeWaiting`'s
+      // own line already tells the model when a card is there to pass.
+      contact: { type: "string", description: "A waiting contact card, by id or name. Fills email from it." },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip/people`,
     method: "PATCH",
-    propose: async (username, args, say) => {
+    propose: async (username, args, say, _today, selected) => {
       const trip = resolveTrip(username, args.trip);
-      const name = (args.person ?? "").trim();
-      const email = (args.email ?? "").trim();
+      /**
+       * B1737 — the card fills what was not typed, and only that.
+       *
+       * Anything the writer actually said wins: a name spelled out here is
+       * the name they want on the byline, even when the card spells it
+       * differently. The card is consulted for a blank, which is the one
+       * case that used to end the conversation ("what is his email?" about
+       * somebody whose address was already sitting in the inbox).
+       */
+      const card = stagedContact(username, (args.contact ?? "").trim(), selected);
+      const name = ((args.person ?? "").trim() || card.name) ?? "";
+      const email = ((args.email ?? "").trim() || card.email) ?? "";
       return {
         // A name with no address to write into `people:` is not yet a
         // proposal — B925's rule applied here: a card cannot invite a press

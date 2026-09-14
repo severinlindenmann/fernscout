@@ -7,7 +7,7 @@ import { findInboxFile } from "@/lib/inbox";
 import { createInvite, inviteExpiry, inviteLinkUrl } from "@/lib/contacts/invites";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
-import { unescapeVCardValue } from "@/lib/whatsapp/vcard";
+import { readVCard } from "@/lib/whatsapp/vcard";
 
 export const dynamic = "force-dynamic";
 
@@ -73,19 +73,14 @@ export async function POST(
     return Response.json({ error: "unknown_contact" }, { status: 404 });
   }
 
-  const text = fs.readFileSync(staged.file, "utf8");
-  // Anchored to a line's start and end (`m`), so a value escaped by
-  // `toVCard`'s own `escapeVCardValue` — the only way a real newline gets
-  // into this file — can never be read as a second `FN:`/`EMAIL:` line of
-  // its own. `unescapeVCardValue` undoes that same escaping on the way out.
-  const rawName = /^FN:(.*)$/m.exec(text)?.[1];
-  const rawEmail = /^EMAIL:(.*)$/m.exec(text)?.[1];
-  const email = rawEmail ? unescapeVCardValue(rawEmail).trim() : undefined;
+  // `readVCard` is the shared reader — B1737 moved these two regexes into
+  // `lib/whatsapp/vcard.ts` beside the escaping they undo, so `trip_people`
+  // reads a staged card exactly as this route does.
+  const { name, email } = readVCard(fs.readFileSync(staged.file, "utf8"));
   if (!email || !isEmail(email)) {
     refused(user, "invite_contact", "no_email");
     return Response.json({ error: "no_email" }, { status: 400 });
   }
-  const name = rawName ? unescapeVCardValue(rawName).trim() : undefined;
 
   // Never `email` here — see the doc comment above. The label only.
   const created = await createInvite(user, {

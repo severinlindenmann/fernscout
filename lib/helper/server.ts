@@ -502,7 +502,17 @@ function dayInboxRoomFiles(username: string): RoomFile[] {
 
 export function filesForRoom(username: string): RoomFiles {
   const staged = listInbox(username);
-  const inbox: RoomFile[] = [...staged.media, ...staged.files]
+  /**
+   * `contact` and `location` belong here too — B1737.
+   *
+   * They were dropped, so a contact card shared on WhatsApp landed in
+   * `inbox/contact/` (`lib/whatsapp/dispatch.ts:handleContactCard`) and then
+   * appeared nowhere at all: not in this pane, and — since the pane is where
+   * a selection comes from — not on `describeSelection`'s line either. The
+   * dated read below has carried both since it was written; only the flat
+   * bucket forgot them.
+   */
+  const inbox: RoomFile[] = [...staged.media, ...staged.files, ...staged.location, ...staged.contact]
     .map((entry) => toRoomFile(username, entry))
     // Newest first — what somebody just put there is what they mean. Day
     // folders sort after: a person reads the pane top to bottom and the
@@ -557,6 +567,60 @@ function flat(text: string): string {
  * Empty when nothing resolves, which is what makes the pane an addition: the
  * conversation with nothing selected is exactly the conversation B899 built.
  */
+/**
+ * What is sitting in the inbox, as one line the model reads — B1737.
+ *
+ * `describeSelection` above answers "what did they tick", which needs a pane
+ * to tick in. On WhatsApp there is none, and the consequence was recorded
+ * live on 2026-09-14: a contact card arrived, `handleContactCard` stored it
+ * and answered "received — saved, tell me when to invite them", and the very
+ * next turn said *"I have no access to your contacts"*. Both sentences were
+ * written by this software about the same file, twenty-three seconds apart.
+ * Nothing was lying; nothing was connected.
+ *
+ * So this is the standing half of the same idea: not what is selected, but
+ * what is **there**, read off disk on every turn (`answerInThread`), which is
+ * what keeps it from going stale the moment a file is used or discarded.
+ *
+ * **Names, never contents.** A contact card is named by its filename — which
+ * `handleContactCard` derives from the contact's own name — and nothing
+ * else. The email, phone and address inside it stay on disk and are read
+ * server-side by the tools that need them (`invite_contact`'s route, and
+ * `trip_people`'s `contact` argument), exactly as
+ * `app/api/helper/[user]/invite-contact/route.ts`'s own comment insists:
+ * an address in the conversation's memory is an address in a prompt.
+ *
+ * Empty when the inbox is empty, which is the ordinary case and adds nothing.
+ */
+export function describeWaiting(username: string): string {
+  const staged = listInbox(username);
+  const parts: string[] = [];
+
+  const photographs = staged.media.length;
+  if (photographs > 0) parts.push(`${photographs} photograph(s)`);
+  const files = staged.files.length;
+  if (files > 0) parts.push(`${files} file(s)`);
+  const pins = staged.location.length;
+  if (pins > 0) parts.push(`${pins} location pin(s)`);
+
+  // Named and with their ids, unlike the counts above: these are what
+  // `invite_contact` and `trip_people` address, and an id the model invents
+  // resolves to nothing here and again in the route.
+  const contacts = staged.contact.map(
+    (entry) => `"${flat(entry.filename.replace(/\.vcf$/i, ""))}" (id ${flat(entry.id)})`,
+  );
+  if (contacts.length > 0) parts.push(`${contacts.length} contact card(s): ${contacts.join(", ")}`);
+
+  if (parts.length === 0) return "";
+  return (
+    `[waiting in this journal's inbox, put there by them and not yet used: ${parts.join("; ")}. ` +
+    `This is what is on disk, not something they said. A contact card can be invited to read the ` +
+    `journal with invite_contact, or added to a trip's byline with trip_people's contact argument — ` +
+    `either reads the address off the card itself, so never ask them to retype what a card already ` +
+    `carries, and never guess at what is inside one.]`
+  );
+}
+
 export function describeSelection(username: string, ids: string[]): string {
   const named: string[] = [];
   const photos: string[] = [];
