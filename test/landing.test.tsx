@@ -201,12 +201,16 @@ describe("the landing page", () => {
     test("leads with the WhatsApp headline only when a number is configured", () => {
       const withNumber = renderLanding("en", false, "41780000000");
       expect(withNumber).toContain("Send a voice note. Get a travel journal.");
-      expect(withNumber).toContain("The night train north");
+      // B1717 — the hero shows `ChatVignette`, the same animated exchange
+      // `/agent` opens with, and captions it with a link to the day its
+      // photographs actually come from.
+      expect(withNumber).toContain("oregon-coast");
+      expect(withNumber).toContain("/example/trips/usa-2026/day/oregon-coast");
 
       const without = renderLanding();
       expect(without).toContain("A travel journal your agent writes for you.");
       expect(without).not.toContain("Send a voice note");
-      expect(without).not.toContain("The night train north");
+      expect(without).not.toContain("oregon-coast");
     });
 
     test("names a postcard and a book only where they can be printed", () => {

@@ -67,8 +67,13 @@ describe("the /agent door's chat vignette", () => {
   test("carries the hero title, lede and all four bubbles, in arrival order", () => {
     const html = renderDoor();
     expect(html).toContain("Just tell it what happened.");
-    const own1 = html.indexOf("We spent the day in the dunes");
-    const agent1 = html.indexOf("Sounds like a lovely day");
+    // The words changed in B1717 and the order assertion did not. They used
+    // to describe a different day from the photographs above them — "the kids
+    // went looking for amber", "September 10" — over three pictures from
+    // *Down the Oregon coast*, 24 August. Harmless on this page and a lie on
+    // the landing page, which now captions the same vignette as a real day.
+    const own1 = html.indexOf("Cold and grey down the whole Oregon coast");
+    const agent1 = html.indexOf("Shall I make that a page for 24 August");
     const own2 = html.indexOf("yes, do it");
     const agent2 = html.indexOf("Your draft is waiting");
     expect(own1).toBeGreaterThan(-1);
