@@ -1700,6 +1700,11 @@ const MONEY_FIGURE =
 
 const A_FIGURE = /\d[\d.,\u00a0']*\s*(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf|frank\w*|franc\w*|euro\w*|pound\w*|forint\w*|dollar\w*)\b)|(?:[\u20ac\u00a3$]|\b(?:chf|eur|usd|gbp|huf)\b)\s*\d/i;
 
+/** A sentence that is *about* the journal's own credits \u2014 English, German,
+ *  Hungarian \u2014 B1029. Gates `VAGUE_CREDITS_RETRY` to answers that actually
+ *  raise the subject, so `account`'s other figure (storage) never trips it. */
+const CREDITS_WORD = /\bcredits?\b|\bguthaben\b|\bkredit\w*\b|\begyenleg\w*\b/i;
+
 /**
  * True when this text states what something adds up to.
  *
@@ -1798,6 +1803,56 @@ export function droppedAQuestion(said: string, looked: string[]): boolean {
   return !looked.some((name) => READ_TOOL_NAMES.has(name));
 }
 
+/**
+ * A small, closed set of coordinating words that join two instructions in
+ * one message — B1030's sibling signal to `FACT_QUESTION_WORD` above, for a
+ * second *imperative* rather than a second *question*. Deliberately narrow
+ * (three phrases, not a bare "and"/"és"/"und"): a bare conjunction joins
+ * clauses in almost every sentence anybody writes, and would make this fire
+ * on ordinary prose rather than on a message that is visibly asking for two
+ * things.
+ */
+const COMPOUND_INSTRUCTION = /\band also\b|\bund auch\b|\bés is\b/i;
+
+/** The open-class (four-letter-or-longer) words in a clause — the ones a
+ *  person would actually recognise their own request by. Blunt on purpose:
+ *  it drops the closed function-word classes ("and", "auch", "és", "the",
+ *  "das", "az") in all three languages without a per-language stop list, and
+ *  keeps every noun and verb an instruction is actually made of. */
+function contentWords(text: string): Set<string> {
+  return new Set(Array.from(text.matchAll(/\p{L}{4,}/gu), (match) => match[0].toLowerCase()));
+}
+
+/**
+ * A second instruction, joined to the first by `COMPOUND_INSTRUCTION`, that
+ * left no trace at all in the answer — B1030.
+ *
+ * *"publish today's day and also delete the Tokyo trip"* correctly refused
+ * the deletion — there is no delete tool a model can reach, B38's mailed link
+ * is the only way — and silently dropped the publish; nothing in the answer
+ * named the day, "publish", or anything else from that half of the message.
+ * `droppedAQuestion` above catches the sibling shape when the missing half is
+ * a fact-seeking question; this is for a missing half that is an instruction.
+ *
+ * Checked by splitting the message on the marker and asking whether either
+ * half's own distinctive words ever appear in the answer — not by guessing
+ * which tool a clause maps to (an open-ended verb lexicon this file's own
+ * header warns against), and not by re-parsing the model's phrasing of a
+ * claim. A half with no content words of its own (a bare "and also, thanks")
+ * is left alone: there is nothing there to have dropped.
+ */
+export function droppedAnInstruction(said: string, answer: string): boolean {
+  const match = COMPOUND_INSTRUCTION.exec(said);
+  if (!match) return false;
+  const before = said.slice(0, match.index);
+  const after = said.slice(match.index + match[0].length);
+  const answerWords = contentWords(answer);
+  return [before, after].some((half) => {
+    const words = contentWords(half);
+    return words.size > 0 && ![...words].some((word) => answerWords.has(word));
+  });
+}
+
 export function claimsATotal(text: string): boolean {
   return withoutMarkers(text)
     .split(/(?<=[.!?\n])\s+/)
@@ -1887,11 +1942,29 @@ Answer again using only the figures you were given. If they ask what the rest co
 
 /**
  * What the model is told when it acted on one half of a message and never
- * came back to the other — B952.
+ * came back to the other — B952, widened by B1030 to a dropped second
+ * *instruction* as well as a dropped question (`droppedAnInstruction` above):
+ * the wording no longer assumes the missing half was a question, since
+ * "publish today's day and also delete the Tokyo trip" drops an instruction,
+ * not a question, and needed the same honest either/or.
  */
-const DROPPED_RETRY = `Stop. Look at their message again — it asked you something as well as asking for a change, and you read nothing before answering, so the question could not have been answered from anything but memory or guesswork.
+const DROPPED_RETRY = `Stop. Look at their message again — it asked for more than one thing, and your answer only shows what happened with one of them. Nothing said what became of the rest: whether you did it, correctly refused it, or have not gotten to it yet.
 
-Answer again with both halves: keep what you already did for the change, and now use a tool to answer the question truthfully, or say plainly that you have not gotten to it yet. Never let a second question go unmentioned — a person who asked two things and hears about only one has no way to know whether the other was refused, forgotten, or still coming.`;
+Answer again with every part: keep what you already did (or rightly refused) for the first, and now either act on the rest with a tool or say plainly that you have not gotten to it yet. Never let part of what somebody asked disappear without a word — they asked more than one thing and have no way to know whether the rest was refused, forgotten, or still coming.`;
+
+/**
+ * What the model is told when it spoke about credits without saying how
+ * many, on a turn that read the exact number — B1029.
+ *
+ * `account` had already answered with a real figure; the sentence about it
+ * was still vague ("you have credits remaining"). Not false, only vaguer
+ * than the truth the turn was holding — the same shape B963's `INVENTED_RETRY`
+ * guards from the other side (a figure with no source), mirrored here for a
+ * figure with a source that went unused.
+ */
+const VAGUE_CREDITS_RETRY = `Stop. Your last answer talked about their credits without saying how many, and account gave you the exact number this turn. A vaguer answer than the one you actually have is not a kindness — say the figure.
+
+Answer again with the number account returned, plainly.`;
 
 /**
  * A date format, which is never something to say to a person — B1041.
@@ -2176,6 +2249,17 @@ export async function answerInThread(
    */
   let postcardRecipientsEmpty = false;
   /**
+   * The exact credit figure `account` returned this turn, so a vague answer
+   * about it can be checked against the number the turn actually read —
+   * B1029.
+   *
+   * `undefined` when `account` was not called this turn — nothing to check
+   * an answer against. `null` when it was called and this journal is not
+   * metered (`credits: null`) — there is no figure to have withheld. A
+   * number otherwise: the one `account` actually returned.
+   */
+  let accountCredits: number | null | undefined;
+  /**
    * Whether `read_day` was read this turn and the day it found carries
    * neither a caption nor a coordinate — B1563.
    *
@@ -2346,6 +2430,10 @@ export async function answerInThread(
           // here, and is said about money, was invented.
           for (const number of numbersIn(result)) counted.push(number);
         }
+        if (call.name === "account") {
+          const said = result as { credits?: unknown } | null;
+          accountCredits = typeof said?.credits === "number" ? said.credits : null;
+        }
         if (call.name === "postcard_recipients") {
           const said = result as { available?: boolean; recipients?: unknown[] } | null;
           postcardRecipientsEmpty = said?.available === true && (said.recipients?.length ?? 0) === 0;
@@ -2466,7 +2554,8 @@ export async function answerInThread(
     | "invented"
     | "dropped"
     | "fields"
-    | "list" {
+    | "list"
+    | "vague" {
     // B1237 — checked first and unconditionally on WhatsApp, because a
     // screen or a page is never there on this channel whether or not a
     // proposal is. Every other claim below is checked against what the turn
@@ -2572,12 +2661,31 @@ export async function answerInThread(
       if (invented.length > 0) return "invented";
     }
     /**
+     * A figure `account` actually returned, said about with no digit at all
+     * instead of plainly — B1029. Gated on the answer talking about credits,
+     * so this never fires on a turn that called `account` for its storage
+     * figures alone and had no reason to name a balance.
+     *
+     * **No digit at all, not a wrong one.** A number close to but not equal
+     * to what `account` returned is a different fault this ticket did not
+     * ask for (there is no tolerance for rounding the way B963's money check
+     * has one, and a turn's own flat per-turn spend means the true balance
+     * moves by a fraction between the read and the sentence — see
+     * `test/helper-thread.test.ts`'s own "10 Credits" vs. `9.98` case).
+     * Catching *that* would need the same tolerance `INVENTED_RETRY` already
+     * has for money; this check is only for the answer that named no number
+     * whatsoever.
+     */
+    if (accountCredits !== undefined && accountCredits !== null && CREDITS_WORD.test(answer) && !/\d/.test(answer)) {
+      return "vague";
+    }
+    /**
      * A question that rode along with a change and never got an answer —
      * B952. Checked against what this turn did, not against the answer's own
      * words: a write tool fired, a fact-seeking word was in what they typed,
      * and no read tool ever ran to answer it with.
      */
-    if (droppedAQuestion(said, looked)) return "dropped";
+    if (droppedAQuestion(said, looked) || droppedAnInstruction(said, answer)) return "dropped";
     /**
      * Words claimed to be in a proposal that has nowhere to put them — B961.
      *
@@ -2677,6 +2785,7 @@ export async function answerInThread(
     partial: PARTIAL_RETRY,
     invented: INVENTED_RETRY,
     dropped: DROPPED_RETRY,
+    vague: VAGUE_CREDITS_RETRY,
   };
   /**
    * What is said when the model could not be made to say something true.
@@ -2707,6 +2816,7 @@ export async function answerInThread(
     // B1161 — the rows are already drawn, so the honest fallback is the
     // shortest sentence there is: look at them.
     list: "agent.theListIsAbove",
+    vague: "agent.hasTheFigure",
   } as const;
 
   const wrong = amiss();

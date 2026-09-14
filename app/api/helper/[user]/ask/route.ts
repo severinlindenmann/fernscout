@@ -4,7 +4,7 @@ import { hasHelperConsent } from "@/lib/helper/consent";
 import type { Block } from "@/lib/helper/blocks";
 import { HELPER_TURN_CREDITS, noCreditsAnswer } from "@/lib/helper/creditGate";
 import { refusalFor, sayIn } from "@/lib/helper/intents";
-import { answerInThread, statusKeyFor, type ToolKind } from "@/lib/helper/model";
+import { answerInThread, droppedAnInstruction, statusKeyFor, type ToolKind } from "@/lib/helper/model";
 import { describeSelection, isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { recordTurn } from "@/lib/helper/sessions";
 import { forget, history, proposed, remember, sessionId } from "@/lib/helper/thread";
@@ -192,6 +192,29 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
      * (lib/helper/sessions.ts); what the model re-reads is a separate
      * decision that stands.
      */
+    const refusalAnswer = say(refused.key);
+    /**
+     * A second instruction, dropped here rather than in the model's own
+     * honesty net — B1030.
+     *
+     * "publish today's day and also delete the Tokyo trip" never reaches
+     * `answerInThread` at all: `refusalFor` above is B817's own deterministic
+     * floor, decided *before the model*, on purpose, so a confident guess can
+     * never argue its way past it. That is right and stays exactly as it is —
+     * but it means the canned refusal is the *whole* answer, and a compound
+     * message's other half (the publish) went unmentioned here, not in
+     * `lib/helper/model.ts`'s `amiss()`, which never saw this turn.
+     *
+     * `droppedAnInstruction` is the same check that guards the model's own
+     * answers, reused rather than duplicated: it asks whether either half of
+     * a marker-joined message left a trace in what is about to be shown, and
+     * the canned refusal sentence naturally has none of the publish half's
+     * words in it. When it fires, one honest sentence is appended — nothing
+     * about the refusal itself changes, and nothing here reaches the model.
+     */
+    const answer = droppedAnInstruction(said, refusalAnswer)
+      ? `${refusalAnswer} ${say("agent.stillHasAQuestion")}`
+      : refusalAnswer;
     void recordTurn({
       owner: user,
       session: await sessionId(user),
@@ -202,7 +225,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       recovered: false,
       threadTurns: (await history(user)).length,
       said,
-      answered: say(refused.key),
+      answered: answer,
       origin: "web",
     });
     return Response.json({
@@ -213,11 +236,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       refused: refused.name,
       slots: {},
       confidence: 1,
-      answer: say(refused.key),
+      answer,
       // B898 — one sentence, drawn as the `say` shape, so the conversation
       // has one way of drawing a turn and a refusal is not a special case
       // the surface has to know about.
-      blocks: [{ shape: "say", text: say(refused.key) }] satisfies Block[],
+      blocks: [{ shape: "say", text: answer }] satisfies Block[],
     });
   }
 

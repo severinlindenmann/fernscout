@@ -7,6 +7,7 @@ import { clearUserCache } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
 import { grant } from "@/lib/credits";
+import { resetRateLimitsForTests } from "@/lib/rateLimit";
 import { TOOLS } from "@/lib/helper/tools";
 import { forget, history, wrote } from "@/lib/helper/thread";
 import {
@@ -20,6 +21,7 @@ import {
   claimsItIsUp,
   claimsProposedWords,
   claimsAWrite,
+  droppedAnInstruction,
   droppedAQuestion,
   honestyCounts,
   threadSystemPrompt,
@@ -115,6 +117,12 @@ beforeEach(async () => {
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
   create.mockReset();
   forget("alex");
+  // This file's own `ask()` count long ago reached the 40-per-window ceiling
+  // `helper-ask` enforces; every test shares one clientIp, so without a reset
+  // here a later test's request is silently 429'd rather than reaching the
+  // model, and the failure shows up as "create() called 0 times" many tests
+  // away from the one that pushed the count over.
+  resetRateLimitsForTests();
 
   fs.writeFileSync(
     path.join(dir, "config.json"),
@@ -1274,6 +1282,154 @@ describe("droppedAQuestion", () => {
 
   test("a question with nothing written is a turn that never touched the write half either", () => {
     expect(droppedAQuestion("what currency is this in?", [])).toBe(false);
+  });
+});
+
+describe("droppedAnInstruction", () => {
+  test("a second imperative that left no trace in the answer is the shape of the fault", () => {
+    expect(
+      droppedAnInstruction(
+        "publish today's day and also delete the Tokyo trip",
+        "I can't delete trips directly — that goes through a confirmation email sent to you.",
+      ),
+    ).toBe(true);
+  });
+
+  test("an answer that names both halves is left alone", () => {
+    expect(
+      droppedAnInstruction(
+        "publish today's day and also delete the Tokyo trip",
+        "Today's day is now proposed to publish — press it. I can't delete trips directly; only a confirmation email does that.",
+      ),
+    ).toBe(false);
+  });
+
+  test("no coordinating marker at all carries nothing to have dropped", () => {
+    expect(droppedAnInstruction("delete the Tokyo trip", "I can't delete trips directly.")).toBe(false);
+  });
+
+  test("a half with no content words of its own is left alone", () => {
+    expect(droppedAnInstruction("ok and also see you", "Sure thing!")).toBe(false);
+  });
+});
+
+describe("a compound message with two instructions, one silently dropped", () => {
+  test("is caught, and a retry that acts on the missing half answers both", async () => {
+    create
+      .mockResolvedValueOnce(calls("set_day_words", { trip: "Die Reise", slug: "eins", title: "Homeward Bound" }))
+      .mockResolvedValueOnce(says("I've proposed the new title: Homeward Bound."))
+      .mockResolvedValueOnce(calls("set_reminder", { trip: "Die Reise", enabled: "on" }))
+      .mockResolvedValueOnce(
+        says("I've proposed the new title, and turned on the evening reminder for the trip."),
+      );
+    const answered = await read(
+      await ask("change the title of the 22nd to Homeward Bound and also turn on the evening reminder for this trip"),
+    );
+
+    expect(create).toHaveBeenCalledTimes(4);
+    expect(String(answered.body.answer)).toContain("title");
+    expect(String(answered.body.answer)).toContain("reminder");
+    // Both halves proposed something — one on the first pass, one on the
+    // retry — and neither is undone by the other.
+    expect((answered.body.proposals as unknown[]).length).toBe(2);
+  });
+
+  test("and if the retry still says nothing about the missing half, she is told plainly", async () => {
+    create
+      .mockResolvedValueOnce(calls("set_day_words", { trip: "Die Reise", slug: "eins", title: "Homeward Bound" }))
+      .mockResolvedValueOnce(says("I've proposed the new title: Homeward Bound."))
+      .mockResolvedValueOnce(says("I've proposed the new title: Homeward Bound."));
+    const answered = await read(
+      await ask("change the title of the 22nd to Homeward Bound and also turn on the evening reminder for this trip"),
+    );
+
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(String(answered.body.answer)).toContain("only got to part");
+    // The write itself is not undone by the omission being caught.
+    expect((answered.body.proposals as unknown[]).length).toBe(1);
+  });
+
+  test("a single instruction, with no second half, is left alone", async () => {
+    create
+      .mockResolvedValueOnce(calls("set_reminder", { trip: "Die Reise", enabled: "on" }))
+      .mockResolvedValueOnce(says("I've turned on the evening reminder for the trip."));
+    const answered = await read(await ask("turn on the evening reminder for this trip"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("I've turned on the evening reminder for the trip.");
+  });
+});
+
+/**
+ * The literal example the ticket found — "publish today's day and also delete
+ * the Tokyo trip" — never reaches `answerInThread` at all: `refusalFor` in
+ * `lib/helper/intents.ts` (B817) answers a destruction word deterministically,
+ * before a model is asked anything, and that floor is deliberate and stays
+ * exactly as it is. What was still wrong is that the canned refusal was the
+ * *whole* answer, with nothing said about the other half of the message —
+ * `app/api/helper/[user]/ask/route.ts` now appends one honest sentence when
+ * `droppedAnInstruction` says so, reusing the same check rather than
+ * duplicating it.
+ */
+describe("a compound message caught by the pre-model destroy refusal", () => {
+  test("the other half gets an honest word too, and the model is never asked", async () => {
+    const answered = await read(await ask("publish today's day and also delete the Tokyo trip"));
+
+    expect(create).not.toHaveBeenCalled();
+    expect(String(answered.body.answer)).toContain("Deleting is not something this conversation can do");
+    expect(String(answered.body.answer)).toContain("only got to part");
+  });
+
+  test("a single destroy instruction with nothing else is answered as before", async () => {
+    const answered = await read(await ask("delete the Tokyo trip"));
+
+    expect(create).not.toHaveBeenCalled();
+    expect(String(answered.body.answer)).toContain("Deleting is not something this conversation can do");
+    expect(String(answered.body.answer)).not.toContain("only got to part");
+  });
+});
+
+describe("a vague answer where account already read the exact figure", () => {
+  test("is caught, and a retry that names the number reaches her", async () => {
+    create
+      .mockResolvedValueOnce(calls("account", {}))
+      .mockResolvedValueOnce(says("You have credits remaining."))
+      .mockResolvedValueOnce(says("You have 9.98 credits remaining."));
+    const answered = await read(await ask("how many credits do I have left?"));
+
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(String(answered.body.answer)).toBe("You have 9.98 credits remaining.");
+  });
+
+  test("said twice, she is told plainly that the figure was withheld rather than a second vague brush-off", async () => {
+    create
+      .mockResolvedValueOnce(calls("account", {}))
+      .mockResolvedValueOnce(says("You have credits remaining."))
+      .mockResolvedValueOnce(says("You still have credits remaining."));
+    const answered = await read(await ask("how many credits do I have left?"));
+
+    expect(create).toHaveBeenCalledTimes(3);
+    expect(String(answered.body.answer)).toContain("I actually do have that number");
+  });
+
+  test("account read for something else entirely (storage) is left alone", async () => {
+    create
+      .mockResolvedValueOnce(calls("account", {}))
+      .mockResolvedValueOnce(says("You have plenty of storage left."));
+    const answered = await read(await ask("how much storage am I using?"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("You have plenty of storage left.");
+  });
+
+  test("an answer that already names the figure is left alone", async () => {
+    create
+      .mockResolvedValueOnce(calls("account", {}))
+      .mockResolvedValueOnce(says("You have 9.98 credits remaining."));
+    const answered = await read(await ask("how many credits do I have left?"));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(String(answered.body.answer)).toBe("You have 9.98 credits remaining.");
   });
 });
 
