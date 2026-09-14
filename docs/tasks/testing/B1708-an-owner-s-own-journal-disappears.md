@@ -7,8 +7,7 @@ complexity: low
 area: home, journal list
 found: "2026-09-14T08:29:34Z"
 started: "2026-09-14T08:29:54Z"
-session: 87520719-7ed7-4d9f-84f4-27f111ccad78
-claimed: "2026-09-14T08:29:54Z"
+merged: "2026-09-14T08:37:19Z"
 ---
 
 # B1708 — An owner's own journal disappears from Your journals while it has no trips

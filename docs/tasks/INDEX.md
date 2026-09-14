@@ -307,14 +307,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1706](in-development/B1706-a-root-owned-restic-lock-silently.md) | A lock the service user cannot read fails the whole nightly backup, and only a person can clear it | ISSUE | high | low | `cbe9e605` |
-| [B1708](in-development/B1708-an-owner-s-own-journal-disappears.md) | An owner's own journal disappears from Your journals while it has no trips | ISSUE | high | low | `87520719` |
 
-## testing (152)
+## testing (153)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -395,6 +394,7 @@ _Nothing here._
 | [B1694](testing/B1694-api-health-reports-signup-enabled-while.md) | api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate | ISSUE | high | medium | — |
 | [B1702](testing/B1702-everything-but-fernscout-runs-as-root.md) | Everything but Fernscout runs as root on the VPS, and SSH takes passwords with nothing throttling it | OPS | high | medium | — |
 | [B1705](testing/B1705-ci-on-main-is-red-three.md) | CI on main is red: three independent breakages in the test and backup-drill jobs | ISSUE | high | low | — |
+| [B1708](testing/B1708-an-owner-s-own-journal-disappears.md) | An owner's own journal disappears from Your journals while it has no trips | ISSUE | high | low | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
