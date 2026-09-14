@@ -7,8 +7,7 @@ complexity: low
 area: landing
 found: "2026-09-14T11:00:00Z"
 started: "2026-09-14T10:13:18Z"
-session: 68f03fd3-84f8-42b3-b482-61bfc4440340
-claimed: "2026-09-14T10:13:18Z"
+merged: "2026-09-14T10:21:47Z"
 ---
 
 # B1722 — The hero chat has finished animating before it is scrolled to, and the photobook drawing does not read as a book

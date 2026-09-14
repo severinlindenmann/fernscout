@@ -312,15 +312,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1713](in-development/B1713-a-day-written-through-api-v2.md) | A day written through /api/v2 gets no weather until the next night, and the owner never knew a nightly sweep was what filled it | ISSUE | high | medium | `3309c078` |
 | [B1721](in-development/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium | `8ad8d82a` |
-| [B1722](in-development/B1722-the-hero-chat-has-finished-animating.md) | The hero chat has finished animating before it is scrolled to, and the photobook drawing does not read as a book | ISSUE | medium | low | `68f03fd3` |
 
-## testing (161)
+## testing (162)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -458,6 +457,7 @@ _Nothing here._
 | [B1695](testing/B1695-b403-s-account-of-never-having.md) | B403's account of never having delivered a WhatsApp announcement is stale | OPS | medium | low | — |
 | [B1698](testing/B1698-the-deploy-s-own-backup-line.md) | The deploy's own backup line is blank because it reads health unauthenticated | ISSUE | medium | low | — |
 | [B1709](testing/B1709-analytics-on-a-trip-with-nothing.md) | Analytics on a trip with nothing measured says the trip was taken down | ISSUE | medium | low | — |
+| [B1722](testing/B1722-the-hero-chat-has-finished-animating.md) | The hero chat has finished animating before it is scrolled to, and the photobook drawing does not read as a book | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
