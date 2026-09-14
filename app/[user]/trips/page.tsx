@@ -4,7 +4,7 @@ import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
 import { PATH_HEADER } from "@/lib/requestKeys";
 import { basemapFor } from "@/lib/basemap";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
-import { getPlaces, getTripStats } from "@/lib/entries";
+import { getAllMedia, getPlaces, getTripStats } from "@/lib/entries";
 import { frameRoute } from "@/lib/mapFrame";
 import { assignFlagColours, FLAG_FALLBACK } from "@/lib/flagColours";
 import { accentsFor, getMalformedTrips, getTrips } from "@/lib/trips";
@@ -323,7 +323,15 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
       id: trip.id,
       title: trip.title,
       tagline: trip.tagline,
-      cover: trip.cover,
+      // B1740. A set cover wins here — this is the picture somebody chose for
+      // the trip as a whole — and the trip's newest photograph stands in when
+      // there is none, so a card is never blank while the trip has any. Read
+      // at this reader's own level, so the stand-in is never a photograph they
+      // may not see. The trip page has the opposite precedence, and says so
+      // there: its hero follows the day, not the chosen cover.
+      cover:
+        trip.cover ??
+        getAllMedia(trip.ref, readByTrip.get(trip.ref)).find((m) => m.type === "image")?.src,
       accent: accents.get(trip.ref)!,
       status: trip.status,
       start: trip.start,

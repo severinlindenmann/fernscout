@@ -50,6 +50,10 @@ export type TripFixture = {
   /** Widened with the day's, and for the same reason — B1630. */
   accent?: string;
   tagline?: string;
+  /** The picture chosen for the trip as a whole. `createTrip` refuses this
+   * field on purpose (see its docblock: at creation there are no photographs
+   * yet), so like `accent` it is applied to the written document — B1740. */
+  cover?: string;
   translations?: Record<string, { title?: string; tagline?: string; intro?: string }>;
   plan?: { route: Array<Record<string, unknown>>; body?: string };
   costs?: { budget: { total: number; days?: number; currency?: string }; items?: Array<Record<string, unknown>>; note?: string; visibility?: "public" | "guests" };
@@ -94,6 +98,7 @@ export function writeTripFixture(username: string, trip: TripFixture): { ref: st
   // document, which is the duplication this exists to remove.
   const extras: Record<string, unknown> = {};
   if (trip.accent !== undefined) extras.accent = trip.accent;
+  if (trip.cover !== undefined) extras.cover = trip.cover;
   if (trip.tagline !== undefined) extras.tagline = trip.tagline;
   if (trip.translations !== undefined) extras.translations = trip.translations;
   if (trip.plan !== undefined) extras.plan = trip.plan;
