@@ -111,3 +111,33 @@ Three unrelated root causes, all landing as edits to the same two skill
 documents. Edit them in one pass rather than three, and note this ticket's own
 argument that prose has already failed twice here, so the durable answer is a
 hook rather than another paragraph.
+
+
+## Done 2026-09-14, and the ticket was right about the wrong fix
+
+The diagnosis holds exactly. What a run since has shown is that **the
+instruction alone does not work**, which the ticket could not have known:
+
+- The rule went into `AGENTS.md` and `work-on-a-task` as an explicit paragraph
+  naming the failure. **The very next agent dispatched, with that rule quoted
+  in its brief, did it anyway.** Ten agents stranded in one day.
+- So `scripts/verify.mjs` now **refuses to start unattended** unless
+  `VERIFY_WILL_WAIT=1` is set beside the long timeout. That delivers the
+  message at the one moment it is needed instead of hoping it was read.
+- The guard cannot close the hole completely, and the agent that built it
+  proved why rather than assuming: a backgrounded subprocess and a
+  foregrounded one are **byte-identical from inside** — same `isTTY`, same
+  ppid, no distinguishing signal. So it detects "nobody is watching" and makes
+  the caller *declare* intent. An agent can still declare it and break it, and
+  one did.
+
+Now also in the three dispatching skills the ticket named as silent —
+`run-a-batch`, `test-the-live-site`, `plan-a-run` — so an orchestrator does not
+have to remember it per dispatch.
+
+**And the better answer for a batch, learned the expensive way:** do not have
+dispatched agents verify at all. Six concurrent `verify` runs took this machine
+past a load average of 180; every run starved, a sub-second test took 51
+seconds, and it was misread as a failure — by me, before I recognised it. Have
+each agent run only the test files it touched, and run the full gate serially
+at merge time, which is where it has to pass anyway.

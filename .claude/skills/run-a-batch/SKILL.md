@@ -3,6 +3,28 @@ name: run-a-batch
 description: Carry a batch of tickets a person already answered through build, merge, deploy and live check without asking anything else — reads plan-a-run's brief.json, builds groups concurrently, merges serially with npm run unused after each, deploys per wave, parks what fails three times, and ends with report-a-run. Use when the user says "run the batch", "run-a-batch", "build what I approved", or hands over a brief.json and asks for it to be executed.
 ---
 
+**Every agent you dispatch needs the verify rule in its brief**, because the
+trap is invisible from inside the decision. `npm run verify` takes minutes; a
+Bash call's default timeout is two. An agent that runs it plainly gets a
+timeout, reasonably concludes it must background the run — and then ends its
+turn waiting for a notification nothing will send, having done all the work and
+thrown the turn away.
+
+So tell each one: pass `VERIFY_WILL_WAIT=1` together with `timeout: 900000`,
+and stay in the turn until it returns. Never background it and stop.
+
+`scripts/verify.mjs` refuses to start unattended for this reason, which
+delivers the message at the moment it is needed — but it cannot tell a
+backgrounded run from a waited-for one (a subprocess is byte-identical either
+way), so an agent can still declare the promise and break it. It happened ten
+times in one day even with the rule quoted in the brief.
+
+**The cheaper answer for a batch is not to have them verify at all.** Have each
+agent run only the single test files it touched — seconds — and run the full
+gate yourself, serially, at merge time, which is where it has to pass anyway.
+Six concurrent verifies on one machine took the load average past 180 and every
+run starved: a sub-second test took 51 seconds and was read as a failure.
+
 # Run a batch
 
 `work-on-a-task` does one ticket and stops at `testing/`. `vps` deploys.

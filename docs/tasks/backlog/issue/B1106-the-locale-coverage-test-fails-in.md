@@ -41,3 +41,27 @@ duplicate.
 
 - The cause is named: which test leaves what behind.
 - The suite run twenty times in a row does not produce this failure.
+
+
+## Fixed 2026-09-14 — not a state leak, a slow test losing a race
+
+The ticket's suspicion was reasonable and wrong. Nothing writes into
+`site/locales/` during a test and no ordering matters here.
+
+`dictionaryFor(code)` was called **inside the filter**, so the whole dictionary
+was reloaded once per key, per locale — roughly 1,400 keys times three. The
+test took **4.4 seconds on an idle machine**, which clears a 30s timeout
+comfortably and does not clear it at all when something else is running. That
+is the entire flake: `verify` stops at the first failure, so an agent meeting
+it is told the tree is not ready and goes looking in its own diff.
+
+Hoisting the load out of the filter takes it to **0.205s**, a 21x reduction. A
+test that fast cannot lose that race whatever else the machine is doing.
+
+Confirmed in the field the same day: six concurrent verifies took the load
+average past 180, and this exact test took 51 seconds and failed. That was the
+reported symptom, reproduced, with the cause now removed.
+
+**B1040 is listed here as a likely shared cause and is not.** That one was a
+`vi.spyOn(crypto, "randomBytes")` that never bound — the test passed whether
+the code was right or wrong — and it was re-pointed under B1610.
