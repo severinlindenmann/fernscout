@@ -43,6 +43,10 @@ const SIGNUP_FAILURES = [
   "tel_taken",
   "invalid_token",
   "missing_token",
+  // B1693. An invite-only instance refuses an address nobody named, at the
+  // very first step; without this the wizard would show its generic
+  // "something went wrong" for the one refusal a person can actually act on.
+  "signup_not_invited",
 ] as const;
 
 /** The same cookie `LocaleSwitcher` writes, at module level for the same
@@ -317,12 +321,29 @@ export default function SignupWizard({
     setEmail(value);
     setBusy(true);
     setError(null);
-    await fetch("/api/auth/codes", {
+    /**
+     * The answer is deliberately not read — the door answers 202 whether or
+     * not the address is known, so there is nothing here to branch on.
+     *
+     * With one exception, B1693: an invite-only instance refuses an address
+     * nobody named, and moving on to "a code is on its way" would leave that
+     * person waiting for a mail that is never coming. That refusal is about
+     * the instance rather than about the address, so saying it discloses
+     * nothing the landing page does not.
+     */
+    const response = await fetch("/api/auth/codes", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ for: "signup", email: value }),
     }).catch(() => null);
     setBusy(false);
+    if (response?.status === 403) {
+      const json = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (json?.error === "signup_not_invited") {
+        setError(t("agent.error.signup_not_invited"));
+        return;
+      }
+    }
     setStep("code");
   }
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AckButton, UnhideButton } from "./Acks";
+import Invites from "./Invites";
 import AdminGrant from "./AdminGrant";
 import AdminRefund from "./AdminRefund";
 import Console from "./Console";
@@ -11,6 +12,7 @@ import SmsSend from "./SmsSend";
 import SpendChart from "./SpendChart";
 import { BarChart, Breakdown, CountBars, Meter, type Week } from "./Charts";
 import { applyAcks, listAcks, sweepAcks, type Ack } from "@/lib/adminAcks";
+import { inviteOnly, listInvites } from "@/lib/inviteList";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { isEnabled } from "@/lib/capabilities";
 import { listSms } from "@/lib/sms/store";
@@ -138,6 +140,7 @@ export default async function AdminPage() {
     signups,
     helper,
     arrivals,
+    invites,
   ] = await Promise.all([
     dashboard(from),
     dailyCosts(ago(CHART_DAYS), CHART_DAYS),
@@ -153,6 +156,7 @@ export default async function AdminPage() {
     signupsByWeek(WEEKS),
     sessionStats(from),
     signupDates(),
+    listInvites(),
   ]);
 
   const metered = creditsEnabled();
@@ -290,6 +294,7 @@ export default async function AdminPage() {
             label: "People",
             panel: (
               <>
+                <Invites inviteOnly={inviteOnly()} initial={invites} />
                 <Funnel steps={steps} signups={signups} />
                 <HelperSummary stats={helper} />
                 <section className="mt-8">

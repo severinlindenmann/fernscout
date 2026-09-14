@@ -80,7 +80,7 @@ beforeEach(async () => {
       site: { name: "T", url: "https://t.test" },
       users: { reserved: [] },
       features: {
-        signup: { enabled: true },
+        signup: { inviteOnly: false },
         auth: { enabled: true },
         mail: { enabled: true, transport: "file" },
       },

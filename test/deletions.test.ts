@@ -54,7 +54,7 @@ function serverConfig(): void {
       site: { name: "Testbed", url: "https://t.test" },
       users: { reserved: ["admin"] },
       features: {
-        signup: { enabled: true },
+        signup: { inviteOnly: false },
         auth: { enabled: true },
         // The file transport, which is what makes this whole flow testable
         // with no mail account anywhere — AGENTS.md's rule.
@@ -72,7 +72,7 @@ function serverConfigWithCredits(enabled: boolean): void {
       site: { name: "Testbed", url: "https://t.test" },
       users: { reserved: ["admin"] },
       features: {
-        signup: { enabled: true },
+        signup: { inviteOnly: false },
         auth: { enabled: true },
         mail: { enabled: true, transport: "file" },
         credits: { enabled },
@@ -338,7 +338,7 @@ describe("asking to delete", () => {
       JSON.stringify({
         site: { name: "Testbed", url: "https://t.test" },
         users: { reserved: [] },
-        features: { auth: { enabled: true }, signup: { enabled: true }, mail: { enabled: false } },
+        features: { auth: { enabled: true }, signup: { inviteOnly: false }, mail: { enabled: false } },
       }),
     );
     clearConfigCache();

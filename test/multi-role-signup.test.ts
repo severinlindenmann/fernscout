@@ -58,7 +58,7 @@ beforeEach(async () => {
     JSON.stringify({
       site: { name: "R", url: "https://example.test" },
       users: { reserved: [] },
-      features: { signup: { enabled: true }, auth: { enabled: true }, contacts: { enabled: true } },
+      features: { signup: { inviteOnly: false }, auth: { enabled: true }, contacts: { enabled: true } },
     }),
   );
 

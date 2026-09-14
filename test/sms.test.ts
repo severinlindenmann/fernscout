@@ -33,7 +33,7 @@ function writeConfig(overrides: { smsInbound?: boolean; sms?: boolean } = {}) {
       users: { reserved: [] },
       features: {
         auth: { enabled: true },
-        signup: { enabled: true, phoneBackend: "whatsapp-inbound" },
+        signup: { inviteOnly: false, phoneBackend: "whatsapp-inbound" },
         whatsapp: { enabled: true, backend: "dry-run", number: "+41 79 111 22 33" },
         whatsappInbound: { enabled: true },
         sms: { enabled: overrides.sms ?? true, backend: "dry-run", allowedPrefixes: ["+41"] },

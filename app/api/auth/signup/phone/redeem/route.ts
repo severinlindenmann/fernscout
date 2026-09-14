@@ -1,5 +1,6 @@
 import { NO_JOURNAL, markPhoneProven, resolveSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { signupAllowed } from "@/lib/inviteList";
 import { checkVerification } from "@/lib/phoneVerify";
 import { pollPhoneLink } from "@/lib/phoneVerify/inboundLink";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -43,6 +44,13 @@ export async function POST(request: Request) {
   const session = match ? await resolveSession(match[1].trim(), "signup") : null;
   if (!session || session.owner !== NO_JOURNAL) {
     return fail("invalid_token", ERROR_CODES.invalid_token, undefined, 401);
+  }
+
+  // B1693. The session can only exist for an address that was on the list
+  // when its code was issued; this is what makes removing somebody take
+  // effect on a signup already half-done.
+  if (!(await signupAllowed(session.email))) {
+    return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;

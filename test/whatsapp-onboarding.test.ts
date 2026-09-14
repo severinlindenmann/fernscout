@@ -115,7 +115,7 @@ beforeEach(() => {
       features: {
         whatsappInbound: { enabled: true },
         whatsapp: { enabled: true, backend: "dry-run", number: "41790000000" },
-        signup: { enabled: true },
+        signup: { inviteOnly: false },
         auth: { enabled: true },
         mail: { enabled: true, transport: "file" },
       },
@@ -275,7 +275,25 @@ describe("onboarding a stranger over WhatsApp", () => {
     expect(replies().some((r) => /code is not right/.test(r.body))).toBe(true);
   });
 
-  test("with signup switched off the channel says what it always said", async () => {
+  test("an invite-only instance refuses an address nobody named — B1693", async () => {
+    const config = JSON.parse(fs.readFileSync(path.join(dir, "config.json"), "utf8"));
+    config.features.signup = { inviteOnly: true };
+    fs.writeFileSync(path.join(dir, "config.json"), JSON.stringify(config));
+    clearConfigCache();
+
+    await say("hi");
+    await tap("onb:lang:en", "English");
+    await say("stranger@example.test");
+    // The refusal, and — the half that matters — no code mailed to somebody
+    // the operator never named.
+    expect(lastReply()).toMatch(/invite-only/);
+    expect(() => mailedCode()).toThrow();
+  });
+
+  // B1693 removed the signup switch, so "switched off" is now "this server
+  // cannot do it" — mail off is the remaining way there, and it is the one
+  // that matters: the flow's second step is an emailed code.
+  test("with no way to mail a code the channel says what it always said", async () => {
     fs.writeFileSync(
       path.join(dir, "config.json"),
       JSON.stringify({
@@ -284,7 +302,7 @@ describe("onboarding a stranger over WhatsApp", () => {
         features: {
           whatsappInbound: { enabled: true },
           whatsapp: { enabled: true, backend: "dry-run" },
-          mail: { enabled: true, transport: "file" },
+          mail: { enabled: false },
         },
       }),
     );

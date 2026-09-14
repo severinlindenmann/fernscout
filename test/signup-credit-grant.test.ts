@@ -81,7 +81,7 @@ async function setup(creditsOn: boolean): Promise<void> {
       site: { name: "T", url: "https://t.test" },
       users: { reserved: ["admin"] },
       features: {
-        signup: { enabled: true },
+        signup: { inviteOnly: false },
         auth: { enabled: true },
         credits: { enabled: creditsOn },
       },

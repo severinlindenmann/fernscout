@@ -36,7 +36,7 @@ function writeServerConfig(opts: { whatsappOn?: boolean } = {}) {
       features: {
         auth: { enabled: true },
         mail: { enabled: true, transport: "file" },
-        signup: { enabled: true, phoneBackend: "whatsapp" },
+        signup: { inviteOnly: false, phoneBackend: "whatsapp" },
         whatsapp: { enabled: opts.whatsappOn !== false, backend: "dry-run" },
       },
     }),

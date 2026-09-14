@@ -28,7 +28,7 @@ beforeEach(async () => {
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
       users: { reserved: [] },
-      features: { signup: { enabled: true }, auth: { enabled: true } },
+      features: { signup: { inviteOnly: false }, auth: { enabled: true } },
     }),
   );
   clearConfigCache();

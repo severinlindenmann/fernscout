@@ -839,7 +839,12 @@ export function openApiDocument() {
                 "touch a lookup, so refusing them names nothing about who is registered — " +
                 "unlike an unrecognised-but-valid address, which still answers 202.",
             },
-            "403": { description: "That address may not have a write code for this journal" },
+            "403": {
+              description:
+                "That address may not have a write code for this journal, or — for " +
+                '`for: "signup"` — this instance is invite-only and the address is not on its ' +
+                "list (`signup_not_invited`).",
+            },
             "404": {
               description:
                 '`auth_disabled` (`for: "read"`/`"write"`/`"identity"`) or `signup_disabled` ' +
@@ -909,6 +914,11 @@ export function openApiDocument() {
             },
             "401": { description: "`invalid_code` — wrong, expired, burned, or the wrong `for`" },
             "404": { description: '`auth_disabled` or `signup_disabled`, matching /api/auth/codes' },
+            "403": {
+              description:
+                '`signup_not_invited` — this instance is invite-only and the address is not on ' +
+                "its list. The code is not spent.",
+            },
             "429": { description: "Too many attempts" },
           },
         },

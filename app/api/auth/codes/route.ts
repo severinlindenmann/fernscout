@@ -18,6 +18,7 @@ import { sendSignupCode } from "@/lib/signupCode";
 import { sendWhatsappCode } from "@/lib/whatsapp";
 import { toE164 } from "@/lib/whatsapp/phone";
 import { authTemplateFor } from "@/lib/whatsapp/settings";
+import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
@@ -213,6 +214,17 @@ async function handleSignup(
   channel: "mail" | "whatsapp",
   accepted: () => Response,
 ) {
+  /**
+   * B1693. The whole of invite-only is here: an address nobody has named is
+   * never sent a code. Said out loud rather than faked as a success — the
+   * common case is a person who was never added, or who mistyped, and both
+   * of those wait for a mail that will never come otherwise. It leaks that
+   * this instance is invite-only, which is a thing its landing page says
+   * anyway, and not who is on the list.
+   */
+  if (!(await signupAllowed(req.email))) {
+    return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
+  }
   if (channel === "whatsapp") return accepted();
   if (!emailCodeAllowed(req.email)) return accepted();
 

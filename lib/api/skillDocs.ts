@@ -135,7 +135,11 @@ function newAccount(): string {
       "exists — send `user` too), `read` (a guest cookie, browser-only) or `identity` (proves " +
       "an address, authorises nothing). The answer is always `202 {\"status\": \"accepted\"}` " +
       "whatever the address — a mail either lands or it does not, and the response cannot say " +
-      "which without letting a caller enumerate addresses.",
+      "which without letting a caller enumerate addresses. One exception, and it is about the " +
+      "instance rather than the address: an invite-only instance answers `403 " +
+      "signup_not_invited` to `for: \"signup\"` from an address its operator has not named, " +
+      "because leaving somebody waiting for a mail that is never coming is worse than saying " +
+      "so.",
     "```http\nPOST /api/auth/codes/redeem\nContent-Type: application/json\n\n" +
       '{"email": "them@example.com", "code": "123456", "for": "signup"}\n```',
     "`for: \"write\"`/`\"signup\"` answer with the token itself, in the body — never a cookie, " +

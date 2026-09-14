@@ -696,6 +696,21 @@ type OwnerTelTable = {
   updated_at: string;
 };
 
+/**
+ * The invite list an invite-only instance takes signups from — B1693, and see
+ * `035-signup-invites` for why a row is permission to be sent a code rather
+ * than a credential.
+ */
+type SignupInvitesTable = {
+  /** Always `NO_JOURNAL` — an invite is the instance's, not a journal's. */
+  owner_id: string;
+  /** Lowercased and trimmed by `lib/inviteList.ts`; never the raw input. */
+  email: string;
+  added_at: string;
+  added_by: string | null;
+  note: string | null;
+};
+
 export type Database = {
   users: UsersTable;
   sessions: SessionsTable;
@@ -723,6 +738,7 @@ export type Database = {
   sms_messages: SmsMessagesTable;
   whatsapp_sends: WhatsappSendsTable;
   owner_tel: OwnerTelTable;
+  signup_invites: SignupInvitesTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -754,4 +770,5 @@ export const TABLE_NAMES = [
   "sms_messages",
   "whatsapp_sends",
   "owner_tel",
+  "signup_invites",
 ] as const satisfies readonly (keyof Database)[];

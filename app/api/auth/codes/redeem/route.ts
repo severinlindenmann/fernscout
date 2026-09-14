@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth";
 import { issueIdentityCookie, setIdentityCookie } from "@/lib/auth/identityCookie";
 import { isEnabled } from "@/lib/capabilities";
+import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
 import { getTrip, tripRef } from "@/lib/trips";
@@ -59,6 +60,12 @@ export async function POST(request: Request) {
 
   if (req.for === "signup") {
     if (!isEnabled("signup")) return fail("signup_disabled", ERROR_CODES.signup_disabled, undefined, 404);
+    // B1693. Checked again rather than trusted from the request step: an
+    // address taken off the list after its code was issued must not be able
+    // to spend it.
+    if (!(await signupAllowed(req.email))) {
+      return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
+    }
   } else if (!isEnabled("auth")) {
     return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
   }

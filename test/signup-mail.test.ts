@@ -51,7 +51,7 @@ beforeEach(async () => {
       site: { name: "T", url: "https://t.test" },
       users: { reserved: [] },
       features: {
-        signup: { enabled: true },
+        signup: { inviteOnly: false },
         mail: { enabled: true, transport: "file" },
       },
     }),

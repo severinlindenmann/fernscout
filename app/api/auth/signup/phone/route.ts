@@ -1,5 +1,6 @@
 import { NO_JOURNAL, resolveSession } from "@/lib/auth";
 import { isEnabled } from "@/lib/capabilities";
+import { signupAllowed } from "@/lib/inviteList";
 import { loadServerConfig } from "@/lib/config";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { phoneProofMode, smsFallbackOffered, startVerification } from "@/lib/phoneVerify";
@@ -64,6 +65,13 @@ export async function POST(request: Request) {
       undefined,
       401,
     );
+  }
+
+  // B1693. The session can only exist for an address that was on the list
+  // when its code was issued; this is what makes removing somebody take
+  // effect on a signup already half-done.
+  if (!(await signupAllowed(session.email))) {
+    return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
   }
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
