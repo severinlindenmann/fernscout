@@ -7,8 +7,7 @@ complexity: medium
 area: auth, signup, admin, config
 found: "2026-09-14T05:19:42Z"
 started: "2026-09-14T05:20:23Z"
-session: b09bcb65-1165-4e8c-8548-2f5634561c64
-claimed: "2026-09-14T05:20:23Z"
+merged: "2026-09-14T05:48:01Z"
 ---
 
 # B1693 — Signup is an on/off switch, so an instance cannot be open to a named few
