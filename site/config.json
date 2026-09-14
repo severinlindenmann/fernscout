@@ -4,6 +4,9 @@
     "name": "Fernscout",
     "url": "https://fernscout.ch",
     "defaultUser": "example",
+    "showcase": [
+      "example"
+    ],
     "repository": "https://github.com/severinlindenmann/fernscout",
     "banner": {
       "enabled": true,

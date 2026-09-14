@@ -366,6 +366,22 @@ export type ServerConfig = {
       translations?: Record<string, string>;
     };
     /**
+     * Which journals are shown as demonstrations — B1718.
+     *
+     * A journal named here gets one thing nobody else's does: a bar offering
+     * a reader their own journal. It is the operator's list and nothing else,
+     * which is the whole reason it lives in this file rather than in
+     * `content/<user>/config.json`. That file belongs to the journal's owner
+     * and is writable over the API, so an owner could switch an advertisement
+     * on over a trip full of other people's photographs — or a reader could
+     * be sold to from a journal whose owner never agreed to it.
+     *
+     * Absent means none, so a fork that deletes the demo journal advertises
+     * nowhere. This instance ships `["example"]`, and a second showcase
+     * journal later is one string.
+     */
+    showcase: string[];
+    /**
      * The instance admin who approves credit purchases while there is no
      * payment provider (B425). The accept link for every purchase is mailed
      * here and nowhere else — never to the buying journal's owner, because an
@@ -957,6 +973,7 @@ export function parseServerConfig(raw: unknown): ServerConfig {
       repository: optionalUrl(site, "repository", "site.repository", problems),
       credit: parseCredit(site.credit, problems),
       banner: parseBanner(site.banner, problems),
+      showcase: parseShowcase(site.showcase, problems),
       operatorEmail:
         typeof site.operatorEmail === "string" &&
         site.operatorEmail.trim() !== ""
@@ -1099,6 +1116,24 @@ export function serverConfigPath(): string {
  * three. A malformed block is a problem rather than a silent no: an operator
  * who wrote a notice meant it to be seen.
  */
+/**
+ * `site.showcase` — the usernames a reader may be offered their own journal
+ * from. B1718.
+ *
+ * Refuses anything that is not a list of non-empty strings rather than
+ * quietly dropping it: an operator who meant to name a journal and mistyped
+ * the shape should be told at boot, like every other malformed key here, not
+ * discover months later that the demo never asked anybody.
+ */
+function parseShowcase(raw: unknown, problems: string[]): string[] {
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw) || raw.some((u) => typeof u !== "string" || u.trim() === "")) {
+    problems.push("site.showcase must be a list of usernames, or absent");
+    return [];
+  }
+  return (raw as string[]).map((u) => u.trim());
+}
+
 function parseBanner(
   raw: unknown,
   problems: string[],

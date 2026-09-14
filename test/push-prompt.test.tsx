@@ -100,10 +100,15 @@ describe("when and where it appears", () => {
   /** A timer alone would fire at somebody who opened a tab and walked away —
    * the reader least likely to want a prompt waiting for them. */
   test("it waits for dwell time and for something the reader did", () => {
-    const src = read("components/PushPrompt.tsx");
+    // The rule lives in `components/useEngagement.ts` since B1718, which
+    // lifted it out of this component so the showcase bar could ask the same
+    // question the same way. The assertion is unchanged; only its address is.
+    const src = read("components/useEngagement.ts");
     expect(src).toMatch(/DWELL_MS\s*=\s*[\d_]+/);
     expect(src).toContain("acted");
     expect(src).toContain("visibilityState");
+    // And this component still uses it rather than a rule of its own.
+    expect(read("components/PushPrompt.tsx")).toContain("useEngagement()");
   });
 
   test("an iPhone that has not installed the app gets the explainer instead", () => {

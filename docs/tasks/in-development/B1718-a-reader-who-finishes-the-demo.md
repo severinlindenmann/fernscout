@@ -50,6 +50,28 @@ back to, not only a band at the end:
 Not `window.confirm`-style, not an overlay over the middle of somebody's
 trip, and never on a journal that is not in `site.showcase`.
 
+## What was built
+
+**Valid** — `app/[user]/layout.tsx` rendered `PushPrompt` and nothing else
+that offers a reader anything, and no journal page links back to `/agent`.
+
+- `site.showcase`, a list of usernames parsed in `lib/config.ts` beside the
+  banner and the credit. `site/config.json` ships `["example"]`. A malformed
+  value refuses to boot with the reason, like every other key in that file.
+- `ShowcaseBar` — full width, at the foot, dismissed forever per browser,
+  `fs-rise-in` with `prefers-reduced-motion` already handled by the shared
+  block in `globals.css`.
+- **`useEngagement` moved out of `PushPrompt` into its own module** and both
+  now use it. Two definitions of "has read something" would drift, and the
+  one that drifts is the one whose card starts appearing at people who have
+  read nothing.
+- **The two bottom-of-page things now know about each other.** `ShowcaseBar`
+  publishes its measured height as `--fs-showcase-bar`; `PushPrompt` sits on
+  top of the bar instead of behind it, and `body` gains the same padding so
+  nothing covers the last line. Push *is* enabled for `/example` on this
+  instance, so without this they would have been drawn over one another.
+- Measured, not assumed: 147 px at 390 (stacked) and 95 px at 1280 (one row).
+
 ## Acceptance
 
 - On `/example` the bar appears after scrolling into the page, and closing it

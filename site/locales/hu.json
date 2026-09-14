@@ -2518,5 +2518,10 @@
   "landing.pitchOwnTitle": "A te mappád, és el is viheted",
   "landing.pitchOwnBody": "A napló JSON-fájlokból és fényképekből áll egy mappában, ami a tiéd, a saját címeden. Egy paranccsal az egészet visszakapod zipben, és ugyanaz a napló elfut a saját gépeden is. Pénzbe csak a papír kerül.",
   "landing.vignetteCaption": "A fényképek és a nap valódiak, innen:",
-  "landing.vignetteDay": "a bemutató napló"
+  "landing.vignetteDay": "a bemutató napló",
+  "showcase.title": "Ez a napló csak bemutató.",
+  "showcase.body": "A tiédben a saját utazásaid lennének, a saját címeden — ingyen, a fájlok a tieid maradnak.",
+  "showcase.cta": "Indítsd el a naplódat",
+  "showcase.how": "Hogyan működik",
+  "showcase.close": "Bezárás"
 }

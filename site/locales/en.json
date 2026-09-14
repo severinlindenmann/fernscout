@@ -2518,5 +2518,10 @@
   "landing.pitchOwnTitle": "Your folder, and yours to take away",
   "landing.pitchOwnBody": "The journal is JSON and photographs in a folder you own, on your own address. One command hands the whole thing back as a zip, and you can run the same journal on your own machine. Only paper costs money.",
   "landing.vignetteCaption": "The photographs and the day are real, from",
-  "landing.vignetteDay": "the demo journal"
+  "landing.vignetteDay": "the demo journal",
+  "showcase.title": "This journal is a demonstration.",
+  "showcase.body": "Yours would be your own trips, on your own address — free, and the files stay yours.",
+  "showcase.cta": "Start your journal",
+  "showcase.how": "How it works",
+  "showcase.close": "Close"
 }
