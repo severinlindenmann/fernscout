@@ -144,7 +144,7 @@ describe("a held answer is delivered on the next inbound message", () => {
     // way a future job-completion caller would.
     holdAnswer("windowdelivery", "41760001212", { kind: "text", body: "Your photobook is ready." });
 
-    const replyDir = path.join(dir, "windowdelivery", "whatsapp-replies");
+    const replyDir = path.join(dir, "whatsapp-replies", "windowdelivery");
     const before = fs.existsSync(replyDir) ? fs.readdirSync(replyDir).length : 0;
 
     // The next message reopens the window, and the held answer goes out
@@ -204,7 +204,7 @@ describe("a held answer is delivered on the next inbound message", () => {
       JSON.stringify({ tel: "41760001313", heldAt, outbound: { kind: "text", body: "It rained." } }),
     );
 
-    const replyDir = path.join(dir, "windowdelay", "whatsapp-replies");
+    const replyDir = path.join(dir, "whatsapp-replies", "windowdelay");
     const before = fs.existsSync(replyDir) ? fs.readdirSync(replyDir).length : 0;
 
     await handleInboundMessage({

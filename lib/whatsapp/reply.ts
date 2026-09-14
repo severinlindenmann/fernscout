@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { loadServerConfig } from "../config";
-import { contentRoot } from "../contentRoot";
+import { dataDir } from "../dataDir";
 import { holdAnswer } from "./held";
 import { maskNumber } from "./index";
 import type { WhatsappOutbound } from "./render";
@@ -31,9 +31,29 @@ import { isWindowOpen } from "./window";
 
 const GRAPH_VERSION = "v25.0";
 
+/**
+ * Where a dry-run reply is kept — `DATA_DIR`, not a journal — B1741.
+ *
+ * These files are a record of what this server sent. That is the operator's,
+ * not the person's, and `lib/mail/index.ts:92` already made exactly this
+ * decision for exactly this class of artifact: every kept `.eml` — sign-in
+ * codes, guest invitations, deletion links — is written under `dataDir()`,
+ * never inside `content/<user>/`. A dry-run reply is the same thing for a
+ * different channel, and it was simply filed in the wrong place.
+ *
+ * B1736 is what made it worth moving rather than noting. A pressed
+ * `invite_guest` now returns its link in the message body, and the body is
+ * what this writes out whole — so the guest token that
+ * `app/api/helper/[user]/invite/route.ts` deliberately shows once and stores
+ * only as a hash was landing, in full, in a file inside somebody's journal
+ * folder. `content/` is what gets exported, backed up and handed over.
+ *
+ * The real `cloud` backend writes none of this; it posts to Graph and keeps
+ * nothing. Only dry-run does, and only because the suite reads these files
+ * back to assert what went out — which is unaffected by where they live.
+ */
 function outputDir(username: string | null): string {
-  const root = contentRoot();
-  return path.join(root, username ?? ".whatsapp", "whatsapp-replies");
+  return path.join(dataDir(), "whatsapp-replies", username ?? ".whatsapp");
 }
 
 /**
