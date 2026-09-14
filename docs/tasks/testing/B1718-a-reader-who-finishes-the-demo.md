@@ -7,8 +7,7 @@ complexity: medium
 area: journal pages
 found: "2026-09-14T10:12:00Z"
 started: "2026-09-14T09:48:30Z"
-session: 68f03fd3-84f8-42b3-b482-61bfc4440340
-claimed: "2026-09-14T09:48:30Z"
+merged: "2026-09-14T10:03:15Z"
 ---
 
 # B1718 — A reader who finishes the demo journal has no way to start one of their own

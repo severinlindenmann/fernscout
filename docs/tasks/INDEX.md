@@ -312,14 +312,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1714](in-development/B1714-the-v2-contract-declares-openapi-3.md) | The v2 contract declares OpenAPI 3.1.0 and emits request where the specification says requestBody, so no standard tool sees a body on any write | ISSUE | high | low | `3309c078` |
-| [B1718](in-development/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium | `68f03fd3` |
 
-## testing (159)
+## testing (160)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -405,6 +404,7 @@ _Nothing here._
 | [B1710](testing/B1710-an-unattended-nodejs-upgrade-on-the.md) | An unattended nodejs upgrade on the VPS moved past the repo's exact Node pin and every deploy fails at the build guard | OPS | high | low | — |
 | [B1711](testing/B1711-the-landing-page-and-readme-do.md) | The landing page and README do not sell what Fernscout actually does | FEATURE | high | medium | — |
 | [B1717](testing/B1717-the-landing-page-describes-the-chat.md) | The landing page describes the chat, the postcard and the book instead of showing them | FEATURE | high | medium | — |
+| [B1718](testing/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
