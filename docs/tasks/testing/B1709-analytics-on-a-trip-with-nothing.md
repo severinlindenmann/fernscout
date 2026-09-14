@@ -7,8 +7,7 @@ complexity: low
 area: analytics, navigation
 found: "2026-09-14T09:00:00Z"
 started: "2026-09-14T08:40:42Z"
-session: 87520719-7ed7-4d9f-84f4-27f111ccad78
-claimed: "2026-09-14T08:40:42Z"
+merged: "2026-09-14T08:47:44Z"
 ---
 
 # B1709 — Analytics on a trip with nothing measured says the trip was taken down

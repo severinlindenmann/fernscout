@@ -308,13 +308,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1709](in-development/B1709-analytics-on-a-trip-with-nothing.md) | Analytics on a trip with nothing measured says the trip was taken down | ISSUE | medium | low | `87520719` |
+_Nothing here._
 
-## testing (155)
+## testing (156)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -447,6 +445,7 @@ _Nothing here._
 | [B1693](testing/B1693-signup-is-an-on-off-switch.md) | Signup is an on/off switch, so an instance cannot be open to a named few | FEATURE | medium | medium | — |
 | [B1695](testing/B1695-b403-s-account-of-never-having.md) | B403's account of never having delivered a WhatsApp announcement is stale | OPS | medium | low | — |
 | [B1698](testing/B1698-the-deploy-s-own-backup-line.md) | The deploy's own backup line is blank because it reads health unauthenticated | ISSUE | medium | low | — |
+| [B1709](testing/B1709-analytics-on-a-trip-with-nothing.md) | Analytics on a trip with nothing measured says the trip was taken down | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
