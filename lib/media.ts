@@ -221,6 +221,54 @@ function mediaContentRoot(): string {
  */
 const RESIZABLE = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"]);
 
+/**
+ * What identifies one *representation* of a media file: the path it was
+ * reached by, the state of the bytes behind it, and the width being served.
+ *
+ * mtime and size rather than a digest of the content, because this is on the
+ * path of every media request and hashing a 200 MB clip to answer one is the
+ * cost being avoided rather than paid. The pair moves whenever a file is
+ * written, which is the case that matters — ingest gives a changed photograph
+ * a new name, so an in-place replacement is the rare hand-edit and this still
+ * notices it.
+ *
+ * `width` is part of it because one file is served at eight of them plus the
+ * original, and they are different bytes. `0` is the unresized answer; the
+ * allow-list in `lib/mediaSizes.ts` starts at 320, so it can never collide
+ * with a real width.
+ *
+ * Two callers, deliberately one function — B1730. `resizedCopy` names its
+ * disk cache with this and the media route sends it as an `ETag`, and the two
+ * drifting apart would mean a cached derivative served under a validator
+ * describing different bytes.
+ */
+function representationKey(file: string, source: fs.Stats, width: number): string {
+  return crypto
+    .createHash("sha256")
+    .update(`${file}:${source.mtimeMs}:${source.size}:${width}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+/**
+ * That key as a strong `ETag`, quoted and ready to send — or null when the
+ * file cannot be stat'd, which the caller reads as "send no validator" rather
+ * than as an error. B1730.
+ *
+ * Strong, not weak (`W/`), because it identifies the bytes exactly: two
+ * responses carrying the same value here are byte-identical, and a client may
+ * use it for a range request as well as for revalidation.
+ */
+export function mediaEtag(file: string, width: number | null): string | null {
+  let source: fs.Stats;
+  try {
+    source = fs.statSync(file);
+  } catch {
+    return null;
+  }
+  return `"${representationKey(file, source, width ?? 0)}"`;
+}
+
 export async function resizedCopy(file: string, width: number): Promise<Buffer | null> {
   if (!RESIZABLE.has(path.extname(file).toLowerCase())) return null;
 
@@ -233,11 +281,7 @@ export async function resizedCopy(file: string, width: number): Promise<Buffer |
 
   // Keyed by the file's identity *and* its mtime and size, so replacing a
   // photograph in place cannot serve the old one at every width forever.
-  const key = crypto
-    .createHash("sha256")
-    .update(`${file}:${source.mtimeMs}:${source.size}:${width}`)
-    .digest("hex")
-    .slice(0, 32);
+  const key = representationKey(file, source, width);
   const cached = path.join(contentRoot(), ".cache", "media", `${key}.webp`);
 
   try {

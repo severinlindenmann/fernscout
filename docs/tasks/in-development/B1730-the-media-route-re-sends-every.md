@@ -116,3 +116,39 @@ numbers ever justify them.
   a stream.
 - `npm run verify` passes. A day page with a gallery renders at desktop and
   phone width with no broken images and no console errors.
+
+## What was built
+
+Both halves, in `app/[user]/media/[...path]/route.ts` with one helper pair
+exported from `lib/media.ts`. Three things the Work section did not know:
+
+**The `304` sits above the resize, not just above the body.** The ticket
+framed this as saving a transfer; it also saves the sharp call, because a
+conditional request that matches is answered before `resizedCopy` is ever
+asked for a derivative nobody is going to receive. That is the most expensive
+thing this route does, and on a revalidating gallery it now happens zero
+times instead of once per photograph.
+
+**The `-gzip` suffix is deliberately not stripped.** B1729 is Caddy's
+`encode` rewriting an ETag and breaking `If-Match`; the reflex is to be
+tolerant of the suffix here too. That would be wrong: for a conditional
+*read* the suffix is the one thing distinguishing a compressed
+representation from an uncompressed one, and stripping it would let a cache
+match across the two. It does not arise today — `encode` compresses text
+types and leaves image and video bodies alone — and if it ever does, the fix
+is excluding this path from `encode`, not loosening the comparison. Said in
+full in the docblock on `validatorCovers`.
+
+**The streaming assertion had to count chunks.** The obvious test —
+`expect(res.body).toBeInstanceOf(ReadableStream)` — is green against the bug,
+because `new Response(uint8Array)` exposes a stream body too. What a buffered
+body cannot do is arrive in pieces, so `test/media-validator.test.ts` reads
+a 256 KiB clip and asserts more than one chunk. Six of its ten tests fail
+against the pre-branch route and all ten pass after; the other four are the
+gate and range checks, which are there to prove the early exit did not climb
+above the permission checks and were expected to pass either way.
+
+Published freshness went from `max-age=3600, stale-while-revalidate=86400` to
+`max-age=86400, stale-while-revalidate=604800`. Not `immutable`: the URL
+carries no content hash, and a file replaced in place under the same name is
+something a person can do with `scp`.

@@ -1,5 +1,6 @@
 import fs from "node:fs";
-import { contentTypeFor, resolveMediaFile, resizedCopy } from "@/lib/media";
+import { Readable } from "node:stream";
+import { contentTypeFor, mediaEtag, resolveMediaFile, resizedCopy } from "@/lib/media";
 import { parseWidth } from "@/lib/mediaSizes";
 import { parseRange } from "@/lib/mediaRange";
 import { draftsVisibleTo, mayReadTrip, readerLevelFor } from "@/lib/tripGate";
@@ -114,6 +115,34 @@ function labelOf(ref: string, segments: string[]): PhotoVisibility | undefined {
   return day?.visibility;
 }
 
+/**
+ * Whether the validator a client sent back covers what we are about to serve
+ * — B1730.
+ *
+ * `If-None-Match` is a list, each entry optionally weak, and `*` means "any
+ * representation at all", which for a file that exists is a match. Weak
+ * comparison is the right one for a conditional *read*: `W/"x"` and `"x"`
+ * describe the same photograph even if a byte of metadata differs, and this
+ * route never issues a weak tag anyway.
+ *
+ * **One thing deliberately not done: a `-gzip` suffix is not stripped.**
+ * Caddy's `encode` appends one to the ETag of anything it compresses, and
+ * B1729 is the damage that does to `If-Match`. Here it would be a different
+ * and milder problem — a revalidation that misses and re-sends — and the
+ * strip would be worse than the miss, because it would make a compressed and
+ * an uncompressed body share one validator, which is the distinction the
+ * suffix exists to draw. It does not arise today: `encode` compresses text
+ * types and leaves image and video bodies alone. If that ever changes, the
+ * fix is excluding this path from `encode` in `deploy/fernscout.caddy`, not
+ * loosening the comparison here.
+ */
+function validatorCovers(header: string | null, etag: string): boolean {
+  if (!header) return false;
+  const sent = header.trim();
+  if (sent === "*") return true;
+  return sent.split(",").some((one) => one.trim().replace(/^W\//, "") === etag);
+}
+
 /** The requested slice, read on its own rather than by reading the file and
  * throwing most of it away. */
 function readSlice(file: string, start: number, end: number): Buffer {
@@ -188,6 +217,54 @@ export async function GET(
   // failing: a thumbnail slightly too large is a slow page, a 404 is a broken
   // one.
   const width = parseWidth(new URL(request.url).searchParams.get("w"));
+
+  /**
+   * How long a cache may hold this without asking again — and it is two
+   * different answers for two different reasons. See the `Cache-Control`
+   * note further down for the draft and label halves, which have not changed.
+   *
+   * **The published age went from an hour to a day in B1730**, and it could
+   * only do that once there was a validator to be wrong against. Without an
+   * `ETag` a stale entry can only be corrected by re-sending the photograph,
+   * so a long age is a bet that nothing will ever change; with one, a cache
+   * that guesses wrong pays for a 304 and a header, and the bet costs nothing
+   * to lose. `stale-while-revalidate` is what actually needed it most — the
+   * background revalidation it promises could not be a 304 before, so every
+   * stale hit was a second full transfer of the same bytes.
+   *
+   * Not `immutable`, which would be a lie: the URL carries no content hash,
+   * and a photograph replaced in place under the same name is a thing a
+   * person can do with a text editor and `scp`.
+   */
+  const cacheControl =
+    draft || label
+      ? "private, no-store"
+      : "public, max-age=86400, stale-while-revalidate=604800";
+
+  /**
+   * And the validator itself — B1730.
+   *
+   * **Above the resize on purpose.** A `304` is the one answer this route can
+   * give without reading or encoding anything, and asking sharp for a
+   * derivative we are about to not send would throw away most of what the
+   * conditional request is worth. Below all three permission gates, equally
+   * on purpose: a matching validator is not a reason to skip asking whether
+   * this reader may have the file, and a `304` handed to somebody who should
+   * get a `404` confirms the photograph exists.
+   *
+   * `width` rather than the width actually served: an unresizable file asked
+   * for at `?w=320` is answered with the original, and keying the tag on what
+   * was *asked* keeps one URL to one validator. The bytes behind two URLs
+   * being identical costs a cache nothing — entries are per-URL either way.
+   */
+  const etag = mediaEtag(file, width);
+  if (etag && validatorCovers(request.headers.get("if-none-match"), etag)) {
+    return new Response(null, {
+      status: 304,
+      headers: { ETag: etag, "Cache-Control": cacheControl, Vary: "Accept" },
+    });
+  }
+
   const sized = width ? await resizedCopy(file, width) : null;
 
   // Size without reading: a range request wants one window of a clip, and
@@ -219,9 +296,7 @@ export async function GET(
      * one 200 would leave an intermediary holding a held-back photograph,
      * ready for the next person who asks for that URL.
      */
-    "Cache-Control": draft || label
-      ? "private, no-store"
-      : "public, max-age=3600, stale-while-revalidate=86400",
+    "Cache-Control": cacheControl,
     "X-Content-Type-Options": "nosniff",
     /**
      * B394: WebP is served here whatever `Accept` says — deliberately, since
@@ -233,6 +308,15 @@ export async function GET(
      * without a cache full of mislabelled entries to invalidate first.
      */
     Vary: "Accept",
+    /**
+     * And the validator every one of the above is measured against — B1730.
+     *
+     * On the `no-store` responses too. It is true of them, a private cache
+     * may still use it for a conditional read, and a validator that appeared
+     * and disappeared depending on who was asking would be one more thing
+     * varying by reader on a route that already has three.
+     */
+    ...(etag ? { ETag: etag } : {}),
     /**
      * Nothing served out of a content folder is a document. B02.
      *
@@ -298,5 +382,22 @@ export async function GET(
     });
   }
 
-  return new Response(new Uint8Array(fs.readFileSync(file)), { headers });
+  /**
+   * Streamed, not read — B1730.
+   *
+   * This was `fs.readFileSync`, which for a photograph nobody notices and for
+   * a clip is the whole file in memory before a byte goes out. `media/` takes
+   * video (`contentTypeFor` maps mp4, webm and mov, and B669 added the range
+   * support above precisely because clips are served here) and the upload
+   * ceiling is 512 MiB, so one request from a client that does not ask for a
+   * range — `curl`, a crawler, a `<video>` preload in a browser that does not
+   * range-request — was one allocation of the whole file. `Content-Length` is
+   * already known from the stat above, so nothing is lost by not holding it.
+   *
+   * Only this branch. The `206` is a bounded slice the client asked for and
+   * the resized copy is a small WebP this route just made; neither is worth
+   * a stream.
+   */
+  const body = Readable.toWeb(fs.createReadStream(file)) as ReadableStream<Uint8Array>;
+  return new Response(body, { headers });
 }
