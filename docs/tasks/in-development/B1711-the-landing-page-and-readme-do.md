@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: landing, README
 found: "2026-09-14T08:43:42Z"
+started: "2026-09-14T08:51:38Z"
+session: 68f03fd3-84f8-42b3-b482-61bfc4440340
+claimed: "2026-09-14T08:51:38Z"
 ---
 
 # B1711 — The landing page and README do not sell what Fernscout actually does
