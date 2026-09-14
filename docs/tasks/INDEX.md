@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (203)
+## backlog (204)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (33)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -98,6 +98,7 @@ Do not edit them by hand; run the script.
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 | [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
 | [B1703](backlog/issue/B1703-an-unknown-field-is-named-but.md) | An unknown field is named but not suggested, so a near-miss like transport_mode gets no did-you-mean | ISSUE | low | low |
+| [B1712](backlog/issue/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
 
 ### big-feature (17)
 
@@ -307,13 +308,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1711](in-development/B1711-the-landing-page-and-readme-do.md) | The landing page and README do not sell what Fernscout actually does | FEATURE | high | medium | `68f03fd3` |
+_Nothing here._
 
-## testing (156)
+## testing (157)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -397,6 +396,7 @@ _Nothing here._
 | [B1706](testing/B1706-a-root-owned-restic-lock-silently.md) | A lock the service user cannot read fails the whole nightly backup, and only a person can clear it | ISSUE | high | low | — |
 | [B1708](testing/B1708-an-owner-s-own-journal-disappears.md) | An owner's own journal disappears from Your journals while it has no trips | ISSUE | high | low | — |
 | [B1710](testing/B1710-an-unattended-nodejs-upgrade-on-the.md) | An unattended nodejs upgrade on the VPS moved past the repo's exact Node pin and every deploy fails at the build guard | OPS | high | low | — |
+| [B1711](testing/B1711-the-landing-page-and-readme-do.md) | The landing page and README do not sell what Fernscout actually does | FEATURE | high | medium | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
