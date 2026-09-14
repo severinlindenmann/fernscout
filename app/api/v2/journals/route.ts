@@ -8,6 +8,7 @@ import { journalCreate } from "@/lib/api/v2/schemas";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
 import { fail, ok } from "@/lib/api/v2/route";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
+import { signupAllowed } from "@/lib/inviteList";
 import { isAdminEmail } from "@/lib/admin";
 import { isEnabled } from "@/lib/capabilities";
 import {
@@ -91,6 +92,12 @@ export async function POST(request: Request) {
       undefined,
       401,
     );
+  }
+
+  // B1693. The last door: an address removed from the invite list between
+  // proving its phone and creating the journal does not get the journal.
+  if (!(await signupAllowed(session.email))) {
+    return refuse("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
   }
 
   const parsedBody = await request.json().catch(() => null);

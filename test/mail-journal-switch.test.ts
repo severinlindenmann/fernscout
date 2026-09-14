@@ -57,7 +57,7 @@ function serverConfig(extra: Record<string, unknown> = {}) {
       users: { reserved: [] },
       features: {
         auth: { enabled: true },
-        signup: { enabled: true },
+        signup: { inviteOnly: false },
         contacts: { enabled: true },
         mail: { enabled: true, transport: "file", ...extra },
       },

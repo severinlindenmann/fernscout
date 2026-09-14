@@ -491,7 +491,14 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // number a new journal is created with — B1065. `dry-run` writes the code
   // where a dry-run mail already goes, so the whole signup flow, phone step
   // included, develops with no provider account. See lib/phoneVerify/.
-  signup: { enabled: false, phoneBackend: "dry-run" },
+  // B1693: signup has no `enabled` switch any more — it is always on where
+  // the server can actually do it (a database and SESSION_SECRET, see
+  // lib/capabilities.ts), and `inviteOnly` is what narrows it. True by
+  // default, so a fresh clone takes nobody until an address is named in
+  // /admin; `false` opens the instance to anybody, which is what the old
+  // `enabled: true` meant. An `enabled` still written here is ignored rather
+  // than obeyed — see parseFeatures.
+  signup: { enabled: true, inviteOnly: true, phoneBackend: "dry-run" },
   contacts: { enabled: false },
   postcards: { enabled: false, provider: "dry-run" },
   photobook: { enabled: false, provider: "dry-run" },
@@ -870,7 +877,12 @@ function parseFeatures(
       out[name] = { ...defaults[name] };
       continue;
     }
-    if (typeof entry.enabled !== "boolean") {
+    // B1693: `signup` is the one capability with no switch. Its `enabled` is
+    // neither required nor obeyed, so an instance carrying the old
+    // `{ "enabled": false }` becomes invite-only with an empty list — the
+    // same practical answer as the off it used to mean — instead of failing
+    // to boot on a field that stopped existing.
+    if (name !== "signup" && typeof entry.enabled !== "boolean") {
       problems.push(`features.${name}.enabled must be true or false`);
     }
     // Stated wins over the default in both directions: this is the only place
@@ -878,7 +890,7 @@ function parseFeatures(
     out[name] = {
       ...defaults[name],
       ...entry,
-      enabled: entry.enabled === true,
+      enabled: name === "signup" ? true : entry.enabled === true,
     };
   }
 

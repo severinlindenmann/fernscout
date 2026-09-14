@@ -51,7 +51,7 @@ beforeEach(async () => {
     JSON.stringify({
       site: { name: "T", url: "https://t.test" },
       users: { reserved: [] },
-      features: { signup: { enabled: true }, auth: { enabled: true } },
+      features: { signup: { inviteOnly: false }, auth: { enabled: true } },
     }),
   );
   // A journal already on disk, owned by the address under test.

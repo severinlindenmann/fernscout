@@ -628,6 +628,13 @@ export function assertCapabilities(): void {
   const config = loadServerConfig();
   const broken: string[] = [];
   for (const name of FEATURE_NAMES) {
+    // B1693: `signup` has no switch any more — it is on wherever the server
+    // can do it. "You enabled this and did not configure it" would be a false
+    // accusation, and refusing to boot for want of a database an operator
+    // never asked for one is worse: an instance with no DATABASE_URL is a
+    // legitimate instance that cannot take signups, which `/api/health`
+    // already says in a sentence.
+    if (name === "signup") continue;
     if (!config.features[name].enabled) continue;
     const state = resolveOne(name);
     if (!state.enabled) broken.push(state.reason);

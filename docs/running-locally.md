@@ -78,9 +78,11 @@ not help you in the moment.
 
 ### `SESSION_SECRET`, if anything is locked
 
-Needed as soon as `features.auth` or `features.signup` is on: it is what those
-two capabilities require, so without it `lib/capabilities.ts` reports them off
-and `/api/auth/codes` answers 404. Nobody can prove an address, so nobody can
+Needed as soon as `features.auth` is on, and for signup always — signup has no
+switch of its own (B1693), only `features.signup.inviteOnly`, so what decides
+whether it works is this variable and a database. Without it
+`lib/capabilities.ts` reports both capabilities off and `/api/auth/codes`
+answers 404. Nobody can prove an address, so nobody can
 be let into a closed trip. That is the designed behaviour — an optional
 capability is absent rather than half-working — rather than a crash, but you
 still cannot get in.

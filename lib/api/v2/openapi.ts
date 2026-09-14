@@ -649,6 +649,7 @@ function buildPaths(): Record<string, PathItem> {
         ...jsonResponse(201, journalCreated, "the journal exists; a one-time sign-in link and the agent token ride along"),
         ...refusalResponses([
           ref("signup_disabled", 404),
+          ref("signup_not_invited", 403, "this instance is invite-only and the address is not on its list"),
           ref("too_many_requests", 429, "per-IP creation/refusal rate limit"),
           missingToken(),
           invalidToken(),

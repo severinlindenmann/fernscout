@@ -62,7 +62,7 @@ beforeEach(async () => {
       users: { reserved: [] },
       features: {
         auth: { enabled: true },
-        signup: { enabled: true },
+        signup: { inviteOnly: false },
         mail: { enabled: true, transport: "file" },
       },
     }),

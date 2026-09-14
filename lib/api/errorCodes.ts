@@ -131,6 +131,9 @@ export const ERROR_CODES = {
   // ── this server cannot do that ─────────────────────────────────────────
   auth_disabled: "This server has authentication switched off entirely, so there are no tokens to hold. /api/health says what it can do.",
   signup_disabled: "This server does not take new journals.",
+  signup_not_invited:
+    "This instance is invite-only: only addresses its operator has named can make a journal here. " +
+    "Nothing has been sent to this address. Ask the person who runs it to add you, then start again.",
   phone_required: "A journal needs a proven telephone number as well as a proven address. POST /api/auth/signup/phone with the signup token, then /api/auth/signup/phone/redeem with the code, and retry.",
   verification_failed: "The phone code could not be sent. Try again in a minute, or check the number.",
   contacts_disabled: "This server has contacts off, so invitations and approvals are unavailable.",

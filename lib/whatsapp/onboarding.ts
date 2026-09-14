@@ -9,6 +9,7 @@ import { dataDir } from "../dataDir";
 import { LOCALE_LABEL, MAINTAINED_LOCALES } from "../i18n";
 import { createJournal, sendWelcome, setJournalFeatures } from "../journals";
 import { translateIn } from "../locales";
+import { signupAllowed } from "../inviteList";
 import { rateLimitFor } from "../rateLimit";
 import { sendSignupCode } from "../signupCode";
 import { serverSite } from "../site";
@@ -406,6 +407,9 @@ export async function handleOnboarding(message: InboundMessage): Promise<boolean
     case "email": {
       if (!isEmail(said.text)) return miss("wa.onb.emailBad");
       const email = said.text.trim();
+      // B1693. Same rule as the web door, in the one other place a signup
+      // code can be asked for: an address nobody has named is never sent one.
+      if (!(await signupAllowed(email))) return say("wa.onb.notInvited");
       if (!rateLimitFor("wa-onboard-mail", tel, MAILS_PER_NUMBER).ok) return say("wa.onb.tooMuch");
       if (!rateLimitFor("wa-onboard-mail-instance", "*", MAILS_PER_INSTANCE).ok) return say("wa.onb.tooMuch");
       if (!(await sendSignupCode(email, state.locale))) return say("wa.onb.mailFailed");

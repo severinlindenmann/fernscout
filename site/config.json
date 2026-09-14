@@ -79,7 +79,7 @@
       "enabled": false
     },
     "signup": {
-      "enabled": false
+      "inviteOnly": true
     },
     "contacts": {
       "enabled": false

@@ -33,6 +33,7 @@ import * as smsMessages from "./031-sms-messages";
 import * as whatsappSends from "./032-whatsapp-sends";
 import * as builtStatus from "./033-built-status";
 import * as ownerTel from "./034-owner-tel";
+import * as signupInvites from "./035-signup-invites";
 
 /**
  * Every migration, listed by hand.
@@ -81,6 +82,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "032-whatsapp-sends": whatsappSends,
   "033-built-status": builtStatus,
   "034-owner-tel": ownerTel,
+  "035-signup-invites": signupInvites,
 };
 
 /**
