@@ -7,8 +7,7 @@ complexity: low
 area: Trip story, trips index
 found: "2026-09-14T16:17:50Z"
 started: "2026-09-14T16:18:15Z"
-session: 73750c79-399c-41dc-8467-5c8cab7a4796
-claimed: "2026-09-14T16:18:15Z"
+merged: "2026-09-14T16:28:05Z"
 ---
 
 # B1740 — Trip page hero shows no picture, and trip.cover is never used there
