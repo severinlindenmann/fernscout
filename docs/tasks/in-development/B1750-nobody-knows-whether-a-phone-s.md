@@ -35,6 +35,51 @@ phones nobody here has tested:
 
 Answering these costs a day. Getting them wrong costs the feature.
 
+## Revalidated 2026-09-14 — valid
+
+The premise is a knowledge gap rather than a defect, so there is nothing in the
+code that could have fixed it. Confirmed instead that the consumer exists and
+is ready for the answer: `lib/ingest/exif.ts:480` (`readExif`) already parses
+JPEG APP1, HEIC `meta` and WebP `EXIF` for exactly the four things an import
+needs, and `lib/inboxUpload.ts:1` is the multipart door it sits behind. What is
+missing is any observation of what a phone actually hands them.
+
+## Scaffolding built on this branch
+
+The questions cannot be answered by describing them to somebody holding a
+phone. So this branch adds a throwaway probe, small enough to delete in one
+commit once the findings are written:
+
+- `public/probe.html` — a plain page, no route, no username shadowed. It
+  reports the platform's own support matrix (service worker, Background Sync,
+  Background Fetch, Periodic Sync, standalone/PWA), lets the person pick as
+  many photographs as the picker allows, uploads them in batches of 20, and
+  logs on screen what the server found in each batch: how many carried GPS,
+  how many carried a timestamp, which containers arrived. A failure mid-run is
+  logged with the count it reached, because that is question 2's answer.
+- `app/api/probe/upload/route.ts` — reads each file with `readExif`, records
+  the container from the file's own first bytes (a `jpeg` under a `.HEIC` name
+  is Safari re-encoding on the way out, which is where EXIF dies), keeps the
+  original, and writes a JSON report beside it.
+
+Deliberately **not** a capability in `lib/config.ts`. It is gated on
+`PROBE_TOKEN` in the environment matching `?k=`, and answers 404 when the
+variable is absent — so it does not exist on any instance that has not switched
+it on, and `FEATURE_NAMES` does not gain a permanent entry for a temporary
+thing.
+
+Uploads land in `PROBE_DIR` (default `/tmp/fernscout-probe`), outside
+`content/` and outside the storage quota, and a sweep on each request deletes
+run directories older than 48h. That is B1751's temporary store in its POC
+form; a probe does not earn a scheduler.
+
+**This is scaffolding, not the deliverable.** The ticket is closed by findings
+written into the section below, and by deleting these two files.
+
+## Findings
+
+TODO — nothing has been run against a handset yet.
+
 ## Work
 
 An engagement, not a diff. Run against a real iPhone and a real Android phone,
