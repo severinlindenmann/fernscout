@@ -105,7 +105,16 @@ describe("dictionaries", () => {
   test("every maintained locale covers every key English has", () => {
     const english = Object.keys(dictionaryFor("en"));
     for (const code of installedLocales()) {
-      const missing = english.filter((k) => !dictionaryFor(code)[k]);
+      // Loaded once per locale, not once per key — B1106. `dictionaryFor`
+      // inside the filter meant roughly 1,400 keys times three locales, and
+      // the test took four seconds on an idle machine. That is the whole
+      // flake: at four seconds it clears a 30s timeout comfortably, and on a
+      // machine under real load it does not, so `verify` stops at the first
+      // failure and tells an agent the tree is not ready. Nothing was leaking
+      // state — the test was simply slow enough to lose a race with the
+      // timeout whenever anything else was running.
+      const dictionary = dictionaryFor(code);
+      const missing = english.filter((k) => !dictionary[k]);
       expect(missing, `${code} is missing: ${missing.slice(0, 5).join(", ")}`).toEqual([]);
     }
   });
