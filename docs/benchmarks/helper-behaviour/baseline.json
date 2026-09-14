@@ -1,0 +1,50 @@
+{
+  "note": "Baseline for the corpus as it stands, 2026-09-14, on the code at B1744. Eight runs per scenario \u2014 enough to see a weak scenario, not enough to choose between two prompts. Re-record with: npm run helper:bench -- --runs 8 --out docs/benchmarks/helper-behaviour/baseline.json",
+  "runs": 8,
+  "results": [
+    {
+      "id": "card-to-trip-named",
+      "channel": "web",
+      "passed": 8,
+      "runs": 8,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip-vague",
+      "channel": "web",
+      "passed": 5,
+      "runs": 8,
+      "failures": [
+        "did not propose trip_people (proposed: create_trip)",
+        "did not propose trip_people (proposed: nothing)",
+        "did not propose trip_people (proposed: nothing)"
+      ]
+    },
+    {
+      "id": "card-to-invite",
+      "channel": "web",
+      "passed": 8,
+      "runs": 8,
+      "failures": []
+    },
+    {
+      "id": "card-to-trip-whatsapp",
+      "channel": "whatsapp",
+      "passed": 8,
+      "runs": 8,
+      "failures": []
+    },
+    {
+      "id": "day-from-a-note",
+      "channel": "whatsapp",
+      "passed": 5,
+      "runs": 8,
+      "failures": [
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)",
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)",
+        "proposed none of start_day/draft_words/set_day_words/assemble_day (proposed: nothing)"
+      ]
+    }
+  ],
+  "overall": "34/40"
+}

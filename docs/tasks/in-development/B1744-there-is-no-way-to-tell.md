@@ -75,10 +75,49 @@ Seed it from what is already evidenced rather than imagined: B1742's two
 shapes, B1737's WhatsApp shape, B1743's typed press, and the invite the owner
 originally asked for.
 
+## What it found on the first day
+
+**Two of its own numbers were wrong before any of the product's were.** Both
+are written into `scripts/helper-bench.mts` as comments, because a harness
+that lies is worse than none:
+
+- Reading `helper_sessions` straight after a WhatsApp turn races
+  `void recordTurn(…)`, which `dispatch.ts` deliberately does not await. It
+  scored a working scenario **0 of 8**. The bench now reads the held proposal
+  and the replies that actually went out.
+- `lib/idempotency.ts`'s `store` is a module-level Map that outlives a
+  scenario's temporary journal, so numbering wamids from zero in each run made
+  every run after the first a silent `"replay"`. Another false zero.
+
+Corrected, the baseline is **34/40**:
+
+| scenario | | |
+| --- | --- | --- |
+| card-to-trip-named (web) | 8/8 | |
+| card-to-trip-vague (web) | 5/8 | B1742's own shape |
+| card-to-invite (web) | 8/8 | |
+| card-to-trip-whatsapp | 8/8 | |
+| day-from-a-note (whatsapp) | 5/8 | the channel's core flow |
+
+**The first prompt rule it was pointed at was rejected.** A sentence telling
+the model that an answer to its own question settles that question —
+plausible, and the obvious fix for B1742's loop — scored **7/12 against a
+9/12 baseline** on `card-to-trip-vague`, for thirty tokens and a ceiling
+raise. Not shipped. That is the first time a prompt change in this repository
+has been refused on evidence rather than argued about, and it is the whole
+reason the script exists.
+
+**And it found a defect nothing else would have.** In about one run in six the
+model reads the journal's trips, sees Ungarn 2026, and proposes creating a
+second Ungarn 2026 — captured as **B1746**, with a guard rather than a
+sentence, on the strength of the rule above having failed.
+
 ## Acceptance
 
 - `npm run helper:bench` runs the corpus and prints a pass rate per scenario.
 - It is absent from `npm run verify` and says plainly that it spends money.
 - A baseline is recorded for the corpus as it stands.
-- B1742 is decidable with it: run the two prompts, at a sample size where the
-  answer is not noise, and say which wins.
+- B1742 is decidable with it. **Done**: at twelve runs the candidate rule
+  loses, 7/12 to 9/12, and B1742's remaining failure is now two named modes
+  rather than one vague one — a duplicate `create_trip` (B1746) and a turn
+  that proposes nothing.

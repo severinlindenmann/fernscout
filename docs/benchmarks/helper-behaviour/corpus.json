@@ -1,0 +1,180 @@
+{
+  "note": "Scenarios for `npm run helper:bench` \u2014 B1744. Every one of these is a situation somebody was really in; the `why` names the ticket. Add a scenario when a conversation fails in front of a person, before arguing about the prompt that caused it. An expectation must name the failure, not a word near it: `answerHasNot` matched a sentence that merely stated the address it was using, and scored a correct answer as wrong.",
+  "scenarios": [
+    {
+      "id": "card-to-trip-named",
+      "why": "B1737. A contact card is in the inbox and ticked, and the person says plainly what to do with it. The address is on the card; asking for it is the failure.",
+      "channel": "web",
+      "world": {
+        "locale": "de",
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ],
+        "contacts": [
+          {
+            "name": "Viktoria Zentai",
+            "email": "viktoria@example.test"
+          }
+        ],
+        "select": "Viktoria Zentai"
+      },
+      "turns": [
+        "setze Viktoria auf die Namensliste der Reise Ungarn 2026"
+      ],
+      "expect": {
+        "proposes": "trip_people",
+        "argument": {
+          "name": "email",
+          "equals": "viktoria@example.test"
+        },
+        "answerHasNot": [
+          "welche adresse",
+          "brauche noch",
+          "wie lautet"
+        ]
+      }
+    },
+    {
+      "id": "card-to-trip-vague",
+      "why": "B1742, the shape the owner actually hit on 2026-09-14: a fragment with the card ticked, then 'ja' to whatever came back. Four of six on the code that shipped.",
+      "channel": "web",
+      "world": {
+        "locale": "de",
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ],
+        "contacts": [
+          {
+            "name": "Viktoria Zentai",
+            "email": "viktoria@example.test"
+          }
+        ],
+        "select": "Viktoria Zentai"
+      },
+      "turns": [
+        "auf ungarn reise",
+        "ja"
+      ],
+      "expect": {
+        "proposes": "trip_people",
+        "argument": {
+          "name": "email",
+          "equals": "viktoria@example.test"
+        },
+        "notProposes": [
+          "create_trip",
+          "import_contacts"
+        ]
+      }
+    },
+    {
+      "id": "card-to-invite",
+      "why": "B1736's origin \u2014 the owner shared a contact and asked for a reading invitation. invite_contact reads the address off the card; invite_guest only labels a link.",
+      "channel": "web",
+      "world": {
+        "locale": "de",
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ],
+        "contacts": [
+          {
+            "name": "Andreas Lindenmann",
+            "email": "andreas@example.test"
+          }
+        ],
+        "select": "Andreas Lindenmann"
+      },
+      "turns": [
+        "lade ihn ein, das journal zu lesen"
+      ],
+      "expect": {
+        "proposes": "invite_contact",
+        "answerHasNot": [
+          "welche adresse",
+          "brauche noch",
+          "wie lautet"
+        ]
+      }
+    },
+    {
+      "id": "card-to-trip-whatsapp",
+      "why": "B1737 on the door it was reported from. The card arrives as a WhatsApp contacts message and the next sentence asks for it to be used.",
+      "channel": "whatsapp",
+      "world": {
+        "locale": "de",
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ],
+        "contacts": [
+          {
+            "name": "Andreas Lindenmann",
+            "email": "andreas@example.test"
+          }
+        ],
+        "share": "Andreas Lindenmann"
+      },
+      "turns": [
+        "setze Andreas auf die Namensliste der Reise Ungarn 2026"
+      ],
+      "expect": {
+        "proposes": "trip_people",
+        "argument": {
+          "name": "email",
+          "equals": "andreas@example.test"
+        },
+        "answerHasNot": [
+          "welche adresse",
+          "brauche noch",
+          "wie lautet"
+        ]
+      }
+    },
+    {
+      "id": "day-from-a-note",
+      "why": "The channel's own core flow (B1056/B1235). A sentence about a day should reach a day tool rather than a question back.",
+      "channel": "whatsapp",
+      "world": {
+        "locale": "de",
+        "trips": [
+          {
+            "id": "ungarn-2026",
+            "title": "Ungarn 2026",
+            "start": "2026-06-01",
+            "end": "2026-06-14"
+          }
+        ]
+      },
+      "turns": [
+        "am 3. juni waren wir in Eger, den ganzen tag in der burg"
+      ],
+      "expect": {
+        "proposesAnyOf": [
+          "start_day",
+          "draft_words",
+          "set_day_words",
+          "assemble_day"
+        ]
+      }
+    }
+  ]
+}
