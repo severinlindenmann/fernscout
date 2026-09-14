@@ -14,6 +14,8 @@ import {
   priceRappen,
 } from "@/lib/credits/pricing";
 import { dictionaryFor } from "@/lib/locales";
+import fs from "node:fs";
+import path from "node:path";
 
 /**
  * B840 — the pricing table, and the one property that makes it worth having.
@@ -80,6 +82,12 @@ describe("the pricing table", () => {
         String(SIGNUP_CREDIT_GRANT),
       ),
     );
+  });
+
+  test("keeps the gift callout solid yellow on either screen theme", () => {
+    const source = fs.readFileSync(path.join(process.cwd(), "components/Pricing.tsx"), "utf8");
+    expect(source).toContain("bg-yellow-400 px-2 py-1 text-yellow-950");
+    expect(source).not.toContain("bg-yellow-300/60");
   });
 
   test("says email is free, which is the whole of B840's fairness claim", () => {

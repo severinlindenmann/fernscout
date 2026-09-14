@@ -6,6 +6,7 @@ import CopyLine from "@/components/CopyLine";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "@/components/LocaleProvider";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 /**
  * The root page's parts, as separate pieces — B411.
@@ -228,6 +229,7 @@ export function SiteHeader({
             {t("home.agentLink")}
           </Link>
         )}
+        <ThemeSwitcher />
         <LocaleSwitcher locales={locales} subtle />
       </div>
     </div>

@@ -100,6 +100,13 @@
   --surface-neutral: #f7f8fa;
   --surface-neutral-strong: #eceef4;
   --surface-selected: #d8dee8;
+  /* The mark beside a chosen row — a language, a theme. It has to carry the
+     brand's yellow *and* stay legible, which no single value does in both
+     themes: #422006 vanishes on a dark ground, and the bright yellow that
+     fixes that fails contrast on a light one (test/contrast.test.ts keeps
+     the light accents out of text colours for exactly that reason). So it
+     is a token that flips, like every other colour here. B1541. */
+  --selected-mark: #422006;
   --ink-strong: #1e293b;
   --ink-body: #3a4a63;
   --ink-secondary: #43536b;
@@ -175,6 +182,7 @@
   --color-surface-neutral: var(--surface-neutral);
   --color-surface-neutral-strong: var(--surface-neutral-strong);
   --color-surface-selected: var(--surface-selected);
+  --color-selected-mark: var(--selected-mark);
   --color-ink-strong: var(--ink-strong);
   --color-ink-body: var(--ink-body);
   --color-ink-secondary: var(--ink-secondary);
@@ -223,6 +231,7 @@ html {
   --surface-neutral: #20283a;
   --surface-neutral-strong: #2a3550;
   --surface-selected: #33405a;
+  --selected-mark: #facc15;
   --ink-strong: #f2ecdd;
   --ink-body: #e6e0d2;
   --ink-secondary: #d7d4ca;
