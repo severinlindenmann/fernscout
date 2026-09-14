@@ -30,9 +30,9 @@ back up always meant re-deriving it. Numbers below are structural facts
 recipient's number stay off this page, per the same rule that keeps them out
 of the application log.
 
-**+41 78 217 26 46 is a physical SIM belonging to the owner personally, and
-it is scheduled to be given up.** It is not a business line, not a VoIP DID,
-not bought through Meta — Meta only hosts the WhatsApp registration on top of
+**The number is the operator's own personal mobile SIM, and it is scheduled
+to be given up.** It is not a business line, not a VoIP DID, not bought
+through Meta — Meta only hosts the WhatsApp registration on top of
 a real mobile subscription, it does not sell numbers. That makes this a risk
 rather than a bookkeeping fact: a Swiss mobile number that lapses is
 eventually reassigned to someone else, and whoever receives it next can
