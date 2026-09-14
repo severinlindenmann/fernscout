@@ -54,7 +54,7 @@ function textMessage(from: string, id: string, body = "hi"): InboundMessage {
 }
 
 function repliesTo(username: string | null): string[] {
-  const replyDir = path.join(dir, username ?? ".whatsapp", "whatsapp-replies");
+  const replyDir = path.join(dir, "whatsapp-replies", username ?? ".whatsapp");
   if (!fs.existsSync(replyDir)) return [];
   return fs.readdirSync(replyDir);
 }
@@ -64,7 +64,7 @@ describe("binding an inbound number", () => {
     await handleInboundMessage(textMessage("41760009999", "wamid.stranger-1"));
     const files = repliesTo(null);
     expect(files.length).toBe(1);
-    const body = JSON.parse(fs.readFileSync(path.join(dir, ".whatsapp", "whatsapp-replies", files[0]), "utf8"));
+    const body = JSON.parse(fs.readFileSync(path.join(dir, "whatsapp-replies", ".whatsapp", files[0]), "utf8"));
     expect(body.body).toMatch(/private travel journal/);
   });
 
@@ -89,7 +89,7 @@ describe("binding an inbound number", () => {
     await handleInboundMessage(textMessage("41760001111", "wamid.first-1"));
     const files = repliesTo("severin");
     expect(files.length).toBe(1);
-    const body = JSON.parse(fs.readFileSync(path.join(dir, "severin", "whatsapp-replies", files[0]), "utf8"));
+    const body = JSON.parse(fs.readFileSync(path.join(dir, "whatsapp-replies", "severin", files[0]), "utf8"));
     // German, since defaultLocale: "de" — and carries the journal's own URL.
     expect(body.body).toMatch(/KI/);
     expect(body.body).toMatch(/severin/);
@@ -154,7 +154,7 @@ describe("a channel opt-in ask from the owner's own number — B1404", () => {
 
     const files = repliesTo(null);
     expect(files.length).toBe(1);
-    const body = JSON.parse(fs.readFileSync(path.join(dir, ".whatsapp", "whatsapp-replies", files[0]), "utf8"));
+    const body = JSON.parse(fs.readFileSync(path.join(dir, "whatsapp-replies", ".whatsapp", files[0]), "utf8"));
     expect(body.body).toMatch(/yes/i);
     expect(isEnabled("whatsappInbound", "optina")).toBe(false);
   });

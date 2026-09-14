@@ -54,7 +54,7 @@ function textMessage(from: string, id: string, body: string): InboundMessage {
 }
 
 function repliesTo(username: string): string[] {
-  const replyDir = path.join(dir, username, "whatsapp-replies");
+  const replyDir = path.join(dir, "whatsapp-replies", username);
   if (!fs.existsSync(replyDir)) return [];
   return fs.readdirSync(replyDir);
 }
@@ -129,7 +129,7 @@ describe("the gate", () => {
     await handleInboundMessage(textMessage("41760004444", "wamid.y2", "ja"));
     const files = repliesTo("gateyes");
     expect(files.length).toBe(2);
-    const ackBody = JSON.parse(fs.readFileSync(path.join(dir, "gateyes", "whatsapp-replies", files[1]), "utf8"));
+    const ackBody = JSON.parse(fs.readFileSync(path.join(dir, "whatsapp-replies", "gateyes", files[1]), "utf8"));
     expect(ackBody.body).toMatch(/Danke/);
 
     // A second "ja" does nothing further — already acknowledged.

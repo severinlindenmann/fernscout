@@ -27,17 +27,21 @@ const TEL = "41760004242";
  * Every reply, in the order it was sent.
  *
  * The dry-run backend files a reply under the journal it belongs to, and a
- * stranger's has none — so this reads the journal-less folder *and* any
- * journal folder, which is what lets one assertion span the moment a stranger
+ * stranger's has none — so this reads the journal-less folder (`.whatsapp`)
+ * *and* any journal folder, which is what lets one assertion span the moment a stranger
  * becomes an owner. The filenames lead with a UTC instant, so sorting them
  * together is sorting by time.
  */
 function replies(): { body: string; buttons?: { title: string }[] }[] {
   const found: { file: string; body: unknown }[] = [];
-  for (const owner of fs.readdirSync(dir, { withFileTypes: true })) {
+  // B1741 — one folder per journal, all of them under `whatsapp-replies`,
+  // which since B1741 lives beside `mail/` under DATA_DIR rather than inside
+  // anybody's content. The journal-less stranger's folder is `.whatsapp`.
+  const root = path.join(dir, "whatsapp-replies");
+  if (!fs.existsSync(root)) return [];
+  for (const owner of fs.readdirSync(root, { withFileTypes: true })) {
     if (!owner.isDirectory()) continue;
-    const replyDir = path.join(dir, owner.name, "whatsapp-replies");
-    if (!fs.existsSync(replyDir)) continue;
+    const replyDir = path.join(root, owner.name);
     for (const file of fs.readdirSync(replyDir)) {
       found.push({ file, body: JSON.parse(fs.readFileSync(path.join(replyDir, file), "utf8")) });
     }

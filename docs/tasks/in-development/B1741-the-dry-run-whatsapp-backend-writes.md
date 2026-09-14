@@ -33,17 +33,36 @@ for — the reply files are how the test suite reads what went out. The question
 is only whether anything stops a dry-run instance being pointed at a real
 `CONTENT_DIR`, and today nothing does.
 
-## Work
+**Valid**, revalidated 2026-09-14: `lib/whatsapp/reply.ts:34`'s `outputDir`
+built its path from `contentRoot()`, and `sendDryRun` (`:111`) wrote the whole
+`{to, ...outbound}` object into it.
 
-- Decide whether dry-run should refuse a `CONTENT_DIR` that holds a real
-  journal, or whether the reply files should live under `DATA_DIR` rather than
-  inside somebody's content folder. The second is probably right: they are not
-  the person's content.
-- Whatever is chosen, keep the suite's ability to read what went out — that is
-  what the files are for.
+## Work — as built
+
+The second option, and `lib/mail/index.ts:92` is why it needed no argument:
+every kept `.eml` on this instance — sign-in codes, guest invitations,
+deletion links — already lives under `dataDir()/mail/<user>/` rather than in
+anybody's journal. A dry-run reply is the same class of artifact for a
+different channel and was simply filed in the wrong tree. So `outputDir` now
+answers `dataDir()/whatsapp-replies/<user>`, kind first and then journal,
+which is the shape `mail/` uses and which leaves the two as siblings under
+`DATA_DIR` instead of opening a second per-person tree beside `content/`.
+
+The "should dry-run refuse real content" question stops needing an answer once
+the files are not in the content folder.
+
+**The `console.log` line stays.** The printed reply is what dry-run is *for*
+during local work, and an instance running dry-run is by definition not the
+one serving real people.
 
 ## Acceptance
 
-- A dry-run instance does not write an outbound body inside
-  `content/<user>/`, or refuses to run against real content.
-- The WhatsApp tests still assert on what was sent.
+- A dry-run reply is written under `DATA_DIR` and nothing about it appears
+  under `CONTENT_DIR` — `test/whatsapp-replies-are-not-content.test.ts`, which
+  is the first test in this family to point the two environment variables at
+  *different* directories. Every existing WhatsApp test sets both to one
+  temporary folder, which is exactly why the suite could never have caught
+  this.
+- The journal-less case (`.whatsapp`) is covered too.
+- The WhatsApp tests still assert on what was sent — all twelve files that
+  read the reply folder were repointed and pass unchanged otherwise.

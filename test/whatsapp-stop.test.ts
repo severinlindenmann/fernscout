@@ -48,7 +48,7 @@ function textMessage(from: string, id: string, body: string): InboundMessage {
 }
 
 function repliesTo(dirName: string): Record<string, unknown>[] {
-  const replyDir = path.join(dir, dirName, "whatsapp-replies");
+  const replyDir = path.join(dir, "whatsapp-replies", dirName);
   if (!fs.existsSync(replyDir)) return [];
   return fs
     .readdirSync(replyDir)
