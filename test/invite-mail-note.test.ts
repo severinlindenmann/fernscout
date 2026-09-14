@@ -76,7 +76,7 @@ describe("mailFailedNote", () => {
   });
 
   /** The case B407 was filed over: the server can send, this journal said no. */
-  test("names the journal, and points at PATCH /config, when only its own switch is off", async () => {
+  test("names the journal, and points at the journal document, when only its own switch is off", async () => {
     serverConfig(true);
     journalConfig(false);
     await reload();
@@ -84,7 +84,7 @@ describe("mailFailedNote", () => {
     const { mailFailedNote } = await import("@/lib/contacts/inviteMailNote");
     const note = mailFailedNote("reader@example.test", JOURNAL);
     expect(note).toContain("this journal's own mail is switched off");
-    expect(note).toContain(`PATCH /api/v1/${JOURNAL}/config`);
+    expect(note).toContain(`PATCH /api/v2/${JOURNAL}`);
     expect(note).not.toContain("this server's mail is off");
   });
 

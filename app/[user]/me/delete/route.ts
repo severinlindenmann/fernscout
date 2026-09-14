@@ -28,7 +28,7 @@ const NOT_FOR_AGENTS = {
   error: "not_for_agents",
   message:
     "This is the owner's own page, from a browser. An agent asks with " +
-    "DELETE /api/v1/<user>, which mails the owner a confirmation link — " +
+    "DELETE /api/v2/<user>, which mails the owner a confirmation link — " +
     "say a mail is waiting, and stop.",
 };
 

@@ -48,7 +48,7 @@ export async function draftQueue(
     listDrafts(trip.ref).map((draft) => ({
       ...draft,
       trip: trip.ref,
-      publish: `POST ${base}/api/v1/${user}/trips/${trip.id}/days/${draft.slug}/publish`,
+      publish: `POST ${base}/api/v2/${user}/trips/${trip.id}/days/${draft.slug}/publish`,
     })),
   );
 }

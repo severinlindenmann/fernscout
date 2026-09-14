@@ -355,7 +355,7 @@ describe("B779 — a token on the helper's door", () => {
     expect(response.status).toBe(404);
     expect(body.error).toBe("not_your_journal");
     const message = String(body.message);
-    expect(message).toContain("/api/v1/<user>/");
+    expect(message).toContain("/api/v2/<user>/");
     expect(message).toContain("cookie");
   });
 

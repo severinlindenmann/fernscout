@@ -90,7 +90,7 @@ function rulesFor(where: FileName, keys: Record<string, KeySpec>): Rule[] {
 export function contentModel(): ContentModelDocument {
   const rules: Rule[] = [
     ...rulesFor("config.json", {
-      // apiOnly: crosses `POST /api/v1/journals` or `PATCH …/config`, never
+      // apiOnly: crosses `POST /api/v2/journals` or `PATCH /api/v2/{user}`, never
       // the file — the file writes `owner.name`/`owner.nickname`/`owner.tel`
       // instead, and the username is the folder name.
       ownerName: { apiOnly: true, because: "the file carries this as owner.name" },
@@ -165,7 +165,6 @@ export function contentModel(): ContentModelDocument {
       people: { type: "array" },
       travellers: { type: "array" },
       rates: { type: "object" },
-      tracks: { type: "object" },
       translations: { type: "object" },
       // A photograph for the index and the OG image; cannot be set at create
       // time because the media does not exist yet. fileOnly with no
@@ -420,11 +419,13 @@ export function contentModel(): ContentModelDocument {
     files: {
       "config.json": {
         what: "who this journal belongs to, and what it switches on",
-        api: "POST /api/v1/journals to create, PATCH /api/v1/{user}/config to change",
+        api:
+          "POST /api/v2/journals to create, PATCH /api/v2/{user} to change — v2 has no " +
+          "/config door, because the journal IS the document",
       },
       "trip.md": {
         what: "the trip itself. Frontmatter, then the intro prose as the body",
-        api: "POST /api/v1/{user}/trips",
+        api: "POST /api/v2/{user}/trips",
         // B620: content nobody lived, written to prove the pipeline works —
         // never a choice to offer about a real holiday. See
         // `ContentModelDocument.noTip` in types.ts.
@@ -432,17 +433,17 @@ export function contentModel(): ContentModelDocument {
       },
       "entries/YYYY-MM-DD-slug.md": {
         what: "one update. Several per day is normal",
-        api: "POST /api/v1/{user}/trips/{trip}/days, then …/days/{slug}/publish",
+        api: "POST /api/v2/{user}/trips/{trip}/days, then …/days/{slug}/publish",
         noTip: ["test"],
       },
       "costs.md": {
         what: "the budget and what was spent before leaving. Optional",
-        api: "PUT /api/v1/{user}/trips/{trip}/costs",
+        api: "PATCH /api/v2/{user}/trips/{trip} — a section of the trip, not a file of its own",
         optional: true,
       },
       "plan.md": {
         what: "the planned route, for a trip that has not happened yet. Optional",
-        api: "GET/PUT /api/v1/{user}/trips/{trip}/plan",
+        api: "PATCH /api/v2/{user}/trips/{trip} — a section of the trip, not a file of its own",
         optional: true,
       },
     },

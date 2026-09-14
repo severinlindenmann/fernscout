@@ -76,10 +76,10 @@ export async function POST(request: Request) {
     scope: SESSION_SCOPE.agent,
     user: session.owner,
     journal: `${base}/${session.owner}`,
-    status: `GET ${base}/api/v1/${session.owner}/status`,
+    status: `GET ${base}/api/v2/${session.owner}/status`,
     next:
       "This token is yours for seven days, on this journal and nothing else. Read " +
-      `${base}/api/v1/${session.owner}/status` +
+      `${base}/api/v2/${session.owner}/status` +
       " before you do anything: it says what is waiting, what you may write to, and what " +
       "this server can do. Everything you write arrives as a draft, and publishing is a " +
       "second call you make only when the person says so.",

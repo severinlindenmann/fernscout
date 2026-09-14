@@ -225,7 +225,7 @@ export async function receiveInboxUpload(user: string, request: Request): Promis
       items: items.map(({ entry, existed }) => ({ ...entry, duplicate: existed || undefined })),
       message:
         "Staged, and belonging to no day yet. Send the ids to " +
-        `POST /api/v1/${user}/trips/<trip>/media as \`inbox\` when you know which day each ` +
+        `POST /api/v2/${user}/media with an \`inbox\` intent when you know which day each ` +
         "one belongs to — ask the person; never decide that from the picture.",
     },
     { status: 201 },

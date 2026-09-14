@@ -604,3 +604,47 @@ does not have, and re-proving a number that way for an existing journal is
 not built here — `.../verify` refuses with `capability_unavailable` on an
 instance configured for that mode. An owner on such an instance who never
 proved a number at signup has no way to add one until that gap is closed.
+
+---
+
+### D22 — `content-model.json` keeps its `doors`, against the plan (B1676)
+
+`docs/v2-migration/02-plan.md`'s phase-4 checklist lists "doors section in
+content-model" among the things to delete. It is not deleted, and this is the
+record of why, because a checklist item quietly skipped is indistinguishable
+from one forgotten.
+
+**B1577 made the section load-bearing after that checklist was written.**
+`test/content-model-doors.test.ts` is a two-way gate: add a key to a file's
+model without saying which call writes it and the test is red; name a door for
+a key the file does not have and it is red the other way. It exists because
+the same failure happened twice a year apart — B1518 (`teaser`, then `cover`)
+and B1569 (`ownerTel`, `travellers`): a field accepted by a client's local
+check, silently never sent, reported to the person as a success. Deleting
+`doors` deletes that gate, and nothing in v2 replaces it, because the gate is
+about a *client in another repository* rather than about this server's own
+schemas.
+
+So every door string is repointed at the v2 route instead:
+
+| was | now |
+| --- | --- |
+| `PATCH /api/v1/{user}/config` | `PATCH /api/v2/{user}` — v2 has no `/config`, the journal IS the document |
+| `POST /api/v1/journals` | `POST /api/v2/journals` |
+| `PUT …/trips/{trip}/costs`, `…/plan` | `PATCH /api/v2/{user}/trips/{trip}` — sections of the trip, not files with doors |
+| `…/trips/{trip}/visibility`, `/people`, `/travellers`, `/rates` | `PATCH /api/v2/{user}/trips/{trip}` — one merge-patch, not five URLs |
+| `POST …/trips/{trip}/media` | `POST /api/v2/{user}/media` with a trip intent |
+
+`tracks` is dropped from the trip's model, which is the retirement the same
+checklist calls for and the one part of it this change does carry out.
+
+**What this does not fix, and it is larger than the doors were.** The document
+still describes v1's *content model*: `trip.md`, `costs.md`, `plan.md` and
+`entries/YYYY-MM-DD-slug.md` as filenames, `intro` as "the prose under the
+frontmatter", `start`/`end` where a trip now carries `dates`, and no
+`declined`, `figures` or `accent` at all. On disk a trip is `trip.json` and has
+been since phase 2. Repointing the doors stops `/content-model.json` sending an
+agent to a 404; it does not make the document true. B1700 is that question —
+regenerate it from the v2 Zod schemas, or retire the route and let
+`/api/v2/openapi.json` be the one address — and it is a bigger call than a
+delta row should make.

@@ -71,7 +71,7 @@ export function outOfScope(session: Session, username: string): Response {
       error: "out_of_scope",
       message: signup
         ? "This is the signup token, and it can do exactly one thing: create one journal. " +
-          "The token you want came back in the answer to POST /api/v1/journals — the " +
+          "The token you want came back in the answer to POST /api/v2/journals — the " +
           "`token` field — and it is the journal's own, good for seven days. Use that one."
         : `This token is for ${session.owner ? `"${session.owner}"` : "a different journal"}, ` +
           `and this call is about "${username}". A token belongs to one journal; ask for ` +

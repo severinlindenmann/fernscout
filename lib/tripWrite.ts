@@ -800,7 +800,7 @@ export function translationsBlock(raw: unknown, locales: string[]): BlockResult 
         message:
           `This journal does not speak "${locale}" — it declares ${locales.map((l) => `"${l}"`).join(", ")} ` +
           `— so a translation into it would be written and never rendered. Add the language ` +
-          `first with PATCH /api/v1/<user>/config {"locales": [...]}, or leave it out.`,
+          `first with PATCH /api/v2/<user> {"locales": [...]}, or leave it out.`,
       };
     }
     if (!rawEntry || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {

@@ -30,7 +30,7 @@ const NOT_FOR_AGENTS = {
   error: "not_for_agents",
   message:
     "This is the owner's own door, from a browser. An agent uses " +
-    "/api/v1/<user>/trips/<trip>/media.",
+    "/api/v2/<user>/media.",
 };
 
 type Gate =

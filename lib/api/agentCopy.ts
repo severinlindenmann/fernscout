@@ -373,7 +373,7 @@ export const TRIP_FIELDS: {
     what:
       "**Not a field on this call.** A trip has no photographs when it is created, so anything " +
       "sent here would name a file that is not there. Set it afterwards, once photographs " +
-      "exist, with `PATCH /api/v1/{user}/trips/{trip}` — B245.",
+      "exist, with `PATCH /api/v2/{user}/trips/{trip}` — B245.",
   },
 ];
 
@@ -412,7 +412,7 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
       because:
         "Required — a journal cannot be created without one, and it is the name on every " +
         "page and in the browser tab. Unlike the address above it is correctable later, at " +
-        "`PATCH /api/v1/<user>/config`, so a plain answer now is fine.",
+        "`PATCH /api/v2/<user>`, so a plain answer now is fine.",
     },
     {
       ask: "**Public or guest?** (`visibility`)",
@@ -452,7 +452,7 @@ export function firstQuestions(siteUrl: string): FirstQuestion[] {
       ask: "**What they count money in** (`baseCurrency`)",
       because:
         "A three-letter code — every cost anywhere in this journal is added up in it. **It is " +
-        "the one field here that can never be changed**: `PATCH /api/v1/<user>/config` refuses " +
+        "the one field here that can never be changed**: `PATCH /api/v2/<user>` refuses " +
         "it outright, because correcting it later would silently re-price every trip already " +
         "written. Tell them it is permanent when you ask, and send the code rather than the " +
         "name — \"francs\" is `CHF`.",
@@ -519,7 +519,7 @@ export function handoverPrompt(input: {
     "",
     "2. Then, before anything else, read where the journal stands:",
     "",
-    `   GET ${siteUrl}/api/v1/${username}/status`,
+    `   GET ${siteUrl}/api/v2/${username}/status`,
     "",
     "   It says what is waiting for approval, which trips you may write to, and",
     "   what this server can do. Do not write until you have read it.",
@@ -640,7 +640,7 @@ export function buddyPrompt(input: {
     "",
     "3. Then, before anything else, read where the journal stands:",
     "",
-    `   GET ${siteUrl}/api/v1/${username}/status`,
+    `   GET ${siteUrl}/api/v2/${username}/status`,
     "",
     `4. The full guide is indexed at ${siteUrl}/documentation.txt — writing a`,
     "   day, photographs, and a worked example of each, in the task guides it",

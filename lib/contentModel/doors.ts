@@ -53,16 +53,21 @@ function through(call: string, fields: readonly string[]): Record<string, string
   return Object.fromEntries(fields.map((field) => [field, call]));
 }
 
-const DAY = "PATCH /api/v1/{user}/trips/{trip}/days/{slug}";
-const TRIP = "PATCH /api/v1/{user}/trips/{trip}";
-const CONFIG = "PATCH /api/v1/{user}/config";
-const COSTS = "PUT /api/v1/{user}/trips/{trip}/costs — the whole file";
-const PLAN = "PUT /api/v1/{user}/trips/{trip}/plan — the whole file";
+const DAY = "PATCH /api/v2/{user}/trips/{trip}/days/{slug}";
+const TRIP = "PATCH /api/v2/{user}/trips/{trip}";
+// The journal document itself — v2 has no `/config` door, because the journal
+// IS the document (decision 1). B1676.
+const CONFIG = "PATCH /api/v2/{user}";
+// Sections of the trip document rather than files with doors of their own:
+// v2's `/costs` and `/plan` routes are gone, and `costs` and `plan` are keys
+// on the trip a merge-patch writes like any other.
+const COSTS = `${TRIP} with {"costs": {…}} — the whole section`;
+const PLAN = `${TRIP} with {"plan": {…}} — the whole section`;
 
 export function contentModelDoors(): Record<FileName, FileDoors> {
   return {
     "config.json": {
-      create: "POST /api/v1/journals",
+      create: "POST /api/v2/journals",
       call: CONFIG,
       update: {
         ...through(CONFIG, JOURNAL_PROFILE_FIELDS),
@@ -79,18 +84,16 @@ export function contentModelDoors(): Record<FileName, FileDoors> {
       },
     },
     "trip.md": {
-      create: "POST /api/v1/{user}/trips",
+      create: "POST /api/v2/{user}/trips",
       call: TRIP,
       update: {
         ...through(TRIP, TRIP_DETAIL_FIELDS),
-        // Four doors of their own, each with rules the general PATCH must not
-        // duplicate. `visibility`, `listed` and `teaser` share one, because
-        // they only make sense decided together (B587).
-        ...through(`${TRIP}/visibility`, ["visibility", "listed", "teaser"]),
-        ...through(`${TRIP}/people`, ["people"]),
-        ...through(`${TRIP}/travellers`, ["travellers"]),
-        ...through(`${TRIP}/rates`, ["rates"]),
-        ...through(`${TRIP}/tracks`, ["tracks"]),
+        // v1 gave each of these a door of its own. v2 does not: they are keys
+        // on the trip document, written by the same merge-patch as everything
+        // else. `visibility`, `listed` and `teaser` still only make sense
+        // decided together (B587) — that is now a rule the route enforces on
+        // one body rather than a separate URL.
+        ...through(TRIP, ["visibility", "listed", "teaser", "people", "travellers", "rates"]),
       },
       noUpdate: {
         id: "Addresses the trip rather than describing it — it is the folder's name.",
@@ -102,17 +105,18 @@ export function contentModelDoors(): Record<FileName, FileDoors> {
       },
     },
     "entries/YYYY-MM-DD-slug.md": {
-      create: "POST /api/v1/{user}/trips/{trip}/days",
+      create: "POST /api/v2/{user}/trips/{trip}/days",
       call: DAY,
       update: {
         ...through(DAY, EDITABLE_DAY_FIELDS),
         // Not fields on a PATCH at all, and each named so a client does not
         // read their absence as "no door".
         gallery:
-          "POST /api/v1/{user}/trips/{trip}/media — photographs are files, not a field. " +
+          'POST /api/v2/{user}/media with {"intent": {"kind": "trip", …}} — photographs are ' +
+          "files, not a field. " +
           "Captions and per-photo visibility are editable on the day itself.",
         status:
-          "POST /api/v1/{user}/trips/{trip}/days/{slug}/publish, or …/unpublish. Never a " +
+          "POST /api/v2/{user}/trips/{trip}/days/{slug}/publish, or …/unpublish. Never a " +
           "field on a write, so a day cannot be published by editing it (B28).",
         without:
           `Sent on ${DAY} as the field itself set to false — "costs": false means there was ` +
@@ -129,13 +133,13 @@ export function contentModelDoors(): Record<FileName, FileDoors> {
       },
     },
     "costs.md": {
-      create: "PUT /api/v1/{user}/trips/{trip}/costs",
+      create: COSTS,
       call: COSTS,
       update: through(COSTS, ["budget", "costs"]),
       noUpdate: {},
     },
     "plan.md": {
-      create: "PUT /api/v1/{user}/trips/{trip}/plan",
+      create: PLAN,
       call: PLAN,
       update: through(PLAN, ["route"]),
       noUpdate: {},
