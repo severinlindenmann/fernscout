@@ -154,7 +154,11 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
   }
   const chosenKind = kind as ImportKind;
 
-  if (!dryRun) {
+  // A `contacts` read is a report, not a write — it never touches disk, with
+  // or without dryRun, so a full journal must not be refused it (B1571).
+  // `gps` genuinely writes to the journal's own store below, and stays
+  // gated; its own `withStorageQuota` call re-checks under lock regardless.
+  if (!dryRun && chosenKind !== "contacts") {
     const refusal = await storageRefusal(user, Buffer.byteLength(text));
     if (refusal) return fail("storage_full", refusal, undefined, 400);
   }
