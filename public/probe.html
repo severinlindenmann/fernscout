@@ -66,10 +66,10 @@ const support = {
 const key = new URLSearchParams(location.search).get('k') || '';
 const runId = (new URLSearchParams(location.search).get('run') || '')
   || `run-${new Date().toISOString().replace(/[:.]/g, '-')}`;
-// Batch size: the request cap on the server. Smaller batches also mean a
-// dropped connection costs one batch rather than the whole selection, which is
-// itself part of what we want to find out.
-const BATCH = 20;
+// Ten, not the server's sixty. A batch is one request with no progress of its
+// own, so a big one on mobile data is a long silence; ten phone photographs is
+// around 40 MB, and a dropped connection costs that rather than the selection.
+const BATCH = 10;
 
 const pick = document.getElementById('pick');
 const go = document.getElementById('go');
@@ -116,6 +116,8 @@ async function send(batch, index) {
   body.append('run', runId);
   for (const f of batch) body.append('file', f, f.name);
   body.append('client', JSON.stringify({ support, visibility, batch: index }));
+  const bytes = batch.reduce((n, f) => n + f.size, 0);
+  log(`[batch ${index}] sending ${batch.length} files, ${(bytes / 1048576).toFixed(1)} MB…`);
   const started = performance.now();
   // Deliberately no `keepalive` — it caps the body at 64 kB, which is one
   // thumbnail. Whether a batch in flight survives the tab being backgrounded
@@ -154,6 +156,16 @@ go.addEventListener('click', async () => {
     log(`[done] ${done}/${files.length} files in ${secs}s. Run id: ${runId}`);
   } catch (err) {
     log(`[FAILED after ${done}/${files.length}] ${err.message}`);
+    if (err instanceof TypeError) {
+      // fetch rejects with a bare TypeError ("Load failed" on Safari, "Failed
+      // to fetch" elsewhere) when the connection closed instead of answering,
+      // so there is no status to report. The proxy cutting an oversized body
+      // looks exactly like the signal dropping — B1750's first run was the
+      // former and read as the latter.
+      log('No HTTP status: the connection closed rather than answered. Either ' +
+          'the proxy refused the body size, or the link dropped. Say which ' +
+          'batch size it died on.');
+    }
     log('That failure is a finding — say what you were doing when it happened.');
   } finally {
     go.disabled = false;

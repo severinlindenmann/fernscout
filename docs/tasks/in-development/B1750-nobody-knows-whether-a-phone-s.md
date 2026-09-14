@@ -78,7 +78,41 @@ written into the section below, and by deleting these two files.
 
 ## Findings
 
-TODO — nothing has been run against a handset yet.
+### Run 1, 2026-09-14, iPhone (iOS 18.7), Safari 26.6.1 and Brave 26.6.2 — no data
+
+Thirty photographs selected in each browser. Both reported `Load failed` and
+nothing arrived. **Not a phone finding — the probe's own deployment was wrong.**
+
+`journalctl -u fernscout` showed the request reaching Next and then
+`Error: aborted` one to three seconds in, three times, once per attempt. The
+cause is `deploy/fernscout.caddy`: `/api/probe/upload` matched neither
+`@bigbody` nor `@transcribe`, so it fell into `@smallbody`'s **10 MB**, and
+Caddy closed the connection partway through a batch of thirty phone
+photographs. `fetch` rejects with a bare `TypeError` when the connection closes
+rather than answers — `Load failed` on Safari, `Failed to fetch` elsewhere —
+so there is no status to report and it is indistinguishable from the signal
+dropping on a train.
+
+The comment above that matcher list already says to keep it in step with the
+routes that call `request.formData()`, and it was still missed. Fixed by adding
+the probe path to `@bigbody` and excluding it from `@smallbody`; the line goes
+when the probe does.
+
+Worth keeping for B1751: the real import doors are already on the 520 MiB tier,
+so this is a probe bug rather than a bug the feature would inherit. What the
+feature does inherit is the failure *shape* — a proxy refusing a body size and
+a lost connection are the same event to the page, and an import that shrugs
+"Load failed" at somebody halfway through three hundred photographs is not good
+enough. B1751 needs per-file or per-batch resumption and an error that names
+which it was.
+
+Also changed: the page now logs each batch's size in MB before sending, and
+says explicitly when a failure carried no HTTP status. Batch size dropped from
+20 to 10 — a batch is one request with no progress of its own, so a large one
+on mobile data is a long silence.
+
+Still unanswered: all three original questions. Nothing has yet been observed
+about EXIF survival, the selection ceiling, or background behaviour.
 
 ## Work
 
