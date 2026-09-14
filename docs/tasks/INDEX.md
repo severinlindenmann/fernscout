@@ -305,23 +305,22 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (1)
+## open (0)
 
-| # | Finding | Type | Priority | Complexity |
-| --- | --- | --- | --- | --- |
-| [B1750](open/B1750-nobody-knows-whether-a-phone-s.md) | Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background | OPS | high | low |
+_Nothing here._
 
 ## waiting (0)
 
 _Nothing here._
 
-## in-development (3)
+## in-development (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
 | [B1747](in-development/B1747-the-bench-runs-five-scenarios-serially.md) | The bench runs five scenarios serially, so it cannot cover the conversation or be run often | FEATURE | high | medium | `47321abb` |
 | [B1748](in-development/B1748-a-whatsapp-first-scenario-corpus-large.md) | A WhatsApp-first scenario corpus large enough to find what one person's testing cannot | FEATURE | high | medium | `47321abb` |
+| [B1750](in-development/B1750-nobody-knows-whether-a-phone-s.md) | Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background | OPS | high | low | `0e7f2abd` |
 
 ## testing (4)
 
