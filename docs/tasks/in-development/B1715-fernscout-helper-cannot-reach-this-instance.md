@@ -6,6 +6,9 @@ priority: high
 complexity: high
 area: fernscout-helper, migration
 found: "2026-09-14T09:23:10Z"
+started: "2026-09-14T10:51:55Z"
+session: 3309c078-d934-4ee7-ad04-6cd719fc543a
+claimed: "2026-09-14T10:51:55Z"
 ---
 
 # B1715 — fernscout-helper cannot reach this instance at all since v2, and its own self-test reports green
@@ -127,3 +130,41 @@ rough order:
 - `selftest.mjs` fails when a write route it depends on is removed from the
   instance.
 - The two cost shapes above both round-trip to the right total.
+
+---
+
+## Decided, 2026-09-14 (the owner, before any code)
+
+**1. The folder mirrors the instance's JSON.** `trip.json` with `costs` and
+`plan` as sections of it, `entries/<slug>.json`, media under the full day slug
+with its `.meta.json` sidecar, `originals/` beside it. The helper stops
+translating between two shapes, and B-17 stops being a problem to solve: sync
+compares the same paths on both sides because there is only one shape. The
+cost, stated: a folder is no longer Markdown somebody reads in a text editor,
+and folders written by the old tools need a one-time conversion.
+
+**2. Decline reasons are written in the folder**, in each document's own
+`declined` block, authored once and versioned with the content. The helper
+never invents one. Publish refuses and names the open section instead.
+
+**3. The whole port, in sequence**, reporting as each stage lands.
+
+## The stages
+
+1. **Foundation** — `shared/api.mjs` against `/api/v2` (discovery from
+   `/api/v2/openapi.json`, limits from `/api/v2/status`); retire
+   `contentModel.mjs`, its snapshot, `doors.mjs` and the three field lists,
+   which mirrored a document that no longer exists (B1700); `journal.mjs`
+   reads JSON documents; a converter for a v1 folder; `selftest.mjs` asserts
+   every route the skills call still answers.
+2. **publish** — `PUT` trip and day with client-chosen ids, `declined`
+   carried from the folder, explicit publish, media through
+   `POST /api/v2/{user}/media` with `intent.day`, figures, costs read per
+   folder rather than by rule, `rates.currencies` only.
+3. **sync** — a real mirror now that the paths agree, including the
+   originals (B1719).
+4. **validate-content** — the disk truths only, plus what the generated
+   contract says; no second copy of the field vocabulary.
+5. **the rest** — `gps-history`, `statement-costs`, `trip-budget`,
+   `icloud-export`, and every `SKILL.md` and `AGENTS.md` sentence that
+   describes v1.
