@@ -7,8 +7,7 @@ complexity: medium
 area: navigation, PageHeader, BackLink, docs, agent
 found: "2026-09-14T10:49:12Z"
 started: "2026-09-14T10:49:59Z"
-session: c7a2f6dd-d474-4f79-a822-0fb5893a0030
-claimed: "2026-09-14T10:49:59Z"
+merged: "2026-09-14T11:10:31Z"
 ---
 
 # B1728 — The back arrow means two different things and the reader cannot tell which
