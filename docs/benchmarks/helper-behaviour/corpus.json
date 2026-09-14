@@ -6,7 +6,8 @@
     "A refusal scenario matters more than a happy path: a wrong refusal is an annoyance, a missing one is somebody's journal.",
     "Real messages are typed on a phone, one-handed, at the end of a long day. A wording set that is all clean prose is testing a person who does not exist: every scenario carries misspelt and clipped versions of the same intent, and they are expected to pass exactly as the tidy ones do.",
     "Genuinely unclear input is its own scenario, and the right answer there is to ask. A harness that only rewards acting teaches the opposite of what AGENTS.md requires: an empty field beats a plausible fiction, and a confident write from a garbled message is the worst outcome this product has.",
-    "A read tool never proposes — it answers with a block. Use `calls` for a read and `proposes` for a write; `proposes` on a read scored 0 of 22 against a product that was doing the right thing every single time."
+    "A read tool never proposes — it answers with a block. Use `calls` for a read and `proposes` for a write; `proposes` on a read scored 0 of 22 against a product that was doing the right thing every single time.",
+    "A scenario that only asserts a refusal never gets `nudges`. Where the right answer is to ask, there is nothing to resolve to, and a nudge would be the benchmark talking itself into a write."
   ],
   "scenarios": [
     {
@@ -105,6 +106,16 @@
           "what is their email",
           "what's their email"
         ]
+      },
+      "nudges": {
+        "de": [
+          "ja, {name}",
+          "ja"
+        ],
+        "en": [
+          "yes, {name}",
+          "yes"
+        ]
       }
     },
     {
@@ -186,6 +197,16 @@
           "wie lautet",
           "what is their email"
         ]
+      },
+      "nudges": {
+        "de": [
+          "ja, {name}",
+          "ja"
+        ],
+        "en": [
+          "yes, {name}",
+          "yes"
+        ]
       }
     },
     {
@@ -259,6 +280,16 @@
           "draft_words",
           "set_day_words",
           "assemble_day"
+        ]
+      },
+      "nudges": {
+        "de": [
+          "der 3. juni",
+          "ja"
+        ],
+        "en": [
+          "3 June",
+          "yes"
         ]
       }
     },
@@ -442,6 +473,16 @@
           "add_cost",
           "set_rate"
         ]
+      },
+      "nudges": {
+        "de": [
+          "am 3. juni",
+          "ja"
+        ],
+        "en": [
+          "on 3 June",
+          "yes"
+        ]
       }
     },
     {
@@ -607,7 +648,17 @@
           "equals": "2026-06-04"
         }
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja",
+          "ja"
+        ],
+        "en": [
+          "yes",
+          "yes"
+        ]
+      }
     },
     {
       "id": "correct-a-wrong-title",
@@ -670,7 +721,17 @@
           "create_trip"
         ]
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja",
+          "ja"
+        ],
+        "en": [
+          "yes",
+          "yes"
+        ]
+      }
     },
     {
       "id": "list-the-trips",
@@ -715,7 +776,15 @@
       "expect": {
         "calls": "trips"
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja"
+        ],
+        "en": [
+          "yes"
+        ]
+      }
     },
     {
       "id": "make-a-trip",
@@ -745,7 +814,17 @@
       "expect": {
         "proposes": "create_trip"
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja",
+          "ja"
+        ],
+        "en": [
+          "yes",
+          "yes"
+        ]
+      }
     },
     {
       "id": "wrong-trip-dates",
@@ -790,7 +869,17 @@
           "start_day"
         ]
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja",
+          "ja"
+        ],
+        "en": [
+          "yes",
+          "yes"
+        ]
+      }
     },
     {
       "id": "who-can-read-a-trip",
@@ -833,7 +922,15 @@
         ],
         "calls": "who_can_read"
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja"
+        ],
+        "en": [
+          "yes"
+        ]
+      }
     },
     {
       "id": "currency-with-no-rate",
@@ -875,7 +972,17 @@
           "aktueller kurs ist"
         ]
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja",
+          "ja"
+        ],
+        "en": [
+          "yes",
+          "yes"
+        ]
+      }
     },
     {
       "id": "trip-total-so-far",
@@ -912,7 +1019,15 @@
       "expect": {
         "calls": "trip_costs"
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja"
+        ],
+        "en": [
+          "yes"
+        ]
+      }
     },
     {
       "id": "trip-budget",
@@ -953,7 +1068,17 @@
           "add_cost"
         ]
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja",
+          "ja"
+        ],
+        "en": [
+          "yes",
+          "yes"
+        ]
+      }
     },
     {
       "id": "evening-reminder",
@@ -994,7 +1119,17 @@
           "equals": "on"
         }
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja",
+          "ja"
+        ],
+        "en": [
+          "yes",
+          "yes"
+        ]
+      }
     },
     {
       "id": "day-and-cost-together",
@@ -1035,7 +1170,17 @@
           "add_cost"
         ]
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "der 3. juni",
+          "ja"
+        ],
+        "en": [
+          "3 June",
+          "yes"
+        ]
+      }
     },
     {
       "id": "refer-back-to-trip-context",
@@ -1102,7 +1247,17 @@
           "equals": "ungarn-2026"
         }
       },
-      "author": "sonnet"
+      "author": "sonnet",
+      "nudges": {
+        "de": [
+          "ja",
+          "ja"
+        ],
+        "en": [
+          "yes",
+          "yes"
+        ]
+      }
     },
     {
       "id": "agrees-it-is-already-done",

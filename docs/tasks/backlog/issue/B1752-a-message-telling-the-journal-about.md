@@ -68,6 +68,24 @@ spends the afternoon on it again.
 
 That result is itself the argument for a mechanical fix over a prompt one.
 
+## Corrected by B1754 — the 24% was partly the harness
+
+The measurement above gave the model exactly one turn. If it did not propose
+on that turn, the case failed — so *"welches Datum war heute?"*, a fair
+question about a message that carries no date, scored the same as inventing a
+trip. B1754 added `nudges` (a canned answer to the question) and the same 84
+cases read:
+
+```
+54/84   64%  ( 24% straight away, 34 after a question)  day-from-a-note
+```
+
+So the honest figures are **24% straight away, 64% resolved within two turns,
+36% still genuinely failing**. That last third is this ticket. The two failure
+modes below were read off transcripts and still stand — a journal with one
+matching trip being offered a second one, and words written onto a day that
+does not exist — but the headline was unfair and is withdrawn.
+
 ## Work
 
 Take them separately; they are not one bug.
@@ -86,8 +104,9 @@ Take them separately; they are not one bug.
 
 ## Acceptance
 
-- `npm run helper:bench -- --scenario day-from-a-note --jobs 8` reports a
-  clear majority, and the improvement is shown against the 24% recorded here
-  rather than argued for.
+- `npm run helper:bench -- --scenario day-from-a-note --jobs 8` improves on
+  **both** figures recorded above — 24% straight away and 64% resolved — and
+  the improvement is shown rather than argued for. Straight away is the one
+  that matters: a question is friction, not a pass.
 - No scenario in the corpus regresses:
   `npm run helper:bench -- --against docs/benchmarks/helper-behaviour/baseline.json`.

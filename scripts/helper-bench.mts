@@ -96,6 +96,24 @@ type Template = {
   channels: ("web" | "whatsapp")[];
   /** Locale -> wordings. One wording is a turn or a conversation. */
   says: Record<string, (string | string[])[]>;
+  /**
+   * What a person would say next when asked — B1754.
+   *
+   * A single-message wording used to be one turn: if it did not propose, the
+   * case failed, so one sensible question ("which date was that?") scored the
+   * same as inventing a trip. That is not what this product intends — its own
+   * prompt says to write "as soon as you understand what they want" — and it
+   * is not what the clarification benchmarks do either: they measure turns to
+   * resolution and penalise *inefficient* questioning, not questioning.
+   *
+   * These are sent, in order, only while nothing has been proposed. Per
+   * locale, because the answer to a German question is German.
+   *
+   * **A refusal scenario must never have them.** Where the right answer is to
+   * ask, there is nothing to resolve to, and a nudge would only be the
+   * benchmark talking itself into a write.
+   */
+  nudges?: Record<string, string[]>;
   world: Scenario["world"];
   expect: Expectation;
 };
@@ -123,10 +141,16 @@ type Scenario = {
     share?: string;
   };
   turns: string[];
+  /** Answers to a question the model asks — see `Template.nudges`. */
+  nudges: string[];
   expect: Expectation;
 };
 
 type Outcome = {
+  /** How many of the person's messages it took before anything was proposed —
+   *  0 when nothing ever was. One is the good answer; two is a question
+   *  answered; the gap between them is the clarifying-question rate. B1754. */
+  turnsUsed: number;
   tools: string[];
   proposed: { tool: string; args: Record<string, string> }[];
   answer: string;
@@ -161,6 +185,14 @@ const RESULT_FILE = flag("result-file");
 /** Print the answer behind every failure — what to reach for before guessing
  *  at a prompt. A pass rate says something is wrong; this says what. */
 const SHOW = args.includes("--show");
+/** How many wordings per scenario per locale to take. The default is small on
+ *  purpose — see the estimate below. `--sample 0` means all of them. */
+const SAMPLE = Number(flag("sample") ?? "2");
+/** Past `CASE_CEILING`, the run says what it will cost and stops unless this
+ *  is passed. B1754: four full sweeps in one afternoon cost twenty dollars,
+ *  and not one of them printed a number before or after. */
+const YES = args.includes("--yes");
+const CASE_CEILING = 150;
 
 /**
  * The application talks to stdout — every dry-run reply, every inbound line.
@@ -181,6 +213,17 @@ if (!SHOW) console.log = () => {};
  * working product 0 of 8. Correct on the real server, where a wamid is Meta's
  * and globally unique; a harness has to earn that the same way.
  */
+/**
+ * What this run has cost, in tokens — B1754.
+ *
+ * A benchmark that spends money and does not say how much is a benchmark
+ * people stop running, or run without noticing. `lib/usage.ts` already counts
+ * every call the product makes; this only adds them up and prices them from
+ * `site/config.json`'s own rates, so the number on screen is the same
+ * arithmetic `/admin` does.
+ */
+const spent = { input: 0, output: 0 };
+
 let messageSeq = 0;
 const nextMessageId = (scenario: string) => `wamid.bench.${scenario}.${messageSeq++}`;/**
  * One throwaway journal per run — the same discipline `test/whatsapp-*.test.ts`
@@ -290,7 +333,24 @@ async function withWorld<T>(
   }
 
   try {
-    return await body({ username, dir: data, contactIds });
+    const answer = await body({ username, dir: data, contactIds });
+    // Before the database is closed and the folder removed — `lib/usage.ts`
+    // has been counting every call the product made, and it is the only
+    // honest source for what a sweep costs. B1754.
+    try {
+      const rows = await (await getDatabase()).db
+        .selectFrom("usage")
+        .select(["input_tokens", "output_tokens"])
+        .where("owner_id", "=", username)
+        .execute();
+      for (const row of rows) {
+        spent.input += Number(row.input_tokens ?? 0);
+        spent.output += Number(row.output_tokens ?? 0);
+      }
+    } catch {
+      // Bookkeeping about bookkeeping. A sweep must not fail over it.
+    }
+    return answer;
   } finally {
     await closeDatabase();
     clearConfigCache();
@@ -313,9 +373,10 @@ async function runWeb(scenario: Scenario): Promise<Outcome> {
     forget(username);
     const selected = scenario.world.select ? [`inbox:${contactIds[scenario.world.select]}`] : [];
     const today = "2026-06-03";
-    let last: Outcome = { tools: [], proposed: [], answer: "" };
+    let last: Outcome = { turnsUsed: 0, tools: [], proposed: [], answer: "" };
+    let spoken = 0;
 
-    for (const said of scenario.turns) {
+    for (const said of [...scenario.turns, ...scenario.nudges]) {
       // route.ts:334 — the selection line is built here, from disk, and rides
       // as one bracketed line after their words. Omitting it is what voided
       // B1742's first three rounds of measurement.
@@ -332,7 +393,9 @@ async function runWeb(scenario: Scenario): Promise<Outcome> {
         "web",
       );
       remember(username, said, thread.answer, "web");
+      spoken++;
       last = {
+        turnsUsed: thread.proposals.length > 0 ? spoken : 0,
         tools: thread.looked,
         proposed: thread.proposals.map((one) => ({ tool: one.tool, args: one.arguments })),
         answer: thread.answer,
@@ -390,8 +453,10 @@ async function runWhatsapp(scenario: Scenario): Promise<Outcome> {
     }
 
     const before = repliesTo(dir, username).length;
-    for (const said of scenario.turns) {
+    let spoken = 0;
+    for (const said of [...scenario.turns, ...scenario.nudges]) {
       await handleInboundMessage({ kind: "text", id: id(), from: tel, timestamp: "1700000000", body: said });
+      spoken++;
       if (peekPendingProposal(username, tel)) break;
     }
 
@@ -405,6 +470,7 @@ async function runWhatsapp(scenario: Scenario): Promise<Outcome> {
     const tools = await pollRecordedTools(username);
     forget(username);
     return {
+      turnsUsed: pending ? spoken : 0,
       tools,
       proposed: pending ? [{ tool: pending.tool, args: pending.arguments }] : [],
       answer,
@@ -492,13 +558,27 @@ function judge(outcome: Outcome, expect: Expectation): { pass: boolean; why: str
  */
 function expand(templates: Template[]): Scenario[] {
   const out: Scenario[] = [];
+  /**
+   * A stratified sample, not the first N — B1754. The tidy wordings are
+   * written first and the phone-typed ones appended, so taking a prefix would
+   * quietly test only the easy half and report a flattering number. Striding
+   * across the list keeps both kinds in every sample, and the stride is fixed
+   * rather than random so two runs are comparable.
+   */
+  const sample = <T,>(all: T[]): T[] => {
+    if (SAMPLE <= 0 || all.length <= SAMPLE) return all;
+    const stride = all.length / SAMPLE;
+    return Array.from({ length: SAMPLE }, (_, i) => all[Math.floor(i * stride)]);
+  };
   for (const template of templates) {
     const name = template.world.share ?? template.world.select ?? template.world.contacts?.[0]?.name ?? "";
     const trip = template.world.trips?.[0]?.title ?? "";
     const fill = (text: string) => text.replaceAll("{name}", name).replaceAll("{trip}", trip);
     for (const channel of template.channels) {
       for (const [locale, wordings] of Object.entries(template.says)) {
-        wordings.forEach((wording, n) => {
+        // The index is the wording's place in the *full* list, so a case id
+        // means the same thing whether or not the run was sampled.
+        sample(wordings.map((wording, n) => [wording, n] as const)).forEach(([wording, n]) => {
           out.push({
             id: `${template.id}/${channel}/${locale}/${n}`,
             template: template.id,
@@ -506,6 +586,7 @@ function expand(templates: Template[]): Scenario[] {
             channel,
             world: { ...template.world, locale },
             turns: (Array.isArray(wording) ? wording : [wording]).map(fill),
+            nudges: (template.nudges?.[locale] ?? []).map(fill),
             expect: template.expect,
           });
         });
@@ -515,13 +596,25 @@ function expand(templates: Template[]): Scenario[] {
   return out;
 }
 
-type Result = { id: string; template: string; channel: string; passed: number; runs: number; failures: string[] };
+type Result = {
+  id: string;
+  template: string;
+  channel: string;
+  passed: number;
+  /** Of the passes, how many needed no question — B1754. A question is
+   *  friction, so the two numbers are reported side by side and neither is
+   *  allowed to hide behind the other. */
+  straightAway: number;
+  runs: number;
+  failures: string[];
+};
 
 async function runCases(cases: Scenario[]): Promise<Result[]> {
   const results: Result[] = [];
   for (const scenario of cases) {
     const failures: string[] = [];
     let passed = 0;
+    let straightAway = 0;
     for (let run = 0; run < RUNS; run++) {
       let outcome: Outcome;
       try {
@@ -531,8 +624,12 @@ async function runCases(cases: Scenario[]): Promise<Result[]> {
         continue;
       }
       const verdict = judge(outcome, scenario.expect);
-      if (verdict.pass) passed++;
-      else {
+      if (verdict.pass) {
+        passed++;
+        // `turnsUsed` counts the person's messages; anything the scenario
+        // itself scripted is not a question the model asked.
+        if (outcome.turnsUsed <= scenario.turns.length) straightAway++;
+      } else {
         failures.push(verdict.why);
         if (SHOW)
           console.error(
@@ -540,7 +637,7 @@ async function runCases(cases: Scenario[]): Promise<Result[]> {
           );
       }
     }
-    results.push({ id: scenario.id, template: scenario.template, channel: scenario.channel, passed, runs: RUNS, failures });
+    results.push({ id: scenario.id, template: scenario.template, channel: scenario.channel, passed, straightAway, runs: RUNS, failures });
     if (!RESULT_FILE) process.stderr.write(passed === RUNS ? "." : "x");
   }
   return results;
@@ -575,7 +672,10 @@ async function runInJobs(cases: Scenario[]): Promise<Result[]> {
   );
   const all: Result[] = [];
   for (const file of files) {
-    all.push(...(JSON.parse(fs.readFileSync(file, "utf8")) as Result[]));
+    const shard = JSON.parse(fs.readFileSync(file, "utf8")) as { results: Result[]; spent: typeof spent };
+    all.push(...shard.results);
+    spent.input += shard.spent?.input ?? 0;
+    spent.output += shard.spent?.output ?? 0;
     fs.rmSync(file, { force: true });
   }
   const order = new Map(cases.map((one, i) => [one.id, i]));
@@ -587,11 +687,12 @@ async function runInJobs(cases: Scenario[]): Promise<Result[]> {
  * the same scenario across three wordings is a number. The cases are still in
  * the `--out` file, for when one wording is the question.
  */
-function byTemplate(results: Result[]): Map<string, { passed: number; runs: number; failures: string[]; channel: string }> {
-  const rolled = new Map<string, { passed: number; runs: number; failures: string[]; channel: string }>();
+function byTemplate(results: Result[]): Map<string, { passed: number; straightAway: number; runs: number; failures: string[]; channel: string }> {
+  const rolled = new Map<string, { passed: number; straightAway: number; runs: number; failures: string[]; channel: string }>();
   for (const one of results) {
-    const at = rolled.get(one.template) ?? { passed: 0, runs: 0, failures: [], channel: one.channel };
+    const at = rolled.get(one.template) ?? { passed: 0, straightAway: 0, runs: 0, failures: [], channel: one.channel };
     at.passed += one.passed;
+    at.straightAway += one.straightAway ?? 0;
     at.runs += one.runs;
     at.failures.push(...one.failures);
     if (at.channel !== one.channel) at.channel = "both";
@@ -616,15 +717,33 @@ async function main(): Promise<void> {
     const [index, of] = SHARD.split("/").map(Number);
     cases = cases.filter((_, i) => i % of === index);
     if (!RESULT_FILE) die("--shard needs --result-file");
-    fs.writeFileSync(RESULT_FILE, JSON.stringify(await runCases(cases)));
+    const mine = await runCases(cases);
+    // The tokens too: a child counts its own spend, and a parent that only
+    // collected results would report a sweep as free.
+    fs.writeFileSync(RESULT_FILE, JSON.stringify({ results: mine, spent }));
     process.exit(0);
   }
 
   const started = Date.now();
+  /**
+   * Roughly what this will cost, before it is spent — B1754.
+   *
+   * Measured from the sweeps that prompted this: about five US dollars for 884
+   * cases, so a bit over half a cent a case. It is an estimate and it says so;
+   * the real figure is printed at the end from `lib/usage.ts`'s own rows.
+   */
+  const estimate = cases.length * RUNS * 0.006;
   console.error(
-    `helper-bench: ${cases.length} case(s) x ${RUNS} run(s)${JOBS > 1 ? `, ${JOBS} jobs` : ""}. ` +
-      `This spends credits — one model turn per conversation turn, plus one small routing call each.\n`,
+    `helper-bench: ${cases.length} case(s) x ${RUNS} run(s)${JOBS > 1 ? `, ${JOBS} jobs` : ""}` +
+      `${SAMPLE > 0 ? `, ${SAMPLE} wording(s) per scenario per locale` : ", every wording"}.\n` +
+      `This calls a real model. Rough cost: $${estimate.toFixed(2)}.\n`,
   );
+  if (cases.length * RUNS > CASE_CEILING && !YES) {
+    die(
+      `That is ${cases.length * RUNS} model conversations, about $${estimate.toFixed(2)}. ` +
+        `Pass --yes to run it, or narrow it with --sample / --scenario / --channel / --locale.`,
+    );
+  }
   const results = JOBS > 1 ? await runInJobs(cases) : await runCases(cases);
   process.stderr.write("\n\n");
 
@@ -649,14 +768,31 @@ async function main(): Promise<void> {
         regressed = true;
       } else if (change >= 10) delta = `  better (was ${before.toFixed(0)}%)`;
     }
+    // Two numbers: resolved at all, and resolved without having to ask.
+    const asked = one.passed - one.straightAway;
+    const straight = `${((one.straightAway / one.runs) * 100).toFixed(0)}%`;
     lines.push(
-      `${String(one.passed).padStart(3)}/${String(one.runs).padEnd(3)} ${rate.toFixed(0).padStart(3)}%  ${template} (${one.channel})${delta}`,
+      `${String(one.passed).padStart(3)}/${String(one.runs).padEnd(3)} ${rate.toFixed(0).padStart(3)}%  ` +
+        `(${straight.padStart(4)} straight away${asked > 0 ? `, ${asked} after a question` : ""})  ${template} (${one.channel})${delta}`,
     );
     for (const why of [...new Set(one.failures)]) lines.push(`             ${why}`);
   }
   const total = results.reduce((sum, one) => sum + one.passed, 0);
   const of = results.reduce((sum, one) => sum + one.runs, 0);
   lines.push(`\noverall ${total}/${of} (${((total / of) * 100).toFixed(0)}%) in ${Math.round((Date.now() - started) / 1000)}s`);
+  // Priced from `site/config.json`'s own rates, so this is the arithmetic
+  // /admin does rather than a second opinion about what a token costs.
+  if (spent.input + spent.output > 0) {
+    const { loadServerConfig } = await import("../lib/config");
+    const price = loadServerConfig().costs.models["claude-haiku-4-5"];
+    const rappen = price
+      ? (spent.input * price.inputPerMillionRappen + spent.output * price.outputPerMillionRappen) / 1_000_000
+      : 0;
+    lines.push(
+      `spent ${(spent.input / 1000).toFixed(0)}k in / ${(spent.output / 1000).toFixed(0)}k out` +
+        (rappen ? ` = ${(rappen / 100).toFixed(2)} CHF` : ""),
+    );
+  }
   // Through stderr, because `--show` is the only thing allowed to own stdout
   // and the report must print either way.
   console.error(lines.join("\n"));

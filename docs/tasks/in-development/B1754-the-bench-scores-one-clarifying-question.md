@@ -53,6 +53,44 @@ badness and nothing more.
 - `garbled-input` and `half-said-day` must **not** get nudges — there the
   question is the right answer and there is nothing to resolve to.
 
+## As built, and what it changed
+
+`nudges` are canned answers the runner sends only while nothing has been
+proposed, per locale, and never on a scenario that asserts a refusal. The
+report now carries two figures side by side — resolved at all, and resolved
+without having to ask — because a question is friction and a single rolled-up
+rate would hide it.
+
+On the core day flow, over the same 84 cases:
+
+```
+before   20/84   24%
+after    54/84   64%  ( 24% straight away, 34 after a question)
+```
+
+Forty points of B1752 were this, not the product. Its headline is withdrawn
+and its evidence restated.
+
+## And the bill, which nobody was watching
+
+Four full sweeps in one afternoon cost about **twenty US dollars**, and not one
+of them printed a number before or after. That is a benchmark people stop
+running. So:
+
+- **A sample by default** — two wordings per scenario per locale, taken by
+  striding the list rather than off the front, because the tidy wordings are
+  written first and a prefix would quietly test only the easy half.
+- **An estimate before, a real figure after.** The estimate is measured
+  (~$0.006 a case); the figure at the end is `lib/usage.ts`'s own rows priced
+  from `site/config.json`'s own rates, so it is the arithmetic `/admin` does.
+- **A ceiling.** Past 150 conversations it says what it will cost and stops
+  unless `--yes` is passed.
+
+Worth a look separately: `usage` records raw input tokens, and 8 cases billed
+47k of them — about 6k each against an 8.5k system-and-tools prefix that
+B1450 marks for caching. Either the cache is not being hit across bench calls
+or the row is pre-cache; if it is the former, that is most of the bill.
+
 ## Acceptance
 
 - `day-from-a-note` reports both figures, and the ticket records the gap.
