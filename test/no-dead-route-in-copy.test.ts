@@ -9,10 +9,12 @@ import { describe, expect, test } from "vitest";
  * naming one moved with them. These are not doc comments: they are what a
  * caller is *told to do next*. `missing_token` said "every /api/v1 call needs
  * one". The handover response handed back a status URL that 404s. And
- * `/content-model.json` — the document an agent reads to learn which call
- * writes which field — advertised `POST /api/v1/journals` as the way to make a
- * journal, which is the worst of them, because that document exists to be
- * followed literally.
+ * `/content-model.json` — the document an agent read to learn which call
+ * wrote which field — advertised `POST /api/v1/journals` as the way to make a
+ * journal, which was the worst of them, because that document existed to be
+ * followed literally. It was retired in B1700 for exactly that reason: it
+ * drifted again, into v2, and the generated `/api/v2/openapi.json` says the
+ * same things from the schemas the routes actually parse.
  *
  * An agent following any of those calls a 404: the API telling a caller to do
  * something that cannot be done, which is the exact failure the migration was

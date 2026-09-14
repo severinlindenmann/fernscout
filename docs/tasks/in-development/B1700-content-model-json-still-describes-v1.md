@@ -84,3 +84,45 @@ the Work section says — it is the one thing this document does that
 repository. B1715 is that client's rewrite and is where the replacement belongs.
 
 B1699 is the same finding captured twice; it is marked superseded by this one.
+
+## Done, 2026-09-14
+
+Option 2, as decided. Deleted: `app/content-model.json/route.ts`'s document,
+`lib/contentModel/` (document, doors, interpret, types — 931 lines),
+`test/content-model.test.ts` and `test/content-model-doors.test.ts`.
+
+Two things fell out with it, and both were load-bearing for nothing else:
+
+- `lib/api/tripFields.ts` — `TRIP_DETAIL_FIELDS`, "the fields
+  `PATCH /api/v1/{user}/trips/{trip}` writes". That route is gone; the only
+  readers left were `doors.ts` and its test.
+- `validateCostsPut` in `lib/validate/costs.ts` — `PUT .../costs`, also a v1
+  door that no longer exists, kept alive solely by the deleted test.
+  `validateCostsPatch` beside it is still called by the helper's budget route
+  and stays.
+
+`JOURNAL_PROFILE_FIELDS` and `JOURNAL_FIELD_REFUSALS` lost their last outside
+reader and are no longer exported; `lib/journals.ts` still uses both.
+
+**What the address answers now: `410`, with the replacement named.** Not a
+404, and not nothing — a client fetching this is a program, and the whole
+lesson of this ticket is what happens when a document tells a program
+something untrue. The body says what the document used to describe, why none
+of it is how a journal is stored any more, and points at
+`/api/v2/openapi.json` and `/skill/`.
+
+### On B1577's gate, which retiring this costs
+
+The gate was: add a key to a file's model without saying which call writes it,
+and a test goes red. Its replacement is not another test — it is that the
+v2 contract is **generated**. `/api/v2/openapi.json` comes from the same Zod
+schemas `PUT`/`PATCH` parse with, so a field that exists is in the document by
+construction and a field in the document that no route accepts cannot be
+written down. The drift B1577 guarded against needed two hand-kept lists to
+exist; v2 has one machine-kept one.
+
+What that does not cover is the *client's* half — the helper keeping its own
+copy of the field lists — and that is B1715, which is the rewrite of that
+client against v2 and names this document as something it must stop trusting.
+
+`npm run verify` — all 5 passed.
