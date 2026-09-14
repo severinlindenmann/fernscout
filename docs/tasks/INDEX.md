@@ -301,22 +301,22 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (3)
+## open (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1700](open/B1700-content-model-json-still-describes-v1.md) | content-model.json still describes v1 content — md filenames, frontmatter prose, start/end, no declined | ISSUE | high | high |
-| [B1713](open/B1713-a-day-written-through-api-v2.md) | A day written through /api/v2 gets no weather until the next night, and the owner never knew a nightly sweep was what filled it | ISSUE | high | medium |
 | [B1719](open/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low |
 
 ## waiting (0)
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1713](in-development/B1713-a-day-written-through-api-v2.md) | A day written through /api/v2 gets no weather until the next night, and the owner never knew a nightly sweep was what filled it | ISSUE | high | medium | `3309c078` |
 | [B1721](in-development/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium | `8ad8d82a` |
 
 ## testing (161)

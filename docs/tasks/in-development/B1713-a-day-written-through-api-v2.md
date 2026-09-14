@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: weather, api v2, ops
 found: "2026-09-14T09:22:31Z"
+started: "2026-09-14T10:11:00Z"
+session: 3309c078-d934-4ee7-ad04-6cd719fc543a
+claimed: "2026-09-14T10:11:00Z"
 ---
 
 # B1713 — A day written through /api/v2 gets no weather until the next night, and the owner never knew a nightly sweep was what filled it
