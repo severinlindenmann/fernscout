@@ -20,6 +20,7 @@
   "analytics.weatherBlurb": "What the weather actually was, added up over the days that carry a reading.",
   "analytics.measured": "{measured} of {days} days measured",
   "analytics.measured.one": "{measured} of {days} day measured",
+  "analytics.none": "Nothing to add up on this trip yet — no spending and no weather readings have been written down. Once either is, it appears here.",
   "a11y.closePhoto": "Close",
   "a11y.nextPhoto": "Next photo",
   "a11y.openPhoto": "Open the photo",

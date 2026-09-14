@@ -933,6 +933,7 @@ export type TranslationKey =
   | "analytics.costsBlurb"
   | "analytics.measured"
   | "analytics.measured.one"
+  | "analytics.none"
   | "analytics.open"
   | "analytics.subtitle"
   | "analytics.title"

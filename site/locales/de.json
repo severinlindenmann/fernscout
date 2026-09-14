@@ -20,6 +20,7 @@
   "analytics.weatherBlurb": "Wie das Wetter wirklich war, zusammengezählt über die Tage mit einer Messung.",
   "analytics.measured": "{measured} von {days} Tagen gemessen",
   "analytics.measured.one": "{measured} von {days} Tag gemessen",
+  "analytics.none": "Auf dieser Reise gibt es noch nichts zusammenzuzählen — weder Ausgaben noch Wettermessungen wurden notiert. Sobald eines davon da ist, steht es hier.",
   "a11y.closePhoto": "Schliessen",
   "a11y.nextPhoto": "Nächstes Foto",
   "a11y.openPhoto": "Foto öffnen",
