@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (210)
+## backlog (211)
 
 ### security (5)
 
@@ -61,10 +61,11 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (37)
+### issue (38)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1752](backlog/issue/B1752-a-message-telling-the-journal-about.md) | A message telling the journal about a day proposes nothing about three times in four | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -314,20 +315,20 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (3)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1747](in-development/B1747-the-bench-runs-five-scenarios-serially.md) | The bench runs five scenarios serially, so it cannot cover the conversation or be run often | FEATURE | high | medium | `47321abb` |
-| [B1748](in-development/B1748-a-whatsapp-first-scenario-corpus-large.md) | A WhatsApp-first scenario corpus large enough to find what one person's testing cannot | FEATURE | high | medium | `47321abb` |
 
-## testing (5)
+## testing (7)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1743](testing/B1743-saying-yes-to-a-proposal-in.md) | Saying yes to a proposal in the web room presses nothing, and the guard then denies the card exists | ISSUE | high | medium | — |
 | [B1744](testing/B1744-there-is-no-way-to-tell.md) | There is no way to tell whether a change to the conversation made it better or worse | FEATURE | high | medium | — |
+| [B1747](testing/B1747-the-bench-runs-five-scenarios-serially.md) | The bench runs five scenarios serially, so it cannot cover the conversation or be run often | FEATURE | high | medium | — |
+| [B1748](testing/B1748-a-whatsapp-first-scenario-corpus-large.md) | A WhatsApp-first scenario corpus large enough to find what one person's testing cannot | FEATURE | high | medium | — |
 | [B1750](testing/B1750-nobody-knows-whether-a-phone-s.md) | Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background | OPS | high | low | — |
 | [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
 | [B1745](testing/B1745-buying-extra-storage-is-only-offered.md) | Buying extra storage is only offered once the journal is nearly full | FEATURE | low | low | — |
