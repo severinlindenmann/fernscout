@@ -7,6 +7,7 @@ import {
   type Table,
 } from "@/importers/costs/mapping";
 import { isEnabled } from "../capabilities";
+import { describeWaiting } from "./server";
 import { recordUsage, type Operation } from "../usage";
 import type { Block, Proposal } from "./blocks";
 import type { Say } from "./intents";
@@ -2199,7 +2200,20 @@ export async function answerInThread(
     }
     messages.push({ role: "assistant", content: turn.text });
   }
-  messages.push({ role: "user" as const, content: pending === "" ? said : `${said}\n${pending}` });
+  /**
+   * What is waiting in the inbox, on this turn's message — B1737.
+   *
+   * The same carrier the notes above and the files pane's own selection line
+   * use: one bracketed line after their words, on the **last** message only,
+   * so it is read as context rather than as something said and so a thread
+   * can never come to believe in a file that has since been used. It is read
+   * off disk here rather than passed in, which is the only way both doors get
+   * it — the web room's `/ask` route composes its own selection line, and
+   * WhatsApp composes nothing at all.
+   */
+  const waiting = describeWaiting(username);
+  const trailing = [pending, waiting].filter((part) => part !== "").join("\n");
+  messages.push({ role: "user" as const, content: trailing === "" ? said : `${said}\n${trailing}` });
 
   const looked: string[] = [];
   /**
