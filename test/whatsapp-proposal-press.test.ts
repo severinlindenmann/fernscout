@@ -10,7 +10,7 @@ import { grant } from "@/lib/credits";
 import { createJournal, setJournalFeatures } from "@/lib/journals";
 import { forget, history } from "@/lib/helper/thread";
 import { getTrips } from "@/lib/trips";
-import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
+import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "@/lib/entries";
 import { storeInboxFile } from "@/lib/inbox";
 import { paintJpeg } from "./support/pictures";
 import type { Say } from "@/lib/helper/intents";
@@ -347,7 +347,12 @@ describe("a newly-allowed ordinary write — B1235", () => {
     );
     await handleInboundMessage(textMessage(tel, "wamid.press6.day", "start the first day"));
     await handleInboundMessage(interactiveMessage(tel, "wamid.press6.day-tap", "confirm:0:yes"));
-    const slug = "2027-03-01";
+    // A day started with no title gets a numbered placeholder slug (`day`,
+    // `day-2`, …), not the date — B1442 — so this reads the slug back rather
+    // than assuming it.
+    const created = getAllEntries(trip.ref, AS_AUTHOR).find((e) => e.date === "2027-03-01");
+    expect(created).toBeDefined();
+    const slug = created!.slug;
     expect(getEntryBySlug(trip.ref, slug, AS_AUTHOR)).not.toBeNull();
 
     const staged = storeInboxFile(username, "media", "whatsapp-photo.jpg", await paintJpeg(400, 300, 1), {});

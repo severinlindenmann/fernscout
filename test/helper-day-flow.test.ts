@@ -126,7 +126,7 @@ describe("writing a day from the wizard", () => {
     expect(made.status).toBe(201);
     const slug = String(made.body.slug);
 
-    // Created, and visibly unwritten: the title is the date and the prose is
+    // Created, and visibly unwritten: no title yet (B1442) and the prose is
     // the placeholder, so nothing here reads as somebody's words.
     const started = await read(
       await GET(new Request(`https://t.test/api/helper/alex/day?trip=a-trip&slug=${slug}`), params),

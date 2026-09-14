@@ -142,10 +142,17 @@ export default function LocaleProvider({
      * written locale) pair is its own dictionary key instead.
      */
     const localized = (entry: Entry) => {
-      if (locale === writtenLocale) return { title: entry.title, content: entry.content };
+      // A day started in the room with no title yet (B1442) has `title: ""`
+      // rather than an invented one — every reader falls back to the date it
+      // already knows how to format, the same date-only card every other
+      // untitled surface here shows, rather than an empty heading.
+      if (locale === writtenLocale) {
+        return { title: entry.title || formatLongDate(entry.date), content: entry.content };
+      }
       const tr = entry.translations?.[locale];
+      const title = localizedEntryTitle(entry, locale, writtenLocale);
       return {
-        title: localizedEntryTitle(entry, locale, writtenLocale),
+        title: title || formatLongDate(entry.date),
         content: tr?.content ?? entry.content,
         fallbackNotice: tr === undefined ? (`fallback.writtenIn.${writtenLocale}` as TranslationKey) : undefined,
       };

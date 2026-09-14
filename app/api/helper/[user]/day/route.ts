@@ -119,10 +119,11 @@ export async function GET(request: Request, { params }: RouteContext<"/api/helpe
  * server looks the day up in a public archive afterwards, which is the only
  * route to weather that AGENTS.md permits at all.
  *
- * The title is the date, and the prose is `NO_PROSE`. Both are placeholders
- * and both are visibly nothing: the words step replaces them with what the
- * person actually says, and a plausible invented title would be harder to
- * notice than an ISO date.
+ * There is no title (B1442) and the prose is `NO_PROSE`. Both are visibly
+ * nothing until the words step gives them what the person actually says — an
+ * ISO date standing in for a title used to be the placeholder, and it read
+ * everywhere as though it were real words instead of visibly nothing, which
+ * is the opposite of the point of a placeholder.
  */
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/day">) {
   const { user } = await params;
@@ -146,15 +147,15 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    * A second press of the same card, honestly refused — B1567.
    *
    * `createDraft`'s own collision check compares the *placeholder* file this
-   * route would write (`${date}-${slugify(date)}.md`) against disk, which
-   * misses exactly the case that matters: the first press's day has since
-   * been given a real title (`PATCH` → `renameEntrySlug`), so the placeholder
-   * path is free again and a second press wrote a second, empty entry for a
-   * date that already had one — both presses answering `ok`. So this asks
-   * the honest question directly, the way B1263 already does for a WhatsApp
-   * location pin: does *this trip* already carry *this date*, under whatever
-   * slug it now has. A day already begun stays begun; there is nothing here
-   * to attach, unlike a pin, so the honest answer is a refusal.
+   * route would write against disk, which misses exactly the case that
+   * matters: the first press's day has since been given a real title
+   * (`PATCH` → `renameEntrySlug`), so the placeholder slug is free again and a
+   * second press wrote a second, empty entry for a date that already had one
+   * — both presses answering `ok`. So this asks the honest question directly,
+   * the way B1263 already does for a WhatsApp location pin: does *this trip*
+   * already carry *this date*, under whatever slug it now has. A day already
+   * begun stays begun; there is nothing here to attach, unlike a pin, so the
+   * honest answer is a refusal.
    */
   if (getAllEntries(ref, AS_AUTHOR).some((entry) => entry.date === date)) {
     refused(user, "start_day", "day_exists");
@@ -170,7 +171,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       : null;
 
   const input: DraftInput = {
-    title: date,
+    // No title (B1442) — the date used to stand in for one and leaked to
+    // every reading surface as though it were real words. Absent, every
+    // reader falls back to the date it already knows how to format.
     date,
     content: NO_PROSE,
     ...(text(body.time) ? { time: text(body.time) } : {}),

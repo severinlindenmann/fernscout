@@ -197,7 +197,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   const words = readWords(user, date);
 
   const input: DraftInput = {
-    title: date,
+    // No title (B1442): this day has not been given one, and writing the
+    // date in its place is the exact thing that leaked to every surface as
+    // though it were real words. Absent, every reader falls back to the date
+    // it already knows how to format.
     date,
     content: words || NO_PROSE,
     ...(readiness.location ? { lat: readiness.location.lat, lng: readiness.location.lon } : {}),

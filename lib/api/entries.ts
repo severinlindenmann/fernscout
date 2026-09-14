@@ -25,7 +25,7 @@ import { reverseGeocode } from "../ingest/geo";
 // with the one ingest used — the same title, two permanent URLs.
 import { slugify } from "../slug.ts";
 import { mediaKey, type PhotoVisibility } from "../photos";
-import { deleteMediaFiles, renameDayMedia } from "./media";
+import { deleteMediaFiles, renameDayMedia, slugHasOrphanedMedia } from "./media";
 import { getTrip, parseTripRef, tripDir, tripRef } from "../trips";
 import type { Entry, GalleryItem, Trip, TripVisibility } from "../types";
 import type { Problem } from "../validate/media";
@@ -66,7 +66,15 @@ export type CostInput = {
 };
 
 export type DraftInput = {
-  title: string;
+  /**
+   * Absent means the day has no title yet — B1442. A room-started day that
+   * nobody has described writes no title at all rather than a placeholder, so
+   * every reader falls back to the date it already knows how to format
+   * instead of being handed an ISO string dressed up as somebody's words.
+   * Present-and-empty is still refused (`validateDraft`): a caller sending
+   * `title: ""` is a mistake, not a statement that there is none yet.
+   */
+  title?: string;
   date: string;
   /**
    * B1650 (decision a) widens this to a decline, matching `costs` above: a
@@ -335,8 +343,10 @@ export function translationLines(
 }
 
 export function validateDraft(input: Partial<DraftInput>): string | null {
-  if (typeof input.title !== "string" || input.title.trim() === "") {
-    return "title is required";
+  // Absent is "no title yet" (B1442); present-and-empty is still a mistake,
+  // the same asymmetry `applyEditToDay`'s own title check already draws.
+  if (input.title !== undefined && (typeof input.title !== "string" || input.title.trim() === "")) {
+    return "title must not be empty";
   }
   if (typeof input.date !== "string" || !DATE_RE.test(input.date)) {
     return "date is required, as YYYY-MM-DD";
@@ -390,6 +400,20 @@ function entryFileWithSlug(dir: string, slug: string): string | null {
 }
 
 /**
+ * A trip-wide-unique placeholder slug for a day with no title yet — B1442.
+ *
+ * "day", then "day-2", "day-3", … — never the date, which is the bug this
+ * exists to avoid repeating: several days may be started from the room and
+ * left untitled at once, so the placeholder still has to be an address
+ * nothing else already holds.
+ */
+function nextUntitledSlug(dir: string): string {
+  let slug = "day";
+  for (let n = 2; entryFileWithSlug(dir, slug); n++) slug = `day-${n}`;
+  return slug;
+}
+
+/**
  * The day just written, read back — or a sentence saying what is wrong with it.
  *
  * **One file, not the trip.** `createTrip` reads its trip back through
@@ -421,7 +445,7 @@ function draftDoesNotReadBack(file: string, input: DraftInput): string | null {
     const said = err instanceof Error ? err.message.split("\n")[0] : String(err);
     return `its JSON does not parse (${said})`;
   }
-  if (day.title !== input.title) {
+  if (day.title !== (input.title ?? "")) {
     return "its title does not read back as it was written";
   }
   if (day.date !== input.date) {
@@ -570,7 +594,7 @@ function buildDayFile(
 ): DayFile {
   const day: DayFile = {
     slug,
-    title: input.title,
+    title: input.title ?? "",
     date: input.date,
     content: input.content.trim(),
     status: "draft",
@@ -633,8 +657,14 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
   const trip = getTrip(ref);
   if (!trip) return { ok: false, error: "unknown_trip" };
 
-  const slug = slugify(input.title);
   const dir = entriesDirOf(ref);
+  // No title yet (B1442) gets a placeholder that says so, numbered rather
+  // than derived from the date — `2026-09-11-2026-09-11.json` was the date
+  // concatenated with a slug made from the same date, which is both an ugly
+  // address and, worse, a title surfaces rendered as though it were real
+  // words. Several days may be started and left untitled at once, so the
+  // placeholder still has to be unique within the trip.
+  const slug = input.title ? slugify(input.title) : nextUntitledSlug(dir);
   const file = path.join(dir, `${input.date}-${slug}.json`);
 
   if (fs.existsSync(file)) {
@@ -677,6 +707,26 @@ export function createDraft(ref: string, input: DraftInput): WriteResult {
         "A slug is a day's address within its trip and only one day can hold it, so a " +
         "second would be written and never served. Two titles slug the same way when they " +
         "differ only in punctuation or accents; give this day a title that differs in a word.",
+    };
+  }
+
+  /*
+   * No *entry* holds this slug, but its media folder might — B1539. A day can
+   * be deleted while its photographs stay on disk (see `deleteEntry`'s own
+   * comment), which frees the slug without emptying the folder. Writing a new
+   * day onto it would number its own uploads in after a stranger's leftovers,
+   * and dedupe new photographs against ones that never belonged to this day —
+   * the same "two days share one folder" shape B1539 found, reached by reuse
+   * rather than by two days existing at once.
+   */
+  if (slugHasOrphanedMedia(ref, slug)) {
+    return {
+      ok: false,
+      code: "slug_taken",
+      error:
+        `the slug "${slug}" has no day but already has photographs on disk in this trip's ` +
+        "media folder — from a day that once held this address and was deleted. Give this day " +
+        "a title that differs in a word, so its photographs get a folder of their own.",
     };
   }
 
@@ -1417,10 +1467,11 @@ export function slugAvailable(ref: string, candidateSlug: string): boolean {
 /**
  * Rename a draft's slug to match a real title — B1276.
  *
- * The wizard writes a day with `title: date`, so its file is literally
- * `<date>-<date>.json` until somebody actually says what the day was. The
- * first time a real title arrives this gives the day the address its content
- * deserves, instead of leaving every day permanently reachable only by date.
+ * The wizard writes a day with no title yet (B1442), so its file sits under a
+ * numbered placeholder slug (`day`, `day-2`, …) until somebody actually says
+ * what the day was. The first time a real title arrives this gives the day
+ * the address its content deserves, instead of leaving every day permanently
+ * reachable only by a placeholder.
  *
  * **Forward only, and draft only.** The caller (`app/api/helper/[user]/day/
  * route.ts`) is expected to call this only while `editEntry`'s own answer
