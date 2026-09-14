@@ -293,6 +293,7 @@ export type TranslationKey =
   | "agent.gapsBody.one"
   | "agent.gapsDismiss"
   | "agent.goingTo"
+  | "agent.hasTheFigure"
   | "agent.haveJournal"
   | "agent.haveJournalAgain"
   | "agent.haveJournalNo"

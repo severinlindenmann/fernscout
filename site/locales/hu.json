@@ -2138,6 +2138,7 @@
   "agent.notCounted": "Inkább nem mondok olyan számot, amit nem számoltam ki rendesen — a saját pénzedről egy rossz szám rosszabb, mint semmi. Kérdezd meg újra, és előbb megnézem a költségeket.",
   "agent.theListIsAbove": "Nézd meg a már megadott lehetőségeket — válassz egyet.",
   "agent.stillHasAQuestion": "Azt hiszem, csak a kérdésed egyik felére válaszoltam — kérdezd meg még egyszer a másik részt, és most rendesen utánanézek.",
+  "agent.hasTheFigure": "Megvan nálam ez a szám — egyszerűen meg kellett volna mondanom. Kérdezd meg újra, és egyértelműen megadom a számot.",
   "agent.tool.addPhotos": "A fényképek a nap saját oldalán kerülnek fel, ott van a választó és a feltöltés.",
   "agent.tool.addPhotosPane": "A fényképek itt kerülnek be: a mező melletti gemkapocs (vagy a „Fájlok” fül) megnyitja a fájlpanelt — válaszd ki őket ott, és a „Mi vár” alá kerülnek. Utána mondd meg, melyik naphoz tartoznak, és ráteszem őket.",
   "agent.tool.addPhotosLabel": "Nap megnyitása",

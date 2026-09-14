@@ -2138,6 +2138,7 @@
   "agent.notCounted": "Ich nenne dir lieber keine Zahl, die ich nicht sauber zusammengerechnet habe — eine falsche Zahl über dein eigenes Geld ist schlimmer als gar keine. Frag mich noch einmal, dann lese ich die Ausgaben vorher nach.",
   "agent.theListIsAbove": "Schau dir die Optionen an, die du schon bekommen hast — wähl eine aus.",
   "agent.stillHasAQuestion": "Ich glaube, ich bin nur auf einen Teil von dem eingegangen, was du gefragt hast — frag mich den anderen Teil noch einmal, dann kümmere ich mich diesmal richtig darum.",
+  "agent.hasTheFigure": "Die Zahl habe ich eigentlich — ich hätte sie einfach nennen sollen. Frag mich noch einmal, dann sage ich dir die Zahl klar und deutlich.",
   "agent.tool.addPhotos": "Fotos kommen auf der Seite des Tages dazu, dort sind die Auswahl und der Upload.",
   "agent.tool.addPhotosPane": "Fotos kommen direkt hier hinein: die Büroklammer neben dem Feld (oder der Tab «Dateien») öffnet die Dateiablage — dort auswählen, und sie landen unter «Was wartet». Sag mir danach, zu welchem Tag sie gehören, und ich lege sie darauf.",
   "agent.tool.addPhotosLabel": "Den Tag öffnen",
