@@ -715,51 +715,78 @@ export async function findOrderByProviderRef(
   return null;
 }
 
+/** What a successfully claimed cancellation hands the caller — everything
+ * `lib/postcard/reconcile.ts`'s `settleCancelledCard` needs to refund the
+ * one card and tell the owner, and nothing this module has any business
+ * deciding what to do with — B1532. */
+export type CancelledCard = {
+  owner: string;
+  orderId: string;
+  contactId: string;
+  ref: string;
+  creditsEach: number;
+};
+
 /**
- * Stannp says one card it already accepted will never be posted — B1484.
+ * Stannp says one card it already accepted will never be posted — B1484,
+ * widened by B1532 to hand back what settling it needs.
  *
  * Additive: `results[].ok` and the order's own `built`/`failed` status are
  * untouched, because both still mean exactly what they have always meant,
  * "the printer accepted it" — which happened, and stays true. Only the new
- * `providerStatus` field changes. Safe to call twice: writing `"cancelled"`
- * over an already-`"cancelled"` entry changes nothing, so a retried webhook
- * delivery costs a write, not a second anything.
+ * `providerStatus` field changes.
+ *
+ * Returns the card's details only when *this* call is the one that moved it
+ * to `"cancelled"` — the caller's cue to refund and mail, once. Returns
+ * `null` when the ref is unknown, when the card was already `"cancelled"`
+ * (a retried webhook delivery, or the on-view refresh finding what the
+ * webhook already recorded), or when another caller claimed the same
+ * transition first.
+ *
+ * **The claim, CAS-style** — the same rows-affected shape
+ * `lib/photobook/reconcile.ts`'s `markPrintFailed` claims a photobook
+ * refusal with, adapted for a status nested in JSON rather than a column:
+ * the write is conditioned on the exact payload this call just read, so of
+ * two callers reaching the same card at once — a retried webhook and the
+ * page's own refresh, or two retried webhooks — only the one that still sees
+ * an unwritten row gets to write it. The loser's `WHERE` matches nothing,
+ * `numUpdatedRows` comes back zero, and it returns `null` exactly as it would
+ * for a card already cancelled — a lost race and a stale duplicate are the
+ * same case to the caller: somebody else is refunding this one.
  */
-export async function recordProviderCancellation(providerRef: string): Promise<boolean> {
-  return recordProviderStatus(providerRef, "cancelled");
-}
-
-/**
- * Write whatever the provider now says about one card, by its own `ref` —
- * the shared write behind `recordProviderCancellation` (the webhook) and
- * `refreshProviderStatuses` (the page, B1548). Safe to call with the same
- * status twice: overwriting `"cancelled"` with `"cancelled"` changes
- * nothing, so a retried webhook delivery or a page opened twice costs a
- * write, not a second anything.
- */
-async function recordProviderStatus(providerRef: string, status: StannpStatus): Promise<boolean> {
+export async function recordProviderCancellation(providerRef: string): Promise<CancelledCard | null> {
   const handle = await getDatabaseOrNull();
-  if (!handle) return false;
+  if (!handle) return null;
   const found = await findOrderByProviderRef(providerRef);
-  if (!found) return false;
+  if (!found) return null;
   const row = await handle.db
     .selectFrom("print_orders")
     .select(["payload"])
     .where("id", "=", found.id)
     .where("owner_id", "=", found.owner)
     .executeTakeFirst();
-  if (!row) return false;
+  if (!row) return null;
   const payload = JSON.parse(row.payload) as OrderPayload;
+  const current = (payload.results ?? []).find((r) => r.ref === providerRef);
+  if (!current || current.providerStatus === "cancelled") return null;
   const results = (payload.results ?? []).map((r) =>
-    r.ref === providerRef ? { ...r, providerStatus: status } : r,
+    r.ref === providerRef ? { ...r, providerStatus: "cancelled" as const } : r,
   );
-  await handle.db
+  const updated = await handle.db
     .updateTable("print_orders")
     .set({ payload: JSON.stringify({ ...payload, results }), updated_at: nowIso() })
     .where("id", "=", found.id)
     .where("owner_id", "=", found.owner)
-    .execute();
-  return true;
+    .where("payload", "=", row.payload)
+    .executeTakeFirst();
+  if (Number(updated.numUpdatedRows ?? 0) === 0) return null;
+  return {
+    owner: found.owner,
+    orderId: found.id,
+    contactId: found.contactId,
+    ref: providerRef,
+    creditsEach: payload.creditsEach,
+  };
 }
 
 /**
@@ -776,23 +803,39 @@ async function recordProviderStatus(providerRef: string, status: StannpStatus): 
  *
  * Best-effort and silent: a Stannp outage must not break the page that
  * shows a card already went to the printer. Returns the order with
- * whatever it found, so the caller renders it without a second read.
+ * whatever it found, so the caller renders it without a second read — and,
+ * since B1532, any cancellations *this* call is the one that newly claimed.
+ * A cancellation is never folded into the bulk write below: it goes through
+ * `recordProviderCancellation`'s own atomic claim, the same one the webhook
+ * uses, because money must never ride on a write that can lose a race
+ * silently. The caller (`app/[user]/postcards/[id]/page.tsx`) settles each
+ * claim through `lib/postcard/reconcile.ts`'s `settleCancelledCard` — this
+ * module only ever reports what changed, the same boundary it has always
+ * drawn around this order.
  */
-export async function refreshProviderStatuses(order: PostcardOrder): Promise<PostcardOrder> {
+export async function refreshProviderStatuses(
+  order: PostcardOrder,
+): Promise<{ order: PostcardOrder; cancellations: CancelledCard[] }> {
   const results = order.payload.results;
-  if (!results || results.length === 0) return order;
+  if (!results || results.length === 0) return { order, cancellations: [] };
 
+  const cancellations: CancelledCard[] = [];
   let changed = false;
   const next = await Promise.all(
     results.map(async (r) => {
       if (!r.ok || !r.ref || r.providerStatus === "cancelled") return r;
       const status = await fetchStannpStatus(r.ref);
       if (!status || status === r.providerStatus) return r;
+      if (status === "cancelled") {
+        const claim = await recordProviderCancellation(r.ref);
+        if (claim) cancellations.push(claim);
+        return { ...r, providerStatus: "cancelled" as const };
+      }
       changed = true;
       return { ...r, providerStatus: status };
     }),
   );
-  if (!changed) return order;
+  if (!changed && cancellations.length === 0) return { order, cancellations: [] };
 
   const payload = { ...order.payload, results: next };
   const handle = await getDatabaseOrNull();
@@ -804,5 +847,5 @@ export async function refreshProviderStatuses(order: PostcardOrder): Promise<Pos
       .where("owner_id", "=", order.owner)
       .execute();
   }
-  return { ...order, payload };
+  return { order: { ...order, payload }, cancellations };
 }

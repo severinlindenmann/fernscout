@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { recordProviderCancellation } from "@/lib/postcard/orders";
+import { settleCancelledCard } from "@/lib/postcard/reconcile";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +45,13 @@ export const dynamic = "force-dynamic";
  * was delivered, and recording delivery status here would quietly
  * contradict that decision instead of extending it.
  *
- * **Not built here:** refunding the credit a cancelled card cost, or
- * telling the owner. See B1532.
+ * **Refunding and telling the owner — B1532.** `recordProviderCancellation`
+ * only ever hands back a card's details when *this* delivery is the one that
+ * newly claimed the transition to `"cancelled"` — a retried delivery of the
+ * same event gets `null` back and this route does nothing further, which is
+ * what makes settling it exactly once safe even though Stannp may deliver
+ * the same event more than once. `lib/postcard/reconcile.ts`'s
+ * `settleCancelledCard` is the one place that does the refund and the mail.
  *
  * **Always 200, once the caller is authentic.** A webhook that answers 500
  * gets retried for hours, and neither an order this instance does not know
@@ -123,10 +129,23 @@ export async function POST(request: Request) {
     // Either mode's `ref` — a test render and a live send report the same
     // event shape, and this route has no way to tell which the id belongs
     // to except by trying both.
-    const done =
-      (await recordProviderCancellation(`stannp:${id}`)) || (await recordProviderCancellation(`stannp-test:${id}`));
-    if (done) cancelled += 1;
-    else ignored += 1;
+    const claim =
+      (await recordProviderCancellation(`stannp:${id}`)) ??
+      (await recordProviderCancellation(`stannp-test:${id}`));
+    if (claim) {
+      cancelled += 1;
+      try {
+        await settleCancelledCard(claim);
+      } catch (error) {
+        // The cancellation is already recorded on the card either way; a
+        // failure here is refund/mail bookkeeping, not a reason to make
+        // Stannp retry the whole delivery and risk `recordProviderCancellation`
+        // never returning a claim again for this ref.
+        console.error(`[stannp] settling cancelled card ${id} failed:`, error);
+      }
+    } else {
+      ignored += 1;
+    }
   }
 
   // One line per accepted delivery, the same reasoning

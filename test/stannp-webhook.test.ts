@@ -5,9 +5,11 @@ vi.mock("@/lib/postcard/orders", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/postcard/orders")>();
   return { ...actual, recordProviderCancellation: vi.fn() };
 });
+vi.mock("@/lib/postcard/reconcile", () => ({ settleCancelledCard: vi.fn() }));
 
 import { POST } from "@/app/api/webhooks/stannp/route";
-import { recordProviderCancellation } from "@/lib/postcard/orders";
+import { recordProviderCancellation, type CancelledCard } from "@/lib/postcard/orders";
+import { settleCancelledCard } from "@/lib/postcard/reconcile";
 
 const SECRET = "a-long-shared-secret-value";
 
@@ -90,19 +92,28 @@ describe("POST /api/webhooks/stannp", () => {
     expect(recordProviderCancellation).not.toHaveBeenCalled();
   });
 
-  test("a cancelled mailpiece records the cancellation against both ref forms until one matches", async () => {
-    vi.mocked(recordProviderCancellation).mockImplementation(async (ref) => ref === "stannp:555");
+  test("a cancelled mailpiece records the cancellation against both ref forms until one matches, and is settled", async () => {
+    const claim: CancelledCard = {
+      owner: "alex",
+      orderId: "order-1",
+      contactId: "contact-1",
+      ref: "stannp:555",
+      creditsEach: 15,
+    };
+    vi.mocked(recordProviderCancellation).mockImplementation(async (ref) => (ref === "stannp:555" ? claim : null));
     const res = await POST(hook(CANCELLED));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, cancelled: 1, ignored: 0 });
     expect(recordProviderCancellation).toHaveBeenCalledWith("stannp:555");
+    expect(settleCancelledCard).toHaveBeenCalledWith(claim);
   });
 
-  test("a cancelled mailpiece matching no known order is acknowledged, not retried", async () => {
-    vi.mocked(recordProviderCancellation).mockResolvedValue(false);
+  test("a cancelled mailpiece matching no known order is acknowledged, not retried, and settles nothing", async () => {
+    vi.mocked(recordProviderCancellation).mockResolvedValue(null);
     const res = await POST(hook(CANCELLED));
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, cancelled: 0, ignored: 1 });
+    expect(settleCancelledCard).not.toHaveBeenCalled();
   });
 
   test("any status other than cancelled is acknowledged and never stored — the delivery-tracking boundary", async () => {

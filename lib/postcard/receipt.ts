@@ -141,3 +141,61 @@ export async function sendPostcardReceipt(input: ReceiptInput): Promise<void> {
     console.error(`[postcard] receipt for ${input.orderId} could not be sent:`, error);
   }
 }
+
+/**
+ * One card Stannp accepted and then cancelled, refunded — B1532.
+ *
+ * The photobook counterpart (`sendPhotobookRefused`) tells the owner about a
+ * whole print run refused before it started; this is narrower, because a
+ * postcard order can hold several cards and only one of them failing does not
+ * mean the others did not go out. `name` is `null` when the recipient is no
+ * longer resolvable — withdrew consent, was deleted — since the card was still
+ * addressed to somebody at send time even if this journal cannot say who
+ * anymore, and the mail says so honestly rather than guessing.
+ */
+export async function sendPostcardCardCancelled(input: {
+  owner: string;
+  orderId: string;
+  name: string | null;
+  creditsRefunded: number;
+}): Promise<void> {
+  const user = getUser(input.owner);
+  const to = user?.owner.email;
+  if (!to) return;
+
+  const locale: Locale = pickLocale(user.defaultLocale);
+  const t = (key: Parameters<typeof translateIn>[1], vars?: Record<string, string>) =>
+    translateIn(locale, key, vars);
+  const credits = formatCredits(input.creditsRefunded);
+  const base = `${serverSite().url}/${input.owner}/postcards/${input.orderId}`;
+
+  try {
+    await sendTransactional(
+      renderMail(
+        to,
+        t("postcard.cancelled.subject", { credits }),
+        {
+          preheader: t("postcard.cancelled.preheader", { credits }),
+          title: t("postcard.cancelled.title"),
+          blocks: [
+            {
+              kind: "paragraph" as const,
+              text: input.name
+                ? t("postcard.cancelled.body", { name: input.name, credits })
+                : t("postcard.cancelled.bodyNoName", { credits }),
+            },
+            { kind: "item" as const, title: t("postcard.receipt.viewOrder"), href: base },
+          ],
+          footer: t("postcard.receipt.footer"),
+        },
+        input.owner,
+      ),
+      `postcard cancellation refund for ${input.orderId}`,
+    );
+  } catch (error) {
+    // The refund has already landed in the ledger by the time this runs.
+    // Saying so in the log is the whole remedy available; failing the send
+    // would be a lie about what happened.
+    console.error(`[postcard] cancellation notice for ${input.orderId} could not be sent:`, error);
+  }
+}

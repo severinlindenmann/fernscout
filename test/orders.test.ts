@@ -52,6 +52,7 @@ let dir: string;
 beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-orders-"));
   process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = path.join(dir, ".data");
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "orders.db")}`;
   delete process.env.AUTH_DEV_CODE;
 
@@ -86,6 +87,7 @@ beforeEach(async () => {
 afterEach(async () => {
   await closeDatabase();
   delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
   delete process.env.DATABASE_URL;
   clearConfigCache();
   clearUserCache();
@@ -176,7 +178,14 @@ describe("findOrderByProviderRef / recordProviderCancellation", () => {
     expect(found).toEqual({ owner: OWNER, id: order.id, contactId: "contact-1" });
     expect(await findOrderByProviderRef("stannp:no-such-id")).toBeNull();
 
-    expect(await recordProviderCancellation("stannp:9001")).toBe(true);
+    const claim = await recordProviderCancellation("stannp:9001");
+    expect(claim).toEqual({
+      owner: OWNER,
+      orderId: order.id,
+      contactId: "contact-1",
+      ref: "stannp:9001",
+      creditsEach: order.payload.creditsEach,
+    });
     const after = await getPostcardOrder(OWNER, order.id);
     // Additive: still `built`, still `ok: true` — this card really did reach
     // the printer. `providerStatus` is the one new fact.
@@ -188,12 +197,60 @@ describe("findOrderByProviderRef / recordProviderCancellation", () => {
       providerStatus: "cancelled",
     });
 
-    // A retried webhook delivery costs a write, not a second anything.
-    expect(await recordProviderCancellation("stannp:9001")).toBe(true);
+    // A retried webhook delivery costs nothing further — no second claim, so
+    // nothing downstream refunds or mails a second time.
+    expect(await recordProviderCancellation("stannp:9001")).toBeNull();
     const again = await getPostcardOrder(OWNER, order.id);
     expect(again?.payload.results?.[0]?.providerStatus).toBe("cancelled");
 
-    expect(await recordProviderCancellation("stannp:no-such-id")).toBe(false);
+    expect(await recordProviderCancellation("stannp:no-such-id")).toBeNull();
+  });
+});
+
+/**
+ * B1532 — a card Stannp cancels after acceptance is refunded, once, however
+ * many times the cancellation is delivered.
+ */
+describe("settleCancelledCard", () => {
+  test("refunds the one card's credits and a doubled cancellation refunds nothing further", async () => {
+    const { grant } = await import("@/lib/credits");
+    const { balanceOf } = await import("@/lib/credits");
+    const { settleCancelledCard } = await import("@/lib/postcard/reconcile");
+
+    await grant(OWNER, 100, "top-up");
+    const before = await balanceOf(OWNER);
+
+    const order = await createPostcardOrder(OWNER, {
+      provider: "dry-run",
+      trip: "alex/asia-2026",
+      day: "2026-01-01-day",
+      photo: "photo.jpg",
+      message: "hi",
+      from: "Us",
+      recipients: ["contact-1"],
+      locale: "en",
+    });
+    expect(order).not.toBeNull();
+    if (!order) return;
+    await recordResults(OWNER, order.id, order.payload, [
+      { contactId: "contact-1", ok: true, ref: "stannp:9101" },
+    ]);
+
+    // The webhook, delivered twice for the same event — the exact case
+    // Stannp's own retries produce. Only the first delivery gets a claim;
+    // the second sees the card already cancelled.
+    const first = await recordProviderCancellation("stannp:9101");
+    const second = await recordProviderCancellation("stannp:9101");
+    expect(first).not.toBeNull();
+    expect(second).toBeNull();
+
+    if (first) await settleCancelledCard(first);
+    // A doubled delivery never reaches `settleCancelledCard` a second time —
+    // `second` is `null` — so there is nothing further to settle here. The
+    // assertion that matters is the balance below: one refund, not two.
+
+    const after = await balanceOf(OWNER);
+    expect(after).toBe((before ?? 0) + order.payload.creditsEach);
   });
 });
 
@@ -228,14 +285,57 @@ describe("refreshProviderStatuses", () => {
     vi.mocked(fetchStannpStatus).mockResolvedValue("dispatched");
 
     const refreshed = await refreshProviderStatuses(built);
-    expect(refreshed.payload.results?.[0]?.providerStatus).toBe("dispatched");
+    expect(refreshed.order.payload.results?.[0]?.providerStatus).toBe("dispatched");
     // Already cancelled: never asked, never overwritten by whatever the mock
     // returns for it — the boundary this function must not cross.
-    expect(refreshed.payload.results?.[1]?.providerStatus).toBe("cancelled");
+    expect(refreshed.order.payload.results?.[1]?.providerStatus).toBe("cancelled");
     expect(vi.mocked(fetchStannpStatus)).not.toHaveBeenCalledWith("stannp:9002");
+    // Nothing newly cancelled this call — the already-cancelled card above
+    // was never re-claimed, so there is nothing here for the caller to
+    // settle.
+    expect(refreshed.cancellations).toEqual([]);
 
     const saved = await getPostcardOrder(OWNER, order.id);
     expect(saved?.payload.results?.[0]?.providerStatus).toBe("dispatched");
+  });
+
+  test("a cancellation found on-view is claimed and handed back to settle, once", async () => {
+    const order = await createPostcardOrder(OWNER, {
+      provider: "stannp",
+      trip: "alex/asia-2026",
+      day: "2026-01-01-day",
+      photo: "photo.jpg",
+      message: "hi",
+      from: "Us",
+      recipients: ["contact-1"],
+      locale: "en",
+    });
+    expect(order).not.toBeNull();
+    if (!order) return;
+    await recordResults(OWNER, order.id, order.payload, [
+      { contactId: "contact-1", ok: true, ref: "stannp:9010" },
+    ]);
+    const built = await getPostcardOrder(OWNER, order.id);
+    if (!built) throw new Error("order vanished");
+
+    vi.mocked(fetchStannpStatus).mockResolvedValue("cancelled");
+
+    const refreshed = await refreshProviderStatuses(built);
+    expect(refreshed.order.payload.results?.[0]?.providerStatus).toBe("cancelled");
+    expect(refreshed.cancellations).toEqual([
+      {
+        owner: OWNER,
+        orderId: order.id,
+        contactId: "contact-1",
+        ref: "stannp:9010",
+        creditsEach: order.payload.creditsEach,
+      },
+    ]);
+
+    // Opening the page again finds it already cancelled — nothing left to
+    // claim, so nothing left to settle a second time.
+    const again = await refreshProviderStatuses(refreshed.order);
+    expect(again.cancellations).toEqual([]);
   });
 
   test("never stores delivered, local_delivery or returned even if the provider said so", async () => {
@@ -261,6 +361,6 @@ describe("refreshProviderStatuses", () => {
     // either, so the mock stands in for that too.
     vi.mocked(fetchStannpStatus).mockResolvedValue(null);
     const refreshed = await refreshProviderStatuses(built);
-    expect(refreshed.payload.results?.[0]?.providerStatus).toBeUndefined();
+    expect(refreshed.order.payload.results?.[0]?.providerStatus).toBeUndefined();
   });
 });
