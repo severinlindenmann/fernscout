@@ -49,24 +49,22 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (241)
+## backlog (239)
 
-### security (4)
+### security (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | high | low |
 | [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
 | [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
-| [B1491](backlog/security/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
-| [B1635](backlog/security/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
+| [B1690](backlog/security/B1690-the-deletion-confirmation-link-and-the.md) | The deletion confirmation link and the two invite links carry their token in the URL path | SECURITY | medium | medium |
+| [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (59)
+### issue (56)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1287](backlog/issue/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low |
-| [B1358](backlog/issue/B1358-the-guthaben-sheet-shows-no-numbers.md) | The Guthaben sheet shows no numbers in the installed PWA | ISSUE | high | low |
-| [B1369](backlog/issue/B1369-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low |
 | [B1410](backlog/issue/B1410-a-returning-identity-holder-s-buddy.md) | A returning identity-holder's buddy invite looks redeemed but the confirm step is never submitted | ISSUE | high | low |
 | [B1411](backlog/issue/B1411-a-payment-abandoned-at-stripe-leaves.md) | a payment abandoned at Stripe leaves the checkout page with no way to pay again | ISSUE | high | low |
 | [B1442](backlog/issue/B1442-a-day-started-in-the-room.md) | A day started in the room is titled with its own date, so every surface shows an ISO date | ISSUE | high | low |
@@ -337,18 +335,23 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (0)
+## open (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B1541](open/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
 
 ## in-development (0)
 
 _Nothing here._
 
-## testing (97)
+## testing (101)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
+| [B1287](testing/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low | — |
+| [B1358](testing/B1358-the-guthaben-sheet-shows-no-numbers.md) | The Guthaben sheet shows no numbers in the installed PWA | ISSUE | high | low | — |
+| [B1369](testing/B1369-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low | — |
 | [B1529](testing/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low | — |
 | [B1561](testing/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium | — |
 | [B1562](testing/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low | — |
@@ -410,11 +413,11 @@ _Nothing here._
 | [B1471](testing/B1471-the-messenger-number-is-printed-for.md) | The messenger number is printed for a person to dial in a form only a machine can use | ISSUE | medium | low | — |
 | [B1474](testing/B1474-sixty-nine-strings-are-shipped-to.md) | Sixty-nine strings are shipped to Hungarian readers in English, including the whole of an order's status | ISSUE | medium | low | — |
 | [B1476](testing/B1476-a-trip-marked-upcoming-says-where.md) | A trip marked upcoming says Where we have been, because one day names a place | ISSUE | medium | low | — |
+| [B1491](testing/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low | — |
 | [B1520](testing/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low | — |
 | [B1522](testing/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low | — |
 | [B1525](testing/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low | — |
 | [B1534](testing/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low | — |
-| [B1541](testing/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high | — |
 | [B1564](testing/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | — |
 | [B1565](testing/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | — |
 | [B1567](testing/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | — |
@@ -424,6 +427,7 @@ _Nothing here._
 | [B1602](testing/B1602-every-trip-in-example-must-decline.md) | Every trip in example must decline figures — inline travellers have no path into the figure library | ISSUE | medium | low | — |
 | [B1619](testing/B1619-v2-s-day-translations-field-has.md) | v2's day translations field has no journal-locale check at all, unlike v1's | ISSUE | medium | medium | — |
 | [B1626](testing/B1626-v2-merge-patch-has-no-way.md) | v2 merge-patch has no way to clear a scalar back to absent, and cover is never checked against the trip's own media | ISSUE | medium | medium | — |
+| [B1635](testing/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium | — |
 | [B1653](testing/B1653-the-me-settings-page-still-draws.md) | The /me settings page still draws inputs for two fields v2 dropped, so typing in them does nothing | ISSUE | medium | low | — |
 | [B1654](testing/B1654-ownertel-has-no-v2-home-so.md) | ownerTel has no v2 home, so retiring the v1 config route would strand every WhatsApp feature | FEATURE | medium | low | — |
 | [B1656](testing/B1656-the-helper-s-photo-gallery-and.md) | The helper's photo-gallery and inbox writes hit B1650's same wall — v2 has no gallery-attach at all | FEATURE | medium | high | — |
