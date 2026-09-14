@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (209)
+## backlog (210)
 
 ### security (5)
 
@@ -125,13 +125,14 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (22)
+### small-feature (23)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1315](backlog/small-feature/B1315-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
 | [B1392](backlog/small-feature/B1392-staged-files-are-counted-in-the.md) | Staged files are counted in the storage card and on /agent, and neither offers a way to clear them | FEATURE | high | low |
 | [B1718](backlog/small-feature/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium |
+| [B1719](backlog/small-feature/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
