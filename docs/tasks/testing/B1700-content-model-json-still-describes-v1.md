@@ -7,8 +7,7 @@ complexity: high
 area: api, content model
 found: "2026-09-14T09:05:00Z"
 started: "2026-09-14T10:36:22Z"
-session: 3309c078-d934-4ee7-ad04-6cd719fc543a
-claimed: "2026-09-14T10:36:22Z"
+merged: "2026-09-14T10:46:25Z"
 ---
 
 # B1700 — content-model.json still describes v1 content

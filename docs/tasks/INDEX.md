@@ -310,13 +310,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1700](in-development/B1700-content-model-json-still-describes-v1.md) | content-model.json still describes v1 content — md filenames, frontmatter prose, start/end, no declined | ISSUE | high | high | `3309c078` |
+_Nothing here._
 
-## testing (166)
+## testing (167)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -395,6 +393,7 @@ _Nothing here._
 | [B1685](testing/B1685-a-photograph-attached-through-the-media.md) | A photograph attached through the media door never reaches the day it names | ISSUE | high | medium | — |
 | [B1691](testing/B1691-a-full-deploy-leaves-a-root.md) | A full deploy leaves a root-owned restic lock, so every later nightly backup is refused | OPS | high | low | — |
 | [B1694](testing/B1694-api-health-reports-signup-enabled-while.md) | api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate | ISSUE | high | medium | — |
+| [B1700](testing/B1700-content-model-json-still-describes-v1.md) | content-model.json still describes v1 content — md filenames, frontmatter prose, start/end, no declined | ISSUE | high | high | — |
 | [B1702](testing/B1702-everything-but-fernscout-runs-as-root.md) | Everything but Fernscout runs as root on the VPS, and SSH takes passwords with nothing throttling it | OPS | high | medium | — |
 | [B1705](testing/B1705-ci-on-main-is-red-three.md) | CI on main is red: three independent breakages in the test and backup-drill jobs | ISSUE | high | low | — |
 | [B1706](testing/B1706-a-root-owned-restic-lock-silently.md) | A lock the service user cannot read fails the whole nightly backup, and only a person can clear it | ISSUE | high | low | — |
