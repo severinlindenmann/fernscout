@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: components/StoryPager.tsx, components/HelperRoom.tsx
 found: "2026-09-11T07:44:30Z"
+merged: "2026-09-14T06:09:32Z"
 ---
 
 # B1426 — The preview's isTest banner has the same missing-context gap DraftNotice had

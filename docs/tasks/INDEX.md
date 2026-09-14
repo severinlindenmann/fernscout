@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (210)
+## backlog (208)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (35)
+### issue (33)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -91,10 +91,8 @@ Do not edit them by hand; run the script.
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
-| [B1426](backlog/issue/B1426-the-preview-s-istest-banner-has.md) | The preview's isTest banner has the same missing-context gap DraftNotice had | ISSUE | low | low |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
 | [B1433](backlog/issue/B1433-the-main-checkout-guard-matches-a.md) | The main-checkout guard matches a path pattern, so it blocks edits in a different repository entirely | ISSUE | low | low |
-| [B1436](backlog/issue/B1436-deleting-the-wizard-s-tests-dropped.md) | deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip | ISSUE | low | low |
 | [B1475](backlog/issue/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
 | [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
 | [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
@@ -318,7 +316,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (135)
+## testing (137)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -443,8 +441,10 @@ _Nothing here._
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
 | [B1266](testing/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low | — |
 | [B1413](testing/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low | — |
+| [B1426](testing/B1426-the-preview-s-istest-banner-has.md) | The preview's isTest banner has the same missing-context gap DraftNotice had | ISSUE | low | low | — |
 | [B1430](testing/B1430-a-failed-transcription-says-nothing-on.md) | A failed transcription says nothing, on the WhatsApp voice-note path | ISSUE | low | low | — |
 | [B1435](testing/B1435-day-media-s-two-phase-original.md) | day/media's two-phase original upload may have no live caller since the wizard retired | ISSUE | low | low | — |
+| [B1436](testing/B1436-deleting-the-wizard-s-tests-dropped.md) | deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip | ISSUE | low | low | — |
 | [B1445](testing/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
 | [B1453](testing/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low | — |
 | [B1532](testing/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium | — |

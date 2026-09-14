@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: helper
 found: "2026-09-11T09:48:19Z"
+merged: "2026-09-14T06:09:33Z"
 ---
 
 # B1436 — deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip
