@@ -55,7 +55,6 @@ type ManifestBody = {
   user?: string;
   files?: { path: string; size: number; hash: string }[];
   bytes?: number;
-  omitted?: { originals: { files: number; bytes: number } };
   next?: string;
   error?: string;
 };
@@ -244,18 +243,31 @@ describe("the manifest", () => {
   });
 
   /**
-   * Not a nicety. `originals/` is the largest thing in most journals and it is
-   * deliberately not synced; a mirror that omits it silently while calling
-   * itself a backup is exactly the "no silent caps" failure.
+   * B1719 inverted this test. `originals/` used to be excluded and reported as
+   * a count of what the caller did not get — honest, and still a backup that
+   * gave back every photograph at a quarter of its pixels, to an owner with no
+   * filesystem to fetch the masters from. They are in the sync now, so what
+   * needs proving is that they are listed, with their real size.
    */
-  test("originals are excluded, and the run is told how much it did not get", async () => {
-    write(`trips/${TRIP}/originals/01.jpg`, "x".repeat(5000));
+  test("the full-resolution originals are in the manifest, at their real size", async () => {
+    write(`trips/${TRIP}/originals/over-the-susten/01.jpg`, "x".repeat(5000));
     const { clearSyncHashCache } = await import("@/lib/sync/manifest");
     clearSyncHashCache();
     const { body } = await manifest(await tokenFor(OWNER_EMAIL));
-    expect(body.files!.map((f) => f.path)).not.toContain(`trips/${TRIP}/originals/01.jpg`);
-    expect(body.omitted!.originals).toEqual({ files: 1, bytes: 5000 });
-    expect(body.next).toContain("5000");
+    const master = body.files!.find((f) => f.path === `trips/${TRIP}/originals/over-the-susten/01.jpg`);
+    expect(master, JSON.stringify(body.files)).toBeTruthy();
+    expect(master!.size).toBe(5000);
+    expect(master!.hash).toHaveLength(32);
+    fs.rmSync(path.join(dir, OWNER, "trips", TRIP, "originals"), { recursive: true });
+  });
+
+  test("a master comes back through the file door, byte for byte", async () => {
+    write(`trips/${TRIP}/originals/over-the-susten/01.jpg`, "the big one");
+    const { clearSyncHashCache } = await import("@/lib/sync/manifest");
+    clearSyncHashCache();
+    const got = await fetchFile(`trips/${TRIP}/originals/over-the-susten/01.jpg`, await tokenFor(OWNER_EMAIL));
+    expect(got.status).toBe(200);
+    expect(got.text).toBe("the big one");
     fs.rmSync(path.join(dir, OWNER, "trips", TRIP, "originals"), { recursive: true });
   });
 
@@ -294,10 +306,14 @@ describe("one file at a time", () => {
   });
 
   test("a file the manifest does not list is refused, even though it is on disk", async () => {
-    write(`trips/${TRIP}/originals/01.jpg`, "the big one");
-    const refused = await fetchFile(`trips/${TRIP}/originals/01.jpg`, await tokenFor(OWNER_EMAIL));
+    // `gps/` rather than `originals/`, which is in the sync since B1719 — and
+    // this is the right example anyway: a journal's position history is the
+    // one folder in this repository that no route may ever return.
+    write("gps/2026-08-26.json", JSON.stringify([{ lat: 46.7, lng: 8.4 }]));
+    const refused = await fetchFile("gps/2026-08-26.json", await tokenFor(OWNER_EMAIL));
     expect(refused.status).toBe(404);
-    fs.rmSync(path.join(dir, OWNER, "trips", TRIP, "originals"), { recursive: true });
+    expect(refused.text).not.toContain("46.7");
+    fs.rmSync(path.join(dir, OWNER, "gps"), { recursive: true });
   });
 
   test("a path climbing out of the journal is refused", async () => {
@@ -339,18 +355,15 @@ describe("one file at a time", () => {
     // The filesystem under this is case-insensitive, so these resolve to real
     // files; excluding them from the listing and then serving them to anybody
     // who asked in capitals would be no exclusion at all.
-    fs.mkdirSync(path.join(dir, OWNER, "trips", TRIP, "originals"), { recursive: true });
-    fs.writeFileSync(path.join(dir, OWNER, "trips", TRIP, "originals", "01.jpg"), "the big one");
+    fs.mkdirSync(path.join(dir, OWNER, "gps"), { recursive: true });
+    fs.writeFileSync(path.join(dir, OWNER, "gps", "2026-08-26.json"), "every place they went");
     const token = await tokenFor(OWNER_EMAIL);
-    for (const shouted of [
-      `trips/${TRIP}/ORIGINALS/01.jpg`,
-      `trips/${TRIP}/Originals/01.jpg`,
-    ]) {
+    for (const shouted of ["GPS/2026-08-26.json", "Gps/2026-08-26.json"]) {
       const refused = await fetchFile(shouted, token);
       expect(refused.status).toBe(404);
-      expect(refused.text).not.toContain("the big one");
+      expect(refused.text).not.toContain("every place they went");
     }
-    fs.rmSync(path.join(dir, OWNER, "trips", TRIP, "originals"), { recursive: true });
+    fs.rmSync(path.join(dir, OWNER, "gps"), { recursive: true });
   });
 
   test("a file that is not there is a 404, not a crash", async () => {
