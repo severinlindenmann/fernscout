@@ -310,13 +310,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1731](in-development/B1731-two-route-files-tell-a-caller.md) | Two route files tell a caller to POST /api/v1/{user}/import, and the dead-route guard skips every string in a route file | ISSUE | medium | low | `3309c078` |
+_Nothing here._
 
-## testing (173)
+## testing (174)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -465,6 +463,7 @@ _Nothing here._
 | [B1726](testing/B1726-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low | — |
 | [B1728](testing/B1728-the-back-arrow-means-two-different.md) | The back arrow means two different things and the reader cannot tell which | ISSUE | medium | medium | — |
 | [B1730](testing/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low | — |
+| [B1731](testing/B1731-two-route-files-tell-a-caller.md) | Two route files tell a caller to POST /api/v1/{user}/import, and the dead-route guard skips every string in a route file | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
