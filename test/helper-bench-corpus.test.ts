@@ -28,6 +28,7 @@ const corpus = JSON.parse(
     says: Record<string, (string | string[])[]>;
     world: Record<string, unknown>;
     expect: {
+      calls?: string;
       proposes?: string;
       proposesAnyOf?: string[];
       notProposes?: string[];
@@ -52,8 +53,8 @@ describe("the helper benchmark's corpus", () => {
   test("every tool a scenario names is a tool that exists", () => {
     const named: { id: string; tool: string }[] = [];
     for (const scenario of corpus.scenarios) {
-      const { proposes, proposesAnyOf, notProposes } = scenario.expect;
-      for (const tool of [proposes, ...(proposesAnyOf ?? []), ...(notProposes ?? [])]) {
+      const { calls, proposes, proposesAnyOf, notProposes } = scenario.expect;
+      for (const tool of [calls, proposes, ...(proposesAnyOf ?? []), ...(notProposes ?? [])]) {
         if (tool) named.push({ id: scenario.id, tool });
       }
     }
@@ -69,8 +70,9 @@ describe("the helper benchmark's corpus", () => {
 
   test("every scenario asserts something", () => {
     for (const scenario of corpus.scenarios) {
-      const { proposes, proposesAnyOf, notProposes, answerHasNot } = scenario.expect;
+      const { calls, proposes, proposesAnyOf, notProposes, answerHasNot } = scenario.expect;
       const asserts =
+        calls !== undefined ||
         proposes !== undefined ||
         (proposesAnyOf?.length ?? 0) > 0 ||
         (notProposes?.length ?? 0) > 0 ||

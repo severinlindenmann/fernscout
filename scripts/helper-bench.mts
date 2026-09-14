@@ -76,6 +76,11 @@ const root = process.cwd();
 const corpusFile = path.join(root, "docs", "benchmarks", "helper-behaviour", "corpus.json");
 
 type Expectation = {
+  /** A tool that ran this turn, read or write. A *read* tool never proposes —
+   *  it answers with a block — so `proposes` can never match one, and a
+   *  scenario about `trips` or `trip_costs` that used it scored 0 of 22
+   *  against a product doing the right thing every time. B1747. */
+  calls?: string;
   proposes?: string;
   proposesAnyOf?: string[];
   notProposes?: string[];
@@ -105,6 +110,13 @@ type Scenario = {
     locale?: string;
     trips?: { id: string; title: string; start: string; end: string }[];
     contacts?: { name: string; email: string }[];
+    /**
+     * Days already on a trip — B1748. Without these, half the corpus asked
+     * unfair questions: a cost has nowhere to land on a journal with no days,
+     * so "we spent 4500 forint on the 3rd" was scored a failure for an answer
+     * that was correct ("there is no day yet"). `trip` names which trip.
+     */
+    days?: { trip: string; slug: string; date: string; title?: string; location?: string; content?: string; draft?: boolean }[];
     /** Ticked in the files pane — web only. */
     select?: string;
     /** Sent as a WhatsApp contacts message before the turns — whatsapp only. */
@@ -215,7 +227,7 @@ async function withWorld<T>(
   const { grant } = await import("../lib/credits");
   const { storeInboxFile } = await import("../lib/inbox");
   const { toVCard } = await import("../lib/whatsapp/vcard");
-  const { writeTripFixture } = await import("../test/fixtures/content");
+  const { writeTripFixture, writeDayFixture } = await import("../test/fixtures/content");
 
   clearConfigCache();
   clearUserCache();
@@ -249,6 +261,16 @@ async function withWorld<T>(
 
   for (const trip of scenario.world.trips ?? []) {
     writeTripFixture(username, { ...trip, visibility: "private" });
+  }
+  for (const day of scenario.world.days ?? []) {
+    writeDayFixture(dir, username, day.trip, {
+      slug: day.slug,
+      date: day.date,
+      ...(day.title ? { title: day.title } : {}),
+      ...(day.location ? { location: day.location } : {}),
+      ...(day.content ? { content: day.content } : {}),
+      ...(day.draft ? { status: "draft" as const } : {}),
+    });
   }
 
   // Staged directly for the web door; the WhatsApp door sends a real contacts
@@ -377,13 +399,45 @@ async function runWhatsapp(scenario: Scenario): Promise<Outcome> {
     // Everything this turn actually sent, joined the way a person reads several
     // bubbles in a row — `dispatch.ts` joins its own record the same way.
     const answer = repliesTo(dir, username).slice(before).join("\n\n");
+    // Which tools *ran* is only in `helper_sessions`, and `recordTurn` is
+    // un-awaited on purpose — so poll for the row instead of reading once and
+    // calling the absence a fact. The proposal above is never taken from here.
+    const tools = await pollRecordedTools(username);
     forget(username);
     return {
-      tools: pending ? [pending.tool] : [],
+      tools,
       proposed: pending ? [{ tool: pending.tool, args: pending.arguments }] : [],
       answer,
     };
   });
+}
+
+/**
+ * The tools the last recorded turn ran — polled, never read once.
+ *
+ * `lib/whatsapp/dispatch.ts` records with `void recordTurn(…)`, deliberately
+ * un-awaited: losing an answer to an analytics insert would be trading the
+ * product for the bookkeeping. A single read after the turn therefore races
+ * the insert, and reading an absence as "no tools ran" is what scored a
+ * working scenario 0 of 8 once already (B1744). Half a second of patience is
+ * the honest version of the same read.
+ */
+async function pollRecordedTools(username: string): Promise<string[]> {
+  const { getDatabase } = await import("../lib/db");
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const rows = await (await getDatabase()).db
+      .selectFrom("helper_sessions")
+      .select(["tools"])
+      .where("owner_id", "=", username)
+      .where("kind", "=", "turn")
+      .orderBy("created_at", "desc")
+      .limit(1)
+      .execute();
+    const tools = (rows[0]?.tools ?? "").split(",").filter(Boolean);
+    if (tools.length > 0) return tools;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  return [];
 }
 
 /** The dry-run backend's own record of what went out — `lib/whatsapp/reply.ts`,
@@ -400,6 +454,9 @@ function repliesTo(dir: string, username: string): string[] {
 
 function judge(outcome: Outcome, expect: Expectation): { pass: boolean; why: string } {
   const tools = outcome.proposed.map((one) => one.tool);
+  if (expect.calls && !outcome.tools.includes(expect.calls)) {
+    return { pass: false, why: `did not call ${expect.calls} (called: ${outcome.tools.join(",") || "nothing"})` };
+  }
   if (expect.proposes && !tools.includes(expect.proposes)) {
     return { pass: false, why: `did not propose ${expect.proposes} (proposed: ${tools.join(",") || "nothing"})` };
   }
