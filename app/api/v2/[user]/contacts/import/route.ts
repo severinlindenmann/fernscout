@@ -28,7 +28,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     return fail(
       "invalid_request",
       "`rows` must be a non-empty array of {name, email, tel?} — the entries a person agreed, " +
-        `from what POST /api/v1/${user}/import (kind contacts) reported. Never rows typed from ` +
+        `from what POST /api/v2/${user}/import (kind contacts) reported. Never rows typed from ` +
         "memory: a card's own EMAIL is what makes a row importable.",
     );
   }

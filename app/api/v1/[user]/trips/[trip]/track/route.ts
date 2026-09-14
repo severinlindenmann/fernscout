@@ -57,7 +57,7 @@ export async function POST(
         message:
           `Nothing in the store between ${trip.start} and ${trip.end}, so no line was ` +
           "written and any existing one was left alone. Import the export covering those " +
-          `dates first: \`POST /api/v1/${user}/import\`.`,
+          `dates first: \`POST /api/v2/${user}/import\`.`,
       },
       { status: 200 },
     );
