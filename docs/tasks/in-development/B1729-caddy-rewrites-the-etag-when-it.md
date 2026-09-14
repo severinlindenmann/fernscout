@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: deploy, api v2
 found: "2026-09-14T11:18:56Z"
+started: "2026-09-14T11:33:11Z"
+session: 3309c078-d934-4ee7-ad04-6cd719fc543a
+claimed: "2026-09-14T11:33:11Z"
 ---
 
 # B1729 — Caddy rewrites the ETag when it compresses, so no client that accepts gzip can ever send a matching If-Match
