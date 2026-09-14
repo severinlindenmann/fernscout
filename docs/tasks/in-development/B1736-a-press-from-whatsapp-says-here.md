@@ -15,6 +15,13 @@ claimed: "2026-09-14T15:50:54Z"
 
 ## Why
 
+**Valid**, revalidated 2026-09-14 against the code on disk:
+`lib/whatsapp/proposalExecution.ts:105` was `if (response.ok) return { ok: true }`
+with the body parsed only on the failure path, and
+`lib/whatsapp/dispatch.ts:1011` built its confirmation from `pending.done` and
+the enrichment nudge alone. `app/api/helper/[user]/invite/route.ts:92` returns
+`url`; `components/HelperAsk.tsx:110` is the web reader of that same field.
+
 Live, on `severin`, 2026-09-14 12:05 UTC. An `invite_guest` proposal was
 accepted from the WhatsApp buttons. The press succeeded — the journal log says
 `pressed invite_guest from WhatsApp`, and `contact_invites` holds the row
@@ -50,7 +57,14 @@ never repeats a token, so the only recovery is `/<user>/contacts`, which
 ## Acceptance
 
 - Accepting an `invite_guest` proposal from WhatsApp returns the invite URL in
-  the confirmation message, and opening it reaches `/<user>/i/<token>`.
-- A pressed tool whose route answers without a `url` is unchanged.
-- A test in `test/` drives `handleProposalReply` over a stubbed route that
-  answers `{url}` and asserts the URL is in the sent body.
+  the confirmation message, in `inviteLinkUrl`'s own guest shape
+  `/<user>/invite/guest/<token>` (the ticket first guessed `/<user>/i/<token>`,
+  which is the *personal* invite's path — `lib/contacts/invites.ts:179`).
+- A pressed tool whose route answers without a `url` is unchanged — covered by
+  the existing "tapping accept" test, which still asserts `create_trip`'s
+  confirmation verbatim. A second test of the same thing only tripped the
+  route's own per-IP rate limit, so it was dropped rather than kept green by
+  widening the limit.
+- A test in `test/whatsapp-proposal-press.test.ts` presses a real
+  `invite_guest` proposal through the real route and asserts the link is in
+  the message that goes out.

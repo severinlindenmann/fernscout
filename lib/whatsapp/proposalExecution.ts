@@ -79,7 +79,21 @@ export function isWhatsappExecutable(tool: string): boolean {
   return tool in ROUTE_BY_TOOL;
 }
 
-export type PressResult = { ok: true } | { ok: false; error: string };
+/**
+ * What the press did, and — B1736 — the one thing it made, when the route
+ * answers with a `url`.
+ *
+ * `components/HelperAsk.tsx:previewOf` reads exactly this field off the same
+ * body and draws a `link` block from it, so the web has shown it since the
+ * routes did. This channel used to throw the body away, which meant
+ * `invite_guest`'s own confirmation sentence — "Hier ist der Link" — was
+ * followed by nothing at all, and the link it named existed only in a table.
+ * The field is never stored: `handleProposalReply` sends it and nothing
+ * remembers the message, which is what keeps a live invite token out of the
+ * thread the model reads back (`app/api/helper/[user]/invite/route.ts` says
+ * why that matters).
+ */
+export type PressResult = { ok: true; url?: string } | { ok: false; error: string };
 
 /**
  * Run one waiting proposal as the journal it was made for.
@@ -102,7 +116,11 @@ export async function pressProposal(username: string, proposal: Proposal): Promi
   const response = await runAsCaller(whatsappCaller(username), () =>
     handler(request, { params: Promise.resolve({ user: username }) }),
   );
-  if (response.ok) return { ok: true };
-  const body = (await response.json().catch(() => ({}))) as { error?: string };
+  const body = (await response.json().catch(() => ({}))) as { url?: unknown; error?: string };
+  if (response.ok) {
+    // Only a non-empty string. A route with no `url` answers exactly as it
+    // did before, and so does the message that follows it.
+    return typeof body.url === "string" && body.url !== "" ? { ok: true, url: body.url } : { ok: true };
+  }
   return { ok: false, error: body.error ?? `status_${response.status}` };
 }

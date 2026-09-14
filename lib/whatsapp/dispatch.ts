@@ -1009,7 +1009,22 @@ async function handleProposalReply(username: string, locale: string, to: string,
   const result = await pressProposal(username, pending);
   if (result.ok) {
     const nudge = enrichmentNudge(username, locale, pending);
-    const body = nudge ? `${pending.done}\n\n${nudge}` : pending.done;
+    /**
+     * The link the press just made, on its own line — B1736.
+     *
+     * `pending.done` is fixed prose written before the route ran, and
+     * `invite_guest`'s own version of it says "here is the link". On the web
+     * the link that sentence names is drawn beside it from the answer's `url`
+     * (`components/HelperAsk.tsx:previewOf`); here the body was discarded, so
+     * the sentence pointed at nothing. Field-driven rather than keyed on the
+     * tool, exactly as the web is: `publish_day` answers with the day's own
+     * page and gets the same treatment, and a route with no `url` sends the
+     * message it always sent.
+     *
+     * Its own line and nothing else on it — a bare URL is what a phone makes
+     * tappable and what a person can long-press to forward.
+     */
+    const body = [pending.done, result.url, nudge].filter(Boolean).join("\n\n");
     await sendOutboundReply(to, { kind: "text", body }, username);
     console.log(`[whatsapp:inbound] ${maskNumber(to)} (${username}) pressed ${pending.tool} from WhatsApp`);
     return;
