@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: whatsapp, live instance, templates, cost
 found: "2026-09-05T00:40:00Z"
+merged: "2026-09-14T06:21:44Z"
 ---
 
 # B403 — The WhatsApp channel is configured but has never delivered a real announcement

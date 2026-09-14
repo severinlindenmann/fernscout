@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, signup, meta
 found: "2026-09-10T05:40:41Z"
+merged: "2026-09-14T06:21:44Z"
 ---
 
 # B1232 — Authentication templates are gated on a business verification this account has not passed

@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, meta, provider, cost
 found: "2026-09-09T07:11:56Z"
+merged: "2026-09-14T06:21:43Z"
 ---
 
 # B1067 — It is not written down where this instance's telephone number comes from, or what one message costs
