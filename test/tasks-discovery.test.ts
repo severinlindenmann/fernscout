@@ -126,7 +126,7 @@ describe("concise task discovery", () => {
     const dir = checkout();
 
     await expect(tasks(dir, "list", "--lane", "nowhere")).rejects.toThrow(
-      /--lane must be one of backlog, open, in-development, testing, completed/,
+      /--lane must be one of backlog, open, waiting, in-development, testing, completed/,
     );
   });
 });

@@ -143,7 +143,20 @@ month.
 
 ```
 backlog/ ──person──▶ open/ ──take──▶ in-development/ ──merge──▶ testing/ ──person──▶ completed/
+                        │
+                        └──agent──▶ waiting/ ──person──▶ (back into the flow)
 ```
+
+**`waiting/` is the one lane an agent puts a task into and cannot take out.**
+It holds what only the owner can decide — a key they must rotate, a legal
+question, a product call with no right answer from here. A long autonomous run
+uses it to keep going: park the decision, say in the file what it is and what
+each option costs, and carry on with everything else. `move` refuses to take a
+task out of it without `--force`, because a run that moved it along by itself
+would be answering the question it had just asked. Keep it close to empty — a
+question answerable from the code, the contract or a previous decision is not
+the owner's.
+
 
 ```bash
 npm run tasks                       # counts plus active work and holders
