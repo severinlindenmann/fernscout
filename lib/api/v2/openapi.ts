@@ -52,6 +52,8 @@ import {
   ownerTelVerifyRequest,
   ownerTelVerifyStarted,
   ownerTelVerifyRedeem,
+  ownerEmailPending,
+  ownerEmailRedeem,
 } from "./schemas";
 import {
   ACCESSORIES,
@@ -793,15 +795,25 @@ function buildPaths(): Record<string, PathItem> {
       },
     },
     patch: {
-      summary: "Merge-patch the journal document.",
+      summary:
+        "Merge-patch the journal document. A CHANGED owner.email does not write — it starts a " +
+        "verification at `.../owner/email/redeem` instead, and answers 202.",
       requestBody: jsonBody(journalPatch, "only the fields being changed"),
       responses: {
         ...jsonResponse(200, journalDoc, "the merged, re-validated document"),
+        ...jsonResponse(
+          202,
+          ownerEmailPending,
+          "owner.email changed to a different, valid address — a code went to it, and nothing was written",
+        ),
         ...refusalResponses([
           ...ownerRefusals,
           ref("stale_document", 409, "If-Match did not cover the current ETag"),
           ref("invalid_request", 400),
           ref("incomplete", 422, "the merged document leaves a required section neither answered nor declined"),
+          ref("mail_disabled", 503, "owner.email changed, but this server cannot send the verification code"),
+          ref("mail_failed", 503, "owner.email changed, but the verification code could not be sent"),
+          ref("too_many_requests", 429, "too many owner-email codes for this address or this journal today"),
         ]),
       },
     },
@@ -963,6 +975,23 @@ function buildPaths(): Record<string, PathItem> {
       requestBody: jsonBody(ownerTelVerifyRedeem, "the id from `.../verify`, and the code the number received"),
       responses: {
         ...jsonResponse(200, ownerTelDoc, "the number, now proven"),
+        ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("invalid_code", 401), ref("too_many_requests", 429)]),
+      },
+    },
+  };
+
+  // There is no direct write here either, and for the same reason —
+  // owner.email IS ownership (`lib/api/auth.ts`'s `mayActAsOwner`). Sending
+  // a CHANGED owner.email to `PATCH /api/v2/{user}` starts this instead of
+  // writing; see that operation's own 202. This door only finishes it.
+  paths["/api/v2/{user}/owner/email/redeem"] = {
+    post: {
+      summary:
+        "Finish moving owner.email — the code the new address received writes it, revokes every " +
+        "session and agent token the old address held for this journal, and mails the old address.",
+      requestBody: jsonBody(ownerEmailRedeem, "the id from the PATCH that started this, and the code the new address received"),
+      responses: {
+        ...jsonResponse(200, journalDoc, "the journal document, with owner.email now moved"),
         ...refusalResponses([...ownerRefusals, ref("invalid_request", 400), ref("invalid_code", 401), ref("too_many_requests", 429)]),
       },
     },

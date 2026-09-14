@@ -5,7 +5,7 @@
 // safety shape: it removes nothing, answers 202, and the second step happens
 // in a mailbox — see lib/deletions.ts.
 import type { ZodType } from "zod";
-import { journalDoc, journalPatch, journalWrite, JOURNAL_DECLINABLES, type JournalDoc } from "@/lib/api/v2/schemas";
+import { journalDoc, journalPatch, journalWrite, JOURNAL_DECLINABLES, ownerEmailPending, type JournalDoc } from "@/lib/api/v2/schemas";
 import { problemsFrom, splitIssues } from "@/lib/api/v2/incomplete";
 import { etagFor, fail, ifMatchStale, ok, readDryRun, readJson } from "@/lib/api/v2/route";
 import { JOURNAL_IMMUTABLE_FIELDS, clearDeclinedSections, retractDeclines, stripEchoedFields } from "@/lib/api/v2/write";
@@ -15,6 +15,15 @@ import { journalV2Fields, setJournalV2Fields } from "@/lib/journals";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { journalTombstone } from "@/lib/tombstones";
 import { getUser } from "@/lib/users";
+import { CODE_TTL_MINUTES, isEmail } from "@/lib/auth";
+import { issueOwnerEmailCode } from "@/lib/ownerEmailChange";
+import { isEnabled } from "@/lib/capabilities";
+import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
+import { translateIn } from "@/lib/locales";
+import { sendTransactional } from "@/lib/mail";
+import { renderMail } from "@/lib/mail/template";
+import { rateLimitFor } from "@/lib/rateLimit";
+import { serverSite } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -92,13 +101,35 @@ export async function applyJournalPatch(
     return fail("invalid_request", `${ERROR_CODES.invalid_request} The body must be a JSON object.`, undefined, 400);
   }
 
+  // B1733 — a CHANGED owner.email starts a verification instead of taking
+  // the immutable-field refusal below. Ahead of `stripEchoedFields` on
+  // purpose: that function cannot tell "refuse this" from "prove this
+  // first", it only knows byte-identical-or-refused, and `owner.email`
+  // needs the second answer now. An UNCHANGED echo (the ordinary
+  // GET/edit/PATCH-the-whole-thing round trip) is deliberately left for
+  // `stripEchoedFields` to drop below — starting a verification on every
+  // mirrored save would make the mirror unusable, and there is nothing to
+  // prove about a value the caller already had. Only a syntactically valid,
+  // DIFFERENT address takes this door; anything else (a malformed string, a
+  // byte-identical echo) falls through to the ordinary path.
+  const rawOwner = (body.value as Record<string, unknown>).owner;
+  if (rawOwner && typeof rawOwner === "object" && !Array.isArray(rawOwner) && "email" in (rawOwner as Record<string, unknown>)) {
+    const requested = (rawOwner as Record<string, unknown>).email;
+    if (typeof requested === "string" && isEmail(requested) && requested !== stored.owner.email) {
+      return startOwnerEmailVerification(user, stored, requested, request);
+    }
+  }
+
   // V2 — echo-tolerant server-owned/immutable fields, BEFORE the schema ever
   // sees the body: `username`, `baseCurrency` and `owner.email` sent back
   // unchanged (the obvious result of GET, edit one field, PATCH the whole
   // thing) are silently dropped here; sent back CHANGED, they are refused
   // with a reason rather than by `journalPatch`'s strict-object check, which
   // could only ever say "unrecognised field" about `username` and nothing
-  // at all about the other two, since both are genuine schema fields.
+  // at all about the other two, since both are genuine schema fields. A
+  // CHANGED, syntactically valid `owner.email` never reaches this refusal —
+  // see above — so what lands here is either unchanged, or changed to
+  // something that was never going to be a real address anyway.
   const stripped = stripEchoedFields(
     body.value as Record<string, unknown>,
     stored as unknown as Record<string, unknown>,
@@ -243,4 +274,81 @@ export async function DELETE(request: Request, { params }: RouteContext<"/api/v2
     },
     { status: 202 },
   );
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+const OWNER_EMAIL_PER_ADDRESS = { max: 5, windowMs: DAY };
+const OWNER_EMAIL_PER_OWNER = { max: 5, windowMs: DAY };
+
+/**
+ * B1733 — step one of moving `owner.email`: prove the new address before
+ * anything is written. Nothing here touches `config.json`; the only writer
+ * is `.../owner/email/redeem`, on a correct code.
+ */
+async function startOwnerEmailVerification(
+  user: string,
+  stored: JournalDoc,
+  newEmail: string,
+  request: Request,
+): Promise<Response> {
+  // Before anything is issued (`lib/auth`'s own rule for a code, applied
+  // here too) — a live code with no way to deliver it is worse than no code.
+  if (!isEnabled("mail")) {
+    return fail("mail_disabled", ERROR_CODES.mail_disabled, undefined, 503);
+  }
+
+  const perAddress = rateLimitFor("owner-email-change-address", newEmail.toLowerCase(), OWNER_EMAIL_PER_ADDRESS);
+  if (!perAddress.ok) return ownerEmailTooMany(perAddress.retryAfter, "This address");
+  const perOwner = rateLimitFor("owner-email-change-owner", user, OWNER_EMAIL_PER_OWNER);
+  if (!perOwner.ok) return ownerEmailTooMany(perOwner.retryAfter, "This journal");
+
+  const locale = pickLocale(stored.locales[0], fromAcceptLanguage(request.headers.get("accept-language")));
+  const site = serverSite();
+  const { id, code } = await issueOwnerEmailCode(user, newEmail);
+  const vars = { site: site.name, title: stored.title, code, minutes: CODE_TTL_MINUTES };
+
+  try {
+    await sendTransactional(
+      renderMail(
+        newEmail,
+        translateIn(locale, "mail.ownerEmailCodeSubject", vars),
+        {
+          preheader: translateIn(locale, "mail.identityCode", vars),
+          title: translateIn(locale, "mail.ownerEmailCodeTitle"),
+          blocks: [
+            { kind: "paragraph", text: translateIn(locale, "mail.identityCode", vars) },
+            { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailCodeWhat", vars) },
+            { kind: "paragraph", text: translateIn(locale, "mail.ownerEmailCodeIgnore") },
+          ],
+          footer: translateIn(locale, "mail.identityFooter", vars),
+        },
+        user,
+      ),
+      "an owner-email verification code the recipient just asked for",
+    );
+  } catch (err) {
+    console.error(`[owner-email] verification code for ${user} could not be sent:`, err);
+    return fail("mail_failed", ERROR_CODES.mail_failed, undefined, 503);
+  }
+
+  return ok(
+    ownerEmailPending.parse({
+      pending: "owner_email",
+      id,
+      next: `POST /api/v2/${user}/owner/email/redeem`,
+    }),
+    { status: 202 },
+  );
+}
+
+function ownerEmailTooMany(retryAfter: number, who: string): Response {
+  const minutes = Math.max(1, Math.ceil(retryAfter / 60));
+  const response = fail(
+    "too_many_requests",
+    `${who} has asked for too many owner-email codes today. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`,
+    { retryAfter },
+    429,
+  );
+  response.headers.set("Retry-After", String(retryAfter));
+  return response;
 }

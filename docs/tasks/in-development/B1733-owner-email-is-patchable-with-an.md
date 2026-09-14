@@ -65,3 +65,95 @@ silent to the person it takes the journal from.
 - Either a new address is proven before it becomes the owner, or the contract
   says plainly that an owner token can hand the journal to another address.
 - The old address learns that it happened.
+
+## Done, 2026-09-14
+
+Built option 1 — "prove it, like `tel`" — per the owner's decision recorded in
+the run that took this ticket.
+
+**A correction to this ticket's own evidence, found while revalidating
+before touching anything.** By the time this build started, `owner.email`
+was NOT actually patchable at all: `JOURNAL_IMMUTABLE_FIELDS` in
+`lib/api/v2/write.ts` already refused any CHANGED `owner.email` outright
+(400 "owner.email is not writable"), covered by an existing test
+(`test/api-v2-journal.test.ts`, "a CHANGED owner.email is refused"). The
+Zod-level claim in this ticket's "Why" is still true — `owner.email` is a
+genuine field of `journalPatch` (`base.partial()`), so it survives the
+schema — but the shared write path in front of the schema already caught
+every change before it landed. So the live exploit this ticket opened with
+was already closed; what remained open was the ticket's real question:
+should a legitimate owner-to-owner handoff require proof, the way `tel`
+does, rather than being simply impossible? Built accordingly.
+
+**The flow.**
+
+```
+PATCH /api/v2/{user}  {"owner": {"email": "new@…"}}
+  -> 202 {"pending": "owner_email", "id": "…",
+          "next": "POST /api/v2/{user}/owner/email/redeem"}
+     (a six-digit code, 30 minutes, five attempts, goes to new@… ;
+      nothing written yet)
+
+POST /api/v2/{user}/owner/email/redeem  {"id": "…", "code": "…"}
+  -> 200, the journal document, owner.email now moved
+     - every session and agent token the OLD address held for THIS
+       journal is revoked, immediately, whatever its own expiry said
+     - the OLD address is mailed that the journal moved
+```
+
+An UNCHANGED `owner.email` (the ordinary GET/edit/PATCH-the-whole-document
+round trip a mirroring client does on every save) is silently accepted, as
+before — `stripEchoedFields` still drops it. A CHANGED but syntactically
+invalid address (not `isEmail`) still takes the old 400 refusal unchanged,
+since there is nothing to verify about a string that was never going to be
+a real address. Only a CHANGED, valid address takes the new door.
+
+**Where it lives.**
+
+- `lib/ownerEmailChange.ts` — `issueOwnerEmailCode`/`checkOwnerEmailChange`,
+  modelled on `lib/phoneVerify/codes.ts`: a THIRD reuse of the `login_codes`
+  table with its own `kind` (`"owner_email"`, journal-scoped by `owner_id`,
+  unlike the phone kind's `NO_JOURNAL`), rather than a new table — the same
+  OTP discipline (hash only, 30 min, 5 attempts, superseded on reissue) one
+  more place gets to inherit rather than reimplement. No new migration.
+- `app/api/v2/[user]/route.ts` — `PATCH` intercepts a CHANGED, valid
+  `owner.email` BEFORE `stripEchoedFields` ever refuses it, and answers 202
+  instead of writing (`startOwnerEmailVerification`).
+- `app/api/v2/[user]/owner/email/redeem/route.ts` — new. The only writer of
+  `owner.email` on success (`lib/journals.ts`'s new `setOwnerEmail`, mirroring
+  `setJournalV2Fields`'s edit-in-place discipline).
+- `lib/auth/index.ts` — new `revokeSessionsForAddress(owner, email)`, scoped
+  by this journal's `owner_id` AND the address's own `users` row, so it
+  never touches a session the same address holds on a different journal or
+  an identity session (which proves the address, not access to anything).
+  The redeem route also calls the existing `revokeCodes` for any live,
+  not-yet-redeemed `agent`/`guest` codes under the old address.
+- `lib/api/v2/schemas/ownerEmail.ts` — `ownerEmailPending`, `ownerEmailRedeem`.
+- `lib/api/v2/openapi.ts` — the PATCH operation documents its new 202
+  alongside 200; the redeem door is a new path. No new error codes: every
+  refusal reuses `mail_disabled`, `mail_failed`, `invalid_code`,
+  `too_many_requests`, all already in `lib/api/errorCodes.ts` and already
+  spoken by other routes.
+- `site/locales/{en,de,hu}.json` — 9 real keys (`mail.ownerEmailCode*`,
+  `mail.ownerEmailMoved*`) for the two new mails; `npm run i18n:keys` run.
+- Untouched, exactly as the ticket said to leave them: the owner sub-schema,
+  the wire refusal of `tel`/`telProvenAt`/`telProvenMethod`, a forged
+  phone-proof in `config.json`.
+
+**Tests.** `test/owner-email-change.test.ts` (new): unchanged echo starts
+nothing and sends no mail; a malformed changed address still gets the old
+400; a valid changed address gets 202 and writes nothing; a wrong code at
+redeem changes nothing and the old token stays live; a stale/replayed id
+cannot be redeemed twice; the right code writes the address, the OLD
+token goes dead on its very next call, the NEW address can mint its own
+owner token, and the old address is mailed. `test/api-v2-journal.test.ts`'s
+old "a CHANGED owner.email is refused" test was split in two — malformed
+(still 400) and valid (now 202) — since its premise changed under this
+ticket, per this ticket's own contract.
+
+**Verify.** `VERIFY_WILL_WAIT=1 npm run verify` — build, TypeScript, ESLint,
+7737 Vitest tests passed (4 pre-existing Postgres skips, no local
+`pg_dump`), knip — all green.
+
+Not moved to `testing/` and not merged — the security review path runs on
+the branch first, per `AGENTS.md`.

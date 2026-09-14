@@ -1423,3 +1423,40 @@ export function setJournalV2Fields(username: string, doc: JournalV2Fields): SetJ
   }
   return { ok: true, username, journal: journalV2Fields(now) };
 }
+
+/**
+ * The ONE writer of `owner.email` — B1733.
+ *
+ * `setJournalV2Fields` above never reaches this field: `owner.email` is
+ * byte-identical-or-refused at the shared write path
+ * (`JOURNAL_IMMUTABLE_FIELDS` in `lib/api/v2/write.ts`), so a caller can
+ * echo it back unchanged but never move it through an ordinary `PATCH`.
+ * The only door onto a NEW address is proving it —
+ * `app/api/v2/[user]/owner/email/redeem/route.ts`, after
+ * `checkOwnerEmailChange` (`lib/ownerEmailChange.ts`) has confirmed the
+ * caller received a passcode at that address — and this is that door's only
+ * writer. Do not add a second one; a field that decides who can mint an
+ * owner token must never be settable without proof of possession, which is
+ * the exact mistake this ticket exists to close.
+ */
+export function setOwnerEmail(username: string, email: string): SetJournalV2Result {
+  const written = editUserConfigFile(username, (raw) => {
+    const next: Record<string, unknown> = { ...raw };
+    next.owner = {
+      ...(typeof raw.owner === "object" && raw.owner !== null ? (raw.owner as Record<string, unknown>) : {}),
+      email,
+    };
+    return next;
+  });
+  if (!written.ok) return written;
+
+  const now = getUser(username);
+  if (!now) {
+    return {
+      ok: false,
+      error: "write_failed",
+      message: `content/${username}/config.json was written and could not be read back.`,
+    };
+  }
+  return { ok: true, username, journal: journalV2Fields(now) };
+}

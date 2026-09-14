@@ -217,7 +217,24 @@ describe("PATCH /api/v2/{user} — echo-tolerant round trip (V2)", () => {
     expect(body.message).toMatch(/baseCurrency is not writable/);
   });
 
-  test("a CHANGED owner.email is refused", async () => {
+  // B1733: a CHANGED, syntactically valid owner.email no longer takes this
+  // refusal outright — it starts a verification instead (202), proven at
+  // `.../owner/email/redeem`. See test/owner-email-change.test.ts for that
+  // whole flow. A malformed address still takes the old refusal, since it
+  // was never going to be a real address to verify in the first place.
+  test("a CHANGED, malformed owner.email is refused outright", async () => {
+    const token = await ownerToken();
+    const { body: doc } = await getJournal(token);
+    const attempt = { ...doc, owner: { ...(doc.owner as Record<string, unknown>), email: "not-an-address" } };
+    delete attempt.error;
+    delete attempt.message;
+
+    const { status, body } = await patchJournal(token, attempt);
+    expect(status).toBe(400);
+    expect(body.message).toMatch(/owner\.email is not writable/);
+  });
+
+  test("a CHANGED, valid owner.email starts a verification instead of writing", async () => {
     const token = await ownerToken();
     const { body: doc } = await getJournal(token);
     const attempt = { ...doc, owner: { ...(doc.owner as Record<string, unknown>), email: "someone-else@example.test" } };
@@ -225,8 +242,9 @@ describe("PATCH /api/v2/{user} — echo-tolerant round trip (V2)", () => {
     delete attempt.message;
 
     const { status, body } = await patchJournal(token, attempt);
-    expect(status).toBe(400);
-    expect(body.message).toMatch(/owner\.email is not writable/);
+    expect(status).toBe(202);
+    expect(body).toMatchObject({ pending: "owner_email" });
+    expect(typeof body.id).toBe("string");
   });
 });
 

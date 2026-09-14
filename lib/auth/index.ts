@@ -1255,6 +1255,34 @@ export async function revokeSession(id: string): Promise<void> {
     .execute();
 }
 
+/**
+ * Revoke every live session this JOURNAL issued to one address — B1733,
+ * called the moment `owner.email` moves. A stolen seven-day agent token is
+ * a seven-day problem only if the address that minted it stops being able
+ * to mint another the instant it is no longer the owner; this is that stop.
+ *
+ * Scoped two ways, both load-bearing: `owner_id` (this journal only — the
+ * old address may still own or hold a session on a DIFFERENT journal, and
+ * none of that is this call's business) and the address's own `users` row
+ * (never an identity session, which lives at `owner_id = NO_JOURNAL`,
+ * proves the address itself, and grants nothing this field controls).
+ */
+export async function revokeSessionsForAddress(owner: string, email: string): Promise<void> {
+  const { db } = await getDatabase();
+  const address = normaliseEmail(email);
+  await db
+    .updateTable("sessions")
+    .set({ revoked_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("revoked_at", "is", null)
+    .where(
+      "user_id",
+      "in",
+      db.selectFrom("users").select("id").where("owner_id", "=", owner).where("email", "=", address),
+    )
+    .execute();
+}
+
 /** Live sessions for an owner, for the admin surface. Never returns a token. */
 export async function listSessions(owner: string) {
   const { db } = await getDatabase();
