@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: sync, media
 found: "2026-09-14T09:41:00Z"
+started: "2026-09-14T10:27:19Z"
+session: 3309c078-d934-4ee7-ad04-6cd719fc543a
+claimed: "2026-09-14T10:27:19Z"
 ---
 
 # B1719 — Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels
