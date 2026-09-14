@@ -47,20 +47,66 @@ first*. The `contact` argument's own surviving description is ten words and
 sits below it. The cut was mine and it is the obvious suspect, but a prompt
 change is a behavioural claim and this one has not been run.
 
-## Work
+## What was measured, 2026-09-14
 
-- **First, reproduce it and then prove the cause**, rather than restoring the
-  sentence and hoping. Run the same turn against both argument texts with a
-  selected contact card and no typed address, and record which one calls
-  `trip_people`. One real model call each; anything less is a guess dressed
-  as a fix.
-- If the sentence is the cause, put it back, and pay for it honestly: the
-  ceiling was raised to 8550 for B1737 and has ~24 tokens of headroom, so
-  this needs either a further raise with its own paragraph or a real cut
-  elsewhere. Do not shave the `contact` description again to fit — that is
-  what produced this.
-- Consider whether `email`'s "Required before this can be proposed" should
-  simply stop being absolute now that it is not.
+A probe drove the real `answerInThread` against a real model, with a journal,
+a trip and a staged contact card, in the live two-turn shape: one short
+message with the card selected, then "ja". Six runs per variant. The probe is
+not in the repository — it makes paid model calls and reads nothing the suite
+should read; it lived in the session scratchpad.
+
+**The first three rounds of that probe were measuring the wrong thing, and
+the conclusions drawn from them are void.** `answerInThread` does not compose
+the selection line — `app/api/helper/[user]/ask/route.ts:334` does, and the
+probe called `answerInThread` directly. So the model was answering without
+ever being told which card was ticked, which is not the situation the owner
+was in. Every comparison before that was fixed is discarded.
+
+With the selection line present, as the web room really sends it:
+
+| variant | proposed `trip_people` |
+| --- | --- |
+| as deployed | 4 of 6 |
+| with the cut `email` sentence restored | 5 of 6 |
+
+**So B1737 does work on the web, most of the time**, and when it proposes, the
+address is filled from the card — the owner's failed attempt was the minority
+outcome, not the only one. And the difference between the two variants is
+inside the noise at six runs. The inferred cause in the Why above is therefore
+**not established**, and the sentence was *not* restored: shipping a prompt
+change that cannot be shown to be an improvement is the thing this ticket
+already warned against.
+
+Two other things the probe showed, both real and neither the reported symptom:
+
+- The model sometimes reaches for the wrong tool entirely — `import_contacts`
+  twice, `create_trip` twice (inventing a second Ungarn trip beside the one it
+  had just read).
+- The area router is not implicated: `pickArea` answered `trips` on both turns
+  of every run, so `trip_people` was always in the tool list. The model had
+  the tool and did not call it.
+
+## Where this stands
+
+**Not fixed, and left in `in-development` deliberately.** The acceptance below
+cannot be demonstrated, and the honest reason is that the failure is a model
+reliability problem at roughly one turn in three rather than a missing
+mechanism. Nothing in this repository is currently shaped to fix that: a
+prompt edit is the only lever, and six runs per variant is not enough
+signal to choose one.
+
+What would make it decidable, in rough order of value:
+
+1. **A harness for this class of question.** Runs per variant in the dozens,
+   several phrasings, a pass rate printed. Prompt changes are behavioural
+   claims and there is no way to earn one today. This is the real ticket
+   underneath this one.
+2. Then, with that: test whether the `email` sentence, the `describeWaiting`
+   wording, or a rule about answering one's own question actually moves the
+   number.
+
+A person should decide whether that harness is worth building before anybody
+edits this prompt again.
 
 ## Acceptance
 
