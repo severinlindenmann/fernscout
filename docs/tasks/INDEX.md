@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (220)
+## backlog (221)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1690](backlog/security/B1690-the-deletion-confirmation-link-and-the.md) | The deletion confirmation link and the two invite links carry their token in the URL path | SECURITY | medium | medium |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (39)
+### issue (40)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -87,6 +87,7 @@ Do not edit them by hand; run the script.
 | [B1627](backlog/issue/B1627-the-v2-media-door-validates-format.md) | The v2 media door validates format for a trip photo but not one declined to the inbox | ISSUE | medium | low |
 | [B1676](backlog/issue/B1676-content-model-json-advertises-v1-write.md) | content-model.json advertises v1 write doors and retired journal fields | ISSUE | medium | low |
 | [B1677](backlog/issue/B1677-runtime-responses-name-v1-routes-that.md) | Runtime responses name v1 routes that were deleted | ISSUE | medium | low |
+| [B1692](backlog/issue/B1692-the-sync-manifest-never-lists-content.md) | The sync manifest never lists content/<user>/figures/ | ISSUE | medium | low |
 | [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
 | [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
