@@ -81,12 +81,11 @@ export default async function AccountPage({ params }: PageProps<"/[user]/account
         files: reclaimable.files,
         hasStagedFiles: reclaimable.stagedFiles > 0,
       },
-      // Selling 5 GB to a journal using a kilobyte of what it already has is
-      // an offer nobody can act on sensibly — B1270. `>= 90` is the same
-      // number `me.storageNearlyFull` already draws the line at a few lines
-      // above; reusing it rather than picking a second threshold for the
-      // same question of "is storage actually tight".
-      canBuy: creditsEnabled() && percent >= 90,
+      // Offered whenever this instance charges at all — B1745. B1270 gated
+      // this on `percent >= 90` so a near-empty journal was not sold 5 GB;
+      // that also stopped an owner buying room ahead of a large import, which
+      // is the case they actually have. The purchase route never had the gate.
+      canBuy: creditsEnabled(),
       buyCredits: EXTRA_STORAGE_CREDITS,
     };
   }
