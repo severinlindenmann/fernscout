@@ -313,14 +313,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1718](in-development/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium | `68f03fd3` |
-| [B1716](in-development/B1716-missing-token-still-tells-every-v2.md) | missing_token still tells every v2 caller that /api/v1 needs a token | ISSUE | low | low | `3309c078` |
 
-## testing (158)
+## testing (159)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -482,6 +481,7 @@ _Nothing here._
 | [B1679](testing/B1679-nine-content-files-do-not-round.md) | Nine content files do not round-trip byte-identically through the serializers | ISSUE | low | low | — |
 | [B1696](testing/B1696-a-billed-whatsapp-send-has-no.md) | A billed WhatsApp send has no matching application log line | ISSUE | low | low | — |
 | [B1697](testing/B1697-b1232-s-authentication-template-blocker-no.md) | B1232's authentication-template blocker no longer blocks anything live | OPS | low | low | — |
+| [B1716](testing/B1716-missing-token-still-tells-every-v2.md) | missing_token still tells every v2 caller that /api/v1 needs a token | ISSUE | low | low | — |
 
 ## completed (1306)
 
