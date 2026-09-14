@@ -507,8 +507,25 @@ async function handleVoiceNote(
       if (outcome.error === "no_credits") {
         const balance = (await balanceOf(username)) ?? 0;
         await sendServiceReply(message.from, balanceRefusal(locale, username, outcome.cost, balance), username);
+      } else if (outcome.error === "recording_too_long") {
+        // Deepgram's own measured duration, past MAX_SPEECH_SECONDS — the
+        // same ceiling the byte-size check above already has a sentence for
+        // (a low-bitrate recording can pass that check and still be too
+        // long once actually measured), so this reuses it rather than
+        // inventing a second one for the same fact.
+        await sendServiceReply(
+          message.from,
+          translateIn(locale, "wa.voiceTooLong", { maxMinutes: String(Math.floor(MAX_SPEECH_SECONDS / 60)) }),
+          username,
+        );
       } else {
+        // B1430 — silence here is the same "is it still typing?" confusion
+        // B1263/B1271 fixed elsewhere in this function: the download
+        // succeeded, the credits were spent and refunded (spendAndTranscribe
+        // never leaves a charge behind on failure), and the sender is owed a
+        // sentence saying their words were not heard rather than nothing.
         console.error(`[whatsapp:inbound] transcription failed for ${username}`);
+        await sendServiceReply(message.from, translateIn(locale, "wa.transcriptionFailed"), username);
       }
       return;
     }

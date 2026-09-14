@@ -248,4 +248,30 @@ describe("a voice note once consented", () => {
     expect(last).toContain("/voicetest/account");
     expect(transcribeAudio).not.toHaveBeenCalled();
   });
+
+  /**
+   * B1430 — a transcription that fails for any reason other than
+   * `no_credits` (Deepgram unreachable, an unsupported codec, whatever
+   * `spendAndTranscribe` catches internally) used to return with nothing
+   * sent: the same "is it still typing?" silence B1263/B1271 fixed for a
+   * failed download, one branch further down the same function.
+   */
+  test("a transcription that fails for any other reason says so, and refunds", async () => {
+    await bindGreetAcknowledge("voicetest3", "41760066666");
+    await grant("voicetest3", 10, "test");
+    const { recordHelperConsent, currentHelperProvider } = await import("@/lib/helper/consent");
+    recordHelperConsent("voicetest3", currentHelperProvider("speech"), "speech");
+
+    transcribeAudio.mockRejectedValueOnce(new Error("Deepgram unreachable"));
+
+    const before = repliesTo("voicetest3").length;
+    await handleInboundMessage(audioMessage("41760066666", "wamid.voice-6"));
+
+    const files = repliesTo("voicetest3");
+    expect(files.length).toBe(before + 1);
+    expect(String(files[files.length - 1].body)).not.toBe("");
+
+    // spendAndTranscribe refunds a failed attempt — nothing was kept.
+    expect(await balanceOf("voicetest3")).toBe(10);
+  });
 });
