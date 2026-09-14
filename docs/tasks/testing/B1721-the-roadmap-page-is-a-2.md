@@ -7,8 +7,7 @@ complexity: medium
 area: docs, roadmap
 found: "2026-09-14T10:05:31Z"
 started: "2026-09-14T10:34:02Z"
-session: 8ad8d82a-af5e-4bb9-8a98-93f0dda642bc
-claimed: "2026-09-14T10:34:02Z"
+merged: "2026-09-14T10:43:07Z"
 ---
 
 # B1721 — The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is
