@@ -18,6 +18,10 @@ import { requestLocale } from "@/lib/locales";
  * `type: SECURITY` ticket alike, which is why this route has one `notFound()`
  * and no branch that could tell a reader which of the three they hit.
  *
+ * `prefetch={false}` on the way back, for the same reason the board carries it
+ * on every link out: prefetching `/docs/roadmap` is a server render over all
+ * ~1,600 task files, and a reader who opened one ticket has not asked for it.
+ *
  * No `generateStaticParams`: the tree changes hourly, the ids are not known at
  * build time, and every other page under `/docs` is read fresh per request for
  * the same reason.
@@ -63,6 +67,7 @@ export default async function RoadmapTaskPage({ params }: PageProps<"/docs/roadm
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
       <Link
         href="/docs/roadmap"
+        prefetch={false}
         className="font-mono text-sm text-ink-muted underline underline-offset-4 hover:text-ink-strong
                    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
       >

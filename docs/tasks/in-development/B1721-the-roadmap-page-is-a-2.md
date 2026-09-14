@@ -89,6 +89,41 @@ cap would buy nothing and add an outage mode.
 
 Locale strings for anything new, in all three of `site/locales/`.
 
+## Reopened, 2026-09-14: the board prefetched every ticket it linked to
+
+Asked after the first deploy whether reading `docs/tasks/` happens anywhere
+but this page. It does not — `lib/roadmap.ts` is imported by
+`app/docs/roadmap/page.tsx`, `app/docs/roadmap/[id]/page.tsx` and its own test
+and by nothing else, and `lib/search.ts` deliberately indexes the technical
+pages' labels rather than their prose, so the site search never touches the
+tree either.
+
+The board was stampeding *itself*, which is worse. Next prefetches a `<Link>`
+when it scrolls into the viewport, there are a hundred links on the page, and
+each prefetch is a full server render that walks all ~1,600 task files.
+Measured on the live instance:
+
+```
+$ journalctl -u fernscout --since "3 minutes ago" | grep -c "GET /docs/roadmap/"
+247
+$ … | grep -oE "GET /docs/roadmap/B[0-9]+" | sort -u | wc -l
+103
+```
+
+One visit, 103 ticket pages rendered, 247 requests. Nobody reads a hundred
+tickets; they click one.
+
+Every `<Link>` on both pages now carries `prefetch={false}` — the ticket
+links, the "+N more" controls, the eleven filter chips and the way back, since
+`/docs/roadmap` is itself the expensive render.
+
+The keeper for it is a source scan, and **its first version did not work**: a
+`{0,400}` cap in the regex meant the card's own link — the longest tag on the
+page, and the one repeated forty times — was never scanned, and deleting its
+`prefetch={false}` left the suite green. It is a brace-and-quote-aware scan
+now, with a test asserting the scan reaches a tag over 400 characters, and it
+was proved by deleting that exact prop and watching it fail.
+
 ## Acceptance
 
 - ~~`/docs/roadmap` returns under 250 KB.~~ **Corrected after measuring, and
@@ -127,6 +162,10 @@ Locale strings for anything new, in all three of `site/locales/`.
   `--blink-settings=preferredColorScheme=1`, because the theme is held in
   `localStorage` and `check-page.mjs` can only set cookies.
 - `npm run verify` green.
+- One visit to `/docs/roadmap` requests `/docs/roadmap/<id>` **zero** times,
+  measured in `journalctl` on the live instance rather than asserted.
+- A `<Link>` on either roadmap page without `prefetch={false}` fails the
+  suite — proved by removing the card link's and watching it go red.
 
 ## What this turned out to be
 
