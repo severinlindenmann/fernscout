@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (207)
+## backlog (206)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (35)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -88,7 +88,6 @@ Do not edit them by hand; run the script.
 | [B1707](backlog/issue/B1707-sudo-env-restic-password-writes-the.md) | sudo ENV=RESTIC_PASSWORD writes the repository password into the journal | ISSUE | medium | low |
 | [B1720](backlog/issue/B1720-the-v2-contract-declares-no-path.md) | The v2 contract declares no path parameters, so a generated client cannot fill {user} or {trip} | ISSUE | medium | medium |
 | [B1723](backlog/issue/B1723-sixty-one-task-files-have-unparseable.md) | Sixty-one task files have unparseable frontmatter, so they are invisible everywhere that reads docs tasks | ISSUE | medium | low |
-| [B1724](backlog/issue/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -313,11 +312,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1719](in-development/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low | `3309c078` |
+| [B1724](in-development/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low | `68f03fd3` |
 
 ## testing (164)
 
