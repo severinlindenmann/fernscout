@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (205)
+## backlog (206)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (33)
+### issue (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -87,6 +87,7 @@ Do not edit them by hand; run the script.
 | [B1692](backlog/issue/B1692-the-sync-manifest-never-lists-content.md) | The sync manifest never lists content/<user>/figures/ | ISSUE | medium | low |
 | [B1707](backlog/issue/B1707-sudo-env-restic-password-writes-the.md) | sudo ENV=RESTIC_PASSWORD writes the repository password into the journal | ISSUE | medium | low |
 | [B1720](backlog/issue/B1720-the-v2-contract-declares-no-path.md) | The v2 contract declares no path parameters, so a generated client cannot fill {user} or {trip} | ISSUE | medium | medium |
+| [B1723](backlog/issue/B1723-sixty-one-task-files-have-unparseable.md) | Sixty-one task files have unparseable frontmatter, so they are invisible everywhere that reads docs tasks | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -312,14 +313,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1713](in-development/B1713-a-day-written-through-api-v2.md) | A day written through /api/v2 gets no weather until the next night, and the owner never knew a nightly sweep was what filled it | ISSUE | high | medium | `3309c078` |
-| [B1721](in-development/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium | `8ad8d82a` |
 
-## testing (162)
+## testing (163)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -457,6 +457,7 @@ _Nothing here._
 | [B1695](testing/B1695-b403-s-account-of-never-having.md) | B403's account of never having delivered a WhatsApp announcement is stale | OPS | medium | low | — |
 | [B1698](testing/B1698-the-deploy-s-own-backup-line.md) | The deploy's own backup line is blank because it reads health unauthenticated | ISSUE | medium | low | — |
 | [B1709](testing/B1709-analytics-on-a-trip-with-nothing.md) | Analytics on a trip with nothing measured says the trip was taken down | ISSUE | medium | low | — |
+| [B1721](testing/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium | — |
 | [B1722](testing/B1722-the-hero-chat-has-finished-animating.md) | The hero chat has finished animating before it is scrolled to, and the photobook drawing does not read as a book | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
