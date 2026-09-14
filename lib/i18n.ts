@@ -2438,6 +2438,7 @@ export type TranslationKey =
   | "trips.malformedMissingFields"
   | "trips.malformedMissingId"
   | "trips.malformedNoFile"
+  | "trips.malformedOldFormat"
   | "trips.malformedTitle"
   | "trips.malformedTitle.one"
   | "trips.malformedUnparseable"

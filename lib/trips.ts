@@ -31,6 +31,7 @@ const cache = new Map<string, { signature: string; trips: Trip[]; malformed: Mal
  */
 export type MalformedTripReason =
   | "no-file"
+  | "old-format"
   | "unparseable"
   | "missing-id"
   | "id-mismatch"
@@ -664,6 +665,16 @@ function refuse(folder: string, reason: MalformedTripReason, problem: string): M
 function readTrip(username: string, dir: string, folder: string): Trip | MalformedTrip {
   const file = path.join(dir, "trip.json");
   if (!fs.existsSync(file)) {
+    // B1598 moved the format from trip.md to trip.json with no reader
+    // fallback (deliberately — see B1680). A folder still carrying trip.md is
+    // not "never written"; it is a real trip waiting on its owner's own
+    // migration, and telling them "there is no trip.json" while their content
+    // sits right there in the old file would be false. Distinguishing it here
+    // means an operator who upgrades across B1598 gets an honest reason
+    // rather than the same silence a half-made trip gets.
+    if (fs.existsSync(path.join(dir, "trip.md"))) {
+      return refuse(folder, "old-format", "it is still trip.md — convert it to trip.json");
+    }
     return refuse(folder, "no-file", "there is no trip.json in it");
   }
 

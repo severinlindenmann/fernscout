@@ -127,6 +127,29 @@ describe("getMalformedTrips", () => {
     expect(bad).toHaveLength(1);
     expect(bad[0]).toMatchObject({ folder: "half-made", reason: "no-file" });
   });
+
+  /**
+   * B1680: a folder still carrying the pre-B1598 trip.md is not "never
+   * written" — the content is right there, just in the old format. Reporting
+   * it as "no-file" (as it briefly did) would tell an upgrading self-hoster
+   * their trip does not exist while it sits on disk in front of them. This is
+   * the honest distinction: named apart from a genuinely empty folder, with a
+   * message that says what is actually there.
+   */
+  test("a folder with a trip.md but no trip.json is reported as the old format, not as missing", () => {
+    const dir = journal();
+    fs.mkdirSync(path.join(dir, "u", "trips", "alps-2024"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "u", "trips", "alps-2024", "trip.md"),
+      "---\nid: alps-2024\ntitle: Alps\n---\n",
+    );
+
+    const bad = getMalformedTrips("u");
+    expect(bad).toHaveLength(1);
+    expect(bad[0].reason).toBe("old-format");
+    expect(bad[0].problem).toContain("trip.md");
+    expect(getTrips("u")).toHaveLength(0);
+  });
 });
 
 /**
