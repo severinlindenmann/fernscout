@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (206)
+## backlog (209)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (34)
+### issue (37)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -88,6 +88,8 @@ Do not edit them by hand; run the script.
 | [B1707](backlog/issue/B1707-sudo-env-restic-password-writes-the.md) | sudo ENV=RESTIC_PASSWORD writes the repository password into the journal | ISSUE | medium | low |
 | [B1720](backlog/issue/B1720-the-v2-contract-declares-no-path.md) | The v2 contract declares no path parameters, so a generated client cannot fill {user} or {trip} | ISSUE | medium | medium |
 | [B1723](backlog/issue/B1723-sixty-one-task-files-have-unparseable.md) | Sixty-one task files have unparseable frontmatter, so they are invisible everywhere that reads docs tasks | ISSUE | medium | low |
+| [B1725](backlog/issue/B1725-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
+| [B1726](backlog/issue/B1726-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -99,6 +101,7 @@ Do not edit them by hand; run the script.
 | [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
 | [B1703](backlog/issue/B1703-an-unknown-field-is-named-but.md) | An unknown field is named but not suggested, so a near-miss like transport_mode gets no did-you-mean | ISSUE | low | low |
 | [B1712](backlog/issue/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
+| [B1727](backlog/issue/B1727-a-stranger-opening-the-landing-page.md) | A stranger opening the landing page gets a 401 in their console | ISSUE | low | low |
 
 ### big-feature (18)
 
