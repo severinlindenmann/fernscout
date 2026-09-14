@@ -35,7 +35,7 @@ not assumed.**
 | Server capability | `features.whatsapp` = enabled, backend `cloud`, `defaultCountryCode: "41"` |
 | Journal opt-in | `features.whatsapp.enabled: true` for `example` (it is a per-journal opt-in; the server switch alone does nothing) |
 | Migration | `015-contact-whatsapp` applied on production Postgres |
-| Templates | **`fernscout_day_published_v2`**, de/en/hu, **PENDING** |
+| Templates | **`fernscout_day_published_v2`**, de/en/hu, **APPROVED** (all three, category `MARKETING`; checked against the Graph API 2026-09-14 — this row said `PENDING` until then, see the addendum) |
 
 **The name is v2 because the v1 name is burnt until early October.** The
 first set carried a footer promising "STOPP zum Abbestellen" and nothing in
@@ -104,7 +104,9 @@ reports real spend for this account:
 | `UTILITY` | `REGULAR` | **€0.0142 / message** (CH) |
 | `MARKETING` | — | **not yet measured** — no marketing template has sent |
 
-Estimate for marketing in Western Europe is 3–6× utility, so €0.04–0.09.
+**Measured: €0.049 per message.** Meta's own `pricing_analytics` for the
+2026-09-06 bucket: `MARKETING`/`REGULAR`, volume 2, €0.098. The estimate this
+line used to carry (3–6× utility, so €0.04–0.09) turned out to bracket it.
 **Replace that guess with the measured number** from the same call once the
 first announcement goes out.
 
@@ -157,3 +159,33 @@ appeal (below) the highest-value follow-up.
   variables and a working "Eintrag lesen" button.
 - The measured `MARKETING` rate replaces the estimate in this file.
 - The hand-approved test contact is deleted or approved properly.
+
+
+---
+
+## Addendum, 2026-09-14 — this ticket's account was stale (B1695)
+
+Checked directly against the live instance and the Graph API:
+
+- The template is **APPROVED** in all three locales, not `PENDING`.
+- **A real announcement has gone out.** Two outbound sends on 2026-09-06 18:55,
+  logged as `fernscout_day_published_v2/de` and `/hu`, in the same second-by-
+  second block as the matching `[mail:smtp]` sends for one day-publish event on
+  a real journal — a real publication, not the manual API test recorded above.
+- The **measured** MARKETING rate is €0.049/message, which is what this ticket's
+  acceptance asked for.
+
+What is still genuinely unmet, and is the whole of what is left: **nobody has
+confirmed the message rendered correctly on a real device** — photo, three
+variables, working button. That is not an oversight in the checking. This
+server processes no delivery-status webhooks (`lib/whatsapp/inbound.ts:184`),
+so "Meta accepted it" is as far as its own records reach; conversation-based
+billing makes delivery very likely and is not the same claim.
+
+Also still outstanding, and named in the acceptance above: the hand-approved
+test contact (`wants_whatsapp = 1`, added directly in Postgres) has not been
+deleted or properly approved.
+
+A further single MARKETING send (€0.049) is billed in the 2026-09-10 bucket
+with no matching `[whatsapp:cloud]` log line anywhere — that is B1696, and it
+is the more interesting of the two findings.

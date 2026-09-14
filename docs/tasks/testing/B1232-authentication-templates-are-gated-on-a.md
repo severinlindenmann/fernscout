@@ -2,7 +2,7 @@
 id: B1232
 title: Authentication templates are gated on a business verification this account has not passed
 type: OPS
-priority: high
+priority: low
 complexity: low
 area: whatsapp, signup, meta
 found: "2026-09-10T05:40:41Z"
@@ -64,3 +64,22 @@ both.
 signup on fernscout.ch delivers its passcode on WhatsApp; the wizard's phone
 step completes with it.
 
+
+
+---
+
+## Addendum, 2026-09-14 — not blocking, and has not been since the day it was
+filed (B1697)
+
+Re-filed from `high` to `low`. This ticket reads as a blocker on going live
+with the phone-passcode flow. B1234 — merged 2026-09-10T06:08:57Z, two hours
+after this was found — replaced the authentication-template approach outright
+with a free WhatsApp-inbound proof, and said so in its own text: *"B1232
+(verification + authentication templates) stays in the backlog as optional
+future polish."*
+
+Confirmed live on 2026-09-14: `features.signup.phoneBackend` is
+`whatsapp-inbound`, not the `whatsapp` code-template mode this ticket
+describes. `fernscout_auth_code`/en is still `REJECTED` and the business is
+still `not_verified` — and nothing needs to change on Meta's side, because
+no live path uses it.
