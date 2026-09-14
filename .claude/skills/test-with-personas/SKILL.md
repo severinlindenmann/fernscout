@@ -148,6 +148,31 @@ see in a network request. A persona that cannot finish is a **failed round**,
 full stop — it is not a list of suggestions, and it is not "mostly works".
 Report it exactly that bluntly.
 
+## Reaching a file picker
+
+`PhotoPicker` and the inbox tiles put `<input type="file">` behind `sr-only`
+(clipped, not `display:none` — B1191), so its own label carries the wording a
+person actually reads and a screen reader still finds the input. That is
+correct for a human: the label *is* the control, and tapping anywhere on it
+opens the picker. It is also why a plain click on the input itself, from a
+generic browser-automation click, gets intercepted — the input has no visible
+box for a pointer to land in. That is an automation gap, not an accessibility
+one, and the fix is to drive the input the way each tool actually supports
+file pickers, not to click blind:
+
+- **Playwright MCP**: click the visible **label** (`browser_click` with the
+  label's own target), which opens the native file chooser, then answer it
+  with `browser_file_upload` and the absolute paths — it does not take an
+  element target at all, it answers whichever chooser is currently open.
+- **chrome-devtools MCP**: call `upload_file` with the `uid` of the
+  `<input type="file">` itself. It sets the files through the debugging
+  protocol rather than simulating a click, so the input's `sr-only` clipping
+  does not matter.
+
+Never make the input visible to work around this — that would trade a real
+accessibility pattern for automation's convenience, and `PhotoPicker`'s own
+test (`test/agent-picker-language.test.tsx`) asserts the clipping stays.
+
 ## What counts as a finding
 
 Every obstacle a persona hits becomes a `backlog/` capture, with an id from

@@ -41,3 +41,19 @@ in the first place.
 `docs/superpowers/` is either indexed from `docs/README.md`, merged into
 `docs/plans/`, or gitignored — not silently present and undocumented, as it
 is today.
+
+## Fixed 2026-09-14
+
+Indexed, not merged and not gitignored. `docs/README.md` now lists
+`superpowers/` in the top table and describes it, next to `plans/`'s own
+paragraph, as the same "record of intent, kept, never corrected" convention
+from before this repo started landing dated plans straight into `plans/`
+(`2026-08-31-w37-owner-and-guests.md` is the first of those). Merging its
+files into `plans/` was ruled out: that directory is intent as written before
+the work and is never corrected to match what shipped, and moving files in
+under a fresh eye would risk starting to "fix" filenames or content that AGENTS.md
+says must stay exactly as written. Confirmed the content is still accurate
+rather than stale scratch output before indexing it — read
+`docs/superpowers/plans/2026-09-12-inbox-day-assembly-phase-5.md`, which
+matches the inbox day-assembly work (B1595 and siblings) that just landed
+Phase 3 on `main`.

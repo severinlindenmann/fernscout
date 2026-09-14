@@ -38,3 +38,15 @@ wrap the whole visible surface in the `<label>`, `min-h-11`, with
 persona's failure was Playwright clicking the `sr-only` input directly —
 not a path a finger can take. Nothing to change unless a real-device round
 disagrees.
+
+## Fixed 2026-09-14
+
+The gap was in the automation's own guidance, not the markup — nothing here
+needed un-hiding. `.claude/skills/test-with-personas/SKILL.md` now has a
+"Reaching a file picker" section: click the visible label to open the file
+chooser and answer it with the Playwright MCP `browser_file_upload` (which
+takes no element target — it answers whatever chooser is open), or hand the
+chrome-devtools MCP `upload_file` the input's own `uid` directly, since it
+sets files through the debugging protocol rather than simulating a click and
+so does not care that the input is `sr-only`. `test/agent-picker-language.test.tsx`
+still asserts the clipping stays.
