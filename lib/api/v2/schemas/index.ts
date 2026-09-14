@@ -45,6 +45,8 @@ export type { InstanceStatus, JournalStatus } from "./status";
 export type { ErrorEnvelope } from "./shared";
 export { ownerTelDoc, ownerTelVerifyRequest, ownerTelVerifyStarted, ownerTelVerifyRedeem } from "./ownerTel";
 export type { OwnerTelDoc, OwnerTelVerifyRequest, OwnerTelVerifyStarted, OwnerTelVerifyRedeem } from "./ownerTel";
+export { ownerEmailPending, ownerEmailRedeem } from "./ownerEmail";
+export type { OwnerEmailPending, OwnerEmailRedeem } from "./ownerEmail";
 export {
   INVITE_KINDS,
   inviteWrite,
