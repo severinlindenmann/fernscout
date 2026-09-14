@@ -7,8 +7,7 @@ complexity: medium
 area: whatsapp, helper
 found: "2026-09-14T14:50:34Z"
 started: "2026-09-14T15:50:55Z"
-session: 47321abb-ce05-46ca-8dfe-58c5b70fa908
-claimed: "2026-09-14T15:50:55Z"
+merged: "2026-09-14T16:26:11Z"
 ---
 
 # B1737 — A shared contact card is saved and then denied

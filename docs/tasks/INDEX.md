@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (205)
+## backlog (207)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (34)
+### issue (36)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -88,6 +88,7 @@ Do not edit them by hand; run the script.
 | [B1707](backlog/issue/B1707-sudo-env-restic-password-writes-the.md) | sudo ENV=RESTIC_PASSWORD writes the repository password into the journal | ISSUE | medium | low |
 | [B1723](backlog/issue/B1723-sixty-one-task-files-have-unparseable.md) | Sixty-one task files have unparseable frontmatter, so they are invisible everywhere that reads docs tasks | ISSUE | medium | low |
 | [B1725](backlog/issue/B1725-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
+| [B1739](backlog/issue/B1739-every-inbox-file-row-hydrates-with.md) | Every inbox file row hydrates with a mismatched date, because toLocaleDateString has no locale | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -99,6 +100,7 @@ Do not edit them by hand; run the script.
 | [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
 | [B1703](backlog/issue/B1703-an-unknown-field-is-named-but.md) | An unknown field is named but not suggested, so a near-miss like transport_mode gets no did-you-mean | ISSUE | low | low |
 | [B1712](backlog/issue/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
+| [B1741](backlog/issue/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low |
 
 ### big-feature (17)
 
@@ -309,16 +311,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (4)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1736](in-development/B1736-a-press-from-whatsapp-says-here.md) | A press from WhatsApp says Here is the link and sends no link | ISSUE | high | low | `47321abb` |
-| [B1737](in-development/B1737-a-shared-contact-card-is-saved.md) | A shared contact card is saved and then denied - nothing tells the model it is waiting | ISSUE | high | medium | `47321abb` |
-| [B1738](in-development/B1738-a-shared-contact-card-s-postal.md) | A shared contact card's postal address is dropped by the inbound parser | ISSUE | medium | low | `47321abb` |
 | [B1740](in-development/B1740-trip-page-hero-shows-no-picture.md) | Trip page hero shows no picture, and trip.cover is never used there | ISSUE | medium | low | `73750c79` |
 
-## testing (179)
+## testing (182)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -412,6 +411,8 @@ _Nothing here._
 | [B1719](testing/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low | — |
 | [B1729](testing/B1729-caddy-rewrites-the-etag-when-it.md) | Caddy rewrites the ETag when it compresses, so no client that accepts gzip can ever send a matching If-Match | ISSUE | high | low | — |
 | [B1732](testing/B1732-a-day-the-server-looked-the.md) | A day the server looked the weather up for cannot be written back, so a mirrored folder refuses on every correction | ISSUE | high | low | — |
+| [B1736](testing/B1736-a-press-from-whatsapp-says-here.md) | A press from WhatsApp says Here is the link and sends no link | ISSUE | high | low | — |
+| [B1737](testing/B1737-a-shared-contact-card-is-saved.md) | A shared contact card is saved and then denied - nothing tells the model it is waiting | ISSUE | high | medium | — |
 | [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
 | [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
 | [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
@@ -473,6 +474,7 @@ _Nothing here._
 | [B1733](testing/B1733-owner-email-is-patchable-with-an.md) | There is no way to hand a journal to another address, because owner.email is immutable and nothing can prove a new one | FEATURE | medium | medium | — |
 | [B1734](testing/B1734-the-v2-contract-documents-no-way.md) | The v2 contract documents no way to sign in, so /openapi.json cannot be retired | ISSUE | medium | medium | — |
 | [B1735](testing/B1735-the-visibility-explainer-shows-a-public.md) | The visibility explainer shows a Public badge on a Guests trip, and its ? sits below the badge | ISSUE | medium | low | — |
+| [B1738](testing/B1738-a-shared-contact-card-s-postal.md) | A shared contact card's postal address is dropped by the inbound parser | ISSUE | medium | low | — |
 | [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
 | [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |

@@ -7,8 +7,7 @@ complexity: low
 area: whatsapp, helper
 found: "2026-09-14T14:50:07Z"
 started: "2026-09-14T15:50:54Z"
-session: 47321abb-ce05-46ca-8dfe-58c5b70fa908
-claimed: "2026-09-14T15:50:54Z"
+merged: "2026-09-14T16:26:11Z"
 ---
 
 # B1736 — A press from WhatsApp says Here is the link and sends no link
