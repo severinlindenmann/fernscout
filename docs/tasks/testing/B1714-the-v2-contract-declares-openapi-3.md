@@ -7,8 +7,7 @@ complexity: low
 area: api v2, contract
 found: "2026-09-14T09:23:00Z"
 started: "2026-09-14T09:58:17Z"
-session: 3309c078-d934-4ee7-ad04-6cd719fc543a
-claimed: "2026-09-14T09:58:17Z"
+merged: "2026-09-14T10:10:46Z"
 ---
 
 # B1714 — The v2 contract declares OpenAPI 3.1.0 and emits `request` where the specification says `requestBody`
