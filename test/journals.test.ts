@@ -122,6 +122,19 @@ describe("creating a journal", () => {
   });
 
   /**
+   * B1453. `costs` joined `OPERATOR_ONLY_FEATURES` in B1092 — a journal's own
+   * `features.costs` is never read by anything any more. Writing it into a
+   * fresh config.json is dead data that reads like a setting, the same
+   * inconsistency `photobook` and `postcards` already avoid by not being
+   * written here at all.
+   */
+  test("a journal it creates carries no costs key — it is operator-only", () => {
+    expect(make("no-costs-key").ok).toBe(true);
+    const raw = fs.readFileSync(path.join(dir, "no-costs-key", "config.json"), "utf8");
+    expect(JSON.parse(raw).features).not.toHaveProperty("costs");
+  });
+
+  /**
    * And the server is still the ceiling. A journal asking for contacts on an
    * instance that does not offer it gets nothing — `resolveOne` in
    * lib/capabilities.ts refuses the opt-in above the ceiling, which is what

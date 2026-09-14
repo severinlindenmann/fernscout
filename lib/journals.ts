@@ -391,7 +391,14 @@ export function createJournal(input: NewJournal): CreateJournalResult {
     units: input.units ?? "metric",
     features: {
       reactions: { enabled: true },
-      costs: { enabled: true },
+      // `costs` is not written here — since B1092 it is operator-only
+      // (OPERATOR_ONLY_FEATURES, lib/config.ts), so a journal's own
+      // `features.costs` is never read by anything. Writing it would be a
+      // line in the owner's own config.json that looks like a setting and
+      // is not one, the same reason `photobook` and `postcards` are absent
+      // below. DEFAULT_FEATURES still answers `costs: { enabled: true }`
+      // for any journal missing the key, so nothing about the resolved
+      // capability changes.
       // On, or the owner could never get a token to write to what they just
       // made — which would make this endpoint produce a journal nobody can use.
       auth: { enabled: true },

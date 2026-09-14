@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: credits, pricing, docs
 found: "2026-09-11T07:33:33Z"
+superseded: "B1425 (and B1428) rewrote lib/credits/pricing.ts entirely — PHOTOBOOK_BASE_CREDITS, the split build/print charge, and the stale 160-credit comment are all gone. See resolution note below."
 ---
 
 # B1424 — PHOTOBOOK_BASE_CREDITS argues for 160 credits and 2 a page, a pricing model that no longer exists
@@ -74,3 +75,18 @@ different question.
 - The comment above `PHOTOBOOK_BASE_CREDITS` describes the constant beneath it.
 - No sentence in it refers to a per-page component or to 160 as the live value.
 - `npm run verify` clean.
+
+## Resolution (2026-09-14)
+
+`PHOTOBOOK_BASE_CREDITS` no longer exists. B1425 ("sell a photobook as one
+product at one price") and B1428 ("delete the legacy photobook print path")
+already replaced the entire pricing model this ticket is about: there is no
+build/print split, no per-page component, and no 160 or 40 figure anywhere in
+`lib/credits/pricing.ts`. What ships now is `photobookPriceCredits`, driven by
+a single live Gelato quote, `PHOTOBOOK_VAT_RATE` (0.081, measured off a real
+invoice) and `PHOTOBOOK_MARGIN` (2.0x, up from the 1.5x this ticket's "print
+margin" referred to). The doc comment above that code already explains the
+current model in full — the confusion this ticket names was fixed as a side
+effect of a later, larger repricing rather than by anyone answering this
+ticket directly. Filed as superseded rather than reopened; no code or comment
+change made here.

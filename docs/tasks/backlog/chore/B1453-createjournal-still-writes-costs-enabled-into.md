@@ -41,3 +41,25 @@ this change.
 
 - A journal created after this change has no `costs` key in its `features` block.
 - `npm run verify` clean, including `test/server-only-capabilities.test.ts`.
+
+## Resolution (2026-09-14)
+
+Confirmed against `lib/config.ts:87`: `costs` is in `OPERATOR_ONLY_FEATURES`
+(joined in B1092, ticket premise unchanged). `createJournal`
+(`lib/journals.ts`) no longer writes `costs: { enabled: true }` — dropped the
+same way `photobook` and `postcards` already are, with a comment explaining
+why. `DEFAULT_FEATURES` in `lib/config.ts` still answers
+`costs: { enabled: true }` for any journal missing the key (as it always did
+for `photobook`/`postcards`), so nothing about the resolved capability
+changes — only the file an owner reads.
+
+Decision on existing journals: **left alone.** Not rewriting every prior
+journal's `config.json` to strip a harmless, unread key — that is the larger
+act the ticket itself calls out, and it does not need a deploy-time migration
+to be safe. New journals are clean; old ones keep the inert line until
+something else already touches their file.
+
+Added `test/journals.test.ts` — "a journal it creates carries no costs key —
+it is operator-only" — asserting the raw config.json has no `costs` property.
+Fails without the fix (verified by reverting `lib/journals.ts`), passes with
+it. `test/server-only-capabilities.test.ts` unaffected (12 passed).

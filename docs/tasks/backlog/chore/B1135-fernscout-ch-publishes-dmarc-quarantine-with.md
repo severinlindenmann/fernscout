@@ -65,3 +65,46 @@ service to run.
 - `dig +short TXT _dmarc.fernscout.ch` shows a `rua=`.
 - One aggregate report has arrived at that address and been opened, so the
   channel is known to work rather than assumed to.
+
+## Checked 2026-09-14 — still open, DNS only, cannot be done from a checkout
+
+`dig +short TXT _dmarc.fernscout.ch` today:
+
+```
+"v=DMARC1; p=quarantine;"
+```
+
+`dig +short TXT fernscout.ch` today:
+
+```
+"protonmail-verification=3875d328563042f3022236682a73ab15abfafce7"
+"v=spf1 include:_spf.protonmail.ch ~all"
+"google-site-verification=AJqAt52qzfzoRe5r6KTsByGucLOCephkE_5fIOMdrtw"
+```
+
+Unchanged from the ticket's own findings — no `rua=` published, SPF still
+`~all`. This is a registrar-side DNS edit; no agent working in this
+repository can make it. Exact replacement to paste at the registrar:
+
+```
+_dmarc.fernscout.ch   TXT   "v=DMARC1; p=quarantine; rua=mailto:agent@fernscout.ch;"
+```
+
+`agent@fernscout.ch` is this instance's existing, already-monitored public
+contact address (not a new mailbox to stand up) — a real inbox to point
+reports at rather than one invented for this ticket. If the operator would
+rather reports land somewhere else, swap the address only; the rest of the
+record is unaffected.
+
+On the two open decisions the ticket names:
+
+- **SPF `~all` vs `-all`**: not changed here. Left as a decision for whoever
+  applies the DNS edit — the ticket already argues `-all` is the stricter,
+  probably-fine choice; this pass adds no new evidence either way.
+- **`p=quarantine` vs `p=reject`**: explicitly not yet — the ticket's own
+  instruction is to wait until aggregate reports have actually been read, and
+  with no `rua=` published yet, none exist to read.
+
+Leaving this ticket in the backlog, not testing/completed: nothing here was
+applied, and the acceptance criteria (a `rua=` published, one report received
+and opened) cannot be met without registrar access and a few weeks' wait.
