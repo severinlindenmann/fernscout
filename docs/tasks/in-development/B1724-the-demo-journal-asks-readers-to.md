@@ -42,6 +42,30 @@ no longer appear together — remove it with the change rather than leaving a
 rule that looks like it is doing something. `body`'s padding from the same
 variable stays: that is what keeps the bar off the last line of a day.
 
+## What was built
+
+**Valid** — the layout rendered `PushPrompt` unconditionally and `ShowcaseBar`
+beside it, and both were seen on the live `/example` at once.
+
+- The layout now picks one: a journal in `site.showcase` gets the bar, every
+  other journal gets the prompt on exactly the terms it always had.
+- `PushPrompt`'s `--fs-showcase-bar` offset is gone. With the two unable to
+  share a page there is nothing left to lift, and a rule that can never apply
+  reads as if it were doing something. `body`'s padding from the same variable
+  stays — that is what keeps the bar off the last line of a day.
+- `test/showcase.test.ts` asserts the layout branches on the list and carries
+  exactly one of each component, and that the dead offset has not come back.
+
+**One acceptance line is not captured, and here is why.** "A journal not in
+`site.showcase` still shows the prompt" could not be driven locally: the
+prompt also requires a registered service worker, and the dev server does not
+register one, so the card never appears on `localhost` however the flags are
+set — with `push` on, throwaway VAPID keys and `Notification.permission`
+reading `default`, it still returned nothing. What is proven is that the
+component's own conditions are untouched by this branch and that the layout
+reaches it for every non-showcase journal. Worth an eye on a real journal
+after the deploy.
+
 ## Acceptance
 
 - `/example` shows no notification prompt, however long a reader stays.

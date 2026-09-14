@@ -66,6 +66,40 @@ describe("site.showcase", () => {
   });
 });
 
+describe("a showcase journal asks one thing, not two", () => {
+  /**
+   * B1724. `/example` offered "Get the next day?" to a reader who is not
+   * following Alex Berger's trip — they are deciding whether to make a
+   * journal of their own — and it landed on top of the bar that answers that
+   * question. The layout picks one, so each journal carries exactly one of
+   * the two in its document.
+   */
+  test("the layout renders the bar or the prompt, never both", () => {
+    const layout = fs.readFileSync(
+      path.join(process.cwd(), "app/[user]/layout.tsx"),
+      "utf8",
+    );
+    // A ternary on the showcase list, not two independent conditions that
+    // could both be true.
+    expect(layout).toMatch(
+      /site\.showcase\.includes\(username\)\s*\?[\s\S]{0,200}<ShowcaseBar[\s\S]{0,200}<PushPrompt/,
+    );
+    expect(layout.match(/<PushPrompt/g)).toHaveLength(1);
+    expect(layout.match(/<ShowcaseBar/g)).toHaveLength(1);
+  });
+
+  test("and the prompt no longer carries an offset it can never need", () => {
+    const prompt = fs.readFileSync(
+      path.join(process.cwd(), "components/PushPrompt.tsx"),
+      "utf8",
+    );
+    expect(prompt).not.toContain("--fs-showcase-bar");
+    // The document's own room for the bar is a different question and stays.
+    const css = fs.readFileSync(path.join(process.cwd(), "app/globals.css"), "utf8");
+    expect(css).toMatch(/body\s*\{\s*\n?\s*padding-bottom:\s*var\(--fs-showcase-bar/);
+  });
+});
+
 describe("no API route can add a journal to the list", () => {
   /** Every file under `app/api/`, which is the whole of the network surface. */
   function routes(dir: string): string[] {
