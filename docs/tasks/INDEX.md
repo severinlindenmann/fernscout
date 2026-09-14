@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (207)
+## backlog (206)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (36)
+### issue (35)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -100,7 +100,6 @@ Do not edit them by hand; run the script.
 | [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
 | [B1703](backlog/issue/B1703-an-unknown-field-is-named-but.md) | An unknown field is named but not suggested, so a near-miss like transport_mode gets no did-you-mean | ISSUE | low | low |
 | [B1712](backlog/issue/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
-| [B1741](backlog/issue/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low |
 
 ### big-feature (17)
 
@@ -311,199 +310,17 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (0)
-
-_Nothing here._
-
-## testing (183)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
-| [B1067](testing/B1067-it-is-not-written-down-where.md) | It is not written down where this instance's telephone number comes from, or what one message costs | OPS | high | low | — |
-| [B1146](testing/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low | — |
-| [B1287](testing/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low | — |
-| [B1311](testing/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low | — |
-| [B1313](testing/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low | — |
-| [B1358](testing/B1358-the-guthaben-sheet-shows-no-numbers.md) | The Guthaben sheet shows no numbers in the installed PWA | ISSUE | high | low | — |
-| [B1369](testing/B1369-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low | — |
-| [B1410](testing/B1410-a-returning-identity-holder-s-buddy.md) | A returning identity-holder's buddy invite looks redeemed but the confirm step is never submitted | ISSUE | high | low | — |
-| [B1411](testing/B1411-a-payment-abandoned-at-stripe-leaves.md) | a payment abandoned at Stripe leaves the checkout page with no way to pay again | ISSUE | high | low | — |
-| [B1442](testing/B1442-a-day-started-in-the-room.md) | A day started in the room is titled with its own date, so every surface shows an ISO date | ISSUE | high | low | — |
-| [B1448](testing/B1448-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium | — |
-| [B1462](testing/B1462-a-dispatched-agent-reaches-for-a.md) | A dispatched agent reaches for a background verify and strands itself, and no building skill warns it | DOCS | high | low | — |
-| [B1472](testing/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low | — |
-| [B1498](testing/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium | — |
-| [B1512](testing/B1512-the-sync-doors-have-never-been.md) | The sync doors have never been driven against the live instance or a real journal | OPS | high | medium | — |
-| [B1529](testing/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low | — |
-| [B1539](testing/B1539-ten-days-on-one-island-shared.md) | Ten days on one island shared one media folder and one slug, and two thirds of the photographs were lost | ISSUE | high | low | — |
-| [B1561](testing/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium | — |
-| [B1562](testing/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low | — |
-| [B1563](testing/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium | — |
-| [B1577](testing/B1577-six-hand-kept-key-lists-in.md) | Six hand-kept key lists in the helper mirror the instance, and nothing fails when one falls behind | FEATURE | high | high | — |
-| [B1585](testing/B1585-nothing-on-a-trip-a-day.md) | Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides | FEATURE | high | high | — |
-| [B1586](testing/B1586-correcting-a-caption-or-a-photograph.md) | Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it | ISSUE | high | low | — |
-| [B1587](testing/B1587-api-v2-document-oriented-required-or.md) | API v2: document-oriented, required-or-declined contract (phase 0: Zod schemas) | FEATURE | high | high | — |
-| [B1590](testing/B1590-next-generated-route-types-reject-helper.md) | Next generated route types reject helper exports from two route modules | ISSUE | high | low | — |
-| [B1596](testing/B1596-v2-plumbing-route-helper-incomplete-422.md) | v2 plumbing: route helper, incomplete-422, dryRun, ETag, request log, import boundary, md serializer | CHORE | high | medium | — |
-| [B1597](testing/B1597-v2-tripdoc-costs-has-no-home.md) | v2 tripDoc.costs has no home for costs.md's preparation cost lines or its prose | ISSUE | high | low | — |
-| [B1598](testing/B1598-v2-canonical-files-are-unreadable-by.md) | v2-canonical files are unreadable by lib/entries.ts and lib/trips.ts — the render layer has no step in the build order | FEATURE | high | high | — |
-| [B1600](testing/B1600-v2-auth-one-codes-door-links.md) | v2 auth: one codes door, links redeem, keys, handover mint moved — and the six v1 code routes deleted | CHORE | high | high | — |
-| [B1601](testing/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low | — |
-| [B1603](testing/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium | — |
-| [B1604](testing/B1604-a-day-whose-prose-begins-with.md) | A day whose prose begins with three hyphens loses everything up to the next fence | ISSUE | high | low | — |
-| [B1605](testing/B1605-dryrun-fails-in-the-direction-that.md) | dryRun fails in the direction that writes — a mis-cased parameter performs the write it was asked to preview | ISSUE | high | low | — |
-| [B1606](testing/B1606-content-on-disk-becomes-json-the.md) | Content on disk becomes JSON — the document, stored as itself | CHORE | high | medium | — |
-| [B1607](testing/B1607-documentation-txt-tells-agents-to-call.md) | documentation.txt tells agents to call the eight auth routes that no longer exist | ISSUE | high | medium | — |
-| [B1608](testing/B1608-v2-core-documents-the-shared-write.md) | v2 core documents: the shared write path, journal, status, geocode | CHORE | high | high | — |
-| [B1609](testing/B1609-the-figures-library-walking-figures-become.md) | The figures library: walking figures become journal-level documents with ids | FEATURE | high | high | — |
-| [B1612](testing/B1612-v2-trips-and-days-the-whole.md) | v2 trips and days: the whole-document routes, publish, unpublish and one send door | CHORE | high | high | — |
-| [B1613](testing/B1613-v2-media-one-door-per-kind.md) | v2 media: one door, per-kind intents, content-addressed src and day-less trip writes | CHORE | high | high | — |
-| [B1615](testing/B1615-v2-trip-routes-answer-no-such.md) | v2 trip routes answer no_such_journal before authenticating, so an anonymous caller can enumerate usernames | SECURITY | high | low | — |
-| [B1616](testing/B1616-a-solo-trip-that-declined-buddies.md) | A solo trip that declined buddies can never add people, and a public trip can never be narrowed | ISSUE | high | medium | — |
-| [B1617](testing/B1617-the-v2-day-route-never-checked.md) | The v2 day route never checked the weather capability, so a journal with it off stored the request anyway | SECURITY | high | low | — |
-| [B1618](testing/B1618-v2-publish-send-routes-call-senddayletter.md) | v2 publish/send routes call sendDayLetter/sendDayWhatsapp with the wrong slug shape, so a requested send always answers unknown_day | ISSUE | high | medium | — |
-| [B1621](testing/B1621-v2-creates-stopped-telling-an-agent.md) | v2 creates stopped telling an agent what comes next — B311's chain was broken by the migration | ISSUE | high | low | — |
-| [B1622](testing/B1622-v2-long-tail-money-purchases-ledger.md) | v2 long tail: money — purchases, ledger, storage | CHORE | high | high | — |
-| [B1623](testing/B1623-v2-long-tail-social-invites-contacts.md) | v2 long tail: social — invites, contacts, channels | CHORE | high | high | — |
-| [B1624](testing/B1624-v2-long-tail-print-and-inbox.md) | v2 long tail: print and inbox — postcards, photobooks, statements, inbox, journals | CHORE | high | high | — |
-| [B1625](testing/B1625-a-trip-or-day-accepts-translations.md) | A trip or day accepts translations in a locale the journal does not declare — the schema says the route refuses it and no route does | ISSUE | high | low | — |
-| [B1628](testing/B1628-day-translations-accept-a-duplicated-written.md) | Day translations accept a duplicated written language and a partial locale set | ISSUE | high | medium | — |
-| [B1629](testing/B1629-b560-s-zero-spend-day-reads.md) | B560's zero-spend day reads as unrecorded, overstating the costs average | ISSUE | high | low | — |
-| [B1630](testing/B1630-fifty-test-files-hand-write-the.md) | Fifty test files hand-write the storage format; there is no shared content fixture | CHORE | high | high | — |
-| [B1631](testing/B1631-a-section-that-already-has-a.md) | A section that already has a value can never be declined — T6 has no symmetric rule | ISSUE | high | medium | — |
-| [B1633](testing/B1633-the-drafts-list-reports-a-slug.md) | The drafts list reports a slug the v2 day route cannot address | ISSUE | high | low | — |
-| [B1634](testing/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low | — |
-| [B1636](testing/B1636-the-conversion-dropped-every-trip-rate.md) | The conversion dropped every trip rate, and three trips cannot be expressed in v2 at all | ISSUE | high | medium | — |
-| [B1637](testing/B1637-photo-ingest-still-writes-markdown-so.md) | Photo ingest still writes markdown, so a day it creates is invisible to the readers | ISSUE | high | low | — |
-| [B1638](testing/B1638-tripreminder-splices-a-trip-md-that.md) | tripReminder splices a trip.md that new trips no longer have | ISSUE | high | low | — |
-| [B1640](testing/B1640-drafts-leaked-into-the-open-to.md) | Drafts leaked into the open-to-link export because the draft check still looked for .md | SECURITY | high | low | — |
-| [B1641](testing/B1641-createtrip-wrote-people-and-every-trip.md) | createTrip wrote people: [] and every trip created without people became unreadable | ISSUE | high | low | — |
-| [B1643](testing/B1643-content-example-is-not-v2-canonical.md) | content/example is not v2-canonical and demonstrates only part of the contract | CHORE | high | high | — |
-| [B1645](testing/B1645-a-day-whose-weather-the-server.md) | A day whose weather the server fetched cannot be read back — dayDoc reuses the write shape's reserved-source refusal | ISSUE | high | low | — |
-| [B1647](testing/B1647-costs-apply-on-a-trip-cannot.md) | costs/apply on a trip cannot find days written through the day-write endpoint | ISSUE | high | medium | — |
-| [B1651](testing/B1651-get-a-credential-drives-auth-routes.md) | get-a-credential drives auth routes that no longer exist, so the documented way in 404s | CHORE | high | low | — |
-| [B1652](testing/B1652-get-api-v2-user-leaks-owner.md) | GET /api/v2/{user} leaks owner.email and the whole journal document to a trip-scoped token | SECURITY | high | low | — |
-| [B1667](testing/B1667-trip-translations-section-is-required-even.md) | Trip translations section is required even on single-locale journals, contradicting decision and its own schema comment | ISSUE | high | low | — |
-| [B1668](testing/B1668-trip-422-tells-a-caller-to.md) | Trip 422 tells a caller to declined.teaser, a key the schema refuses | ISSUE | high | low | — |
-| [B1673](testing/B1673-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | low | — |
-| [B1674](testing/B1674-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | medium | — |
-| [B1675](testing/B1675-docs-api-renders-the-v1-contract.md) | /docs/api renders the v1 contract, not v2 | ISSUE | high | low | — |
-| [B1680](testing/B1680-the-owner-s-own-journal-is.md) | The owner's own journal is unreadable on the live instance: its trips are still trip.md | ISSUE | high | medium | — |
-| [B1682](testing/B1682-the-deploy-never-copies-content-example.md) | The deploy never copies content/example/figures, so a rebuilt box serves no demo journal | OPS | high | low | — |
-| [B1683](testing/B1683-live-instance-serves-500-on-three.md) | Live instance serves 500 on three document routes: the build and node_modules disagree about sharp | OPS | high | low | — |
-| [B1685](testing/B1685-a-photograph-attached-through-the-media.md) | A photograph attached through the media door never reaches the day it names | ISSUE | high | medium | — |
-| [B1691](testing/B1691-a-full-deploy-leaves-a-root.md) | A full deploy leaves a root-owned restic lock, so every later nightly backup is refused | OPS | high | low | — |
-| [B1694](testing/B1694-api-health-reports-signup-enabled-while.md) | api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate | ISSUE | high | medium | — |
-| [B1700](testing/B1700-content-model-json-still-describes-v1.md) | content-model.json still describes v1 content — md filenames, frontmatter prose, start/end, no declined | ISSUE | high | high | — |
-| [B1702](testing/B1702-everything-but-fernscout-runs-as-root.md) | Everything but Fernscout runs as root on the VPS, and SSH takes passwords with nothing throttling it | OPS | high | medium | — |
-| [B1705](testing/B1705-ci-on-main-is-red-three.md) | CI on main is red: three independent breakages in the test and backup-drill jobs | ISSUE | high | low | — |
-| [B1706](testing/B1706-a-root-owned-restic-lock-silently.md) | A lock the service user cannot read fails the whole nightly backup, and only a person can clear it | ISSUE | high | low | — |
-| [B1708](testing/B1708-an-owner-s-own-journal-disappears.md) | An owner's own journal disappears from Your journals while it has no trips | ISSUE | high | low | — |
-| [B1710](testing/B1710-an-unattended-nodejs-upgrade-on-the.md) | An unattended nodejs upgrade on the VPS moved past the repo's exact Node pin and every deploy fails at the build guard | OPS | high | low | — |
-| [B1711](testing/B1711-the-landing-page-and-readme-do.md) | The landing page and README do not sell what Fernscout actually does | FEATURE | high | medium | — |
-| [B1713](testing/B1713-a-day-written-through-api-v2.md) | A day written through /api/v2 gets no weather until the next night, and the owner never knew a nightly sweep was what filled it | ISSUE | high | medium | — |
-| [B1714](testing/B1714-the-v2-contract-declares-openapi-3.md) | The v2 contract declares OpenAPI 3.1.0 and emits request where the specification says requestBody, so no standard tool sees a body on any write | ISSUE | high | low | — |
-| [B1715](testing/B1715-fernscout-helper-cannot-reach-this-instance.md) | fernscout-helper cannot reach this instance at all since v2, and its own self-test reports green | FEATURE | high | high | — |
-| [B1717](testing/B1717-the-landing-page-describes-the-chat.md) | The landing page describes the chat, the postcard and the book instead of showing them | FEATURE | high | medium | — |
-| [B1718](testing/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium | — |
-| [B1719](testing/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low | — |
-| [B1729](testing/B1729-caddy-rewrites-the-etag-when-it.md) | Caddy rewrites the ETag when it compresses, so no client that accepts gzip can ever send a matching If-Match | ISSUE | high | low | — |
-| [B1732](testing/B1732-a-day-the-server-looked-the.md) | A day the server looked the weather up for cannot be written back, so a mirrored folder refuses on every correction | ISSUE | high | low | — |
-| [B1736](testing/B1736-a-press-from-whatsapp-says-here.md) | A press from WhatsApp says Here is the link and sends no link | ISSUE | high | low | — |
-| [B1737](testing/B1737-a-shared-contact-card-is-saved.md) | A shared contact card is saved and then denied - nothing tells the model it is waiting | ISSUE | high | medium | — |
-| [B403](testing/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium | — |
-| [B1312](testing/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low | — |
-| [B1409](testing/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low | — |
-| [B1416](testing/B1416-the-files-rail-chip-downloads-uncapped.md) | The files-rail chip downloads uncapped photographs for a 42px avatar | ISSUE | medium | low | — |
-| [B1417](testing/B1417-inbox-file-thumbnails-download-uncapped-photographs.md) | Inbox file thumbnails download uncapped photographs for a 96px tile | ISSUE | medium | low | — |
-| [B1444](testing/B1444-an-honesty-guard-s-replacement-sentence.md) | An honesty guard's replacement sentence is rendered twice around the card it replaces | ISSUE | medium | low | — |
-| [B1456](testing/B1456-the-landing-page-still-pastes-people.md) | The landing page still pastes people at the full guide, which is now a redirect to an index | ISSUE | medium | low | — |
-| [B1471](testing/B1471-the-messenger-number-is-printed-for.md) | The messenger number is printed for a person to dial in a form only a machine can use | ISSUE | medium | low | — |
-| [B1474](testing/B1474-sixty-nine-strings-are-shipped-to.md) | Sixty-nine strings are shipped to Hungarian readers in English, including the whole of an order's status | ISSUE | medium | low | — |
-| [B1476](testing/B1476-a-trip-marked-upcoming-says-where.md) | A trip marked upcoming says Where we have been, because one day names a place | ISSUE | medium | low | — |
-| [B1491](testing/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low | — |
-| [B1493](testing/B1493-the-landing-page-lists-no-journals.md) | The landing page lists no journals for a reader holding only a journal cookie | ISSUE | medium | low | — |
-| [B1503](testing/B1503-a-media-file-belonging-to-no.md) | A media file belonging to no day cannot be written through any door | ISSUE | medium | low | — |
-| [B1520](testing/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low | — |
-| [B1522](testing/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low | — |
-| [B1525](testing/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low | — |
-| [B1534](testing/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low | — |
-| [B1541](testing/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high | — |
-| [B1564](testing/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low | — |
-| [B1565](testing/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low | — |
-| [B1567](testing/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low | — |
-| [B1582](testing/B1582-health-and-contentmodel-never-create-their.md) | health and contentModel never create their cache directory, so a missing one reads as an unreachable server | ISSUE | medium | low | — |
-| [B1589](testing/B1589-photobook-prints-the-written-language-entry.md) | Photobook language leaves trip text and fallback labels untranslated | ISSUE | medium | medium | — |
-| [B1591](testing/B1591-the-visibility-badge-s-explainer-and.md) | The visibility badge's explainer and its chooser both push the page open instead of floating above it | FEATURE | medium | medium | — |
-| [B1602](testing/B1602-every-trip-in-example-must-decline.md) | Every trip in example must decline figures — inline travellers have no path into the figure library | ISSUE | medium | low | — |
-| [B1610](testing/B1610-analytics-visitors-asserts-a-hash-does.md) | analytics-visitors asserts a hash does not contain a substring — it fails by chance | ISSUE | medium | low | — |
-| [B1619](testing/B1619-v2-s-day-translations-field-has.md) | v2's day translations field has no journal-locale check at all, unlike v1's | ISSUE | medium | medium | — |
-| [B1626](testing/B1626-v2-merge-patch-has-no-way.md) | v2 merge-patch has no way to clear a scalar back to absent, and cover is never checked against the trip's own media | ISSUE | medium | medium | — |
-| [B1635](testing/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium | — |
-| [B1639](testing/B1639-a-trip-patch-silently-drops-any.md) | A trip PATCH silently drops any key the model does not carry, where v1 surfaced them as unknownFields | ISSUE | medium | low | — |
-| [B1642](testing/B1642-known-trip-fields-and-the-journals.md) | KNOWN_TRIP_FIELDS and the journals field-coverage test still speak v1's vocabulary | ISSUE | medium | medium | — |
-| [B1653](testing/B1653-the-me-settings-page-still-draws.md) | The /me settings page still draws inputs for two fields v2 dropped, so typing in them does nothing | ISSUE | medium | low | — |
-| [B1654](testing/B1654-ownertel-has-no-v2-home-so.md) | ownerTel has no v2 home, so retiring the v1 config route would strand every WhatsApp feature | FEATURE | medium | low | — |
-| [B1656](testing/B1656-the-helper-s-photo-gallery-and.md) | The helper's photo-gallery and inbox writes hit B1650's same wall — v2 has no gallery-attach at all | FEATURE | medium | high | — |
-| [B1657](testing/B1657-day-media-s-files-branch-upload.md) | day/media's files-branch upload bypasses the storage quota | ISSUE | medium | low | — |
-| [B1660](testing/B1660-create-trip-edit-trip-never-ask.md) | create_trip/edit_trip never ask v2's TRIP_DECLINABLES (rates, costs, plan, translations, accent, figures, tagline, intro) | FEATURE | medium | high | — |
-| [B1663](testing/B1663-five-credit-spending-paths-mint-a.md) | Five credit-spending paths mint a fresh ref per call, so a retry charges again | ISSUE | medium | medium | — |
-| [B1665](testing/B1665-agent-work-consumes-avoidable-context-and.md) | Agent work consumes avoidable context and verification time without measured quality feedback | CHORE | medium | high | — |
-| [B1666](testing/B1666-finish-decision-5-journal-level-features.md) | Finish decision 5: journal-level features and manualRates are still read by live code | CHORE | medium | high | — |
-| [B1669](testing/B1669-photo-visibility-and-reminder-channel-enums.md) | Photo visibility and reminder-channel enums are hand-typed in multiple v2 schema files instead of imported | CHORE | medium | low | — |
-| [B1670](testing/B1670-several-v2-migration-docs-and-code.md) | Several v2-migration docs and code comments describe a pre-migration state that no longer exists | DOCS | medium | low | — |
-| [B1676](testing/B1676-content-model-json-advertises-v1-write.md) | content-model.json advertises v1 write doors and retired journal fields | ISSUE | medium | low | — |
-| [B1677](testing/B1677-runtime-responses-name-v1-routes-that.md) | Runtime responses name v1 routes that were deleted | ISSUE | medium | low | — |
-| [B1684](testing/B1684-the-demo-journal-s-lisbon-trip.md) | The demo journal's Lisbon trip names photographs that do not exist, and nothing checks that a media src resolves | ISSUE | medium | low | — |
-| [B1686](testing/B1686-the-signup-wizard-holds-a-bearer.md) | The signup wizard holds a bearer token in a browser | ISSUE | medium | medium | — |
-| [B1687](testing/B1687-the-publish-route-sends-the-day.md) | The publish route sends the day letter with no channel claim, so two concurrent publishes mail it twice | ISSUE | medium | low | — |
-| [B1693](testing/B1693-signup-is-an-on-off-switch.md) | Signup is an on/off switch, so an instance cannot be open to a named few | FEATURE | medium | medium | — |
-| [B1695](testing/B1695-b403-s-account-of-never-having.md) | B403's account of never having delivered a WhatsApp announcement is stale | OPS | medium | low | — |
-| [B1698](testing/B1698-the-deploy-s-own-backup-line.md) | The deploy's own backup line is blank because it reads health unauthenticated | ISSUE | medium | low | — |
-| [B1709](testing/B1709-analytics-on-a-trip-with-nothing.md) | Analytics on a trip with nothing measured says the trip was taken down | ISSUE | medium | low | — |
-| [B1720](testing/B1720-the-v2-contract-declares-no-path.md) | The v2 contract declares no path parameters, so a generated client cannot fill {user} or {trip} | ISSUE | medium | medium | — |
-| [B1721](testing/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium | — |
-| [B1722](testing/B1722-the-hero-chat-has-finished-animating.md) | The hero chat has finished animating before it is scrolled to, and the photobook drawing does not read as a book | ISSUE | medium | low | — |
-| [B1724](testing/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low | — |
-| [B1726](testing/B1726-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low | — |
-| [B1728](testing/B1728-the-back-arrow-means-two-different.md) | The back arrow means two different things and the reader cannot tell which | ISSUE | medium | medium | — |
-| [B1730](testing/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low | — |
-| [B1731](testing/B1731-two-route-files-tell-a-caller.md) | Two route files tell a caller to POST /api/v1/{user}/import, and the dead-route guard skips every string in a route file | ISSUE | medium | low | — |
-| [B1733](testing/B1733-owner-email-is-patchable-with-an.md) | There is no way to hand a journal to another address, because owner.email is immutable and nothing can prove a new one | FEATURE | medium | medium | — |
-| [B1734](testing/B1734-the-v2-contract-documents-no-way.md) | The v2 contract documents no way to sign in, so /openapi.json cannot be retired | ISSUE | medium | medium | — |
-| [B1735](testing/B1735-the-visibility-explainer-shows-a-public.md) | The visibility explainer shows a Public badge on a Guests trip, and its ? sits below the badge | ISSUE | medium | low | — |
-| [B1738](testing/B1738-a-shared-contact-card-s-postal.md) | A shared contact card's postal address is dropped by the inbound parser | ISSUE | medium | low | — |
-| [B1740](testing/B1740-trip-page-hero-shows-no-picture.md) | Trip page hero shows no picture, and trip.cover is never used there | ISSUE | medium | low | — |
-| [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
-| [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
-| [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
-| [B1191](testing/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low | — |
-| [B1232](testing/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | low | low | — |
-| [B1266](testing/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low | — |
-| [B1413](testing/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low | — |
-| [B1415](testing/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low | — |
-| [B1426](testing/B1426-the-preview-s-istest-banner-has.md) | The preview's isTest banner has the same missing-context gap DraftNotice had | ISSUE | low | low | — |
-| [B1430](testing/B1430-a-failed-transcription-says-nothing-on.md) | A failed transcription says nothing, on the WhatsApp voice-note path | ISSUE | low | low | — |
-| [B1435](testing/B1435-day-media-s-two-phase-original.md) | day/media's two-phase original upload may have no live caller since the wizard retired | ISSUE | low | low | — |
-| [B1436](testing/B1436-deleting-the-wizard-s-tests-dropped.md) | deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip | ISSUE | low | low | — |
-| [B1445](testing/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
-| [B1453](testing/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low | — |
-| [B1532](testing/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium | — |
-| [B1566](testing/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | — |
-| [B1592](testing/B1592-units-metric-imperial-is-stored-and.md) | units (metric/imperial) is stored and editable but nothing converts by it | CHORE | low | low | — |
-| [B1648](testing/B1648-openapi-json-day-write-schema-omits.md) | openapi.json day write schema omits status from required though the server demands it | ISSUE | low | low | — |
-| [B1649](testing/B1649-trip-put-s-missing-buddies-message.md) | trip PUT's missing-buddies message gives no schema and no pointer to the invites endpoint | ISSUE | low | low | — |
-| [B1659](testing/B1659-helper-buy-room-spends-with-no.md) | helper buy_room spends with no idempotency ref, unlike the v2/web storage purchase door | ISSUE | low | low | — |
-| [B1671](testing/B1671-trip-write-path-auto-fills-declined.md) | Trip write path auto-fills declined.days without the caller ever declining it | ISSUE | low | low | — |
-| [B1672](testing/B1672-web-purchases-route-silently-accepts-a.md) | web purchases route silently accepts a bearer token despite its own cookie-only comment | ISSUE | low | low | — |
-| [B1678](testing/B1678-lib-trips-ts-new-is-a.md) | lib/trips.ts.new is a committed editor scratch file | CHORE | low | low | — |
-| [B1679](testing/B1679-nine-content-files-do-not-round.md) | Nine content files do not round-trip byte-identically through the serializers | ISSUE | low | low | — |
-| [B1696](testing/B1696-a-billed-whatsapp-send-has-no.md) | A billed WhatsApp send has no matching application log line | ISSUE | low | low | — |
-| [B1697](testing/B1697-b1232-s-authentication-template-blocker-no.md) | B1232's authentication-template blocker no longer blocks anything live | OPS | low | low | — |
-| [B1716](testing/B1716-missing-token-still-tells-every-v2.md) | missing_token still tells every v2 caller that /api/v1 needs a token | ISSUE | low | low | — |
-| [B1727](testing/B1727-a-stranger-opening-the-landing-page.md) | A stranger opening the landing page gets a 401 in their console | ISSUE | low | low | — |
+| [B1741](in-development/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | `47321abb` |
 
-## completed (1306)
+## testing (0)
+
+_Nothing here._
+
+## completed (1489)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -534,6 +351,7 @@ _Nothing here._
 | [B1063](completed/B1063-the-imprint-does-not-say-that.md) | The imprint does not say that a message sent to the WhatsApp number is read, stored and sent to Meta | DOCS | high | low |
 | [B1064](completed/B1064-a-journal-s-owner-is-proven.md) | A journal's owner is proven by an email alone, and an address costs nothing to make another of | FEATURE | high | high |
 | [B1065](completed/B1065-there-is-no-way-to-prove.md) | There is no way to prove that somebody holds the telephone number they typed | FEATURE | high | medium |
+| [B1067](completed/B1067-it-is-not-written-down-where.md) | It is not written down where this instance's telephone number comes from, or what one message costs | OPS | high | low |
 | [B1070](completed/B1070-the-three-ways-to-reach-this.md) | The three ways to reach this journal are not written down anywhere as three ways | DOCS | high | medium |
 | [B1075](completed/B1075-the-off-site-backup-has-never.md) | The off-site backup has never once succeeded, and the nightly run failed two days ago | OPS | high | low |
 | [B1076](completed/B1076-voice-recordings-are-sent-to-deepgram.md) | Voice recordings are sent to Deepgram without opting out of its model-training programme | SECURITY | high | low |
@@ -563,6 +381,7 @@ _Nothing here._
 | [B1126](completed/B1126-a-book-is-sent-to-gelato.md) | A book is sent to Gelato with a country name where it requires an ISO code | ISSUE | high | low |
 | [B1140](completed/B1140-a-built-book-offers-its-pdfs.md) | A built book offers its PDFs but no way through to the page that prints it | ISSUE | high | low |
 | [B1145](completed/B1145-the-print-panel-summarises-an-address.md) | The print panel summarises an address where it should show the envelope | FEATURE | high | low |
+| [B1146](completed/B1146-two-branches-in-flight-both-number.md) | Two branches in flight both number their migration 028, so the second to merge has two | CHORE | high | low |
 | [B1154](completed/B1154-a-key-that-can-write-to.md) | A key that can write to this journal for seven days is visible nowhere in the room | FEATURE | high | medium |
 | [B1157](completed/B1157-buying-a-photobook-is-two-purchases.md) | Buying a photobook is two purchases with the decision after the money | FEATURE | high | high |
 | [B1160](completed/B1160-on-a-phone-the-preview-sheet.md) | On a phone the preview sheet covers the Ask button, so a typed message cannot be sent | ISSUE | high | low |
@@ -627,12 +446,15 @@ _Nothing here._
 | [B1280](completed/B1280-the-helper-offers-to-add-a.md) | The helper offers to add a postcard recipient, then refuses and names a settings page that does not exist | ISSUE | high | low |
 | [B1282](completed/B1282-a-guest-confirming-their-invitation-silently.md) | A guest confirming their invitation silently deletes the postal address the owner entered for them | ISSUE | high | medium |
 | [B1284](completed/B1284-every-postcard-proposal-from-the-helper.md) | Every postcard proposal from the helper is refused, because it sends a name slug where a contact id is required | ISSUE | high | low |
+| [B1287](completed/B1287-the-send-button-says-it-prints.md) | The send button says it prints and posts real cards while the instance is set to render free samples and post none | ISSUE | high | low |
 | [B1301](completed/B1301-an-approved-reader-who-opens-a.md) | An approved reader who opens a buddy link is given write access to the trip with no owner decision, and told there is nothing to do | SECURITY | high | medium |
 | [B1302](completed/B1302-a-typed-button-label-is-not.md) | A typed button label is not a press, and a false saved-claim slips a session-wide guard | ISSUE | high | low |
 | [B1303](completed/B1303-a-new-chat-keeps-the-old.md) | A new chat keeps the old pending button, and the thread has no sense of time | ISSUE | high | low |
 | [B1304](completed/B1304-two-form-proposals-merge-into-one.md) | Two form proposals merge into one message with one button set | ISSUE | high | low |
 | [B1305](completed/B1305-trip-costs-hides-the-budget-and.md) | trip_costs hides the budget and publish_day offers a double publish | ISSUE | high | low |
 | [B1310](completed/B1310-the-whatsapp-door-is-invisible-to.md) | The WhatsApp door is invisible to anyone not already in their room | FEATURE | high | low |
+| [B1311](completed/B1311-a-config-json-written-as-root.md) | A config.json written as root takes the whole site down at the next build | OPS | high | low |
+| [B1313](completed/B1313-two-deploys-can-run-at-once.md) | Two deploys can run at once and leave the site down with a corrupt build cache and a detached HEAD | OPS | high | low |
 | [B1314](completed/B1314-the-whatsapp-doors-shipped-as-bare.md) | The WhatsApp doors shipped as bare text links instead of the chosen design | ISSUE | high | low |
 | [B1316](completed/B1316-twilio-sms-inbound-inbox-in-admin.md) | Twilio SMS - inbound inbox in admin, outbound sending, SMS signup fallback | FEATURE | high | medium |
 | [B1319](completed/B1319-guthaben-kaufen-points-at-me-instead.md) | Guthaben kaufen points at /me instead of the account page, whose design is unloved | ISSUE | high | medium |
@@ -663,11 +485,13 @@ _Nothing here._
 | [B1351](completed/B1351-the-phone-tab-bar-is-clipped.md) | The phone tab bar is clipped by the iPhone's rounded corners in the PWA | ISSUE | high | low |
 | [B1352](completed/B1352-recording-squeezes-four-labels-into-the.md) | Recording squeezes four labels into the composer row | ISSUE | high | low |
 | [B1353](completed/B1353-the-sheets-open-top-anchored-on.md) | The sheets open top-anchored on a phone and the credits entry still says Speicher | ISSUE | high | low |
+| [B1358](completed/B1358-the-guthaben-sheet-shows-no-numbers.md) | The Guthaben sheet shows no numbers in the installed PWA | ISSUE | high | low |
 | [B1359](completed/B1359-small-sheets-open-as-a-mostly.md) | Small sheets open as a mostly white full-height page | FEATURE | high | low |
 | [B1360](completed/B1360-the-phone-tab-bar-is-three.md) | The phone tab bar is three bare words with a dash of yellow | FEATURE | high | low |
 | [B1361](completed/B1361-the-installed-pwa-keeps-running-an.md) | The installed PWA keeps running an old build with nothing saying so | FEATURE | high | low |
 | [B1362](completed/B1362-helper-threads-writes-are-unordered-so.md) | helper_threads writes are unordered, so forget() can lose to an in-flight persist() | ISSUE | high | low |
 | [B1363](completed/B1363-a-stranger-who-takes-the-landing.md) | A stranger who takes the landing page's WhatsApp door is told to go away | FEATURE | high | high |
+| [B1369](completed/B1369-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low |
 | [B1370](completed/B1370-whatsapp-confirm-step-still-shows-the.md) | WhatsApp confirm step still shows the intro text above it | ISSUE | high | low |
 | [B1374](completed/B1374-opening-warum-pins-the-footer-tab.md) | Opening warum pins the footer tab bar mid-page and the consent text cannot scroll | ISSUE | high | medium |
 | [B1375](completed/B1375-agent-handover-sheet-cannot-be-scrolled.md) | Agent handover sheet cannot be scrolled or closed on mobile | ISSUE | high | medium |
@@ -686,17 +510,23 @@ _Nothing here._
 | [B1404](completed/B1404-a-matched-number-with-the-channel.md) | A matched number with the channel off gets silence instead of a fresh opt-in ask | ISSUE | high | medium |
 | [B1406](completed/B1406-a-book-with-no-recipient-is.md) | A book with no recipient is refused with the message for a book with no photographs | ISSUE | high | low |
 | [B1408](completed/B1408-an-en-dash-in-a-day.md) | An en dash in a day's words comes out as a blank gap in the book | ISSUE | high | low |
+| [B1410](completed/B1410-a-returning-identity-holder-s-buddy.md) | A returning identity-holder's buddy invite looks redeemed but the confirm step is never submitted | ISSUE | high | low |
+| [B1411](completed/B1411-a-payment-abandoned-at-stripe-leaves.md) | a payment abandoned at Stripe leaves the checkout page with no way to pay again | ISSUE | high | low |
 | [B142](completed/B142-a-mail-scanner-follows-the-welcome.md) | A mail scanner follows the welcome link, spending the owner's one-tap sign-in and minting a year-long session | SECURITY | high | medium |
 | [B1425](completed/B1425-a-photobook-is-sold-as-one.md) | A photobook is sold as one thing at one price, costed with VAT and a 50 percent margin | FEATURE | high | medium |
 | [B1429](completed/B1429-an-incremental-deploy-can-leave-a.md) | An incremental deploy can leave a stale client reference manifest and 500 a page | OPS | high | medium |
 | [B1439](completed/B1439-gelato-is-handed-the-owner-s.md) | Gelato is handed the owner's email address and can write to them directly | SECURITY | high | low |
+| [B1442](completed/B1442-a-day-started-in-the-room.md) | A day started in the room is titled with its own date, so every surface shows an ISO date | ISSUE | high | low |
+| [B1448](completed/B1448-an-honest-answer-that-promises-a.md) | An honest answer that promises a button next turn is caught as a claim about this one | ISSUE | high | medium |
 | [B1454](completed/B1454-a-refused-book-never-shows-that.md) | A refused book never shows that the credits came back, because the sentence is in an unreachable branch | ISSUE | high | low |
+| [B1462](completed/B1462-a-dispatched-agent-reaches-for-a.md) | A dispatched agent reaches for a background verify and strands itself, and no building skill warns it | DOCS | high | low |
 | [B1463](completed/B1463-a-photobook-order-and-a-postcard.md) | A photobook order and a postcard order are two pages with no shared vocabulary | FEATURE | high | medium |
 | [B1464](completed/B1464-there-is-nowhere-to-look-at.md) | There is nowhere to look at an order in the states a reader cannot reach | FEATURE | high | medium |
 | [B1465](completed/B1465-the-photobook-receipt-page-carries-its.md) | The photobook receipt page carries its own pill table and envelope markup | FEATURE | high | low |
 | [B1466](completed/B1466-the-photobook-buy-panel-duplicates-the.md) | The photobook buy panel duplicates the receipt's envelope, ledger and price lines | FEATURE | high | medium |
 | [B1467](completed/B1467-the-postcard-order-page-states-its.md) | The postcard order page states its own heading, intro and price in its own words | FEATURE | high | medium |
 | [B1470](completed/B1470-the-rebuilt-order-flows-have-not.md) | The rebuilt order flows have not been driven end to end on the live instance | OPS | high | medium |
+| [B1472](completed/B1472-the-dangling-reference-guard-matches-two.md) | The dangling-reference guard matches two and three digit ids, and every id since B1000 has four | ISSUE | high | low |
 | [B1479](completed/B1479-a-sent-postcard-order-still-shows.md) | A sent postcard order still shows the editing stepper instead of the order it has become | FEATURE | high | low |
 | [B1480](completed/B1480-the-experimental-print-warning-is-printed.md) | The experimental-print warning is printed twice on the same screen | ISSUE | high | low |
 | [B1481](completed/B1481-the-buy-panel-names-the-book.md) | The buy panel names the book but never shows it, and runs down one column on a 1280px screen | FEATURE | high | medium |
@@ -707,23 +537,102 @@ _Nothing here._
 | [B1489](completed/B1489-the-postcard-steps-on-a-phone.md) | The postcard steps on a phone are nothing like the drawing they were approved from | FEATURE | high | high |
 | [B1490](completed/B1490-a-proposal-opens-straight-into-the.md) | A proposal opens straight into the cropper with no card that says four cards are waiting | FEATURE | high | low |
 | [B1492](completed/B1492-an-owner-signed-in-on-their.md) | An owner signed in on their journal is asked to sign in again at /agent | ISSUE | high | low |
+| [B1498](completed/B1498-a-guest-or-buddy-who-signs.md) | A guest or buddy who signs up for their own journal is unverified territory | ISSUE | high | medium |
 | [B1499](completed/B1499-a-sent-postcard-order-says-the.md) | A sent postcard order says the cards are Shipped, and nothing has ever told us that | ISSUE | high | low |
 | [B1500](completed/B1500-tapping-a-photograph-opens-a-form.md) | Tapping a photograph opens a form asking what the flow is about to ask again | FEATURE | high | medium |
 | [B1501](completed/B1501-the-postcard-order-opens-on-a.md) | The postcard order opens on a card that stands between the owner and the first step | ISSUE | high | low |
 | [B1502](completed/B1502-the-two-gallery-actions-stack-one.md) | The two gallery actions stack one per line on a small phone, and the step bar wraps mid-row | ISSUE | high | low |
 | [B1505](completed/B1505-a-buddy-s-trip-scoped-agent.md) | A buddy's trip-scoped agent token cannot drive /agent at all | ISSUE | high | low |
 | [B1511](completed/B1511-the-message-on-the-back-preview.md) | The message on the back preview is far larger than the message that prints | ISSUE | high | medium |
+| [B1512](completed/B1512-the-sync-doors-have-never-been.md) | The sync doors have never been driven against the live instance or a real journal | OPS | high | medium |
 | [B1521](completed/B1521-the-budget-panel-projects-a-finished.md) | The budget panel projects a finished trip forward and fills unrecorded days with an average | ISSUE | high | medium |
 | [B1524](completed/B1524-the-photobook-composer-s-switches-do.md) | The photobook composer's switches do not match what they remove, and the cover is never shown | ISSUE | high | medium |
+| [B1529](completed/B1529-the-helper-bakes-to-2000px-before.md) | The helper bakes to 2000px before uploading, so every photobook is printed from a web-sized file | ISSUE | high | low |
 | [B153](completed/B153-a-journal-created-through-the-api.md) | A journal created through the API can never invite anybody, because contacts is off and nothing can turn it on | ISSUE | high | low |
+| [B1539](completed/B1539-ten-days-on-one-island-shared.md) | Ten days on one island shared one media folder and one slug, and two thirds of the photographs were lost | ISSUE | high | low |
 | [B1550](completed/B1550-transcription-trusts-caller-claimed-seconds-and.md) | Transcription trusts caller-claimed seconds and the top-up charge fails open | SECURITY | high | low |
 | [B1551](completed/B1551-any-route-buffers-512-mib-in.md) | Any route buffers 512 MiB in memory before auth runs; Caddy sets no request_body max_size | SECURITY | high | low |
 | [B1552](completed/B1552-email-code-endpoints-have-per-ip.md) | Email code endpoints have per-IP limits only — no per-recipient or per-instance cap | SECURITY | high | low |
 | [B1553](completed/B1553-test-usernames-skip-phone-proof-but.md) | test- usernames skip phone proof but still receive the 10-credit grant and 5 GB quota | SECURITY | high | low |
 | [B156](completed/B156-the-mcp-door-still-tells-an.md) | The MCP door still tells an agent that publishing means editing a file, two tools away from publish_day | ISSUE | high | low |
 | [B1560](completed/B1560-on-mobile-the-chat-page-scrolls.md) | On mobile, the chat page scrolls the whole document and the tab bar stops sticking | ISSUE | high | low |
+| [B1561](completed/B1561-a-day-publishes-empty-while-its.md) | A day publishes empty while its draft_words proposal is still unpressed | ISSUE | high | medium |
+| [B1562](completed/B1562-asking-for-a-preview-is-answered.md) | Asking for a preview is answered with a publish_day proposal | ISSUE | high | low |
+| [B1563](completed/B1563-the-helper-claims-descriptions-and-locations.md) | The helper claims descriptions and locations are on the page when the day carries none | ISSUE | high | medium |
 | [B1568](completed/B1568-signup-lets-a-proven-address-that.md) | Signup lets a proven address that already owns a journal walk through phone verification before refusing | ISSUE | high | low |
 | [B157](completed/B157-an-mcp-only-agent-cannot-mark.md) | An MCP-only agent cannot mark a single day as test content, because create_day has no test field | ISSUE | high | low |
+| [B1577](completed/B1577-six-hand-kept-key-lists-in.md) | Six hand-kept key lists in the helper mirror the instance, and nothing fails when one falls behind | FEATURE | high | high |
+| [B1585](completed/B1585-nothing-on-a-trip-a-day.md) | Nothing on a trip, a day, a photograph or the journal says who may read it, and changing that means knowing where the control hides | FEATURE | high | high |
+| [B1586](completed/B1586-correcting-a-caption-or-a-photograph.md) | Correcting a caption or a photograph's visibility from the day panel is refused, and takes the rest of the save down with it | ISSUE | high | low |
+| [B1587](completed/B1587-api-v2-document-oriented-required-or.md) | API v2: document-oriented, required-or-declined contract (phase 0: Zod schemas) | FEATURE | high | high |
+| [B1590](completed/B1590-next-generated-route-types-reject-helper.md) | Next generated route types reject helper exports from two route modules | ISSUE | high | low |
+| [B1596](completed/B1596-v2-plumbing-route-helper-incomplete-422.md) | v2 plumbing: route helper, incomplete-422, dryRun, ETag, request log, import boundary, md serializer | CHORE | high | medium |
+| [B1597](completed/B1597-v2-tripdoc-costs-has-no-home.md) | v2 tripDoc.costs has no home for costs.md's preparation cost lines or its prose | ISSUE | high | low |
+| [B1598](completed/B1598-v2-canonical-files-are-unreadable-by.md) | v2-canonical files are unreadable by lib/entries.ts and lib/trips.ts — the render layer has no step in the build order | FEATURE | high | high |
+| [B1600](completed/B1600-v2-auth-one-codes-door-links.md) | v2 auth: one codes door, links redeem, keys, handover mint moved — and the six v1 code routes deleted | CHORE | high | high |
+| [B1601](completed/B1601-day-translations-demand-both-title-and.md) | Day translations demand both title and content; nine real days translate only the body | ISSUE | high | low |
+| [B1603](completed/B1603-journal-and-trip-exports-drop-the.md) | Journal and trip exports drop the original photo/video files | ISSUE | high | medium |
+| [B1604](completed/B1604-a-day-whose-prose-begins-with.md) | A day whose prose begins with three hyphens loses everything up to the next fence | ISSUE | high | low |
+| [B1605](completed/B1605-dryrun-fails-in-the-direction-that.md) | dryRun fails in the direction that writes — a mis-cased parameter performs the write it was asked to preview | ISSUE | high | low |
+| [B1606](completed/B1606-content-on-disk-becomes-json-the.md) | Content on disk becomes JSON — the document, stored as itself | CHORE | high | medium |
+| [B1607](completed/B1607-documentation-txt-tells-agents-to-call.md) | documentation.txt tells agents to call the eight auth routes that no longer exist | ISSUE | high | medium |
+| [B1608](completed/B1608-v2-core-documents-the-shared-write.md) | v2 core documents: the shared write path, journal, status, geocode | CHORE | high | high |
+| [B1609](completed/B1609-the-figures-library-walking-figures-become.md) | The figures library: walking figures become journal-level documents with ids | FEATURE | high | high |
+| [B1612](completed/B1612-v2-trips-and-days-the-whole.md) | v2 trips and days: the whole-document routes, publish, unpublish and one send door | CHORE | high | high |
+| [B1613](completed/B1613-v2-media-one-door-per-kind.md) | v2 media: one door, per-kind intents, content-addressed src and day-less trip writes | CHORE | high | high |
+| [B1615](completed/B1615-v2-trip-routes-answer-no-such.md) | v2 trip routes answer no_such_journal before authenticating, so an anonymous caller can enumerate usernames | SECURITY | high | low |
+| [B1616](completed/B1616-a-solo-trip-that-declined-buddies.md) | A solo trip that declined buddies can never add people, and a public trip can never be narrowed | ISSUE | high | medium |
+| [B1617](completed/B1617-the-v2-day-route-never-checked.md) | The v2 day route never checked the weather capability, so a journal with it off stored the request anyway | SECURITY | high | low |
+| [B1618](completed/B1618-v2-publish-send-routes-call-senddayletter.md) | v2 publish/send routes call sendDayLetter/sendDayWhatsapp with the wrong slug shape, so a requested send always answers unknown_day | ISSUE | high | medium |
+| [B1621](completed/B1621-v2-creates-stopped-telling-an-agent.md) | v2 creates stopped telling an agent what comes next — B311's chain was broken by the migration | ISSUE | high | low |
+| [B1622](completed/B1622-v2-long-tail-money-purchases-ledger.md) | v2 long tail: money — purchases, ledger, storage | CHORE | high | high |
+| [B1623](completed/B1623-v2-long-tail-social-invites-contacts.md) | v2 long tail: social — invites, contacts, channels | CHORE | high | high |
+| [B1624](completed/B1624-v2-long-tail-print-and-inbox.md) | v2 long tail: print and inbox — postcards, photobooks, statements, inbox, journals | CHORE | high | high |
+| [B1625](completed/B1625-a-trip-or-day-accepts-translations.md) | A trip or day accepts translations in a locale the journal does not declare — the schema says the route refuses it and no route does | ISSUE | high | low |
+| [B1628](completed/B1628-day-translations-accept-a-duplicated-written.md) | Day translations accept a duplicated written language and a partial locale set | ISSUE | high | medium |
+| [B1629](completed/B1629-b560-s-zero-spend-day-reads.md) | B560's zero-spend day reads as unrecorded, overstating the costs average | ISSUE | high | low |
+| [B1630](completed/B1630-fifty-test-files-hand-write-the.md) | Fifty test files hand-write the storage format; there is no shared content fixture | CHORE | high | high |
+| [B1631](completed/B1631-a-section-that-already-has-a.md) | A section that already has a value can never be declined — T6 has no symmetric rule | ISSUE | high | medium |
+| [B1633](completed/B1633-the-drafts-list-reports-a-slug.md) | The drafts list reports a slug the v2 day route cannot address | ISSUE | high | low |
+| [B1634](completed/B1634-a-trip-created-through-v2-cannot.md) | A trip created through v2 cannot be deleted through v2 — DELETE resolves it with the v1 reader | ISSUE | high | low |
+| [B1636](completed/B1636-the-conversion-dropped-every-trip-rate.md) | The conversion dropped every trip rate, and three trips cannot be expressed in v2 at all | ISSUE | high | medium |
+| [B1637](completed/B1637-photo-ingest-still-writes-markdown-so.md) | Photo ingest still writes markdown, so a day it creates is invisible to the readers | ISSUE | high | low |
+| [B1638](completed/B1638-tripreminder-splices-a-trip-md-that.md) | tripReminder splices a trip.md that new trips no longer have | ISSUE | high | low |
+| [B1640](completed/B1640-drafts-leaked-into-the-open-to.md) | Drafts leaked into the open-to-link export because the draft check still looked for .md | SECURITY | high | low |
+| [B1641](completed/B1641-createtrip-wrote-people-and-every-trip.md) | createTrip wrote people: [] and every trip created without people became unreadable | ISSUE | high | low |
+| [B1643](completed/B1643-content-example-is-not-v2-canonical.md) | content/example is not v2-canonical and demonstrates only part of the contract | CHORE | high | high |
+| [B1645](completed/B1645-a-day-whose-weather-the-server.md) | A day whose weather the server fetched cannot be read back — dayDoc reuses the write shape's reserved-source refusal | ISSUE | high | low |
+| [B1647](completed/B1647-costs-apply-on-a-trip-cannot.md) | costs/apply on a trip cannot find days written through the day-write endpoint | ISSUE | high | medium |
+| [B1651](completed/B1651-get-a-credential-drives-auth-routes.md) | get-a-credential drives auth routes that no longer exist, so the documented way in 404s | CHORE | high | low |
+| [B1652](completed/B1652-get-api-v2-user-leaks-owner.md) | GET /api/v2/{user} leaks owner.email and the whole journal document to a trip-scoped token | SECURITY | high | low |
+| [B1667](completed/B1667-trip-translations-section-is-required-even.md) | Trip translations section is required even on single-locale journals, contradicting decision and its own schema comment | ISSUE | high | low |
+| [B1668](completed/B1668-trip-422-tells-a-caller-to.md) | Trip 422 tells a caller to declined.teaser, a key the schema refuses | ISSUE | high | low |
+| [B1673](completed/B1673-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | low |
+| [B1674](completed/B1674-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | medium |
+| [B1675](completed/B1675-docs-api-renders-the-v1-contract.md) | /docs/api renders the v1 contract, not v2 | ISSUE | high | low |
+| [B1680](completed/B1680-the-owner-s-own-journal-is.md) | The owner's own journal is unreadable on the live instance: its trips are still trip.md | ISSUE | high | medium |
+| [B1682](completed/B1682-the-deploy-never-copies-content-example.md) | The deploy never copies content/example/figures, so a rebuilt box serves no demo journal | OPS | high | low |
+| [B1683](completed/B1683-live-instance-serves-500-on-three.md) | Live instance serves 500 on three document routes: the build and node_modules disagree about sharp | OPS | high | low |
+| [B1685](completed/B1685-a-photograph-attached-through-the-media.md) | A photograph attached through the media door never reaches the day it names | ISSUE | high | medium |
+| [B1691](completed/B1691-a-full-deploy-leaves-a-root.md) | A full deploy leaves a root-owned restic lock, so every later nightly backup is refused | OPS | high | low |
+| [B1694](completed/B1694-api-health-reports-signup-enabled-while.md) | api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate | ISSUE | high | medium |
+| [B1700](completed/B1700-content-model-json-still-describes-v1.md) | content-model.json still describes v1 content — md filenames, frontmatter prose, start/end, no declined | ISSUE | high | high |
+| [B1702](completed/B1702-everything-but-fernscout-runs-as-root.md) | Everything but Fernscout runs as root on the VPS, and SSH takes passwords with nothing throttling it | OPS | high | medium |
+| [B1705](completed/B1705-ci-on-main-is-red-three.md) | CI on main is red: three independent breakages in the test and backup-drill jobs | ISSUE | high | low |
+| [B1706](completed/B1706-a-root-owned-restic-lock-silently.md) | A lock the service user cannot read fails the whole nightly backup, and only a person can clear it | ISSUE | high | low |
+| [B1708](completed/B1708-an-owner-s-own-journal-disappears.md) | An owner's own journal disappears from Your journals while it has no trips | ISSUE | high | low |
+| [B1710](completed/B1710-an-unattended-nodejs-upgrade-on-the.md) | An unattended nodejs upgrade on the VPS moved past the repo's exact Node pin and every deploy fails at the build guard | OPS | high | low |
+| [B1711](completed/B1711-the-landing-page-and-readme-do.md) | The landing page and README do not sell what Fernscout actually does | FEATURE | high | medium |
+| [B1713](completed/B1713-a-day-written-through-api-v2.md) | A day written through /api/v2 gets no weather until the next night, and the owner never knew a nightly sweep was what filled it | ISSUE | high | medium |
+| [B1714](completed/B1714-the-v2-contract-declares-openapi-3.md) | The v2 contract declares OpenAPI 3.1.0 and emits request where the specification says requestBody, so no standard tool sees a body on any write | ISSUE | high | low |
+| [B1715](completed/B1715-fernscout-helper-cannot-reach-this-instance.md) | fernscout-helper cannot reach this instance at all since v2, and its own self-test reports green | FEATURE | high | high |
+| [B1717](completed/B1717-the-landing-page-describes-the-chat.md) | The landing page describes the chat, the postcard and the book instead of showing them | FEATURE | high | medium |
+| [B1718](completed/B1718-a-reader-who-finishes-the-demo.md) | A reader who finishes the demo journal has no way to start one of their own | FEATURE | high | medium |
+| [B1719](completed/B1719-sync-leaves-the-full-resolution-originals.md) | Sync leaves the full-resolution originals on the server, so a pull restores the journal at a quarter of the pixels | FEATURE | high | low |
+| [B1729](completed/B1729-caddy-rewrites-the-etag-when-it.md) | Caddy rewrites the ETag when it compresses, so no client that accepts gzip can ever send a matching If-Match | ISSUE | high | low |
+| [B1732](completed/B1732-a-day-the-server-looked-the.md) | A day the server looked the weather up for cannot be written back, so a mirrored folder refuses on every correction | ISSUE | high | low |
+| [B1736](completed/B1736-a-press-from-whatsapp-says-here.md) | A press from WhatsApp says Here is the link and sends no link | ISSUE | high | low |
+| [B1737](completed/B1737-a-shared-contact-card-is-saved.md) | A shared contact card is saved and then denied - nothing tells the model it is waiting | ISSUE | high | medium |
 | [B18](completed/B18-a-planned-trip-s-map-page.md) | A planned trip's map page draws no map | ISSUE | high | low |
 | [B196](completed/B196-test-mail-test-ts-fails-on.md) | test/mail.test.ts fails on main — a kept-mail sweep test broke when the journal mail switch landed | ISSUE | high | low |
 | [B197](completed/B197-an-unreadable-content-root-switches-every.md) | An unreadable content root switches every journal's mail off instead of warning | ISSUE | high | low |
@@ -784,6 +693,7 @@ _Nothing here._
 | [B384](completed/B384-a-guest-the-owner-adds-by.md) | A guest the owner adds by hand is a dead end: a bare code, no link, no way to be approved | ISSUE | high | medium |
 | [B393](completed/B393-photographs-cannot-be-added-to-a.md) | Photographs cannot be added to a published day, and the refusal tells the agent to ask somebody who has no way to do it | ISSUE | high | medium |
 | [B401](completed/B401-nightly-backups-have-been-failing-since.md) | Nightly backups have been failing since two unreadable config.json.bak files appeared in the content root | OPS | high | low |
+| [B403](completed/B403-the-whatsapp-channel-is-configured-but.md) | The WhatsApp channel is configured but has never delivered a real announcement | OPS | high | medium |
 | [B406](completed/B406-the-invite-form-swallows-a-refusal.md) | The invite form swallows a refusal, so a reader clicks join and nothing at all happens | ISSUE | high | low |
 | [B410](completed/B410-a-reader-s-access-is-trapped.md) | A reader's access is trapped in one journal's cookie, so the instance cannot tell them what they may open | FEATURE | high | high |
 | [B411](completed/B411-the-root-page-shows-a-stranger.md) | The root page shows a stranger's welcome to somebody who is signed in and holds three journals | FEATURE | high | medium |
@@ -1102,6 +1012,7 @@ _Nothing here._
 | [B1300](completed/B1300-with-one-day-of-costs-the.md) | With one day of costs the bar chart is a full-width block and the running total draws nothing | ISSUE | medium | low |
 | [B1306](completed/B1306-three-model-habits-dropping-the-rest.md) | Three model habits: dropping the rest of a request, asserting absent capabilities, inventing tool prices | ISSUE | medium | low |
 | [B1309](completed/B1309-a-softcover-gets-no-spine-text.md) | A softcover gets no spine text even where the spine is wide enough for one | ISSUE | medium | low |
+| [B1312](completed/B1312-a-restart-with-no-rebuild-strands.md) | A restart with no rebuild strands the service, and a corrupted Turbopack cache fails the build until cleared | OPS | medium | low |
 | [B1318](completed/B1318-the-two-leaves-gelato-requires-are.md) | The two leaves Gelato requires are blank, so prepress calls them a fault | ISSUE | medium | low |
 | [B1325](completed/B1325-the-hero-buttons-stack-on-desktop.md) | The hero buttons stack on desktop and the agent page changes colour below the fold | ISSUE | medium | low |
 | [B1334](completed/B1334-the-install-hint-is-off-centre.md) | The install hint is off-centre and explains nothing about how | ISSUE | medium | low |
@@ -1127,7 +1038,10 @@ _Nothing here._
 | [B1403](completed/B1403-nothing-an-outside-agent-reads-says.md) | Nothing an outside agent reads says weatherData is written by the server, so a filled block reads as fabricated | DOCS | medium | low |
 | [B1405](completed/B1405-the-first-book-flow-quotes-a.md) | The first-book flow quotes a price before the recipient is known, so the figure can change before the press | ISSUE | medium | low |
 | [B1407](completed/B1407-a-photograph-too-small-to-fill.md) | A photograph too small to fill its slot sits at the foot of the page instead of in the space it has | ISSUE | medium | medium |
+| [B1409](completed/B1409-the-chevron-on-a-dropdown-jumps.md) | The chevron on a dropdown jumps from under the label to the right edge when the picker opens | ISSUE | medium | low |
 | [B141](completed/B141-ingest-disambiguates-a-colliding-slug-only.md) | Ingest disambiguates a colliding slug only within one date, so two days can still shadow each other | ISSUE | medium | low |
+| [B1416](completed/B1416-the-files-rail-chip-downloads-uncapped.md) | The files-rail chip downloads uncapped photographs for a 42px avatar | ISSUE | medium | low |
+| [B1417](completed/B1417-inbox-file-thumbnails-download-uncapped-photographs.md) | Inbox file thumbnails download uncapped photographs for a 96px tile | ISSUE | medium | low |
 | [B1418](completed/B1418-the-open-mobile-menu-gives-no.md) | The open mobile menu gives no sign that it scrolls | ISSUE | medium | low |
 | [B1421](completed/B1421-on-a-phone-the-photobook-preview.md) | On a phone the photobook preview is two pages wide and too small to read | FEATURE | medium | medium |
 | [B1428](completed/B1428-a-book-bought-before-the-one.md) | A book bought before the one-price change would be charged the whole price again to print it | ISSUE | medium | low |
@@ -1135,19 +1049,27 @@ _Nothing here._
 | [B1437](completed/B1437-a-book-that-was-never-printed.md) | A book that was never printed is recorded as printed, because the status means built | ISSUE | medium | medium |
 | [B144](completed/B144-enterworktree-refuses-for-a-dispatched-subagent.md) | EnterWorktree refuses for a dispatched subagent, so work-on-a-task's second step cannot be followed | DOCS | medium | low |
 | [B1440](completed/B1440-nothing-tells-the-owner-their-book.md) | Nothing tells the owner their book was printed or posted, or gives them the tracking code | FEATURE | medium | medium |
+| [B1444](completed/B1444-an-honesty-guard-s-replacement-sentence.md) | An honesty guard's replacement sentence is rendered twice around the card it replaces | ISSUE | medium | low |
 | [B145](completed/B145-task-stamps-record-only-a-date.md) | Task stamps record only a date, and nothing says which agent is on it | CHORE | medium | low |
 | [B1450](completed/B1450-the-thread-re-sends-its-whole.md) | The thread re-sends its whole 10,800-token prefix on every round | CHORE | medium | low |
 | [B1451](completed/B1451-the-printer-s-status-is-shown.md) | The printer's status is shown as a raw English API word instead of a readable state | FEATURE | medium | low |
 | [B1452](completed/B1452-an-owner-cannot-see-the-status.md) | An owner cannot see the status of their photobook and postcard orders in one place | FEATURE | medium | medium |
+| [B1456](completed/B1456-the-landing-page-still-pastes-people.md) | The landing page still pastes people at the full guide, which is now a redirect to an index | ISSUE | medium | low |
 | [B1457](completed/B1457-a-refused-book-sends-the-reader.md) | A refused book sends the reader to a page to re-order instead of just saying try again | CHORE | medium | low |
 | [B1458](completed/B1458-the-order-page-does-not-say.md) | The order page does not say who the book is going to | FEATURE | medium | low |
 | [B1460](completed/B1460-b1450-s-acceptance-cannot-be-checked.md) | B1450's acceptance cannot be checked, because nothing keeps the two numbers it names | CHORE | medium | low |
 | [B1461](completed/B1461-the-photobook-receipt-page-never-says.md) | The photobook receipt page never says what the book cost | FEATURE | medium | low |
 | [B1468](completed/B1468-legacy-left-behind-once-both-order.md) | Legacy left behind once both order surfaces share one element | CHORE | medium | low |
 | [B1469](completed/B1469-a-photobook-order-has-no-picture.md) | A photobook order has no picture of the book it is an order for | FEATURE | medium | medium |
+| [B1471](completed/B1471-the-messenger-number-is-printed-for.md) | The messenger number is printed for a person to dial in a form only a machine can use | ISSUE | medium | low |
+| [B1474](completed/B1474-sixty-nine-strings-are-shipped-to.md) | Sixty-nine strings are shipped to Hungarian readers in English, including the whole of an order's status | ISSUE | medium | low |
+| [B1476](completed/B1476-a-trip-marked-upcoming-says-where.md) | A trip marked upcoming says Where we have been, because one day names a place | ISSUE | medium | low |
 | [B1484](completed/B1484-stannp-has-no-inbound-webhook-route.md) | Stannp has no inbound webhook route, unlike every other print/message provider | ISSUE | medium | medium |
 | [B1485](completed/B1485-the-composer-s-two-columns-are.md) | The composer's two columns are mirrored from the drawing they were built to | ISSUE | medium | low |
+| [B1491](completed/B1491-the-deletion-mail-has-no-rate.md) | The deletion mail has no rate limit on any of its three callers | SECURITY | medium | low |
+| [B1493](completed/B1493-the-landing-page-lists-no-journals.md) | The landing page lists no journals for a reader holding only a journal cookie | ISSUE | medium | low |
 | [B1495](completed/B1495-a-journal-can-be-synced-down.md) | A journal can be synced down to a folder and back up, incrementally | FEATURE | medium | high |
+| [B1503](completed/B1503-a-media-file-belonging-to-no.md) | A media file belonging to no day cannot be written through any door | ISSUE | medium | low |
 | [B1506](completed/B1506-test-a-feature-has-no-isolated.md) | test-a-feature has no isolated CONTENT_DIR, so a local run writes into the tracked demo journal | CHORE | medium | medium |
 | [B1507](completed/B1507-owner-new-onboard-whatsapp-assumes-a.md) | owner-new-onboard-whatsapp assumes a draft appears without completing WhatsApp onboarding | CHORE | medium | low |
 | [B1509](completed/B1509-revolut-s-other-csv-the-account.md) | Revolut's other CSV — the account statement — is refused as unknown_format | FEATURE | medium | low |
@@ -1157,9 +1079,14 @@ _Nothing here._
 | [B1517](completed/B1517-draw-the-travellers-from-a-photograph.md) | Draw the travellers from a photograph the owner already has | FEATURE | medium | medium |
 | [B1518](completed/B1518-publish-drops-teaser-in-silence.md) | fernscout-helper's publish drops teaser in silence, so a closed trip never appears on /trips | ISSUE | medium | low |
 | [B1519](completed/B1519-transportmode-has-no-metro-or-underground.md) | transportMode has no metro or underground, so a city day is recorded as a train | FEATURE | medium | low |
+| [B1520](completed/B1520-two-days-with-the-same-title-collide.md) | Two days with the same title collide at publish with 409, and nothing catches it first | ISSUE | medium | low |
+| [B1522](completed/B1522-a-day-that-plainly-moved-and.md) | A day that plainly moved and carries no transportMode draws no leg, and only a tip says so | FEATURE | medium | low |
+| [B1525](completed/B1525-publish-never-sends-cover-and-its.md) | publish never sends cover, and its SKILL.md still says eight trip fields have no door | ISSUE | medium | low |
 | [B1526](completed/B1526-the-journals-own-walking-figures-cannot.md) | The journal's own walking figures cannot be set at all over the API | ISSUE | medium | low |
 | [B1533](completed/B1533-send-the-largest-file-you-have.md) | \"Send the largest file you have\" is true, load-bearing, and buried where no uploader reads it | DOCS | medium | low |
+| [B1534](completed/B1534-nothing-ever-asks-who-was-on.md) | Nothing ever asks who was on the trip, so people stays empty and the journal has one byline | ISSUE | medium | low |
 | [B154](completed/B154-the-readme-describes-a-scroll-driven.md) | The README describes a scroll-driven map and a photo journal without showing one | CHORE | medium | low |
+| [B1541](completed/B1541-there-is-no-dark-mode-the.md) | There is no dark mode; the whole app is cream and yellow at 2am | FEATURE | medium | high |
 | [B1544](completed/B1544-the-spine-appends-the-year-to.md) | The spine appends the year to a title that already carries one, and the owner cannot say otherwise | FEATURE | medium | low |
 | [B1548](completed/B1548-poll-stannp-for-a-card-s.md) | Poll Stannp for a card's status when the order page is opened | FEATURE | medium | low |
 | [B1549](completed/B1549-the-order-receipt-says-the-photobook.md) | The order receipt says the photobook is on its way when it has only reached the printer's queue | ISSUE | medium | low |
@@ -1167,6 +1094,9 @@ _Nothing here._
 | [B1554](completed/B1554-api-upload-path-never-enforces-imageedge.md) | API upload path never enforces imageEdge; pixel bombs bounded only by sharp defaults and HEIC fallback unbounded | SECURITY | medium | medium |
 | [B1555](completed/B1555-submitbuiltbook-refunds-before-claiming-the-failure.md) | submitBuiltBook refunds before claiming the failure — double refund race with the Gelato webhook | SECURITY | medium | low |
 | [B1556](completed/B1556-storage-quota-is-check-then-write.md) | Storage quota is check-then-write — parallel uploads pass the ceiling arbitrarily | SECURITY | medium | medium |
+| [B1564](completed/B1564-attach-files-leaves-photos-listed-as.md) | attach_files leaves photos listed as unrecorded after filling the gallery | ISSUE | medium | low |
+| [B1565](completed/B1565-a-failed-guard-retry-lands-on.md) | A failed guard retry lands on a dead-end fallback sentence | ISSUE | medium | low |
+| [B1567](completed/B1567-pressing-start-day-twice-succeeds-twice.md) | Pressing start_day twice succeeds twice | ISSUE | medium | low |
 | [B1569](completed/B1569-publish-hardcodes-nine-journal-profile-keys.md) | publish hardcodes nine journal profile keys, so ownerTel and travellers are dropped in silence | ISSUE | medium | low |
 | [B1572](completed/B1572-a-long-inbox-document-filename-pushes.md) | A long inbox document filename pushes the Dateien tab into horizontal scroll | ISSUE | medium | low |
 | [B1573](completed/B1573-the-room-s-preview-and-verlauf.md) | The room's preview and Verlauf > Tage only ever show the newest trip | FEATURE | medium | medium |
@@ -1174,11 +1104,53 @@ _Nothing here._
 | [B1576](completed/B1576-tapping-a-choose-block-option-fills.md) | Tapping a choose-block option fills the field and raises the keyboard instead of sending | ISSUE | medium | low |
 | [B1578](completed/B1578-three-day-fields-the-instance-accepts.md) | Three day fields the instance accepts are never sent, so a timezone, a handed-over weather reading and a day's visibility stay on the laptop | ISSUE | medium | low |
 | [B1579](completed/B1579-a-day-s-timezone-accepts-a.md) | A day's timezone accepts a fixed offset, which has no daylight saving, while the refusal says it will not | ISSUE | medium | low |
+| [B1582](completed/B1582-health-and-contentmodel-never-create-their.md) | health and contentModel never create their cache directory, so a missing one reads as an unreachable server | ISSUE | medium | low |
+| [B1589](completed/B1589-photobook-prints-the-written-language-entry.md) | Photobook language leaves trip text and fallback labels untranslated | ISSUE | medium | medium |
 | [B159](completed/B159-a-contact-request-answers-every-token.md) | A contact request answers every token identically but takes ten times longer for a live one | SECURITY | medium | low |
+| [B1591](completed/B1591-the-visibility-badge-s-explainer-and.md) | The visibility badge's explainer and its chooser both push the page open instead of floating above it | FEATURE | medium | medium |
 | [B16](completed/B16-the-day-photo-viewer-does-not.md) | The day photo viewer does not answer to touch and never says where you are | ISSUE | medium | low |
 | [B160](completed/B160-a-one-time-code-endpoint-answers.md) | A one-time code endpoint answers 202 when the server cannot send mail at all | ISSUE | medium | low |
+| [B1602](completed/B1602-every-trip-in-example-must-decline.md) | Every trip in example must decline figures — inline travellers have no path into the figure library | ISSUE | medium | low |
+| [B1610](completed/B1610-analytics-visitors-asserts-a-hash-does.md) | analytics-visitors asserts a hash does not contain a substring — it fails by chance | ISSUE | medium | low |
+| [B1619](completed/B1619-v2-s-day-translations-field-has.md) | v2's day translations field has no journal-locale check at all, unlike v1's | ISSUE | medium | medium |
+| [B1626](completed/B1626-v2-merge-patch-has-no-way.md) | v2 merge-patch has no way to clear a scalar back to absent, and cover is never checked against the trip's own media | ISSUE | medium | medium |
+| [B1635](completed/B1635-the-approval-link-carries-a-credit.md) | The approval link carries a credit-granting token in the page URL, where logs and Referer can see it | SECURITY | medium | medium |
+| [B1639](completed/B1639-a-trip-patch-silently-drops-any.md) | A trip PATCH silently drops any key the model does not carry, where v1 surfaced them as unknownFields | ISSUE | medium | low |
+| [B1642](completed/B1642-known-trip-fields-and-the-journals.md) | KNOWN_TRIP_FIELDS and the journals field-coverage test still speak v1's vocabulary | ISSUE | medium | medium |
 | [B165](completed/B165-turning-the-costs-capability-off.md) | Turning the costs capability off leaves the costs pages fully rendered | ISSUE | medium | low |
+| [B1653](completed/B1653-the-me-settings-page-still-draws.md) | The /me settings page still draws inputs for two fields v2 dropped, so typing in them does nothing | ISSUE | medium | low |
+| [B1654](completed/B1654-ownertel-has-no-v2-home-so.md) | ownerTel has no v2 home, so retiring the v1 config route would strand every WhatsApp feature | FEATURE | medium | low |
+| [B1656](completed/B1656-the-helper-s-photo-gallery-and.md) | The helper's photo-gallery and inbox writes hit B1650's same wall — v2 has no gallery-attach at all | FEATURE | medium | high |
+| [B1657](completed/B1657-day-media-s-files-branch-upload.md) | day/media's files-branch upload bypasses the storage quota | ISSUE | medium | low |
+| [B1660](completed/B1660-create-trip-edit-trip-never-ask.md) | create_trip/edit_trip never ask v2's TRIP_DECLINABLES (rates, costs, plan, translations, accent, figures, tagline, intro) | FEATURE | medium | high |
+| [B1663](completed/B1663-five-credit-spending-paths-mint-a.md) | Five credit-spending paths mint a fresh ref per call, so a retry charges again | ISSUE | medium | medium |
+| [B1665](completed/B1665-agent-work-consumes-avoidable-context-and.md) | Agent work consumes avoidable context and verification time without measured quality feedback | CHORE | medium | high |
+| [B1666](completed/B1666-finish-decision-5-journal-level-features.md) | Finish decision 5: journal-level features and manualRates are still read by live code | CHORE | medium | high |
+| [B1669](completed/B1669-photo-visibility-and-reminder-channel-enums.md) | Photo visibility and reminder-channel enums are hand-typed in multiple v2 schema files instead of imported | CHORE | medium | low |
+| [B1670](completed/B1670-several-v2-migration-docs-and-code.md) | Several v2-migration docs and code comments describe a pre-migration state that no longer exists | DOCS | medium | low |
+| [B1676](completed/B1676-content-model-json-advertises-v1-write.md) | content-model.json advertises v1 write doors and retired journal fields | ISSUE | medium | low |
+| [B1677](completed/B1677-runtime-responses-name-v1-routes-that.md) | Runtime responses name v1 routes that were deleted | ISSUE | medium | low |
+| [B1684](completed/B1684-the-demo-journal-s-lisbon-trip.md) | The demo journal's Lisbon trip names photographs that do not exist, and nothing checks that a media src resolves | ISSUE | medium | low |
+| [B1686](completed/B1686-the-signup-wizard-holds-a-bearer.md) | The signup wizard holds a bearer token in a browser | ISSUE | medium | medium |
+| [B1687](completed/B1687-the-publish-route-sends-the-day.md) | The publish route sends the day letter with no channel claim, so two concurrent publishes mail it twice | ISSUE | medium | low |
+| [B1693](completed/B1693-signup-is-an-on-off-switch.md) | Signup is an on/off switch, so an instance cannot be open to a named few | FEATURE | medium | medium |
+| [B1695](completed/B1695-b403-s-account-of-never-having.md) | B403's account of never having delivered a WhatsApp announcement is stale | OPS | medium | low |
+| [B1698](completed/B1698-the-deploy-s-own-backup-line.md) | The deploy's own backup line is blank because it reads health unauthenticated | ISSUE | medium | low |
 | [B17](completed/B17-how-a-trip-gets-its-rates.md) | How a trip gets its rates is written down nowhere a person will find it | CHORE | medium | low |
+| [B1709](completed/B1709-analytics-on-a-trip-with-nothing.md) | Analytics on a trip with nothing measured says the trip was taken down | ISSUE | medium | low |
+| [B1720](completed/B1720-the-v2-contract-declares-no-path.md) | The v2 contract declares no path parameters, so a generated client cannot fill {user} or {trip} | ISSUE | medium | medium |
+| [B1721](completed/B1721-the-roadmap-page-is-a-2.md) | The roadmap page is a 2.5 MB dump of 1,546 hidden ticket rows, and never shows how big anything is | FEATURE | medium | medium |
+| [B1722](completed/B1722-the-hero-chat-has-finished-animating.md) | The hero chat has finished animating before it is scrolled to, and the photobook drawing does not read as a book | ISSUE | medium | low |
+| [B1724](completed/B1724-the-demo-journal-asks-readers-to.md) | The demo journal asks readers to subscribe to notifications from a journal that is not theirs | ISSUE | medium | low |
+| [B1726](completed/B1726-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
+| [B1728](completed/B1728-the-back-arrow-means-two-different.md) | The back arrow means two different things and the reader cannot tell which | ISSUE | medium | medium |
+| [B1730](completed/B1730-the-media-route-re-sends-every.md) | The media route re-sends every photograph hourly and reads each file whole into memory | ISSUE | medium | low |
+| [B1731](completed/B1731-two-route-files-tell-a-caller.md) | Two route files tell a caller to POST /api/v1/{user}/import, and the dead-route guard skips every string in a route file | ISSUE | medium | low |
+| [B1733](completed/B1733-owner-email-is-patchable-with-an.md) | There is no way to hand a journal to another address, because owner.email is immutable and nothing can prove a new one | FEATURE | medium | medium |
+| [B1734](completed/B1734-the-v2-contract-documents-no-way.md) | The v2 contract documents no way to sign in, so /openapi.json cannot be retired | ISSUE | medium | medium |
+| [B1735](completed/B1735-the-visibility-explainer-shows-a-public.md) | The visibility explainer shows a Public badge on a Guests trip, and its ? sits below the badge | ISSUE | medium | low |
+| [B1738](completed/B1738-a-shared-contact-card-s-postal.md) | A shared contact card's postal address is dropped by the inbound parser | ISSUE | medium | low |
+| [B1740](completed/B1740-trip-page-hero-shows-no-picture.md) | Trip page hero shows no picture, and trip.cover is never used there | ISSUE | medium | low |
 | [B177](completed/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium |
 | [B178](completed/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low |
 | [B179](completed/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low |
@@ -1555,6 +1527,8 @@ _Nothing here._
 | [B100](completed/B100-the-documented-verification-order-runs-tsc.md) | The documented verification order runs tsc before the build that generates the types it needs | CHORE | low | low |
 | [B1026](completed/B1026-a-malformed-auth-request-body-answers.md) | A malformed auth/request body answers the same 202 as an unrecognised address | ISSUE | low | low |
 | [B1027](completed/B1027-the-send-button-is-offered-on.md) | The send button is offered on a day whose journal has no readers to send it to | ISSUE | low | low |
+| [B1029](completed/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
+| [B1030](completed/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1031](completed/B1031-searchbox-s-voice-search-errors-use.md) | SearchBox's voice-search errors use role=status, not role=alert | ISSUE | low | low |
 | [B1032](completed/B1032-a-day-s-title-colliding-with.md) | A day's title colliding with another day's slug is still an English sentence on the helper | ISSUE | low | low |
 | [B1033](completed/B1033-agentdoor-tsx-still-imports-the-per.md) | AgentDoor.tsx still imports the per-journal card B984 deleted | CHORE | low | low |
@@ -1572,6 +1546,7 @@ _Nothing here._
 | [B1096](completed/B1096-the-english-sentence-for-adding-a.md) | The English sentence for adding a person to a trip says 'not just this' and does not say what this is | ISSUE | low | low |
 | [B11](completed/B11-the-travellers-are-always-the-same.md) | The travellers are always the same two people | FEATURE | low | medium |
 | [B110](completed/B110-costs-are-on-at-fernscout-ch.md) | Costs are on at fernscout.ch and no trip's figures have been checked against what the live site converts them to | OPS | low | low |
+| [B1106](completed/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low |
 | [B1119](completed/B1119-fernscout-ch-s-caddy-block-is.md) | fernscout.ch's Caddy block is hand-merged, so proxy directives drift until applied by hand | OPS | low | low |
 | [B1127](completed/B1127-no-entry-point-exists-for-a.md) | No entry point exists for a person to start the WhatsApp channel — no wa.me link, no linking code | FEATURE | low | low |
 | [B1128](completed/B1128-the-invites-and-inbox-tools-also.md) | The invites and inbox tools also say their own block back in prose | ISSUE | low | low |
@@ -1586,8 +1561,11 @@ _Nothing here._
 | [B1179](completed/B1179-a-reopened-conversation-reads-as-one.md) | A reopened conversation reads as one undifferentiated wall with no date | ISSUE | low | low |
 | [B118](completed/B118-the-journal-map-page-disagrees-with.md) | The journal map page disagrees with itself about tense between its heading and its tab title | ISSUE | low | low |
 | [B1180](completed/B1180-the-subscribed-apps-post-is-a.md) | The subscribed_apps POST is a documented curl, not a one-shot script | CHORE | low | low |
+| [B1191](completed/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 | [B1199](completed/B1199-the-day-context-offer-still-offers.md) | The day-context offer still offers taking a draft off the site | ISSUE | low | low |
 | [B1202](completed/B1202-one-reply-can-carry-the-same.md) | One reply can carry the same proposal card twice, verbatim | ISSUE | low | low |
+| [B1232](completed/B1232-authentication-templates-are-gated-on-a.md) | Authentication templates are gated on a business verification this account has not passed | OPS | low | low |
+| [B1266](completed/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 | [B1270](completed/B1270-the-account-page-quotes-send-prices.md) | The account page quotes send prices for nought people and offers to sell 5 GB to a journal using one kilobyte | ISSUE | low | low |
 | [B1271](completed/B1271-a-failed-voice-note-download-also.md) | A failed voice-note download also says nothing | ISSUE | low | low |
 | [B1283](completed/B1283-the-phone-country-field-is-too.md) | The phone country field is too narrow for its own default value, so the dialling code is cut off | ISSUE | low | low |
@@ -1608,8 +1586,16 @@ _Nothing here._
 | [B1396](completed/B1396-the-whatsapp-checkbox-carries-a-second.md) | The WhatsApp checkbox carries a second sentence about Meta that the form does not need | DOCS | low | low |
 | [B140](completed/B140-the-tab-title-can-be.md) | The tab title can be in a language the journal does not offer, while the page is not | ISSUE | low | low |
 | [B1402](completed/B1402-a-content-path-one-level-too.md) | A content path one level too shallow is reported accurately and without naming the likely cause | ISSUE | low | low |
+| [B1413](completed/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low |
+| [B1415](completed/B1415-docs-superpowers-is-not-indexed-from.md) | docs/superpowers/ is not indexed from docs/README.md, and its nature as documentation vs. scratch output is undecided | DOCS | low | low |
+| [B1426](completed/B1426-the-preview-s-istest-banner-has.md) | The preview's isTest banner has the same missing-context gap DraftNotice had | ISSUE | low | low |
+| [B1430](completed/B1430-a-failed-transcription-says-nothing-on.md) | A failed transcription says nothing, on the WhatsApp voice-note path | ISSUE | low | low |
 | [B1434](completed/B1434-the-photograph-reaches-meta-first-disclosure.md) | The photograph-reaches-Meta-first disclosure has no owner-facing home after B1396 | DOCS | low | low |
+| [B1435](completed/B1435-day-media-s-two-phase-original.md) | day/media's two-phase original upload may have no live caller since the wizard retired | ISSUE | low | low |
+| [B1436](completed/B1436-deleting-the-wizard-s-tests-dropped.md) | deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip | ISSUE | low | low |
 | [B1438](completed/B1438-the-receipt-mail-offers-three-pdfs.md) | The receipt mail offers three PDFs where the order page offers one | CHORE | low | low |
+| [B1445](completed/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low |
+| [B1453](completed/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
 | [B1455](completed/B1455-the-same-credit-figure-prints-as.md) | The same credit figure prints as 220.00 on the page and 284 in the mail | CHORE | low | low |
 | [B1459](completed/B1459-journal-creation-sends-a-next-pointer.md) | Journal creation sends a next pointer the contract never mentions | ISSUE | low | low |
 | [B1496](completed/B1496-a-trip-s-translations-can-be.md) | A trip's translations can be set once and never corrected | ISSUE | low | low |
@@ -1619,16 +1605,30 @@ _Nothing here._
 | [B151](completed/B151-the-mail-filename-slug-has.md) | The mail filename slug has no NFD pass, so a German umlaut loses its vowel | CHORE | low | low |
 | [B152](completed/B152-the-guide-calls-the-relayed-sign.md) | The guide calls the relayed sign-in link the same link as the mailed one, and never says what kills it | DOCS | low | low |
 | [B1527](completed/B1527-a-figure-whose-shirt-matches-its.md) | A figure whose shirt matches its skin tone renders as nude, and nothing warns | ISSUE | low | low |
+| [B1532](completed/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium |
 | [B1545](completed/B1545-the-animation-bench-s-own-vehicle.md) | The animation bench's own vehicle list predates metro/tram/ferry, so B1519's new modes are invisible there | ISSUE | low | low |
 | [B1546](completed/B1546-roadmap-page-shows-stale-data-and.md) | Roadmap page shows stale data and is hard to scan | CHORE | low | low |
 | [B1557](completed/B1557-refund-allowed-test-walks-app-only.md) | REFUND_ALLOWED test walks app/ only while grant's walks app/ and lib/ | ISSUE | low | low |
 | [B1558](completed/B1558-submitrequest-lost-race-mails-the-operator.md) | submitRequest lost race mails the operator a dead approval link | ISSUE | low | low |
 | [B1559](completed/B1559-paid-send-routes-rely-on-samesite.md) | Paid send routes rely on SameSite=lax alone — no Origin check as second layer | SECURITY | low | low |
+| [B1566](completed/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low |
 | [B1575](completed/B1575-the-dateien-tab-s-upload-control.md) | The Dateien tab's upload control sits below every file, out of reach on a long list | ISSUE | low | low |
 | [B158](completed/B158-the-publish-confirmation-promises-feed-and.md) | The publish confirmation promises feed and search for a day that is excluded from both | ISSUE | low | low |
 | [B1580](completed/B1580-reserved-sources-is-enforced-but-published.md) | RESERVED_SOURCES is enforced but published only as prose, so a client has to hardcode it | CHORE | low | low |
+| [B1592](completed/B1592-units-metric-imperial-is-stored-and.md) | units (metric/imperial) is stored and editable but nothing converts by it | CHORE | low | low |
 | [B161](completed/B161-an-expired-place-on-a-trip.md) | An expired place on a trip is not restored by re-approving the contact | ISSUE | low | low |
+| [B1648](completed/B1648-openapi-json-day-write-schema-omits.md) | openapi.json day write schema omits status from required though the server demands it | ISSUE | low | low |
+| [B1649](completed/B1649-trip-put-s-missing-buddies-message.md) | trip PUT's missing-buddies message gives no schema and no pointer to the invites endpoint | ISSUE | low | low |
+| [B1659](completed/B1659-helper-buy-room-spends-with-no.md) | helper buy_room spends with no idempotency ref, unlike the v2/web storage purchase door | ISSUE | low | low |
+| [B1671](completed/B1671-trip-write-path-auto-fills-declined.md) | Trip write path auto-fills declined.days without the caller ever declining it | ISSUE | low | low |
+| [B1672](completed/B1672-web-purchases-route-silently-accepts-a.md) | web purchases route silently accepts a bearer token despite its own cookie-only comment | ISSUE | low | low |
+| [B1678](completed/B1678-lib-trips-ts-new-is-a.md) | lib/trips.ts.new is a committed editor scratch file | CHORE | low | low |
+| [B1679](completed/B1679-nine-content-files-do-not-round.md) | Nine content files do not round-trip byte-identically through the serializers | ISSUE | low | low |
+| [B1696](completed/B1696-a-billed-whatsapp-send-has-no.md) | A billed WhatsApp send has no matching application log line | ISSUE | low | low |
+| [B1697](completed/B1697-b1232-s-authentication-template-blocker-no.md) | B1232's authentication-template blocker no longer blocks anything live | OPS | low | low |
 | [B170](completed/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low |
+| [B1716](completed/B1716-missing-token-still-tells-every-v2.md) | missing_token still tells every v2 caller that /api/v1 needs a token | ISSUE | low | low |
+| [B1727](completed/B1727-a-stranger-opening-the-landing-page.md) | A stranger opening the landing page gets a 401 in their console | ISSUE | low | low |
 | [B175](completed/B175-create_trip-over-mcp-cannot-ask.md) | create_trip over MCP cannot ask for an unadvertised trip, because it has no listed field | ISSUE | low | low |
 | [B183](completed/B183-mcp-advertises-the-invite-tools-to.md) | MCP advertises the invite tools to a journal that has contacts switched off | CHORE | low | low |
 | [B185](completed/B185-a-locale-cookie-the-journal-does.md) | A locale cookie the journal does not list translates the tab title but not the page under it | ISSUE | low | low |
