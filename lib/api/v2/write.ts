@@ -67,7 +67,7 @@ function deletePath(obj: Record<string, unknown>, path: readonly string[]): void
  * comparison are always plain JSON (numbers, strings, booleans, arrays,
  * plain objects), never a `Date` or anything else `JSON.parse` cannot
  * produce, so a hand-written structural walk is the whole job. */
-function deepEqual(a: unknown, b: unknown): boolean {
+export function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (typeof a !== typeof b || a === null || b === null) return false;
   if (typeof a !== "object") return false;
