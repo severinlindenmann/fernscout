@@ -68,6 +68,17 @@ import { BOOK_SIZES, COVER_TYPES } from "../../photobook/spec";
 import { EXTRA_STORAGE_BYTES, EXTRA_STORAGE_CREDITS, POSTCARD_CREDITS } from "../../credits/pricing";
 import { HELPER_PROVIDER, TRAVELLERS_FROM_PHOTO_CREDITS } from "../../helper/model";
 import { IMPORT_KINDS } from "../../gps/api";
+import { CODE_TTL_MINUTES, HANDOVER_TTL_MINUTES } from "../../auth";
+import {
+  CREDENTIAL_FOR,
+  codesRequest,
+  codesRequestResponse,
+  codesRedeemRequest,
+  codesRedeemCookieResponse,
+  codesRedeemTokenResponse,
+  linksRedeemRequest,
+  linksRedeemResponse,
+} from "./schemas/auth";
 
 /**
  * The generated v2 machine contract — B1596/B1608 onward, this ticket
@@ -595,6 +606,62 @@ const fromPhotoResult = z.strictObject({
   provider: z.literal(HELPER_PROVIDER),
   note: z.string(),
 });
+
+// ── the sign-in doors under /api/auth (B1734) — no schema of their own in
+// lib/api/v2/schemas/: `codes`, `codes/redeem` and `links/redeem` use
+// auth.ts's schemas above; these five shapes exist only here because
+// nothing else in the codebase needs to import them. ──────────────────────
+const phoneStartResponse = z.union([
+  z.strictObject({ status: z.literal("accepted"), id: z.string(), next: z.string() }),
+  z.strictObject({
+    status: z.literal("accepted"),
+    mode: z.literal("whatsapp-inbound"),
+    smsFallback: z.boolean(),
+    id: z.string(),
+    link: z.string(),
+    text: z.string(),
+    next: z.string(),
+  }),
+]);
+const phoneRedeemRequest = z.strictObject({ id: z.string(), code: z.string().optional() });
+const phoneRedeemResponse = z.union([
+  z.strictObject({ status: z.enum(["pending", "expired"]) }),
+  z.strictObject({ ok: z.literal(true), tel: z.string(), next: z.string() }),
+]);
+const handoverIssued = z.strictObject({
+  ok: z.literal(true),
+  handover: z.string(),
+  expiresAt: z.string(),
+  minutes: z.number(),
+  exchange: z.string(),
+  next: z.string(),
+});
+const handoverExchanged = z.strictObject({
+  ok: z.literal(true),
+  token: z.string(),
+  expiresAt: z.string(),
+  scope: z.literal("write:content"),
+  user: z.string(),
+  journal: z.string(),
+  status: z.string(),
+  next: z.string(),
+});
+const keysList = z.strictObject({
+  user: z.string(),
+  keys: z.array(
+    z.strictObject({
+      id: z.string(),
+      kind: z.enum(["write", "handover"]),
+      createdAt: z.string(),
+      expiresAt: z.string(),
+      lastSeenAt: z.string().nullable(),
+      scope: z.enum(["owner", "trip"]),
+      trip: z.string().optional(),
+      email: z.string().optional(),
+    }),
+  ),
+});
+const keyRevoked = z.strictObject({ ok: z.literal(true), revoked: z.string() });
 
 type Operation = {
   summary: string;
@@ -1492,6 +1559,249 @@ function buildPaths(): Record<string, PathItem> {
       responses: {
         ...jsonResponse(200, photobookOrderDoc, "the order"),
         ...refusalResponses([ref("photobook_disabled", 404), ...ownerRefusals, ref("unknown_order", 404)]),
+      },
+    },
+  };
+
+  // ── the two v1 routes that outlived v1 — B1734, moved in from
+  // lib/api/openapi.ts. Neither is a document like the ones every other v2
+  // door replaced: one derives a clipped public line from a position history
+  // no route may ever return, the other is the second, human-only half of
+  // deleting a journal. ───────────────────────────────────────────────────
+  paths["/api/v2/{user}/trips/{trip}/track"] = {
+    post: {
+      summary: "Draw this trip's line from the imported location history — owner only.",
+      responses: {
+        ...jsonResponse(
+          200,
+          z.strictObject({
+            written: z.boolean(),
+            segments: z.number().int().nonnegative(),
+            points: z.number().int().nonnegative(),
+            zones: z.number().int().nonnegative(),
+            trip: z.string(),
+            message: z.string(),
+            next: z.string().optional(),
+          }),
+          "segments, points and how many private zones were cut out. `written: false` means " +
+            "nothing was stored for these dates, and any existing line was left alone",
+        ),
+        ...refusalResponses([...tripWriteRefusals]),
+      },
+    },
+  };
+
+  paths["/api/v2/{user}/deletions/{token}"] = {
+    post: {
+      summary: "Confirm a deletion — the button on the mailed page, never something an agent calls.",
+      responses: {
+        ...jsonResponse(
+          200,
+          z.strictObject({
+            ok: z.literal(true),
+            deleted: z.literal(true),
+            kind: z.enum(["journal", "trip"]),
+            user: z.string(),
+            trip: z.string().optional(),
+            title: z.string(),
+          }),
+          "deleted",
+        ),
+        ...refusalResponses([
+          ref("not_found", 404, "no such token for this journal"),
+          ref("gone", 410, "what it pointed at has already gone"),
+          ref("deletion_link_used", 409),
+          ref("deletion_link_expired", 409),
+          ref("too_many_requests", 429),
+        ]),
+      },
+    },
+  };
+
+  // ── the sign-in surface — /api/auth/**, moved in from lib/api/openapi.ts
+  // (v1) by B1734. This is the only way any client, v2 included, ever gets a
+  // token; leaving it out of this document left a caller able to read every
+  // write door and no way to obtain the credential they all require.
+  // `/api/auth/identity/**` and `/api/auth/logout` stay undocumented — B1734
+  // carries forward v1's own exclusion (`OUT_OF_SCOPE_PREFIXES`,
+  // test/openapi-contract.test.ts): they set and read a browser cookie, and
+  // documenting a cookie route here would invite an agent to call something
+  // it cannot authenticate with. ─────────────────────────────────────────
+  paths["/api/auth/codes"] = {
+    post: {
+      summary: "Ask for a one-time code — one door for four credentials.",
+      requestBody: jsonBody(
+        codesRequest,
+        "`for` is which credential the code redeems into: " +
+          `${CREDENTIAL_FOR.join(", ")}. "read"/"write" need \`user\`; "identity"/"signup" refuse it. ` +
+          '`scope.trip` is only meaningful with `for: "write"`. Always answers 202 whether or not ' +
+          "the address owns anything, so this cannot be used to discover which addresses exist — the " +
+          'one exception is `for: "write"` to an address that owns nothing and is on no named trip, ' +
+          "which answers 403 rather than leaving you waiting for a code that never comes. A new " +
+          "request invalidates the previous code.",
+      ),
+      responses: {
+        ...jsonResponse(202, codesRequestResponse, "accepted — always, whatever the address"),
+        ...refusalResponses([
+          ref("invalid_request", 400, "a shape rule, never address-dependent"),
+          ref("invalid_email", 400),
+          ref("signup_disabled", 404),
+          ref("auth_disabled", 404),
+          ref("mail_disabled", 503, "nothing issued; any code already held is still live"),
+          ref("whatsapp_disabled", 503),
+          ref("mail_failed", 503),
+          ref("not_authorised", 403, 'for: "write" to an address that owns nothing and is on no named trip'),
+          ref("signup_not_invited", 403),
+          ref("too_many_requests", 429, "narrower for write than for read"),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/codes/redeem"] = {
+    post: {
+      summary: "Spend a code — one door for four credentials.",
+      requestBody: jsonBody(
+        codesRedeemRequest,
+        `\`code\` is six digits, ${CODE_TTL_MINUTES} minutes, single use. "read"/"identity" set a ` +
+          'cookie and put no token in the body; "write"/"signup" return the token in the body and set ' +
+          "no cookie, since the caller is a program with no cookie jar. A wrong code, an expired one, a " +
+          'burned one, the wrong `for`, or a `scope.trip` that does not match the code\'s own trip all ' +
+          "answer the identical `invalid_code`.",
+      ),
+      responses: {
+        ...jsonResponse(200, z.union([codesRedeemCookieResponse, codesRedeemTokenResponse]), 'cookie response for "read"/"identity", token response for "write"/"signup"'),
+        ...refusalResponses([
+          ref("invalid_request", 400),
+          ref("invalid_code", 401, "wrong, expired, burned, or the wrong `for`"),
+          ref("signup_disabled", 404),
+          ref("auth_disabled", 404),
+          ref("signup_not_invited", 403, "the code is not spent"),
+          ref("too_many_requests", 429),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/links/redeem"] = {
+    post: {
+      summary: "Spend a one-click sign-in link.",
+      requestBody: jsonBody(
+        linksRedeemRequest,
+        '`for` is "read" or "identity" only — an agent has no browser to follow a link, and a signup ' +
+          "link would quietly create a journal on arrival. POST only: a mail scanner follows a link, it " +
+          "does not submit a form, and acting on arrival would cost a reader their own sign-in.",
+      ),
+      responses: {
+        ...jsonResponse(200, linksRedeemResponse, "the cookie is set on the response; `next` is where to land"),
+        ...refusalResponses([
+          ref("invalid_request", 400),
+          ref("link_spent", 401, "never followed, already spent, or expired — one answer for all three"),
+          ref("not_found", 404, "no such journal, or authentication is off"),
+          ref("too_many_requests", 429),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/signup/phone"] = {
+    post: {
+      summary: "Prove a telephone number, step one.",
+      requestBody: jsonBody(
+        z.strictObject({ tel: z.string().optional(), channel: z.literal("sms").optional() }),
+        'The signup token from codes/redeem (for: "signup") rides as `Authorization: Bearer`. Code ' +
+          "mode: `tel` needs its own country code — this server stands in no country, so a national " +
+          'number is refused rather than guessed. Whatsapp-inbound mode: send no body and poll ' +
+          '`links/redeem`\'s sibling instead; a caller with no WhatsApp may send `{"channel": "sms"}` ' +
+          "when the answer says `smsFallback: true`.",
+      ),
+      responses: {
+        ...jsonResponse(202, phoneStartResponse, "code mode: an id to redeem against. Inbound mode: a wa.me link and its prefilled text"),
+        ...refusalResponses([
+          ref("signup_disabled", 404),
+          ref("invalid_token", 401, "missing, invalid, or not step two of signup"),
+          ref("signup_not_invited", 403),
+          ref("sms_disabled", 404),
+          ref("invalid_request", 400, "tel missing or not a number with a country code"),
+          ref("sms_unreachable", 400, "this server's number cannot reach that number's country"),
+          ref("too_many_requests", 429, "3/number/day, 5/address/day, 50/instance/day"),
+          ref("verification_failed", 503),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/signup/phone/redeem"] = {
+    post: {
+      summary: "Prove a telephone number, step two.",
+      requestBody: jsonBody(
+        phoneRedeemRequest,
+        "`id` from the request step. Leaving `code` out is the poll for whatsapp-inbound mode: the " +
+          'answer is `{"status": "pending"}` until the message arrives, then the success shape; ' +
+          '`{"status": "expired"}` means ask the request step again. On success the proven number is ' +
+          "attached to the signup token itself — POST /api/v2/journals reads it automatically.",
+      ),
+      responses: {
+        ...jsonResponse(200, phoneRedeemResponse, "proven, or the poll status"),
+        ...refusalResponses([
+          ref("signup_disabled", 404),
+          ref("too_many_requests", 429),
+          ref("invalid_token", 401),
+          ref("signup_not_invited", 403),
+          ref("invalid_request", 400, "no id sent"),
+          ref("invalid_code", 401),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/handover"] = {
+    post: {
+      summary: "Spend a handover credential for your own 7-day token.",
+      responses: {
+        ...jsonResponse(200, handoverExchanged, "a 7-day agent token, and the status URL to read next"),
+        ...refusalResponses([
+          ref("auth_disabled", 404),
+          ref("missing_token", 401),
+          ref("invalid_handover", 401, "expired, already used, revoked, or not a handover credential"),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/{user}/handover"] = {
+    post: {
+      summary: "Issue a handover credential the owner can paste into an agent — owner only.",
+      responses: {
+        ...jsonResponse(200, handoverIssued, `a ${HANDOVER_TTL_MINUTES}-minute credential that can only be exchanged, never used to read or write`),
+        ...refusalResponses([
+          ref("auth_disabled", 404),
+          ref("forbidden", 403, "a trip-scoped bearer, or a caller that is not this journal's owner"),
+          ref("no_owner_address", 409),
+        ]),
+      },
+    },
+  };
+
+  paths["/api/auth/{user}/keys"] = {
+    get: {
+      summary: "The tokens and sessions that can write here — the owner sees every row, anybody else only their own.",
+      responses: {
+        ...jsonResponse(200, keysList, "one row per live credential this caller may see"),
+        ...refusalResponses([ref("forbidden", 403, "no proven address at all"), ref("auth_disabled", 409)]),
+      },
+    },
+    post: {
+      summary: "Revoke one of them — the owner may revoke any row, anybody else only their own.",
+      requestBody: jsonBody(z.strictObject({ revoke: z.string() }), 'the key id from the GET above: {"revoke": "<key id>"}'),
+      responses: {
+        ...jsonResponse(200, keyRevoked, "revoked"),
+        ...refusalResponses([
+          ref("invalid_request", 400, "no key id sent"),
+          ref("forbidden", 403, "no proven address at all"),
+          ref("unknown_key", 404, "does not exist, or — for a non-owner — belongs to somebody else's address"),
+          ref("auth_disabled", 409),
+        ]),
       },
     },
   };

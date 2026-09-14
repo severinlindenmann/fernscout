@@ -1030,38 +1030,6 @@ export function detachGallery(
   return { ok: true, removed: matched };
 }
 
-/**
- * Every field `PATCH .../days/<slug>` may change. Deliberately not `status`
- * — see `editEntry` below, which is the whole point of B266.
- */
-export const EDITABLE_DAY_FIELDS = [
-  "title",
-  "date",
-  "time",
-  "timezone",
-  "location",
-  "country",
-  "countryCode",
-  "lat",
-  "lng",
-  "content",
-  "tags",
-  "costs",
-  "coordinates",
-  "photos",
-  "transportMode",
-  "transportFrom",
-  "transportTo",
-  "travelScene",
-  "test",
-  "translations",
-  "captions",
-  "photoVisibility",
-  "visibility",
-  "weather",
-  "weatherData",
-] as const;
-
 /** A partial `DraftInput` — every field optional, since a PATCH names only
  * what it is changing. `idempotency_key` is not among them: an edit is
  * naturally safe to repeat, since resending the same fields just writes the

@@ -54,7 +54,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/v2/[u
       "(`gps_history` for a location history) — then " +
       `\`POST /api/v2/${user}/import\` with \`{"kind": "…", "inbox": "<the id from that upload>"}\`. ` +
       "Say the kind; leave `format` out and the file is recognised from its own contents. " +
-      `A \`gps\` import is stored as it is read, and \`POST /api/v1/${user}/trips/<trip>/track\` ` +
+      `A \`gps\` import is stored as it is read, and \`POST /api/v2/${user}/trips/<trip>/track\` ` +
       "then draws one trip's line from it. A `contacts` import (a vCard) writes nothing: it " +
       "reports who was on the card, you agree who is actually a contact, and " +
       `\`POST /api/v2/${user}/contacts/import\` files the agreed rows, each pending its own ` +
@@ -215,7 +215,7 @@ export async function POST(request: Request, { params }: RouteContext<"/api/v2/[
     dryRun,
     next: dryRun
       ? "Nothing was written. Send the same call without ?dryRun to keep it."
-      : `Now \`POST /api/v1/${user}/trips/<trip>/track\` for each trip whose map should show ` +
+      : `Now \`POST /api/v2/${user}/trips/<trip>/track\` for each trip whose map should show ` +
         "where you actually went. Nothing is drawn until you do — and the export is still " +
         `in the inbox: \`DELETE /api/v2/${user}/media\` with \`{"src": "inbox:<id>"}\` when ` +
         "you are done with it, because it is the unthinned original of your whole location " +

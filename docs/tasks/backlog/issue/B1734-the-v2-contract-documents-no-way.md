@@ -77,3 +77,85 @@ caches — which is the check that would have caught B1715.
 
 The ticket stays open for the half that matters: auth belongs in the v2
 document, and until it is there this file cannot be retired.
+
+## Done, 2026-09-14
+
+All four decided items are built, on branch `b1734-auth-v2`:
+
+1. **The eight `/api/auth/**` operations now live in `/api/v2/openapi.json`**
+   (`lib/api/v2/openapi.ts`), generated the same way as every other v2
+   operation: `codes`, `codes/redeem` and `links/redeem` use the Zod
+   schemas the routes already parse with (`lib/api/v2/schemas/auth.ts`);
+   `signup/phone`, `signup/phone/redeem`, `handover` (both doors) and
+   `{user}/keys` have no schema file of their own (they never did — even
+   v1 typed their bodies by hand), so their shapes are declared once, ad
+   hoc, in `lib/api/v2/openapi.ts` itself, next to the other ad-hoc shapes
+   already there. `/api/auth/identity/**` and `/api/auth/logout` are still
+   deliberately out of scope — cookie-only, carried over from v1's own
+   `OUT_OF_SCOPE_PREFIXES` reasoning, now `AUTH_OUT_OF_SCOPE_PREFIXES` in
+   `test/openapi-v2-contract.test.ts`, which walks `app/api/auth` (minus
+   that prefix) the same way it already walked `app/api/v2`, so the
+   document and the filesystem cannot drift apart in either direction.
+2. **`track` and `deletions/{token}` are at `/api/v2/{user}/...` addresses**
+   and documented there too — the previous agent had already ported the two
+   route files; this pass added their missing `/api/v2/openapi.json`
+   entries (the route-inventory test caught the gap immediately) and fixed
+   two live response strings in `app/api/v2/[user]/import/route.ts` that
+   still told a caller to `POST /api/v1/.../track` after the move.
+3. **`/api/v1` is gone.** The directory no longer exists (done before this
+   session started). `test/deletions.test.ts` and
+   `test/gps-import-route.test.ts` still imported and called the deleted
+   v1 route modules directly — updated to the v2 modules and addresses.
+   One real behaviour difference fell out of the port: the v2 `track` door
+   uses the shared `requireJournalOwner` gate (like every other owner-only
+   v2 route) rather than v1's own hand-written "out_of_scope" wording for
+   a trip-scoped token, so that refusal is now `forbidden` — the same code
+   `import` already answers a trip-scoped token with, for the same reason.
+   Updated the test to match; this is the intended v2 pattern, not a
+   defect.
+4. **`/openapi.json` now answers 410**, naming `/api/v2/openapi.json` as
+   its replacement — `app/openapi.json/route.ts`, same shape as
+   `app/content-model.json/route.ts` (B1700). `lib/api/openapi.ts` and
+   `test/openapi-contract.test.ts` are deleted. `npm run unused` then
+   named five exports that existed only for that file: `outOfScope` and
+   `errorResponse` in `lib/api/auth.ts` (their v2 equivalents in
+   `lib/api/v2/auth.ts` were already what everything else used),
+   `VISIBILITY_ENUM_NOTE` in `lib/api/agentCopy.ts`, `EDITABLE_DAY_FIELDS`
+   in `lib/api/entries.ts`, and `FIGURE_FIELDS` in `lib/tripWrite.ts`
+   (still used internally — just dropped its `export`). All five removed
+   or de-exported; `npm run unused` is clean.
+
+   Two other tests read the v1 document directly and needed updating for
+   the 410, independent of the auth move: `test/health-disclosure.test.ts`
+   (the "example username never names an unadvertised journal" leak check
+   — repointed at `/api/v2/openapi.json`, which has the same worked
+   example) and `test/invite-links.test.ts` (a stale "v1's openapi no
+   longer lists invites" canary — replaced with a check that `/openapi.json`
+   answers 410 and names its replacement).
+
+**The deletion-link window (the thing this run was told to report):**
+`DELETION_TTL_MS` in `lib/deletions.ts` is **60 minutes** — `60 * 60 *
+1000`. The mailed link never names the API address directly; it points at
+the page (`app/[user]/delete/[token]`), which composes the confirm
+button's endpoint fresh on every render — now `/api/v2/{user}/deletions/
+{token}` — so a link already sitting in a mailbox keeps working across
+this move without needing a redirect or a grace period. Combined with the
+one-hour token lifetime, there is no meaningful window where an old mailed
+link could be stranded by `/api/v1` returning 404: anything that survived
+long enough to be affected had already expired on its own first.
+
+**Verify:** `VERIFY_WILL_WAIT=1 npm run verify` — build, TypeScript,
+ESLint, Vitest (604 files, 7723 passed, 4 skipped, unrelated to this
+ticket), knip — all green.
+
+**Left for a person, not folded into this ticket:** deleting
+`test/openapi-contract.test.ts` also deleted the one place that checked
+*every* error code the whole API (v1 and v2 together) answers with is in
+`ERROR_CODES`, and vice versa — `test/openapi-v2-contract.test.ts` has no
+equivalent "every documented code is answered, every answered code is
+documented" sweep across `app/api/v2` and `app/api/auth`. Nothing in this
+change is untested (schemas still generate refusal examples, and `ref()`
+in `lib/api/v2/openapi.ts` throws on an unknown code), but the specific
+"dead code in ERROR_CODES" / "undocumented code a route answers with"
+double-check that file used to do for the whole API is gone with it.
+Worth a backlog ticket if that coverage is wanted back, scoped to v2.

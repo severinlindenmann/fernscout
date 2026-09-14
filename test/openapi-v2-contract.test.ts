@@ -57,7 +57,24 @@ function routeVerbs(file: string): { path: string; verb: string }[] {
   return verbs.map((verb) => ({ path, verb }));
 }
 
-const files = routeFiles("app/api/v2");
+/**
+ * Cookie-and-browser doors this document deliberately does not describe —
+ * B1734, carried over from v1's own `OUT_OF_SCOPE_PREFIXES`
+ * (test/openapi-contract.test.ts, now retired with the rest of that file).
+ * `/api/auth/identity/**` and `/api/auth/logout` set and clear a cookie;
+ * documenting them here would invite an agent to call something it cannot
+ * authenticate with and cannot use if it did.
+ */
+const AUTH_OUT_OF_SCOPE_PREFIXES = ["/api/auth/identity", "/api/auth/logout"];
+
+function inAuthScope(path: string): boolean {
+  return !AUTH_OUT_OF_SCOPE_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+}
+
+const files = [
+  ...routeFiles("app/api/v2"),
+  ...routeFiles("app/api/auth").filter((f) => inAuthScope(openApiPath(f))),
+];
 const onDisk = files.flatMap(routeVerbs);
 
 describe("the v2 openapi document covers every route on disk", () => {
@@ -135,11 +152,13 @@ describe("the v2 openapi document covers every route on disk", () => {
 
   /**
    * The other half of B1714: the rename is only worth anything if the key is
-   * actually there. These six take no body at all — the call itself is the
-   * whole instruction — and naming them is what makes a seventh a failure
-   * rather than a number nobody checks.
+   * actually there. These take no body at all — the call itself is the
+   * whole instruction — and naming them is what makes an unnamed one a
+   * failure rather than a number nobody checks. The two `/api/auth/handover`
+   * doors joined the list in B1734: the credential rides in `Authorization:
+   * Bearer` or a cookie, and neither route reads a JSON body at all.
    */
-  test("every write operation publishes a request body, bar the six that take none", () => {
+  test("every write operation publishes a request body, bar the ones that take none", () => {
     const BODYLESS = new Set([
       "/api/v2/{user}/trips/{trip}/days/{slug}/unpublish post",
       "/api/v2/{user}/trips/{trip}/travellers/from-photo post",
@@ -147,6 +166,10 @@ describe("the v2 openapi document covers every route on disk", () => {
       "/api/v2/{user}/contacts/{id}/approve post",
       "/api/v2/{user}/contacts/{id}/revoke post",
       "/api/v2/{user}/contacts/{id}/resend post",
+      "/api/auth/handover post",
+      "/api/auth/{user}/handover post",
+      "/api/v2/{user}/trips/{trip}/track post",
+      "/api/v2/{user}/deletions/{token} post",
     ]);
     const missing: string[] = [];
     for (const [path, methods] of Object.entries(document.paths)) {

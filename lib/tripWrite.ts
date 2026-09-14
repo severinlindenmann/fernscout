@@ -443,11 +443,15 @@ const FIGURE_COLOURS: ReadonlyArray<[string, Record<string, string>]> = [
   ["headscarf", CLOTH],
 ];
 
-/** Exported so `lib/api/openapi.ts` publishes the keys a figure may carry
- * rather than describing it as "an object". A caller that cannot see the key
- * list guesses, and `for` — an address out of `people:`, not a name — is the
- * one everybody guesses wrong. B540. */
-export const FIGURE_FIELDS: ReadonlySet<string> = new Set([
+/**
+ * The keys a figure may carry — checked below (`unknown`) so a bad one is
+ * refused by name rather than silently written. Used to be exported so
+ * `lib/api/openapi.ts` (v1's hand-written contract) could publish the list
+ * rather than describing this as "an object"; that document is retired
+ * (B1734), and `lib/api/v2/schemas/figures.ts`'s own schema is what a v2
+ * caller reads instead.
+ */
+const FIGURE_FIELDS: ReadonlySet<string> = new Set([
   "for",
   "accessories",
   ...FIGURE_ENUMS.map(([f]) => f),

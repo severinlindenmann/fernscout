@@ -92,9 +92,9 @@ async function formats(token: string) {
 }
 
 async function deriveTrack(token: string, trip = TRIP) {
-  const { POST } = await import("@/app/api/v1/[user]/trips/[trip]/track/route");
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/track/route");
   const response = await POST(
-    new Request(`https://example.test/api/v1/${OWNER}/trips/${trip}/track`, {
+    new Request(`https://example.test/api/v2/${OWNER}/trips/${trip}/track`, {
       method: "POST",
       headers: headers({ authorization: `Bearer ${token}` }),
     }),
@@ -295,7 +295,13 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const buddy = await tokenFor(BUDDY_EMAIL, TRIP);
       const { status, body } = await deriveTrack(buddy);
       expect(status).toBe(403);
-      expect(body.error).toBe("out_of_scope");
+      // B1734: the v2 door uses the shared `requireJournalOwner` gate every
+      // other owner-only v2 route answers with, rather than v1's own
+      // track-specific "out_of_scope" wording — the same `forbidden` the
+      // import refusal above gets, for the same reason (owner vs. trip
+      // authority), not a different one this route invented for itself.
+      expect(body.error).toBe("forbidden");
+      expect(body.message).toMatch(/journal owner/i);
     });
 
     test("an unknown format names the ones that exist", async () => {

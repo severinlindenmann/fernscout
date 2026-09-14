@@ -549,20 +549,6 @@ export const PRIVATE_SHUTS_OUT_GUESTS =
   "share with family, `guest` is the value, and approving them is the other half of it.";
 
 /**
- * The same choice, for `visibility` on a field list rather than in prose.
- *
- * Short enough for an OpenAPI `description`, where a paragraph would be a
- * wall. Used by `lib/api/openapi.ts` (v1's own hand-written contract).
- */
-export const VISIBILITY_ENUM_NOTE =
-  "public (anyone, and listed) · guest (the journal's approved guests, plus the trip's own " +
-  "people) · private (only the trip's own people, not approved guests). Omitted means this " +
-  "journal's own answer — public in a public journal, guest in a guest one — so a " +
-  "forgotten field is never wider than the journal already is; a value this server does " +
-  "not recognise falls back to private instead. Ask rather than relying on either, and " +
-  "recommend public or guest.";
-
-/**
  * Shell-safe single quoting, for the JSON bodies in the prompt below.
  *
  * The prompt carries a person's own email address inside a `curl -d '…'`, and

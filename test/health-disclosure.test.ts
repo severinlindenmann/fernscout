@@ -328,7 +328,10 @@ describe("what the operator is told", () => {
 });
 
 describe("the other public document that names a journal", () => {
-  test("/openapi.json's example username never names an unadvertised journal", async () => {
+  // B1734: /openapi.json (v1) is retired and /api/v2/openapi.json is the only
+  // published contract, so the leak this test guards against is now this
+  // document's worked example instead.
+  test("/api/v2/openapi.json's example username never names an unadvertised journal", async () => {
     // B473. `getUsernames()` is sorted, so with no `defaultUser` the worked
     // example took whichever journal directory sorts first — and here that is
     // the private one, which is the whole point of the two fixture names.
@@ -343,8 +346,8 @@ describe("the other public document that names a journal", () => {
     clearConfigCache();
     clearUserCache();
 
-    const { openApiDocument } = await import("@/lib/api/openapi");
-    const document = JSON.stringify(openApiDocument());
+    const { openApiDocumentV2 } = await import("@/lib/api/v2/openapi");
+    const document = JSON.stringify(openApiDocumentV2());
 
     expect(PRIVATE_JOURNAL < PUBLIC_JOURNAL, "the fixture only bites if the private name sorts first").toBe(true);
     expect(document).not.toContain(PRIVATE_JOURNAL);
