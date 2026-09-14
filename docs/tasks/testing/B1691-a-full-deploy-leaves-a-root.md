@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: vps, backup
 found: "2026-09-14T05:03:00Z"
+merged: "2026-09-14T06:31:26Z"
 ---
 
 # B1691 — A full deploy leaves a root-owned restic lock, so every later nightly backup is refused
