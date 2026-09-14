@@ -310,9 +310,11 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (0)
+## in-development (1)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity | Held by |
+| --- | --- | --- | --- | --- | --- |
+| [B1732](in-development/B1732-a-day-the-server-looked-the.md) | A day the server looked the weather up for cannot be written back, so a mirrored folder refuses on every correction | ISSUE | high | low | `3309c078` |
 
 ## testing (174)
 
