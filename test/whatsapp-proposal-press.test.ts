@@ -136,6 +136,12 @@ beforeEach(async () => {
   process.env.WHATSAPP_APP_SECRET = "test-secret";
   process.env.WHATSAPP_VERIFY_TOKEN = "test-token";
   process.env.ANTHROPIC_API_KEY = "not-a-real-key";
+  // B1736's own press needs a journal that can issue an invite at all:
+  // `contacts` is what `app/api/helper/[user]/invite/route.ts` gates on, and
+  // it in turn needs `auth` (`lib/capabilities.ts` says why — an approval
+  // that cannot grant anything is not an approval).
+  process.env.SESSION_SECRET = "0".repeat(64);
+  process.env.CONTACTS_ENCRYPTION_KEY = "55".repeat(32);
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({
@@ -146,6 +152,8 @@ beforeEach(async () => {
         whatsapp: { enabled: true, backend: "dry-run" },
         helper: { enabled: true },
         credits: { enabled: true },
+        auth: { enabled: true },
+        contacts: { enabled: true },
       },
     }),
   );
@@ -164,6 +172,8 @@ afterEach(async () => {
   delete process.env.WHATSAPP_APP_SECRET;
   delete process.env.WHATSAPP_VERIFY_TOKEN;
   delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.SESSION_SECRET;
+  delete process.env.CONTACTS_ENCRYPTION_KEY;
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
@@ -759,6 +769,46 @@ describe("a typed press — B1302", () => {
 
     expect(getTrips(username)).toHaveLength(0);
     expect(answerInThread).toHaveBeenCalledTimes(1);
+    forget(username);
+  });
+});
+
+/**
+ * B1736 — the link a press makes, actually sent.
+ *
+ * Found live on `severin`, 2026-09-14: an `invite_guest` proposal accepted
+ * from the WhatsApp buttons wrote its row and answered with
+ * `agent.tool.inviteGuestDone`, which opens "Hier ist der Link" and was
+ * followed by nothing. `pressProposal` returned `{ ok: true }` and dropped the
+ * route's body, where `url` lives — the field the web panel has always drawn
+ * its link block from. `invites` deliberately never repeats a token, so a
+ * link not sent at the moment it is made is a link only `/<user>/contacts`
+ * can still find.
+ */
+describe("a press whose route answers with a link — B1736", () => {
+  test("invite_guest sends the link it just made, not only the sentence naming it", async () => {
+    const username = "presstest20";
+    const tel = "41760020000";
+    forget(username);
+    await bindGreetAcknowledge(username, tel);
+
+    answerInThread.mockImplementationOnce(
+      turnCalling("invite_guest", { name: "Andreas Lindenmann" }, "Here it is."),
+    );
+    await handleInboundMessage(textMessage(tel, "wamid.press20.propose", "invite andreas to read"));
+    await handleInboundMessage(interactiveMessage(tel, "wamid.press20.tap", "confirm:0:yes"));
+
+    const last = repliesTo(username).at(-1);
+    const body = String(last?.body ?? "");
+    // The sentence the web shows after the identical press, and then the
+    // thing it names. `https://t.test` is this file's own configured site.
+    expect(body).toContain("Here is the link");
+    // Its own line, and a real guest link — `inviteLinkUrl`'s own shape
+    // (`lib/contacts/invites.ts`), the one `/<user>/invite/guest/<token>`
+    // page reads. A route with no `url` is covered by "tapping accept"
+    // above, which still asserts create_trip's confirmation verbatim.
+    const link = body.split("\n").find((line) => line.startsWith("https://t.test/"));
+    expect(link).toMatch(new RegExp(`^https://t\\.test/${username}/invite/guest/[A-Za-z0-9_-]+$`));
     forget(username);
   });
 });
