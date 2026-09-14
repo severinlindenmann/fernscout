@@ -168,13 +168,13 @@ export default function PushPrompt({ username }: { username: string }) {
       role="dialog"
       aria-modal="false"
       aria-label={t("push.prompt.title")}
-      /* `bottom` from the showcase bar's own measured height — B1718. Both
-         this and `ShowcaseBar` live at the foot of the page, and on a journal
-         showing both they used to be drawn on top of each other. Unset, which
-         is every journal that is not a showcase, `0px` is exactly where this
-         card already sat. */
-      className="fixed inset-x-0 z-40 p-3 sm:left-auto sm:right-4 sm:max-w-sm"
-      style={{ bottom: "var(--fs-showcase-bar, 0px)" }}
+      /* B1718 lifted this above the showcase bar's measured height; B1724
+         made that impossible to reach, because a showcase journal now draws
+         the bar *instead* of this card. A rule that can no longer apply is
+         worse than no rule, so it is gone — `body`'s padding from the same
+         variable stays, since that is what keeps the bar off the last line
+         of a day. */
+      className="fixed inset-x-0 bottom-0 z-40 p-3 sm:left-auto sm:right-4 sm:max-w-sm"
     >
       <div className="rounded-2xl border border-line-quiet bg-surface-raised p-4 shadow-lg">
         <div className="flex items-start gap-3">

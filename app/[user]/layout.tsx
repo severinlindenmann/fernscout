@@ -153,22 +153,32 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   return (
     <SiteProvider value={siteSummaryFor(user, isDefault, signedIn, hasIdentity, owner)}>
       {/*
-        Offered on any page of this journal, once the reader has read
-        something — B440. At the layout rather than inside `TripHero`, which
-        `TripStory` renders on the story's landing step alone: the reader most
-        worth asking is the one who has paged into a day, and that is exactly
-        the reader the hero has already scrolled away from (B439).
+        One question at the foot of the page, and which one depends on whose
+        journal this is — B1724.
+
+        **A journal somebody follows** gets the notification offer: shown once
+        the reader has read something (B440), at the layout rather than inside
+        `TripHero`, because `TripStory` renders the hero on the story's
+        landing step alone and the reader most worth asking is the one who has
+        paged into a day — exactly the reader the hero has scrolled away from
+        (B439).
+
+        **A journal the operator put on show** gets the way out instead. Its
+        reader is not following Alex Berger's trip across the western United
+        States; they are deciding whether to make a journal of their own, and
+        a browser permission they cannot easily undo is not what they came
+        for. B1718 put the bar there for that reader at that moment, and two
+        cards asking at once is one too many.
+
+        `site.showcase` is the operator's list and only theirs, resolved on
+        the server, so each journal has exactly one of these in its document
+        rather than one hidden with CSS.
       */}
-      <PushPrompt username={username} />
-      {/*
-        A door out of a journal that exists to be looked at — B1718. The
-        operator's list and only theirs (`site.showcase`), resolved on the
-        server so a journal that is not a showcase has no bar in its document
-        at all rather than one hidden with CSS. Beside `PushPrompt` because
-        they are the same kind of thing in the same corner, and because the
-        two have to know about each other's height — see ShowcaseBar.
-      */}
-      {loadServerConfig().site.showcase.includes(username) && <ShowcaseBar />}
+      {loadServerConfig().site.showcase.includes(username) ? (
+        <ShowcaseBar />
+      ) : (
+        <PushPrompt username={username} />
+      )}
       {upgradeIdentity && <IdentityUpgrade />}
       {/* The journal's own language, rendered on the server. This used to be
           English on the server and the reader's choice after hydration, which

@@ -467,13 +467,15 @@ body {
 /*
  * What the bar's own measured height is spent on — B1718.
  *
- * Two fixed things at the foot of one page is how they end up on top of each
- * other, and `PushPrompt` is already down there. `ShowcaseBar` publishes its
- * height as `--fs-showcase-bar`; the prompt sits on top of the bar instead of
- * behind it, and the document gains the same room so the last line of a day
- * is never underneath it. Unset on every journal that is not a showcase, and
- * for every reader who has closed it, where the fallback makes both rules
- * no-ops.
+ * `ShowcaseBar` is fixed to the foot of the page, so without this the last
+ * line of a day would sit underneath it: the bar publishes its own measured
+ * height and the document takes the same room. Unset on every journal that is
+ * not a showcase, and for every reader who has closed it, where the fallback
+ * makes this a no-op.
+ *
+ * It lifted `PushPrompt` above the bar too until B1724, which made a showcase
+ * journal draw the bar *instead* of that card — so the two can no longer be
+ * on one page and there is nothing left to lift.
  */
 body {
   padding-bottom: var(--fs-showcase-bar, 0px);
