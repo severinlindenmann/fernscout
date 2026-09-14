@@ -149,6 +149,20 @@ class CloudTransport implements WhatsappTransport {
       );
     }
 
+    // Said before the call, not after it. This is the one channel here that
+    // spends real money on a network call, and the line that recorded it used
+    // to be written only once Meta had answered — so a restart in between left
+    // a charge on the bill and nothing anywhere else. That is not theoretical:
+    // a €0.049 MARKETING send is billed in Meta's 2026-09-10 bucket with no
+    // matching line in a journal that covers the whole day without a gap, on a
+    // server that restarted about forty-five times a day that fortnight. B1696.
+    //
+    // So: `sending` is an attempt and claims nothing, `-> <wamid>` is the
+    // acceptance. A line of the first kind with no second kind beside it is
+    // exactly the case worth being able to see.
+    console.log(
+      `[whatsapp:cloud] ${maskNumber(message.to)} — ${message.template}/${message.language} sending`,
+    );
     const id = await sendTemplate(credentials, message, mediaId);
     console.log(
       `[whatsapp:cloud] ${maskNumber(message.to)} — ${message.template}/${message.language} -> ${id}`,
