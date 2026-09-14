@@ -7,8 +7,7 @@ complexity: medium
 area: api v2, contract
 found: "2026-09-14T10:01:23Z"
 started: "2026-09-14T13:12:52Z"
-session: 3309c078-d934-4ee7-ad04-6cd719fc543a
-claimed: "2026-09-14T13:12:52Z"
+merged: "2026-09-14T14:45:23Z"
 ---
 
 # B1720 — The v2 contract declares no path parameters, so a generated client cannot fill {user} or {trip}
