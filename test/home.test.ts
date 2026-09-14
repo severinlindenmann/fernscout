@@ -66,9 +66,9 @@ function writeTrip(
   });
 }
 
-async function journalsFor(email: string, options?: { evenIfEmpty?: boolean }) {
+async function journalsFor(email: string) {
   const { journalsFor: fn } = await import("@/lib/home");
-  return fn(email, options);
+  return fn(email);
 }
 
 beforeAll(async () => {
@@ -225,32 +225,24 @@ describe("journalsFor", { shuffle: false }, () => {
 });
 
 /**
- * A journal with nothing in it yet — B1019.
+ * A journal with nothing in it yet — B1019, B1708.
  *
- * `journalsFor` answers "what can I read", and a journal made a minute ago has
- * nothing to read in it, so it was dropped. `/agent` was asking a different
- * question with the same function — "whose journals are these" — and read the
- * empty answer as "not signed in": a brand new owner was shown a form offering
- * to start the journal they had just made, and the one state written to
- * reassure them was the one they could never reach.
+ * B1019 made an empty journal its owner's behind a flag, for `/agent` alone.
+ * The landing page kept the old default and so kept answering "what can I
+ * read" under a heading reading *Your journals*: an owner signed in, journal
+ * made a minute ago, was told "Nothing yet … or you start your own" one line
+ * after being named as its owner. One answer now, for both callers.
  */
 describe("a journal that has no trips yet", () => {
-  test("is not on the reading list, because there is nothing to read", async () => {
+  test("is its owner's, with no trips on it", async () => {
     const found = await journalsFor("neu@example.test");
-    expect(found.map((one) => one.username)).not.toContain("neu");
-  });
-
-  test("but is theirs when the question is whose journals these are", async () => {
-    const found = await journalsFor("neu@example.test", { evenIfEmpty: true });
     const mine = found.find((one) => one.username === "neu");
     expect(mine?.role).toBe("owner");
     expect(mine?.trips).toEqual([]);
   });
 
-  test("and never somebody else's empty journal, whichever question is asked", async () => {
-    for (const options of [{}, { evenIfEmpty: true }]) {
-      const found = await journalsFor(STRANGER, options);
-      expect(found.map((one) => one.username)).not.toContain("neu");
-    }
+  test("and never somebody else's empty journal", async () => {
+    const found = await journalsFor(STRANGER);
+    expect(found.map((one) => one.username)).not.toContain("neu");
   });
 });

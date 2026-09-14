@@ -114,15 +114,7 @@ export function publicJournals(): PublicJournalSummary[] {
  * where the address turns out to see nothing but public trips is dropped: it
  * belongs in the public list, not in "yours".
  */
-export async function journalsFor(
-  email: string,
-  /**
-   * Keep a journal the person owns even when there is nothing in it yet —
-   * B1019. Off by default, so every existing caller asks the question it
-   * always asked.
-   */
-  { evenIfEmpty = false }: { evenIfEmpty?: boolean } = {},
-): Promise<HomeJournal[]> {
+export async function journalsFor(email: string): Promise<HomeJournal[]> {
   const out: HomeJournal[] = [];
 
   for (const username of getUsernames()) {
@@ -167,23 +159,21 @@ export async function journalsFor(
     // No role, or a role that opens nothing: not one of *their* journals.
     if (!role) continue;
     /**
-     * A journal with nothing in it is not on the reading list — and **is**
-     * one of the owner's own — B1019.
+     * A journal with nothing in it is still one of the owner's own — B1019,
+     * B1708.
      *
-     * This dropped it either way, which is right for the question the landing
-     * page asks ("what can I read") and wrong for the one `/agent` asks
-     * ("whose journals are these"). The two were the same list until somebody
-     * had neither: a brand new owner, signed in, journal made a minute ago,
-     * fell out of it — and `/agent` read the empty list as "not signed in"
-     * and offered them a form to start the journal they already had.
+     * B1019 made that true for `/agent` behind a flag and left the landing
+     * page asking the older question, "what can I read", under a heading that
+     * says *Your journals*. So an owner whose journal had no trip yet was told
+     * "Nothing yet … or you start your own" one sentence after being named as
+     * its owner. Two callers, one right answer: the flag is gone.
      *
-     * The state written for exactly that person — *"there is no trip here yet,
-     * tell me about yours"* — was the one state they could never see.
-     *
-     * Only for somebody who owns it. A guest of a journal with no trips has
-     * nothing there and no reason to be shown it.
+     * Only for the address the journal *names*. A guest of a journal with no
+     * trips has nothing there, and neither has the operator: an empty journal
+     * somebody else made is not one of theirs, and listing every one of them
+     * under `admin` would make the operator's own list grow with each signup.
      */
-    if (trips.length === 0 && !(evenIfEmpty && owner)) continue;
+    if (trips.length === 0 && !named) continue;
 
     out.push({
       username,

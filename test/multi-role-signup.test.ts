@@ -232,12 +232,10 @@ test("a guest-and-buddy address keeps both, once approved, after signing up for 
   // The claim under test: both journals, at once, from one address — the
   // guest/traveller grant on ana's journal untouched by having just become
   // an owner elsewhere.
-  // `journalsFor`'s ordinary call drops a journal with nothing in it yet —
-  // B1019, deliberate: it answers "what can I read", and a journal made a
-  // moment ago has nothing to read. `evenIfEmpty` is the question `/agent`
-  // asks instead ("whose journals are these"), and is the one that matters
-  // right after signing up.
-  const after = await journalsFor(READER, { evenIfEmpty: true });
+  // A journal with nothing in it yet is still its owner's — B1019, B1708 —
+  // and that is now the only answer `journalsFor` gives, which is what makes
+  // this assertion the same one the landing page and `/agent` both make.
+  const after = await journalsFor(READER);
   expect(after.map((j) => [j.username, j.role]).sort()).toEqual([
     [FRIEND, "traveller"],
     ["test-vika-travels", "owner"],
@@ -306,7 +304,7 @@ test("an existing owner is still recognised as a guest and buddy after taking bo
   await issueIdentityCookie(READER);
 
   const { journalsFor } = await import("@/lib/home");
-  const after = await journalsFor(READER, { evenIfEmpty: true });
+  const after = await journalsFor(READER);
   expect(after.map((j) => [j.username, j.role]).sort()).toEqual([
     [FRIEND, "traveller"],
     ["test-vika-first", "owner"],
