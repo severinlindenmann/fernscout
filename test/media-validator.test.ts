@@ -147,6 +147,9 @@ describe("the validator", () => {
         "public, max-age=86400, stale-while-revalidate=604800",
       );
       expect(await second.arrayBuffer()).toHaveProperty("byteLength", 0);
+      // Nothing out of a content folder is a document, on a 304 either.
+      expect(second.headers.get("content-security-policy")).toBe("default-src 'none'; sandbox");
+      expect(second.headers.get("x-content-type-options")).toBe("nosniff");
     }
   });
 
@@ -241,11 +244,16 @@ describe("the body", () => {
     expect(res.headers.get("content-length")).toBe(String(CLIP_BYTES));
     expect(res.headers.get("accept-ranges")).toBe("bytes");
 
+    // A reader loop rather than `for await`: the DOM `ReadableStream` this
+    // is typed as has no `Symbol.asyncIterator`, whatever Node's own does.
+    const reader = res.body!.getReader();
     let chunks = 0;
     let bytes = 0;
-    for await (const chunk of res.body as ReadableStream<Uint8Array>) {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
       chunks += 1;
-      bytes += chunk.byteLength;
+      bytes += value.byteLength;
     }
     expect(chunks).toBeGreaterThan(1);
     // And it is the whole file, not a truncated stream.

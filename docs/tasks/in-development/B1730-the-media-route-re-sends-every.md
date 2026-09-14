@@ -152,3 +152,32 @@ Published freshness went from `max-age=3600, stale-while-revalidate=86400` to
 `max-age=86400, stale-while-revalidate=604800`. Not `immutable`: the URL
 carries no content hash, and a file replaced in place under the same name is
 something a person can do with `scp`.
+
+## Security review
+
+Read against the branch diff rather than fanned out to agents: the change is
+two source files and about eighty lines, and the whole question it raises is
+one of ordering.
+
+The risk an early exit on this route introduces is a `304` reaching somebody
+who should get a `404` — a validator match confirming a photograph exists to
+a reader the gates would refuse. It does not: the three gates and
+`resolveMediaFile` return at lines 169, 188, 208 and 213, and the conditional
+exit is at 263. A refusal carries no `ETag` at all, so there is nothing for a
+stranger to replay. `test/media-validator.test.ts` takes a tag as a reader who
+may have the file, closes the trip, replays it, and asserts `404` with no
+validator on the refusal.
+
+The other three, briefly. The tag is a truncated sha256 of an absolute path,
+mtime, size and width — a hash, and only ever handed to somebody already
+receiving the bytes, who knows the size from `Content-Length` anyway.
+`If-None-Match: *` is a `304` for any reader who already passed the gates,
+which is what the bytes would have been. And a `no-store` response carries a
+tag now, which is correct of it and reaches nobody who could not already read
+the file.
+
+One thing changed as a result: the `304` now repeats `Content-Security-Policy`
+and `X-Content-Type-Options`. A cache is required to keep the stored `200`'s
+fields and update only what the `304` repeats, so this is belt to existing
+braces — but this file already declares the media CSP twice on purpose, and a
+response standing in for one that carries it should carry it too.

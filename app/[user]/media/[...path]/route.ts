@@ -261,7 +261,26 @@ export async function GET(
   if (etag && validatorCovers(request.headers.get("if-none-match"), etag)) {
     return new Response(null, {
       status: 304,
-      headers: { ETag: etag, "Cache-Control": cacheControl, Vary: "Accept" },
+      headers: {
+        ETag: etag,
+        "Cache-Control": cacheControl,
+        Vary: "Accept",
+        /**
+         * The two headers a `304` does not strictly need, sent anyway.
+         *
+         * A cache is required to keep the stored response's fields and update
+         * only those the `304` repeats, so the CSP and `nosniff` that came
+         * with the original `200` survive on their own. This file has already
+         * decided once that it would rather not depend on that kind of
+         * agreement — the media CSP is declared here *and* in
+         * `next.config.ts` precisely so neither can drift — and the same
+         * reasoning applies to a response that stands in for one carrying it.
+         * Two lines against ever having to reason about a cache's
+         * header-merging again.
+         */
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
+      },
     });
   }
 
