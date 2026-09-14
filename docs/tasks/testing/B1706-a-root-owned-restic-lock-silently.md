@@ -7,8 +7,7 @@ complexity: low
 area: Backups
 found: "2026-09-14T08:05:37Z"
 started: "2026-09-14T08:29:09Z"
-session: cbe9e605-52aa-4a47-affd-e1ef326bdda5
-claimed: "2026-09-14T08:29:09Z"
+merged: "2026-09-14T08:38:45Z"
 ---
 
 # B1706 — A lock the service user cannot read fails the whole nightly backup, and only a person can clear it
