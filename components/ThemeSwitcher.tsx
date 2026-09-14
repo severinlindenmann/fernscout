@@ -19,11 +19,27 @@ export default function ThemeSwitcher() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    try {
-      setChoice(themeChoice(window.localStorage.getItem(THEME_STORAGE_KEY)));
-    } catch {
-      // Storage may be unavailable; Automatic remains a usable choice.
-    }
+    // Shaped like `ThemePicker`'s own read rather than a bare setState in the
+    // effect body — which is both what the lint rule asks for and what keeps
+    // the two in step. They are the same setting seen from two places: the
+    // header here, the Appearance panel on `/me`. Listening for `storage`
+    // means changing it in either one moves the other, and moves a second tab
+    // too, instead of leaving a tick that disagrees with the page it is on.
+    const read = () => {
+      let next: ThemeChoice = "auto";
+      try {
+        next = themeChoice(window.localStorage.getItem(THEME_STORAGE_KEY));
+      } catch {
+        // Storage may be refused in private browsing. Automatic still works.
+      }
+      setChoice(next);
+    };
+    const storageChanged = (event: StorageEvent) => {
+      if (event.key === THEME_STORAGE_KEY || event.key === null) read();
+    };
+    read();
+    window.addEventListener("storage", storageChanged);
+    return () => window.removeEventListener("storage", storageChanged);
   }, []);
 
   useEffect(() => {
@@ -92,7 +108,7 @@ export default function ThemeSwitcher() {
               }`}
             >
               {labels[item]}
-              {choice === item && <Check className="h-4 w-4 text-yellow-400" aria-hidden />}
+              {choice === item && <Check className="h-4 w-4 text-selected-mark" aria-hidden />}
             </button>
           ))}
         </div>

@@ -98,7 +98,7 @@ export default function LocaleSwitcher({
               }`}
             >
               {LOCALE_LABEL[l]}
-              {locale === l && <Check className="h-4 w-4 text-yellow-400" />}
+              {locale === l && <Check className="h-4 w-4 text-selected-mark" />}
             </button>
           ))}
         </div>
