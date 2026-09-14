@@ -27,6 +27,15 @@ export const metadata: Metadata = { title: "Roadmap" };
  * and count of waymark lozenges now come from that field alone — the first
  * question anybody asks of a roadmap is which of these is big.
  *
+ * **Every link on this page is `prefetch={false}`, and that is not a
+ * micro-optimisation.** Next prefetches a `<Link>` when it enters the
+ * viewport, and each prefetch here is a *server render* that walks all ~1,600
+ * task files. Measured on the live instance at the first deploy of this page:
+ * one visit to the board fetched 103 distinct ticket pages in 247 requests,
+ * because there are a hundred links on it and scrolling past a row is enough.
+ * Nobody reads a hundred tickets; they click one. Any link added below must
+ * carry this too.
+ *
  * **Still no JavaScript.** The search is a `GET` form and the filters are
  * links, so the whole page stays a server component and the list that reaches
  * the browser is the filtered one rather than all 1,600 rows waiting for a
@@ -145,6 +154,7 @@ function Card({ task }: { task: RoadmapTask }) {
     <li>
       <Link
         href={`/docs/roadmap/${task.id}`}
+        prefetch={false}
         className={`flex flex-col gap-1.5 rounded-xl border border-line-quiet border-l-4 bg-surface-base
                     ${stripe} ${steps === 3 ? "px-3 py-3" : "px-3 py-2"}
                     transition-colors hover:border-yellow-400 focus-visible:outline-2
@@ -359,6 +369,7 @@ export default async function RoadmapPage({
               {all.length > PER_COLUMN && (
                 <Link
                   href={href({ lane: column.label, type: "FEATURE" })}
+                  prefetch={false}
                   className="font-mono text-xs text-ink-muted underline underline-offset-4 hover:text-ink-strong
                              focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                 >
@@ -409,24 +420,30 @@ export default async function RoadmapPage({
         </form>
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-          <Link href={href({ lane: "" })} className={chip(!lane)}>
+          <Link href={href({ lane: "" })} prefetch={false} className={chip(!lane)}>
             All lanes
           </Link>
           {COLUMNS.map((c) => (
             <Link
               key={c.label}
               href={href({ lane: c.label })}
+              prefetch={false}
               className={chip(lane === c.label)}
             >
               {c.label}
             </Link>
           ))}
           <span className="w-3" aria-hidden />
-          <Link href={href({ type: "" })} className={chip(!type)}>
+          <Link href={href({ type: "" })} prefetch={false} className={chip(!type)}>
             All types
           </Link>
           {TYPES.map((t) => (
-            <Link key={t} href={href({ type: t })} className={chip(type === t)}>
+            <Link
+              key={t}
+              href={href({ type: t })}
+              prefetch={false}
+              className={chip(type === t)}
+            >
               {t.toLowerCase()}
             </Link>
           ))}
@@ -443,6 +460,7 @@ export default async function RoadmapPage({
             <li key={task.id}>
               <Link
                 href={`/docs/roadmap/${task.id}`}
+                prefetch={false}
                 className="flex min-h-11 items-center gap-2.5 bg-surface-base px-3 py-2 text-sm
                            hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-offset-2
                            focus-visible:outline-blue-500"

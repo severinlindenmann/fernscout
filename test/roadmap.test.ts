@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { getRoadmap, getTask, getTasks } from "@/lib/roadmap";
@@ -96,5 +97,82 @@ describe("getTask()", () => {
     expect(getTask("BZ99", FIXTURE_ROOT)).toBeNull();
     expect(getTask("BB01", FIXTURE_ROOT)).toBeNull();
     expect(getTask("../../../etc/passwd", FIXTURE_ROOT)).toBeNull();
+  });
+});
+
+/**
+ * B1721, found on the live instance after the first deploy: one visit to the
+ * board fetched 103 distinct ticket pages in 247 requests. Next prefetches a
+ * `<Link>` when it enters the viewport, there are a hundred links on that
+ * page, and every one of those prefetches is a server render that walks all
+ * ~1,600 task files. Nobody reads a hundred tickets; they click one.
+ *
+ * A source scan rather than a render test, for the same reason
+ * `test/contrast.test.ts` is one: the failure is a link somebody adds later
+ * without the prop, and no rendered assertion about today's links would catch
+ * it.
+ */
+describe("the roadmap pages never prefetch", () => {
+  const files = ["app/docs/roadmap/page.tsx", "app/docs/roadmap/[id]/page.tsx"];
+
+  /**
+   * Every `<Link ...>` opening tag in the source.
+   *
+   * Scanned rather than matched with one regular expression, and not for
+   * neatness: the first version of this test was
+   * `/<Link\s[\s\S]{0,400}?>/g`, and the card's own link — the one with the
+   * long template-literal `className`, and the one that is repeated forty
+   * times on the page — is longer than four hundred characters. It was the
+   * only link the scan missed, and deleting its `prefetch={false}` left the
+   * test green. A cap that silently drops the biggest tag is worse than no
+   * test, because it reads as coverage.
+   *
+   * `>` appears inside a `className` and inside a `{}` expression, so depth
+   * and quoting decide where the tag ends.
+   */
+  function linkTags(source: string): string[] {
+    const tags: string[] = [];
+    for (let i = source.indexOf("<Link"); i !== -1; i = source.indexOf("<Link", i + 1)) {
+      if (!/\s/.test(source[i + 5] ?? "")) continue; // <LinkThing, and `<Link>` in a comment
+      let depth = 0;
+      let quote = "";
+      for (let j = i + 5; j < source.length; j++) {
+        const c = source[j];
+        if (quote) {
+          if (c === quote && source[j - 1] !== "\\") quote = "";
+          continue;
+        }
+        if (c === '"' || c === "'" || c === "`") quote = c;
+        else if (c === "{") depth++;
+        else if (c === "}") depth--;
+        else if (c === ">" && depth === 0) {
+          tags.push(source.slice(i, j + 1));
+          break;
+        }
+      }
+    }
+    return tags;
+  }
+
+  test("the scan finds the long card link, which a length-capped regex did not", () => {
+    const tags = linkTags(fs.readFileSync(path.join(process.cwd(), files[0]), "utf8"));
+    // The card's link is the one the first version of this test missed. If it
+    // ever gets shorter than this, the test below is still correct — but the
+    // reason this scanner exists has gone, and that is worth noticing.
+    expect(tags.some((t) => t.length > 400)).toBe(true);
+    expect(tags.every((t) => t.endsWith(">"))).toBe(true);
+  });
+
+  test("every <Link> carries prefetch={false}", () => {
+    const offenders: string[] = [];
+    for (const file of files) {
+      const source = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+      for (const tag of linkTags(source)) {
+        if (!tag.includes("prefetch={false}")) {
+          offenders.push(`${file}: ${tag.replace(/\s+/g, " ").slice(0, 70)}`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
   });
 });
