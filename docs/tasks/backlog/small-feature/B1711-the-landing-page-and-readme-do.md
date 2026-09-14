@@ -30,14 +30,39 @@ and ~40 stray test PNGs in the repository root above it.
 
 ## Work
 
-Research, four landing directions with mockups, and a README plan:
+Research, four directions with mockups, and a README plan:
 https://claude.ai/code/artifact/77b0901d-e870-4014-9042-dd25f2f11154
 
-Awaiting the person's choices on placement (rebuild root vs separate page),
-direction (A thread / B postcard rack / C four outputs / D trail), README
-scope, and the assets the proof blocks need. Do not start before those are
-answered — see the decision bar at the end of the artifact.
+Decided with the owner on 2026-09-14:
+
+- **Placement** — rebuild the signed-out root. No second marketing page. The
+  signed-in order in `components/Landing.tsx` stays exactly as it is.
+- **Direction** — hero is the WhatsApp thread ("send a voice note, get a
+  travel journal"); postcards are the section directly beneath it; then the
+  photobook; then your own folder, your own domain, free; then the real story
+  page as proof. The agent is the *how* under each claim, never the headline.
+- **README** — full rewrite of the first screen: hero image, one proof
+  capture near the top, quick start inside the first 200 words, the existing
+  prose kept below it unchanged. Delete the stray test PNGs in the repository
+  root.
+- **Assets** — everything ships on `/example` for now; the owner may replace
+  the captures with a real trip later. No real address, no real photograph,
+  no invented content: a `test-` journal or the demo journal only.
+- **Languages** — English, German and Hungarian together, as AGENTS.md
+  requires for any new UI string.
 
 ## Acceptance
 
-TODO — set once the direction is chosen.
+- The signed-out root leads with the WhatsApp claim and names postcards, the
+  photobook and file ownership above the fold or in the first two screens.
+  Captured at 1280 and 390.
+- The signed-in root is unchanged: journals first, then public journals, then
+  the agent block, then devices.
+- Nothing on the page claims a capability this instance does not have —
+  postcards, photobook and WhatsApp sections are absent, not broken, when the
+  capability is off. Captured with the capability off as well as on.
+- Every new string has a real English, German and Hungarian entry;
+  `npm run i18n:keys` is clean.
+- README's first screen carries an image, a one-line pitch and a quick start;
+  the root `*.png` test captures are gone.
+- `npm run verify` passes.
