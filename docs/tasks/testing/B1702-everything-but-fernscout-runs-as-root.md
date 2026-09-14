@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: vps, ssh, systemd, patching
 found: "2026-09-14T07:05:56Z"
+merged: "2026-09-14T07:38:51Z"
 ---
 
 # B1702 — Everything but Fernscout runs as root on the VPS, and SSH takes passwords with nothing throttling it
@@ -110,3 +111,52 @@ found in the same pass and is a separate ticket, not this one.
   nothing under `/root` is still serving.
 - `docs/runbook.md` has the "adding a workload to this box" section, and it
   matches what the units actually say.
+
+## What was done, 2026-09-14
+
+The owner asked for the work to be carried out rather than handed over, so it
+was — all five steps, in the order above.
+
+1. **Patching.** `unattended-upgrades` installed, and
+   `/etc/apt/apt.conf.d/20auto-upgrades` written: the package was the missing
+   half, but that file is the *other* half, and without it the daily timer
+   goes on upgrading nothing. All 88 updates applied; the kernel metapackage
+   needed `dist-upgrade` (the `upgrade` run held it back), taking the box from
+   6.12.63 to 6.12.107. Rebooted; ssh, Caddy, Postgres, Redis and Fernscout
+   all came back, no failed units, severin.io 200, `/api/health` ok.
+2. **Admin account.** `severin`, uid 1000, in `sudo`, carrying the two keys
+   from `/root/.ssh/authorized_keys`. Created `--disabled-password`, so
+   `/etc/sudoers.d/severin` grants `NOPASSWD` — not a privilege increase,
+   since the same two keys already open a root session, and a sudo that can
+   prompt for a password nobody has is a locked door with no key. `passwd
+   severin` plus deleting that file is the stricter version.
+   `/root/.vscode-server-insiders` (1.3 GB, running as root until the reboot)
+   removed; the tunnel reinstalls itself under whichever account connects, so
+   connecting as `severin@` is now what moves it.
+3. **The root services.** Both polybot units turned out to be **disabled and
+   inactive** — the owner confirmed the project is archived — and what was
+   actually running was two `uvicorn` processes started by hand from
+   `/root/poly-bot-v3/.venv` outside systemd entirely. The reboot ended them
+   and nothing brings them back, which is what the owner wanted. No service
+   account was built for an archived project, and the units were left
+   *disabled rather than masked*: a masked unit is a trap for whoever
+   resurrects this. If it comes back it follows the runbook pattern, which is
+   what step 5 is for.
+4. **SSH.** `/etc/ssh/sshd_config.d/10-b1702-hardening.conf` —
+   `PasswordAuthentication no`, `KbdInteractiveAuthentication no`,
+   `PermitEmptyPasswords no`, `MaxAuthTries 3`. `fail2ban` with
+   `backend = systemd` in `jail.local`, because **the stock jail reads
+   `/var/log/auth.log` and this box has no such file** — sshd logs to the
+   journal, so a default install would have run, looked healthy and matched
+   nothing. It banned five addresses within seconds of starting. The owner's
+   own address is in `ignoreip`. Verified after the reload: key logins work
+   as both `root` and `severin`, a forced password attempt is refused.
+   `PermitRootLogin` left at `without-password` — root by key still works,
+   which is the way back if the sudo path ever breaks.
+5. **The pattern** is `docs/runbook.md` § "Sharing the box with other
+   workloads", merged on `b1702-runbook-workloads`.
+
+Left for a person: connect as `severin@` once so the editor server installs
+there, and decide whether `PermitRootLogin no` is wanted now that the
+unprivileged path is proven. Port 80 being closed in ufw while Caddy listens
+on it is still unfiled.
