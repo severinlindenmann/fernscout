@@ -47,20 +47,63 @@ Typing "yes" under a card that asks a yes/no question is simply what a person
 does; it needs no prior training, and the answer it gets is a flat denial that
 the card is there.
 
-## Work
+**Valid**, revalidated 2026-09-14: the typed press lives entirely in
+`lib/whatsapp/dispatch.ts:378`; `components/HelperAsk.tsx` pressed only on its
+button's own click, so any typed word went to `/ask` and then to a model.
 
-- Decide which of the two doors is right. Either the web room learns the same
-  typed press WhatsApp has, or the guard's sentence stops denying a proposal
-  that is on screen. The first is the better product; the second is the
-  smaller change and is needed regardless, because the sentence is wrong
-  whenever a card is up.
-- If the typed press comes to the web, it is `lib/whatsapp/dispatch.ts`'s
-  logic and not a second implementation — the shared half belongs somewhere
-  both doors read.
+## Work — as built
+
+`components/HelperAsk.tsx:ask()` now recognises a press before the request
+goes out, the same order `dispatch.ts` does it in: no credit spent, no model
+called. Two things count — the journal's own yes words and the proposal's own
+accept sentence — against the newest turn's proposal only, because "yes" means
+the thing on screen and not a card from twenty minutes ago.
+
+`lib/phrases.ts` is the shared matcher, lifted out of
+`lib/whatsapp/acknowledge.ts` so both doors ask one implementation. It is
+deliberately **two** functions rather than one:
+
+- `matchesPhraseList` — trimmed, case-folded, exact. This is all a press may
+  use.
+- `matchesFirstWord` — B1302's emphatic-first-word collapse ("jaa" → "ja"),
+  which stays consent-only.
+
+The split came out of writing the test: "ja aber erst den Titel ändern" — *yes,
+but change the title first* — passes the collapse, and as a press it would
+write the very version they had just said was wrong. Acknowledging a
+disclosure and writing to somebody's journal are not the same risk.
+
+**A destroy-shaped proposal is never typed-pressed.** Those draw a
+`ConfirmPanel` and take two presses on purpose; a typed word must not be a way
+around the second one.
+
+## What the live check changed
+
+The first version settled the card *before* awaiting the route. The browser
+check caught it immediately: the route answered 422 and the card said
+**"The trip is made."** — the exact claim AGENTS.md forbids, reached by
+settling on the attempt rather than the outcome. It now settles only after the
+route answers, and a refusal puts their word back in the box and shows the
+same sentence a failed button press shows.
 
 ## Acceptance
 
-- With a proposal on screen in the web room, typing the accept word either
-  presses it or is answered with something true about what is waiting.
-- No answer says "nothing is waiting for a confirmation" while a card is
-  rendered.
+- **A typed yes presses.** `/agent` at 390px, demo journal: a `trip_people`
+  proposal accepted by typing "yes" settled to "They are on the trip, and may
+  now write to it.", the buttons went away, and
+  `content/example/trips/alps-2024/trip.json` gained the row.
+  `/tmp/b1743-ok-before.png` and `-ok-after.png`.
+- **No model call, no credit.** Three `/ask` calls in the dev log for three
+  typed sentences and none for the three presses; the balance read 49'999.9
+  before and after. The press itself was
+  `PATCH /api/helper/example/trip/people 200`.
+- **It is faithful to the button.** On a `create_trip` proposal that the route
+  refuses (B1650's declinables), the typed press and a click on "Make this
+  trip" produced the identical refusal and left the card pressable —
+  `/tmp/b1743-before.png`, `-after.png`.
+- **A sentence containing a yes is not a press** —
+  `test/typed-press.test.ts`, including "ja aber erst den Titel ändern",
+  "yesterday we walked to the lake" and "jamais".
+- **No card can be pressed twice**: a typed press settles it.
+- Not done, and out of scope: typing a *no*. "nein" still reaches the model,
+  which is the honest pre-existing behaviour rather than a new half-mechanism.
