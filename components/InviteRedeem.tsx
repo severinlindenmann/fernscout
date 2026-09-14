@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
 import { redeemOutcome } from "@/lib/contacts/redeemOutcome";
@@ -224,8 +224,8 @@ export default function InviteRedeem({
     setAddress((previous) => ({ ...previous, tel: joinTel(newCc, national) }));
   }
 
-  async function redeem(event: React.FormEvent) {
-    event.preventDefault();
+  async function redeem(event?: React.FormEvent) {
+    event?.preventDefault();
     setError(null);
     if (!knownEmail) {
       if (name.trim() === "") return setError("contact.needName");
@@ -307,6 +307,23 @@ export default function InviteRedeem({
     const body = (await response.json()) as { status?: string };
     setStep(body.status === "active" ? "in" : "waiting");
   }
+
+  // B1410: a reader who lands on "confirm" already has everything this call
+  // needs — a proven address (session or identity) and a name on file. There
+  // is nothing left to type, so waiting for a press turned "you are already
+  // known here" into an invisible dead end: closing the tab at that point
+  // left no contact row, no invite use and no signal to the owner. Fires once,
+  // from the initial render only — `knownEmail`/`alreadyIn` never change
+  // after mount, so re-running on every state change would just resend the
+  // same request. The button stays in the JSX below as the retry path for the
+  // one case this cannot cover: the request itself failing.
+  useEffect(() => {
+    // `redeem()` sets `error`/`busy` before its first `await`, same as every
+    // other fetch-on-mount effect in this codebase (TripCountdown, HelperRoom, …).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!alreadyIn && knownEmail) void redeem();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <main className="mx-auto w-full max-w-xl px-6 py-12 sm:py-16" lang={locale}>

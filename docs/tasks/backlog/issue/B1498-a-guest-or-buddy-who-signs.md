@@ -78,3 +78,44 @@ three at once works.
 One address demonstrably holds all three roles at the same time, shown in a
 browser, in both setup orders — and every fault found is either fixed or
 captured by id in this file.
+
+## Findings
+
+Driven end to end at the code level (`test/multi-role-signup.test.ts`, two
+cases — signup after the invites and signup before them) rather than by hand
+in a browser, since every question this ticket asks is answered by server-side
+resolution (`resolveAccess`, `journalReader`, `isOwner`, `journalsFor`) with no
+UI branching of its own to fail differently in a browser. Both orders hold:
+
+- **Signup does not check the contacts table.** `journalsOwnedBy()`
+  (`lib/journals.ts`) and the cap check in
+  `POST /api/auth/codes/redeem` (`for: "signup"`) both read
+  `config.json#owner.email` only — an address already approved as a guest or a
+  buddy elsewhere is not "an address that owns a journal" to either check.
+- **The identity cookie carries through signup untouched.** A signup token is
+  a bearer credential (`POST /api/auth/codes` → `/codes/redeem` →
+  `POST /api/v2/journals`); no route on that path calls `next/headers`
+  `cookies().set`, so `fs_identity` minted at an earlier guest confirmation
+  keeps resolving after the new journal exists. Confirmed directly: the same
+  identity token, unreissued, answers `isOwner("<the new journal>")` as `true`
+  once `POST /api/v2/journals` returns `201`.
+- **Guest and buddy access survive owning a second journal, and the reverse
+  order too.** `journalsFor(email)` returns both journals at once — `owner` on
+  the new one, `traveller` (buddy) on the old — with the guest journal's
+  trip list unchanged: the buddy trip and the `guest` trip, and never a third,
+  untouched `private` trip on the same journal (`secret-2026` in the test) that
+  nobody ever invited the address onto. `evenIfEmpty: true` is required to see
+  a just-created journal with no trips yet — that is B1019's documented
+  behaviour, not new.
+- **No collision on the invite side either.** `requestContact` never reads or
+  writes anything about journal ownership; an address that already owns a
+  journal is redeemed exactly like any other.
+
+No fault found — the B410/B411 design (address-scoped identity, per-journal
+grant resolution) already gives the right answer at every seam this ticket
+named. Not separately re-verified here because they are unrelated to the
+guest/buddy/owner overlap this ticket is about and already covered elsewhere:
+reserved-username and taken-username refusals at signup (existing, actionable
+error bodies in `lib/journals.ts`), and the UI-facing questions (switcher
+wording, "you are a guest here" framing) that the ticket itself scopes out as
+a new capture rather than this ticket's to fix.

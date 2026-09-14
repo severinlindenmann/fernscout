@@ -1,0 +1,671 @@
+
+> fernscout@0.1.0 verify
+> node scripts/verify.mjs --quick
+
+--quick: build reuse is safe because route inputs and generated types match the last successful build.
+
+─── types: npx tsc --noEmit
+
+
+─── lint: npx eslint .
+
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/(trip)/analytics/page.tsx
+  51:17  warning  'canPublish' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/(trip)/photobook/BookSettingsPanel.tsx
+  414:36  warning  '_dropped' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/(trip)/weather/page.tsx
+  49:17  warning  'canPublish' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/account/AccountPageContent.tsx
+  3:10  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+  3:21  warning  'useRef' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/account/page.tsx
+  34:11  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/orders/page.tsx
+  25:11  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/postcards/[id]/page.tsx
+    3:8   warning  'Link' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  307:17  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/trips/[trip]/analytics/page.tsx
+  58:17  warning  'canPublish' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/trips/[trip]/costs/page.tsx
+  112:17  warning  'canPublish' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/trips/[trip]/map/page.tsx
+  39:17  warning  'canPublish' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/[user]/trips/[trip]/weather/page.tsx
+  57:17  warning  'canPublish' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/api/helper/[user]/day/write-day/route.ts
+  147:21  warning  '_valve' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/api/v2/[user]/trips/[trip]/days/[slug]/publish/route.ts
+  37:30  warning  'DayLetterOutcome' is defined but never used    @typescript-eslint/no-unused-vars
+  38:51  warning  'DayWhatsappOutcome' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/api/v2/[user]/trips/[trip]/days/[slug]/send/route.ts
+  21:30  warning  'DayLetterOutcome' is defined but never used    @typescript-eslint/no-unused-vars
+  22:51  warning  'DayWhatsappOutcome' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/api/v2/[user]/trips/[trip]/route.ts
+  464:17  warning  '_ignored' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/app/api/v2/journals/route.ts
+  14:10  warning  'normalizeJournalVisibility' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/components/ContactsAdmin.tsx
+  6:10  warning  'BellRing' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/components/HelperAsk.tsx
+  506:5  warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/components/HelperRoom.tsx
+  433:7   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+  438:7   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/set-state-in-effect')
+  492:5   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  932:5   warning  Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+  991:19  warning  Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/components/LandingSections.tsx
+  49:10  warning  'Pill' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/components/LocaleProvider.tsx
+  14:22  warning  'Locale' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/components/PostcardSheet.tsx
+  3:21  warning  'useRef' is defined but never used        @typescript-eslint/no-unused-vars
+  5:8   warning  'BusyButton' is defined but never used    @typescript-eslint/no-unused-vars
+  8:10  warning  'LOCALE_LABEL' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/components/SignInButton.tsx
+  23:3  warning  'label' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/components/order/OrderDocket.tsx
+  218:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/analytics/record.ts
+  57:7  warning  'VIEW_KINDS' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/documentation.ts
+  6:10  warning  'CODE_TTL_MINUTES' is defined but never used  @typescript-eslint/no-unused-vars
+  8:10  warning  'openApiDocument' is defined but never used   @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/entries.ts
+   21:10  warning  'getUser' is defined but never used          @typescript-eslint/no-unused-vars
+  369:10  warning  'dayFileOf' is defined but never used        @typescript-eslint/no-unused-vars
+  859:20  warning  '_media' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/media.ts
+  16:10  warning  'getTrips' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/openapi.ts
+   9:3   warning  'PRIVATE_SHUTS_OUT_GUESTS' is defined but never used    @typescript-eslint/no-unused-vars
+  10:3   warning  'SECOND_LANGUAGE_COMMITMENT' is defined but never used  @typescript-eslint/no-unused-vars
+  11:3   warning  'VISIBILITY_ENUM_NOTE' is defined but never used        @typescript-eslint/no-unused-vars
+  12:3   warning  'VISIBILITY_MEANING' is defined but never used          @typescript-eslint/no-unused-vars
+  13:3   warning  'VISIBILITY_NOT_A_LOCK' is defined but never used       @typescript-eslint/no-unused-vars
+  21:7   warning  'plain' is assigned a value but never used              @typescript-eslint/no-unused-vars
+  22:10  warning  'INBOX_FILE_EXTENSIONS' is defined but never used       @typescript-eslint/no-unused-vars
+  22:33  warning  'INBOX_KINDS' is defined but never used                 @typescript-eslint/no-unused-vars
+  35:10  warning  'TRACKS' is defined but never used                      @typescript-eslint/no-unused-vars
+  36:10  warning  'ACCENTS' is defined but never used                     @typescript-eslint/no-unused-vars
+  36:19  warning  'COSTS_VISIBILITIES' is defined but never used          @typescript-eslint/no-unused-vars
+  36:54  warning  'STATUSES' is defined but never used                    @typescript-eslint/no-unused-vars
+  37:10  warning  'BOOK_SIZES' is defined but never used                  @typescript-eslint/no-unused-vars
+  37:22  warning  'COVER_TYPES' is defined but never used                 @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/skillDocs.ts
+  127:9  warning  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/tripRates.ts
+  165:25  warning  '_ref' is defined but never used                  @typescript-eslint/no-unused-vars
+  165:40  warning  '_citations' is defined but never used            @typescript-eslint/no-unused-vars
+  313:10  warning  'fillTripRatesQuietly' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/v2/days.ts
+   96:21  warning  '_status' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  284:18  warning  '_media' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/v2/openapi.ts
+   21:3  warning  'journalWrite' is defined but never used     @typescript-eslint/no-unused-vars
+  350:7  warning  'okTrue' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/v2/social.ts
+  19:10  warning  'maskNumber' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/api/v2/write.ts
+  301:25  warning  '_listed' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/costs.ts
+  2:8   warning  'path' is defined but never used     @typescript-eslint/no-unused-vars
+  5:31  warning  'tripDir' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/gps/api.ts
+  215:10  warning  'hasTrack' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/helper/draft.ts
+  60:7  warning  'WIZARD_STEPS' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/helper/tools/run.ts
+  2:32  warning  'ProposalField' is defined but never used  @typescript-eslint/no-unused-vars
+  2:52  warning  'Shape' is defined but never used          @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/i18n.ts
+  1:22  warning  'Locale' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/ingest/entry.ts
+  126:20  warning  '_media' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/journals.ts
+  19:10  warning  'toE164' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/media.ts
+  174:10  warning  'listTripMedia' is defined but never used     @typescript-eslint/no-unused-vars
+  195:10  warning  'mediaContentRoot' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/operations.ts
+  16:7  warning  'OPERATIONS' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/photobook/plan.ts
+  1930:9  warning  'routeCentre' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/plan.ts
+  2:8   warning  'path' is defined but never used     @typescript-eslint/no-unused-vars
+  5:19  warning  'tripDir' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/site.ts
+  264:16  warning  '_address' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/sms/store.ts
+  11:7  warning  'DIRECTIONS' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/tracks.ts
+  401:10  warning  'incompleteMessage' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/travellers/shapes.ts
+  62:7  warning  'K' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/tripPeople.ts
+  524:16  warning  'tripPlacesOf' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/usage.ts
+  42:7  warning  'PROVIDERS' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/validate/media.ts
+  38:6  warning  'ImageFormat' is defined but never used  @typescript-eslint/no-unused-vars
+  42:6  warning  'VideoFormat' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/lib/weather.ts
+  75:7  warning  'WEATHER_GROUPS' is assigned a value but only used as a type  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/access-gate.test.ts
+  102:7  warning  'TEST_TRIPS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/api-v2-day-media.test.ts
+  268:19  warning  '_ignored' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/api-v2-days.test.ts
+  261:17  warning  '_ignored' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  529:19  warning  '_ignored' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/api-v2-print-inbox.test.ts
+  26:7  warning  'TRIP_REF' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/api-v2-route.test.ts
+  86:11  warning  'bad' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/attach-gallery-retracts-decline.test.ts
+  4:31  warning  'describe' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/buddy-preapproval-escalation.test.ts
+  1:31  warning  'describe' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/capability-owner-refusal.test.ts
+  45:22  warning  'features' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/health-content-writable.test.ts
+  4:33  warning  'describe' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/helper-honesty.test.ts
+  1432:11  warning  'answered' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/helper-second-press.test.tsx
+  116:10  warning  'saying' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/helper-sessions.test.ts
+  1:57  warning  'vi' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/identity-signin.test.tsx
+  111:11  warning  'html' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/journals-required-fields.test.ts
+  387:27  warning  '_omitted' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/media-pixel-limit.test.ts
+  31:7  warning  'tripPath' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/media-response-src.test.ts
+  50:7  warning  'tripPath' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/openapi-contract.test.ts
+  180:10  warning  'enumsIn' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/payload.test.tsx
+  5:10  warning  'createElement' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/photobook-day-plans.test.ts
+  361:21  warning  '_omitted' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/photobook-options.test.ts
+  248:24  warning  '_gone' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/postcard-sheet-fetch.test.tsx
+  64:30  warning  '_url' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/publish-day-whatsapp-idempotency.test.ts
+  186:17  warning  '_ignored' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/record-button-denied.test.tsx
+  4:33  warning  'describe' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/signin-autofill.test.tsx
+   79:30  warning  '_url' is defined but never used   @typescript-eslint/no-unused-vars
+   79:44  warning  '_init' is defined but never used  @typescript-eslint/no-unused-vars
+  111:30  warning  '_url' is defined but never used   @typescript-eslint/no-unused-vars
+  111:44  warning  '_init' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/signup-wizard.test.tsx
+  184:30  warning  '_url' is defined but never used   @typescript-eslint/no-unused-vars
+  184:44  warning  'init' is defined but never used   @typescript-eslint/no-unused-vars
+  307:30  warning  '_url' is defined but never used   @typescript-eslint/no-unused-vars
+  307:44  warning  '_init' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/test-content.test.ts
+  131:17  warning  '_ignored' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/trip-create-tracks.test.ts
+  173:20  warning  '_c' is assigned a value but never used   @typescript-eslint/no-unused-vars
+  173:37  warning  '_co' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  173:49  warning  '_m' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/web-cookie-proxies.test.ts
+  67:16  warning  '_mediaDeclined' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites/test/whatsapp-model-turn.test.ts
+  12:10  warning  'turnsIn' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 127 problems (0 errors, 127 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+
+
+─── tests: npx vitest run
+
+
+ RUN  v4.1.11 /Users/severin/Documents/GitHub/fernscout/.claude/worktrees/b1498-1410-invites
+
+[test] the real-Postgres dump test is being skipped: POSTGRES_TEST_URL is not set; pg_dump is not on PATH; pg_restore is not on PATH.
+       Everything else here stubs pg_dump, so nothing below proves the
+       dump the VPS takes each night is one pg_restore can read.
+       Start a database:
+  docker run --rm -d --name fernscout-pg -p 5432:5432 \
+    -e POSTGRES_USER=fernscout -e POSTGRES_PASSWORD=fernscout \
+    -e POSTGRES_DB=fernscout_test postgres:17-alpine
+  POSTGRES_TEST_URL=postgres://fernscout:fernscout@localhost:5432/fernscout_test npx vitest run
+       and have the client binaries, at or above the server's major
+       (pg_dump refuses to dump a newer server than itself):
+  brew install libpq && brew link --force libpq   # macOS
+  sudo apt install -y postgresql-client-17        # Debian/Ubuntu
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+ ❯ test/locales.test.ts (29 tests | 1 failed) 37683ms
+     × every maintained locale covers every key English has 36916ms
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+[test] POSTGRES_TEST_URL is not set — the Postgres dialect is being skipped.
+       Postgres is the dialect production runs. To include it, start one
+       this suite may WIPE, and point the run at it:
+  docker run --rm -d --name fernscout-pg -p 5432:5432 \
+    -e POSTGRES_USER=fernscout -e POSTGRES_PASSWORD=fernscout \
+    -e POSTGRES_DB=fernscout_test postgres:17-alpine
+  POSTGRES_TEST_URL=postgres://fernscout:fernscout@localhost:5432/fernscout_test npx vitest run
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+<claude-code-hint v="1" type="plugin" value="stripe@claude-plugins-official" />
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/locales.test.ts > dictionaries > every maintained locale covers every key English has
+Error: Test timed out in 30000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ test/locales.test.ts:105:3
+    103|   });
+    104|
+    105|   test("every maintained locale covers every key English has", () => {
+       |   ^
+    106|     const english = Object.keys(dictionaryFor("en"));
+    107|     for (const code of installedLocales()) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 590 passed (591)
+      Tests  1 failed | 7654 passed | 6 skipped (7661)
+   Start at  22:47:35
+   Duration  287.66s (transform 78.75s, setup 0ms, import 678.51s, tests 1658.89s, environment 62.32s)
+
+
+─── failing tests, reprinted so they don't have to be scrolled back to:
+
+ FAIL  test/locales.test.ts > dictionaries > every maintained locale covers every key English has
+
+
+─── tests failed. Stopping here — the suite is what to read, and the steps
+    after it would only tell you again that this tree is not ready.
+
