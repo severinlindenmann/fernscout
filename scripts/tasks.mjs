@@ -78,9 +78,19 @@ import path from "node:path";
 
 const ROOT = path.join(process.cwd(), "docs", "tasks");
 // Flow order, which is also the order they are written into INDEX.md.
-const LANES = ["backlog", "open", "in-development", "testing", "completed"];
-/** Lanes only a person may move a task into. See .claude/skills/manage-tasks. */
+const LANES = ["backlog", "open", "waiting", "in-development", "testing", "completed"];
+/**
+ * Lanes only a person may move a task into. See .claude/skills/manage-tasks.
+ *
+ * `waiting` is the exception in the other direction: an agent *puts* a task
+ * there — it is how a run says "this one needs a decision only the owner can
+ * make" without stopping — and only a person takes it out again. It sits
+ * after `open` because a waiting task has already been reviewed; what it
+ * lacks is an answer, not approval.
+ */
 const HUMAN_ONLY = new Set(["open", "completed"]);
+/** Lanes an agent may move *into* but never out of. */
+const AGENT_MAY_NOT_LEAVE = new Set(["waiting"]);
 /** The instant each lane stamps on arrival. */
 const STAMPS = { "in-development": "started", testing: "merged", completed: "completed" };
 /**
@@ -874,6 +884,18 @@ function move(argv) {
   const item = allItems().find((i) => i.id.toLowerCase() === id.toLowerCase());
   if (!item) die(`No item with id ${id}.`);
   if (item.lane === lane) die(`${item.id} is already in ${lane}.`);
+  // Before any rename or frontmatter write: putting a task in `waiting` is an
+  // agent's job, taking it out is not. The lane exists because the task is
+  // parked on a person's answer, so a run that moved it along by itself would
+  // be answering the question it had just asked. `--force` is the deliberate
+  // way past, for the person who has actually decided.
+  if (AGENT_MAY_NOT_LEAVE.has(item.lane) && !argv.includes("--force")) {
+    die(
+      `${item.id} is in ${item.lane}/, which holds what only the owner can decide.\n` +
+        "Moving it out is theirs — an agent doing it would be answering its own question.\n" +
+        `Once they have decided: npm run tasks -- move ${item.id} <lane> --force`,
+    );
+  }
 
   const session = sessionId(argv);
   // Only taking it can collide. Every other move lets go, and letting go of
@@ -938,6 +960,14 @@ function move(argv) {
   if (HUMAN_ONLY.has(lane)) {
     console.log(
       `  note: ${lane}/ is a human gate — an agent moves a task here only when asked to, in that turn.`,
+    );
+  }
+  if (lane === "waiting") {
+    console.log(
+      "  note: waiting/ holds what only the owner can decide. Say in the file what the",
+    );
+    console.log(
+      "        decision is and what each option costs, then carry on with everything else.",
     );
   }
   noteMentions(item);

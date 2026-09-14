@@ -27,7 +27,11 @@ import path from "node:path";
  * duplicate that matters is the one that exists *after* two branches meet.
  */
 
-const LANES = ["backlog", "open", "in-development", "testing", "completed"];
+// `waiting` sits after `open`: a task there has been reviewed and is parked
+// on a decision only the owner can make. It must be in this list or every
+// reference to a waiting ticket reads as dangling — which is exactly what
+// happened when the lane was added and this copy was not.
+const LANES = ["backlog", "open", "waiting", "in-development", "testing", "completed"];
 const ROOT = path.join(process.cwd(), "docs", "tasks");
 
 /**
