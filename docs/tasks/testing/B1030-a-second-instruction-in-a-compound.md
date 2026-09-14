@@ -6,6 +6,7 @@ priority: low
 complexity: medium
 area: helper, model
 found: "2026-09-08T20:24:33Z"
+merged: "2026-09-14T06:09:08Z"
 ---
 
 # B1030 — A second instruction in a compound message is dropped with no question mark to catch it

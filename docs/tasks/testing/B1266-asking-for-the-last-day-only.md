@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: whatsapp, helper
 found: "2026-09-10T10:06:02Z"
+merged: "2026-09-14T06:09:06Z"
 ---
 
 # B1266 — Asking for the last day only searches unfinished drafts

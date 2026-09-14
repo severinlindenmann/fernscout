@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: whatsapp
 found: "2026-09-11T08:29:49Z"
+merged: "2026-09-14T06:09:07Z"
 ---
 
 # B1430 — A failed transcription says nothing, on the WhatsApp voice-note path

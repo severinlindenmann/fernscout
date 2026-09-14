@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (216)
+## backlog (210)
 
 ### security (5)
 
@@ -61,11 +61,10 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (40)
+### issue (35)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1680](backlog/issue/B1680-the-owner-s-own-journal-is.md) | The owner's own journal is unreadable on the live instance: its trips are still trip.md | ISSUE | high | medium |
 | [B1694](backlog/issue/B1694-api-health-reports-signup-enabled-while.md) | api/health reports signup enabled while the instance config disables it, so the instrument contradicts the gate | ISSUE | high | medium |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
@@ -89,15 +88,11 @@ Do not edit them by hand; run the script.
 | [B1676](backlog/issue/B1676-content-model-json-advertises-v1-write.md) | content-model.json advertises v1 write doors and retired journal fields | ISSUE | medium | low |
 | [B1677](backlog/issue/B1677-runtime-responses-name-v1-routes-that.md) | Runtime responses name v1 routes that were deleted | ISSUE | medium | low |
 | [B1692](backlog/issue/B1692-the-sync-manifest-never-lists-content.md) | The sync manifest never lists content/<user>/figures/ | ISSUE | medium | low |
-| [B1029](backlog/issue/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low |
-| [B1030](backlog/issue/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1191](backlog/issue/B1191-persona-automation-cannot-hit-the-sr.md) | Persona automation cannot hit the sr-only file inputs; confirm real hit areas are whole-tile | ISSUE | low | low |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
-| [B1266](backlog/issue/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low |
 | [B1426](backlog/issue/B1426-the-preview-s-istest-banner-has.md) | The preview's isTest banner has the same missing-context gap DraftNotice had | ISSUE | low | low |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
-| [B1430](backlog/issue/B1430-a-failed-transcription-says-nothing-on.md) | A failed transcription says nothing, on the WhatsApp voice-note path | ISSUE | low | low |
 | [B1433](backlog/issue/B1433-the-main-checkout-guard-matches-a.md) | The main-checkout guard matches a path pattern, so it blocks edits in a different repository entirely | ISSUE | low | low |
 | [B1436](backlog/issue/B1436-deleting-the-wizard-s-tests-dropped.md) | deleting the wizard's tests dropped the only coverage for PhotoPicker's localized label and sr-only clip | ISSUE | low | low |
 | [B1475](backlog/issue/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
@@ -154,7 +149,7 @@ Do not edit them by hand; run the script.
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (6)
+### chore (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -163,7 +158,6 @@ Do not edit them by hand; run the script.
 | [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
 | [B1688](backlog/chore/B1688-retracting-a-photographs-decline-is-written.md) | Retracting a photographs decline is written out four times instead of once | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
-| [B1453](backlog/chore/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low |
 
 ### ops (11)
 
@@ -324,7 +318,7 @@ _Nothing here._
 
 _Nothing here._
 
-## testing (129)
+## testing (135)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -396,6 +390,7 @@ _Nothing here._
 | [B1673](testing/B1673-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | low | — |
 | [B1674](testing/B1674-gallery-postcard-sheet-and-signup-wizard.md) | Gallery postcard sheet and signup wizard call v1 routes that no longer exist | ISSUE | high | medium | — |
 | [B1675](testing/B1675-docs-api-renders-the-v1-contract.md) | /docs/api renders the v1 contract, not v2 | ISSUE | high | low | — |
+| [B1680](testing/B1680-the-owner-s-own-journal-is.md) | The owner's own journal is unreadable on the live instance: its trips are still trip.md | ISSUE | high | medium | — |
 | [B1682](testing/B1682-the-deploy-never-copies-content-example.md) | The deploy never copies content/example/figures, so a rebuilt box serves no demo journal | OPS | high | low | — |
 | [B1683](testing/B1683-live-instance-serves-500-on-three.md) | Live instance serves 500 on three document routes: the build and node_modules disagree about sharp | OPS | high | low | — |
 | [B1685](testing/B1685-a-photograph-attached-through-the-media.md) | A photograph attached through the media door never reaches the day it names | ISSUE | high | medium | — |
@@ -443,10 +438,15 @@ _Nothing here._
 | [B1686](testing/B1686-the-signup-wizard-holds-a-bearer.md) | The signup wizard holds a bearer token in a browser | ISSUE | medium | medium | — |
 | [B1687](testing/B1687-the-publish-route-sends-the-day.md) | The publish route sends the day letter with no channel claim, so two concurrent publishes mail it twice | ISSUE | medium | low | — |
 | [B1693](testing/B1693-signup-is-an-on-off-switch.md) | Signup is an on/off switch, so an instance cannot be open to a named few | FEATURE | medium | medium | — |
+| [B1029](testing/B1029-a-vague-answer-waters-down-a.md) | A vague answer waters down a fact the turn already read exactly | ISSUE | low | low | — |
+| [B1030](testing/B1030-a-second-instruction-in-a-compound.md) | A second instruction in a compound message is dropped with no question mark to catch it | ISSUE | low | medium | — |
 | [B1106](testing/B1106-the-locale-coverage-test-fails-in.md) | The locale coverage test fails in a full run and passes on its own, so a green tree can be reported red | ISSUE | low | low | — |
+| [B1266](testing/B1266-asking-for-the-last-day-only.md) | Asking for the last day only searches unfinished drafts | ISSUE | low | low | — |
 | [B1413](testing/B1413-five-hand-typed-durations-in-openapi.md) | Five hand-typed durations in openapi.ts have no exported minutes constant to import | CHORE | low | low | — |
+| [B1430](testing/B1430-a-failed-transcription-says-nothing-on.md) | A failed transcription says nothing, on the WhatsApp voice-note path | ISSUE | low | low | — |
 | [B1435](testing/B1435-day-media-s-two-phase-original.md) | day/media's two-phase original upload may have no live caller since the wizard retired | ISSUE | low | low | — |
 | [B1445](testing/B1445-a-spent-trip-choice-card-stays.md) | A spent trip-choice card stays a pressable button that does nothing | ISSUE | low | low | — |
+| [B1453](testing/B1453-createjournal-still-writes-costs-enabled-into.md) | createJournal still writes costs: enabled into every new journal's config, where nothing reads it | CHORE | low | low | — |
 | [B1532](testing/B1532-a-card-stannp-cancels-after-acceptance.md) | A card Stannp cancels after acceptance is never refunded | ISSUE | low | medium | — |
 | [B1566](testing/B1566-the-inbox-announces-a-video-as.md) | The inbox announces a video as a photograph | ISSUE | low | low | — |
 | [B1592](testing/B1592-units-metric-imperial-is-stored-and.md) | units (metric/imperial) is stored and editable but nothing converts by it | CHORE | low | low | — |

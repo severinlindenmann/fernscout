@@ -39,3 +39,27 @@ in an allowlist.
 A decision: build the tool wrapper (then widen `ROUTE_BY_TOOL` to match),
 or leave captioning as a web-only feature and say so in `/agent.md` and
 the tool's own web-side description.
+
+
+## Premise corrected 2026-09-14 — it is unreachable everywhere, not only on WhatsApp
+
+The ticket says `describe_photos` has no model tool so WhatsApp can never reach
+it. Checked: **no browser caller reaches it either.** Nothing in `app/` or
+`components/` fetches `/api/helper/{user}/day/describe-photos`, and the
+`agent.describePhotos`/`describePhotosHint` locale strings are orphaned. The
+room cannot reach it any more than the messenger can.
+
+**Why a wrapper was not built.** A write tool's `propose()` shows a static
+sentence; the data it returns only reaches a person through a chained `next`
+proposal with editable fields — the shape `draft_words` → `set_day_words`
+uses. There is no "keep these suggested captions" tool to chain into, only a
+one-at-a-time flow inside `assemble_day`'s guided setup.
+
+So a `describe_photos` tool on its own would spend real credits and produce
+captions with nowhere to be shown, on either surface. That is worse than the
+current absence, and it fails this project's own bar: work charged for and
+then discarded.
+
+The real fix is the second half first — an "apply suggested captions" write
+tool — and only then a wrapper worth adding. That is a feature, not a line in
+an allowlist, which is what the ticket itself already suspected.

@@ -6,6 +6,7 @@ priority: high
 complexity: medium
 area: content
 found: "2026-09-13T14:29:58Z"
+merged: "2026-09-14T06:09:06Z"
 ---
 
 # B1680 — The owner's own journal is unreadable on the live instance: its trips are still trip.md

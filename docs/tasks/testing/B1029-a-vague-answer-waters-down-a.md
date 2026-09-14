@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: helper, model
 found: "2026-09-08T20:24:11Z"
+merged: "2026-09-14T06:09:07Z"
 ---
 
 # B1029 — A vague answer waters down a fact the turn already read exactly

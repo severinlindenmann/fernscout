@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: journals, config
 found: "2026-09-11T12:08:31Z"
+merged: "2026-09-14T06:09:08Z"
 ---
 
 # B1453 — createJournal still writes costs: enabled into every new journal's config, where nothing reads it
