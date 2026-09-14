@@ -6,7 +6,7 @@ import { GPS_IMPORTERS } from "@/importers/gps";
 import { resolveAccess } from "../auth/handshake";
 import { costForDay, costLocalForDay } from "../costs";
 import { AS_AUTHOR, getAllEntries, getAllMedia, getDays, getEntryBySlug } from "../entries";
-import { getTrips, tripRef } from "../trips";
+import { getTrip, getTrips, tripRef } from "../trips";
 import type { Day, DaySummary } from "../types";
 import { findInboxFile, listDayInbox, listInbox, type InboxEntry, type InboxKind } from "../inbox";
 import { userDir } from "../users";
@@ -266,7 +266,7 @@ export function previewOf(
   username: string,
   tripId: string,
   slug: string,
-): { day: Day; summary: DaySummary; dayIndex: number } | null {
+): { day: Day; summary: DaySummary; dayIndex: number; tripTest: boolean } | null {
   const ref = tripRef(username, tripId);
   const days = getDays(ref, AS_AUTHOR);
   // The day's place in the trip, because the card prints "Day 4" in its corner
@@ -279,6 +279,11 @@ export function previewOf(
   return {
     dayIndex,
     day,
+    // B1426 — this pane renders with no `TripProvider`, so `DayCard`'s own
+    // `trip?.trip.test` read can never be true here even when the trip
+    // itself is the thing marked `test: true`. Read it the same way a real
+    // page's context would and pass it down explicitly instead.
+    tripTest: getTrip(ref)?.test === true,
     summary: {
       date: day.date,
       slug: lead.slug,
