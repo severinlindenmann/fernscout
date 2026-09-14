@@ -48,6 +48,31 @@ one size to print.
    200 × 200 and portrait is 210 × 280 — so the drawing cannot promise a shape
    the printer does not make.
 
+## What was built
+
+**Valid** — `ChatVignette`'s delays are inline `animation-delay` values, and
+`LandingSections` renders it below the hero's headline, lede and buttons.
+Confirmed in a browser: after seven seconds at scroll 0 all four bubbles had
+already animated.
+
+- `.fs-hold-animation` in `globals.css` — `animation-play-state: paused` on
+  the container and everything inside it. Nothing hides anything: `both` on
+  `.fs-assemble-in` already holds the `from` state, so a paused bubble sits at
+  opacity 0 on its own. Deliberately **not** listed in the reduced-motion
+  block, where `animation: none` already leaves every bubble visible at rest.
+- An `IntersectionObserver` in `ChatVignette` takes the class off the first
+  time any of it enters the viewport, then disconnects. A browser without the
+  API releases immediately rather than holding a conversation nobody can
+  start. `/agent` is unchanged: the vignette is on screen at first paint, so
+  the observer fires at once.
+- The photobook is now two books rather than a spread — a square 200 × 200 in
+  front with a spine and a cut page block, a portrait 210 × 280 behind it, both
+  photo-covered. It says "printed" and "there is a choice of size", which the
+  ruled-line spread said neither of.
+
+Measured in a browser at 390: held at opacity 0 and `paused` after 7 s without
+scrolling; scrolled into view, the first bubble at 0.9 s and all four by 6 s.
+
 ## Acceptance
 
 - Scrolling the landing page to the vignette starts the bubbles from the

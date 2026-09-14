@@ -493,62 +493,64 @@ function PostcardProof() {
 }
 
 /**
- * An open book, at the proportions one gets printed — B1717.
+ * A printed book, and the fact that there is a choice of size — B1717, redrawn
+ * in B1722.
  *
- * Two 200 mm square pages side by side, which is `BOOK_SIZES.square` in
- * `lib/photobook/spec.ts` — the shape the composer defaults to, and the one
- * where neither photograph orientation is a second-class citizen. Same
- * reasoning as `PostcardProof` for the ruled lines: a spread of real
- * photographs with invented prose under them would be a page of fiction.
+ * It was an open spread with ruled lines standing in for prose, and on the
+ * page it read as two photographs with a gap between them: no cover, no
+ * thickness, no paper. The postcard beside it works because it is a *thing*.
+ * So this is a thing too — a photographed cover with a spine down one side and
+ * the cut page block down the other, and a second book behind it in the other
+ * shape, because "which size?" is the first question the composer asks.
  *
- * The spine is the whole trick. Without the gradient down the middle this
- * reads as two pictures beside each other rather than as one open book, which
- * is the only thing the drawing is here to say.
+ * Both aspect ratios are real: `BOOK_SIZES` in `lib/photobook/spec.ts` gives
+ * square as 200 × 200 and portrait as 210 × 280. Written as bare ratios rather
+ * than imported for the same reason `PostcardProof` gives — that module
+ * reaches the renderer, and this needs two numbers from it.
  */
 function PhotobookProof() {
   return (
-    <div
-      aria-hidden
-      className="relative mt-4 flex overflow-hidden rounded-md border border-line-strong
-                 bg-surface-raised shadow-lg"
-      style={{ aspectRatio: "400 / 200" }}
-    >
-      <div className="flex-1 p-1.5">
+    <div aria-hidden className="mt-4 flex items-end justify-center gap-2 pb-1">
+      {/* The portrait book, behind and smaller: the other format on offer. */}
+      <div
+        className="relative w-[34%] shrink-0 -rotate-3 overflow-hidden rounded-r-md rounded-l-sm
+                   border border-line-strong bg-surface-subtle shadow-md"
+        style={{ aspectRatio: "210 / 280" }}
+      >
+        <Image
+          src={PRINT_PHOTOS[2]}
+          loader={mediaLoader}
+          alt=""
+          width={210}
+          height={280}
+          className="h-full w-full object-cover opacity-90"
+        />
+        <span className="absolute inset-y-0 left-0 w-[7%] bg-navy-900/45" />
+        <span className="absolute inset-y-[3%] right-0 w-[2.5%] bg-surface-raised" />
+      </div>
+      {/* The square book, in front: the shape the composer defaults to, and
+          the one where neither photograph orientation is second class. */}
+      <div
+        className="relative w-[56%] shrink-0 rotate-1 overflow-hidden rounded-r-md rounded-l-sm
+                   border border-line-strong bg-surface-subtle shadow-lg"
+        style={{ aspectRatio: "200 / 200" }}
+      >
         <Image
           src={PRINT_PHOTOS[1]}
           loader={mediaLoader}
           alt=""
           width={200}
           height={200}
-          className="h-full w-full rounded-sm object-cover"
+          className="h-full w-full object-cover"
         />
+        {/* The spine: the darker roll of the cover into the binding. */}
+        <span className="absolute inset-y-0 left-0 w-[8%] bg-navy-900/45" />
+        <span className="absolute inset-y-0 left-[8%] w-px bg-navy-900/30" />
+        {/* The cut page block on the fore edge — the two pale strips are what
+            make this a stack of paper rather than a photograph with a border. */}
+        <span className="absolute inset-y-[2.5%] right-0 w-[3%] bg-surface-raised" />
+        <span className="absolute inset-y-[4%] right-[3%] w-px bg-line-strong" />
       </div>
-      <div className="flex flex-1 flex-col gap-1.5 p-1.5">
-        <Image
-          src={PRINT_PHOTOS[2]}
-          loader={mediaLoader}
-          alt=""
-          width={200}
-          height={112}
-          className="h-[58%] w-full rounded-sm object-cover"
-        />
-        <div className="flex flex-col gap-[5px] pt-0.5">
-          {[92, 100, 86, 70].map((width, i) => (
-            <span key={i} className="block h-px bg-line-strong" style={{ width: `${width}%` }} />
-          ))}
-        </div>
-      </div>
-      {/* The fold, and it is the whole trick: without it this is two
-          photographs beside each other rather than one open book.
-
-          Drawn as a band of the page's own surface between two hairlines
-          rather than as a shadow. A shadow is a dark colour, and on the dark
-          theme's dark ground it disappears entirely — which is exactly what
-          the first attempt did. A surface and a line are tokens, so they
-          hold in both. */}
-      <span className="pointer-events-none absolute inset-y-0 left-1/2 w-2.5 -translate-x-1/2 bg-surface-subtle" />
-      <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-[6px] bg-line-strong" />
-      <span className="pointer-events-none absolute inset-y-0 left-1/2 w-px translate-x-[5px] bg-line-strong" />
     </div>
   );
 }

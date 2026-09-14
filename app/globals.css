@@ -504,6 +504,31 @@ body {
 .fs-assemble-in {
   animation: fs-assemble-in 0.3s ease-out both;
 }
+
+/*
+ * Holding a staged arrival until it is actually looked at — B1722.
+ *
+ * `ChatVignette` stages its bubbles with `animation-delay`, counted from
+ * first paint. On `/agent` that is right — the vignette is the first thing on
+ * the page. On the landing page it sits a screen below the headline, so the
+ * conversation played out while the reader was still reading the lede and
+ * they scrolled down to a finished, static chat: the one thing the drawing is
+ * for never happened.
+ *
+ * `paused` pauses the *delay* as well as the animation, and `both` above
+ * already holds the `from` state — opacity 0 — so a held bubble needs no
+ * separate rule to hide it and nothing to unset when it starts. An
+ * `IntersectionObserver` in the component takes the class off.
+ *
+ * Deliberately not listed in the `prefers-reduced-motion` block: there
+ * `animation: none` already wins, which leaves every bubble at its resting
+ * state, fully visible. A hold that reintroduced a hidden state would make
+ * reduced motion mean "see nothing at all".
+ */
+.fs-hold-animation,
+.fs-hold-animation * {
+  animation-play-state: paused;
+}
 .fs-waymark-bounce {
   animation: fs-waymark-bounce 1s ease-in-out infinite;
 }

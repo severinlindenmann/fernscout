@@ -130,3 +130,42 @@ describe("the /agent door's chat vignette", () => {
     expect(ownAgentIndex).toBeGreaterThan(questionCardIndex);
   });
 });
+
+/**
+ * B1722 — the vignette waits to be looked at.
+ *
+ * Its bubbles are staged with `animation-delay` counted from first paint,
+ * which is right on `/agent`, where it is the first thing on the page, and
+ * wrong on the landing page, where it sits a screen below the fold and had
+ * finished playing before anybody scrolled to it.
+ *
+ * Checked in the source rather than in rendered markup for the same reason
+ * the reduced-motion test above gives: jsdom evaluates neither a media query
+ * nor an `IntersectionObserver`, and what matters is the rule the browser
+ * will apply.
+ */
+describe("the chat vignette holds until it is in view", () => {
+  test("the hold is a paused animation, not a hidden element", () => {
+    const css = fs.readFileSync(path.join(process.cwd(), "app/globals.css"), "utf8");
+    expect(css).toMatch(/\.fs-hold-animation[\s\S]{0,120}animation-play-state:\s*paused;/);
+    // `both` on the bubbles is what leaves a paused one at its `from` state —
+    // opacity 0 — so the hold needs no rule of its own to hide anything. If
+    // that fill mode ever goes, a held bubble shows up fully formed and then
+    // animates in, which is worse than not holding it at all.
+    expect(css).toMatch(/\.fs-assemble-in\s*\{\s*\n?\s*animation:[^;]*\bboth\b;/);
+  });
+
+  test("and reduced motion still wins — the hold never hides anything there", () => {
+    const css = fs.readFileSync(path.join(process.cwd(), "app/globals.css"), "utf8");
+    const reduced = css.slice(css.indexOf("@media (prefers-reduced-motion: reduce)"));
+    const block = reduced.slice(0, reduced.indexOf("\n}\n"));
+    expect(block).not.toContain("fs-hold-animation");
+  });
+
+  test("the component releases the hold on intersection, once", () => {
+    const src = fs.readFileSync(path.join(process.cwd(), "components/ChatVignette.tsx"), "utf8");
+    expect(src).toContain("IntersectionObserver");
+    // Released and never re-held: this is an arrival, not a loop.
+    expect(src).toContain("observer.disconnect()");
+  });
+});
