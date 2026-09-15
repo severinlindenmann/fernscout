@@ -77,7 +77,7 @@ export default function SignInButton({
         className="inline-flex min-h-12 items-center justify-center rounded-full bg-yellow-400 px-6 text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-60"
         busyLabel={working}
       >
-        label
+        {label}
       </BusyButton>
       {state === "failed" && (
         <p className="mt-4 text-xl leading-8 text-ink-body">{failed}</p>

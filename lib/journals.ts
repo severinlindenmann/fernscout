@@ -521,7 +521,7 @@ export async function sendWelcome(input: {
   let signIn: string | null = null;
   if (isEnabled("auth", input.username)) {
     try {
-      signIn = signInUrl(site.url, input.username, await issueStandingLink(input.username, input.email));
+      signIn = signInUrl(site.url, input.username, await issueStandingLink(input.username, input.email), locale);
     } catch (err) {
       console.error(`[journals] no sign-in link for ${input.username}:`, err);
     }
