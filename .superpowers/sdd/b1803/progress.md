@@ -155,3 +155,13 @@ own Lightbox, and photographs on all six screens that discuss them.
 Owed and recorded: a real browser pass over the deeper screens, blocked on the
 capture script being unable to click (filed as its own chore). Phase 3 rebuilds
 those screens and will need the same pass, so it lands there.
+
+PHASE 2 — dispatched as ONE implementer (sonnet), base ebc6be54. Tasks 2.1 and
+2.2 are both chrome across the same set of screens; splitting them would make
+two implementers edit the same files in sequence for no separate review surface.
+Brief: task-2-brief.md — Phase 2's own text plus the complete per-screen
+specification, with design-v2.html named as the tiebreaker above both. That
+naming is the correction for R37's root cause: sixteen implementers built from
+prose because I wrongly recorded the design file as unreachable from a subagent.
+Merged main into the branch first, so the B1806 ticker and B1807 ceiling are
+present rather than arriving as a conflict at merge time.

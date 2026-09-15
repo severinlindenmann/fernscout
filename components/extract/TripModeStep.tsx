@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { AlignLeft, MapPin, Mic } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import StepIndicator from "@/components/extract/StepIndicator";
 
 export type TripOption = { id: string; title: string; year: string };
+
+/** The wizard's own fixed shape (S2a–S4 of the design) — five screens before
+ *  the day board takes over, not a count read off any run. */
+const TOTAL_STEPS = 5;
 
 /**
  * Step 02 of the design — "where it goes, and how you'll tell it".
@@ -45,6 +51,11 @@ export default function TripModeStep({
   if (screen === "mode") {
     return (
       <div className="mt-4">
+        <StepIndicator
+          total={TOTAL_STEPS}
+          current={2}
+          label={t("extract.step.ofTotal", { current: "2", total: String(TOTAL_STEPS) })}
+        />
         <button
           type="button"
           onClick={() => setScreen("trip")}
@@ -58,12 +69,14 @@ export default function TripModeStep({
 
         <div className="mt-4 flex flex-col gap-3">
           <OptionCard
+            icon={<Mic className="h-4 w-4" aria-hidden="true" />}
             title={t("extract.tripMode.talk")}
             description={t("extract.tripMode.talkDescription")}
             selected={mode === "voice"}
             onSelect={() => setMode("voice")}
           />
           <OptionCard
+            icon={<AlignLeft className="h-4 w-4" aria-hidden="true" />}
             title={t("extract.tripMode.type")}
             description={t("extract.tripMode.typeDescription")}
             selected={mode === "type"}
@@ -90,12 +103,18 @@ export default function TripModeStep({
 
   return (
     <div className="mt-4">
+      <StepIndicator
+        total={TOTAL_STEPS}
+        current={1}
+        label={t("extract.step.ofTotal", { current: "1", total: String(TOTAL_STEPS) })}
+      />
       <h2 className="font-display text-xl font-semibold leading-tight text-ink-strong">
         {t("extract.tripMode.tripTitle")}
       </h2>
 
       <div className="mt-4 flex flex-col gap-3">
         <OptionCard
+          icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
           title={t("extract.tripMode.newTrip")}
           description={t("extract.tripMode.newTripDescription")}
           selected={!existing}
@@ -103,6 +122,7 @@ export default function TripModeStep({
         />
         {trips.length > 0 && (
           <OptionCard
+            icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
             title={t("extract.tripMode.existingTrip")}
             description={t("extract.tripMode.existingTripDescription")}
             selected={existing}
@@ -145,11 +165,13 @@ export default function TripModeStep({
 }
 
 function OptionCard({
+  icon,
   title,
   description,
   selected,
   onSelect,
 }: {
+  icon?: ReactNode;
   title: string;
   description: string;
   selected: boolean;
@@ -165,7 +187,10 @@ function OptionCard({
           : "border-line-strong bg-surface-raised hover:bg-surface-subtle"
       }`}
     >
-      <span className="text-sm font-semibold text-ink-strong">{title}</span>
+      <span className="flex items-center gap-2 text-sm font-semibold text-ink-strong">
+        {icon}
+        {title}
+      </span>
       <span className="text-xs text-ink-secondary">{description}</span>
     </button>
   );

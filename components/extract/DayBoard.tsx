@@ -5,6 +5,7 @@ import AskCard from "@/components/extract/AskCard";
 import PhotoChips from "@/components/extract/PhotoChips";
 import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
 import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
+import StepIndicator from "@/components/extract/StepIndicator";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import type { DayGroup } from "@/lib/extract/group";
@@ -158,20 +159,35 @@ export default function DayBoard({
 
   const { manifest, groups, questions } = data;
   const photosById = new Map<string, PhotoRow>(manifest.photos.map((p) => [p.id, p]));
+  // The day board's own progress metric — B1803 Task 2.1. Not "which screen",
+  // this workspace has no screens to be one of; "days told" out of the run's
+  // own real day count, both read off `groups`/`manifest` rather than assumed.
+  const daysTold = groups.filter(
+    (group) => completenessFor(group, manifest, (questions[keyFor(group)] ?? []).length) === "ready",
+  ).length;
+  const daysTotal = groups.length;
 
   return (
     <div className="mt-4">
+      <StepIndicator
+        total={daysTotal}
+        current={daysTold}
+        label={tn("extract.step.daysTold", daysTold, { current: String(daysTold), total: String(daysTotal) })}
+      />
       <ul className="divide-y divide-line-faint rounded-xl border border-line-strong">
-        {groups.map((group) => {
+        {groups.map((group, groupIndex) => {
           const key = keyFor(group);
           const open = questions[key] ?? [];
           const state = completenessFor(group, manifest, open.length);
+          const isSelected = selected === key;
           return (
-            <li key={key}>
+            <li key={key} className={isSelected ? "rounded-lg ring-2 ring-yellow-300" : undefined}>
               <button
                 type="button"
                 onClick={() => setSelected(selected === key ? null : key)}
-                className="flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left"
+                className={`flex min-h-14 w-full items-center justify-between gap-3 px-4 py-2 text-left ${
+                  isSelected ? "rounded-t-lg border border-b-0 border-yellow-600" : ""
+                }`}
                 aria-expanded={selected === key}
               >
                 <span className="text-sm font-semibold text-ink-strong">
@@ -243,10 +259,14 @@ export default function DayBoard({
                     {open.length === 0 ? (
                       <p className="text-sm text-ink-secondary">{t("extract.board.doneDay")}</p>
                     ) : (
-                      open.map((question) => (
+                      open.map((question, questionIndex) => (
                         <AskCard
                           key={question.id}
                           question={question}
+                          dayIndex={groupIndex + 1}
+                          dayTotal={daysTotal}
+                          questionIndex={questionIndex + 1}
+                          questionTotal={open.length}
                           username={username}
                           consentedSpeech={consentedSpeech}
                           speechProvider={speechProvider}

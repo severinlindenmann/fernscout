@@ -5,6 +5,7 @@ import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
 import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
+import StepIndicator from "@/components/extract/StepIndicator";
 import RecordButton from "@/components/RecordButton";
 import type { Question } from "@/lib/extract/questions";
 
@@ -28,6 +29,10 @@ import type { Question } from "@/lib/extract/questions";
  */
 export default function AskCard({
   question,
+  dayIndex,
+  dayTotal,
+  questionIndex,
+  questionTotal,
   username,
   consentedSpeech,
   speechProvider,
@@ -35,6 +40,16 @@ export default function AskCard({
   onAnswer,
 }: {
   question: Question;
+  /** This day's 1-indexed position among the run's own days, and how many
+   *  there are — B1803 Task 2.1's `day 4 of 9`. Optional so callers that
+   *  have not yet wired the board's day list keep compiling. */
+  dayIndex?: number;
+  dayTotal?: number;
+  /** This question's own position among the day's currently open questions —
+   *  drives the progress segments, which the design draws separately from
+   *  the `day N of M` label above. */
+  questionIndex?: number;
+  questionTotal?: number;
   username: string;
   consentedSpeech: boolean;
   speechProvider: string;
@@ -66,6 +81,13 @@ export default function AskCard({
 
   return (
     <div>
+      {dayIndex !== undefined && dayTotal !== undefined && questionIndex !== undefined && questionTotal !== undefined && (
+        <StepIndicator
+          total={questionTotal}
+          current={questionIndex}
+          label={t("extract.step.dayOfTotal", { current: String(dayIndex), total: String(dayTotal) })}
+        />
+      )}
       {photos.length > 0 &&
         (isFollowUp ? (
           <div className="mb-2">
