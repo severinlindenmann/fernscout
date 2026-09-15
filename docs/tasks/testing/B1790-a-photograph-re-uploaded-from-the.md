@@ -7,8 +7,7 @@ complexity: medium
 area: fernscout-helper publish / media
 found: "2026-09-15T09:19:52Z"
 started: "2026-09-15T10:10:47Z"
-session: bc2533f4-ec0c-48c5-a804-21118288b081
-claimed: "2026-09-15T10:10:47Z"
+merged: "2026-09-15T10:18:28Z"
 ---
 
 # B1790 — A photograph re-uploaded from the site's own derivative is stored a second time, orphaning the first
@@ -101,3 +100,49 @@ itself is still open and is what this ticket is for.
 What this ticket still wants is the rule that stops it happening: nothing
 anywhere asks whether the instance already holds this photograph before storing
 another copy of it.
+
+## Built, 2026-09-15 — fernscout `e0db2188`
+
+**Valid when taken**, and the half of it that already worked is worth saying:
+`storeTripPhoto` has always answered a re-send of the *same bytes* with the
+existing item and `duplicateOf` (`lib/api/v2/media.ts:174`) — the address is
+the hash of what arrives, so a blind retry is free. The gap was only that a
+derivative does not hash to what it was derived from, so the one re-send a
+mirror-shaped client actually makes was the one case that check could not see.
+
+**Answered on the instance rather than in the client**, which is what the Work
+section asked for and is the right place: a second caller sending back what the
+first was answered with would otherwise make the same duplicate.
+`derivativeHolding()` asks whether a photograph already stored in that same
+directory holds exactly these bytes; if one does, the upload answers with
+**that** photograph's `src` and `duplicateOf` and stores nothing at all.
+
+Size first, so the ordinary case — an upload of something new — reads one
+directory and hashes nothing. `.meta.json` sidecars and a video's
+`-poster.jpg` are skipped: a poster is a frame this server drew, and answering
+with its src would hand back an address that belongs to no `media` item.
+
+The contract says so where a caller reads it (`lib/api/v2/schemas/media.ts`):
+`src` may now name a photograph whose bytes are not the bytes that were sent.
+
+## Verified
+
+- **Keeper, red before green**: two checks in `test/api-v2-media.test.ts` —
+  upload a photograph, read back what the site *serves* (asserting it is not
+  the file that was sent), send that back, and get the first `src` with
+  `duplicateOf` and **no new file in the directory**; and a genuinely different
+  photograph is still stored, with no `duplicateOf`. With the change stashed
+  the first fails on `expected '/media/asia-2026/7b5720fa…' to be
+  '/media/asia-2026/c9a2d3c7…'` — the second copy this ticket is about.
+- `npm run verify` — all 5 passed in 188s: build, tsc, eslint, 613 test files /
+  7,791 tests, knip. `npm run unused` again on main after the merge.
+- Security review of the branch (AGENTS.md's API-route rule): no HIGH or MEDIUM
+  findings. The returned name comes from `readdirSync` of a server-owned
+  directory, so it is one path segment by construction; the directory is the
+  one the request already resolved to through `getTrip`/`safeDaySlug`; and the
+  early return sits after `validateMediaBatch` and the ffmpeg check, so limits
+  still apply.
+
+**This takes effect on fernscout.ch only after a deploy** — the 18 that existed
+were repaired by hand (above), and nothing stops the next mirror-shaped publish
+from making new ones until this ships.
