@@ -334,13 +334,14 @@ _Nothing here._
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
 | [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
 
-## testing (3)
+## testing (4)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1788](testing/B1788-sign-in-link-page-shows-the.md) | Sign-in link page shows the literal word label on its button and renders in the browser's language, not the mail's | ISSUE | high | low | — |
 | [B1787](testing/B1787-a-synced-folder-can-never-agree.md) | A synced folder can never agree with the site, because the weather it answers with may not be sent back | ISSUE | medium | medium | — |
 | [B1789](testing/B1789-a-photograph-whose-local-bytes-differ.md) | A photograph whose local bytes differ from the site's derivative is planned, never sent, and reported as a push that did not land, on every run | ISSUE | medium | medium | — |
+| [B1793](testing/B1793-a-file-pruned-by-sync-down.md) | A file pruned by sync down --yes keeps its baseline entry, so a path the site holds again reads as a local deletion for ever | ISSUE | medium | low | — |
 
 ## completed (1519)
 

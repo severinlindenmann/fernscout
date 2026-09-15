@@ -70,3 +70,31 @@ names the instance assigned, leaves the day naming exactly the photographs it
 named after the first run, and stores nothing a second time. A count of files
 under `trips/<trip>/media/<day>/` matches the number of photographs the day
 names.
+
+## The 18 that existed, 2026-09-15 — deleted, and their masters restored
+
+Done at the owner's request, through the instance's own doors; the defect
+itself is still open and is what this ticket is for.
+
+1. **The 18 orphans were deleted** — `DELETE /api/v2/severin/media`, 18 × 200.
+   Manifest 4994 → 4940 files, storage 3945.5 → 3901.5 MB, both days still
+   published and still naming 15 and 10 photographs.
+2. **That cost the print masters, and it was not foreseen.** The orphan was the
+   copy holding the *true camera original*; the kept copy's original is the
+   re-derived file the second upload sent. `deleteMediaV2` removes the original
+   with the photograph, so 18 masters went from ~2–3.6 MB each to ~300 kB —
+   5.9 MB where there had been 38.1 MB. Nothing was lost overall: the camera
+   originals were still in the folder under `originals/`.
+3. **Repaired**: each true original was uploaded again (stored under its own
+   hash — the name the orphan had), each day was patched back to its own order
+   and count pointing at the restored copy, and the 18 re-derived copies were
+   deleted. The site now holds 15 photographs with 29.2 MB of masters on one
+   day and 10 with 24.3 MB on the other; the smallest restored master is
+   1,088,281 bytes, and no re-derived master is left.
+4. **The folder is a mirror again**: `sync down`, then both legs saying `4940
+   files on the site, 4940 here`, `push 0`, `pull 0`. Getting there turned up
+   one more defect in the sync, fixed and recorded as **B1793**.
+
+What this ticket still wants is the rule that stops it happening: nothing
+anywhere asks whether the instance already holds this photograph before storing
+another copy of it.
