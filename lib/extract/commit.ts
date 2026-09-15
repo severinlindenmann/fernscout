@@ -42,16 +42,42 @@ export async function commitDay(
   runId: string,
   date: string,
 ): Promise<{ moved: number; entry: string | null }> {
-  const manifest = readManifest(username, runId);
-  if (!manifest) return { moved: 0, entry: null };
+  // A cheap, pre-lock check only — enough to bail out of a call with nothing
+  // to do at all without ever taking the lock. Everything that actually
+  // writes re-reads fresh, inside the lock, below: this copy may be stale
+  // by the time a queued call gets its turn, and a stale read is exactly
+  // what let a retried commit re-stage photographs a first call already
+  // moved.
+  const initial = freshState(username, runId, date);
+  if (!initial || (initial.kept.length === 0 && !initial.row?.words)) {
+    return { moved: 0, entry: null };
+  }
 
-  const kept = manifest.photos.filter((p) => !p.dropped && effectiveDate(p) === date);
-  const row = manifest.days.find((d) => d.date === date);
-  if (kept.length === 0 && !row?.words) return { moved: 0, entry: null };
-
-  const incomingBytes = kept.reduce((sum, p) => sum + p.bytes, 0);
+  // The number the quota check judges, recomputed fresh at the moment the
+  // lock is actually held — `withStorageQuota`'s own doc comment names this
+  // exact shape for exactly this reason. An already-committed date costs
+  // nothing more to write, so it reports zero rather than the bytes a first
+  // call already spent.
+  const bytesFor = (): number => {
+    const state = freshState(username, runId, date);
+    if (!state || state.row?.committed) return 0;
+    return state.kept.reduce((sum, p) => sum + p.bytes, 0);
+  };
 
   const move = (): number => {
+    const state = freshState(username, runId, date);
+    if (!state) return 0;
+
+    // Already committed — by this call's own earlier attempt, or by
+    // whichever concurrent call won the race for this lock first. A
+    // double-click, a network retry, a restored tab: the person asked for
+    // this day to be committed, and it is, so nothing moves a second time
+    // and this reports the same count the day already holds rather than an
+    // error that would invite them to press again.
+    if (state.row?.committed) return state.kept.length;
+
+    const { manifest, row, kept } = state;
+
     // Nothing to hand off to without a trip — created once per run and
     // reused by every later day, never a second one for the same run.
     const tripId = ensureTrip(username, manifest, date);
@@ -119,21 +145,43 @@ export async function commitDay(
     return moved;
   };
 
-  // `storageRefusal`'s own doc comment: markdown writes are deliberately not
-  // gated, because a journal that could not correct a typo for want of disk
-  // space would be held hostage by the thing it is being asked to fix. A day
-  // with no kept photograph — every one of them dropped, only words left —
-  // is exactly that case, so it skips the lock and the check entirely rather
-  // than being refused over zero incoming bytes.
-  if (incomingBytes === 0) return { moved: move(), entry: null };
-
-  const result = await withStorageQuota(username, incomingBytes, move);
+  // Every path through this function takes the same lock now, zero incoming
+  // bytes included — `withStorageQuota` is also the per-username
+  // serialisation `ensureTrip` and the committed-check above depend on, and
+  // a "cheap" bypass of it was a bypass of that too: two concurrent
+  // words-only commits could otherwise both read `tripId === null` and both
+  // call `createTrip`, leaving a stray trip in the journal.
+  // `storageRefusal`'s own doc comment already explains why zero bytes still
+  // costs nothing to check: markdown writes are deliberately not gated, and
+  // `bytesFor` above reports zero for exactly that case.
+  const result = await withStorageQuota(username, bytesFor, move);
   if (!result.ok) return { moved: 0, entry: null };
 
   // The route beside this file calls `assemble-day` once `DayRow.committed`
   // is true and fills in the real slug — see this function's own doc
   // comment for why that call cannot live here.
   return { moved: result.value, entry: null };
+}
+
+type CommitState = {
+  manifest: RunManifest;
+  row: RunManifest["days"][number] | undefined;
+  kept: PhotoRow[];
+};
+
+/** The manifest, this date's own row and its kept photographs, read fresh
+ *  off disk — the one thing every callback below does before touching
+ *  anything, so a stale copy captured before the lock was taken can never
+ *  be what decides what gets written. `null` for a run that no longer
+ *  exists. */
+function freshState(username: string, runId: string, date: string): CommitState | null {
+  const manifest = readManifest(username, runId);
+  if (!manifest) return null;
+  return {
+    manifest,
+    row: manifest.days.find((d) => d.date === date),
+    kept: manifest.photos.filter((p) => !p.dropped && effectiveDate(p) === date),
+  };
 }
 
 /** The date a kept row belongs to — the person's own edit if they made one,

@@ -83,6 +83,20 @@ export async function POST(
     return Response.json({ error: "day_not_ready" }, { status: 422 });
   }
 
+  // A retried commit (a double-click, a network retry, a restored tab)
+  // reaches here too — `commitDay` moved nothing a second time, but this
+  // route would otherwise call `assemble-day` again regardless, onto a day
+  // folder its own first, successful call already deleted. `createDraft`'s
+  // own collision check is by slug, not by date, so that second call would
+  // either refuse on an empty folder or, worse, mint a second entry for the
+  // same date — the exact bug this fix exists to close. `row.entrySlug`,
+  // written below the first time this succeeds, is what lets this call
+  // recognise its own earlier success and stop here: the same successful
+  // shape, with the real slug a preview can still link to.
+  if (row.entrySlug) {
+    return Response.json({ ok: true, moved, entry: row.entrySlug }, { status: 200 });
+  }
+
   const assembled = await assembleDay(
     new Request("http://internal/assemble-day", {
       method: "POST",
@@ -103,6 +117,13 @@ export async function POST(
     const handoffError = typeof assembledBody?.error === "string" ? assembledBody.error : "handoff_failed";
     return Response.json({ ok: true, moved, entry: null, handoffError }, { status: 200 });
   }
+
+  // The one write this route makes itself, rather than through
+  // `commitDay` or `assemble-day`: recording the slug on the manifest's own
+  // row is what makes the short-circuit above possible, and it happens only
+  // once, right after the call that actually produced it.
+  row.entrySlug = slug;
+  writeManifest(user, after);
 
   // `assemble-day` itself reports a created entry whose photos did not
   // attach rather than hiding that partial success — carried through here

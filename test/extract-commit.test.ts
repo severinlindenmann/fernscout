@@ -203,6 +203,43 @@ describe("committing a day", () => {
     expect(readiness.unrecorded).toContain("coordinates");
   });
 
+  test("the words-only (zero-byte) path takes the same lock as the photograph path, rather than bypassing it", async () => {
+    // A genuine two-concurrent-requests race is impractical in this suite
+    // (both would need to observe `tripId === null` before either writes,
+    // which single-threaded Node makes very hard to force honestly without
+    // reaching into the lock's own internals). So this tests the structural
+    // property Fix 1 is actually about: a words-only commit — `kept.length
+    // === 0`, `incomingBytes === 0` — goes through `withStorageQuota` at
+    // all, the same wrapper that serialises `ensureTrip` for the
+    // photograph path, rather than calling `move()` directly and skipping
+    // it. `withStorageQuota` is spied on, not mocked, so the real lock and
+    // the real write still run underneath.
+    const quota = await import("@/lib/storageQuota");
+    const spy = vi.spyOn(quota, "withStorageQuota");
+
+    await writeRunManifest(
+      [],
+      [{ date: DATE, words: "Only words, no photographs on this day at all.", answered: [] }],
+    );
+    const { commitDay } = await import("@/lib/extract/commit");
+    const result = await commitDay(USER, RUN, DATE);
+    // No photograph to move, but the day still committed on its words alone.
+    expect(result.moved).toBe(0);
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest(USER, RUN)?.days.find((d) => d.date === DATE)?.committed).toBe(true);
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    const [lockedUsername, incomingBytesArg] = spy.mock.calls[0];
+    expect(lockedUsername).toBe(USER);
+    // A function, evaluated fresh once the lock is actually held — the same
+    // shape `bytesFor` gives the photograph path, not a bare `0` that would
+    // mean this call never really entered the lock's own queue the way a
+    // concurrent photograph commit for the same username would.
+    expect(typeof incomingBytesArg).toBe("function");
+
+    spy.mockRestore();
+  });
+
   test("commitDay ensures a trip exists, named from the run's own dates, and reuses it on a later day in the same run", async () => {
     const bytes1 = await stageFile("d1.jpg", Buffer.from("day-one-photo"));
     await writeRunManifest(
@@ -303,6 +340,60 @@ describe("committing a day, through the real route, all the way into the journal
     // entry instead.
     const { listDayInbox } = await import("@/lib/inbox");
     expect(listDayInbox(USER, DATE).media).toHaveLength(0);
+  });
+
+  test("committing the same date twice leaves exactly one entry for that date, never a second one", async () => {
+    const keptBytes = fs.readFileSync("test/fixtures/ingest/camera.jpg");
+    const keptId = await stageFile("retry.jpg", keptBytes);
+    await writeRunManifest(
+      [{ id: keptId, filename: "retry.jpg", bytes: keptBytes.byteLength, kind: "image", date: DATE }],
+      [{ date: DATE, words: "A day committed twice by an impatient double-click.", answered: [] }],
+    );
+
+    const post = () =>
+      import("@/app/api/helper/[user]/extract/commit/route").then(({ POST }) =>
+        POST(
+          new Request("http://x/api/helper/alex/extract/commit", {
+            method: "POST",
+            body: JSON.stringify({ run: RUN, date: DATE }),
+          }),
+          { params: Promise.resolve({ user: USER }) },
+        ),
+      );
+
+    const first = await post();
+    const firstBody = (await first.json()) as { ok: boolean; entry: string | null };
+    expect(first.status).toBe(200);
+    expect(firstBody.entry).toBeTruthy();
+
+    // The retry — a double-click, a network retry, a restored tab. Not a
+    // second version of the manifest's own committed row: the same one.
+    const second = await post();
+    const secondBody = (await second.json()) as { ok: boolean; entry: string | null };
+    expect(second.status).toBe(200);
+    // The coordinator's own preference: a real success, not an error that
+    // would read as a failed double-click and invite trying again — and
+    // the real slug, so a preview still links somewhere.
+    expect(secondBody.entry).toBe(firstBody.entry);
+
+    // The load-bearing assertions are on disk, not on either response — a
+    // broken implementation that wrote a second entry and returned the
+    // first one's slug anyway would still pass every assertion above this
+    // line.
+    const { readManifest } = await import("@/lib/staging/manifest");
+    const tripId = readManifest(USER, RUN)?.tripId;
+    expect(tripId).toBeTruthy();
+
+    const { userDir } = await import("@/lib/users");
+    const entriesDir = path.join(userDir(USER), "trips", tripId!, "entries");
+    const entryFiles = fs.readdirSync(entriesDir).filter((f) => f.startsWith(`${DATE}-`));
+    expect(entryFiles).toHaveLength(1);
+
+    // And the day folder the second call could have re-populated by
+    // re-staging the same photograph a second time — it did not, because
+    // `commitDay` found the date already `committed` and moved nothing.
+    const { dayInboxDir } = await import("@/lib/inbox");
+    expect(fs.existsSync(dayInboxDir(USER, DATE))).toBe(false);
   });
 });
 

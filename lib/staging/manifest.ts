@@ -34,6 +34,15 @@ export type DayRow = {
   /** Answered question ids, so the flow never asks the same thing twice. */
   answered: string[];
   committed?: boolean;
+  /** The real entry `assemble-day` created for this date, once it has — set
+   *  by `POST .../extract/commit` right after a successful hand-off, never
+   *  by `commitDay` itself. What a retried commit (a double-click, a
+   *  network retry, a restored tab) answers with instead of calling
+   *  `assemble-day` a second time: that call's own create path notices a
+   *  slug collision, never a date collision, so a second call with an empty
+   *  day folder (the first call's own success already deleted it) would
+   *  either refuse or, worse, mint a second entry for the same date. */
+  entrySlug?: string;
 };
 
 export type RunManifest = {
