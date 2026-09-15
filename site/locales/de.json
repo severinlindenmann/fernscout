@@ -1244,6 +1244,7 @@
   "extract.board.leave": "Vorerst fertig",
   "extract.board.loading": "Deine Fotos werden nach Tagen sortiert…",
   "extract.board.photoCount": "{count} Fotos",
+  "extract.board.photoCount.one": "ein Foto",
   "extract.board.status.new": "nicht begonnen",
   "extract.board.status.ready": "fertig",
   "extract.board.status.started": "in Arbeit",

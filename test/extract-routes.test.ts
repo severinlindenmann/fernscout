@@ -191,6 +191,77 @@ describe("the run and day routes with the capability on", () => {
     expect(res.status).toBe(400);
   });
 
+  test("patching a photograph refuses a date that is not yyyy-mm-dd", async () => {
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: "run-1", photoId: "a", date: "banana" }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("patching a photograph refuses a syntactically odd date too", async () => {
+    // Not a calendar — 30 February is not the point — but month 99 and day 99
+    // are past even a bare format check, and a value this wrong must not
+    // reach the directory name it becomes once a later task commits it.
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: "run-1", photoId: "a", date: "0000-99-99" }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("patching a photograph refuses a path-traversal attempt as a date", async () => {
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: "run-1", photoId: "a", date: "../../etc" }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("patching a photograph refuses a caption over the shared cap", async () => {
+    const { CAPTION_MAX_CHARS } = await import("@/lib/validate/media");
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: "run-1", photoId: "a", caption: "x".repeat(CAPTION_MAX_CHARS + 1) }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("a caption within the cap is accepted", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+    const manifest = readManifest("alex", runId);
+    if (!manifest) throw new Error("run vanished");
+    manifest.photos.push({ id: "a", filename: "a.jpg", bytes: 1, kind: "image" });
+    writeManifest("alex", manifest);
+
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: runId, photoId: "a", caption: "A quiet morning by the lake." }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(200);
+  });
+
   test("GET groups the run's photographs into days and asks about each", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     const { readManifest, writeManifest } = await import("@/lib/staging/manifest");

@@ -1244,6 +1244,7 @@
   "extract.board.leave": "Done for now",
   "extract.board.loading": "Sorting your photographs into days…",
   "extract.board.photoCount": "{count} photographs",
+  "extract.board.photoCount.one": "one photograph",
   "extract.board.status.new": "not started",
   "extract.board.status.ready": "ready",
   "extract.board.status.started": "in progress",

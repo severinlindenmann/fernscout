@@ -25,6 +25,11 @@ export type PhotoRow = {
 export type DayRow = {
   date: string;
   words?: string;
+  /** Free text from the person's own answer to a "where were you" question —
+   *  a place name, or a sentence, whatever they typed or said. Not a
+   *  coordinate, and not `DayReadiness.location`'s structured
+   *  `{lat, lon, source}` from lib/dayReadiness.ts — a different field, on a
+   *  different type, for a different stage of the pipeline. */
   location?: string;
   /** Answered question ids, so the flow never asks the same thing twice. */
   answered: string[];

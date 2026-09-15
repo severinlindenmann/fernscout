@@ -1349,6 +1349,7 @@ export type TranslationKey =
   | "extract.board.leave"
   | "extract.board.loading"
   | "extract.board.photoCount"
+  | "extract.board.photoCount.one"
   | "extract.board.status.new"
   | "extract.board.status.ready"
   | "extract.board.status.started"

@@ -1244,6 +1244,7 @@
   "extract.board.leave": "Elég mára",
   "extract.board.loading": "A fotóid napokra rendezése…",
   "extract.board.photoCount": "{count} fotó",
+  "extract.board.photoCount.one": "{count} fotó",
   "extract.board.status.new": "nem kezdődött el",
   "extract.board.status.ready": "kész",
   "extract.board.status.started": "folyamatban",

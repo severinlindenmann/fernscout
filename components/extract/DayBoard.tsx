@@ -65,7 +65,7 @@ export default function DayBoard({
   speechProvider: string;
   onLeave: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, tn } = useI18n();
   const [data, setData] = useState<RunResponse | null>(null);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -157,7 +157,7 @@ export default function DayBoard({
                 </span>
                 <span className="flex items-center gap-2">
                   <span className="text-xs text-ink-secondary">
-                    {t("extract.board.photoCount", { count: String(group.photoIds.length) })}
+                    {tn("extract.board.photoCount", group.photoIds.length, { count: String(group.photoIds.length) })}
                   </span>
                   <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${BADGE_CLASS[state]}`}>
                     {t(STATUS_KEY[state])}
