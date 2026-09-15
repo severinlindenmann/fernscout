@@ -7,8 +7,7 @@ complexity: high
 area: imports, photos, helper, credits
 found: "2026-09-14T19:43:33Z"
 started: "2026-09-15T06:15:12Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-15T06:15:12Z"
+merged: "2026-09-15T12:06:03Z"
 ---
 
 # B1751 — An old trip that exists only as photographs on a phone has no way into a journal
