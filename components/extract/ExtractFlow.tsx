@@ -240,6 +240,20 @@ export default function ExtractFlow({
     beginAsking();
   }
 
+  /** A run destroyed off `ResumeScreen` — B1805. Dropped from the list this
+   *  shell is holding; an empty list afterwards is exactly "no runs to
+   *  resume", so it behaves the same as `checkResume` finding none: on to
+   *  Step 01/02 rather than a blank screen with nothing left to render. */
+  function destroyRun(runId: string) {
+    const left = (resumable ?? []).filter((run) => run.runId !== runId);
+    if (left.length === 0) {
+      setResumable(null);
+      beginAsking();
+      return;
+    }
+    setResumable(left);
+  }
+
   /** Step 01's "Start with my photographs" — moves on to Step 02 without
    *  starting anything yet. */
   function onIntroContinue() {
@@ -315,7 +329,13 @@ export default function ExtractFlow({
       )}
 
       {resumable && resumable.length > 0 && (
-        <ResumeScreen runs={resumable} onContinue={continueRun} onStartNew={startNew} />
+        <ResumeScreen
+          username={username}
+          runs={resumable}
+          onContinue={continueRun}
+          onStartNew={startNew}
+          onDestroyed={destroyRun}
+        />
       )}
 
       {(resumable === undefined || (resumable === null && !run && !awaitingStart)) && !error && (
