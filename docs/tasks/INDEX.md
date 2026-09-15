@@ -323,7 +323,7 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (18)
+## in-development (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -340,13 +340,12 @@ _Nothing here._
 | [B1775](in-development/B1775-publish-writes-to-the-instance-without.md) | publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything | ISSUE | medium | medium | `135632db` |
 | [B1776](in-development/B1776-figures-are-journal-content-the-sync.md) | figures are journal content the sync carries in neither direction | ISSUE | medium | medium | `135632db` |
 | [B1779](in-development/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium | `135632db` |
-| [B1781](in-development/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | `7163371b` |
 | [B1783](in-development/B1783-the-one-source-name-a-caller.md) | The one source name a caller may never write is not published anywhere a caller can read it | ISSUE | medium | low | `135632db` |
 | [B1777](in-development/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low | `135632db` |
 | [B1778](in-development/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium | `135632db` |
 | [B1780](in-development/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low | `135632db` |
 
-## testing (12)
+## testing (13)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -360,6 +359,7 @@ _Nothing here._
 | [B1756](testing/B1756-get-api-v2-user-status-answers.md) | GET /api/v2/{user}/status answers 500 when the credit balance has a fraction | ISSUE | high | low | — |
 | [B1765](testing/B1765-the-handover-prompt-never-shows-the.md) | The handover prompt never shows the auth header, and never says what a failed call means | ISSUE | medium | low | — |
 | [B1766](testing/B1766-long-trip-lists-overwhelm-three-pages.md) | Long trip lists overwhelm three pages: storage, what you can read, and the trips index | ISSUE | medium | low | — |
+| [B1781](testing/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | — |
 | [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
 | [B1745](testing/B1745-buying-extra-storage-is-only-offered.md) | Buying extra storage is only offered once the journal is nearly full | FEATURE | low | low | — |
 
