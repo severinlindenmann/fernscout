@@ -18,7 +18,23 @@ export default function ExtractFlow({ username }: { username: string }) {
   const { t } = useI18n();
   const [run, setRun] = useState<Run | null>(null);
   const [error, setError] = useState(false);
-  const [uploaded, setUploaded] = useState<number | null>(null);
+  // Accumulated across the initial send and every retry — `UploadStep`
+  // reports only its own attempt's count, not a running total.
+  const [uploaded, setUploaded] = useState(0);
+  const [done, setDone] = useState(false);
+
+  /**
+   * `UploadStep` calls this after every attempt, success or partial failure
+   * — Task 1.3's review finding: treating *any* call as terminal made the
+   * tile list and retry button disappear the moment a person actually
+   * needed them, with no way back short of reloading and orphaning the run.
+   * The upload is only done once an attempt comes back with nothing left to
+   * retry; until then `UploadStep` stays mounted, tiles and all.
+   */
+  function onUploadAttempt(thisUpload: number, thisFailed: number) {
+    setUploaded((total) => total + thisUpload);
+    if (thisFailed === 0) setDone(true);
+  }
 
   useEffect(() => {
     start();
@@ -61,13 +77,13 @@ export default function ExtractFlow({ username }: { username: string }) {
 
       {!run && !error && <p className="mt-4 text-sm text-ink-secondary">{t("extract.flow.starting")}</p>}
 
-      {run && uploaded === null && (
+      {run && !done && (
         <div className="mt-4">
-          <UploadStep username={username} runId={run.runId} onDone={setUploaded} />
+          <UploadStep username={username} runId={run.runId} onDone={onUploadAttempt} />
         </div>
       )}
 
-      {uploaded !== null && (
+      {done && (
         <p className="mt-4 text-sm text-ink-body">{t("extract.flow.done", { count: String(uploaded) })}</p>
       )}
     </div>

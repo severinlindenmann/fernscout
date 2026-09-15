@@ -58,7 +58,14 @@ export default function UploadStep({
 }: {
   username: string;
   runId: string;
-  onDone: (uploaded: number) => void;
+  /**
+   * Called after every attempt — the initial send and every retry. `failed`
+   * is this attempt's own outstanding count, not a cumulative one: the
+   * caller decides whether that means "done" (see `ExtractFlow`, which only
+   * shows the summary once `failed` comes back 0) or "still needs the retry
+   * button", which this component keeps rendering either way.
+   */
+  onDone: (uploaded: number, failed: number) => void;
 }) {
   const { t } = useI18n();
   const [tiles, setTiles] = useState<Tile[]>([]);
@@ -99,6 +106,9 @@ export default function UploadStep({
     setBusy(true);
     await acquireWakeLock();
     let uploaded = 0;
+    // This attempt's own outstanding count — not read back from `tiles`
+    // state, which may not have flushed by the time `finally` runs.
+    let failed = 0;
     try {
       for (const slice of chunk(indices, BATCH)) {
         setTiles((t) => t.map((x, n) => (slice.includes(n) ? { ...x, state: "sending" } : x)));
@@ -117,13 +127,14 @@ export default function UploadStep({
           // One batch failing leaves every other batch's success intact and
           // the failed tiles individually retryable — a single bar for a
           // few hundred files would hide exactly this.
+          failed += slice.length;
           setTiles((t) => t.map((x, n) => (slice.includes(n) ? { ...x, state: "failed" } : x)));
         }
       }
     } finally {
       await releaseWakeLock();
       setBusy(false);
-      onDone(uploaded);
+      onDone(uploaded, failed);
     }
   }
 

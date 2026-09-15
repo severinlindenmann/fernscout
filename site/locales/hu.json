@@ -1252,7 +1252,7 @@
   "extract.upload.failed": "A kapcsolat félbeszakadt. Minden más biztonságban feltöltve — ezeket csak még egyszer próbáld meg.",
   "extract.upload.icloud": "Az iCloudban tárolt fotók előbb letöltődnek. Az első pár perc lassúnak tűnik — ez a letöltés, nem a feltöltés.",
   "extract.upload.perDay": "Napi kb. 15 bőven elég. Azok, amelyeket tényleg megmutatnál valakinek.",
-  "extract.upload.retry": "Ez a {count} újra",
+  "extract.upload.retry": "{count} újra feltöltése",
   "extract.upload.send": "{count} feltöltése",
   "extract.upload.state.done": "feltöltve",
   "extract.upload.state.failed": "sikertelen",
