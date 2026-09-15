@@ -104,6 +104,33 @@ Take them separately; they are not one bug.
 - The place-read-as-a-date answer is either a third bug or a symptom; look at
   it once the two above are out of the way.
 
+## Every number below is inside the noise — read this first
+
+After the three experiments were run and written up, the **same code was run
+twice**: 60% and 68% on the identical 84 cases. Two standard errors of a
+binomial at that size is about ten points, so the spread is exactly what
+chance produces and nothing in this section was ever a measurement.
+
+That retracts three verdicts, in both directions:
+
+| recorded as | actually |
+| --- | --- |
+| the dead-end fix, 64% → 67% ("barely moved") | indistinguishable |
+| `days` as a second hub, 67% → 63% ("worse") | indistinguishable |
+| `start_day` in the trips area, 67% → 60% ("worse") | indistinguishable |
+
+So the two rejections were **not** evidence against those changes. They were
+an absence of evidence either way, and I reported them as findings. Both are
+still unshipped, which remains the right call — an unmeasurable change that
+costs tokens should not ship — but "we measured it and it was worse" was not
+true and the comment in `lib/helper/model.ts` has been corrected to say so.
+
+`scripts/helper-bench.mts` now prints a margin beside every rate and compares
+runs **case by case** rather than rate against rate, because the same cases run
+twice are a paired sample and only the cases that disagree carry information.
+That is the version of this question that can actually be answered at this
+corpus size.
+
 ## What was done, and what it moved
 
 **The dead end is fixed, and it is a real defect.** `lib/helper/tools/run.ts`
@@ -116,10 +143,12 @@ invents a date: a call naming none still gets the old sentence.
 the fix is proven by the suite rather than by a pass rate that moves on its
 own.
 
-**It barely moved the number**: 64% to 67% over the same 84 cases, 24% to 26%
-proposing without having to ask. Inside the noise. The reason is in the
-failure reasons — the remaining cases mostly never call a day tool at all, so
-they never reach the path this fixes.
+**The bench cannot say whether it moved the number**, and the section above is
+why. What stands on its own is the defect and its test: the refusal really was
+a dead end, the transcript really did show the conversation ending there, and
+`test/no-day-offers-to-start-one.test.ts` proves the new behaviour
+deterministically. That is the kind of evidence this change should have been
+resting on all along.
 
 **Making `days` a second hub was tried and is worse.** `start_day` lives only
 in `days`, and a turn whose area pick answers `trips` has no day tools; the
@@ -129,12 +158,17 @@ More tools made the choice harder. Reverted, with the numbers written into the
 comment above `HUB_AREA` so the next person to have the idea meets the result
 first.
 
-That is now three structural attempts on this one ticket — the router's
-prompt (24%→26%), a rule about answering one's own question (7/12 vs 9/12 on
-B1742), and a wider tool list (67%→63%) — and **none of them moved it.**
-Every change that has actually worked this week was deterministic code: the
-link a press returns (B1736), the typed press (B1743), this dead end. That
-pattern is worth believing now rather than testing a fourth time.
+Four structural attempts have now been made against this ticket and **not one
+of them produced a measurement**, in either direction: the router's prompt,
+a rule about answering one's own question, both areas in the floor, and one
+tool in two areas. Each looked like a small effect and each was smaller than
+the instrument could see.
+
+The honest reading is not "these do not work" but "this corpus cannot tell,
+at 84 cases and one run". What *is* solid is that every change shipped this
+week rests on a deterministic test rather than a pass rate — the link a press
+returns (B1736), the typed press (B1743), this dead end — and that is the bar
+the next attempt should clear too.
 
 ## Where this stands
 

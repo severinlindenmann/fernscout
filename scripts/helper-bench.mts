@@ -687,6 +687,26 @@ async function runInJobs(cases: Scenario[]): Promise<Result[]> {
  * the same scenario across three wordings is a number. The cases are still in
  * the `--out` file, for when one wording is the question.
  */
+/**
+ * How far this rate could have landed from the truth by luck alone — B1752.
+ *
+ * Printed beside every figure because of the afternoon that made it
+ * necessary: three runs of one scenario read 67%, 63% and 60% and were
+ * reported as a fix, a regression and a regression. Then the *same code* ran
+ * twice and gave 60% and 68%. Nothing had changed. Two standard errors of a
+ * binomial at 84 cases is about ten points, which is exactly the spread
+ * observed and exactly the size of every "finding" that afternoon produced.
+ *
+ * The consequence is worth stating plainly: at this corpus size only a very
+ * large change is visible in the rate at all. Anything smaller needs the
+ * paired comparison above, which asks a different and much sharper question.
+ */
+function marginOf(passed: number, runs: number): number {
+  if (runs === 0) return 0;
+  const p = passed / runs;
+  return 196 * Math.sqrt((p * (1 - p)) / runs);
+}
+
 function byTemplate(results: Result[]): Map<string, { passed: number; straightAway: number; runs: number; failures: string[]; channel: string }> {
   const rolled = new Map<string, { passed: number; straightAway: number; runs: number; failures: string[]; channel: string }>();
   for (const one of results) {
@@ -748,9 +768,12 @@ async function main(): Promise<void> {
   process.stderr.write("\n\n");
 
   const rolled = byTemplate(results);
-  const previous = AGAINST
-    ? byTemplate((JSON.parse(fs.readFileSync(path.resolve(root, AGAINST), "utf8")) as { results: Result[] }).results)
+  const before = AGAINST
+    ? (JSON.parse(fs.readFileSync(path.resolve(root, AGAINST), "utf8")) as { results: Result[] }).results
     : null;
+  const previous = before ? byTemplate(before) : null;
+  /** The earlier run's outcome for one case, for the paired comparison. */
+  const wasByCase = new Map((before ?? []).map((one) => [one.id, one]));
   let regressed = false;
   const lines: string[] = [];
 
@@ -759,20 +782,48 @@ async function main(): Promise<void> {
     let delta = "";
     if (previous?.has(template)) {
       const was = previous.get(template) as { passed: number; runs: number };
-      const before = (was.passed / was.runs) * 100;
-      const change = rate - before;
-      // One case moving by one run is not a finding — B1744 paid for that
-      // lesson twice. Ten points is the smallest change worth printing.
-      if (change <= -10) {
-        delta = `  WORSE (was ${before.toFixed(0)}%)`;
+      const rateBefore = (was.passed / was.runs) * 100;
+      /**
+       * **Compared case by case, not rate against rate** — B1752.
+       *
+       * Two identical runs of the same 84 cases came back 60% and 68%. That
+       * is ordinary binomial noise (see `marginOf`), and every verdict this
+       * bench printed before today was inside it — including two "worse"
+       * findings that were nothing at all.
+       *
+       * The same cases run twice are a *paired* sample, so the question is
+       * not "did the average move" but "which individual cases changed, and
+       * in which direction". Only the cases that disagree carry information:
+       * with `wins` and `losses` of them, a sign test says whether the split
+       * is further from even than chance would ordinarily manage. Everything
+       * that passed or failed both times tells you nothing and is exactly
+       * what drowns the signal in the rate-against-rate version.
+       */
+      let wins = 0;
+      let losses = 0;
+      for (const now of results.filter((r) => r.template === template)) {
+        const then = wasByCase.get(now.id);
+        if (!then) continue;
+        if (now.passed > then.passed) wins++;
+        else if (now.passed < then.passed) losses++;
+      }
+      const discordant = wins + losses;
+      // Two standard deviations of a fair coin over the disagreeing cases.
+      const needed = Math.ceil(discordant / 2 + Math.sqrt(discordant) + 1);
+      if (discordant === 0) delta = `  unchanged (was ${rateBefore.toFixed(0)}%)`;
+      else if (wins >= needed) delta = `  BETTER: ${wins} up, ${losses} down (was ${rateBefore.toFixed(0)}%)`;
+      else if (losses >= needed) {
+        delta = `  WORSE: ${losses} down, ${wins} up (was ${rateBefore.toFixed(0)}%)`;
         regressed = true;
-      } else if (change >= 10) delta = `  better (was ${before.toFixed(0)}%)`;
+      } else {
+        delta = `  no difference to see: ${wins} up, ${losses} down of ${discordant} changed (was ${rateBefore.toFixed(0)}%)`;
+      }
     }
     // Two numbers: resolved at all, and resolved without having to ask.
     const asked = one.passed - one.straightAway;
     const straight = `${((one.straightAway / one.runs) * 100).toFixed(0)}%`;
     lines.push(
-      `${String(one.passed).padStart(3)}/${String(one.runs).padEnd(3)} ${rate.toFixed(0).padStart(3)}%  ` +
+      `${String(one.passed).padStart(3)}/${String(one.runs).padEnd(3)} ${rate.toFixed(0).padStart(3)}%±${marginOf(one.passed, one.runs).toFixed(0).padStart(2)}  ` +
         `(${straight.padStart(4)} straight away${asked > 0 ? `, ${asked} after a question` : ""})  ${template} (${one.channel})${delta}`,
     );
     for (const why of [...new Set(one.failures)]) lines.push(`             ${why}`);

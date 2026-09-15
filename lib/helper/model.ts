@@ -769,21 +769,24 @@ const THREAD_MAX_TOKENS = 700;
 const HUB_AREA: AreaKey = "trips";
 
 /**
- * Making `days` a second hub was tried and is **worse** — B1752.
+ * Making `days` a second hub was tried, and **could not be measured** — B1752.
  *
  * `trips` alone is the hub, so a turn whose area pick also answers `trips`
  * has no day tools at all, and `start_day` lives only in `days`. Putting both
- * in the floor looked like the obvious removal of that failure. Measured over
- * the same 84 wordings: **67% to 63%, and 26% to 17% proposing without having
- * to ask** — worse, for ~1,750 extra tokens a turn. More tools made the
- * choice harder, which is what the tool-calling literature says about widening
- * a tool list and what this repository has now measured for itself.
+ * in the floor looked like the obvious removal of that failure. It read 67% to 63%
+ * over the same 84 wordings, and `start_day` alone in this area read 67% to
+ * 60% — both of which were written up as regressions until the identical code
+ * was run twice and gave **60% and 68%**. Two standard errors at 84 cases is
+ * about ten points; every one of those figures was inside it.
  *
- * Fixing the *router's prompt* was tried before that, and is also recorded as
- * not working: 24% to 26%, inside the noise.
+ * So neither is evidence against the idea. They are unshipped because an
+ * effect too small to see is not worth ~1,750 tokens a turn, which is a
+ * different and much weaker claim than the one this comment first made.
  *
- * Both are left written down rather than deleted, because each is the obvious
- * idea and somebody will have it again. The number to beat is in B1752.
+ * Left written down rather than deleted, because each is the obvious idea and
+ * somebody will have it again — including the part about how hard it is to
+ * tell. `npm run helper:bench -- --against` now compares case by case, which
+ * is the only version of this question answerable at this corpus size.
  */
 
 
