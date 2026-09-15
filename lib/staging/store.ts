@@ -34,16 +34,29 @@ export function putStagedFile(
   return { id, filename, bytes: bytes.byteLength, sha256: sha };
 }
 
+// `runDir` validates the two segments and throws; `basename` is what stops
+// the third. A caller that has been handed an id from a manifest cannot
+// reach outside the run, and one that made an id up gets a path that simply
+// is not there.
+function stagedFilePath(username: string, runId: string, id: string): string {
+  return path.join(runDir(username, runId), "files", path.basename(id));
+}
+
 export function readStagedFile(username: string, runId: string, id: string): Buffer | null {
-  // `runDir` validates the two segments and throws; `basename` is what stops
-  // the third. A caller that has been handed an id from a manifest cannot
-  // reach outside the run, and one that made an id up gets null.
-  const file = path.join(runDir(username, runId), "files", path.basename(id));
+  const file = stagedFilePath(username, runId, id);
   try {
     return fs.readFileSync(file);
   } catch {
     return null;
   }
+}
+
+/** The same lookup as `readStagedFile`, but the path rather than the bytes —
+ *  for callers like `resizedCopy` that need to stat and cache-key the file
+ *  themselves rather than receive a copy of its contents. */
+export function stagedFileLocation(username: string, runId: string, id: string): string | null {
+  const file = stagedFilePath(username, runId, id);
+  return fs.existsSync(file) ? file : null;
 }
 
 export function removeRun(username: string, runId: string): void {

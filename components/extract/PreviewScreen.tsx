@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
+import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
 import { useI18n } from "@/components/LocaleProvider";
 import type { DayGroup } from "@/lib/extract/group";
 import type { Question } from "@/lib/extract/questions";
-import type { DayRow, RunManifest } from "@/lib/staging/manifest";
+import type { DayRow, PhotoRow, RunManifest } from "@/lib/staging/manifest";
+
+/** The same thumbnail route every screen in this flow draws from. */
+function thumbSrc(username: string, runId: string, photoId: string): string {
+  return `/api/helper/${encodeURIComponent(username)}/extract/thumb/${encodeURIComponent(runId)}/${encodeURIComponent(photoId)}`;
+}
 
 type RunResponse = { manifest: RunManifest; groups: DayGroup[]; questions: Record<string, Question[]> };
 type Person = { name: string; email: string };
@@ -27,6 +34,13 @@ type Person = { name: string; email: string };
  * `test/extract-no-publish.test.ts` for the grep this repo's reviewers would
  * otherwise have to run by hand.
  *
+ * **A hero, and a strip per day — B1803 Task 1.3.** The hero is the first
+ * photograph of the first day this run actually finished; a day with no
+ * finished day before it gets none, rather than a placeholder. Each
+ * finished day's own strip is the same run's real photographs for that
+ * date, looked up the same way `DayBoard` does. Tapping any tile opens the
+ * shared viewer over that day's whole set.
+ *
  * **A day the person never told a story about is not invented one.** Only a
  * `DayRow` with both `committed` and `entrySlug` set — meaning
  * `commitReadyDays` actually finished it — gets a link. Everything else is
@@ -42,6 +56,7 @@ export default function PreviewScreen({ username, runId }: { username: string; r
   const [people, setPeople] = useState<Person[] | null>(null);
   const [peopleBusy, setPeopleBusy] = useState(false);
   const [peopleError, setPeopleError] = useState(false);
+  const [viewer, setViewer] = useState<{ items: PhotoViewerItem[]; index: number } | null>(null);
 
   async function load() {
     setError(false);
@@ -110,8 +125,47 @@ export default function PreviewScreen({ username, runId }: { username: string; r
   const undated = groups.find((g) => g.undated);
   const undatedCount = undated?.photoIds.length ?? 0;
 
+  const photosById = new Map<string, PhotoRow>(manifest.photos.map((p) => [p.id, p]));
+  const groupByDate = new Map<string, DayGroup>(groups.filter((g) => !g.undated).map((g) => [g.date, g]));
+
+  function photosFor(date: string): PhotoRow[] {
+    const group = groupByDate.get(date);
+    if (!group) return [];
+    return group.photoIds.map((id) => photosById.get(id)).filter((p): p is PhotoRow => Boolean(p));
+  }
+
+  function openViewer(photos: PhotoRow[], tappedId: string) {
+    const items: PhotoViewerItem[] = photos.map((p) => ({
+      id: p.id,
+      kind: p.kind,
+      src: thumbSrc(username, runId, p.id),
+    }));
+    const index = Math.max(0, items.findIndex((it) => it.id === tappedId));
+    setViewer({ items, index });
+  }
+
+  // The trip's hero — the first photograph of the first day this run
+  // actually finished. Absent (never a placeholder) when nothing did.
+  const heroPhoto = days.length > 0 ? photosFor(days[0].date)[0] : undefined;
+
   return (
     <div className="mt-4 flex flex-col gap-6">
+      {heroPhoto && (
+        <PhotoStrip
+          size="hero"
+          columns={1}
+          photos={[
+            {
+              id: heroPhoto.id,
+              kind: heroPhoto.kind,
+              src: thumbSrc(username, runId, heroPhoto.id),
+              alt: heroPhoto.filename,
+            },
+          ]}
+          onSelect={(id) => openViewer(photosFor(days[0].date), id)}
+        />
+      )}
+
       <div>
         <h2 className="text-lg font-semibold text-ink-strong">{t("extract.preview.title")}</h2>
 
@@ -120,17 +174,37 @@ export default function PreviewScreen({ username, runId }: { username: string; r
             <p className="mt-2 text-sm text-ink-body">
               {tn("extract.preview.summary", days.length, { count: String(days.length) })}
             </p>
-            <ul className="mt-2 flex flex-col gap-1">
-              {days.map((d) => (
-                <li key={d.date}>
-                  <Link
-                    href={`/${username}/trips/${tripId}/day/${d.entrySlug}`}
-                    className="text-sm font-semibold text-ink-strong underline"
-                  >
-                    {d.date}
-                  </Link>
-                </li>
-              ))}
+            <ul className="mt-2 flex flex-col gap-2">
+              {days.map((d) => {
+                const dayPhotos = photosFor(d.date);
+                return (
+                  <li key={d.date}>
+                    <Link
+                      href={`/${username}/trips/${tripId}/day/${d.entrySlug}`}
+                      className="text-sm font-semibold text-ink-strong underline"
+                    >
+                      {d.date}
+                    </Link>
+                    {dayPhotos.length > 0 && (
+                      <div className="mt-1">
+                        <PhotoStrip
+                          size="strip"
+                          columns={5}
+                          photos={dayPhotos.slice(0, 5).map(
+                            (p): PhotoStripItem => ({
+                              id: p.id,
+                              kind: p.kind,
+                              src: thumbSrc(username, runId, p.id),
+                              alt: p.filename,
+                            }),
+                          )}
+                          onSelect={(id) => openViewer(dayPhotos, id)}
+                        />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
             <Link
               href={`/${username}/trips/${tripId}`}
@@ -204,6 +278,16 @@ export default function PreviewScreen({ username, runId }: { username: string; r
           )}
         </div>
       )}
+
+      <PhotoViewer
+        items={viewer?.items ?? []}
+        index={viewer ? viewer.index : null}
+        onClose={() => setViewer(null)}
+        onPrev={() =>
+          setViewer((v) => (v ? { ...v, index: (v.index - 1 + v.items.length) % v.items.length } : v))
+        }
+        onNext={() => setViewer((v) => (v ? { ...v, index: (v.index + 1) % v.items.length } : v))}
+      />
     </div>
   );
 }

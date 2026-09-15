@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
+import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
 import { useI18n } from "@/components/LocaleProvider";
 import { creditsForPhotos } from "@/lib/helper/credits";
 import type { DayGroup } from "@/lib/extract/group";
 import type { Question } from "@/lib/extract/questions";
 import type { RunManifest } from "@/lib/staging/manifest";
+
+/** The same thumbnail route every screen in this flow draws from. */
+function thumbSrc(username: string, runId: string, photoId: string): string {
+  return `/api/helper/${encodeURIComponent(username)}/extract/thumb/${encodeURIComponent(runId)}/${encodeURIComponent(photoId)}`;
+}
 
 type RunResponse = { manifest: RunManifest; groups: DayGroup[]; questions: Record<string, Question[]> };
 
@@ -61,6 +68,23 @@ export async function commitReadyDays(username: string, runId: string): Promise<
  * whose questions are all answered is committed whichever button was
  * pressed; the person's own words are what makes a day ready, not the
  * spend.
+ *
+ * **The one free sample is picked, not assumed — B1803 Task 1.3.** The
+ * design draws S9a as a grid the person chooses from ("Pick any
+ * photograph."), the ringed selection tappable to swap it — this used to
+ * auto-request a caption for whichever image sorted first the moment the
+ * run loaded, with nothing on screen to say which photograph that even was.
+ * `chosenId` below is the tapped tile; `takeSample` only ever fires from
+ * that tap now.
+ *
+ * **A tap opens the viewer, not the spend — the fix round's own finding.**
+ * The one free sample is spent once, irreversibly (`sampleTakenFor` is
+ * per run), so a tap on a 4-across grid tile must not itself be the
+ * commitment: it opens `PhotoViewer` over the full-size photograph, and
+ * that viewer's own `extra` slot carries the actual "use this one" button.
+ * Every other screen this task wired treats a tap as "look", never as an
+ * action with a cost — this is the one screen where conflating the two
+ * would have been worst to get wrong.
  */
 export default function CreditsScreen({
   username,
@@ -77,10 +101,15 @@ export default function CreditsScreen({
   const { t, tn } = useI18n();
   const [data, setData] = useState<RunResponse | null>(null);
   const [sample, setSample] = useState<string | null>(null);
+  const [chosenId, setChosenId] = useState<string | null>(null);
+  const [sampling, setSampling] = useState(false);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState<"build" | "spend" | null>(null);
   const [error, setError] = useState(false);
 
   async function takeSample(photoId: string) {
+    setChosenId(photoId);
+    setSampling(true);
     try {
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/extract/sample`, {
         method: "POST",
@@ -96,6 +125,8 @@ export default function CreditsScreen({
     } catch {
       // A missed sample costs nothing and is not worth a state of its own —
       // the rest of the screen still works without it.
+    } finally {
+      setSampling(false);
     }
   }
 
@@ -123,18 +154,8 @@ export default function CreditsScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, runId]);
 
-  // The one free sample, requested once `data` has actually loaded — a
-  // second `useEffect` rather than a call from inside `load` itself, so the
-  // sample request is *derived from* the loaded run rather than fired from
-  // inside another effect's own async body.
-  useEffect(() => {
-    if (!data || data.manifest.sampleTakenFor) return;
-    const firstPhoto = data.manifest.photos.find((p) => p.kind === "image" && !p.dropped);
-    if (!firstPhoto) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void takeSample(firstPhoto.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  // No sample is taken until the person actually picks one from the grid
+  // below — see the doc comment's "picked, not assumed" note.
 
   async function buildFree() {
     setBusy("build");
@@ -187,12 +208,68 @@ export default function CreditsScreen({
     );
   }
 
-  const photoCount = data.manifest.photos.filter((p) => p.kind === "image" && !p.dropped).length;
+  const eligiblePhotos = data.manifest.photos.filter((p) => p.kind === "image" && !p.dropped);
+  const photoCount = eligiblePhotos.length;
   const total = creditsForPhotos(photoCount);
   const busyAny = busy !== null;
+  const canPick = !data.manifest.sampleTakenFor && !sample;
 
   return (
     <div className="mt-4 flex flex-col gap-3">
+      {canPick && eligiblePhotos.length > 0 && (
+        <div>
+          <p className="text-sm font-semibold text-ink-strong">{t("extract.credits.pickTitle")}</p>
+          <p className="mt-1 text-sm text-ink-secondary">{t("extract.credits.pickSub")}</p>
+          <div className="mt-2">
+            <PhotoStrip
+              size="grid"
+              columns={4}
+              selectedId={chosenId ?? undefined}
+              photos={eligiblePhotos.map(
+                (p): PhotoStripItem => ({
+                  id: p.id,
+                  kind: p.kind,
+                  src: thumbSrc(username, runId, p.id),
+                  alt: p.filename,
+                }),
+              )}
+              onSelect={(id) => setOpenIndex(eligiblePhotos.findIndex((p) => p.id === id))}
+            />
+          </div>
+        </div>
+      )}
+
+      <PhotoViewer
+        items={eligiblePhotos.map(
+          (p): PhotoViewerItem => ({ id: p.id, kind: p.kind, src: thumbSrc(username, runId, p.id) }),
+        )}
+        index={openIndex}
+        onClose={() => setOpenIndex(null)}
+        onPrev={() =>
+          setOpenIndex((i) => (i === null ? null : (i - 1 + eligiblePhotos.length) % eligiblePhotos.length))
+        }
+        onNext={() => setOpenIndex((i) => (i === null ? null : (i + 1) % eligiblePhotos.length))}
+        extra={
+          openIndex !== null && (
+            <button
+              type="button"
+              disabled={sampling}
+              className="absolute bottom-6 left-1/2 z-10 inline-flex min-h-11 -translate-x-1/2 items-center rounded-full bg-action-strong px-5 text-sm font-semibold text-on-action disabled:opacity-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                const photo = eligiblePhotos[openIndex];
+                void (async () => {
+                  await takeSample(photo.id);
+                  setOpenIndex(null);
+                })();
+              }}
+            >
+              {sampling ? t("extract.credits.sampling") : t("extract.credits.useThisOne")}
+            </button>
+          )
+        }
+      />
+
       {sample && (
         <div className="rounded-xl border border-line-faint p-3">
           <p className="text-xs font-semibold text-ink-secondary">{t("extract.credits.sampleLabel")}</p>

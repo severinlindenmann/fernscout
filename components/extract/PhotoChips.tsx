@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import PhotoTile from "@/components/extract/PhotoTile";
+import PhotoViewer from "@/components/extract/PhotoViewer";
 import { useI18n } from "@/components/LocaleProvider";
 import type { PhotoRow } from "@/lib/staging/manifest";
 
@@ -19,6 +21,13 @@ import type { PhotoRow } from "@/lib/staging/manifest";
  * Each chip opens its own small editor rather than a shared form: a person
  * fixing one wrong caption should not also see a date field they have no
  * reason to touch.
+ *
+ * **The photograph itself, beside its chips — B1803 Task 1.3.** Editing a
+ * caption for a picture you cannot see is the bug this whole batch of work
+ * exists to fix, in miniature: a thumbnail sits to the left of every chip
+ * row, visible the whole time the fields are being edited, and opens the
+ * shared viewer on tap so a person can tell two similar photographs apart
+ * before writing which one this caption is about.
  */
 type Field = "date" | "caption" | "visibility";
 type ChipState = "known" | "optional" | "missing";
@@ -36,9 +45,13 @@ const STATE_CLASS: Record<ChipState, string> = {
 };
 
 export default function PhotoChips({
+  username,
+  runId,
   photo,
   onSave,
 }: {
+  username: string;
+  runId: string;
   photo: PhotoRow;
   /** Called with only the one field that changed — the caller PATCHes it. */
   onSave: (patch: { caption?: string; visibility?: string; date?: string }) => Promise<void>;
@@ -47,6 +60,8 @@ export default function PhotoChips({
   const [editing, setEditing] = useState<Field | null>(null);
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const thumbSrc = `/api/helper/${encodeURIComponent(username)}/extract/thumb/${encodeURIComponent(runId)}/${encodeURIComponent(photo.id)}`;
 
   function open(field: Field) {
     setEditing(field);
@@ -73,7 +88,22 @@ export default function PhotoChips({
   };
 
   return (
-    <div className="flex flex-wrap items-start gap-1.5">
+    <div className="flex flex-wrap items-start gap-2">
+      <PhotoTile
+        size="avatar"
+        kind={photo.kind}
+        src={thumbSrc}
+        alt={photo.filename}
+        onPress={() => setViewerOpen(true)}
+      />
+      <PhotoViewer
+        items={[{ id: photo.id, kind: photo.kind, src: thumbSrc }]}
+        index={viewerOpen ? 0 : null}
+        onClose={() => setViewerOpen(false)}
+        onPrev={() => {}}
+        onNext={() => {}}
+      />
+      <div className="flex flex-1 flex-wrap items-start gap-1.5">
       {fields.map((field) => {
         const state = stateFor(field, photo);
         const shown =
@@ -132,6 +162,7 @@ export default function PhotoChips({
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

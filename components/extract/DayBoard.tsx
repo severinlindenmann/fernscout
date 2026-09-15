@@ -3,11 +3,24 @@
 import { useEffect, useState } from "react";
 import AskCard from "@/components/extract/AskCard";
 import PhotoChips from "@/components/extract/PhotoChips";
+import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
+import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import type { DayGroup } from "@/lib/extract/group";
 import type { Question } from "@/lib/extract/questions";
 import type { PhotoRow, RunManifest } from "@/lib/staging/manifest";
+
+/** How many photographs go into every day's strip on the board itself
+ *  — the design's "a strip of five photograph tiles" (S5a). Tapping one
+ *  still opens the viewer over the day's *whole* set, not just these five. */
+const STRIP_COUNT = 5;
+
+/** A thumbnail URL for one staged photograph — the same route every screen
+ *  in this flow draws from, `app/api/helper/[user]/extract/thumb/[run]/[id]`. */
+function thumbSrc(username: string, runId: string, photoId: string): string {
+  return `/api/helper/${encodeURIComponent(username)}/extract/thumb/${encodeURIComponent(runId)}/${encodeURIComponent(photoId)}`;
+}
 
 type RunResponse = { manifest: RunManifest; groups: DayGroup[]; questions: Record<string, Question[]> };
 
@@ -76,6 +89,7 @@ export default function DayBoard({
   const [data, setData] = useState<RunResponse | null>(null);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ items: PhotoViewerItem[]; index: number } | null>(null);
 
   useEffect(() => {
     load();
@@ -173,6 +187,40 @@ export default function DayBoard({
                 </span>
               </button>
 
+              {group.photoIds.length > 0 && (
+                <div className="px-4 pb-3">
+                  <PhotoStrip
+                    size="strip"
+                    columns={STRIP_COUNT}
+                    photos={group.photoIds.slice(0, STRIP_COUNT).map(
+                      (id): PhotoStripItem => {
+                        const photo = photosById.get(id);
+                        return {
+                          id,
+                          kind: photo?.kind ?? "image",
+                          src: thumbSrc(username, runId, id),
+                          alt: photo?.filename ?? id,
+                        };
+                      },
+                    )}
+                    onSelect={(tappedId) => {
+                      const items = group.photoIds
+                        .map((id) => photosById.get(id))
+                        .filter((p): p is PhotoRow => Boolean(p))
+                        .map(
+                          (p): PhotoViewerItem => ({
+                            id: p.id,
+                            kind: p.kind,
+                            src: thumbSrc(username, runId, p.id),
+                          }),
+                        );
+                      const startIndex = items.findIndex((it) => it.id === tappedId);
+                      setViewer({ items, index: Math.max(0, startIndex) });
+                    }}
+                  />
+                </div>
+              )}
+
               {selected === key && (
                 <div className="border-t border-line-faint px-4 py-3">
                   <div className="flex flex-col gap-2">
@@ -180,12 +228,13 @@ export default function DayBoard({
                       const photo = photosById.get(id);
                       if (!photo) return null;
                       return (
-                        <div key={id} className="flex flex-wrap items-center gap-2">
-                          <span className="min-w-0 truncate text-xs text-ink-secondary" title={photo.filename}>
-                            {photo.filename}
-                          </span>
-                          <PhotoChips photo={photo} onSave={(patch) => patchPhoto(id, patch)} />
-                        </div>
+                        <PhotoChips
+                          key={id}
+                          username={username}
+                          runId={runId}
+                          photo={photo}
+                          onSave={(patch) => patchPhoto(id, patch)}
+                        />
                       );
                     })}
                   </div>
@@ -201,6 +250,10 @@ export default function DayBoard({
                           username={username}
                           consentedSpeech={consentedSpeech}
                           speechProvider={speechProvider}
+                          photos={group.photoIds
+                            .map((id) => photosById.get(id))
+                            .filter((p): p is PhotoRow => Boolean(p))
+                            .map((p) => ({ id: p.id, kind: p.kind, src: thumbSrc(username, runId, p.id), alt: p.filename }))}
                           onAnswer={(text) => answerQuestion(group, question, text)}
                         />
                       ))
@@ -224,6 +277,16 @@ export default function DayBoard({
        *  the moment it is printed: the resume screen (B1751 Task 4.3) is
        *  what "come back to it" now actually does. */}
       <p className="mt-2 text-xs text-ink-secondary">{t("extract.flow.left")}</p>
+
+      <PhotoViewer
+        items={viewer?.items ?? []}
+        index={viewer ? viewer.index : null}
+        onClose={() => setViewer(null)}
+        onPrev={() =>
+          setViewer((v) => (v ? { ...v, index: (v.index - 1 + v.items.length) % v.items.length } : v))
+        }
+        onNext={() => setViewer((v) => (v ? { ...v, index: (v.index + 1) % v.items.length } : v))}
+      />
     </div>
   );
 }

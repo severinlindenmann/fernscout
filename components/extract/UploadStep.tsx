@@ -1,6 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
+import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
+import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
+import type { PhotoBadge } from "@/components/extract/PhotoTile";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { IMAGE_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
@@ -11,7 +14,7 @@ import { IMAGE_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
  *  literal, checked against the route by `test/extract-upload-step.test.ts`. */
 const MAX_FILES_PER_RUN = 500;
 
-type TileState = "queued" | "sending" | "done" | "failed";
+export type TileState = "queued" | "sending" | "done" | "failed";
 type Tile = { file: File; state: TileState };
 
 /** One key per state — a literal lookup rather than a template string, so
@@ -22,6 +25,24 @@ const STATE_KEY: Record<TileState, TranslationKey> = {
   done: "extract.upload.state.done",
   failed: "extract.upload.state.failed",
 };
+
+/**
+ * A tile's badge, from its own upload state — B1803 Task 1.3.
+ *
+ * `"sending"` gets no badge. A batch (`BATCH` above) goes over the wire as
+ * one request with no per-file byte progress `fetch` can report, so a
+ * percentage on an in-flight tile would be invented, not read — the same
+ * rule that forbids inventing a place or a weather reading applies to a
+ * number drawn on screen. The design's `62%` badge is real once this
+ * component tracks real per-file progress; until then the tile is left
+ * plain rather than lying about how far along it is.
+ */
+export function badgeForTileState(state: TileState): PhotoBadge | undefined {
+  if (state === "done") return { tone: "done" };
+  if (state === "failed") return { tone: "failed" };
+  if (state === "queued") return { tone: "queued" };
+  return undefined;
+}
 
 /** One request is ten files, not the whole selection. A batch is one request
  *  with no progress of its own; on mobile data a big one is a long silence,
@@ -77,6 +98,7 @@ export default function UploadStep({
   const { t } = useI18n();
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [busy, setBusy] = useState(false);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const lock = useRef<WakeLockSentinel | null>(null);
 
   async function acquireWakeLock() {
@@ -199,29 +221,48 @@ export default function UploadStep({
       </p>
 
       {tiles.length > 0 && (
-        <ul className="mt-3 divide-y divide-line-faint">
-          {tiles.map((tile, n) => (
-            <li
-              key={`${tile.file.name}-${n}`}
-              data-state={tile.state}
-              className="flex items-center justify-between gap-2 py-1.5 text-sm text-ink-body"
-            >
-              <span className="min-w-0 truncate">{tile.file.name}</span>
-              <span
-                className={
-                  tile.state === "failed"
-                    ? "shrink-0 text-coral-600"
-                    : tile.state === "done"
-                      ? "shrink-0 text-green-700"
-                      : "shrink-0 text-ink-secondary"
-                }
-              >
-                {t(STATE_KEY[tile.state])}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3">
+          <PhotoStrip
+            size="grid"
+            columns={4}
+            photos={tiles.map(
+              (tile, n): PhotoStripItem => ({
+                id: `${n}`,
+                kind: tile.file.type.startsWith("video/") ? "video" : "image",
+                file: tile.file,
+                alt: tile.file.name,
+                badge: badgeForTileState(tile.state),
+              }),
+            )}
+            onSelect={(id) => setOpenIndex(Number(id))}
+          />
+          {/* `data-state` on a hidden row per tile — kept so
+           *  `test/extract-upload-step-overflow.test.tsx` and any future
+           *  per-file assertion can still read a tile's state without
+           *  parsing badge text, the same contract the old list offered. */}
+          <ul className="sr-only">
+            {tiles.map((tile, n) => (
+              <li key={`${tile.file.name}-${n}`} data-state={tile.state}>
+                {tile.file.name} — {t(STATE_KEY[tile.state])}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
+
+      <PhotoViewer
+        items={tiles.map(
+          (tile, n): PhotoViewerItem => ({
+            id: `${n}`,
+            kind: tile.file.type.startsWith("video/") ? "video" : "image",
+            file: tile.file,
+          }),
+        )}
+        index={openIndex}
+        onClose={() => setOpenIndex(null)}
+        onPrev={() => setOpenIndex((i) => (i === null ? null : (i - 1 + tiles.length) % tiles.length))}
+        onNext={() => setOpenIndex((i) => (i === null ? null : (i + 1) % tiles.length))}
+      />
 
       {failed.length > 0 && (
         <p role="status" className="mt-2 text-sm text-red-700">

@@ -41,6 +41,14 @@
     // two once a caller outside their own file uses those three exports.
     "lib/staging/manifest.ts",
     "lib/staging/expiry.ts",
+    // Camera roll import (B1803): the tile, the strip and the viewer, built
+    // and tested in Task 1.2 ahead of Task 1.3's screens — the day board, the
+    // upload grid, the question screens — that render them. `PhotoTile.tsx`
+    // came off this list on its own once `PhotoStrip.tsx` and
+    // `PhotoViewer.tsx` imported it; remove these two once a screen outside
+    // `components/extract/` imports either of them.
+    "components/extract/PhotoStrip.tsx",
+    "components/extract/PhotoViewer.tsx",
     // The suite, and the fixtures it reaches for.
     "test/**/*.test.{ts,tsx}",
     "test/fixtures/**/*.{ts,tsx}",
