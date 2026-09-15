@@ -715,13 +715,23 @@ describe("the runs route", () => {
       await startRunFor("sam");
 
       // Stamp deterministic, unambiguous timestamps rather than trusting two
-      // real-clock starts to land in different milliseconds.
+      // real-clock starts to land in different milliseconds — and give both
+      // a photograph, since an empty run (R33's own review finding) is
+      // filtered out before this test ever gets to check ordering.
       const older = readManifest("alex", olderRun);
       if (!older) throw new Error("run vanished");
-      writeManifest("alex", { ...older, createdAt: "2026-01-01T00:00:00.000Z" });
+      writeManifest("alex", {
+        ...older,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        photos: [{ id: "p-older", filename: "p-older.jpg", bytes: 1, kind: "image" }],
+      });
       const newer = readManifest("alex", newerRun);
       if (!newer) throw new Error("run vanished");
-      writeManifest("alex", { ...newer, createdAt: "2026-01-02T00:00:00.000Z" });
+      writeManifest("alex", {
+        ...newer,
+        createdAt: "2026-01-02T00:00:00.000Z",
+        photos: [{ id: "p-newer", filename: "p-newer.jpg", bytes: 1, kind: "image" }],
+      });
 
       const { GET } = await import("@/app/api/helper/[user]/extract/runs/route");
       const res = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
@@ -733,9 +743,44 @@ describe("the runs route", () => {
       expect(body.runs.every((r) => r.owner === "alex")).toBe(true);
     });
 
+    // The finding a browser capture caught and a unit test could not have:
+    // an abandoned `POST .../extract/start` with no upload behind it stayed
+    // listed for its full 48 hours, offering a Continue button to nothing.
+    test("an empty run does not appear in the listing; a run with photographs does", async () => {
+      const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+
+      const { runId: emptyRun } = (await (await startRunFor("alex")).json()) as { runId: string };
+      // Two starts fired back to back can land on the exact same millisecond
+      // id (see the ordering test above) — a hair of real time keeps these
+      // two runs from colliding into one file.
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      const { runId: realRun } = (await (await startRunFor("alex")).json()) as { runId: string };
+      const real = readManifest("alex", realRun);
+      if (!real) throw new Error("run vanished");
+      writeManifest("alex", { ...real, photos: [{ id: "p1", filename: "p1.jpg", bytes: 1, kind: "image" }] });
+
+      // Sanity: the empty run really is empty — no photographs at all.
+      expect(readManifest("alex", emptyRun)?.photos).toEqual([]);
+
+      const { GET } = await import("@/app/api/helper/[user]/extract/runs/route");
+      const res = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+      const body = (await res.json()) as { runs: { runId: string }[] };
+      const ids = body.runs.map((r) => r.runId);
+      expect(ids).toContain(realRun);
+      expect(ids).not.toContain(emptyRun);
+    });
+
     test("a not-yet-warned run reports its plain, unmodified expiry", async () => {
       const { runId } = (await (await startRunFor("alex")).json()) as { runId: string };
-      const { readManifest } = await import("@/lib/staging/manifest");
+      const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+      const started = readManifest("alex", runId);
+      if (!started) throw new Error("run vanished");
+      // A photograph, so this run is not itself the "empty run" case the
+      // filter test covers separately — it would otherwise be dropped from
+      // the listing before this test ever gets to check its expiry.
+      writeManifest("alex", { ...started, photos: [{ id: "p1", filename: "p1.jpg", bytes: 1, kind: "image" }] });
       const before = readManifest("alex", runId);
       if (!before) throw new Error("run vanished");
 
@@ -765,6 +810,9 @@ describe("the runs route", () => {
         ...before,
         warnedAt: "2026-09-01T00:00:00.000Z",
         expiresAt: "2026-09-02T00:00:00.000Z",
+        // A photograph, so the empty-run filter does not drop this run
+        // before the test gets to check its expiry.
+        photos: [{ id: "p1", filename: "p1.jpg", bytes: 1, kind: "image" }],
       });
 
       const { GET } = await import("@/app/api/helper/[user]/extract/runs/route");

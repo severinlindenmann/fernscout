@@ -2,6 +2,7 @@ import "server-only";
 import { isEnabled } from "@/lib/capabilities";
 import { groupIntoDays } from "@/lib/extract/group";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import { unusedPhotoCount } from "@/lib/staging/expiry";
 import { listRuns, type RunManifest } from "@/lib/staging/manifest";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,28 @@ function daysLeftToTell(run: RunManifest): number {
  * actually resumed — `GET .../extract/run`'s own `extendOnTouch` call,
  * unchanged, fires the instant `DayBoard` loads the picked run. Nothing new
  * was added there; this route simply stopped duplicating it.
+ *
+ * **Empty runs are filtered out here, not in `listRuns`.** A browser
+ * capture of this very screen found two imports listed as "0 photographs ·
+ * 0 days left to tell" — debris from `POST .../extract/start` calls that
+ * never uploaded anything (a curl smoke test, in that case; an abandoned
+ * page load in the general one). A run with nothing unused
+ * (`unusedPhotoCount`, `lib/staging/expiry.ts`) has nothing to continue: no
+ * day, no question, no answer, nothing staged — and it stays listed for the
+ * full 48 hours otherwise, so a person who opens `/extract` a few times
+ * without uploading anything meets a growing pile of Continue buttons to
+ * nothing. `unusedPhotoCount` is `0` for both readings of "empty" worth
+ * dropping — zero photographs, and a run whose every dated photograph
+ * already belongs to a committed day — while still counting an undated
+ * photograph as unused, since that run still has real work left.
+ *
+ * The filter lives here rather than in `listRuns` itself on purpose:
+ * `listRuns` also backs the nightly sweep (`sweepExpiryWarnings`,
+ * `lib/staging/expiry.ts`) and its own expiry-warning mail, and neither of
+ * those should start ignoring empty runs — the sweep still has to delete
+ * them on schedule, and the warning still has to compute correctly (an
+ * empty run past its warn age is still warned; only the resume *screen* has
+ * no reason to offer it).
  */
 export async function GET(
   request: Request,
@@ -57,6 +80,8 @@ export async function GET(
     return notYourJournal(request, user);
   }
 
-  const runs: RunSummary[] = listRuns(user).map((run) => ({ ...run, daysLeftToTell: daysLeftToTell(run) }));
+  const runs: RunSummary[] = listRuns(user)
+    .filter((run) => unusedPhotoCount(run) > 0)
+    .map((run) => ({ ...run, daysLeftToTell: daysLeftToTell(run) }));
   return Response.json({ runs });
 }

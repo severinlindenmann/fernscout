@@ -107,8 +107,18 @@ export async function spentOnRun(owner: string, runId: string): Promise<number> 
 
 /** A photo counts as "used" once it belongs to a day this run has already
  *  committed — the same day that stays when the run itself goes, so its
- *  photographs are not part of what the notice threatens. */
-function unusedPhotoCount(run: RunManifest): number {
+ *  photographs are not part of what the notice threatens.
+ *
+ *  Exported for `app/api/helper/[user]/extract/runs/route.ts` too — B1751
+ *  Task 4.3's own review finding. A run with nothing unused has nothing left
+ *  to resume: zero photographs (an abandoned `POST .../extract/start` with
+ *  no upload behind it — exactly what a curl smoke test leaves lying
+ *  around) reads the same as a run whose every dated photograph already
+ *  belongs to a committed day. Both are `0` here, and the resume screen
+ *  drops both rather than offering a Continue button to nothing. An undated
+ *  photograph (`p.date` unset) still counts as unused on purpose — it still
+ *  needs a date and a telling, so a run holding only those stays listed. */
+export function unusedPhotoCount(run: RunManifest): number {
   const committedDates = new Set(run.days.filter((d) => d.committed).map((d) => d.date));
   return run.photos.filter((p) => !p.dropped && !(p.date && committedDates.has(p.date))).length;
 }
