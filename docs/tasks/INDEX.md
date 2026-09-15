@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (229)
+## backlog (232)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (51)
+### issue (52)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -116,6 +116,7 @@ Do not edit them by hand; run the script.
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
 | [B1773](backlog/issue/B1773-a-stranger-sees-every-closed-journey.md) | A stranger sees every closed journey at once on a journal with thirty trips | ISSUE | low | low |
 | [B1777](backlog/issue/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low |
+| [B1780](backlog/issue/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low |
 
 ### big-feature (17)
 
@@ -139,7 +140,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (26)
+### small-feature (28)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -158,6 +159,7 @@ Do not edit them by hand; run the script.
 | [B1749](backlog/small-feature/B1749-there-is-one-circle-of-guests.md) | There is one circle of guests, so a trip held back from the wider circle is held back from close family too | FEATURE | medium | medium |
 | [B1758](backlog/small-feature/B1758-no-tool-carries-an-example-and.md) | No tool carries an example, and few-shot is the one prompt-side lever with evidence behind it | FEATURE | medium | low |
 | [B1761](backlog/small-feature/B1761-the-bench-world-cannot-stage-a.md) | The bench world cannot stage a photograph, a voice note, a pin, an invite or a balance | FEATURE | medium | medium |
+| [B1779](backlog/small-feature/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
@@ -168,6 +170,7 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B1655](backlog/small-feature/B1655-an-owner-cannot-change-their-own.md) | An owner cannot change their own email or phone number | FEATURE | low | medium |
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
+| [B1778](backlog/small-feature/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
 ### chore (7)

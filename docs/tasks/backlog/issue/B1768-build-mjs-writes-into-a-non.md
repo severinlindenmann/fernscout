@@ -12,12 +12,29 @@ found: "2026-09-15T06:24:21Z"
 
 ## Why
 
-TODO — the problem, not the fix.
+`build.mjs` creates the trip folder and writes into it; it never clears it.
+`.claude/skills/icloud-export/build.mjs` does `mkdirSync(join(TRIP, "entries"),
+{ recursive: true })` and then writes one `entries/<day>-<slug>.json` and one
+`media/<day>-<slug>/` per day. Anything already there — a day file under an old
+naming scheme, a media folder for a day that no longer exists — stays beside
+the new files.
+
+Rebuilding a trip is the normal case, not an edge: the slug scheme changed
+(B1539), the place filter changed, a person redid a review. In one run every
+one of 18 rebuilt trips ended up with exactly double the entries, old
+title-slug files beside fresh location-slug ones, and it was noticed only
+because two of them collided on a rename. A verification pass would have called
+it "28 entries, 0 issues", because every file in there is individually valid.
 
 ## Work
 
-TODO
+`build.mjs` refuses to write into a non-empty `content/<user>/trips/<trip>/`
+unless `--force` is given, and with `--force` clears `entries/` and `media/`
+first rather than writing over them. `originals/` is not touched — a print
+master is not a derivative and is not this script's to remove.
 
 ## Acceptance
 
-TODO
+Building a trip twice leaves exactly the entries and media folders the second
+build produced. Without `--force` the second build refuses and says the folder
+already holds a trip.
