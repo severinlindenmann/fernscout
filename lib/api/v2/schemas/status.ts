@@ -42,8 +42,11 @@ export const instanceStatus = z.strictObject({
 /** Where this journal and this token stand right now. */
 export const journalStatus = z.strictObject({
   journal: z.string(),
-  /** The journal's credit balance. Nothing an agent holds can raise it. */
-  credits: z.number().int(),
+  /** The journal's credit balance. Nothing an agent holds can raise it.
+   * Not an integer: since B987 a balance is stored in hundredths and
+   * `balanceOf` hands back the fraction, so `.int()` here answered 500 on
+   * every journal whose balance had ever been part-spent (B1756). */
+  credits: z.number(),
   /** Days waiting for a person to read back and ask to publish — `title` so
    * an agent can say which one without a GET per row (00-decisions.md,
    * "drafts+title+test"), `test` so it can tell content nobody lived from

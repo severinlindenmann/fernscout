@@ -94,7 +94,7 @@ beforeAll(async () => {
     JSON.stringify({
       site: { name: "R", url: "https://example.test", defaultUser: OWNER },
       users: { reserved: [] },
-      features: { auth: { enabled: true } },
+      features: { auth: { enabled: true }, credits: { enabled: true } },
     }),
   );
   fs.mkdirSync(path.join(dir, OWNER, "trips"), { recursive: true });
@@ -108,7 +108,7 @@ beforeAll(async () => {
       baseCurrency: "CHF",
       displayCurrencies: ["CHF"],
       units: "metric",
-      features: { auth: { enabled: true } },
+      features: { auth: { enabled: true }, credits: { enabled: true } },
     }),
   );
   writeTrip("owner-only-trip");
@@ -179,6 +179,26 @@ describe("GET /api/v2/{user}/status", () => {
     const { status, body } = await journalStatus("not-a-real-token");
     expect(status).toBe(401);
     expect(body.error).toBe("invalid_token");
+  });
+
+  /**
+   * B1756 — a balance with a fraction is an ordinary balance. A credit is
+   * stored in hundredths and `balanceOf` divides on the way out (B987), so
+   * any journal that has ever part-spent one carries a fractional number
+   * here. `journalStatus` declared `credits` an integer, and `.parse` threw
+   * on it — a 500 with an empty body on the very first call the handover
+   * prompt tells an agent to make, which reads to that agent as a route
+   * that no longer exists. The live instance answered this way for every
+   * request until the schema was widened.
+   */
+  test("a balance carrying a fraction is a 200, not a 500", async () => {
+    const { grant, spend } = await import("@/lib/credits");
+    await grant(OWNER, 3, "welcome");
+    await spend(OWNER, 0.25, "helper", "b1756");
+
+    const { status, body } = await journalStatus(await ownerToken());
+    expect(status, JSON.stringify(body)).toBe(200);
+    expect(body.credits).toBe(2.75);
   });
 
   /**

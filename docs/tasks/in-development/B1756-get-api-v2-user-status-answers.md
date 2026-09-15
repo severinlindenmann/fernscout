@@ -60,3 +60,29 @@ that parses a status document with a fractional balance. Regenerate
 
 GET /api/v2/severin/status on the live instance answers 200 with a fractional
 `credits` value.
+
+## Revalidation — valid
+
+`lib/api/v2/schemas/status.ts:46` still read `credits: z.number().int()`, and
+`lib/credits.ts:190`'s `balanceOf` still divides hundredths out. Reproduced
+against the live instance on 2026-09-15: POST /api/auth/handover answered 200
+with a fs_agent token, GET /api/v2/severin/status answered 500 with an empty
+body, and the VPS journal carried the matching ZodError on `["credits"]`.
+
+## What was done
+
+- `journalStatus.credits` is `z.number()`, with the reason in the comment.
+- `test/api-v2-status.test.ts` turns credits on (it had the capability off, so
+  `balanceOf` returned null, `?? 0` made an integer, and no test in the file
+  could ever reach this path — that is why it shipped). New keeper grants 3,
+  spends 0.25, and asserts a 200 with `credits === 2.75`.
+
+No openapi regeneration: `/api/v2/openapi.json` is built from these schemas at
+request time, so widening the schema is the whole change.
+
+## Acceptance
+
+- Keeper fails on the old schema with the live error
+  (`Invalid input: expected int, received number`), passes on the new one.
+- `npm run verify` green.
+- GET /api/v2/severin/status on the live instance answers 200 after deploy.
