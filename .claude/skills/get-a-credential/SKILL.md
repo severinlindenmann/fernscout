@@ -21,8 +21,27 @@ round trip.
 
 It asks for a code, reads the code out of the instance's own kept mail, spends
 it, and prints the token or the path to a cookie jar. It always uses
-`agent@fernscout.ch`, which is this instance's `FERNSCOUT_ADMIN_EMAIL` and
-therefore an owner of every journal (B480).
+`agent@fernscout.ch`, which is this instance's `FERNSCOUT_ADMIN_EMAIL`.
+
+**That address reaches every journal's pages and only its own journal's API**
+— B1785, and it is the one thing here worth reading twice. `isOwner` answers
+yes for the admin on every journal (B480), so the **cookie** works anywhere:
+it proves the address, and an owner page resolves through `isOwner`. Driven
+against the live instance, `live severin cookie` loads `/severin/me` as its
+owner.
+
+An **agent token** does not go that way. `agentScope`
+(`app/api/auth/codes/redeem/route.ts`) compares the address with the journal's
+own `owner.email`, so an unscoped write code for a journal the admin does not
+own is refused — as `invalid_code`, which is indistinguishable from a wrong
+code, with the reason only in `journalctl`. That refusal is deliberate: writing
+into somebody's journal is the owner's to authorise, and an operator address
+is not a shortcut around it.
+
+`get-token.sh … agent` therefore checks the journal's own owner **before**
+asking for anything, and refuses with the address it belongs to and the three
+things that do work. Nothing is asked for, so no rate-limit slot and no mail
+are spent finding out.
 
 Everything below is what to do when that is not enough, and why each piece is
 shaped the way it is.
