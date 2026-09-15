@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: app/api/auth/codes/redeem, get-a-credential
 found: "2026-09-15T07:14:07Z"
+started: "2026-09-15T07:38:25Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T07:38:25Z"
 ---
 
 # B1785 — The documented way to get an agent token for any journal works only for the journal the admin address owns

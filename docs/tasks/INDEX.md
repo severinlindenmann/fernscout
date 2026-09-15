@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (220)
+## backlog (219)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (42)
+### issue (41)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -93,7 +93,6 @@ Do not edit them by hand; run the script.
 | [B1753](backlog/issue/B1753-check-caddy-reports-the-running-config.md) | check:caddy reports the running config is in step while a directive from this release is missing from it | ISSUE | medium | low |
 | [B1755](backlog/issue/B1755-a-video-s-own-location-is.md) | A video's own location is thrown away, though ffprobe already hands it back in the call that reads its date | ISSUE | medium | low |
 | [B1757](backlog/issue/B1757-cost-reporting-folds-cached-tokens-in.md) | Cost reporting folds cached tokens in at face value, so every figure overstates | ISSUE | medium | low |
-| [B1785](backlog/issue/B1785-the-documented-way-to-get-an.md) | The documented way to get an agent token for any journal works only for the journal the admin address owns | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -324,12 +323,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
 | [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
+| [B1785](in-development/B1785-the-documented-way-to-get-an.md) | The documented way to get an agent token for any journal works only for the journal the admin address owns | ISSUE | medium | low | `135632db` |
 
 ## testing (29)
 
