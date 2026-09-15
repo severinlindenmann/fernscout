@@ -2,7 +2,7 @@ import "server-only";
 import path from "node:path";
 import { isEnabled } from "@/lib/capabilities";
 import { creditsForPhotos } from "@/lib/helper/credits";
-import { refund, spend } from "@/lib/credits";
+import { ledgerHasRef, refund, spend } from "@/lib/credits";
 import { describePhotos, HELPER_PROVIDER, type PhotoImage } from "@/lib/helper/model";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { defaultLocaleFor } from "@/lib/locales";
@@ -77,6 +77,29 @@ export async function POST(
 
   const credits = creditsForPhotos(live.length);
   const ref = `extract:${runId}`;
+
+  // A double-tap — a slow connection, a phone that has not visibly
+  // responded yet — must not charge twice. `ledgerHasRef` is the same
+  // idempotency check `storage/route.ts` already uses for its own purchase:
+  // a real row for this exact (owner, reason, ref) already exists, so this
+  // is a retry of a spend that already happened, not a new one. Answered as
+  // the same successful shape the first call gave, computed from what is
+  // actually on the manifest now, rather than a 402 or a second charge —
+  // a retry of a purchase that went through should look like the purchase
+  // it was, not like a failure that invites a third attempt.
+  //
+  // **This checks per RUN, not per REQUEST.** A legitimate second `enrich`
+  // on the same run — the person adds more photographs after a first pass
+  // and wants those captioned too — reads as a duplicate here and is
+  // answered without spending or captioning anything new. That is a real
+  // limitation, not an oversight: fixing it needs a second key (which
+  // photographs a spend covered), which is more mechanism than this task
+  // asked for. Left as a named gap rather than a silent one.
+  if (await ledgerHasRef(user, "helper", ref)) {
+    const captioned = live.filter((p) => Boolean(p.caption)).length;
+    return Response.json({ ok: true, spent: credits, captioned, provider: HELPER_PROVIDER });
+  }
+
   if (!(await spend(user, credits, "helper", ref))) {
     return Response.json({ error: "no_credits" }, { status: 402 });
   }

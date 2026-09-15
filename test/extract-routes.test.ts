@@ -564,6 +564,37 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     expect(after?.photos.every((p) => p.caption === "A quiet street.")).toBe(true);
   });
 
+  test("a double-tap on the same run charges once, not twice", async () => {
+    const { grant, ledgerFor, balanceOf } = await import("@/lib/credits");
+    await grant("alex", 10, "test");
+
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    await stagedManifest(runId, ["a.jpg", "b.jpg"]);
+
+    const { POST } = await import("@/app/api/helper/[user]/extract/enrich/route");
+    const call = () =>
+      POST(new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId }) }), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+
+    const first = await call();
+    expect(first.status).toBe(200);
+    const second = await call();
+    expect(second.status).toBe(200);
+
+    // The assertion that matters is on the ledger, not on either response —
+    // a response-only check would pass against an implementation that
+    // charged twice and merely replayed the first body.
+    const ledger = await ledgerFor("alex", 10);
+    const spends = ledger.filter((row) => row.ref === `extract:${runId}` && row.reason === "helper");
+    expect(spends).toHaveLength(1);
+    expect(await balanceOf("alex")).toBe(9);
+
+    // The mocked model was called exactly once — the second request never
+    // reached it.
+    expect(helperModel.describePhotos).toHaveBeenCalledTimes(1);
+  });
+
   test("refuses without enough credits, and captions nothing", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     await stagedManifest(runId, ["a.jpg"]);
