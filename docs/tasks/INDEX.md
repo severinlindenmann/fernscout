@@ -323,15 +323,14 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (3)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
 | [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
-| [B1785](in-development/B1785-the-documented-way-to-get-an.md) | The documented way to get an agent token for any journal works only for the journal the admin address owns | ISSUE | medium | low | `135632db` |
 
-## testing (29)
+## testing (30)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -359,6 +358,7 @@ _Nothing here._
 | [B1779](testing/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium | — |
 | [B1781](testing/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | — |
 | [B1783](testing/B1783-the-one-source-name-a-caller.md) | The one source name a caller may never write is not published anywhere a caller can read it | ISSUE | medium | low | — |
+| [B1785](testing/B1785-the-documented-way-to-get-an.md) | The documented way to get an agent token for any journal works only for the journal the admin address owns | ISSUE | medium | low | — |
 | [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
 | [B1745](testing/B1745-buying-extra-storage-is-only-offered.md) | Buying extra storage is only offered once the journal is nearly full | FEATURE | low | low | — |
 | [B1777](testing/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low | — |
