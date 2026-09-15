@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { chunk, failedIndices } from "@/components/extract/UploadStep";
+import { badgeForTileState, chunk, failedIndices } from "@/components/extract/UploadStep";
 
 /**
  * The two pure reads `UploadStep` builds its per-file guarantee on — B1751,
@@ -61,5 +61,23 @@ describe("whether an attempt is done", () => {
       { file: new File([], "b.jpg"), state: "done" as const },
     ];
     expect(failedIndices(tiles).length === 0).toBe(true);
+  });
+});
+
+/**
+ * B1803 Task 1.3 — the upload grid's own badge, from a tile's state. No
+ * percentage for `"sending"`: a batch goes over the wire as one request with
+ * no per-file byte progress to read, so a real percentage does not exist
+ * yet, and drawing one would be inventing a number rather than reading it.
+ */
+describe("badgeForTileState", () => {
+  test("done, failed and queued each get their own badge tone", () => {
+    expect(badgeForTileState("done")).toEqual({ tone: "done" });
+    expect(badgeForTileState("failed")).toEqual({ tone: "failed" });
+    expect(badgeForTileState("queued")).toEqual({ tone: "queued" });
+  });
+
+  test("sending gets no badge — there is no real per-file progress to show", () => {
+    expect(badgeForTileState("sending")).toBeUndefined();
   });
 });
