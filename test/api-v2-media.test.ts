@@ -182,6 +182,53 @@ describe("POST — the same bytes twice", () => {
   });
 });
 
+describe("POST — the server's own copy, sent back", () => {
+  /**
+   * B1790. A folder synced down holds what the site *serves*, not what was
+   * uploaded, and publishing that folder sends the derivative back. Its bytes
+   * are not the original's bytes, so it hashes to a new address — and the
+   * same photograph used to be stored twice, the day re-pointed at the second
+   * copy, and the first left with nothing naming it. On one real journal that
+   * was 18 photographs, and the orphan was the copy holding the untouched
+   * original, so tidying them away cost the print masters.
+   */
+  const mediaRoot = () => path.join(tripPath(), "media");
+
+  test("answers with the photograph it already holds, and stores nothing new", async () => {
+    const token = await ownerToken();
+    const bytes = await jpeg(900, 700, 200);
+    const intent = { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "n/a for this test" } };
+
+    const first = await postMultipart(token, intent, { name: "camera-original.jpg", bytes });
+    expect(first.status, JSON.stringify(first.body)).toBe(201);
+    const stored = String(first.body.src).split("/").pop() as string;
+
+    // What the site serves is not the file that was sent — which is the whole
+    // reason this case exists.
+    const served = fs.readFileSync(path.join(mediaRoot(), stored));
+    expect(served.equals(bytes)).toBe(false);
+
+    const before = fs.readdirSync(mediaRoot()).sort();
+    const again = await postMultipart(token, intent, { name: stored, bytes: served });
+    expect(again.status, JSON.stringify(again.body)).toBe(201);
+    expect(again.body.src).toBe(first.body.src);
+    expect(again.body.duplicateOf).toBe(first.body.src);
+    expect(fs.readdirSync(mediaRoot()).sort()).toEqual(before);
+  });
+
+  test("a genuinely different photograph is still stored", async () => {
+    const token = await ownerToken();
+    const intent = { kind: "photo", trip: TRIP, declined: { day: "not the point of this test", caption: "n/a for this test" } };
+
+    const one = await postMultipart(token, intent, { name: "one.jpg", bytes: await jpeg(640, 480, 17) });
+    const two = await postMultipart(token, intent, { name: "two.jpg", bytes: await jpeg(640, 480, 211) });
+    expect(one.status, JSON.stringify(one.body)).toBe(201);
+    expect(two.status, JSON.stringify(two.body)).toBe(201);
+    expect(two.body.src).not.toBe(one.body.src);
+    expect(two.body.duplicateOf).toBeUndefined();
+  });
+});
+
 describe("POST — a day-less trip-scoped upload", () => {
   test("lands directly in the trip's media, with no day", async () => {
     const token = await ownerToken();
