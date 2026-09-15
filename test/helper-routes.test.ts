@@ -188,8 +188,13 @@ describe("the helper routes", () => {
   // run it returns rather than just the one a request names, so somebody
   // coming back to an import genuinely meets the clock on the way in. Same
   // cookie, same owner check as the fifty-four before it.
-  test("there are fifty-five of them, and each is guarded", () => {
-    expect(sources).toHaveLength(55);
+  // Fifty-six: `extract/thumb/[run]/[id]` (B1803, Task 1.1) — the spine of
+  // the whole import: a resized derivative of one staged photograph, the
+  // sibling of `inbox/[id]/thumbnail` against the staging store instead of
+  // the undated inbox. Same cookie, same owner check as the fifty-five
+  // before it.
+  test("there are fifty-six of them, and each is guarded", () => {
+    expect(sources).toHaveLength(56);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
