@@ -135,10 +135,23 @@ Meta's verification SMS never arrived on **either** Twilio number:
 
 And inbound SMS to the GB number **demonstrably works** — the owner's own
 reply was received and stored. So the failure is not Twilio filtering inbound
-and not this codebase. The best-fitting explanation is that **Meta or its SMS
-aggregator refuses to send verification codes to known CPaaS/virtual number
-ranges**, which both numbers are. That is an inference from two failures plus
-one working control, not a statement from Meta.
+and not this codebase. The explanation, researched 2026-09-15: **mobile carriers apply A2P
+filtering to short-code SMS from large platforms like Meta when the
+destination is a VoIP or virtual number, and drop it at the carrier edge
+before it reaches the CPaaS provider.** Both numbers are CPaaS numbers.
+
+This fits the evidence better than "Twilio blocked it": a message Twilio
+refused would still appear in the message log as rejected, and there is no
+entry at all. Nothing arriving is what a carrier-edge drop looks like.
+
+**Voice is the documented workaround** — for virtual numbers it is reported as
+the reliable channel for first-time WhatsApp Business API verification,
+precisely because it does not cross the SMS A2P filter.
+
+Source caveat: this comes from third-party technical write-ups, not from a
+Twilio or Meta document — neither publishes the behaviour. It is the
+best-supported explanation, not a vendor statement, and one voice attempt
+settles it.
 
 ### The voice route, armed but untested
 
