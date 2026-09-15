@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 /**
  * Committing one confirmed day out of staging and into the journal — B1751,
@@ -9,7 +9,21 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
  * `content/<user>/`, which is why the quota test below is the one that
  * matters most: it has to prove nothing moved, not merely that an error came
  * back.
+ *
+ * `isEnabled`/`isHelperOwner` are mocked the same way `test/extract-routes.test.ts`
+ * already does, only for the one test that goes through the real route (the
+ * draft assertion, which needs the whole hand-off to `assemble-day`) — every
+ * other test calls `commitDay` directly and needs no route-level gate at all.
  */
+const cap = vi.hoisted(() => ({ enabled: true }));
+vi.mock("@/lib/capabilities", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/capabilities")>();
+  return { ...actual, isEnabled: (name: string) => (name === "extract" ? cap.enabled : true) };
+});
+vi.mock("@/lib/helper/server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/helper/server")>();
+  return { ...actual, isHelperOwner: async () => true };
+});
 
 let contentDir: string;
 let dataDir: string;
@@ -46,7 +60,6 @@ function setup(perUserBytes: number | null): void {
 /** Stage one photograph's bytes into the run's own holding area, and return
  *  the id staging gave it — the same id an analysed `PhotoRow` carries. */
 async function stageFile(filename: string, bytes: Buffer): Promise<string> {
-  // Imported lazily, after `DATA_DIR` is set for this test.
   const { putStagedFile } = await import("@/lib/staging/store");
   return putStagedFile(USER, RUN, filename, bytes).id;
 }
@@ -54,6 +67,7 @@ async function stageFile(filename: string, bytes: Buffer): Promise<string> {
 async function writeRunManifest(
   photos: import("@/lib/staging/manifest").PhotoRow[],
   days: import("@/lib/staging/manifest").DayRow[],
+  tripId: string | null = null,
 ): Promise<void> {
   const { writeManifest } = await import("@/lib/staging/manifest");
   const now = new Date();
@@ -63,7 +77,7 @@ async function writeRunManifest(
     owner: USER,
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString(),
-    tripId: null,
+    tripId,
     mode: "type",
     state: "telling",
     photos,
@@ -110,7 +124,7 @@ describe("committing a day", () => {
     expect(readStagedFile(USER, RUN, droppedId)).toEqual(droppedBytes);
   });
 
-  test("the day's prose lands in words.md, and no location is invented", async () => {
+  test("the day's prose lands in words.md, no coordinate is invented, and every unasked track is recorded as unrecorded rather than declined", async () => {
     const keptBytes = Buffer.from("another-kept-photo");
     const keptId = await stageFile("kept2.jpg", keptBytes);
     await writeRunManifest(
@@ -125,45 +139,127 @@ describe("committing a day", () => {
     expect(readWords(USER, DATE)).toContain("old town for breakfast");
     // Nobody answered the where question with a real coordinate, so nothing
     // is written — in particular not a neighbouring day's coordinate.
-    expect(readDayReadiness(USER, DATE).location).toBeUndefined();
+    const readiness = readDayReadiness(USER, DATE);
+    expect(readiness.location).toBeUndefined();
+
+    // Every write-time track this flow never put in front of the person is
+    // on record as "nobody has decided yet" — a true statement — never as
+    // "without" (a confident "there is none of this"), which nothing here
+    // has enough to claim. `photos` is absent from both lists: it is a
+    // publish-time row, not this gate's business.
+    expect(readiness.unrecorded.sort()).toEqual(
+      ["costs", "coordinates", "tags", "time", "transportMode", "visibility"].sort(),
+    );
+    expect(readiness.without).toEqual([]);
   });
 
-  test("commit never creates an entry — draft is the only state that could ever exist afterward", async () => {
-    // The literal frontmatter assertion ("the created entry says status:
-    // draft") does not apply to this file: `commitDay`'s own doc comment and
-    // its `Consumes` list are explicit that `assemble-day` — not this
-    // function — creates the entry, and `assemble-day` itself needs a real
-    // trip (`getTrip`) plus every one of its tracked rows answered, neither
-    // of which this run's manifest carries. So the honest, checkable form of
-    // "generate never publishes" here is stronger than a frontmatter field:
-    // no entry file exists at all, anywhere in the journal, after a commit —
-    // which makes "not published" true by construction rather than by a
-    // field that could in principle say something else.
-    const keptBytes = Buffer.from("draft-proof-photo");
+  test("commitDay ensures a trip exists, named from the run's own dates, and reuses it on a later day in the same run", async () => {
+    const bytes1 = await stageFile("d1.jpg", Buffer.from("day-one-photo"));
+    await writeRunManifest(
+      [{ id: bytes1, filename: "d1.jpg", bytes: 13, kind: "image", date: "2019-07-02" }],
+      [{ date: "2019-07-02", words: "Day one.", answered: [] }],
+    );
+    const { commitDay } = await import("@/lib/extract/commit");
+    await commitDay(USER, RUN, "2019-07-02");
+
+    const { readManifest } = await import("@/lib/staging/manifest");
+    const afterFirst = readManifest(USER, RUN);
+    expect(afterFirst?.tripId).toBeTruthy();
+
+    const { getTrip, tripRef } = await import("@/lib/trips");
+    const trip = getTrip(tripRef(USER, afterFirst!.tripId!));
+    expect(trip?.title).toBe("2 July 2019");
+    expect(trip?.visibility).toBe("private");
+
+    // A second day in the same run, committed separately, joins the same
+    // trip rather than getting one of its own.
+    const bytes2 = await stageFile("d2.jpg", Buffer.from("day-two-photo"));
+    const manifest = readManifest(USER, RUN)!;
+    manifest.photos.push({ id: bytes2, filename: "d2.jpg", bytes: 13, kind: "image", date: "2019-07-11" });
+    manifest.days.push({ date: "2019-07-11", words: "Day eleven.", answered: [] });
+    const { writeManifest } = await import("@/lib/staging/manifest");
+    writeManifest(USER, manifest);
+    await commitDay(USER, RUN, "2019-07-11");
+
+    const afterSecond = readManifest(USER, RUN);
+    expect(afterSecond?.tripId).toBe(afterFirst?.tripId);
+  });
+
+  test("an existing tripId on the manifest is reused, never replaced with a second trip", async () => {
+    const { createTrip } = await import("@/lib/tripWrite");
+    const created = createTrip(USER, {
+      id: "already-there",
+      title: "Already there",
+      start: "2019-07-01",
+      end: "2019-07-15",
+    });
+    expect(created.ok).toBe(true);
+
+    const keptId = await stageFile("existing-trip.jpg", Buffer.from("photo-for-existing-trip"));
+    await writeRunManifest(
+      [{ id: keptId, filename: "existing-trip.jpg", bytes: 24, kind: "image", date: DATE }],
+      [{ date: DATE, words: "Joining the trip that was already there.", answered: [] }],
+      "already-there",
+    );
+    const { commitDay } = await import("@/lib/extract/commit");
+    await commitDay(USER, RUN, DATE);
+
+    const { getTrips } = await import("@/lib/trips");
+    expect(getTrips(USER).map((t) => t.id)).toEqual(["already-there"]);
+  });
+});
+
+describe("committing a day, through the real route, all the way into the journal", () => {
+  beforeEach(() => setup(10_000_000));
+
+  test("the created entry's own file says status: draft, and nothing else — the constraint this whole feature exists to keep", async () => {
+    // A real JPEG, not arbitrary text bytes — `attachDayFolderMedia` runs
+    // this all the way through `storeUploads`, which validates real image
+    // content, unlike every other test in this file that stops at
+    // `listDayInbox` and never needs a real photograph.
+    const keptBytes = fs.readFileSync("test/fixtures/ingest/camera.jpg");
     const keptId = await stageFile("draft.jpg", keptBytes);
     await writeRunManifest(
       [{ id: keptId, filename: "draft.jpg", bytes: keptBytes.byteLength, kind: "image", date: DATE }],
       [{ date: DATE, words: "A quiet morning.", answered: [] }],
     );
-    const { commitDay } = await import("@/lib/extract/commit");
-    const result = await commitDay(USER, RUN, DATE);
-    expect(result.moved).toBe(1);
 
+    const { POST } = await import("@/app/api/helper/[user]/extract/commit/route");
+    const res = await POST(
+      new Request("http://x/api/helper/alex/extract/commit", {
+        method: "POST",
+        body: JSON.stringify({ run: RUN, date: DATE }),
+      }),
+      { params: Promise.resolve({ user: USER }) },
+    );
+    const body = (await res.json()) as { ok: boolean; moved: number; entry: string | null };
+    expect(res.status).toBe(200);
+    expect(body.moved).toBe(1);
+    expect(body.entry).toBeTruthy();
+
+    const { readManifest } = await import("@/lib/staging/manifest");
+    const tripId = readManifest(USER, RUN)?.tripId;
+    expect(tripId).toBeTruthy();
+
+    // The one acceptable evidence: the file that actually landed.
     const { userDir } = await import("@/lib/users");
-    const tripsDir = path.join(userDir(USER), "trips");
-    expect(fs.existsSync(tripsDir) ? fs.readdirSync(tripsDir) : []).toEqual([]);
+    const entryFile = path.join(userDir(USER), "trips", tripId!, "entries", `${DATE}-${body.entry}.json`);
+    const written = JSON.parse(fs.readFileSync(entryFile, "utf8")) as { status: string; content: string };
+    expect(written.status).toBe("draft");
+    expect(fs.readFileSync(entryFile, "utf8")).not.toContain("published");
+    expect(written.content).toContain("A quiet morning.");
 
-    // The one file this task does write, checked directly: it carries no
-    // `status` field of any kind, published or otherwise.
-    const wordsFile = path.join(userDir(USER), "inbox", "days", DATE, "words.md");
-    expect(fs.readFileSync(wordsFile, "utf8")).not.toMatch(/status\s*:/);
+    // Committed, staged, and gone from the day folder — attached to the real
+    // entry instead.
+    const { listDayInbox } = await import("@/lib/inbox");
+    expect(listDayInbox(USER, DATE).media).toHaveLength(0);
   });
 });
 
 describe("committing a day over quota", () => {
   beforeEach(() => setup(10)); // ten bytes of allowance, far below any real photograph
 
-  test("refuses when the journal is over its quota, and moves nothing", async () => {
+  test("refuses when the journal is over its quota, and moves nothing — not even a trip", async () => {
     const keptBytes = Buffer.from("this-photo-is-far-too-large-for-the-tiny-quota");
     const keptId = await stageFile("big.jpg", keptBytes);
     await writeRunManifest(
@@ -189,6 +285,12 @@ describe("committing a day over quota", () => {
     expect(readStagedFile(USER, RUN, keptId)).toEqual(keptBytes);
 
     const { readManifest } = await import("@/lib/staging/manifest");
-    expect(readManifest(USER, RUN)?.days.find((d) => d.date === DATE)?.committed).toBeFalsy();
+    const after = readManifest(USER, RUN);
+    expect(after?.days.find((d) => d.date === DATE)?.committed).toBeFalsy();
+    // No trip either — a half-committed *run* is exactly as unwanted as a
+    // half-committed day.
+    expect(after?.tripId).toBeNull();
+    const { getTrips } = await import("@/lib/trips");
+    expect(getTrips(USER)).toEqual([]);
   });
 });

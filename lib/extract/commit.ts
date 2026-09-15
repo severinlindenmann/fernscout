@@ -1,9 +1,12 @@
 import "server-only";
 import { readStagedFile } from "@/lib/staging/store";
-import { readManifest, writeManifest, type PhotoRow } from "@/lib/staging/manifest";
+import { readManifest, writeManifest, type PhotoRow, type RunManifest } from "@/lib/staging/manifest";
 import { storeInboxFile, moveInboxFileToDay, updateInboxMeta, type InboxMeta } from "@/lib/inbox";
-import { appendWords } from "@/lib/dayReadiness";
+import { appendWords, readDayReadiness, writeDayReadiness } from "@/lib/dayReadiness";
 import { withStorageQuota } from "@/lib/storageQuota";
+import { getTrip, tripRef } from "@/lib/trips";
+import { createTrip } from "@/lib/tripWrite";
+import { TRACKS, TRACK_ROWS } from "@/lib/tracks";
 
 /**
  * Move one confirmed day out of staging and into the journal.
@@ -14,12 +17,19 @@ import { withStorageQuota } from "@/lib/storageQuota";
  * *before* moving anything, because a half-committed day is worse than a
  * refused one.
  *
- * Everything after the move is somebody else's code, on purpose.
  * `storeInboxFile` + `moveInboxFileToDay` put the photographs where
  * `inbox/days/<date>/` expects them, `appendWords` writes the `words.md` that
- * path already reads, and `assemble-day` — not this file — creates the entry.
- * Re-implementing any of it here would be a second answer to a question that
- * already has one.
+ * path already reads, and the trip this day joins is ensured (created once,
+ * from the run's own real date span, never a place name nobody supplied) so
+ * `assemble-day` has something to write into. Every track the person was
+ * never asked about is recorded as `unrecorded` — a true statement about the
+ * day ("nobody has decided yet") rather than an invented answer — so
+ * `assemble-day`'s own `incomplete_day` gate has nothing left to ask before
+ * it creates the entry. Creating the entry itself stays `assemble-day`'s own
+ * job: it is reachable only as an HTTP handler (`isHelperOwner`, `Response`,
+ * `RouteContext`), so this `lib/` file has no business calling it directly —
+ * the route beside it does, after this call returns, and only once
+ * `DayRow.committed` says there is something to hand off.
  *
  * A row's own `date` (set by the person, `PATCH .../extract/run`) wins over
  * whatever `takenAt` EXIF guessed; a dropped row is left exactly where it is,
@@ -42,6 +52,11 @@ export async function commitDay(
   const incomingBytes = kept.reduce((sum, p) => sum + p.bytes, 0);
 
   const move = (): number => {
+    // Nothing to hand off to without a trip — created once per run and
+    // reused by every later day, never a second one for the same run.
+    const tripId = ensureTrip(username, manifest, date);
+    if (!tripId) return 0;
+
     let moved = 0;
     for (const photo of kept) {
       const bytes = readStagedFile(username, runId, photo.id);
@@ -62,11 +77,18 @@ export async function commitDay(
 
       // Caption and visibility were set on the manifest's own row, in the
       // flow — carried across onto the inbox entry now that it has somewhere
-      // to sit, never invented here.
+      // to sit, never invented here. A photograph with no caption was never
+      // asked for one by this flow either (that is Phase 4's own screen),
+      // and `missingForDayFolder` asks about every staged photograph with
+      // neither `caption` nor `descriptionAsked` set — so, same principle as
+      // the track declines below, "never asked" is recorded honestly as
+      // `descriptionAsked: true` rather than left as an open question
+      // nothing in this run can ever go back and answer.
       const patch: InboxMeta = {};
       if (photo.caption !== undefined) patch.caption = photo.caption;
+      else patch.descriptionAsked = true;
       if (photo.visibility !== undefined) patch.visibility = photo.visibility;
-      if (Object.keys(patch).length > 0) updateInboxMeta(username, entry.id, patch, date);
+      updateInboxMeta(username, entry.id, patch, date);
 
       moved += 1;
     }
@@ -76,10 +98,15 @@ export async function commitDay(
     // `DayRow.words`. Nothing here adds to it or interprets it.
     if (row?.words) appendWords(username, date, row.words);
 
+    // Everything the flow never put in front of the person is a true
+    // "nobody has decided yet", not an invented answer — see
+    // `declineUnansweredTracks`.
+    declineUnansweredTracks(username, date);
+
     if (row) {
       row.committed = true;
-      writeManifest(username, manifest);
     }
+    writeManifest(username, manifest);
 
     return moved;
   };
@@ -95,9 +122,9 @@ export async function commitDay(
   const result = await withStorageQuota(username, incomingBytes, move);
   if (!result.ok) return { moved: 0, entry: null };
 
-  // Nothing in this task creates an entry — that is `assemble-day`'s own job,
-  // asked for once the date folder has nothing left it is owed. Returning
-  // `entry: null` here is honest: this call only ever stages a day folder.
+  // The route beside this file calls `assemble-day` once `DayRow.committed`
+  // is true and fills in the real slug — see this function's own doc
+  // comment for why that call cannot live here.
   return { moved: result.value, entry: null };
 }
 
@@ -105,4 +132,131 @@ export async function commitDay(
  *  the camera's own reading otherwise. Never a guess past either of those. */
 function effectiveDate(photo: PhotoRow): string | undefined {
   return photo.date ?? photo.takenAt?.slice(0, 10);
+}
+
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+] as const;
+
+function partsOf(iso: string): { day: number; month: string; year: string } {
+  const [year, month, day] = iso.split("-");
+  return { day: Number(day), month: MONTHS[Number(month) - 1], year };
+}
+
+/**
+ * A title that reads as a fact about the run rather than a placeholder — no
+ * place name is invented, so the run's own real date span stands in until
+ * the person renames it in the preview, which the design already has them
+ * doing.
+ */
+function titleFromSpan(start: string, end: string): string {
+  const a = partsOf(start);
+  const b = partsOf(end);
+  if (start === end) return `${a.day} ${a.month} ${a.year}`;
+  if (a.year === b.year && a.month === b.month) return `${a.day}–${b.day} ${a.month} ${a.year}`;
+  if (a.year === b.year) return `${a.day} ${a.month} – ${b.day} ${b.month} ${a.year}`;
+  return `${a.day} ${a.month} ${a.year} – ${b.day} ${b.month} ${b.year}`;
+}
+
+/** The run's own earliest and latest day, across every kept photograph plus
+ *  the date being committed (always real, so the span is never empty even
+ *  on a run's very first commit). Never a guess past what the photographs
+ *  or the person's own edits actually say. */
+function runDateSpan(manifest: RunManifest, date: string): { start: string; end: string } {
+  const dates = manifest.photos
+    .filter((p) => !p.dropped)
+    .map(effectiveDate)
+    .filter((d): d is string => d !== undefined);
+  dates.push(date);
+  const sorted = [...dates].sort();
+  return { start: sorted[0], end: sorted[sorted.length - 1] };
+}
+
+function slugify(input: string): string {
+  return input
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+/**
+ * Mirrors `idFrom` in `app/api/helper/[user]/trip/route.ts` — same
+ * discipline (a slugified title, a deterministic year suffix, a collision
+ * loop through the one function that already knows what a trip id is), asked
+ * for rather than a second way to name a trip. Not imported directly: that
+ * one is a small private helper in a route file, and generating an id is not
+ * itself "a way to create a trip" — `createTrip` below is, and it is reused
+ * unchanged.
+ */
+function idFrom(username: string, title: string, start: string): string {
+  const base = slugify(`${title}-${start.slice(0, 4)}`) || `trip-${start.slice(0, 4)}`;
+  let id = base;
+  for (let n = 2; getTrip(tripRef(username, id)); n += 1) id = `${base}-${n}`;
+  return id;
+}
+
+/**
+ * The trip this run's days join — created once, from the run's own dates,
+ * the first time a day is committed with no trip chosen; reused unchanged on
+ * every later commit in the same run.
+ *
+ * Title is the run's own date span, never a place name nobody supplied —
+ * the person renames it in the preview. Visibility is `"private"`, the
+ * narrowest value the type allows: an import must never create something
+ * more visible than the person asked for, and nothing in this flow has asked
+ * them anything about visibility yet.
+ *
+ * `null` on failure (an id collision `createTrip` still refused, or a
+ * genuinely broken journal) — the caller's answer to that is the same as to
+ * "nothing to commit": move nothing, mark nothing committed.
+ */
+function ensureTrip(username: string, manifest: RunManifest, date: string): string | null {
+  if (manifest.tripId && getTrip(tripRef(username, manifest.tripId))) return manifest.tripId;
+
+  const span = runDateSpan(manifest, date);
+  const title = titleFromSpan(span.start, span.end);
+  const created = createTrip(username, {
+    id: idFrom(username, title, span.start),
+    title,
+    start: span.start,
+    end: span.end,
+    visibility: "private",
+  });
+  if (!created.ok) return null;
+
+  manifest.tripId = created.id;
+  return created.id;
+}
+
+/**
+ * Every `write`-time track (`lib/tracks.ts`) the flow never put in front of
+ * the person, recorded as `unrecorded` — the same convention
+ * `components/AgentWizard.tsx` already established for exactly this
+ * situation (see `TRACK_ROWS.costs`'s own doc comment): "nobody has been
+ * asked about it" is a true, honest state, distinct from `without` (a
+ * confident "there is none of this"), which nothing in this flow has enough
+ * to claim for any of these rows. `photos` is excluded on purpose — it is a
+ * `publish`-time row, checked only when a day is actually published, and by
+ * the time that happens `listDayInbox` already answers it from what really
+ * got attached.
+ *
+ * Never overwrites a track that already carries an answer, on either list —
+ * merged into whatever `day.json` already says, the same discipline
+ * `assemble-day`'s own `recordAnswer` uses for the same file.
+ */
+function declineUnansweredTracks(username: string, date: string): void {
+  const current = readDayReadiness(username, date);
+  const already = new Set<string>([...current.without, ...current.unrecorded]);
+  const unrecorded = [...current.unrecorded];
+  for (const track of TRACKS) {
+    if (TRACK_ROWS[track].when !== "write") continue;
+    if (already.has(track)) continue;
+    unrecorded.push(track);
+  }
+  if (unrecorded.length !== current.unrecorded.length) {
+    writeDayReadiness(username, date, { unrecorded });
+  }
 }
