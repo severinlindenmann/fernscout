@@ -138,6 +138,18 @@ describe("the extract routes with the capability on", () => {
     expect(readManifest("alex", runId)?.photos).toHaveLength(1);
   });
 
+  test("the same photograph twice in one request is one row, not two", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const file = () => new File([CAMERA_JPEG], "camera.jpg", { type: "image/jpeg" });
+    const res = await upload(runId, [file(), file()]);
+    const body = (await res.json()) as { accepted: unknown[]; rejected: unknown[] };
+    expect(body.accepted).toHaveLength(1);
+    expect(body.rejected).toEqual([]);
+
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.photos).toHaveLength(1);
+  });
+
   test("an unknown run answers 404 rather than a crash", async () => {
     const res = await upload("run-does-not-exist", [new File([CAMERA_JPEG], "camera.jpg")]);
     expect(res.status).toBe(404);

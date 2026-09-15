@@ -69,6 +69,12 @@ export async function POST(
     );
   }
 
+  // Seeded from the manifest as it stands and grown as the loop accepts —
+  // so a duplicate is caught whether it arrives against an earlier request
+  // (already on `current.photos`) or twice in this same one (a browser that
+  // queued the same file twice, or a retry click still mid-flight).
+  const seenIds = new Set(current.photos.map((p) => p.id));
+
   const accepted: PhotoRow[] = [];
   const rejected: { filename: string; reason: string }[] = [];
   for (const file of files) {
@@ -85,7 +91,10 @@ export async function POST(
     const stored = putStagedFile(user, runId, file.name, bytes);
     // Content-addressed, so a retried batch is idempotent: the same photograph
     // twice is one row, and the page's retry button cannot double a day.
-    if (current.photos.some((p) => p.id === stored.id)) continue;
+    // Not a rejection — nothing was wrong with it — so it is simply not
+    // counted a second time in either array.
+    if (seenIds.has(stored.id)) continue;
+    seenIds.add(stored.id);
     accepted.push(analyseStaged(stored, bytes));
   }
 
