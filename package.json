@@ -23,6 +23,7 @@
     "status": "tsx --conditions=react-server scripts/status.mts",
     "notify": "tsx --conditions=react-server scripts/notify.mts",
     "reminders:send": "tsx --conditions=react-server scripts/reminders.mts",
+    "extract:remind": "tsx --conditions=react-server scripts/extract-remind.mts",
     "test": "vitest run",
     "test:watch": "vitest",
     "check:changed": "node scripts/check-changed.mjs",

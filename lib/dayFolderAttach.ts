@@ -30,6 +30,7 @@ export async function attachDayFolderMedia(
     filename: entry.filename,
     bytes: fs.readFileSync(path.join(dayInboxDir(username, date, "media"), entry.id)),
     caption: entry.caption,
+    visibility: entry.visibility,
   }));
 
   const written = await storeUploads(ref, slug, uploads);

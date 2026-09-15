@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { userDir } from "./users";
 import { IMAGE_EXTENSIONS } from "./ingest/image";
 import { VIDEO_EXTENSIONS } from "./ingest/video";
+import type { PhotoVisibility } from "./photos";
 
 /**
  * Somewhere to put a file before it belongs to a day — B663.
@@ -83,6 +84,15 @@ export type InboxMeta = {
   lon?: number;
   takenAt?: string;
   caption?: string;
+  /**
+   * The same closed `guest`/`private` vocabulary `parsePhotoVisibility`
+   * reads everywhere else — set on the manifest's own `PhotoRow` in the
+   * camera-roll flow (B1751) and carried across onto the inbox entry once it
+   * is staged, so `attachDayFolderMedia` has it to hand to `storeUploads`.
+   * Absent means "no answer yet", the same as everywhere else this field
+   * appears; it is never guessed.
+   */
+  visibility?: PhotoVisibility;
   tags?: string[];
   /**
    * A place name for a `location`-kind item, from a reverse-geocode lookup

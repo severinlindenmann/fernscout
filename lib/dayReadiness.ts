@@ -29,16 +29,19 @@ export type DayReadiness = {
    *  request the archive at all. */
   weatherLookup?: boolean;
   /** A coordinate this date is tied to, and where it came from — the same
-   *  three-word vocabulary `InboxMeta.source` uses for a file's own origin,
-   *  restated here because a day's location may come from the browser
-   *  button, a WhatsApp pin, or (Phase 5) an extracted GPS fix, and a later
-   *  reader needs to tell those apart exactly as it does for a photograph. */
-  location?: { lat: number; lon: number; source: "browser" | "whatsapp" | "gps" };
+   *  vocabulary `InboxMeta.source` uses for a file's own origin, restated
+   *  here because a day's location may come from the browser button, a
+   *  WhatsApp pin, an imported photograph's own EXIF (B1751 — a real
+   *  measurement the camera took, median of every kept photograph's fix for
+   *  the day, never a guess), or (Phase 5) an extracted GPS-history fix, and
+   *  a later reader needs to tell those apart exactly as it does for a
+   *  photograph. */
+  location?: { lat: number; lon: number; source: "browser" | "whatsapp" | "gps" | "photo" };
 };
 
 const EMPTY: DayReadiness = { without: [], unrecorded: [], weatherAsked: false };
 
-const LOCATION_SOURCES = ["browser", "whatsapp", "gps"];
+const LOCATION_SOURCES = ["browser", "whatsapp", "gps", "photo"];
 
 function readinessPath(username: string, date: string): string {
   return path.join(dayInboxDir(username, date), "day.json");
@@ -54,7 +57,7 @@ function parseLocation(raw: unknown): DayReadiness["location"] {
   const { lat, lon, source } = raw as Record<string, unknown>;
   if (typeof lat !== "number" || typeof lon !== "number") return undefined;
   if (typeof source !== "string" || !LOCATION_SOURCES.includes(source)) return undefined;
-  return { lat, lon, source: source as "browser" | "whatsapp" | "gps" };
+  return { lat, lon, source: source as "browser" | "whatsapp" | "gps" | "photo" };
 }
 
 /** What this date folder currently says about itself. A date with no folder

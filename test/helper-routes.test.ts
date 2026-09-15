@@ -162,8 +162,34 @@ describe("the helper routes", () => {
   // point at: recording an answer to what a date folder was asked, and
   // (Task 3) creating the real entry once nothing is left to ask. Same
   // cookie, same owner check.
-  test("there are forty-seven of them, and each is guarded", () => {
-    expect(sources).toHaveLength(47);
+  // Forty-nine: `extract/start` and `extract/upload` (camera roll import,
+  // B1751, Task 1.2) — the first door onto a guided import run: opening one
+  // and taking a batch of photographs into staging, outside the journal's
+  // storage quota until the days they belong to are confirmed. Same cookie,
+  // same owner check as the forty-seven before them.
+  // Fifty-one: `extract/run` and `extract/day` (camera roll import, B1751,
+  // Task 2.3) — grouping a run's photographs into days, correcting what
+  // clustering got wrong on one photograph, and answering one question about
+  // one day. Same cookie, same owner check as the forty-nine before them.
+  // Fifty-two: `extract/commit` (camera roll import, B1751, Task 3.1) — the
+  // first door in this whole plan that writes real bytes into
+  // `content/<user>/`: moving one confirmed day's kept photographs out of
+  // staging and into `inbox/days/<date>/`, behind the same storage quota
+  // every other real write in this repository already answers to. Same
+  // cookie, same owner check as the fifty-one before it.
+  // Fifty-four: `extract/sample` and `extract/enrich` (camera roll import,
+  // B1751, Task 4.1) — the free taste and the paid caption pass over a run
+  // still in staging: one photograph described for nothing, once, and every
+  // live photograph described for credits charged against `extract:<runId>`
+  // and refunded on a throw. Same cookie, same owner check as the fifty-two
+  // before them.
+  // Fifty-five: `extract/runs` (B1751, Task 4.3) — the resume screen's own
+  // list of this owner's live runs, and the one route that touches every
+  // run it returns rather than just the one a request names, so somebody
+  // coming back to an import genuinely meets the clock on the way in. Same
+  // cookie, same owner check as the fifty-four before it.
+  test("there are fifty-five of them, and each is guarded", () => {
+    expect(sources).toHaveLength(55);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

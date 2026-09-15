@@ -45,6 +45,11 @@ export const FEATURE_NAMES = [
   "analytics",
   "helper",
   "transcription",
+  // B1751. The guided camera-roll import. Separate from `helper` because it
+  // has a different cost shape — it stages hundreds of megabytes outside the
+  // quota — and a journal may want the helper without ever importing an old
+  // trip.
+  "extract",
   "fulfilmentRelay",
   "fulfilmentAccept",
 ] as const;
@@ -576,6 +581,9 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // Deepgram account gets, and it returns a canned transcript rather than
   // failing — see lib/helper/transcribe.ts.
   transcription: { enabled: false, backend: "dry-run" },
+  // B1751. Off by default like every optional capability, and off means the
+  // guided camera-roll import route simply is not there.
+  extract: { enabled: false },
   // B589. Off by default like every optional capability. `url` names the
   // fulfilment instance this one hands jobs to — read the same way
   // `addressLookup.url` is, above — and there is no sensible default the way

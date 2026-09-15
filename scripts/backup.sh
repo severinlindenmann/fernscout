@@ -480,6 +480,18 @@ else
   log "WARNING: the reminder sweep failed — tonight's backup is unaffected"
 fi
 
+# --- 0b2. The camera-roll-import expiry sweep (B1751, task 0.5) -----------
+# Same reasoning as the reminder sweep just above: warns 24 hours before a
+# staged import run is deleted, and sends the one final notice for a run
+# that was already continued once. It never deletes anything itself — that
+# stays `sweepStaging`'s job — it only tells the owner in time to act.
+log "checking for camera-roll-import runs due a warning tonight"
+if (cd "$APP_DIR" && npm run --silent extract:remind); then
+  log "import expiry sweep done"
+else
+  log "WARNING: the import expiry sweep failed — tonight's backup is unaffected"
+fi
+
 # --- 0c. Weather: nothing here, deliberately (B1288, retired by B1713) -----
 # This step used to run `npm run weather:update`, a sweep over every day in
 # every journal that had asked for weather and not got it. It is gone, and so
