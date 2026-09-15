@@ -52,17 +52,44 @@ export function questionsForDay(
   day: DayRow,
   placeName?: string,
 ): Question[] {
-  const mine = photos.filter((p) => group.photoIds.includes(p.id));
+  // Chronological, not upload order: `photos` is the manifest's raw upload
+  // order, and a retried batch can land after later ones. A row with no
+  // `takenAt` carries no information about when the day began, so it sorts
+  // last rather than leading the day with an unknown time.
+  const mine = photos
+    .filter((p) => group.photoIds.includes(p.id))
+    .sort((a, b) => {
+      if (a.takenAt === undefined) return b.takenAt === undefined ? 0 : 1;
+      if (b.takenAt === undefined) return -1;
+      return a.takenAt.localeCompare(b.takenAt);
+    });
   const count = `${mine.length} photograph${mine.length === 1 ? "" : "s"}`;
   const weekday = group.date ? WEEKDAYS[new Date(`${group.date}T12:00:00Z`).getUTCDay()] : "";
   const when = [weekday, partOfDay(mine[0]?.takenAt)].filter(Boolean).join(" ");
   const where = placeName ? ` in ${placeName}` : "";
   const out: Question[] = [];
 
+  // Undated group: nothing recorded when these photographs were taken, so
+  // there is no fact to build "It's Tuesday morning" out of — asking what
+  // happened before asking when is the wrong order, and the answer to "when"
+  // is what makes the rest of the day answerable. This must come first.
+  if (group.undated) {
+    out.push({
+      id: `when:${group.date}`,
+      kind: "gap",
+      fills: "date",
+      text:
+        `These ${count} don't carry a date — they were saved from somewhere else ` +
+        `rather than taken on your phone. Roughly when were they taken?`,
+    });
+  }
+
   out.push({
     id: `open:${group.date}`,
     kind: "opening",
-    text: `It's ${when}${where} and you took ${count}. What were you doing?`,
+    text: when
+      ? `It's ${when}${where} and you took ${count}. What were you doing?`
+      : `You took ${count}${where}. What were you doing?`,
   });
 
   if (group.lat === undefined) {

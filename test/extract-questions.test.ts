@@ -33,4 +33,42 @@ describe("the questions a day still needs", () => {
   test("never more than three in one day", () => {
     expect(questionsForDay(group, photos, day, "Hoi An").length).toBeLessThanOrEqual(MAX_QUESTIONS_PER_DAY);
   });
+
+  test("the opener reads the first photograph by capture time, not upload order", () => {
+    // Uploaded out of order: the evening photo arrives first in `photos`,
+    // but it was taken after the morning one — the opener must still speak
+    // of the morning, because that is when the day began.
+    const outOfOrder = [
+      { id: "b", filename: "b", bytes: 1, kind: "image" as const, takenAt: "2019-07-02T19:41:00" },
+      { id: "a", filename: "a", bytes: 1, kind: "image" as const, takenAt: "2019-07-02T10:07:00" },
+    ];
+    const [first] = questionsForDay(group, outOfOrder, day, "Hoi An");
+    expect(first.text).toContain("morning");
+    expect(first.text).not.toContain("evening");
+  });
+
+  test("an undated group asks when before it asks what, with no broken grammar", () => {
+    const undated = { date: "", photoIds: ["a", "b"], undated: true };
+    const undatedDay = { date: "", answered: [] };
+    const undatedPhotos = [
+      { id: "a", filename: "a", bytes: 1, kind: "image" as const },
+      { id: "b", filename: "b", bytes: 1, kind: "image" as const },
+    ];
+
+    const withPlace = questionsForDay(undated, undatedPhotos, undatedDay, "Hoi An");
+    expect(withPlace[0].fills).toBe("date");
+    expect(withPlace[0].text).toContain("don't carry a date");
+    expect(withPlace[1].kind).toBe("opening");
+    expect(withPlace[1].text).toBe("You took 2 photographs in Hoi An. What were you doing?");
+    for (const q of withPlace) expect(q.text).not.toMatch(/ {2}/);
+
+    const withoutPlace = questionsForDay(undated, undatedPhotos, undatedDay);
+    expect(withoutPlace[1].text).toBe("You took 2 photographs. What were you doing?");
+    for (const q of withoutPlace) expect(q.text).not.toMatch(/ {2}/);
+  });
+
+  test("a dated day never gets asked when it happened", () => {
+    const dated = questionsForDay(group, photos, day, "Hoi An");
+    expect(dated.some((q) => q.fills === "date")).toBe(false);
+  });
 });
