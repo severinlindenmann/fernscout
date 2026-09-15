@@ -210,6 +210,28 @@ export function inSync(relative: string): boolean {
   const root = segments[0].toLowerCase();
   if (EXCLUDED_ROOTS.has(root)) return false;
   if (root === "inbox") return segments.length >= 3;
+
+  /**
+   * `figures/<id>.json` — B1776.
+   *
+   * The figure library was outside this allow-list for no reason anybody
+   * wrote down, and being outside it means travelling in **neither**
+   * direction: a folder that mirrors this journal came down without its
+   * figures, and a figure edited in that folder had nowhere to go. They are
+   * ordinary journal content — a document with a client-chosen id since
+   * B1609, written and read over the API, referenced by a trip, copied onto
+   * the box by the deploy (B1682) — and the owner of a hosted journal has no
+   * filesystem to keep a copy from. There is nothing personal in one beyond
+   * what the journal already serves.
+   *
+   * One level, documents only: a preview or a stray image under `figures/`
+   * is not something the instance stores there, and the allow-list says what
+   * it means rather than admitting whatever turns up.
+   */
+  if (root === "figures") {
+    return segments.length === 2 && segments[1].toLowerCase().endsWith(".json");
+  }
+
   if (root !== "trips") return false;
 
   // trips/<id>/...

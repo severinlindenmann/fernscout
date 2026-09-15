@@ -145,6 +145,49 @@ describe("GET /api/v2/status", () => {
     );
     expect(body.pricing).toBeTruthy();
   });
+
+  /**
+   * B1783. The pre-flight document a v2 client reads before it writes has to
+   * carry the one source name it may never write. B1580 published it on
+   * `/api/health` — the operator's own page — and a client built only against
+   * v2 therefore had to hardcode it, which is what B1580 set out to end. A
+   * folder of 189 days synced down from this instance is what found it.
+   */
+  test("it publishes the source names a caller may never write", async () => {
+    const { RESERVED_SOURCES } = await import("@/lib/weather");
+    const { body } = await instanceStatus();
+    const published = (body.weather as { reservedSources?: string[] })?.reservedSources ?? [];
+    expect(published).toEqual([...RESERVED_SOURCES]);
+    expect(published).toContain("open-meteo");
+  });
+
+  test("and every name it publishes is one a write is actually refused for", async () => {
+    // A list that says more than the write path enforces sends a client round
+    // a bend that is not there; one that says less is the drift the ticket is
+    // about. Driven through the schema rather than compared with a constant.
+    const { dayWrite } = await import("@/lib/api/v2/schemas/day");
+    const { body } = await instanceStatus();
+    const published = (body.weather as { reservedSources?: string[] })?.reservedSources ?? [];
+    expect(published.length).toBeGreaterThan(0);
+    for (const source of published) {
+      const parsed = dayWrite.safeParse({
+        title: "A day", date: "2026-06-24", content: "Something happened.",
+        weather: { tempC: 14, source, recordedAt: "2026-06-24T17:00:00.000Z" },
+        declined: {},
+      });
+      expect(parsed.success).toBe(false);
+      expect(JSON.stringify(parsed.error?.issues)).toContain("source");
+    }
+    // The honest-run case: somebody's own instrument is not refused for its
+    // name (it may still be refused for an open section, which is why only
+    // the source issue is looked at).
+    const ownReading = dayWrite.safeParse({
+      title: "A day", date: "2026-06-24", content: "Something happened.",
+      weather: { tempC: 14, source: "netatmo-on-the-balcony", recordedAt: "2026-06-24T17:00:00.000Z" },
+      declined: {},
+    });
+    expect(JSON.stringify(ownReading.error?.issues ?? [])).not.toContain("the server's own");
+  });
 });
 
 describe("GET /api/v2/{user}/status", () => {

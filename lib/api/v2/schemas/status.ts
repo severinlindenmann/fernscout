@@ -37,6 +37,24 @@ export const instanceStatus = z.strictObject({
   /** What paid actions cost, in credits — from the operator's own costs
    * block, so an agent can say a price before proposing a postcard. */
   pricing: z.record(z.string(), z.number().nonnegative()),
+  /**
+   * The source names a caller may never write — B1783.
+   *
+   * A reading this server looked up carries `source: "open-meteo"`, comes
+   * back on every read and in a sync's byte mirror, and is refused by name on
+   * the way back in (`day.ts`: "this source name is the server's own"). That
+   * refusal is right, and it is only usable if a client can tell which names
+   * it applies to before it sends one: B1580 published the list on
+   * `/api/health` for exactly this, and a v2 client reads *this* document
+   * before it writes, not the operator's page. A client that had to hardcode
+   * the name is a client that will be wrong the day a second archive is added
+   * — and it was: a folder of 189 synced-down days could not be written back.
+   *
+   * A deny list, not an enum on the field: every other source is valid,
+   * because `source` names whatever actually took the reading and no server
+   * can enumerate that.
+   */
+  weather: z.strictObject({ reservedSources: z.array(z.string()) }),
 });
 
 /** Where this journal and this token stand right now. */

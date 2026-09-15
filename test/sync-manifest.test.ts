@@ -199,6 +199,29 @@ describe("the manifest", () => {
     );
   });
 
+  /**
+   * B1776. The figure library was outside the allow-list, so it travelled in
+   * neither direction: a pull gave back a journal with no figures in it, and
+   * a figure edited in the folder had nowhere to go. The owner of a hosted
+   * journal has no filesystem to keep their own copy from.
+   */
+  test("the figure library syncs — it is journal content like anything else", async () => {
+    write("figures/walker-1.json", JSON.stringify({ id: "walker-1", kind: "walker" }));
+    const { clearSyncHashCache } = await import("@/lib/sync/manifest");
+    clearSyncHashCache();
+    const { body } = await manifest(await tokenFor(OWNER_EMAIL));
+    expect(body.files!.map((f) => f.path)).toContain("figures/walker-1.json");
+  });
+
+  test("and the file door serves one, since the manifest offered it", async () => {
+    write("figures/walker-2.json", JSON.stringify({ id: "walker-2", kind: "walker" }));
+    const { clearSyncHashCache } = await import("@/lib/sync/manifest");
+    clearSyncHashCache();
+    const { status, text } = await fetchFile("figures/walker-2.json", await tokenFor(OWNER_EMAIL));
+    expect(status).toBe(200);
+    expect(text).toContain("walker-2");
+  });
+
   test("the inbox syncs, sidecars and all", async () => {
     const { body } = await manifest(await tokenFor(OWNER_EMAIL));
     const paths = body.files!.map((f) => f.path);
