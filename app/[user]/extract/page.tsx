@@ -1,4 +1,5 @@
 import ExtractHub from "@/components/extract/ExtractHub";
+import PageHeader from "@/components/PageHeader";
 import { requireExtractOwner } from "@/lib/extract/pageGate";
 
 export const dynamic = "force-dynamic";
@@ -12,9 +13,18 @@ export const dynamic = "force-dynamic";
  * statements each to a plain upload that hands the file to the importer
  * already built for it (`ExtractHub`'s own doc comment says which route,
  * and where each one falls short of a full round trip).
+ *
+ * `PageHeader` here rather than a hand-rolled back link — B1802. It is
+ * `useTrip()`-null on this route, same as `/[user]/contacts`, so the
+ * journal title falls back to the journal's own base rather than a trip.
  */
 export default async function ExtractHubPage({ params }: PageProps<"/[user]/extract">) {
   const { user } = await params;
   await requireExtractOwner(user);
-  return <ExtractHub username={user} />;
+  return (
+    <div className="min-h-screen">
+      <PageHeader />
+      <ExtractHub username={user} />
+    </div>
+  );
 }

@@ -1,4 +1,5 @@
 import ExtractFlow from "@/components/extract/ExtractFlow";
+import PageHeader from "@/components/PageHeader";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { requireExtractOwner } from "@/lib/extract/pageGate";
 import { speechProvider } from "@/lib/helper/transcribe";
@@ -16,6 +17,9 @@ export const dynamic = "force-dynamic";
  * (`app/[user]/trips/page.tsx`, `app/[user]/layout.tsx`'s own trip
  * switcher), rather than a new client route. The owner is looking at their
  * own journal here, so nothing needs `listableTrips`'s reader-side filter.
+ *
+ * `PageHeader` rather than `ExtractFlow`'s own hand-rolled back link —
+ * B1802, same reasoning as the rest of the import's pages.
  */
 export default async function ExtractPhotosPage({ params }: PageProps<"/[user]/extract/photos">) {
   const { user } = await params;
@@ -26,11 +30,14 @@ export default async function ExtractPhotosPage({ params }: PageProps<"/[user]/e
     year: trip.start.slice(0, 4),
   }));
   return (
-    <ExtractFlow
-      username={user}
-      consentedSpeech={hasHelperConsent(user, "speech")}
-      speechProvider={speechProvider()}
-      trips={trips}
-    />
+    <div className="min-h-screen">
+      <PageHeader />
+      <ExtractFlow
+        username={user}
+        consentedSpeech={hasHelperConsent(user, "speech")}
+        speechProvider={speechProvider()}
+        trips={trips}
+      />
+    </div>
   );
 }

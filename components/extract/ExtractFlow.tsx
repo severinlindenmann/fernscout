@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import CreditsScreen, { commitReadyDays } from "@/components/extract/CreditsScreen";
 import DayBoard from "@/components/extract/DayBoard";
 import FoundStep from "@/components/extract/FoundStep";
@@ -301,17 +299,7 @@ export default function ExtractFlow({
     // and every nested truncate below it works exactly as it looks like it
     // should.
     <div className="mx-auto w-full max-w-xl px-4 py-8">
-      {/* The way back — B1797. Every screen in this flow reaches it, because
-       *  it is drawn once, here, rather than on each screen individually. */}
-      <Link
-        href={`/${username}/extract`}
-        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body transition-colors hover:text-ink-strong"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden strokeWidth={2.4} />
-        {t("extract.backToJournal")}
-      </Link>
-
-      <h1 className="mt-2 font-display text-2xl font-semibold text-ink-strong">{t("extract.title")}</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink-strong">{t("extract.title")}</h1>
 
       {error && (
         <div className="mt-4">

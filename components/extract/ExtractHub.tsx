@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Images, MapPin, Users, Wallet } from "lucide-react";
+import { Images, MapPin, Users, Wallet } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 
 /**
@@ -20,7 +20,6 @@ import { useI18n } from "@/components/LocaleProvider";
  */
 export default function ExtractHub({ username }: { username: string }) {
   const { t } = useI18n();
-  const journalHref = `/${username}`;
 
   const choices = [
     {
@@ -55,15 +54,7 @@ export default function ExtractHub({ username }: { username: string }) {
     // unbreakable string anywhere below it can push this box past the
     // viewport before any nested `min-w-0 truncate` gets a chance to work.
     <div className="mx-auto w-full max-w-xl px-4 py-8">
-      <Link
-        href={journalHref}
-        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body transition-colors hover:text-ink-strong"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden strokeWidth={2.4} />
-        {t("extract.backToJournal")}
-      </Link>
-
-      <h1 className="mt-4 font-display text-2xl font-semibold text-ink-strong">{t("extract.hub.title")}</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink-strong">{t("extract.hub.title")}</h1>
       <p className="mt-1 text-sm text-ink-secondary">{t("extract.hub.subtitle")}</p>
 
       <ul className="mt-5 flex flex-col gap-3">

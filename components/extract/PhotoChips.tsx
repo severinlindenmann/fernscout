@@ -122,7 +122,7 @@ export default function PhotoChips({
                     type="button"
                     disabled={busy}
                     onClick={() => void save(field, value)}
-                    className="min-h-8 rounded-full bg-ink-strong px-3 text-xs font-semibold text-white disabled:opacity-50"
+                    className="min-h-8 rounded-full bg-action-strong px-3 text-xs font-semibold text-on-action disabled:opacity-50"
                   >
                     {t("extract.chip.save")}
                   </button>
