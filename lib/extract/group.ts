@@ -47,13 +47,35 @@ export function groupIntoDays(photos: PhotoRow[]): DayGroup[] {
     }
   }
 
-  const groups: DayGroup[] = clusterMedia(dated).map((cluster) => ({
-    date: cluster.date,
-    photoIds: cluster.items.map((item) => item.id),
-    lat: cluster.lat,
-    lng: cluster.lng,
-    undated: false,
-  }));
+  // `clusterMedia`'s gap/distance rules split entries *within* a day on
+  // purpose (`DEFAULT_GAP_HOURS`, `DEFAULT_SPLIT_KM` — see cluster.ts): a
+  // museum morning and a dinner across town come back as two clusters
+  // sharing one date. A day board wants one row per calendar day, so
+  // same-date clusters are coalesced here rather than by widening
+  // `clusterMedia`'s options, which are right for what they do.
+  const byDate = new Map<string, ReturnType<typeof clusterMedia<LocatablePhoto>>>();
+  for (const cluster of clusterMedia(dated)) {
+    const list = byDate.get(cluster.date);
+    if (list) list.push(cluster);
+    else byDate.set(cluster.date, [cluster]);
+  }
+
+  const groups: DayGroup[] = [];
+  for (const clusters of byDate.values()) {
+    if (clusters.length === 1) {
+      const [c] = clusters;
+      groups.push({ date: c.date, photoIds: c.items.map((i) => i.id), lat: c.lat, lng: c.lng, undated: false });
+      continue;
+    }
+    // `clusterMedia` sorts its input chronologically and returns clusters in
+    // that same order, so clusters sharing a date are already adjacent and
+    // concatenating their items keeps the union chronological.
+    const photoIds = clusters.flatMap((c) => c.items.map((i) => i.id));
+    // The largest contributing cluster's own coordinate, not an average —
+    // a mean of two real places is a third place nobody went.
+    const largest = clusters.reduce((a, b) => (b.items.length > a.items.length ? b : a));
+    groups.push({ date: largest.date, photoIds, lat: largest.lat, lng: largest.lng, undated: false });
+  }
 
   if (undatedIds.length > 0) {
     groups.push({ date: "", photoIds: undatedIds, undated: true });

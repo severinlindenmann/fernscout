@@ -1,20 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DayBoard from "@/components/extract/DayBoard";
 import { useI18n } from "@/components/LocaleProvider";
 import UploadStep from "@/components/extract/UploadStep";
 
 type Run = { runId: string; expiresAt: string };
 
 /**
- * The camera roll import's shell — B1751, Task 1.3.
+ * The camera roll import's shell — B1751, Tasks 1.3 and 2.3.
  *
  * Opens a run the moment the page loads (`POST .../extract/start`, Task 1.2)
- * and then hands the upload step its `runId`. Everything past the upload —
- * the day board, the question card — is a later task's screen; this step
- * ends at "uploaded", not at "imported".
+ * and then hands the upload step its `runId`. Once an upload attempt comes
+ * back with nothing left to retry, the shell hands the run to `DayBoard` —
+ * the workspace where the photographs get grouped into days and asked
+ * about. "Done for now" (`onLeave`) is the whole of leaving: nothing further
+ * happens here, since every answer and edit is already saved by the time it
+ * reaches the board.
  */
-export default function ExtractFlow({ username }: { username: string }) {
+export default function ExtractFlow({
+  username,
+  consentedSpeech,
+  speechProvider,
+}: {
+  username: string;
+  consentedSpeech: boolean;
+  speechProvider: string;
+}) {
   const { t } = useI18n();
   const [run, setRun] = useState<Run | null>(null);
   const [error, setError] = useState(false);
@@ -22,6 +34,9 @@ export default function ExtractFlow({ username }: { username: string }) {
   // reports only its own attempt's count, not a running total.
   const [uploaded, setUploaded] = useState(0);
   const [done, setDone] = useState(false);
+  // "Done for now", pressed on the board — B1751 Task 2.3. Everything is
+  // already saved by the time this fires, so leaving needs no confirmation.
+  const [left, setLeft] = useState(false);
 
   /**
    * `UploadStep` calls this after every attempt, success or partial failure
@@ -83,9 +98,20 @@ export default function ExtractFlow({ username }: { username: string }) {
         </div>
       )}
 
-      {done && (
-        <p className="mt-4 text-sm text-ink-body">{t("extract.flow.done", { count: String(uploaded) })}</p>
+      {done && !left && run && (
+        <>
+          <p className="mt-4 text-sm text-ink-body">{t("extract.flow.done", { count: String(uploaded) })}</p>
+          <DayBoard
+            username={username}
+            runId={run.runId}
+            consentedSpeech={consentedSpeech}
+            speechProvider={speechProvider}
+            onLeave={() => setLeft(true)}
+          />
+        </>
       )}
+
+      {left && <p className="mt-4 text-sm text-ink-body">{t("extract.flow.left")}</p>}
     </div>
   );
 }

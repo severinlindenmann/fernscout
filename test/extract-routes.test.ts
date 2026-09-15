@@ -170,3 +170,208 @@ describe("the extract routes with the capability on", () => {
     expect(Date.parse(after!.expiresAt)).toBeGreaterThan(Date.parse(before.expiresAt));
   });
 });
+
+/**
+ * The run and day routes — B1751 Task 2.3.
+ */
+describe("the run and day routes with the capability on", () => {
+  beforeEach(() => {
+    cap.enabled = true;
+  });
+
+  test("patching a photograph refuses a visibility word that is not one of the two", async () => {
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: "run-1", photoId: "a", visibility: "public" }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("GET groups the run's photographs into days and asks about each", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+    const manifest = readManifest("alex", runId);
+    if (!manifest) throw new Error("run vanished");
+    manifest.photos.push(
+      { id: "a", filename: "a.jpg", bytes: 1, kind: "image", takenAt: "2019-07-02T10:00:00" },
+      { id: "b", filename: "b.jpg", bytes: 1, kind: "image", takenAt: "2019-07-02T10:05:00" },
+    );
+    writeManifest("alex", manifest);
+
+    const { GET } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await GET(new Request(`http://x?run=${runId}`), {
+      params: Promise.resolve({ user: "alex" }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      groups: { date: string; photoIds: string[] }[];
+      questions: Record<string, { id: string }[]>;
+    };
+    expect(body.groups).toHaveLength(1);
+    expect(body.groups[0].photoIds).toEqual(["a", "b"]);
+    expect(body.questions["2019-07-02"].length).toBeGreaterThan(0);
+  });
+
+  test("PATCH applies only the fields present in the body", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+    const manifest = readManifest("alex", runId);
+    if (!manifest) throw new Error("run vanished");
+    manifest.photos.push({ id: "a", filename: "a.jpg", bytes: 1, kind: "image", caption: "old caption" });
+    writeManifest("alex", manifest);
+
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: runId, photoId: "a", visibility: "guest" }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { photo: { caption?: string; visibility?: string } };
+    expect(body.photo.visibility).toBe("guest");
+    // Untouched by this call, and still there — "only the fields present".
+    expect(body.photo.caption).toBe("old caption");
+  });
+
+  test("PATCH against an unknown run answers 404", async () => {
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    const res = await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: "run-does-not-exist", photoId: "a", caption: "hi" }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(404);
+  });
+
+  test("R2 — GET on a warned run extends it, with no button", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+    const before = readManifest("alex", runId);
+    if (!before) throw new Error("run vanished");
+    writeManifest("alex", { ...before, warnedAt: "2026-09-01T00:00:00.000Z" });
+
+    const { GET } = await import("@/app/api/helper/[user]/extract/run/route");
+    await GET(new Request(`http://x?run=${runId}`), { params: Promise.resolve({ user: "alex" }) });
+
+    const after = readManifest("alex", runId);
+    expect(after?.extendedAt).toBeDefined();
+    // `>=` rather than `>` — a fast test run can land the extension in the
+    // same millisecond as the original `expiresAt` it is extending from.
+    expect(Date.parse(after!.expiresAt)).toBeGreaterThanOrEqual(Date.parse(before.expiresAt));
+  });
+
+  test("R2 — PATCH on a warned run extends it too", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+    let before = readManifest("alex", runId);
+    if (!before) throw new Error("run vanished");
+    before = { ...before, warnedAt: "2026-09-01T00:00:00.000Z" };
+    before.photos.push({ id: "a", filename: "a.jpg", bytes: 1, kind: "image" });
+    writeManifest("alex", before);
+
+    const { PATCH } = await import("@/app/api/helper/[user]/extract/run/route");
+    await PATCH(
+      new Request("http://x", {
+        method: "PATCH",
+        body: JSON.stringify({ run: runId, photoId: "a", caption: "hello" }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+
+    const after = readManifest("alex", runId);
+    expect(after?.extendedAt).toBeDefined();
+    // `>=` rather than `>` — a fast test run can land the extension in the
+    // same millisecond as the original `expiresAt` it is extending from.
+    expect(Date.parse(after!.expiresAt)).toBeGreaterThanOrEqual(Date.parse(before.expiresAt));
+    // The extension must not have lost the write it rode along with.
+    expect(after?.photos[0].caption).toBe("hello");
+  });
+
+  test("POST .../day appends the answer to the manifest, not to inbox/days", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    const res = await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({
+          run: runId,
+          date: "2019-07-02",
+          questionId: "open:2019-07-02",
+          answer: "We wandered the old town and got lost twice.",
+        }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { day: { date: string; words?: string; answered: string[] } };
+    expect(body.day.words).toContain("wandered the old town");
+    expect(body.day.answered).toEqual(["open:2019-07-02"]);
+
+    const { readManifest } = await import("@/lib/staging/manifest");
+    const manifest = readManifest("alex", runId);
+    expect(manifest?.days).toHaveLength(1);
+    expect(manifest?.days[0].words).toContain("wandered the old town");
+    // Deliberately not `appendWords` from lib/dayReadiness.ts — nothing is in
+    // `inbox/days/` for this run, so this describes what it must not do
+    // (write there) via the answer only landing on the manifest.
+  });
+
+  test("POST .../day appends a second answer rather than overwriting the first", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    const day = () =>
+      POST(
+        new Request("http://x", {
+          method: "POST",
+          body: JSON.stringify({
+            run: runId,
+            date: "2019-07-02",
+            questionId: "first",
+            answer: "First answer.",
+          }),
+        }),
+        { params: Promise.resolve({ user: "alex" }) },
+      );
+    await day();
+    const second = await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({ run: runId, date: "2019-07-02", questionId: "second", answer: "Second answer." }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    const body = (await second.json()) as { day: { words?: string; answered: string[] } };
+    expect(body.day.words).toContain("First answer.");
+    expect(body.day.words).toContain("Second answer.");
+    expect(body.day.answered).toEqual(["first", "second"]);
+  });
+
+  test("R2 — POST .../day on a warned run extends it", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+    const before = readManifest("alex", runId);
+    if (!before) throw new Error("run vanished");
+    writeManifest("alex", { ...before, warnedAt: "2026-09-01T00:00:00.000Z" });
+
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({ run: runId, date: "2019-07-02", questionId: "q", answer: "Hi." }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+
+    const after = readManifest("alex", runId);
+    expect(after?.extendedAt).toBeDefined();
+    expect(Date.parse(after!.expiresAt)).toBeGreaterThanOrEqual(Date.parse(before.expiresAt));
+  });
+});

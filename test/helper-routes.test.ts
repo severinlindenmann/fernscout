@@ -167,8 +167,12 @@ describe("the helper routes", () => {
   // and taking a batch of photographs into staging, outside the journal's
   // storage quota until the days they belong to are confirmed. Same cookie,
   // same owner check as the forty-seven before them.
-  test("there are forty-nine of them, and each is guarded", () => {
-    expect(sources).toHaveLength(49);
+  // Fifty-one: `extract/run` and `extract/day` (camera roll import, B1751,
+  // Task 2.3) — grouping a run's photographs into days, correcting what
+  // clustering got wrong on one photograph, and answering one question about
+  // one day. Same cookie, same owner check as the forty-nine before them.
+  test("there are fifty-one of them, and each is guarded", () => {
+    expect(sources).toHaveLength(51);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

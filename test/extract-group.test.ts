@@ -28,4 +28,23 @@ describe("grouping staged photographs into days", () => {
     const groups = groupIntoDays([p("a", "2019-07-05T12:00:00")]);
     expect(groups[0].lat).toBeUndefined();
   });
+
+  test("R18 — two clusters sharing a date merge into one group", () => {
+    // A museum morning and a dinner across town: same date but ten hours
+    // apart, past DEFAULT_GAP_HOURS (5h), so `clusterMedia` splits them into
+    // two clusters on its own — exactly what a day board must not show as
+    // two rows.
+    const groups = groupIntoDays([
+      p("morning1", "2019-07-02T09:00:00", 15.88, 108.33),
+      p("morning2", "2019-07-02T09:10:00", 15.88, 108.33),
+      p("evening1", "2019-07-02T19:00:00", 16.05, 108.2),
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].date).toBe("2019-07-02");
+    // Chronological order preserved across the merged clusters.
+    expect(groups[0].photoIds).toEqual(["morning1", "morning2", "evening1"]);
+    // The coordinate comes from the larger cluster (the two morning photos),
+    // not a mean of the two places.
+    expect(groups[0].lat).toBeCloseTo(15.88, 3);
+  });
 });
