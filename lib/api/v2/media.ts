@@ -99,6 +99,46 @@ function readSidecar(file: string): MediaSidecar | null {
 }
 
 /**
+ * The photograph already stored here whose served bytes are exactly these,
+ * or null — B1790.
+ *
+ * **Size first, and that is the whole cost in the ordinary case**: only a
+ * file of exactly this length can be these bytes, so an upload of something
+ * genuinely new reads one directory and hashes nothing. A day holds tens of
+ * photographs, not thousands, and the walk is the same directory the write
+ * below is about to touch.
+ *
+ * A video's `-poster.jpg` is skipped: it is a frame this server drew, not a
+ * photograph anybody may name, and answering an upload with its src would
+ * hand back an address that belongs to no `media` item.
+ */
+function derivativeHolding(dir: string, bytes: Buffer): string | null {
+  let names: string[];
+  try {
+    names = fs.readdirSync(dir);
+  } catch {
+    return null;   // nothing stored here yet
+  }
+  for (const name of names) {
+    if (name.endsWith(".meta.json") || name.endsWith("-poster.jpg")) continue;
+    const file = path.join(dir, name);
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(file);
+    } catch {
+      continue;
+    }
+    if (!stat.isFile() || stat.size !== bytes.byteLength) continue;
+    try {
+      if (fs.readFileSync(file).equals(bytes)) return name;
+    } catch {
+      continue;   // gone between the stat and the read
+    }
+  }
+  return null;
+}
+
+/**
  * One photograph or clip, stored inside a trip and addressed by its own
  * bytes — the genuinely new part of this ticket (decision 7).
  *
@@ -184,6 +224,42 @@ async function storeTripPhoto(
         bytes: fs.statSync(derivativePath).size,
         url,
         duplicateOf: src,
+      },
+    };
+  }
+
+  // The same photograph, sent back as this server's own copy of it — B1790.
+  //
+  // The address above is the hash of what arrives, and a derivative does not
+  // hash to what it was derived from. So a folder holding the served copy —
+  // which is what a folder synced down holds — publishes it again, the bytes
+  // are new to this check, and the same photograph is stored a second time
+  // under a second name. The day is then re-pointed at the new one and the
+  // first is left with nothing naming it. 18 photographs on one real journal,
+  // and the copy left behind was the one carrying the untouched original, so
+  // tidying the orphans away cost the print masters.
+  //
+  // Identity by bytes is what this door already trades in, so the missing
+  // question is the same one, asked of the derivatives already written here.
+  // It is answered where every caller meets it rather than in one client: a
+  // second caller sending back what the first was answered with would
+  // otherwise make the same duplicate.
+  const echoed = derivativeHolding(mediaDir, upload.bytes);
+  if (echoed) {
+    const echoedRel = path.join(subdir, echoed);
+    const echoedSrc = frontmatterSrc(tripId, echoedRel);
+    const sidecar = readSidecar(path.join(mediaDir, `${echoed}.meta.json`));
+    return {
+      ok: true,
+      item: {
+        src: echoedSrc,
+        kind: "photo",
+        trip: tripId,
+        day,
+        caption: sidecar?.caption ?? caption,
+        bytes: upload.bytes.byteLength,
+        url: mediaUrl(ref, echoedRel),
+        duplicateOf: echoedSrc,
       },
     };
   }

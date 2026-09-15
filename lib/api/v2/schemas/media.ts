@@ -80,6 +80,14 @@ export const mediaIntent = z
  * and a duplicate detectable — the same bytes always have the same id, so a
  * re-send answers the existing item via `duplicateOf`. The original bytes
  * are kept whole as the print master.
+ *
+ * **Sending back what this server answered with is also a re-send** (B1790).
+ * A derivative does not hash to the bytes it was derived from, so a folder
+ * that mirrors what the site serves — and then publishes — used to store the
+ * same photograph a second time under a second id. An upload whose bytes are
+ * exactly a photograph already stored in that place answers with **that
+ * photograph's** `src`, which is therefore not always the id the sent bytes
+ * would hash to.
  */
 export const mediaItem = z.strictObject({
   src: z.string(),
