@@ -1447,6 +1447,8 @@ export type TranslationKey =
   | "extract.nonPhoto.wants.contacts"
   | "extract.nonPhoto.wants.costs"
   | "extract.nonPhoto.wants.location"
+  | "extract.photo.badge.icloud"
+  | "extract.photo.video"
   | "extract.preview.addPerson"
   | "extract.preview.adding"
   | "extract.preview.emailPlaceholder"

@@ -1408,6 +1408,8 @@
   "extract.upload.state.failed": "sikertelen",
   "extract.upload.state.queued": "várakozik",
   "extract.upload.state.sending": "küldés",
+  "extract.photo.badge.icloud": "iCloud",
+  "extract.photo.video": "Videó",
   "fallback.writtenIn.de": "Németül íródott — ehhez a naphoz nincs magyar változat.",
   "fallback.writtenIn.en": "Angolul íródott — ehhez a naphoz nincs magyar változat.",
   "gallery.all": "Mind",

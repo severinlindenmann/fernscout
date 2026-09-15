@@ -1408,6 +1408,8 @@
   "extract.upload.state.failed": "fehlgeschlagen",
   "extract.upload.state.queued": "wartet",
   "extract.upload.state.sending": "wird gesendet",
+  "extract.photo.badge.icloud": "iCloud",
+  "extract.photo.video": "Video",
   "fallback.writtenIn.en": "Auf Englisch geschrieben — dieser Tag hat keine deutsche Fassung.",
   "fallback.writtenIn.hu": "Auf Ungarisch geschrieben — dieser Tag hat keine deutsche Fassung.",
   "gallery.all": "Alle",
