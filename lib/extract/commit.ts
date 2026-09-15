@@ -98,6 +98,14 @@ export async function commitDay(
     // `DayRow.words`. Nothing here adds to it or interprets it.
     if (row?.words) appendWords(username, date, row.words);
 
+    // A real coordinate, when the kept photographs carry one — see
+    // `medianLocation`'s own doc comment for where it comes from and why a
+    // median. A day with none gets none: no guess, no neighbour's pin.
+    const location = medianLocation(kept);
+    if (location) {
+      writeDayReadiness(username, date, { location: { ...location, source: "photo" } });
+    }
+
     // Everything the flow never put in front of the person is a true
     // "nobody has decided yet", not an invented answer — see
     // `declineUnansweredTracks`.
@@ -231,6 +239,35 @@ function ensureTrip(username: string, manifest: RunManifest, date: string): stri
   return created.id;
 }
 
+function median(values: number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * A coordinate for this date, from the *kept* photographs' own EXIF —
+ * median of every located one's `lat`, and separately of every located
+ * one's `lng`, never a mean: a mean of two real places is a third place
+ * nobody went. The same statistic `lib/ingest/cluster.ts`'s own
+ * `clusterMedia` already uses for a cluster's own centre — not reused
+ * directly, because `clusterMedia`/`groupIntoDays` cluster by each
+ * photograph's own EXIF timestamp and know nothing about a person's
+ * `photo.date` override; `kept` here has already been resolved by
+ * `effectiveDate`, which does, and re-clustering an already-resolved set
+ * risks splitting it again on a gap its own EXIF times still show even
+ * though the person put every one of these photographs on the same day.
+ *
+ * `undefined` when none of `kept` carries a fix — a day with no located
+ * photograph gets no coordinate, exactly as before this existed.
+ */
+function medianLocation(kept: PhotoRow[]): { lat: number; lon: number } | undefined {
+  const lats = kept.filter((p) => p.lat !== undefined).map((p) => p.lat!);
+  const lngs = kept.filter((p) => p.lng !== undefined).map((p) => p.lng!);
+  if (lats.length === 0 || lngs.length === 0) return undefined;
+  return { lat: median(lats), lon: median(lngs) };
+}
+
 /**
  * Every `write`-time track (`lib/tracks.ts`) the flow never put in front of
  * the person, recorded as `unrecorded` — the same convention
@@ -250,6 +287,12 @@ function ensureTrip(username: string, manifest: RunManifest, date: string): stri
 function declineUnansweredTracks(username: string, date: string): void {
   const current = readDayReadiness(username, date);
   const already = new Set<string>([...current.without, ...current.unrecorded]);
+  // A real coordinate, just written by `medianLocation`, answers
+  // `coordinates` for real — `missingForDayFolder` reads `readiness.location`
+  // directly, not this function's own lists, so declining it here as
+  // `unrecorded` on top of a real answer would be a false "nobody knows"
+  // sitting beside a real value.
+  if (current.location !== undefined) already.add("coordinates");
   const unrecorded = [...current.unrecorded];
   for (const track of TRACKS) {
     if (TRACK_ROWS[track].when !== "write") continue;

@@ -153,6 +153,56 @@ describe("committing a day", () => {
     expect(readiness.without).toEqual([]);
   });
 
+  test("a day whose kept photographs carry EXIF coordinates gets a location with source: photo — the median, not a mean", async () => {
+    const bytesA = Buffer.from("photo-a-with-gps");
+    const bytesB = Buffer.from("photo-b-with-gps");
+    const idA = await stageFile("gps-a.jpg", bytesA);
+    const idB = await stageFile("gps-b.jpg", bytesB);
+    await writeRunManifest(
+      [
+        { id: idA, filename: "gps-a.jpg", bytes: bytesA.byteLength, kind: "image", date: DATE, lat: 46.0, lng: 7.0 },
+        { id: idB, filename: "gps-b.jpg", bytes: bytesB.byteLength, kind: "image", date: DATE, lat: 46.2, lng: 7.4 },
+      ],
+      [{ date: DATE, words: "Somewhere with a real fix.", answered: [] }],
+    );
+
+    const { commitDay } = await import("@/lib/extract/commit");
+    await commitDay(USER, RUN, DATE);
+
+    const { readDayReadiness } = await import("@/lib/dayReadiness");
+    const readiness = readDayReadiness(USER, DATE);
+    // Two points, so the median of each axis is their plain midpoint here —
+    // a real, checkable number, not just "is defined".
+    expect(readiness.location).toEqual({ lat: 46.1, lon: 7.2, source: "photo" });
+    // A real coordinate answers `coordinates` for real — not a decline.
+    expect(readiness.unrecorded).not.toContain("coordinates");
+  });
+
+  test("a day whose kept photographs carry no coordinate gets none — even when the dropped ones did", async () => {
+    const droppedBytes = Buffer.from("dropped-photo-had-gps");
+    const keptBytes = Buffer.from("kept-photo-had-none");
+    const droppedId = await stageFile("dropped-gps.jpg", droppedBytes);
+    const keptId = await stageFile("kept-no-gps.jpg", keptBytes);
+    await writeRunManifest(
+      [
+        // Dropped, and the only row with a coordinate — proves the median is
+        // computed over `kept`, not over every photo the manifest carries.
+        { id: droppedId, filename: "dropped-gps.jpg", bytes: droppedBytes.byteLength, kind: "image", date: DATE, lat: 40.0, lng: 10.0, dropped: true },
+        { id: keptId, filename: "kept-no-gps.jpg", bytes: keptBytes.byteLength, kind: "image", date: DATE },
+      ],
+      [{ date: DATE, words: "No fix on the kept photograph.", answered: [] }],
+    );
+
+    const { commitDay } = await import("@/lib/extract/commit");
+    await commitDay(USER, RUN, DATE);
+
+    const { readDayReadiness } = await import("@/lib/dayReadiness");
+    const readiness = readDayReadiness(USER, DATE);
+    expect(readiness.location).toBeUndefined();
+    // No real answer, so still recorded as "nobody has decided yet".
+    expect(readiness.unrecorded).toContain("coordinates");
+  });
+
   test("commitDay ensures a trip exists, named from the run's own dates, and reuses it on a later day in the same run", async () => {
     const bytes1 = await stageFile("d1.jpg", Buffer.from("day-one-photo"));
     await writeRunManifest(
