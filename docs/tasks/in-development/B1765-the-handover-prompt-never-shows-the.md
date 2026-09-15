@@ -76,3 +76,36 @@ for the reason the existing comments give. Severin approved the wording on
   way in.
 - A test asserts both, so neither can be edited back out silently.
 - `npm run verify` green.
+
+## Revalidation — valid
+
+Both gaps confirmed by reading `lib/api/agentCopy.ts` on `main` at 9e8c5ce7:
+`handoverPrompt` step 2 was a bare `GET ${siteUrl}/api/v2/${username}/status`
+with no header anywhere in the prompt, and its closing paragraph had no
+equivalent of `buddyPrompt`'s refusal line. Neither prompt had a test.
+
+## What was done
+
+- `handoverPrompt` step 2 is a full `curl` carrying
+  `-H "Authorization: Bearer <the token step 1 gave you>"`, matching step 1's
+  shape, with two words saying it is the same header the key used.
+- Both prompts close with: *If a call fails, tell me what it answered and
+  stop. Do not look for another way in — there isn't one, and a failure here
+  is mine to fix.*
+- The doc comment on `handoverPrompt` records both reasons (B1756's empty 500,
+  and the header that was nowhere in the chain).
+- New `test/agent-prompts.test.ts` — the first test either prompt has ever
+  had, which is how both gaps survived. It asserts the header is the line
+  directly under the status URL, not merely present somewhere in the prompt.
+
+`buddyPrompt`'s steps are untouched: it already shows two complete curls, so
+the header pattern is established there.
+
+## Acceptance
+
+- Header on the status call: asserted by position, and the assertion fails
+  when the bare `GET` form is put back (`expected '' to contain
+  'Authorization: Bearer'`).
+- Failure line in both prompts: asserted for each.
+- `npm run verify` green.
+- Checked on the rendered page at desktop and phone width after deploy.

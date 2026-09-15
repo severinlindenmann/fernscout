@@ -501,6 +501,21 @@ export function wrap(text: string, width = 78, indent = ""): string[] {
  *
  * The credential is on its own line so that a person can see what they are
  * handing over, and the expiry is beside it so they can see it is short.
+ *
+ * Step 2 is a whole `curl` rather than a bare `GET <url>` — B1765. It used to
+ * be the bare form, and nothing anywhere in the chain then said the 7-day
+ * token travels in an `Authorization: Bearer` header: not this prompt, and
+ * not the `next` line `POST /api/auth/handover` answers with. An agent that
+ * guessed wrong got a `401` and read it as "the token I was just handed is
+ * bad" rather than "I addressed this wrong". Showing the header costs two
+ * lines and removes the guess.
+ *
+ * The closing line about failure is the same lesson `buddyPrompt` learned in
+ * B293, arriving here the hard way: during B1756 this exact call answered
+ * `500` with an empty body, and the agent reading it concluded the endpoint
+ * had been removed and went looking for another door. There is no other door.
+ * An agent told to stop and report is an agent that surfaces a server fault
+ * in the one place it can be fixed, instead of routing around it.
  */
 export function handoverPrompt(input: {
   siteUrl: string;
@@ -517,9 +532,11 @@ export function handoverPrompt(input: {
     `   curl -X POST ${siteUrl}/api/auth/handover \\`,
     `     -H "Authorization: Bearer ${handover}"`,
     "",
-    "2. Then, before anything else, read where the journal stands:",
+    "2. Then, before anything else, read where the journal stands. The token",
+    "   from step 1 goes in the header, the same way the key did:",
     "",
-    `   GET ${siteUrl}/api/v2/${username}/status`,
+    `   curl ${siteUrl}/api/v2/${username}/status \\`,
+    '     -H "Authorization: Bearer <the token step 1 gave you>"',
     "",
     "   It says what is waiting for approval, which trips you may write to, and",
     "   what this server can do. Do not write until you have read it.",
@@ -531,6 +548,9 @@ export function handoverPrompt(input: {
     "Everything you write arrives as a draft. Putting a day on the site is a",
     "second call, and it is mine to ask for — never publish because something",
     "looks finished. Write what I tell you and nothing I did not.",
+    "",
+    "If a call fails, tell me what it answered and stop. Do not look for",
+    "another way in — there isn't one, and a failure here is mine to fix.",
   ].join("\n");
 }
 
@@ -637,5 +657,8 @@ export function buddyPrompt(input: {
     "the person whose journal this is asks for it, and that call is theirs and",
     "not mine. Write what I tell you and nothing I did not — no weather I did",
     "not mention, no meals I did not eat.",
+    "",
+    "If a call fails, tell me what it answered and stop. Do not look for",
+    "another way in — there isn't one, and a failure here is mine to fix.",
   ].join("\n");
 }
