@@ -8,13 +8,10 @@ import type { MailBlock } from "../mail/template";
 import { getUser, getUsernames } from "../users";
 import type { UserConfig } from "../config";
 import { listRuns, writeManifest, type RunManifest } from "./manifest";
+import { WARN_AFTER_MS, WARNED_GRACE_MS, EXTENSION_MS, resumeExpiryState } from "./resumeState";
 
-/** How old a run has to be before the notice goes out. */
-export const WARN_AFTER_MS = 24 * 60 * 60 * 1000;
-/** What the notice promises, and therefore what it pins. */
-export const WARNED_GRACE_MS = 24 * 60 * 60 * 1000;
-/** What continuing buys, once. */
-export const EXTENSION_MS = 48 * 60 * 60 * 1000;
+export { WARN_AFTER_MS, WARNED_GRACE_MS, EXTENSION_MS, resumeExpiryState };
+export type { ResumeExpiryState } from "./resumeState";
 
 /** What a nightly pass should do with one run. Pure, so it can be tested
  *  without a mailer, a clock or a filesystem. */
@@ -90,12 +87,21 @@ export type ExpirySweepResult = { warned: string[]; finalNotices: string[] };
 
 /** Every credit this run has actually cost, read from the ledger by its own
  *  `extract:<runId>` ref — never a number carried on the manifest, because
- *  the ledger is the one place that can't drift from what was really spent. */
+ *  the ledger is the one place that can't drift from what was really spent.
+ *
+ *  **Prefix, not exact match — R30.** `POST .../extract/enrich` folds a hash
+ *  of the described photo set onto the end of the ref (`extract:<runId>:<hash>`)
+ *  so that resuming a run and describing photographs it did not already pay
+ *  for is a second, real spend rather than a silently refused duplicate. A
+ *  run enriched more than once therefore has more than one ledger row under
+ *  this prefix, and every one of them is money this warning owes the person
+ *  an account of. `${ref}:` (with the trailing colon) is what stops
+ *  `extract:run-1` from also matching `extract:run-10:…`. */
 async function spentOnRun(owner: string, runId: string): Promise<number> {
   const ref = `extract:${runId}`;
   const rows = await ledgerFor(owner, 1000);
   return rows
-    .filter((row) => row.ref === ref && row.delta < 0)
+    .filter((row) => (row.ref === ref || Boolean(row.ref?.startsWith(`${ref}:`))) && row.delta < 0)
     .reduce((sum, row) => sum - row.delta, 0);
 }
 

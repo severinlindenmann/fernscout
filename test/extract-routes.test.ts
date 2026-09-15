@@ -71,9 +71,13 @@ describe("the extract routes with the capability off", () => {
 });
 
 function startRun(): Promise<Response> {
+  return startRunFor("alex");
+}
+
+function startRunFor(user: string): Promise<Response> {
   return import("@/app/api/helper/[user]/extract/start/route").then(({ POST }) =>
-    POST(new Request("http://x/api/helper/alex/extract/start", { method: "POST" }), {
-      params: Promise.resolve({ user: "alex" }),
+    POST(new Request(`http://x/api/helper/${user}/extract/start`, { method: "POST" }), {
+      params: Promise.resolve({ user }),
     }),
   );
 }
@@ -554,10 +558,14 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     expect(body.captioned).toBe(2);
     expect(await balanceOf("alex")).toBe(9);
 
-    // R4 — the ref is exactly `extract:<runId>`, the same string the nightly
-    // expiry warning reads the ledger by.
+    // R4, widened by R30 — the ref starts with `extract:<runId>:`, the same
+    // prefix the nightly expiry warning reads the ledger by (it no longer
+    // matches the run id alone, since a resumed run can be enriched more
+    // than once).
     const ledger = await ledgerFor("alex", 10);
-    expect(ledger.some((row) => row.ref === `extract:${runId}` && row.reason === "helper")).toBe(true);
+    expect(
+      ledger.some((row) => row.ref?.startsWith(`extract:${runId}:`) && row.reason === "helper"),
+    ).toBe(true);
 
     const { readManifest } = await import("@/lib/staging/manifest");
     const after = readManifest("alex", runId);
@@ -586,13 +594,61 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     // a response-only check would pass against an implementation that
     // charged twice and merely replayed the first body.
     const ledger = await ledgerFor("alex", 10);
-    const spends = ledger.filter((row) => row.ref === `extract:${runId}` && row.reason === "helper");
+    const spends = ledger.filter((row) => row.ref?.startsWith(`extract:${runId}:`) && row.reason === "helper");
     expect(spends).toHaveLength(1);
     expect(await balanceOf("alex")).toBe(9);
 
     // The mocked model was called exactly once — the second request never
     // reached it.
     expect(helperModel.describePhotos).toHaveBeenCalledTimes(1);
+  });
+
+  test("R30 — resuming a run and adding photographs charges again for the new ones, not free and not a double refusal", async () => {
+    const { grant, ledgerFor, balanceOf } = await import("@/lib/credits");
+    await grant("alex", 10, "test");
+
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    await stagedManifest(runId, ["a.jpg"]);
+
+    const { POST } = await import("@/app/api/helper/[user]/extract/enrich/route");
+    const call = () =>
+      POST(new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId }) }), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+
+    // First enrich, on one photograph.
+    const first = await call();
+    expect(first.status).toBe(200);
+    expect((await first.json()) as { captioned: number }).toMatchObject({ captioned: 1 });
+
+    // A genuine double-tap on the exact same, unchanged set must still be
+    // free and must still not touch the model — this is what would fail if
+    // the ref went back to being keyed on the run alone with nothing else
+    // ever changing it.
+    helperModel.describePhotos.mockClear();
+    const repeat = await call();
+    expect(repeat.status).toBe(200);
+    expect(helperModel.describePhotos).not.toHaveBeenCalled();
+
+    // The person resumes the run and adds a second photograph — the set
+    // enrich would describe has genuinely changed.
+    await stagedManifest(runId, ["b.jpg"]);
+    const second = await call();
+    expect(second.status).toBe(200);
+    const secondBody = (await second.json()) as { captioned: number; spent: number };
+    // Every live photograph is described again — not only the new one —
+    // because the route always sends the whole live set; the point under
+    // test is that this call actually ran the model and charged, rather
+    // than being answered from the first call's idempotency row.
+    expect(secondBody.captioned).toBe(2);
+    expect(helperModel.describePhotos).toHaveBeenCalledTimes(1);
+
+    const ledger = await ledgerFor("alex", 10);
+    const spends = ledger.filter((row) => row.ref?.startsWith(`extract:${runId}:`) && row.reason === "helper");
+    // Two distinct refs (one per photo set), two real charges.
+    expect(spends).toHaveLength(2);
+    expect(new Set(spends.map((row) => row.ref)).size).toBe(2);
+    expect(await balanceOf("alex")).toBe(8);
   });
 
   test("refuses without enough credits, and captions nothing", async () => {
@@ -626,5 +682,106 @@ describe("the sample and enrich routes — B1751 Task 4.1", () => {
     );
     expect(res.status).toBe(502);
     expect(await balanceOf("alex")).toBe(10);
+  });
+});
+
+/**
+ * The runs route — B1751 Task 4.3, the resume screen's data.
+ */
+describe("the runs route", () => {
+  test("capability off answers 404, not 500 and not 403", async () => {
+    const { GET } = await import("@/app/api/helper/[user]/extract/runs/route");
+    const res = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
+      params: Promise.resolve({ user: "alex" }),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  describe("with the capability on", () => {
+    beforeEach(() => {
+      cap.enabled = true;
+    });
+
+    test("lists this owner's live runs, newest first, and nobody else's", async () => {
+      const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+
+      const { runId: olderRun } = (await (await startRunFor("alex")).json()) as { runId: string };
+      // `newRunId` is the current instant, to the millisecond — two starts
+      // fired back to back in the same tick can land on the exact same id,
+      // which is a real collision worth a comment but not this test's own
+      // concern; a hair of real time apart is enough to tell them apart.
+      await new Promise((resolve) => setTimeout(resolve, 2));
+      const { runId: newerRun } = (await (await startRunFor("alex")).json()) as { runId: string };
+      await startRunFor("sam");
+
+      // Stamp deterministic, unambiguous timestamps rather than trusting two
+      // real-clock starts to land in different milliseconds.
+      const older = readManifest("alex", olderRun);
+      if (!older) throw new Error("run vanished");
+      writeManifest("alex", { ...older, createdAt: "2026-01-01T00:00:00.000Z" });
+      const newer = readManifest("alex", newerRun);
+      if (!newer) throw new Error("run vanished");
+      writeManifest("alex", { ...newer, createdAt: "2026-01-02T00:00:00.000Z" });
+
+      const { GET } = await import("@/app/api/helper/[user]/extract/runs/route");
+      const res = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as { runs: { runId: string; owner: string }[] };
+      expect(body.runs.map((r) => r.runId)).toEqual([newerRun, olderRun]);
+      expect(body.runs.every((r) => r.owner === "alex")).toBe(true);
+    });
+
+    test("a not-yet-warned run reports no extension and keeps its own expiry", async () => {
+      const { runId } = (await (await startRunFor("alex")).json()) as { runId: string };
+      const { readManifest } = await import("@/lib/staging/manifest");
+      const before = readManifest("alex", runId);
+      if (!before) throw new Error("run vanished");
+
+      const { GET } = await import("@/app/api/helper/[user]/extract/runs/route");
+      const res = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+      const body = (await res.json()) as {
+        runs: { runId: string; justExtended: boolean; warnedAt?: string; expiresAt: string }[];
+      };
+      const run = body.runs.find((r) => r.runId === runId);
+      expect(run?.warnedAt).toBeUndefined();
+      expect(run?.justExtended).toBe(false);
+      expect(run?.expiresAt).toBe(before.expiresAt);
+    });
+
+    test("a warned, not-yet-extended run is extended by this very request, and says so", async () => {
+      const { runId } = (await (await startRunFor("alex")).json()) as { runId: string };
+      const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+      const before = readManifest("alex", runId);
+      if (!before) throw new Error("run vanished");
+      writeManifest("alex", {
+        ...before,
+        warnedAt: "2026-09-01T00:00:00.000Z",
+        expiresAt: "2026-09-02T00:00:00.000Z",
+      });
+
+      const { GET } = await import("@/app/api/helper/[user]/extract/runs/route");
+      const res = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+      const body = (await res.json()) as {
+        runs: { runId: string; justExtended: boolean; extendedAt?: string; expiresAt: string }[];
+      };
+      const run = body.runs.find((r) => r.runId === runId);
+      expect(run?.justExtended).toBe(true);
+      expect(run?.extendedAt).toBeDefined();
+      expect(Date.parse(run!.expiresAt)).toBeGreaterThan(Date.parse("2026-09-02T00:00:00.000Z"));
+
+      // Look again: the same run is already extended, so this second look
+      // did not just do it again.
+      const second = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+      const secondBody = (await second.json()) as { runs: { runId: string; justExtended: boolean }[] };
+      expect(secondBody.runs.find((r) => r.runId === runId)?.justExtended).toBe(false);
+    });
   });
 });

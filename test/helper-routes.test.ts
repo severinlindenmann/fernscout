@@ -183,8 +183,13 @@ describe("the helper routes", () => {
   // live photograph described for credits charged against `extract:<runId>`
   // and refunded on a throw. Same cookie, same owner check as the fifty-two
   // before them.
-  test("there are fifty-four of them, and each is guarded", () => {
-    expect(sources).toHaveLength(54);
+  // Fifty-five: `extract/runs` (B1751, Task 4.3) — the resume screen's own
+  // list of this owner's live runs, and the one route that touches every
+  // run it returns rather than just the one a request names, so somebody
+  // coming back to an import genuinely meets the clock on the way in. Same
+  // cookie, same owner check as the fifty-four before it.
+  test("there are fifty-five of them, and each is guarded", () => {
+    expect(sources).toHaveLength(55);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

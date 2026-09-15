@@ -212,6 +212,10 @@ export default function DayBoard({
       >
         {t("extract.board.leave")}
       </button>
+      {/* R31 — every answer above is already saved, so this promise is true
+       *  the moment it is printed: the resume screen (B1751 Task 4.3) is
+       *  what "come back to it" now actually does. */}
+      <p className="mt-2 text-xs text-ink-secondary">{t("extract.flow.left")}</p>
     </div>
   );
 }

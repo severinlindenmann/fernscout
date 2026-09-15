@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
-  EXTENSION_MS, expiryActionFor, extendOnTouch,
+  EXTENSION_MS, WARNED_GRACE_MS, expiryActionFor, extendOnTouch, resumeExpiryState,
 } from "@/lib/staging/expiry";
 import type { RunManifest } from "@/lib/staging/manifest";
 
@@ -65,5 +65,51 @@ describe("when a run is continued", () => {
     });
     const action = expiryActionFor(extended, new Date("2026-09-17T21:00:00Z"));
     expect(action).toMatchObject({ do: "final-notice" });
+  });
+});
+
+/**
+ * The resume screen's own three states — B1751 Task 4.3. Pure, same as
+ * everything else in this file: `resumeExpiryState` takes only the manifest
+ * and one boolean (has this exact request just extended it), never a clock
+ * or the filesystem.
+ */
+describe("resumeExpiryState — the three sentences the resume screen can say", () => {
+  test("not yet warned — no deadline to name, just the clock", () => {
+    expect(resumeExpiryState(run(), false)).toEqual({ kind: "notWarned" });
+  });
+
+  test("warned, and this request is what just extended it", () => {
+    const warnedAt = "2026-09-16T03:00:00Z";
+    const extended = run({ warnedAt, extendedAt: "2026-09-16T03:00:01Z", expiresAt: "2026-09-18T03:00:01Z" });
+    const state = resumeExpiryState(extended, true);
+    expect(state).toEqual({
+      kind: "justExtended",
+      hadUntil: new Date(Date.parse(warnedAt) + WARNED_GRACE_MS).toISOString(),
+      until: extended.expiresAt,
+    });
+  });
+
+  test("already extended, before this request — no fresh 'just came back' framing", () => {
+    const extended = run({
+      warnedAt: "2026-09-16T03:00:00Z",
+      extendedAt: "2026-09-16T04:00:00Z",
+      expiresAt: "2026-09-18T04:00:00Z",
+    });
+    expect(resumeExpiryState(extended, false)).toEqual({ kind: "extended", until: extended.expiresAt });
+  });
+
+  test("the three states are three different shapes, not the same message dressed up", () => {
+    const notWarned = resumeExpiryState(run(), false);
+    const justExtended = resumeExpiryState(
+      run({ warnedAt: "2026-09-16T03:00:00Z", extendedAt: "2026-09-16T03:00:01Z", expiresAt: "2026-09-18T03:00:01Z" }),
+      true,
+    );
+    const extended = resumeExpiryState(
+      run({ warnedAt: "2026-09-16T03:00:00Z", extendedAt: "2026-09-16T04:00:00Z", expiresAt: "2026-09-18T04:00:00Z" }),
+      false,
+    );
+    const kinds = new Set([notWarned.kind, justExtended.kind, extended.kind]);
+    expect(kinds.size).toBe(3);
   });
 });

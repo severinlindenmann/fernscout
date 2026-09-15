@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import CreditsScreen, { commitReadyDays } from "@/components/extract/CreditsScreen";
 import DayBoard from "@/components/extract/DayBoard";
 import PreviewScreen from "@/components/extract/PreviewScreen";
+import ResumeScreen, { type RunSummaryClient } from "@/components/extract/ResumeScreen";
 import { useI18n } from "@/components/LocaleProvider";
 import UploadStep from "@/components/extract/UploadStep";
 
@@ -31,6 +32,16 @@ type Run = { runId: string; expiresAt: string };
  * real page rather than anything drawn here, plus the trip's people and a
  * pointer back to the agent room for publishing, which stays that room's
  * own call.
+ *
+ * **Nine days of stories is not one sitting — B1751 Task 4.3.** Before ever
+ * starting a fresh run, the shell asks `GET .../extract/runs` whether this
+ * owner already has one going. A live run means `ResumeScreen` renders
+ * instead of `start()` firing: continue picks that run up exactly where its
+ * photographs and answers left it (straight to the board once it already
+ * has photographs, or back to uploading if it does not yet), and starting a
+ * new import is still one tap away. No runs at all — the common case, a
+ * first visit — skips the extra screen entirely and behaves exactly as
+ * before.
  */
 export default function ExtractFlow({
   username,
@@ -59,6 +70,11 @@ export default function ExtractFlow({
   // fetched yet", `null` is "fetched, and this instance has no such number".
   const [atBoardEnd, setAtBoardEnd] = useState(false);
   const [credits, setCredits] = useState<number | null | undefined>(undefined);
+  // `undefined` until `GET .../extract/runs` answers; `null` once the person
+  // has either picked a run to continue or chosen to start fresh, so the
+  // resume screen never reappears mid-flow. A non-empty array is what
+  // renders it.
+  const [resumable, setResumable] = useState<RunSummaryClient[] | null | undefined>(undefined);
 
   /**
    * `UploadStep` calls this after every attempt, success or partial failure
@@ -74,7 +90,7 @@ export default function ExtractFlow({
   }
 
   useEffect(() => {
-    start();
+    checkResume();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -92,6 +108,30 @@ export default function ExtractFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atBoardEnd, credits]);
 
+  /**
+   * The one call this shell makes before deciding whether to start a fresh
+   * run or offer `ResumeScreen` instead — B1751 Task 4.3. Any failure here
+   * (network, a 404 from the capability being off) falls back to starting a
+   * new run exactly as before: not finding out whether an old one exists is
+   * never a reason to leave the person stuck on nothing.
+   */
+  async function checkResume() {
+    try {
+      const res = await fetch(`/api/helper/${encodeURIComponent(username)}/extract/runs`);
+      if (!res.ok) throw new Error(String(res.status));
+      const json = (await res.json()) as { runs?: RunSummaryClient[] };
+      const runs = Array.isArray(json.runs) ? json.runs : [];
+      if (runs.length > 0) {
+        setResumable(runs);
+        return;
+      }
+    } catch {
+      // Fall through to starting fresh.
+    }
+    setResumable(null);
+    start();
+  }
+
   async function start() {
     setError(false);
     setRun(null);
@@ -107,6 +147,22 @@ export default function ExtractFlow({
     } catch {
       setError(true);
     }
+  }
+
+  /** Picking a run off `ResumeScreen` — its photographs and answers decide
+   *  where this lands: straight to the board if it already has photographs
+   *  to sort, back to uploading if it does not. Either way nothing is
+   *  re-created; `runId` is the one this owner already had. */
+  function continueRun(picked: RunSummaryClient) {
+    setResumable(null);
+    setRun({ runId: picked.runId, expiresAt: picked.expiresAt });
+    setUploaded(picked.photos.length);
+    setDone(picked.photos.length > 0);
+  }
+
+  function startNew() {
+    setResumable(null);
+    start();
   }
 
   /**
@@ -146,7 +202,13 @@ export default function ExtractFlow({
         </div>
       )}
 
-      {!run && !error && <p className="mt-4 text-sm text-ink-secondary">{t("extract.flow.starting")}</p>}
+      {resumable && resumable.length > 0 && (
+        <ResumeScreen runs={resumable} onContinue={continueRun} onStartNew={startNew} />
+      )}
+
+      {(resumable === undefined || (resumable === null && !run)) && !error && (
+        <p className="mt-4 text-sm text-ink-secondary">{t("extract.flow.starting")}</p>
+      )}
 
       {run && !done && (
         <div className="mt-4">

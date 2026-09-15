@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { isEnabled } from "@/lib/capabilities";
 import { creditsForPhotos } from "@/lib/helper/credits";
@@ -33,10 +34,20 @@ const PHOTO_WIDTH = 1080;
  * decision, and it is why the credits screen says so above the spend button
  * rather than after it.
  *
- * **`ref` is exactly `extract:<runId>`** — Ruling R4. The nightly expiry
- * sweep (`lib/staging/expiry.ts`) reads the ledger by that same ref to tell
- * somebody how many credits they are about to lose; a different string here
- * would make that warning silently report zero.
+ * **`ref` is `extract:<runId>:<photoSetHash>`** — Ruling R4, widened by
+ * B1751 Task 4.3's R30. A run can now be reopened (this very task is what
+ * makes that possible), and `ledgerHasRef`'s idempotency check used to be
+ * keyed on the run alone: correct only while nothing could add photographs
+ * to a run that had already been paid to describe. `photoSetHash` is a
+ * stable hash of the live photo ids actually being described — order
+ * independent, since only the *set* changed is meant to matter — so a
+ * genuine double-tap on the same set still matches the same ref and is
+ * still refused for free, while adding photographs and enriching again
+ * produces a different ref and a real, second charge. `extract:<runId>`
+ * stays the ref's prefix on purpose: `spentOnRun` in `lib/staging/expiry.ts`
+ * reads the ledger by that prefix (not by exact match, since Task 4.3) to
+ * tell somebody how many credits they are about to lose, and a ref that
+ * stopped starting with it would make that warning silently report zero.
  *
  * Charged, then refunded on failure — the same order and the same reason
  * `day/describe-photos` already uses: the credit is spent before the model
@@ -46,6 +57,14 @@ const PHOTO_WIDTH = 1080;
  */
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+/** Order-independent, so adding a photo and dropping it again lands back on
+ *  the same ref rather than minting a new one for nothing. 12 hex characters
+ *  is short of a full sha256 on purpose — this only has to distinguish sets
+ *  within one run, not stand alone as an identifier. */
+function photoSetHash(photoIds: string[]): string {
+  return createHash("sha256").update([...photoIds].sort().join(",")).digest("hex").slice(0, 12);
 }
 
 export async function POST(
@@ -76,7 +95,7 @@ export async function POST(
   if (live.length === 0) return Response.json({ error: "no_photos" }, { status: 400 });
 
   const credits = creditsForPhotos(live.length);
-  const ref = `extract:${runId}`;
+  const ref = `extract:${runId}:${photoSetHash(live.map((p) => p.id))}`;
 
   // A double-tap — a slow connection, a phone that has not visibly
   // responded yet — must not charge twice. `ledgerHasRef` is the same
@@ -88,13 +107,12 @@ export async function POST(
   // a retry of a purchase that went through should look like the purchase
   // it was, not like a failure that invites a third attempt.
   //
-  // **This checks per RUN, not per REQUEST.** A legitimate second `enrich`
-  // on the same run — the person adds more photographs after a first pass
-  // and wants those captioned too — reads as a duplicate here and is
-  // answered without spending or captioning anything new. That is a real
-  // limitation, not an oversight: fixing it needs a second key (which
-  // photographs a spend covered), which is more mechanism than this task
-  // asked for. Left as a named gap rather than a silent one.
+  // **This checks per PHOTO SET, not per RUN — B1751 Task 4.3, R30.** A
+  // legitimate second `enrich` on the same run, after the person resumed it
+  // and added more photographs, hashes to a different `ref` and is charged
+  // and captioned for real. A true double-tap — same run, same live photos —
+  // hashes to the same `ref` it did the first time and is still answered for
+  // free, from what is already on the manifest.
   if (await ledgerHasRef(user, "helper", ref)) {
     const captioned = live.filter((p) => Boolean(p.caption)).length;
     return Response.json({ ok: true, spent: credits, captioned, provider: HELPER_PROVIDER });
