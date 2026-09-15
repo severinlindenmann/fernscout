@@ -268,6 +268,77 @@ The Swiss Twilio number (+41 76 601 46 49, $9/month) is now redundant for
 sending and still costs money. It is kept for the moment because contacts may
 have texted it; releasing it is the owner's call, not this ticket's.
 
+## The new WABA is all but ready — 2026-09-15
+
+Decision taken by the owner: **build on the new WABA `1451782100105607`**
+rather than move the number back to the old one.
+
+Granting the system user (`Employee`, `122107023891457078`) full control of
+the new WABA was enough — **no new access token was needed**, and the existing
+one now reads it. The API Setup page was never required; the ids came from the
+Graph API.
+
+| | |
+| --- | --- |
+| Phone number id | `1301526083048758` |
+| Number | +44 7862 131685 |
+| Display name | Fernscout — already approved |
+| `code_verification_status` | VERIFIED |
+| `status` | CONNECTED |
+| `subscribed_apps` | **already contains app 2155097351770602** |
+
+**The app is reused, not replaced.** The app secret the owner read off the
+dashboard hashes identical to `WHATSAPP_APP_SECRET` in the live env, so
+`WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` and the callback URL all stay
+as they are. A Meta app is not bound to one WABA.
+
+That also means the `subscribed_apps` trap this repository documents
+(`docs/providers/whatsapp.md`) was already satisfied — worth checking rather
+than assuming next time, since the UI still never shows it.
+
+### Templates — the only gap, and it is closed pending review
+
+The new WABA had only `hello_world`. The three approved
+`fernscout_day_published_v2` templates (de/en/hu) were recreated on it from the
+old WABA's own definitions, read back through the Graph API so the wording,
+buttons and examples are the approved ones rather than retyped.
+
+The `header_handle` on an IMAGE header is **WABA-specific and cannot be
+copied** — the sample image had to be re-uploaded through the Resumable Upload
+API to get a fresh handle. Two notes for whoever does this again:
+
+- `POST /{app_id}/uploads` needs an **app access token**
+  (`<app_id>|<app_secret>`), not the system-user token. With the system-user
+  token it answers the misleading `(#100) Tried accessing nonexisting field
+  (uploads)`, which reads like a wrong URL and is actually a permissions
+  answer.
+- The upload is two calls: open a session, then `POST /{session_id}` with
+  `Authorization: OAuth <app token>` and `file_offset: 0` and the raw bytes,
+  which returns `{"h": <handle>}`.
+
+Submitted 2026-09-15, all three `PENDING`. **The env switch is deliberately
+not done until they read APPROVED** — repointing
+`WHATSAPP_PHONE_NUMBER_ID` while templates are pending would break day
+announcements, and the old number is still serving correctly.
+
+### Still to do, once the templates approve
+
+1. Register the number for Cloud API with a 6-digit PIN if it is not already —
+   `status: CONNECTED` suggests it is; confirm before switching.
+2. `WHATSAPP_PHONE_NUMBER_ID` → `1301526083048758`,
+   `WHATSAPP_WABA_ID` → `1451782100105607` in `/etc/fernscout/env`.
+3. `features.whatsapp.number` → `+44 7862 131685` in
+   `/var/lib/fernscout/config.json`.
+4. Restart, then send one real announcement and one inbound message before
+   touching the old number.
+
+### A credential to rotate
+
+The owner pasted the live app secret into a chat transcript while setting this
+up. It was not written to any file here. **It should be rotated** in App
+Dashboard → Settings → Basic, and `WHATSAPP_APP_SECRET` updated in
+`/etc/fernscout/env`.
+
 ## Work
 
 1. ~~Prove inbound on the GB number.~~ **Done 2026-09-15 — see below.**
