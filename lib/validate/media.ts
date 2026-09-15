@@ -75,6 +75,52 @@ export const VIDEO_MAX_BYTES = 500 * 1024 * 1024;
 export const MAX_ITEMS_PER_DAY = 40;
 
 /**
+ * How much one journal may hold in the camera-roll import's staging area,
+ * across every run it owns — B1807.
+ *
+ * **Per journal, not per import.** The obvious per-file and per-run ceilings
+ * (above) never stopped one owner's staging tree from growing without bound,
+ * because staging deliberately sits outside `journalBytes`
+ * (`lib/storageQuota.ts`) — see `lib/staging/paths.ts`'s own doc comment on
+ * why. `lib/staging/store.ts`'s `journalStagingBytes` sums every run this
+ * owner has staged, and that sum — not one run's own bytes — is what this
+ * number bounds. A run that is already staged and forgotten still counts:
+ * it is the owner's disk either way, and `extract.upload.rejected.overCapacity`
+ * is written to say so and point at the runs holding the space.
+ *
+ * Ten gigabytes, decided by the owner (2026-09-15).
+ */
+export const JOURNAL_STAGING_MAX_BYTES = 10 * 1024 * 1024 * 1024;
+
+/**
+ * The fraction of `JOURNAL_STAGING_MAX_BYTES` above which a storage bar is
+ * worth drawing next to B1806's countdown — B1807.
+ *
+ * Half, not `storageQuota.ts`'s own 90% warn line: that number decides when
+ * to *mail* an owner about their real journal, which is a rare, disruptive
+ * event worth holding off on. This is a line of pixels on a screen the owner
+ * is already looking at mid-import, and the bar's whole job is to explain a
+ * refusal *before* it happens rather than only after — which means it has to
+ * show up earlier than the point of actual danger, not at it. An import that
+ * is a fifth of the way to the ceiling has nothing useful to learn from a
+ * bar; one that is half way does.
+ */
+export const JOURNAL_STAGING_WARN_FRACTION = 0.5;
+
+/**
+ * `2.3 GB`, with the decimal point read from the active locale (`,` in
+ * German) — a client-safe alternative to `formatBytes` in
+ * `lib/storageQuota.ts`, which is `server-only` and, more to the point,
+ * never localises its `.` at all. A size sitting next to translated words is
+ * exactly the case this repository's own rule about `tn()` and locale-real
+ * strings means to cover.
+ */
+export function formatGigabytes(bytes: number, locale: string): string {
+  const gb = bytes / 1024 ** 3;
+  return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 1 }).format(gb)} GB`;
+}
+
+/**
  * The whole request body, which is a different limit from any of the above —
  * B523.
  *
