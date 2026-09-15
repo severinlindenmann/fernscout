@@ -7,8 +7,7 @@ complexity: medium
 area: extract, onboarding, nav
 found: "2026-09-15T12:15:19Z"
 started: "2026-09-15T12:15:44Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-15T12:15:44Z"
+merged: "2026-09-15T12:54:43Z"
 ---
 
 # B1797 — The import drops a person onto a bare file picker with no framing, no way back, and no way in from the journal
