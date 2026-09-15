@@ -153,6 +153,211 @@ Once chosen, it belongs on the run's manifest beside `mode`, so it survives a re
 - **Guided flows for GPS, contacts and statements.** They upload plainly now; guiding them is a separate plan.
 - **A second renderer for the preview.** It links to the trip's real pages and must keep doing so.
 
+---
+
+# The screen specifications
+
+Every screen, exactly as the design draws it, extracted from the design file
+rather than described from memory. `.superpowers/sdd/b1803/screens.txt` is the
+machine-extracted version of this same table and is the tiebreaker if these
+disagree; `design-v2.html` is the tiebreaker above both.
+
+**Read the row for the screen you are building. Do not improvise around it.**
+Where a string is quoted here it is the string — the design's copy was written
+carefully and several sentences encode measured findings. Where a count appears
+("1 of 5", "12 photographs") it is data, not decoration, and comes from the run.
+
+## S1 — Add an old trip *(shipped in B1797; verify against this)*
+
+Header `Add an old trip`, no back, no progress.
+
+1. Title: **"Bring an old trip in from your photos."**
+2. Sub: "Four things happen, in this order."
+3. Four rows, label left, timing right:
+   `1 · You choose photographs` / `5 min`
+   `2 · We read what they know` / `1 min`
+   `3 · You tell us about the days` / `3 min a day`
+   `4 · You read it back` / `yours to keep`
+4. Panel **"Where your photographs go"**, three statements: holding area outside
+   the journal and the storage quota; unused photographs deleted within two days
+   automatically; nothing visible to anyone until the person publishes it.
+5. Primary: **"Start with my photos"**
+6. Reassurance beneath: "You can stop at any point and pick it up later."
+
+## S2a — Where it goes *(shipped; verify)*
+
+Header `← Where it goes`, progress **`1 of 5`**.
+
+1. Title: **"A new trip, or one you already have?"**
+2. Card, selectable: **"Start a new trip"** — "We work the dates out from the photographs. You name it at the end."
+3. Card: **"Add to a trip you have"** — "Photographs land on the days they were taken. Missing days get created."
+4. Card, dashed, the most recent trip: `Vietnam & Cambodia` / `Jul 2019 · 14 days · your most recent`
+5. Primary: **"Next: how you'll tell it"**
+
+## S2b — How you'll tell it *(shipped; verify)*
+
+Header `← How you'll tell it`, progress **`2 of 5`**.
+
+1. Title: **"Would you rather talk or type?"**
+2. Card with a **microphone icon**: "Talk it through" — "We show you a day and ask about it. You answer out loud; we write it down and you can fix the wording."
+3. Card with a **lines icon**: "Type it" — "The same questions, with a keyboard."
+4. Panel "Switch whenever you like" — "Every question takes either answer. Talk on the train, type in the café."
+5. Primary: **"Next: choose photographs"**
+
+**This is also where Phase 4's language question belongs** — see Task 4.1. It is
+not in the design because the design predates the request.
+
+## S3a — Choose photographs
+
+Header `← Choose photographs` with the trip name at the right (`Vietnam`),
+progress **`3 of 5`**.
+
+1. Three rows, **above the picker**: `Photos and videos` / `HEIC · JPEG · PNG · MOV · MP4`; `Up to` / `500 at a time`; `Each one under` / `50 MB · video 500 MB`. Take the real numbers from `lib/validate/media.ts`; if they disagree with these, the code wins and say so.
+2. Primary, large, with a **camera icon**: "Choose from your library"
+3. Panel "Two things worth knowing": the iCloud sentence, then "About 15 a day is plenty."
+4. Card with a **toggle**: "Keep the screen awake" / "A locked screen pauses the upload."
+
+## S3b — Uploading *(the grid is the screen)*
+
+Header `Uploading 120` with **`Pause`** at the right, progress `3 of 5`.
+
+1. A progress bar.
+2. Three chips: **`76 done`** (green), **`6 coming from iCloud`** (cream, with a download icon), **`~3 min left`** (plain).
+3. **A grid of photograph tiles, four across**, each with a badge in its corner: `✓` done, `62%` in flight, `iCloud` fetching, `queued`, `!` failed.
+4. Failure panel, coral: **"4 didn't make it"** / "The connection dropped partway. Everything else is safely up — these four just need another go." with a **"Retry those 4"** button inside it.
+5. Reassurance: "Leave this screen open. You can lock the phone once it says done."
+
+## S4 — What we found *(shipped; verify)*
+
+Header `What we found`, progress `4 of 5`.
+
+1. Title: **"120 photographs, 9 days."**
+2. Sub: "Read straight out of the files — nothing guessed."
+3. Five rows: `Dates` / `118 of 120`; `Places` / `104 of 120`; `Time of day` / `118 of 120`; `Weather` / `we can look it up`; `Who's in them` / `you'll have to tell us`.
+4. Panel "The 16 without a place" — "They were saved from somewhere else — sent to you, or downloaded — so they never carried one. We'll ask about those days instead."
+5. Primary: **"See my 9 days"**
+
+## S5a — The day board
+
+Header `← 9 days` with **"Done for now"** at the right, progress **`3 of 9 days told`**.
+
+Per day card:
+1. Date left (`Tue 2 Jul`), **status pill** right: `told` (green) / `no place` (coral) / `not yet` (cream).
+2. **A strip of five photograph tiles.**
+3. A summary line: `Hoi An · 12 photographs · 28°C, light rain` — place, count, **weather**. For a day with no place: "9 photographs · none of them know where they were".
+4. A thin progress bar on cards not yet told.
+
+Below: primary **"Tell me about Friday"** — it names the next day worth doing —
+and the reassurance "Any order you like. We save as you go."
+
+## S5b — Welcome back *(shipped; verify)*
+
+Header `Welcome back`, no progress.
+
+1. Title **"You're 3 days in."**, sub `Vietnam & Cambodia · left off on Friday 5 July`.
+2. Rows: `Told` / `Tue, Wed, Thu`; `Left` / `6 days`; `Photographs held` / `120 · safe for 41 more hours`.
+3. Panel "There's no hurry, but there is a clock".
+4. Primary **"Carry on with Friday"**, secondary **"See all 9 days"**.
+
+## S6a — One day's photographs
+
+Header `← Tue 2 Jul`, count at the right (`12`).
+
+1. **A grid of that day's photographs**, the selected one ringed.
+2. Card "Photograph 1 of 12" carrying the chip row: `Hoi An` (green), `10:07` (green), `Who's in it?` (cream), `Add a caption` (cream), `Guests only` (plain).
+3. Card "This day": `Hoi An · 12 photographs · 28°C, light rain`, with a coral `Describe this day` chip.
+4. Primary **"Tell me about Tuesday"**.
+
+## S6b — Who can see this
+
+Header `← Who can see this`.
+
+1. **The photograph, large.**
+2. Three cards: **"Everyone"** — "Anyone with the trip's link — only if the trip itself is public."; **"Guests"** — "People you've let into your journal."; **"Just you"** — "Kept with the day, shown to nobody."
+3. Panel "Set it for the whole day instead?" — "Apply to all 12 photographs from Tuesday."
+4. Primary **"Save who can see it"**.
+
+## S7a — The question
+
+Header `← Tue 2 Jul · Hoi An`, **`1 of 3`** at the right, progress **`day 4 of 9`**.
+
+1. **A strip of the day's photographs.**
+2. The question card, dark, with a small yellow label **`FIRST`** above it and the question beneath.
+3. **A waveform**, animated while recording.
+4. **A large round microphone button**, coral.
+5. "Listening · tap to pause".
+6. Secondary **"Type this one instead"**.
+
+## S7b — Check the wording *(does not exist; build it)*
+
+Header `← Check the wording`, **`Redo`** at the right.
+
+1. A large **pause** control, and "Paused · 1:12 recorded".
+2. Card labelled **"WHAT WE HEARD — TAP TO FIX"** holding the transcript, with the uncertain word **highlighted in coral and tappable**. The design's example is a place name — `Ban Mi Fuong` — which is exactly the class of word that slips.
+3. Panel "One word looked uncertain" — "Names and places are where transcription slips. Tap the highlighted bit to correct it."
+4. Primary **"Looks right — keep going"**, secondary **"Say it again"**.
+
+Deepgram returns per-word confidence; flag from that rather than guessing.
+
+## S7c — One more, if you like
+
+Header `← Tue 2 Jul`, `3 of 3`, progress `day 4 of 9`.
+
+1. **One photograph, wide.**
+2. Question card labelled **`ONE MORE, IF YOU LIKE`**: "You went back to that place more than once. What did it smell like in there?"
+3. Three chips: `Who took this one?` · `What happened right after?` · `Why this photograph?`
+4. Panel "Pick one or skip" — "These are the small ones that turn a day into something worth reading. None of them is required."
+5. **"Skip"** beside **"Finish Tuesday"**, the second one primary.
+
+## S8a — Who came
+
+Header `← Who came`.
+
+1. Title **"How many of you went?"**
+2. A stepper: `−` / **2** / `+`.
+3. Card "Names, if you'd like" with rows `You` / `Severin` and `Second` / `tap to name`, and beneath: *"You mentioned "Nora" on Tuesday and Thursday — is that them?"* — drawn from the person's own answers.
+4. Primary **"Save who came"**, reassurance "Names are yours. They're never shown to anyone you haven't let in."
+
+## S8b — Draw the two of you *(out of scope — do not build)*
+
+Its own ticket, its own cost and consent story.
+
+## S9a — A free one, first *(shipped; verify the grid)*
+
+Header `← A free one, first`.
+
+1. Title **"Pick any photograph."**, sub "We'll write its description now, free, so you can see whether it's worth the credits."
+2. **A grid of photographs to choose from**, the chosen one ringed. This is the part that is currently missing.
+3. Card "WHAT WE'D WRITE" holding the generated line, with chips `from your Tuesday` (green) and `rewrite it` (plain).
+4. Primary **"Do this for all 120"**, secondary **"No thanks — use my own words"**.
+
+## S9b — Finishing touches *(shipped; verify)*
+
+Header `← Finishing touches`, **`180 credits`** at the right.
+
+Three cards, each with its price as a chip and a **toggle**: "Describe all 120
+photographs" (24), "Write the trip summary" (6), "Draw Severin and Nora" (4, off).
+Then rows `This will cost` / `30 credits` and `You have` / `180 · 150 left after`.
+Primary **"Spend 30 and build the trip"**, secondary **"Build it free from what I
+wrote"**, reassurance "Everything written is editable afterwards. Nothing gets
+published by this button."
+
+## S10a — Preview
+
+Header `← Preview`, **`Edit`** at the right.
+
+1. **A hero image.**
+2. Title `Vietnam & Cambodia` with a `Draft` pill; beneath it `2–11 July 2019 · 9 days · 120 photographs · Severin and Nora`.
+3. Per day: `Tue 2 Jul · Hoi An` with an `edit` chip, the day's prose, **and a strip of its photographs**.
+4. Secondary **"Keep editing"**.
+
+## S10b — Ready *(shipped; verify)*
+
+Header `Ready`. The waymark, **"Saved as a draft."**, "Nobody can see it — not
+guests, not anyone with a link." Rows `Days` / `Photographs` / `Held back` /
+`Credits spent`. Panel "Publishing is a separate decision". Primary **"Publish
+this trip"**, secondary **"Leave it as a draft"**.
+
 ## Self-review
 
 **Coverage.** Every screen in the design file maps to a task: S1 and S2 shipped in B1797; S3 → 1.3 and 3.1; S4 shipped; S5 → 1.3 and 3.2; S6 → 1.3; S7 → 1.3, 3.3, 3.4, 3.5; S8 → 3.6; S9 → 1.3 and shipped; S10 → 3.7.

@@ -1,0 +1,287 @@
+
+======================================================================
+S1 — Say what this is before asking for anything
+
+--- screen 1 ---
+NAV: t=Add an old trip
+  [scr-title] Bring an old trip in from your photos.
+  [scr-sub] Four things happen, in this order.
+  [row] 1 · You choose photographs 5 min
+  [row] 2 · We read what they know 1 min
+  [row] 3 · You tell us about the days 3 min a day
+  [row] 4 · You read it back yours to keep
+  [tip] Where your photographs go They sit in a holding area that isn't part of your journal and doesn't count against your storage. Anything you don't use is
+  [btn] Start with my photos
+  [reassure] You can stop at any point and pick it up later.
+
+======================================================================
+S2 — Where it goes, and how you'll tell it
+
+--- screen 1 ---
+NAV: back=← | t=Where it goes
+PROGRESS: 1 of 5
+  [scr-title] A new trip, or one you already have?
+  [card] Start a new trip We work the dates out from the photographs. You name it at the end.
+  [card] Add to a trip you have Photographs land on the days they were taken. Missing days get created.
+  [card] Vietnam & Cambodia Jul 2019 · 14 days · your most recent
+  [btn] Next: how you'll tell it
+
+--- screen 2 ---
+NAV: back=← | t=How you'll tell it
+PROGRESS: 2 of 5
+  [scr-title] Would you rather talk or type?
+  [card] Talk it through We show you a day and ask about it. You answer out loud; we write it down and you can fix the wording.
+  [card] Type it The same questions, with a keyboard.
+  [tip] Switch whenever you like Every question takes either answer. Talk on the train, type in the café.
+  [btn] Next: choose photographs
+  [note] Buttons name the outcome, not the mechanism "Next: choose photographs" beats "Continue" in every measurement microcopy people publish — verb plus outc
+  [note] No transcription capability, no question If the instance can't transcribe, this screen never appears and the flow is the typing one. Absent, not broke
+
+======================================================================
+S3 — Choosing, with the limits stated first
+
+--- screen 1 ---
+NAV: back=← | t=Choose photographs | r=Vietnam
+PROGRESS: 3 of 5
+  [row] Photos and videos HEIC · JPEG · PNG · MOV · MP4
+  [row] Up to 500 at a time
+  [row] Each one under 50 MB · video 500 MB
+  [btn] Choose from your library
+  [tip] Two things worth knowing Photos kept in iCloud download first. The first few minutes look slow — that's the download, not the upload. About 15 a day i
+  [card] Keep the screen awake A locked screen pauses the upload.
+
+--- screen 2 ---
+NAV: t=Uploading 120 | r=Pause
+PROGRESS: 3 of 5
+  [chips] 76 done 6 coming from iCloud ~3 min left
+  [grid4] (photographs)
+  [ph a] (photographs)
+  [ph] (photographs)
+  [ph b] (photographs)
+  [ph] iCloud
+  [ph] 62%
+  [ph b] (photographs)
+  [ph a] (photographs)
+  [ph] queued
+  [tip] 4 didn't make it The connection dropped partway. Everything else is safely up — these four just need another go.
+  [btn] Retry those 4
+  [reassure] Leave this screen open. You can lock the phone once it says done.
+  [note] One bar for 120 files hides the thing you need Upload guidance is blunt about it: show each file's own state, keep the successes when some fail, and m
+  [note] Errors say what, why, and what next "4 didn't make it · the connection dropped · retry those 4" — the three-part shape, in one card, with the fix as a
+  [note] Chunked, so a retry isn't a restart A 33 MB clip that fails at 80% must resume, not begin again. On mobile data that difference is whether people fini
+  [phase] Phase two Fill it out a day at a time come back whenever
+
+======================================================================
+S4 — What the photographs already knew
+
+--- screen 1 ---
+NAV: t=What we found
+PROGRESS: 4 of 5
+  [scr-title] 120 photographs, 9 days.
+  [scr-sub] Read straight out of the files — nothing guessed.
+  [row] Dates 118 of 120
+  [row] Places 104 of 120
+  [row] Time of day 118 of 120
+  [row] Weather we can look it up
+  [row] Who's in them you'll have to tell us
+  [tip] The 16 without a place They were saved from somewhere else — sent to you, or downloaded — so they never carried one. We'll ask about those days instea
+  [btn] See my 9 days
+
+======================================================================
+S5 — The days are a workspace, not a queue
+
+--- screen 1 ---
+NAV: back=← | t=9 days | r=Done for now
+PROGRESS: 3 of 9 days told
+  [card] Tue 2 Jul told
+  [strip] (photographs)
+  [ph a] (photographs)
+  [ph] (photographs)
+  [ph b] (photographs)
+  [ph c] (photographs)
+  [ph] Hoi An · 12 photographs · 28°C, light rain
+  [card] Fri 5 Jul no place
+  [strip] (photographs)
+  [ph c] (photographs)
+  [ph d] (photographs)
+  [ph a] (photographs)
+  [ph b] (photographs)
+  [ph] 9 photographs · none of them know where they were
+  [card] Sat 6 Jul not yet
+  [strip] (photographs)
+  [ph b] (photographs)
+  [ph a] (photographs)
+  [ph c] (photographs)
+  [ph] (photographs)
+  [ph] Hué · 14 photographs
+  [btn] Tell me about Friday
+  [reassure] Any order you like. We save as you go.
+
+--- screen 2 ---
+NAV: t=Welcome back
+  [scr-title] You're 3 days in.
+  [scr-sub] Vietnam & Cambodia · left off on Friday 5 July
+  [row] Told Tue, Wed, Thu
+  [row] Left 6 days
+  [row] Photographs held 120 · safe for 41 more hours
+  [tip] There's no hurry, but there is a clock Unused photographs are cleared after two days. Anything already attached to a day is yours and stays.
+  [btn] Carry on with Friday
+  [btn] See all 9 days
+  [note] Memory work wants more than one sitting Life-story interviewers deliberately spread sessions over days or weeks — people remember more in between. A f
+  [note] Re-entry without losing work is the wizard's hardest requirement So it gets its own screen rather than a toast. It names where you stopped, what's lef
+  [note] The clock has to be said, not hidden A 48-hour holding area is fine. A 48-hour holding area somebody discovers by losing their upload is not.
+
+======================================================================
+S6 — What each photograph knows, and what it doesn't
+
+--- screen 1 ---
+NAV: back=← | t=Tue 2 Jul | r=12
+  [grid4] (photographs)
+  [ph a on] (photographs)
+  [ph] (photographs)
+  [ph b] (photographs)
+  [ph c] (photographs)
+  [ph d] (photographs)
+  [ph a] (photographs)
+  [card] Photograph 1 of 12
+  [chips] Hoi An 10:07 Who's in it? Add a caption Guests only
+  [card] This day Hoi An · 12 photographs · 28°C, light rain
+  [chips] Describe this day
+  [btn] Tell me about Tuesday
+
+--- screen 2 ---
+NAV: back=← | t=Who can see this
+  [ph a] (photographs)
+  [card] Everyone Anyone with the trip's link — only if the trip itself is public.
+  [card] Guests People you've let into your journal.
+  [card] Just you Kept with the day, shown to nobody.
+  [tip] Set it for the whole day instead? Apply to all 12 photographs from Tuesday.
+  [btn] Save who can see it
+  [legend] green · we already know this cream · optional, worth adding coral · missing and it matters plain · set, and changeable
+
+======================================================================
+S7 — The questions do the work
+
+--- screen 1 ---
+NAV: back=← | t=Tue 2 Jul · Hoi An | r=1 of 3
+PROGRESS: day 4 of 9
+  [strip] (photographs)
+  [ph a] (photographs)
+  [ph] (photographs)
+  [ph b] (photographs)
+  [ph c] (photographs)
+  [ph d] (photographs)
+  [ask] First It's Tuesday morning in Hoi An, it's raining, and you took twelve photographs in about an hour. What were you doing?
+  [scr-sub] Listening · tap to pause
+  [btn] Type this one instead
+
+--- screen 2 ---
+NAV: back=← | t=Check the wording | r=Redo
+  [scr-sub] Paused · 1:12 recorded
+  [card] What we heard — tap to fix "We'd got in late the night before so we walked into the old town for breakfast. That yellow wall is the place we kept goin
+  [tip] One word looked uncertain Names and places are where transcription slips. Tap the highlighted bit to correct it.
+  [btn] Looks right — keep going
+  [btn] Say it again
+
+--- screen 3 ---
+NAV: back=← | t=Tue 2 Jul | r=3 of 3
+PROGRESS: day 4 of 9
+  [ph a] (photographs)
+  [ask] One more, if you like You went back to that place more than once. What did it smell like in there?
+  [chips] Who took this one? What happened right after? Why this photograph?
+  [tip] Pick one or skip These are the small ones that turn a day into something worth reading. None of them is required.
+  [btn] Skip
+  [btn] Finish Tuesday What got cut, and what replaced it
+  [q] Opening a day "It's Tuesday morning in Hoi An, it's raining, and you took twelve photographs in about an hour. What were you doing?" "Tell us about th
+  [q] A day with no location "These nine were sent to you rather than taken on your phone, so they don't know where they were. Where were you on the Friday?
+  [q] Getting past the facts "What did it smell like in there?" · "What could you hear?" · "What was the weather actually doing — the reading says light rai
+  [q] People "Who took this one?" — it names a person without asking anyone to tag a face. "Who is in this photo?"
+  [q] Closing a day "What happened right after this?" — it either ends the day or opens the next one. "Anything else?"
+  [q] A day that was nothing "Travel day? Say so and we'll keep it short." — a real, one-tap answer. Forcing a description on a day spent on a bus.
+  [note] Speech recognition will get the names wrong Voice guidance treats recognition error as the normal case, not the exception. So the transcript is editab
+  [note] Interruption is a feature Pausing is a first-class control, not a cancel. People stop mid-sentence because someone walks in; the flow has to survive t
+  [note] Three questions a day, hard limit One opener, one gap-filler, one optional follow-up. Nine days at three questions is twenty-seven answers, which is a
+
+======================================================================
+S8 — Who was on this trip
+
+--- screen 1 ---
+NAV: back=← | t=Who came
+  [scr-title] How many of you went?
+  [btn] − 2
+  [card] Names, if you'd like
+  [row] You Severin
+  [row] Second tap to name You mentioned "Nora" on Tuesday and Thursday — is that them?
+  [btn] Save who came
+  [reassure] Names are yours. They're never shown to anyone you haven't let in.
+
+--- screen 2 ---
+NAV: back=← | t=Draw the two of you | r=Skip
+  [scr-sub] Point at one photograph of each person. One face each — a group shot can't be told apart.
+  [ph] Severin from Tuesday, 10:07
+  [ph] Nora choose a photograph
+  [tip] What this is for A drawn figure that walks through the trip's animation and its printed book. It is a drawing, not your photograph — your face is neve
+  [btn] Draw them · 4 credits
+  [reassure] Nothing is charged until you press this.
+  [phase] Phase three Finish it 5 minutes and a decision
+
+======================================================================
+S9 — One free sample, then the price
+
+--- screen 1 ---
+NAV: back=← | t=A free one, first
+  [scr-title] Pick any photograph.
+  [scr-sub] We'll write its description now, free, so you can see whether it's worth the credits.
+  [grid4] (photographs)
+  [ph a on] (photographs)
+  [ph] (photographs)
+  [ph b] (photographs)
+  [ph c] (photographs)
+  [ph d] (photographs)
+  [ph a] (photographs)
+  [card] What we'd write "The yellow wall on Trần Phú, mid-morning, still wet from the overnight rain — the bánh mì place they kept coming back to."
+  [chips] from your Tuesday rewrite it
+  [btn] Do this for all 120
+  [btn] No thanks — use my own words
+
+--- screen 2 ---
+NAV: back=← | t=Finishing touches | r=180 credits
+  [card] Describe all 120 photographs 24 A line like the one you just read, under each photograph.
+  [card] Write the trip summary 6 The paragraph at the top, from your nine days.
+  [card] Draw Severin and Nora 4 Figures for the animation and the printed book.
+  [row] This will cost 30 credits
+  [row] You have 180 · 150 left after
+  [btn] Spend 30 and build the trip
+  [btn] Build it free from what I wrote
+  [reassure] Everything written is editable afterwards. Nothing gets published by this button.
+  [note] A taste of the real thing before the ask The pattern the paywall write-ups keep pointing at: one genuine generated result, free, then the offer. It co
+  [note] The whole price, up front Every line priced, the total shown, and the balance after. No toggling to discover a number.
+  [note] The free path is a real path "Build it free from what I wrote" produces a complete trip. The credits buy polish on top of the person's own words, whic
+
+======================================================================
+S10 — Read it back, fix anything, then publish
+
+--- screen 1 ---
+NAV: back=← | t=Preview | r=Edit
+  [ph] Vietnam & Cambodia Draft 2–11 July 2019 · 9 days · 120 photographs · Severin and Nora
+  [card] Tue 2 Jul · Hoi An edit "We'd got in late the night before so we walked into the old town for breakfast. That yellow wall is the place we kept going b
+  [strip] (photographs)
+  [ph a] (photographs)
+  [ph] (photographs)
+  [ph b] (photographs)
+  [ph c] (photographs)
+  [ph d] (photographs)
+  [card] Fri 5 Jul · Hué edit "The train day. We'd booked seats on the wrong side…"
+  [btn] Keep editing
+
+--- screen 2 ---
+NAV: t=Ready
+  [scr-title] Saved as a draft.
+  [scr-sub] Nobody can see it — not guests, not anyone with a link.
+  [row] Days 9
+  [row] Photographs 120
+  [row] Held back 6 private
+  [row] Credits spent 30
+  [tip] Publishing is a separate decision Take a night over it. The draft keeps, and the unused photographs clear themselves.
+  [btn] Publish this trip
+  [btn] Leave it as a draft
