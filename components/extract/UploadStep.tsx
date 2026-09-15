@@ -2,9 +2,19 @@
 
 import { useRef, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import type { TranslationKey } from "@/lib/i18n";
 
 type TileState = "queued" | "sending" | "done" | "failed";
 type Tile = { file: File; state: TileState };
+
+/** One key per state — a literal lookup rather than a template string, so
+ *  every key `t()` can be asked for stays checked at compile time. */
+const STATE_KEY: Record<TileState, TranslationKey> = {
+  queued: "extract.upload.state.queued",
+  sending: "extract.upload.state.sending",
+  done: "extract.upload.state.done",
+  failed: "extract.upload.state.failed",
+};
 
 /** One request is ten files, not the whole selection. A batch is one request
  *  with no progress of its own; on mobile data a big one is a long silence,
@@ -164,7 +174,7 @@ export default function UploadStep({
                       : "text-ink-secondary"
                 }
               >
-                {tile.state}
+                {t(STATE_KEY[tile.state])}
               </span>
             </li>
           ))}
