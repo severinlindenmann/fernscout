@@ -1,6 +1,6 @@
 ---
 id: B1807
-title: An import has no size limit, so one camera roll can fill the disk
+title: Staging has no size limit, so one journal's abandoned imports can fill the disk
 type: FEATURE
 priority: high
 complexity: low
@@ -34,11 +34,22 @@ will actually stop them is absent from that list.
 
 ## Work
 
-**A ceiling of 10 GB per import**, decided by the owner (2026-09-15).
+**A ceiling of 10 GB per journal**, decided by the owner (2026-09-15).
 
-Read as *per run*, not per journal: each import may stage up to 10 GB. Say so in
-the constant's name and its comment, because "per import" and "per person" are
-different promises and the next reader will need to know which was meant.
+Per *journal*, not per run — corrected after this ticket was first written, which
+had it as per-import. The question the limit answers is "how much is this journal
+holding in staging, across everything", so the sum is over every run the journal
+owns. `runBytes` sums one run; the total wants its own helper beside it, so there
+is one answer rather than a sum assembled at each call site.
+
+Name the constant for what it means. A constant reading `PER_RUN` while enforced
+per journal is the kind of lie that survives for years.
+
+**A consequence worth designing for rather than tolerating:** a person can be
+refused an upload because of photographs they forgot about. That is correct — it
+is their disk either way — but the refusal has to point somewhere. "No room" with
+no route out is a dead end; "no room, and two other imports are holding 8 GB" is
+actionable, because B1805's destroy control is right there.
 
 Put it where the other media limits live — `lib/validate/media.ts` — rather than
 inventing a second home. `runBytes(username, runId)` in `lib/staging/store.ts:66`
