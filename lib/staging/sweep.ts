@@ -36,11 +36,24 @@ export function sweepStaging(now: Date): { removed: string[] } {
     }
     for (const runId of runs) {
       const manifest = readManifest(owner, runId);
-      const expired = manifest
-        ? manifest.expiresAt <= now.toISOString()
-        : now.getTime() - safeMtime(owner, runId) > RUN_TTL_MS;
+      // A manifest that parsed but carries an unparseable `expiresAt` (e.g.
+      // "") is a manifest we cannot trust either — the same stance taken for
+      // one that would not parse at all, so it gets the same fallback rather
+      // than the two extremes numeric NaN comparisons would otherwise pick.
+      const expiresAtMs = manifest ? Date.parse(manifest.expiresAt) : NaN;
+      const expired = Number.isNaN(expiresAtMs)
+        ? now.getTime() - safeMtime(owner, runId) > RUN_TTL_MS
+        : expiresAtMs <= now.getTime();
       if (!expired) continue;
-      removeRun(owner, runId);
+      // `runId` may be a stray, non-run entry (e.g. `.DS_Store`) that fails
+      // `runDir`'s segment check. `removeRun` throws in that case; skipping
+      // it here — rather than letting the throw escape — keeps one bad
+      // directory entry from aborting the sweep for every run after it.
+      try {
+        removeRun(owner, runId);
+      } catch {
+        continue;
+      }
       removed.push(runId);
     }
   }

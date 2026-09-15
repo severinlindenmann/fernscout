@@ -50,4 +50,37 @@ describe("the staging sweep", () => {
 
     expect(fs.existsSync(dir)).toBe(false);
   });
+
+  test("a stray non-run entry does not abort the walk, and is not itself reported removed", async () => {
+    const { stagingRoot, runDir } = await import("@/lib/staging/paths");
+    await makeRun("run-old", "2026-09-14T10:00:00Z");
+    await makeRun("run-new", "2026-09-17T10:00:00Z");
+    // A segment that fails runDir's own naming rule — the kind of thing a
+    // phone's filesystem leaves behind, not a run this feature ever wrote.
+    fs.writeFileSync(path.join(stagingRoot(), "alex", ".DS_Store"), "junk");
+
+    const { sweepStaging } = await import("@/lib/staging/sweep");
+    const result = sweepStaging(new Date("2026-09-15T12:00:00Z"));
+
+    expect(result.removed).toEqual(["run-old"]);
+    expect(fs.existsSync(runDir("alex", "run-old"))).toBe(false);
+    expect(fs.existsSync(runDir("alex", "run-new"))).toBe(true);
+    expect(fs.existsSync(path.join(stagingRoot(), "alex", ".DS_Store"))).toBe(true);
+  });
+
+  test("an unparseable expiresAt falls back to the directory's mtime rather than deleting immediately", async () => {
+    await makeRun("run-badexpiry", "");
+    const { runDir } = await import("@/lib/staging/paths");
+    const dir = runDir("alex", "run-badexpiry");
+    // Recent enough to be well under RUN_TTL_MS — if the bad `expiresAt`
+    // were compared directly (`"" <= now.toISOString()` is always true) this
+    // run would be deleted immediately instead of falling back to mtime.
+    fs.utimesSync(dir, new Date("2026-09-15T11:00:00Z"), new Date("2026-09-15T11:00:00Z"));
+
+    const { sweepStaging } = await import("@/lib/staging/sweep");
+    const result = sweepStaging(new Date("2026-09-15T12:00:00Z"));
+
+    expect(result.removed).toEqual([]);
+    expect(fs.existsSync(dir)).toBe(true);
+  });
 });
