@@ -253,6 +253,17 @@ export type SiteSummary = {
    * owner, but so is a reader signed in as somebody else's guest.
    */
   isOwner: boolean;
+  /**
+   * Whether `/<user>/extract` — the guided import — exists on this instance
+   * for this journal — `features.extract`, resolved for this user by
+   * `isEnabled`. B1797.
+   *
+   * The same reasoning as `helperEnabled`: the nav's import entry is
+   * owner-only *and* capability-gated, and a row pointing at a page that
+   * answers `notFound()` is the bug `helperEnabled` and `analyticsEnabled`
+   * already guard against. Journal-wide and viewer-independent.
+   */
+  extractEnabled: boolean;
 };
 
 /**
@@ -301,6 +312,7 @@ export function siteSummaryFor(
     canSignIn: isEnabled("auth", user.username),
     analyticsEnabled: analyticsAvailable(user.username),
     helperEnabled: isEnabled("helper", user.username),
+    extractEnabled: isEnabled("extract", user.username),
   };
 }
 

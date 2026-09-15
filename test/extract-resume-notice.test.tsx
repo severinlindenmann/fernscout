@@ -128,7 +128,7 @@ async function renderResumed(fixture: Fixture) {
   await act(async () => {
     root!.render(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-        <ExtractFlow username="alex" consentedSpeech={false} speechProvider="none" />
+        <ExtractFlow username="alex" consentedSpeech={false} speechProvider="none" trips={[]} />
       </LocaleProvider>,
     );
   });

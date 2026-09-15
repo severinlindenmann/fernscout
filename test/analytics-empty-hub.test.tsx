@@ -49,6 +49,7 @@ const site: SiteSummary = {
   analyticsEnabled: true,
   helperEnabled: false,
   isOwner: false,
+  extractEnabled: false,
 };
 
 function markup(props: React.ComponentProps<typeof AnalyticsHubContent>, locale = "en"): string {
