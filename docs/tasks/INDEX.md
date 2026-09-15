@@ -331,14 +331,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1802](in-development/B1802-the-import-s-primary-buttons-are.md) | The import's primary buttons are cream on cream in dark mode, and its pages have no header | ISSUE | high | low | `0e7f2abd` |
 
-## testing (9)
+## testing (10)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -346,6 +345,7 @@ _Nothing here._
 | [B1797](testing/B1797-the-import-drops-a-person-onto.md) | The import drops a person onto a bare file picker with no framing, no way back, and no way in from the journal | FEATURE | high | medium | — |
 | [B1798](testing/B1798-green-and-coral-text-fail-the.md) | Green and coral text fail the contrast floor in dark mode, across thirty-five components | ISSUE | high | low | — |
 | [B1799](testing/B1799-the-upload-list-pushes-the-page.md) | The upload list pushes the page wider than a phone viewport | ISSUE | high | low | — |
+| [B1802](testing/B1802-the-import-s-primary-buttons-are.md) | The import's primary buttons are cream on cream in dark mode, and its pages have no header | ISSUE | high | low | — |
 | [B1751](testing/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | — |
 | [B1787](testing/B1787-a-synced-folder-can-never-agree.md) | A synced folder can never agree with the site, because the weather it answers with may not be sent back | ISSUE | medium | medium | — |
 | [B1789](testing/B1789-a-photograph-whose-local-bytes-differ.md) | A photograph whose local bytes differ from the site's derivative is planned, never sent, and reported as a push that did not land, on every run | ISSUE | medium | medium | — |

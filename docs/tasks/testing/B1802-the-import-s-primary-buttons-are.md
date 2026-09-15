@@ -7,8 +7,7 @@ complexity: low
 area: extract, dark mode, nav
 found: "2026-09-15T14:36:31Z"
 started: "2026-09-15T14:36:32Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-15T14:36:32Z"
+merged: "2026-09-15T14:53:25Z"
 ---
 
 # B1802 — The import's primary buttons are cream on cream in dark mode, and its pages have no header
