@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (220)
+## backlog (219)
 
 ### security (5)
 
@@ -61,11 +61,10 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (42)
+### issue (41)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1784](backlog/issue/B1784-the-credits-spent-list-shows-a.md) | The credits-spent list shows a raw translation key and overflows the phone | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -346,7 +345,7 @@ _Nothing here._
 | [B1778](in-development/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium | `135632db` |
 | [B1780](in-development/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low | `135632db` |
 
-## testing (13)
+## testing (14)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -358,6 +357,7 @@ _Nothing here._
 | [B1752](testing/B1752-a-message-telling-the-journal-about.md) | A message telling the journal about a day proposes nothing about three times in four | ISSUE | high | medium | — |
 | [B1754](testing/B1754-the-bench-scores-one-clarifying-question.md) | The bench scores one clarifying question as total failure, which is not how the product is meant to work | ISSUE | high | low | — |
 | [B1756](testing/B1756-get-api-v2-user-status-answers.md) | GET /api/v2/{user}/status answers 500 when the credit balance has a fraction | ISSUE | high | low | — |
+| [B1784](testing/B1784-the-credits-spent-list-shows-a.md) | The credits-spent list shows a raw translation key and overflows the phone | ISSUE | high | low | — |
 | [B1765](testing/B1765-the-handover-prompt-never-shows-the.md) | The handover prompt never shows the auth header, and never says what a failed call means | ISSUE | medium | low | — |
 | [B1766](testing/B1766-long-trip-lists-overwhelm-three-pages.md) | Long trip lists overwhelm three pages: storage, what you can read, and the trips index | ISSUE | medium | low | — |
 | [B1781](testing/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | — |

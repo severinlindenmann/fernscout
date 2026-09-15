@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: account page, credits
 found: "2026-09-15T06:54:59Z"
+merged: "2026-09-15T07:02:11Z"
 ---
 
 # B1784 — The credits-spent list shows a raw translation key and overflows the phone
