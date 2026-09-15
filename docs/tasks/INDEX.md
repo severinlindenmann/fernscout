@@ -336,12 +336,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
 | [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
+| [B1781](in-development/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | `7163371b` |
 
 ## testing (12)
 
