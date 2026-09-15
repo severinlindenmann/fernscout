@@ -329,11 +329,12 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
+| [B1797](in-development/B1797-the-import-drops-a-person-onto.md) | The import drops a person onto a bare file picker with no framing, no way back, and no way in from the journal | FEATURE | high | medium | `0e7f2abd` |
 
 ## testing (6)
 
