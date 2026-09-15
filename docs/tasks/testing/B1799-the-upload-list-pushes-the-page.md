@@ -7,8 +7,7 @@ complexity: low
 area: extract, mobile
 found: "2026-09-15T13:43:10Z"
 started: "2026-09-15T13:43:45Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-15T13:43:45Z"
+merged: "2026-09-15T14:29:14Z"
 ---
 
 # B1799 — The upload list pushes the page wider than a phone viewport

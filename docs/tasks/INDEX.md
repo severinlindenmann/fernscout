@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (226)
+## backlog (227)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (44)
+### issue (45)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -95,6 +95,7 @@ Do not edit them by hand; run the script.
 | [B1757](backlog/issue/B1757-cost-reporting-folds-cached-tokens-in.md) | Cost reporting folds cached tokens in at face value, so every figure overstates | ISSUE | medium | low |
 | [B1795](backlog/issue/B1795-a-photo-description-spend-is-not.md) | A photo description spend is not refunded when every photograph fails to resize | ISSUE | medium | low |
 | [B1796](backlog/issue/B1796-inline-code-in-the-documentation-pages.md) | Inline code in the documentation pages is invisible against the dark background | ISSUE | medium | low |
+| [B1801](backlog/issue/B1801-eight-components-use-a-raw-tailwind.md) | Eight components use a raw Tailwind red for errors where the brand coral belongs | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -330,20 +331,20 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (3)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1798](in-development/B1798-green-and-coral-text-fail-the.md) | Green and coral text fail the contrast floor in dark mode, across thirty-five components | ISSUE | high | low | `0e7f2abd` |
-| [B1799](in-development/B1799-the-upload-list-pushes-the-page.md) | The upload list pushes the page wider than a phone viewport | ISSUE | high | low | `0e7f2abd` |
 
-## testing (7)
+## testing (9)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1788](testing/B1788-sign-in-link-page-shows-the.md) | Sign-in link page shows the literal word label on its button and renders in the browser's language, not the mail's | ISSUE | high | low | — |
 | [B1797](testing/B1797-the-import-drops-a-person-onto.md) | The import drops a person onto a bare file picker with no framing, no way back, and no way in from the journal | FEATURE | high | medium | — |
+| [B1798](testing/B1798-green-and-coral-text-fail-the.md) | Green and coral text fail the contrast floor in dark mode, across thirty-five components | ISSUE | high | low | — |
+| [B1799](testing/B1799-the-upload-list-pushes-the-page.md) | The upload list pushes the page wider than a phone viewport | ISSUE | high | low | — |
 | [B1751](testing/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | — |
 | [B1787](testing/B1787-a-synced-folder-can-never-agree.md) | A synced folder can never agree with the site, because the weather it answers with may not be sent back | ISSUE | medium | medium | — |
 | [B1789](testing/B1789-a-photograph-whose-local-bytes-differ.md) | A photograph whose local bytes differ from the site's derivative is planned, never sent, and reported as a push that did not land, on every run | ISSUE | medium | medium | — |
