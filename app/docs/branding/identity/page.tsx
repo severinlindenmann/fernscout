@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import EntryContent from "@/components/EntryContent";
-import { contrast, GROUNDS, lockup, lockups, palette, screenPalette, verdict } from "@/lib/brand";
+import { contrast, darkHues, GROUNDS, lockup, lockups, palette, screenPalette, verdict } from "@/lib/brand";
 import { readRepoFile, section } from "@/lib/docs";
 
 /**
@@ -49,6 +49,14 @@ export default function IdentityBenchPage() {
   }));
   const files = lockups(brand);
   const hex = Object.fromEntries(swatches.map((s) => [s.token, s.hex]));
+  const dark = darkHues();
+  const darkHex = Object.fromEntries(dark.map((s) => [s.token, s.hex]));
+  const darkRoles = screenThemes.find((s) => s.theme === "dark")?.roles ?? [];
+  const darkRoleHex = Object.fromEntries(darkRoles.map(({ token, hex: value }) => [token, value]));
+  // The dark grounds a hue's text is actually checked on: the page/card
+  // surfaces every component above renders on, plus the light fills that
+  // flip alongside the two hues that sit on them (B1798).
+  const DARK_GROUNDS = ["surface-base", "surface-raised", "surface-subtle"] as const;
 
   return (
     <main id="main" className="min-h-screen bg-surface-base">
@@ -223,6 +231,94 @@ export default function IdentityBenchPage() {
                   })}
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/*
+          The table above is a light-theme claim: its grounds are cream and
+          the inverse navy card, and a hue with no dark override (everything
+          except the two below) carries the same one number into dark mode
+          too. `green-700` and `coral-600` do not — they, and the light fills
+          they sit on in a badge, get their own dark value (B1798) — so the
+          figure that matters on `#171d29` is a different one and belongs on
+          its own bench rather than folded into the table above.
+        */}
+        <h3 className="mt-10 font-display text-lg font-semibold text-ink-strong">
+          What may carry words, in the dark
+        </h3>
+        <p className="mt-2 max-w-2xl text-ink-body">
+          Only the hues declared under <code className="rounded bg-surface-subtle px-1">
+            :root[data-theme=&quot;dark&quot;]
+          </code>{" "}
+          have a value of their own here; everything else repeats its light-theme hex and,
+          being unused as text in dark mode, is left off this table.
+        </p>
+        <div className="mt-6 overflow-x-auto rounded-xl border border-line-quiet bg-surface-raised">
+          <table className="w-full min-w-[36rem] text-sm">
+            <thead>
+              <tr className="border-b border-line-quiet text-left">
+                <th className="px-3 py-2 font-display text-ink-strong">Token (dark value)</th>
+                {DARK_GROUNDS.map((ground) => (
+                  <th key={ground} className="px-3 py-2 font-display text-ink-strong">
+                    on {ground}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {dark
+                .filter(({ token }) => token === "green-700" || token === "coral-600")
+                .map(({ token, hex: value }) => (
+                  <tr key={token} className="border-b border-line-quiet last:border-0">
+                    <th scope="row" className="px-3 py-2 text-left font-mono text-xs text-ink-strong">
+                      {token} <span className="text-ink-secondary">{value}</span>
+                    </th>
+                    {DARK_GROUNDS.map((ground) => {
+                      const ratio = contrast(value, darkRoleHex[ground]);
+                      return (
+                        <td key={ground} className="px-3 py-2">
+                          <span
+                            className="rounded px-2 py-1 font-mono text-xs"
+                            style={{ background: darkRoleHex[ground], color: value }}
+                          >
+                            {ratio.toFixed(2)}
+                          </span>
+                          <span className="ml-2 text-xs text-ink-secondary">{verdict(ratio)}</span>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              {(
+                [
+                  ["green-700", "green-100"],
+                  ["coral-600", "coral-50"],
+                  ["coral-600", "coral-100"],
+                ] as const
+              ).map(([textToken, fillToken]) => {
+                const fillHex = darkHex[fillToken];
+                if (!fillHex) return null;
+                const ratio = contrast(darkHex[textToken], fillHex);
+                return (
+                  <tr key={`${textToken}-on-${fillToken}`} className="border-b border-line-quiet last:border-0">
+                    <th scope="row" className="px-3 py-2 text-left font-mono text-xs text-ink-strong">
+                      {textToken} <span className="text-ink-secondary">on {fillToken} {fillHex}</span>
+                    </th>
+                    <td className="px-3 py-2" colSpan={DARK_GROUNDS.length}>
+                      <span
+                        className="rounded px-2 py-1 font-mono text-xs"
+                        style={{ background: fillHex, color: darkHex[textToken] }}
+                      >
+                        {ratio.toFixed(2)}
+                      </span>
+                      <span className="ml-2 text-xs text-ink-secondary">
+                        {verdict(ratio)} — the badge fill these hues sit on in dark mode
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

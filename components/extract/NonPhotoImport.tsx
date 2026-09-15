@@ -156,7 +156,11 @@ export default function NonPhotoImport({ username, kind }: { username: string; k
   const done = staged && (kind === "contacts" || gps || statement);
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
+    // `w-full` — B1799, same fix as `ExtractFlow`'s identical root div: a
+    // flex-column `<body>` child needs its own definite width or a long
+    // unbreakable string anywhere below it can push this box past the
+    // viewport before any nested `min-w-0 truncate` gets a chance to work.
+    <div className="mx-auto w-full max-w-xl px-4 py-8">
       <Link
         href={`/${username}/extract`}
         className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body transition-colors hover:text-ink-strong"

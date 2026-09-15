@@ -289,7 +289,18 @@ export default function ExtractFlow({
   }
 
   return (
-    <div className="mx-auto max-w-xl px-4 py-8">
+    // `w-full` — B1799. `<body>` is `flex flex-col`, and this div is its
+    // direct child with no wrapper page layout giving it a width of its
+    // own. Without an explicit width, a flex-column child's box is sized by
+    // shrink-to-fit, which floors at its content's own min-content width —
+    // and `UploadStep`'s long, unbreakable filenames pushed that floor past
+    // 390px even with `min-w-0 truncate` correctly applied further down:
+    // that class fixes the *local* flex-shrink inside one row, not this
+    // ancestor's own intrinsic sizing pass, which runs before any row width
+    // is known. `w-full` gives this div body's own definite width instead,
+    // and every nested truncate below it works exactly as it looks like it
+    // should.
+    <div className="mx-auto w-full max-w-xl px-4 py-8">
       {/* The way back — B1797. Every screen in this flow reaches it, because
        *  it is drawn once, here, rather than on each screen individually. */}
       <Link
