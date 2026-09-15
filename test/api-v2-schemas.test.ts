@@ -439,6 +439,10 @@ describe("status", () => {
           importFormats: { bank_export: ["revolut-csv"], gps_history: ["gpx", "google-timeline"] },
         },
         pricing: { postcard: 3, "storage-5gb": 10 },
+        // B1783: the source names a caller may never write. Required rather
+        // than optional, because a client that has to cope with its absence
+        // is a client that hardcodes the name instead.
+        weather: { reservedSources: ["open-meteo"] },
       }).success,
     ).toBe(true);
     expect(

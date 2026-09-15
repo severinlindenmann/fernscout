@@ -14,6 +14,7 @@
 import type { Session } from "../../auth";
 import { describeScope } from "../../auth";
 import { resolveCapabilities } from "../../capabilities";
+import { RESERVED_SOURCES } from "../../weather";
 import { FEATURE_NAMES, type FeatureName } from "../../config";
 import { balanceOf } from "../../credits";
 import { POSTCARD_CREDITS } from "../../credits/pricing";
@@ -75,6 +76,10 @@ export function buildInstanceStatus(): InstanceStatus {
     // could quote ahead of a call, so they are left out rather than reported
     // as one number that is only ever true by coincidence.
     pricing: { email: 1, whatsapp: 1, postcard: POSTCARD_CREDITS },
+    // Imported rather than typed, so adding a second archive changes this
+    // answer with no second edit — the same rule `/api/health` follows for
+    // the same list (B1580, B1783).
+    weather: { reservedSources: [...RESERVED_SOURCES] },
   };
 }
 
