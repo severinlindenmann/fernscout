@@ -69,6 +69,7 @@ tasks depend on getting it exactly right:
 | Sending that warning **pins** expiry to | `warnedAt + 24h` |
 | Continuing the run after the warning extends it, **once**, to | `now + 48h`, and sets `extendedAt` |
 | A run already extended gets | one final notice, with no offer, and then goes |
+| Credits spent on a run that expires are | **gone. No refund, and nothing is preserved.** |
 
 **Why the warning pins the deadline.** The sweep runs nightly, beside the
 currency refresh in `scripts/backup.sh`, so "24 hours old" is really "24 to 48
@@ -84,6 +85,21 @@ the jitter is ours.
 authenticated touch of the run — opening it, answering a question, uploading
 more — extends it if it has not been extended already. A button would be a
 second way to say the thing they just did by arriving.
+
+**No refund, and therefore three places have to say so** (owner, 2026-09-15).
+Enrichment is generated into the run. If the run expires, the output goes with
+the staged files and the credits stay spent. That is a defensible rule — the
+work was done, the model was paid for — but it is only defensible if nobody
+meets it as a surprise, so it is written in three places and each of them is a
+requirement, not a nicety:
+
+1. **Before the spend** (Task 4.1) — on the credits screen, above the button.
+2. **In the warning** (Task 0.5) — naming the actual number of credits already
+   spent on this run, not a general caution.
+3. **In the final notice** (Task 0.5) — the same number, last chance.
+
+A person who has spent thirty credits and gets a mail that does not mention
+them has been told the least important half of what is about to happen.
 
 **The second notice is my call, not the owner's** (recorded here so the next
 reader can tell the two apart). The owner specified the first warning and the
@@ -930,12 +946,15 @@ The two messages, in three languages, in `site/locales/`:
 
 ```json
 "extract.expiry.warn.subject": "Your photo import has 24 hours left",
-"extract.expiry.warn.body": "You started importing {count} photographs on {started} and there are {days} days still to tell. They'll be deleted in 24 hours — unless you carry on now, which gives you another two days. Nothing you've already finished is affected.",
+"extract.expiry.warn.body": "You started importing {count} photographs on {started} and there are {days} days still to tell. They'll be deleted in 24 hours — unless you carry on now, which gives you another two days. Days you've already finished are part of your journal and stay.",
+"extract.expiry.spent": "You've spent {credits} credits on this import. If it's deleted, that work goes with it and the credits aren't returned.",
 "extract.expiry.final.subject": "Your photo import is about to be deleted",
 "extract.expiry.final.body": "The {count} photographs you haven't used yet go in 24 hours. This is the last notice — there's no further extension. Days you've already finished are part of your journal and stay."
 ```
 
 Both say the same true thing twice: **what was already committed is safe.** A person reading "will be deleted" about their camera roll needs that sentence in the first paragraph, not the third.
+
+`extract.expiry.spent` is appended to **both** messages, and only when the run has actually cost something. Read the number from the ledger — `spentByReason(owner)` filtered to this run's `ref`, never a number carried on the manifest, because the ledger is the truth about money and a second copy of it drifts. A run that cost nothing gets no sentence about credits; a caution about money nobody spent is noise that trains people to skim the rest.
 
 - [ ] **Step 6: Wire it into the nightly run**
 
@@ -1936,13 +1955,32 @@ Every line priced from the real function — `creditsForPhotos(n)` for descripti
 
 The free path — "Build it from what I wrote" — produces a complete trip. It is not a dark pattern and must not become one: the person's own words are the point of the feature, and the credits buy polish on top of them.
 
-- [ ] **Step 5: Run the tests, then verify in a browser with credits off and on**
+**Above the button, and not in small print, say what a spend is tied to.** Enrichment is generated into the run, and a run that expires takes it with it — no refund (owner's decision, see the table near the top). So:
 
-- [ ] **Step 6: Commit**
+```json
+"extract.credits.tiedToRun": "This is written into your import. If you leave it to expire, the writing goes with it and the credits aren't returned — so finish the trip, or leave this until you're ready to."
+```
+
+That sentence is the price of the no-refund rule. Without it the rule is a trap; with it, it is a term somebody agreed to. A reviewer should check it is above the button rather than below it, and that it is not styled as a footnote.
+
+- [ ] **Step 5: Write the failing test for the warning line**
+
+```ts
+test("the credits screen says what a spend is tied to, above the button", () => {
+  // render the screen with a non-zero total; assert the tiedToRun string is
+  // present and appears before the spend button in document order.
+});
+```
+
+A string that has to be above a button is a thing a test can hold, and this one is load-bearing: it is the whole difference between a term and a trap.
+
+- [ ] **Step 6: Run the tests, then verify in a browser with credits off and on**
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add app/api/helper/\[user\]/extract/sample components/extract site/locales test/extract-routes.test.ts
-git commit -m "feat: one free sample description before the credits screen"
+git commit -m "feat: one free sample description, and say what a spend is tied to"
 ```
 
 ### Task 4.2: Preview, people, and publish
@@ -2046,7 +2084,7 @@ Start this only when somebody has measured that local disk is not enough. The in
 
 ## Self-review
 
-**Spec coverage.** The owner's expiry decision of 2026-09-15 → Task 0.5 (warn, pin, extend, final notice) and Task 4.3 Step 3 (what the person is told, in each of the three states). Design Step 01 → Tasks 1.3 and 4.3 (expectation setter, resume). Step 02 → Task 1.2 (`tripId` and `mode` on the manifest) and 1.3. Step 03 → Tasks 1.2 and 1.3 (limits stated first, per-file tiles, individual retry, wake lock, the Caddy tier). Step 04 → Tasks 1.1 and 2.3 (what was found, said as numbers). Step 05 → Tasks 2.1 and 2.3 (the day board as a workspace). Step 06 → Task 2.3 (`PhotoChips` and the `PATCH`). Step 07 → Tasks 2.2 and 2.3 (`AskCard`, editable transcript, three questions a day). Step 08 → Task 4.2 for the travellers list; **the figure drawing is explicitly out of scope and said so**, rather than left as an unclaimed requirement. Step 09 → Task 4.1. Step 10 → Task 4.2.
+**Spec coverage.** The owner's expiry decision of 2026-09-15 → Task 0.5 (warn, pin, extend, final notice) and Task 4.3 Step 3. The owner's no-refund decision of the same day → Task 4.1 Steps 4-5 (said before the spend, and tested for) and Task 0.5 Step 5 (`extract.expiry.spent`, read from the ledger, appended to both messages) (what the person is told, in each of the three states). Design Step 01 → Tasks 1.3 and 4.3 (expectation setter, resume). Step 02 → Task 1.2 (`tripId` and `mode` on the manifest) and 1.3. Step 03 → Tasks 1.2 and 1.3 (limits stated first, per-file tiles, individual retry, wake lock, the Caddy tier). Step 04 → Tasks 1.1 and 2.3 (what was found, said as numbers). Step 05 → Tasks 2.1 and 2.3 (the day board as a workspace). Step 06 → Task 2.3 (`PhotoChips` and the `PATCH`). Step 07 → Tasks 2.2 and 2.3 (`AskCard`, editable transcript, three questions a day). Step 08 → Task 4.2 for the travellers list; **the figure drawing is explicitly out of scope and said so**, rather than left as an unclaimed requirement. Step 09 → Task 4.1. Step 10 → Task 4.2.
 
 **Placeholder scan.** Four steps describe an implementation without a full code block — 2.1 Step 3, 2.3 Steps 3–4, 3.1 Step 3 and 4.4 Step 1. That is deliberate in exactly those four and nowhere else: each is "go and read the existing module, then match its shape", and pasting a guessed signature for `clusterMedia`, `assemble-day` or the docs mechanism would be worse than sending the implementer to the source. Every step that introduces a *new* interface carries its real code.
 
