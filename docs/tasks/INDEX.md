@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (224)
+## backlog (225)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (42)
+### issue (43)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -94,6 +94,7 @@ Do not edit them by hand; run the script.
 | [B1755](backlog/issue/B1755-a-video-s-own-location-is.md) | A video's own location is thrown away, though ffprobe already hands it back in the call that reads its date | ISSUE | medium | low |
 | [B1757](backlog/issue/B1757-cost-reporting-folds-cached-tokens-in.md) | Cost reporting folds cached tokens in at face value, so every figure overstates | ISSUE | medium | low |
 | [B1795](backlog/issue/B1795-a-photo-description-spend-is-not.md) | A photo description spend is not refunded when every photograph fails to resize | ISSUE | medium | low |
+| [B1796](backlog/issue/B1796-inline-code-in-the-documentation-pages.md) | Inline code in the documentation pages is invisible against the dark background | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
