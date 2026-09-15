@@ -32,7 +32,10 @@ export default function StepIndicator({
   if (total <= 0) return null;
 
   return (
-    <div className="mb-4 flex items-center gap-2 rounded-full bg-surface-subtle px-3 py-1.5" aria-label={label}>
+    // No `aria-label` here: the segments are `aria-hidden` and `label` is
+    // rendered as real text below, so labelling the wrapper as well makes a
+    // screen reader say the same sentence twice.
+    <div className="mb-4 flex items-center gap-2 rounded-full bg-surface-subtle px-3 py-1.5">
       <span className="flex flex-1 gap-[3px]" aria-hidden="true">
         {Array.from({ length: total }, (_, i) => (
           <span
