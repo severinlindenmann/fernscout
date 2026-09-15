@@ -29,7 +29,10 @@ function describe(tier: CountdownTier, t: Translate, tn: TranslateN): string {
   if (tier.unit === "now") return t("extract.resume.countdown.now");
 
   if (tier.unit === "days") {
-    const parts = [tn("extract.resume.countdown.daysPart", tier.days, { count: String(tier.days) })];
+    const parts = [];
+    if (tier.days > 0) {
+      parts.push(tn("extract.resume.countdown.daysPart", tier.days, { count: String(tier.days) }));
+    }
     if (tier.hours > 0) {
       parts.push(tn("extract.resume.countdown.hoursPart", tier.hours, { count: String(tier.hours) }));
     }
