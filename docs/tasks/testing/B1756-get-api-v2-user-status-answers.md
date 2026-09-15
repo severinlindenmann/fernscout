@@ -7,8 +7,7 @@ complexity: low
 area: API v2
 found: "2026-09-15T05:14:56Z"
 started: "2026-09-15T05:19:50Z"
-session: 4c78c009-c6da-4779-a13c-eb1d3c84a792
-claimed: "2026-09-15T05:19:50Z"
+merged: "2026-09-15T05:46:49Z"
 ---
 
 # B1756 — GET /api/v2/{user}/status answers 500 when the credit balance has a fraction
