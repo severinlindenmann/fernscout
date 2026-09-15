@@ -1165,6 +1165,7 @@
   "docs.benchesGroup": "Workbenches",
   "docs.benchesGroupNote": "For whoever is working on the parts this software draws rather than writes. English only, and not indexed.",
   "docs.contributing.title": "Contributing",
+  "docs.extract.title": "Getting your data out",
   "docs.guidesGroup": "Guides",
   "docs.guidesGroupNote": "Written for people rather than for agents.",
   "docs.helper.title": "Making content",

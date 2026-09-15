@@ -57,12 +57,13 @@ describe("buildSearchIndex", () => {
     // The one public entry, plus its trip's own row — which is the Story
     // destination, so there is no separate row for that (B890) — plus
     // Gallery and Map (B823; no Analytics, no costs and no weather, since
-    // this fixture carries none), the ten documentation rows (eight pages —
-    // B675 added `/docs/roadmap` — the hub and the imprint — B903), and
-    // `/trips`, the one journal-scoped destination this fixture offers a
-    // stranger: `auth` is off here, so there is no sign-in door to find.
-    // Nothing from the closed trips contributes any kind of document.
-    expect(index.documentCount).toBe(1 + 1 + 2 + 10 + 1);
+    // this fixture carries none), the eleven documentation rows (nine pages —
+    // B675 added `/docs/roadmap`, this task added `/docs/extract` — the hub
+    // and the imprint — B903), and `/trips`, the one journal-scoped
+    // destination this fixture offers a stranger: `auth` is off here, so
+    // there is no sign-in door to find. Nothing from the closed trips
+    // contributes any kind of document.
+    expect(index.documentCount).toBe(1 + 1 + 2 + 11 + 1);
   });
 
   test("an unlisted trip's content is not indexed at all", () => {
@@ -161,7 +162,8 @@ describe("payload size", () => {
     const json = buildSearchIndexJson("creator")!;
     // Generous ceiling for four short fixture entries — this is a sanity
     // check against a regression (e.g. accidentally storing full body text),
-    // not a tight budget.
-    expect(Buffer.byteLength(json)).toBeLessThan(20_000);
+    // not a tight budget. Raised from 20_000 when `/docs/extract` became the
+    // ninth technical page, adding one more terms-only document row.
+    expect(Buffer.byteLength(json)).toBeLessThan(21_000);
   });
 });

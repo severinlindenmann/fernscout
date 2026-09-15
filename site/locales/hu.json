@@ -1165,6 +1165,7 @@
   "docs.benchesGroup": "Munkapadok",
   "docs.benchesGroupNote": "Azoknak, akik a szoftver rajzolt — nem írott — részein dolgoznak. Csak angolul, és nincs indexelve.",
   "docs.contributing.title": "Közreműködés",
+  "docs.extract.title": "Saját adatok kimentése",
   "docs.guidesGroup": "Útmutatók",
   "docs.guidesGroupNote": "Embereknek írva, nem ügynököknek.",
   "docs.helper.title": "Tartalom készítése",

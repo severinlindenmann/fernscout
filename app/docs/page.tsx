@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BookOpen, Code2, GitPullRequest, Map, PenLine, Ruler, Server, Users, Wand2 } from "lucide-react";
+import {
+  BookOpen,
+  Code2,
+  Download,
+  GitPullRequest,
+  Map,
+  PenLine,
+  Ruler,
+  Server,
+  Users,
+  Wand2,
+} from "lucide-react";
 import Pricing from "@/components/Pricing";
 import { isEnabled } from "@/lib/capabilities";
 import { DOCS_PAGES, type DocsPageId } from "@/lib/docs";
@@ -56,6 +67,7 @@ const ICONS: Record<DocsPageId, typeof BookOpen> = {
   contributing: GitPullRequest,
   api: Code2,
   helper: Wand2,
+  extract: Download,
   roadmap: Map,
 };
 

@@ -1270,6 +1270,7 @@ export type TranslationKey =
   | "docs.benchesGroup"
   | "docs.benchesGroupNote"
   | "docs.contributing.title"
+  | "docs.extract.title"
   | "docs.guidesGroup"
   | "docs.guidesGroupNote"
   | "docs.helper.title"
