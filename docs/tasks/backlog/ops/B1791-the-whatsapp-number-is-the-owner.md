@@ -173,6 +173,75 @@ SIM on a real operator at CHF 10–25/month — becomes the path. The GB number 
 not wasted in that case; it still resolves B1317, which the Swiss number never
 could.
 
+## Voice verification works — proven 2026-09-15
+
+**The GB number completed Meta verification by voice**, after SMS failed on
+both numbers. Meta called from +44 161 694 8777; the number auto-answered via
+the Twimlet, and the 15-second recording carried the code.
+
+So the researched explanation holds: **SMS is filtered at the carrier edge for
+virtual numbers, voice is not.** A CPaaS number can hold this registration,
+through voice only.
+
+Two practical notes for the next time:
+
+- **Twilio's transcription is useless here.** It transcribes English, the call
+  is German, and it returned `"The police code loud hood, i knew him soon."`
+  — that is "Dein WhatsApp Code lautet". Download the recording and listen;
+  do not trust `transcribe='true'`.
+- **Re-verification will need the voice route every time.** That is the
+  standing cost of a CPaaS number versus a physical SIM, and it is the real
+  argument in the product question below — not the monthly price.
+
+## The number landed on the wrong WABA — open 2026-09-15
+
+Verification succeeded onto WABA **1451782100105607**, not the instance's
+WABA **1043886595223059**. This instance's access token **cannot read the new
+WABA at all** (`GraphMethodException` 100/33) — it is a separate asset.
+
+**The fix is to move the number to the existing WABA, not to repoint the app.**
+Templates are WABA-level: the three approved `fernscout_day_published_v2`
+templates live on 1043886595223059, and business verification is
+portfolio-level. Repointing the app would mean recreating and re-approving
+every template, assigning the system user and issuing new credentials. Moving
+the number costs one re-verification and nothing else.
+
+Steps, all console work on Meta's side:
+
+1. Remove/deregister +44 7862 131685 from WABA 1451782100105607 — a number
+   lives on one WABA at a time.
+2. Add it to WABA 1043886595223059.
+3. Verify **by voice**; SMS will be filtered again. The Twimlet is still armed
+   on the number.
+
+**Caution:** this is a second verification on a number that already hit the
+rate limit today. If refused, wait — the cooldown escalates with retries.
+
+Also worth establishing: whether the new WABA sits under a different business
+portfolio. If the flow created one, that is what split the assets and is the
+thing not to repeat.
+
+## The switch, once the number is on the right WABA
+
+No code change. Two values, both on the VPS, and they must move together —
+nothing derives the dialable number from the phone number id.
+
+| Where | Key | From → To |
+| --- | --- | --- |
+| `/etc/fernscout/env` | `WHATSAPP_PHONE_NUMBER_ID` | `1253568101181150` → the new id |
+| `/etc/fernscout/env` | `WHATSAPP_WABA_ID` | **currently empty** → `1043886595223059` |
+| `/var/lib/fernscout/config.json` | `features.whatsapp.number` | `+41 78 217 26 46` → `+44 7862 131685` |
+
+Then restart. Before switching, on Meta's side: `POST /{phone_number_id}/register`
+with a 6-digit PIN (verification alone does not let it send), confirm the three
+templates show as available to the new number, and check its display name —
+"Fernscout" is approved per number, not inherited.
+
+**Do not change `features.whatsapp.defaultCountryCode` (`"41"`).** It states
+where the people filling in this instance's forms are standing, not where the
+sender number is; setting it to 44 would misread every Swiss national number a
+contact types. The inbound webhook is WABA-level and follows automatically.
+
 ## Work
 
 1. ~~Prove inbound on the GB number.~~ **Done 2026-09-15 — see below.**
