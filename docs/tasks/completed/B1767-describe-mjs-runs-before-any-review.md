@@ -8,6 +8,7 @@ area: fernscout-helper icloud-export, describe.mjs, build.mjs
 found: "2026-09-15T06:24:07Z"
 started: "2026-09-15T06:39:45Z"
 merged: "2026-09-15T07:09:11Z"
+completed: "2026-09-15T08:19:24Z"
 ---
 
 # B1767 — describe.mjs runs before any review exists, so prose is written from photographs the person later removed

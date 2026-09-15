@@ -8,6 +8,7 @@ area: lib/sync/manifest.ts, fernscout-helper sync
 found: "2026-09-15T06:24:44Z"
 started: "2026-09-15T06:39:57Z"
 merged: "2026-09-15T07:09:15Z"
+completed: "2026-09-15T08:19:30Z"
 ---
 
 # B1776 — figures are journal content the sync carries in neither direction

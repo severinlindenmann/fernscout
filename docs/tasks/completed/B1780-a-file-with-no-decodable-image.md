@@ -8,6 +8,7 @@ area: fernscout-helper icloud-export, query.mjs
 found: "2026-09-15T06:24:47Z"
 started: "2026-09-15T06:40:03Z"
 merged: "2026-09-15T07:09:17Z"
+completed: "2026-09-15T08:19:35Z"
 ---
 
 # B1780 — A file with no decodable image survives every re-export and is rediscovered by each tool in turn

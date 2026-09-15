@@ -8,6 +8,7 @@ area: Account, me and trips pages
 found: "2026-09-15T06:06:39Z"
 started: "2026-09-15T06:06:50Z"
 merged: "2026-09-15T06:21:08Z"
+completed: "2026-09-15T08:19:29Z"
 ---
 
 # B1766 — Long trip lists overwhelm three pages: storage, what you can read, and the trips index

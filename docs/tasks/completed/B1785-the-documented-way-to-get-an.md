@@ -8,6 +8,7 @@ area: app/api/auth/codes/redeem, get-a-credential
 found: "2026-09-15T07:14:07Z"
 started: "2026-09-15T07:38:25Z"
 merged: "2026-09-15T07:46:18Z"
+completed: "2026-09-15T08:19:32Z"
 ---
 
 # B1785 — The documented way to get an agent token for any journal works only for the journal the admin address owns

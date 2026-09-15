@@ -8,6 +8,7 @@ area: fernscout-helper publish, sync
 found: "2026-09-15T06:24:43Z"
 started: "2026-09-15T06:39:55Z"
 merged: "2026-09-15T07:09:15Z"
+completed: "2026-09-15T08:19:30Z"
 ---
 
 # B1775 — publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything

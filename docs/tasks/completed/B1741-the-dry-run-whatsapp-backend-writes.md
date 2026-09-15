@@ -8,6 +8,7 @@ area: whatsapp, dev
 found: "2026-09-14T16:26:19Z"
 started: "2026-09-14T16:33:09Z"
 merged: "2026-09-14T16:42:27Z"
+completed: "2026-09-15T08:19:33Z"
 ---
 
 # B1741 — The dry-run WhatsApp backend keeps every outbound body

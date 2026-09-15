@@ -8,6 +8,7 @@ area: fernscout-helper icloud-export, describe.mjs, review.mjs
 found: "2026-09-15T06:24:46Z"
 started: "2026-09-15T06:40:01Z"
 merged: "2026-09-15T07:09:17Z"
+completed: "2026-09-15T08:19:31Z"
 ---
 
 # B1779 — Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date

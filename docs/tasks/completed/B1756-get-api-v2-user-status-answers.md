@@ -8,6 +8,7 @@ area: API v2
 found: "2026-09-15T05:14:56Z"
 started: "2026-09-15T05:19:50Z"
 merged: "2026-09-15T05:46:49Z"
+completed: "2026-09-15T08:19:23Z"
 ---
 
 # B1756 — GET /api/v2/{user}/status answers 500 when the credit balance has a fraction

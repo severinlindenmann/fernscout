@@ -8,6 +8,7 @@ area: fernscout-helper validate-content
 found: "2026-09-15T06:24:45Z"
 started: "2026-09-15T06:39:58Z"
 merged: "2026-09-15T07:09:16Z"
+completed: "2026-09-15T08:19:34Z"
 ---
 
 # B1777 — Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors

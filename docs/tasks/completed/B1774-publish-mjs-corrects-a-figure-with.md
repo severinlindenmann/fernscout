@@ -8,6 +8,7 @@ area: fernscout-helper publish, app/api/v2/[user]/figures/[id]
 found: "2026-09-15T06:24:42Z"
 started: "2026-09-15T06:39:54Z"
 merged: "2026-09-15T07:09:14Z"
+completed: "2026-09-15T08:19:26Z"
 ---
 
 # B1774 — publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero

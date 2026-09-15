@@ -8,6 +8,7 @@ area: fernscout-helper icloud-export, narrow.mjs
 found: "2026-09-15T06:24:25Z"
 started: "2026-09-15T06:39:51Z"
 merged: "2026-09-15T07:09:13Z"
+completed: "2026-09-15T08:19:25Z"
 ---
 
 # B1771 — The first and last day of a trip keep photographs taken at the owner's own address

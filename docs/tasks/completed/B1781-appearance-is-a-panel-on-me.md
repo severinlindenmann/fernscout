@@ -8,6 +8,7 @@ area: Header
 found: "2026-09-15T06:38:10Z"
 started: "2026-09-15T06:38:20Z"
 merged: "2026-09-15T06:49:39Z"
+completed: "2026-09-15T08:19:31Z"
 ---
 
 # B1781 — Appearance is a panel on /me while language is a chip in the header

@@ -8,6 +8,7 @@ area: fernscout-helper icloud-export, build.mjs
 found: "2026-09-15T06:24:22Z"
 started: "2026-09-15T06:39:48Z"
 merged: "2026-09-15T07:09:12Z"
+completed: "2026-09-15T08:19:25Z"
 ---
 
 # B1769 — Every day build.mjs writes carries both time and declined.time, which the instance refuses

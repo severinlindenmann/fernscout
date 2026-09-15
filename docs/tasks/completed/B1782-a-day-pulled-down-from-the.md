@@ -8,6 +8,7 @@ area: fernscout-helper publish, validate-content
 found: "2026-09-15T06:42:48Z"
 started: "2026-09-15T06:43:41Z"
 merged: "2026-09-15T07:09:18Z"
+completed: "2026-09-15T08:19:27Z"
 ---
 
 # B1782 — A day pulled down from the instance cannot be written back, because it carries the server's own weather source

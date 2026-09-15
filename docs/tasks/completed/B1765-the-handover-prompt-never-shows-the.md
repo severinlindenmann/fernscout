@@ -8,6 +8,7 @@ area: Agent copy
 found: "2026-09-15T05:47:54Z"
 started: "2026-09-15T05:48:11Z"
 merged: "2026-09-15T05:56:41Z"
+completed: "2026-09-15T08:19:28Z"
 ---
 
 # B1765 — The handover prompt never shows the auth header, and never says what a failed call means

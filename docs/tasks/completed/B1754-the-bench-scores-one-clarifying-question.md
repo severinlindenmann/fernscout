@@ -8,6 +8,7 @@ area: helper, testing
 found: "2026-09-14T20:25:42Z"
 started: "2026-09-14T20:26:02Z"
 merged: "2026-09-14T20:44:35Z"
+completed: "2026-09-15T08:19:23Z"
 ---
 
 # B1754 — One clarifying question is scored as total failure

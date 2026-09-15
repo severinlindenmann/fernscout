@@ -7,6 +7,7 @@ complexity: low
 area: account page
 found: "2026-09-14T17:57:17Z"
 merged: "2026-09-14T18:02:07Z"
+completed: "2026-09-15T08:19:33Z"
 ---
 
 # B1745 — Buying extra storage is only offered once the journal is nearly full

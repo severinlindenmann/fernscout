@@ -8,6 +8,7 @@ area: photos, uploads, pwa
 found: "2026-09-14T19:43:33Z"
 started: "2026-09-14T20:37:43Z"
 merged: "2026-09-14T20:43:39Z"
+completed: "2026-09-15T08:19:22Z"
 ---
 
 # B1750 — Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background

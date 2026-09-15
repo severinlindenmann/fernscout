@@ -324,49 +324,19 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
 | [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
+| [B1787](in-development/B1787-a-synced-folder-can-never-agree.md) | A synced folder can never agree with the site, because the weather it answers with may not be sent back | ISSUE | medium | medium | `bc2533f4` |
 
-## testing (30)
+## testing (0)
 
-| # | Finding | Type | Priority | Complexity | Held by |
-| --- | --- | --- | --- | --- | --- |
-| [B1743](testing/B1743-saying-yes-to-a-proposal-in.md) | Saying yes to a proposal in the web room presses nothing, and the guard then denies the card exists | ISSUE | high | medium | — |
-| [B1744](testing/B1744-there-is-no-way-to-tell.md) | There is no way to tell whether a change to the conversation made it better or worse | FEATURE | high | medium | — |
-| [B1747](testing/B1747-the-bench-runs-five-scenarios-serially.md) | The bench runs five scenarios serially, so it cannot cover the conversation or be run often | FEATURE | high | medium | — |
-| [B1748](testing/B1748-a-whatsapp-first-scenario-corpus-large.md) | A WhatsApp-first scenario corpus large enough to find what one person's testing cannot | FEATURE | high | medium | — |
-| [B1750](testing/B1750-nobody-knows-whether-a-phone-s.md) | Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background | OPS | high | low | — |
-| [B1752](testing/B1752-a-message-telling-the-journal-about.md) | A message telling the journal about a day proposes nothing about three times in four | ISSUE | high | medium | — |
-| [B1754](testing/B1754-the-bench-scores-one-clarifying-question.md) | The bench scores one clarifying question as total failure, which is not how the product is meant to work | ISSUE | high | low | — |
-| [B1756](testing/B1756-get-api-v2-user-status-answers.md) | GET /api/v2/{user}/status answers 500 when the credit balance has a fraction | ISSUE | high | low | — |
-| [B1767](testing/B1767-describe-mjs-runs-before-any-review.md) | describe.mjs runs before any review exists, so prose is written from photographs the person later removed | ISSUE | high | medium | — |
-| [B1768](testing/B1768-build-mjs-writes-into-a-non.md) | build.mjs writes into a non-empty trip folder, so a rebuilt trip holds both the old entries and the new ones | ISSUE | high | low | — |
-| [B1769](testing/B1769-every-day-build-mjs-writes-carries.md) | Every day build.mjs writes carries both time and declined.time, which the instance refuses | ISSUE | high | low | — |
-| [B1771](testing/B1771-the-first-and-last-day-of.md) | The first and last day of a trip keep photographs taken at the owner's own address | ISSUE | high | medium | — |
-| [B1772](testing/B1772-export-mjs-does-not-check-what.md) | export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step | ISSUE | high | low | — |
-| [B1774](testing/B1774-publish-mjs-corrects-a-figure-with.md) | publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero | ISSUE | high | low | — |
-| [B1782](testing/B1782-a-day-pulled-down-from-the.md) | A day pulled down from the instance cannot be written back, because it carries the server's own weather source | ISSUE | high | low | — |
-| [B1784](testing/B1784-the-credits-spent-list-shows-a.md) | The credits-spent list shows a raw translation key and overflows the phone | ISSUE | high | low | — |
-| [B1765](testing/B1765-the-handover-prompt-never-shows-the.md) | The handover prompt never shows the auth header, and never says what a failed call means | ISSUE | medium | low | — |
-| [B1766](testing/B1766-long-trip-lists-overwhelm-three-pages.md) | Long trip lists overwhelm three pages: storage, what you can read, and the trips index | ISSUE | medium | low | — |
-| [B1770](testing/B1770-narrow-mjs-rebuilds-photos-json-from.md) | narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs | ISSUE | medium | low | — |
-| [B1775](testing/B1775-publish-writes-to-the-instance-without.md) | publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything | ISSUE | medium | medium | — |
-| [B1776](testing/B1776-figures-are-journal-content-the-sync.md) | figures are journal content the sync carries in neither direction | ISSUE | medium | medium | — |
-| [B1779](testing/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium | — |
-| [B1781](testing/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | — |
-| [B1783](testing/B1783-the-one-source-name-a-caller.md) | The one source name a caller may never write is not published anywhere a caller can read it | ISSUE | medium | low | — |
-| [B1785](testing/B1785-the-documented-way-to-get-an.md) | The documented way to get an agent token for any journal works only for the journal the admin address owns | ISSUE | medium | low | — |
-| [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
-| [B1745](testing/B1745-buying-extra-storage-is-only-offered.md) | Buying extra storage is only offered once the journal is nearly full | FEATURE | low | low | — |
-| [B1777](testing/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low | — |
-| [B1778](testing/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium | — |
-| [B1780](testing/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low | — |
+_Nothing here._
 
-## completed (1489)
+## completed (1519)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -679,6 +649,22 @@ _Nothing here._
 | [B1732](completed/B1732-a-day-the-server-looked-the.md) | A day the server looked the weather up for cannot be written back, so a mirrored folder refuses on every correction | ISSUE | high | low |
 | [B1736](completed/B1736-a-press-from-whatsapp-says-here.md) | A press from WhatsApp says Here is the link and sends no link | ISSUE | high | low |
 | [B1737](completed/B1737-a-shared-contact-card-is-saved.md) | A shared contact card is saved and then denied - nothing tells the model it is waiting | ISSUE | high | medium |
+| [B1743](completed/B1743-saying-yes-to-a-proposal-in.md) | Saying yes to a proposal in the web room presses nothing, and the guard then denies the card exists | ISSUE | high | medium |
+| [B1744](completed/B1744-there-is-no-way-to-tell.md) | There is no way to tell whether a change to the conversation made it better or worse | FEATURE | high | medium |
+| [B1747](completed/B1747-the-bench-runs-five-scenarios-serially.md) | The bench runs five scenarios serially, so it cannot cover the conversation or be run often | FEATURE | high | medium |
+| [B1748](completed/B1748-a-whatsapp-first-scenario-corpus-large.md) | A WhatsApp-first scenario corpus large enough to find what one person's testing cannot | FEATURE | high | medium |
+| [B1750](completed/B1750-nobody-knows-whether-a-phone-s.md) | Nobody knows whether a phone's bulk photo upload keeps its EXIF, how many it survives, or whether a PWA can finish one in the background | OPS | high | low |
+| [B1752](completed/B1752-a-message-telling-the-journal-about.md) | A message telling the journal about a day proposes nothing about three times in four | ISSUE | high | medium |
+| [B1754](completed/B1754-the-bench-scores-one-clarifying-question.md) | The bench scores one clarifying question as total failure, which is not how the product is meant to work | ISSUE | high | low |
+| [B1756](completed/B1756-get-api-v2-user-status-answers.md) | GET /api/v2/{user}/status answers 500 when the credit balance has a fraction | ISSUE | high | low |
+| [B1767](completed/B1767-describe-mjs-runs-before-any-review.md) | describe.mjs runs before any review exists, so prose is written from photographs the person later removed | ISSUE | high | medium |
+| [B1768](completed/B1768-build-mjs-writes-into-a-non.md) | build.mjs writes into a non-empty trip folder, so a rebuilt trip holds both the old entries and the new ones | ISSUE | high | low |
+| [B1769](completed/B1769-every-day-build-mjs-writes-carries.md) | Every day build.mjs writes carries both time and declined.time, which the instance refuses | ISSUE | high | low |
+| [B1771](completed/B1771-the-first-and-last-day-of.md) | The first and last day of a trip keep photographs taken at the owner's own address | ISSUE | high | medium |
+| [B1772](completed/B1772-export-mjs-does-not-check-what.md) | export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step | ISSUE | high | low |
+| [B1774](completed/B1774-publish-mjs-corrects-a-figure-with.md) | publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero | ISSUE | high | low |
+| [B1782](completed/B1782-a-day-pulled-down-from-the.md) | A day pulled down from the instance cannot be written back, because it carries the server's own weather source | ISSUE | high | low |
+| [B1784](completed/B1784-the-credits-spent-list-shows-a.md) | The credits-spent list shows a raw translation key and overflows the phone | ISSUE | high | low |
 | [B18](completed/B18-a-planned-trip-s-map-page.md) | A planned trip's map page draws no map | ISSUE | high | low |
 | [B196](completed/B196-test-mail-test-ts-fails-on.md) | test/mail.test.ts fails on main — a kept-mail sweep test broke when the journal mail switch landed | ISSUE | high | low |
 | [B197](completed/B197-an-unreadable-content-root-switches-every.md) | An unreadable content root switches every journal's mail off instead of warning | ISSUE | high | low |
@@ -1197,8 +1183,17 @@ _Nothing here._
 | [B1735](completed/B1735-the-visibility-explainer-shows-a-public.md) | The visibility explainer shows a Public badge on a Guests trip, and its ? sits below the badge | ISSUE | medium | low |
 | [B1738](completed/B1738-a-shared-contact-card-s-postal.md) | A shared contact card's postal address is dropped by the inbound parser | ISSUE | medium | low |
 | [B1740](completed/B1740-trip-page-hero-shows-no-picture.md) | Trip page hero shows no picture, and trip.cover is never used there | ISSUE | medium | low |
+| [B1765](completed/B1765-the-handover-prompt-never-shows-the.md) | The handover prompt never shows the auth header, and never says what a failed call means | ISSUE | medium | low |
+| [B1766](completed/B1766-long-trip-lists-overwhelm-three-pages.md) | Long trip lists overwhelm three pages: storage, what you can read, and the trips index | ISSUE | medium | low |
 | [B177](completed/B177-a-trip-map-s-basemap-is.md) | A trip map's basemap is half a megabyte for a route sixty-eight kilometres across | ISSUE | medium | medium |
+| [B1770](completed/B1770-narrow-mjs-rebuilds-photos-json-from.md) | narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs | ISSUE | medium | low |
+| [B1775](completed/B1775-publish-writes-to-the-instance-without.md) | publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything | ISSUE | medium | medium |
+| [B1776](completed/B1776-figures-are-journal-content-the-sync.md) | figures are journal content the sync carries in neither direction | ISSUE | medium | medium |
+| [B1779](completed/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium |
 | [B178](completed/B178-costsvisibility-is-read-from-a-trip.md) | costsVisibility is read from a trip but nothing can write it, so guests-only money is unreachable | ISSUE | medium | low |
+| [B1781](completed/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low |
+| [B1783](completed/B1783-the-one-source-name-a-caller.md) | The one source name a caller may never write is not published anywhere a caller can read it | ISSUE | medium | low |
+| [B1785](completed/B1785-the-documented-way-to-get-an.md) | The documented way to get an agent token for any journal works only for the journal the admin address owns | ISSUE | medium | low |
 | [B179](completed/B179-one-failed-read-of-the-basemap.md) | One failed read of the basemap bundle turns every map on the instance blank until restart | ISSUE | medium | low |
 | [B180](completed/B180-the-bounded-probe-test-never-runs.md) | The bounded-probe test never runs, because it needs a coreutils binary macOS does not have | CHORE | medium | low |
 | [B181](completed/B181-the-postgres-dump-test-has-never.md) | The restore drill has never run in CI, because nothing there installs restic | CHORE | medium | medium |
@@ -1675,7 +1670,12 @@ _Nothing here._
 | [B170](completed/B170-the-journal-title-is-clipped.md) | The journal's title is clipped in the header at exactly the width where the nav labels appear | ISSUE | low | low |
 | [B1716](completed/B1716-missing-token-still-tells-every-v2.md) | missing_token still tells every v2 caller that /api/v1 needs a token | ISSUE | low | low |
 | [B1727](completed/B1727-a-stranger-opening-the-landing-page.md) | A stranger opening the landing page gets a 401 in their console | ISSUE | low | low |
+| [B1741](completed/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low |
+| [B1745](completed/B1745-buying-extra-storage-is-only-offered.md) | Buying extra storage is only offered once the journal is nearly full | FEATURE | low | low |
 | [B175](completed/B175-create_trip-over-mcp-cannot-ask.md) | create_trip over MCP cannot ask for an unadvertised trip, because it has no listed field | ISSUE | low | low |
+| [B1777](completed/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low |
+| [B1778](completed/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium |
+| [B1780](completed/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low |
 | [B183](completed/B183-mcp-advertises-the-invite-tools-to.md) | MCP advertises the invite tools to a journal that has contacts switched off | CHORE | low | low |
 | [B185](completed/B185-a-locale-cookie-the-journal-does.md) | A locale cookie the journal does not list translates the tab title but not the page under it | ISSUE | low | low |
 | [B186](completed/B186-the-trip-gate-s-doc-comment.md) | The trip gate's doc comment points at a route group that no longer exists | DOCS | low | low |

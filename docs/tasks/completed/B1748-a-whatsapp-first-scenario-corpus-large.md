@@ -8,6 +8,7 @@ area: whatsapp, helper
 found: "2026-09-14T19:41:28Z"
 started: "2026-09-14T19:42:11Z"
 merged: "2026-09-14T20:21:51Z"
+completed: "2026-09-15T08:19:21Z"
 ---
 
 # B1748 — A WhatsApp-first corpus large enough to find what one person cannot
