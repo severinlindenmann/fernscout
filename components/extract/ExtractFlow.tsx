@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import CreditsScreen, { commitReadyDays } from "@/components/extract/CreditsScreen";
 import DayBoard from "@/components/extract/DayBoard";
+import PreviewScreen from "@/components/extract/PreviewScreen";
 import { useI18n } from "@/components/LocaleProvider";
 import UploadStep from "@/components/extract/UploadStep";
 
@@ -24,6 +25,12 @@ type Run = { runId: string; expiresAt: string };
  * actually charges for anything (`GET .../account`'s own `credits: null`
  * meaning it does not). With it off, the ready days are committed for free
  * straight away and the flow ends the same way it always did.
+ *
+ * `left` is the flow's real end — B1751 Task 4.2. `PreviewScreen` is what
+ * it shows: the days this run actually finished, each a link to its own
+ * real page rather than anything drawn here, plus the trip's people and a
+ * pointer back to the agent room for publishing, which stays that room's
+ * own call.
  */
 export default function ExtractFlow({
   username,
@@ -168,7 +175,7 @@ export default function ExtractFlow({
         <p className="mt-4 text-sm text-ink-secondary">{t("extract.flow.building")}</p>
       )}
 
-      {left && <p className="mt-4 text-sm text-ink-body">{t("extract.flow.left")}</p>}
+      {left && run && <PreviewScreen username={username} runId={run.runId} />}
     </div>
   );
 }
