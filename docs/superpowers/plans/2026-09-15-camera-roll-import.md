@@ -57,9 +57,40 @@ More than half of this feature is built. The single largest risk in this plan is
 5. **Object storage is Phase 5 and optional.** Severin chose S3-compatible storage with lifecycle rules for the TTL. Honoured — but as a second driver behind the same interface, with the local driver remaining the default and the tested one, because AGENTS.md forbids a feature that needs a paid account to develop. Phases 0–4 ship without it.
 6. **Videos are accepted and staged, but contribute no location** until B1755 lands. Say so in the UI rather than silently dropping them.
 
-## Open question for the owner — park, do not guess
+## Expiry, warning and the one extension — decided 2026-09-15 by the owner
 
-**What happens to a run somebody abandons after Phase one?** The design's resume screen promises "safe for 41 more hours" and the sweep deletes at 48. Three things are undecided and only Severin can settle them: whether an abandoned run is mailed about before it expires, whether the TTL extends when somebody returns, and whether a paid enrichment on an expired run is refunded. Task 4.3 builds the resume screen against the simplest reading (fixed 48h from upload, no mail, no extension) and the file says so. If the answer differs, it is a one-function change in `lib/staging/sweep.ts`.
+A run is not simply deleted at 48 hours. The rule, in full, because three
+tasks depend on getting it exactly right:
+
+| | |
+| --- | --- |
+| A new run expires at | `createdAt + 48h` |
+| A nightly sweep warns | any run with no `warnedAt` once it is **24 hours old** |
+| Sending that warning **pins** expiry to | `warnedAt + 24h` |
+| Continuing the run after the warning extends it, **once**, to | `now + 48h`, and sets `extendedAt` |
+| A run already extended gets | one final notice, with no offer, and then goes |
+
+**Why the warning pins the deadline.** The sweep runs nightly, beside the
+currency refresh in `scripts/backup.sh`, so "24 hours old" is really "24 to 48
+hours old depending on when they uploaded". If the mail promised 24 hours
+against a fixed `createdAt + 48h`, somebody who uploaded at four in the morning
+would get a mail saying 24 hours that meant one. Setting `expiresAt =
+warnedAt + 24h` when the warning goes out makes the sentence in the mail true
+by construction, whatever the cron jitter, at the cost of an effective TTL
+between 48 and 72 hours. That is the right trade: the promise is to a person,
+the jitter is ours.
+
+**Continuing *is* the extension.** There is no "extend" button. Any
+authenticated touch of the run — opening it, answering a question, uploading
+more — extends it if it has not been extended already. A button would be a
+second way to say the thing they just did by arriving.
+
+**The second notice is my call, not the owner's** (recorded here so the next
+reader can tell the two apart). The owner specified the first warning and the
+single extension. A run that has been extended still ends, and ending in
+silence after somebody was once told they would be warned reads as a bug; so
+it gets one final notice that says plainly there is no further extension. If
+that is unwanted it is a four-line deletion in `lib/staging/expiry.ts`.
 
 ---
 
@@ -70,6 +101,8 @@ More than half of this feature is built. The single largest risk in this plan is
 - `lib/staging/store.ts` — put, read, list, remove a staged file. The driver seam.
 - `lib/staging/sweep.ts` — delete runs past their TTL.
 - `lib/staging/manifest.ts` — the run record: read, write, and the types every later phase speaks.
+- `lib/staging/expiry.ts` — the warn / pin / extend rules, and the nightly sweep that applies them.
+- `scripts/extract-remind.mts` — the nightly door onto it, beside `scripts/reminders.mts`.
 
 **New — the import run (Phases 1–3)**
 - `lib/extract/analyse.ts` — EXIF out of staged bytes into manifest rows.
@@ -98,10 +131,12 @@ More than half of this feature is built. The single largest risk in this plan is
 - `lib/config.ts:18` — add `"extract"` to `FEATURE_NAMES`.
 - `lib/capabilities.ts:31` — add its `REQUIREMENTS` row.
 - `deploy/fernscout.caddy:80` — add the upload path to `@bigbody`, remove it from `@smallbody`.
+- `scripts/backup.sh:477` — run the reminder sweep nightly, beside `reminders:send`.
+- `package.json` — an `extract:remind` script, the same shape as `reminders:send`.
 - `site/locales/{en,de,hu}.json` — every string.
 
 **Tests**
-- `test/staging-store.test.ts`, `test/staging-sweep.test.ts`, `test/extract-analyse.test.ts`, `test/extract-group.test.ts`, `test/extract-questions.test.ts`, `test/extract-commit.test.ts`, `test/extract-routes.test.ts`, `test/extract-capability.test.ts`
+- `test/staging-store.test.ts`, `test/staging-sweep.test.ts`, `test/staging-expiry.test.ts`, `test/extract-analyse.test.ts`, `test/extract-group.test.ts`, `test/extract-questions.test.ts`, `test/extract-commit.test.ts`, `test/extract-routes.test.ts`, `test/extract-capability.test.ts`
 
 ---
 
@@ -421,6 +456,12 @@ export type RunManifest = {
   days: DayRow[];
   /** Set once the one free sample description has been taken. */
   sampleTakenFor?: string;
+  /** When the "24 hours left" notice went out. Its presence is what stops a
+   *  second one, and writing it also pins `expiresAt` to 24h later. */
+  warnedAt?: string;
+  /** When continuing the run bought it another 48 hours. Once only — its
+   *  presence is the whole of that rule. */
+  extendedAt?: string;
 };
 
 export function readManifest(username: string, runId: string): RunManifest | null;
@@ -685,6 +726,256 @@ Expected: PASS, both.
 ```bash
 git add lib/staging/sweep.ts test/staging-sweep.test.ts
 git commit -m "feat: sweep staged runs at 48 hours"
+```
+
+### Task 0.5: The warning, the pin, and the one extension
+
+**Files:**
+- Create: `lib/staging/expiry.ts`, `scripts/extract-remind.mts`
+- Modify: `package.json`, `scripts/backup.sh:477`
+- Test: `test/staging-expiry.test.ts`
+
+**Interfaces:**
+- Consumes: `listRuns`, `writeManifest`, `RunManifest`; `sendReminderMail`-shaped helpers from `lib/digest/reminder.ts` — **read that file and reuse its channel picker rather than writing a second one**; it already knows mail from WhatsApp and already fails soft when a channel is off.
+- Produces:
+
+```ts
+export const WARN_AFTER_MS = 24 * 60 * 60 * 1000;
+export const WARNED_GRACE_MS = 24 * 60 * 60 * 1000;
+export const EXTENSION_MS = 48 * 60 * 60 * 1000;
+
+/** What a nightly pass should do with one run. Pure, so it can be tested
+ *  without a mailer, a clock or a filesystem. */
+export type ExpiryAction =
+  | { do: "nothing" }
+  | { do: "warn"; expiresAt: string; hoursLeft: number; canExtend: boolean }
+  | { do: "final-notice"; expiresAt: string };
+
+export function expiryActionFor(run: RunManifest, now: Date): ExpiryAction;
+
+/** Continuing a run is the extension. Returns the manifest to write, or null
+ *  when nothing changed — so a caller can skip the write. */
+export function extendOnTouch(run: RunManifest, now: Date): RunManifest | null;
+
+/** The nightly pass. Sends, stamps and writes. */
+export function sweepExpiryWarnings(now: Date, opts: { dryRun: boolean }): Promise<{ warned: string[]; finalNotices: string[] }>;
+```
+
+- [ ] **Step 1: Write the failing test**
+
+```ts
+import { describe, expect, test } from "vitest";
+import {
+  EXTENSION_MS, expiryActionFor, extendOnTouch,
+} from "@/lib/staging/expiry";
+import type { RunManifest } from "@/lib/staging/manifest";
+
+const run = (over: Partial<RunManifest> = {}): RunManifest => ({
+  version: 1, runId: "run-1", owner: "alex",
+  createdAt: "2026-09-15T04:00:00Z",
+  expiresAt: "2026-09-17T04:00:00Z",
+  tripId: null, mode: "type", state: "telling", photos: [], days: [], ...over,
+});
+
+describe("when a run is warned", () => {
+  test("nothing happens in the first 24 hours", () => {
+    expect(expiryActionFor(run(), new Date("2026-09-15T23:00:00Z")).do).toBe("nothing");
+  });
+
+  test("past 24 hours old it warns, and offers the extension", () => {
+    const action = expiryActionFor(run(), new Date("2026-09-16T05:00:00Z"));
+    expect(action).toMatchObject({ do: "warn", hoursLeft: 24, canExtend: true });
+  });
+
+  test("the warning pins expiry to exactly 24 hours after the warning, not to createdAt + 48h", () => {
+    // Uploaded at 04:00, nightly pass at 03:00 the next night: 23 hours of the
+    // original 48 are left. Without the pin the mail would promise 24 and mean
+    // 23; with it, the promise is true.
+    const action = expiryActionFor(run(), new Date("2026-09-16T03:00:00Z"));
+    expect(action).toMatchObject({ do: "warn" });
+    if (action.do !== "warn") throw new Error("unreachable");
+    expect(action.expiresAt).toBe("2026-09-17T03:00:00.000Z");
+    expect(action.hoursLeft).toBe(24);
+  });
+
+  test("a warned run is never warned twice", () => {
+    const warned = run({ warnedAt: "2026-09-16T03:00:00Z", expiresAt: "2026-09-17T03:00:00Z" });
+    expect(expiryActionFor(warned, new Date("2026-09-16T23:00:00Z")).do).toBe("nothing");
+  });
+});
+
+describe("when a run is continued", () => {
+  test("continuing after the warning buys 48 hours, once", () => {
+    const warned = run({ warnedAt: "2026-09-16T03:00:00Z", expiresAt: "2026-09-17T03:00:00Z" });
+    const now = new Date("2026-09-16T20:00:00Z");
+    const extended = extendOnTouch(warned, now);
+    expect(extended?.expiresAt).toBe(new Date(now.getTime() + EXTENSION_MS).toISOString());
+    expect(extended?.extendedAt).toBe(now.toISOString());
+    // A second touch changes nothing at all.
+    expect(extendOnTouch(extended!, new Date("2026-09-17T09:00:00Z"))).toBeNull();
+  });
+
+  test("continuing before any warning changes nothing — the 48 hours are still running", () => {
+    expect(extendOnTouch(run(), new Date("2026-09-15T10:00:00Z"))).toBeNull();
+  });
+
+  test("an extended run gets one final notice and no second offer", () => {
+    const extended = run({
+      warnedAt: "2026-09-16T03:00:00Z",
+      extendedAt: "2026-09-16T20:00:00Z",
+      expiresAt: "2026-09-18T20:00:00Z",
+    });
+    const action = expiryActionFor(extended, new Date("2026-09-17T21:00:00Z"));
+    expect(action).toMatchObject({ do: "final-notice" });
+  });
+});
+```
+
+- [ ] **Step 2: Run it and watch it fail**
+
+Run: `npx vitest run test/staging-expiry.test.ts`
+Expected: FAIL — `Cannot find module '@/lib/staging/expiry'`.
+
+- [ ] **Step 3: Write the pure half**
+
+```ts
+import type { RunManifest } from "./manifest";
+
+/** How old a run has to be before the notice goes out. */
+export const WARN_AFTER_MS = 24 * 60 * 60 * 1000;
+/** What the notice promises, and therefore what it pins. */
+export const WARNED_GRACE_MS = 24 * 60 * 60 * 1000;
+/** What continuing buys, once. */
+export const EXTENSION_MS = 48 * 60 * 60 * 1000;
+
+export type ExpiryAction =
+  | { do: "nothing" }
+  | { do: "warn"; expiresAt: string; hoursLeft: number; canExtend: boolean }
+  | { do: "final-notice"; expiresAt: string };
+
+/**
+ * What tonight's pass should do with one run.
+ *
+ * **The warning pins the deadline, and that is the whole point of this
+ * function.** The sweep runs nightly, so "24 hours old" is in practice
+ * anywhere from 24 to 48 hours old — and a mail that says "24 hours left"
+ * against a fixed `createdAt + 48h` would be telling somebody who uploaded at
+ * four in the morning that they had a day when they had an hour. Writing
+ * `expiresAt = warnedAt + 24h` makes the sentence true by construction. The
+ * cost is an effective TTL between 48 and 72 hours, which is the right way
+ * round: the promise is to a person, the jitter is ours.
+ *
+ * Pure on purpose — no clock, no mailer, no filesystem — because every rule
+ * worth arguing about lives in here and a test should be able to reach it
+ * without standing up any of that.
+ */
+export function expiryActionFor(run: RunManifest, now: Date): ExpiryAction {
+  const ms = now.getTime();
+  if (run.state === "committed") return { do: "nothing" };
+
+  if (!run.warnedAt) {
+    if (ms - Date.parse(run.createdAt) < WARN_AFTER_MS) return { do: "nothing" };
+    return {
+      do: "warn",
+      expiresAt: new Date(ms + WARNED_GRACE_MS).toISOString(),
+      hoursLeft: WARNED_GRACE_MS / 3_600_000,
+      canExtend: true,
+    };
+  }
+
+  // Warned, extended, and now inside the last day of the extension: one final
+  // notice, with nothing to offer. My call rather than the owner's — see the
+  // decision table above. Ending in silence after somebody was told they would
+  // be warned reads as a bug.
+  if (run.extendedAt && !run.finalNoticeAt && Date.parse(run.expiresAt) - ms <= WARNED_GRACE_MS) {
+    return { do: "final-notice", expiresAt: run.expiresAt };
+  }
+
+  return { do: "nothing" };
+}
+
+/**
+ * Continuing a run is the extension — there is no button.
+ *
+ * Any authenticated touch calls this: opening the run, answering a question,
+ * uploading more. Before the warning it does nothing, because the original 48
+ * hours are still running and extending an unwarned run would quietly make the
+ * TTL unbounded for anybody who kept the tab open. After the warning, once.
+ *
+ * Returns `null` when nothing changed, so the caller can skip the write rather
+ * than rewriting the manifest on every request.
+ */
+export function extendOnTouch(run: RunManifest, now: Date): RunManifest | null {
+  if (!run.warnedAt || run.extendedAt) return null;
+  return {
+    ...run,
+    extendedAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + EXTENSION_MS).toISOString(),
+  };
+}
+```
+
+Add `finalNoticeAt?: string;` to `RunManifest` in `lib/staging/manifest.ts` beside `warnedAt` and `extendedAt`, with the comment: *"Set once the last notice has gone out, so an extended run cannot be told twice."*
+
+- [ ] **Step 4: Run the tests**
+
+Run: `npx vitest run test/staging-expiry.test.ts`
+Expected: PASS, all six.
+
+- [ ] **Step 5: Write the sweep and its script**
+
+`sweepExpiryWarnings` walks `listRuns` for every owner, calls `expiryActionFor`, sends through `lib/digest/reminder.ts`'s channel picker, and writes the stamp. `--dry-run` sends nothing **and stamps nothing** — running it again afterwards must behave as though the dry run never happened, which is the contract `scripts/reminders.mts`, `notify.mts` and `rates-refresh.mts` all already keep. Do not break the set.
+
+The two messages, in three languages, in `site/locales/`:
+
+```json
+"extract.expiry.warn.subject": "Your photo import has 24 hours left",
+"extract.expiry.warn.body": "You started importing {count} photographs on {started} and there are {days} days still to tell. They'll be deleted in 24 hours — unless you carry on now, which gives you another two days. Nothing you've already finished is affected.",
+"extract.expiry.final.subject": "Your photo import is about to be deleted",
+"extract.expiry.final.body": "The {count} photographs you haven't used yet go in 24 hours. This is the last notice — there's no further extension. Days you've already finished are part of your journal and stay."
+```
+
+Both say the same true thing twice: **what was already committed is safe.** A person reading "will be deleted" about their camera roll needs that sentence in the first paragraph, not the third.
+
+- [ ] **Step 6: Wire it into the nightly run**
+
+`package.json`:
+
+```json
+"extract:remind": "tsx --conditions=react-server scripts/extract-remind.mts"
+```
+
+`scripts/backup.sh`, immediately after the `reminders:send` block at line 477, in the same shape — it already reports its own failures, which is why this goes there rather than into a new timer:
+
+```bash
+if (cd "$APP_DIR" && npm run --silent extract:remind); then
+```
+
+- [ ] **Step 7: Call `extendOnTouch` from the run routes**
+
+In `app/api/helper/[user]/extract/run/route.ts` (GET and PATCH), `day/route.ts` and `upload/route.ts`, after reading the manifest and before using it:
+
+```ts
+const extended = extendOnTouch(manifest, new Date());
+if (extended) writeManifest(user, extended);
+```
+
+Four call sites, one shared function — the same shape the rest of this repository uses for a rule that must not be re-answered per caller. A fifth route added later that forgets this only fails to extend; it cannot extend twice.
+
+- [ ] **Step 8: Run the whole staging suite**
+
+Run: `npx vitest run test/staging-store.test.ts test/staging-sweep.test.ts test/staging-expiry.test.ts`
+Expected: PASS.
+
+- [ ] **Step 9: Prove the mail actually sends, locally**
+
+Local mail goes to a file, not a provider (`features.mail.keepCopy`). Create a run, backdate its `createdAt` by 25 hours, run `npm run extract:remind`, and read the `.eml` that lands. Check the sentence about the extension is there and the number of hours is 24. Prose claiming a mail was sent is not evidence; the file is.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add lib/staging/expiry.ts scripts/extract-remind.mts scripts/backup.sh package.json site/locales test/staging-expiry.test.ts
+git commit -m "feat: warn 24 hours before a staged run goes, and let continuing extend it once"
 ```
 
 ---
@@ -1703,7 +1994,13 @@ test("lists this owner's live runs, newest first, and nobody else's", async () =
 
 It names where the person stopped, how many days are left, and — plainly — how long the held photographs last. Life-story interviewing is explicit that this kind of work goes better spread over days, so the screen's tone is "there is no hurry, but there is a clock", not a nag.
 
-The open question at the top of this plan is unanswered, so build the simplest reading: a fixed 48 hours from the upload, no mail, no extension. **Put a comment in the component saying that is a placeholder decision, and name the ticket** — otherwise the next reader takes a parked question for a settled one.
+The expiry rule is decided (see the table near the top) and this screen is where a person meets it. Three states, three sentences:
+
+- **Not yet warned** — "There's no hurry, but there is a clock: unused photographs are cleared about two days after you upload them."
+- **Warned, not extended** — name the real deadline from `expiresAt`, and say plainly that being here has just extended it. Arriving *is* the extension (`extendOnTouch` has already run in the route by the time this renders), so the copy is past tense: *"You had until {deadline}. Because you came back, you've got until {newDeadline} — that's the one extension."* Telling somebody they *can* extend, on a screen whose loading already did it, is a lie about their own state.
+- **Extended** — the new deadline, and that there is no further one.
+
+In every state, the line that matters most is that finished days are already part of the journal and are not affected. Put it above the fold, not in a footnote.
 
 - [ ] **Step 4: Verify in a browser and commit**
 
@@ -1749,8 +2046,8 @@ Start this only when somebody has measured that local disk is not enough. The in
 
 ## Self-review
 
-**Spec coverage.** Design Step 01 → Tasks 1.3 and 4.3 (expectation setter, resume). Step 02 → Task 1.2 (`tripId` and `mode` on the manifest) and 1.3. Step 03 → Tasks 1.2 and 1.3 (limits stated first, per-file tiles, individual retry, wake lock, the Caddy tier). Step 04 → Tasks 1.1 and 2.3 (what was found, said as numbers). Step 05 → Tasks 2.1 and 2.3 (the day board as a workspace). Step 06 → Task 2.3 (`PhotoChips` and the `PATCH`). Step 07 → Tasks 2.2 and 2.3 (`AskCard`, editable transcript, three questions a day). Step 08 → Task 4.2 for the travellers list; **the figure drawing is explicitly out of scope and said so**, rather than left as an unclaimed requirement. Step 09 → Task 4.1. Step 10 → Task 4.2.
+**Spec coverage.** The owner's expiry decision of 2026-09-15 → Task 0.5 (warn, pin, extend, final notice) and Task 4.3 Step 3 (what the person is told, in each of the three states). Design Step 01 → Tasks 1.3 and 4.3 (expectation setter, resume). Step 02 → Task 1.2 (`tripId` and `mode` on the manifest) and 1.3. Step 03 → Tasks 1.2 and 1.3 (limits stated first, per-file tiles, individual retry, wake lock, the Caddy tier). Step 04 → Tasks 1.1 and 2.3 (what was found, said as numbers). Step 05 → Tasks 2.1 and 2.3 (the day board as a workspace). Step 06 → Task 2.3 (`PhotoChips` and the `PATCH`). Step 07 → Tasks 2.2 and 2.3 (`AskCard`, editable transcript, three questions a day). Step 08 → Task 4.2 for the travellers list; **the figure drawing is explicitly out of scope and said so**, rather than left as an unclaimed requirement. Step 09 → Task 4.1. Step 10 → Task 4.2.
 
 **Placeholder scan.** Four steps describe an implementation without a full code block — 2.1 Step 3, 2.3 Steps 3–4, 3.1 Step 3 and 4.4 Step 1. That is deliberate in exactly those four and nowhere else: each is "go and read the existing module, then match its shape", and pasting a guessed signature for `clusterMedia`, `assemble-day` or the docs mechanism would be worse than sending the implementer to the source. Every step that introduces a *new* interface carries its real code.
 
-**Type consistency.** `PhotoRow`, `DayRow`, `RunManifest` (Task 0.3), `DayGroup` (Task 2.1) and `Question` (Task 2.2) are each defined once and used unchanged afterwards. `visibility` is `"guest" | "private"` everywhere, matching `PHOTO_VISIBILITIES`. `analyseStaged` takes `Pick<PhotoRow, "id" | "filename" | "bytes">`, which is exactly what `putStagedFile` returns. `sweepStaging(now: Date)` and `newRunId(now: Date)` both take the instant rather than reading the clock, so both are testable and neither needs `Date.now()`.
+**Type consistency.** `PhotoRow`, `DayRow`, `RunManifest` (Task 0.3), `DayGroup` (Task 2.1) and `Question` (Task 2.2) are each defined once and used unchanged afterwards. `visibility` is `"guest" | "private"` everywhere, matching `PHOTO_VISIBILITIES`. `analyseStaged` takes `Pick<PhotoRow, "id" | "filename" | "bytes">`, which is exactly what `putStagedFile` returns. `sweepStaging(now: Date)`, `newRunId(now: Date)`, `expiryActionFor(run, now)` and `extendOnTouch(run, now)` all take the instant rather than reading the clock, so each is testable and none needs `Date.now()`. `RunManifest` gains exactly three optional stamps — `warnedAt`, `extendedAt`, `finalNoticeAt` — all defined in Task 0.3's type and written only by Task 0.5.
