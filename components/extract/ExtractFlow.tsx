@@ -261,16 +261,25 @@ export default function ExtractFlow({
       )}
 
       {resumeNotice && (
-        <p className="mt-4 text-sm text-ink-body">
-          {resumeNotice.kind === "notWarned" && t("extract.resume.notWarned")}
-          {resumeNotice.kind === "justExtended" &&
-            t("extract.resume.justExtended", {
-              had: new Date(resumeNotice.hadUntil).toLocaleString(),
-              until: new Date(resumeNotice.until).toLocaleString(),
-            })}
-          {resumeNotice.kind === "extended" &&
-            t("extract.resume.extended", { until: new Date(resumeNotice.until).toLocaleString() })}
-        </p>
+        <div className="mt-4">
+          {/* The reassurance comes first and stays adjacent to the clock —
+           *  R33 review finding. Somebody reading "no further extension"
+           *  needs, in the same breath, that finished days are already safe
+           *  in the journal; a screen earlier is not the same as here. */}
+          <p data-testid="resume-notice-reassurance" className="text-sm text-ink-body">
+            {t("extract.resume.daysStay")}
+          </p>
+          <p data-testid="resume-notice-clock" className="mt-1 text-sm text-ink-body">
+            {resumeNotice.kind === "notWarned" && t("extract.resume.notWarned")}
+            {resumeNotice.kind === "justExtended" &&
+              t("extract.resume.justExtended", {
+                had: new Date(resumeNotice.hadUntil).toLocaleString(),
+                until: new Date(resumeNotice.until).toLocaleString(),
+              })}
+            {resumeNotice.kind === "extended" &&
+              t("extract.resume.extended", { until: new Date(resumeNotice.until).toLocaleString() })}
+          </p>
+        </div>
       )}
 
       {run && !done && (
