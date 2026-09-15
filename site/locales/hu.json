@@ -1274,6 +1274,7 @@
   "extract.credits.spend.one": "1 kredit elköltése",
   "extract.credits.spending": "Folyamatban…",
   "extract.credits.tiedToRun": "Ez bekerül az importba. Ha hagyod lejárni, a szöveg is elvész vele együtt, és a kreditek nem járnak vissza — szóval fejezd be az utat, vagy hagyd ezt itt, amíg készen nem állsz.",
+  "extract.credits.useThisOne": "Ezt választom",
   "extract.expiry.final.body": "A még fel nem használt {count} fotó 24 óra múlva törlődik. Ez az utolsó értesítés — további hosszabbítás nincs. A már elkészült napok a naplód részei, és megmaradnak.",
   "extract.expiry.final.subject": "A fotóimportod hamarosan törlődik",
   "extract.expiry.spent": "{credits} kreditet költöttél erre az importra. Ha törlődik, ez a munka is elvész, és a kreditek nem járnak vissza.",

@@ -132,12 +132,41 @@ describe("the credits screen", () => {
       expect(container!.querySelectorAll('button[aria-label="p0.jpg"]').length).toBeGreaterThan(0);
     });
 
-    test("tapping a tile requests the sample for exactly that photograph", async () => {
+    // Fix round finding: a tap used to spend the one, irreversible free
+    // sample directly off a small grid tile, with no way to see the
+    // photograph large first. A tap now only opens the viewer.
+    test("tapping a tile opens the viewer instead of spending the sample", async () => {
       await render(10, 3, { sampleTakenFor: null });
 
       const tile = container!.querySelector('button[aria-label="p1.jpg"]') as HTMLElement;
       await act(async () => {
         tile.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const fetchMock = globalThis.fetch as unknown as { mock: { calls: [RequestInfo | URL, RequestInit?][] } };
+      expect(fetchMock.mock.calls.some(([u]) => String(u).includes("/extract/sample"))).toBe(false);
+      // The viewer is open, large, over that same photograph.
+      expect(container!.querySelector('[aria-label="Close"]')).not.toBeNull();
+      expect(container!.textContent).toContain("Use this one");
+    });
+
+    test("only the viewer's own action requests the sample, for exactly the photograph that was open", async () => {
+      await render(10, 3, { sampleTakenFor: null });
+
+      const tile = container!.querySelector('button[aria-label="p1.jpg"]') as HTMLElement;
+      await act(async () => {
+        tile.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await Promise.resolve();
+      });
+
+      const useThisOne = Array.from(container!.querySelectorAll("button")).find(
+        (b) => b.textContent === "Use this one",
+      ) as HTMLElement;
+      expect(useThisOne).toBeDefined();
+      await act(async () => {
+        useThisOne.dispatchEvent(new MouseEvent("click", { bubbles: true }));
         await Promise.resolve();
         await Promise.resolve();
       });

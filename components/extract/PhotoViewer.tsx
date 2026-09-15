@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Video as VideoIcon } from "lucide-react";
 import Lightbox from "@/components/Lightbox";
 import { useI18n } from "@/components/LocaleProvider";
@@ -35,6 +36,14 @@ export type PhotoViewerItem = {
  * `app/api/helper/[user]/extract/thumb/[run]/[id]/route.ts`) draws the same
  * placeholder `PhotoTile` does, rather than asking `<video>` to play a URL
  * that was never given.
+ *
+ * **`extra`, B1803 Task 1.3 fix round.** The same slot `Gallery.tsx` already
+ * uses for its owner-only "remove this photo" button, threaded straight
+ * through to `Lightbox`'s own `extra` prop rather than a second copy of
+ * that chrome. `CreditsScreen` is the first caller here: its free sample is
+ * spent once, permanently, so the person needs to see the photograph large
+ * — via this same viewer, not a small grid tile — before committing to it,
+ * and `extra` is where that "use this one" action lives.
  */
 export default function PhotoViewer({
   items,
@@ -42,6 +51,7 @@ export default function PhotoViewer({
   onClose,
   onPrev,
   onNext,
+  extra,
 }: {
   items: PhotoViewerItem[];
   /** Which item is open, or `null` for closed. */
@@ -49,6 +59,10 @@ export default function PhotoViewer({
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
+  /** A control beside the close button, the caller's own — absent for every
+   *  screen that has nothing extra to add. Same shape as `Lightbox`'s own
+   *  `extra`; see its doc comment. */
+  extra?: ReactNode;
 }) {
   const { t } = useI18n();
   const open = index === null ? null : (items[index] ?? null);
@@ -62,6 +76,7 @@ export default function PhotoViewer({
       onClose={onClose}
       onPrev={onPrev}
       onNext={onNext}
+      extra={extra}
       // A video's own controls own the pointer — the same rule `Gallery.tsx`
       // applies to a clip's scrubber.
       swipeable={open?.kind !== "video"}

@@ -1380,6 +1380,7 @@ export type TranslationKey =
   | "extract.credits.spend.one"
   | "extract.credits.spending"
   | "extract.credits.tiedToRun"
+  | "extract.credits.useThisOne"
   | "extract.expiry.final.body"
   | "extract.expiry.final.subject"
   | "extract.expiry.spent"

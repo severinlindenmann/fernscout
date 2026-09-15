@@ -1274,6 +1274,7 @@
   "extract.credits.spend.one": "Spend 1 credit",
   "extract.credits.spending": "Spending…",
   "extract.credits.tiedToRun": "This is written into your import. If you leave it to expire, the writing goes with it and the credits aren't returned — so finish the trip, or leave this until you're ready to.",
+  "extract.credits.useThisOne": "Use this one",
   "extract.expiry.final.body": "The {count} photographs you haven't used yet go in 24 hours. This is the last notice — there's no further extension. Days you've already finished are part of your journal and stay.",
   "extract.expiry.final.subject": "Your photo import is about to be deleted",
   "extract.expiry.spent": "You've spent {credits} credits on this import. If it's deleted, that work goes with it and the credits aren't returned.",

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
+import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
 import { useI18n } from "@/components/LocaleProvider";
 import { creditsForPhotos } from "@/lib/helper/credits";
 import type { DayGroup } from "@/lib/extract/group";
@@ -75,6 +76,15 @@ export async function commitReadyDays(username: string, runId: string): Promise<
  * run loaded, with nothing on screen to say which photograph that even was.
  * `chosenId` below is the tapped tile; `takeSample` only ever fires from
  * that tap now.
+ *
+ * **A tap opens the viewer, not the spend — the fix round's own finding.**
+ * The one free sample is spent once, irreversibly (`sampleTakenFor` is
+ * per run), so a tap on a 4-across grid tile must not itself be the
+ * commitment: it opens `PhotoViewer` over the full-size photograph, and
+ * that viewer's own `extra` slot carries the actual "use this one" button.
+ * Every other screen this task wired treats a tap as "look", never as an
+ * action with a cost — this is the one screen where conflating the two
+ * would have been worst to get wrong.
  */
 export default function CreditsScreen({
   username,
@@ -93,6 +103,7 @@ export default function CreditsScreen({
   const [sample, setSample] = useState<string | null>(null);
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [sampling, setSampling] = useState(false);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [busy, setBusy] = useState<"build" | "spend" | null>(null);
   const [error, setError] = useState(false);
 
@@ -222,12 +233,42 @@ export default function CreditsScreen({
                   alt: p.filename,
                 }),
               )}
-              onSelect={(id) => void takeSample(id)}
+              onSelect={(id) => setOpenIndex(eligiblePhotos.findIndex((p) => p.id === id))}
             />
           </div>
-          {sampling && <p className="mt-1 text-xs text-ink-secondary">{t("extract.credits.sampling")}</p>}
         </div>
       )}
+
+      <PhotoViewer
+        items={eligiblePhotos.map(
+          (p): PhotoViewerItem => ({ id: p.id, kind: p.kind, src: thumbSrc(username, runId, p.id) }),
+        )}
+        index={openIndex}
+        onClose={() => setOpenIndex(null)}
+        onPrev={() =>
+          setOpenIndex((i) => (i === null ? null : (i - 1 + eligiblePhotos.length) % eligiblePhotos.length))
+        }
+        onNext={() => setOpenIndex((i) => (i === null ? null : (i + 1) % eligiblePhotos.length))}
+        extra={
+          openIndex !== null && (
+            <button
+              type="button"
+              disabled={sampling}
+              className="absolute bottom-6 left-1/2 z-10 inline-flex min-h-11 -translate-x-1/2 items-center rounded-full bg-action-strong px-5 text-sm font-semibold text-on-action disabled:opacity-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                const photo = eligiblePhotos[openIndex];
+                void (async () => {
+                  await takeSample(photo.id);
+                  setOpenIndex(null);
+                })();
+              }}
+            >
+              {sampling ? t("extract.credits.sampling") : t("extract.credits.useThisOne")}
+            </button>
+          )
+        }
+      />
 
       {sample && (
         <div className="rounded-xl border border-line-faint p-3">
