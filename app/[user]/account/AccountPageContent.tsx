@@ -501,6 +501,47 @@ export type StoragePanel = {
   buyCredits: number;
 };
 
+/**
+ * Ledger reasons the owner sees, grouped — B1784.
+ *
+ * `lib/credits.ts` keeps one reason per door because that is what an operator
+ * reconciles a supplier bill against; an owner reading her own account wants
+ * "where did my credits go", and four AI doors she cannot tell apart is four
+ * lines of noise. Anything not listed falls into `other`, so the next reason
+ * added to the ledger cannot put a raw translation key on this page again —
+ * which is exactly how `ask_thread` got there.
+ */
+const SPENT_GROUPS: Record<string, string> = {
+  helper: "ai",
+  transcription: "ai",
+  ask_thread: "ai",
+  find_in_journal: "ai",
+  travellers_from_photo: "ai",
+  day_mail: "messages",
+  day_whatsapp: "messages",
+  digest: "messages",
+  postcard: "postcard",
+  photobook: "photobook",
+  photobook_print: "photobook",
+  storage: "storage",
+  refunded: "refunded",
+};
+
+export function groupSpent(
+  spent: { reason: string; credits: number }[],
+): { group: string; credits: number }[] {
+  const totals = new Map<string, number>();
+  for (const { reason, credits } of spent) {
+    const group = SPENT_GROUPS[reason] ?? "other";
+    totals.set(group, (totals.get(group) ?? 0) + credits);
+  }
+  return [...totals]
+    // Credits carry hundredths (B987), so a sum of two of them can land on
+    // 0.30000000000000004 in binary floating point.
+    .map(([group, credits]) => ({ group, credits: Math.round(credits * 100) / 100 }))
+    .sort((a, b) => b.credits - a.credits);
+}
+
 /** What the Payment section needs — B367. `undefined` is credits switched
  * off; the page shows storage alone then, per B821's own acceptance line. */
 export type PaymentPanel = {
@@ -739,13 +780,13 @@ export default function AccountPageContent({
                     {t("me.spentTitle")}
                   </p>
                   <ul className="mt-2 divide-y divide-line-quiet">
-                    {payment.spent.map(({ reason, credits }) => (
+                    {groupSpent(payment.spent).map(({ group, credits }) => (
                       <li
-                        key={reason}
+                        key={group}
                         className="flex items-baseline justify-between gap-3 py-2"
                       >
-                        <span className="text-base text-ink-strong">
-                          {t(`me.spentReason.${reason}` as TranslationKey)}
+                        <span className="min-w-0 text-base text-ink-strong">
+                          {t(`me.spentReason.${group}` as TranslationKey)}
                         </span>
                         <span className="shrink-0 tabular-nums text-ink-body">
                           {credits} {tn("me.paymentUnit", credits)}
