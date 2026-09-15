@@ -32,6 +32,14 @@ deliberately not a role, a rank or a row in a table: one address, read from the
 environment on each call, so it is an operations decision rather than something
 a journal's own file can widen. B480.
 
+**It does not reach an agent write token for a journal it does not own.**
+`agentScope` (`app/api/auth/codes/redeem/route.ts`) issues an unscoped write
+code only to the address in the journal's own `owner.email`, and the refusal is
+the same `invalid_code` a wrong code gets, with the reason only in the log.
+So the operator's reach is pages and cookies, not the write API: writing into
+somebody's journal stays theirs to authorise. B1785, which is also why
+`get-a-credential` refuses before asking rather than after.
+
 **That address has one page of its own, and it is the only thing on this
 instance that is about the instance** — `/admin`, B746. What a month of model
 calls, speech, print orders and sends actually cost, priced from a `costs`
