@@ -329,11 +329,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (1)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
+| [B1798](in-development/B1798-green-and-coral-text-fail-the.md) | Green and coral text fail the contrast floor in dark mode, across thirty-five components | ISSUE | high | low | `0e7f2abd` |
+| [B1799](in-development/B1799-the-upload-list-pushes-the-page.md) | The upload list pushes the page wider than a phone viewport | ISSUE | high | low | `0e7f2abd` |
 
 ## testing (7)
 
