@@ -65,7 +65,7 @@ export default function ResumeScreen({
               <button
                 type="button"
                 onClick={() => onContinue(run)}
-                className="mt-2 inline-flex min-h-11 items-center rounded-full bg-ink-strong px-5 text-base font-semibold text-white"
+                className="mt-2 inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action"
               >
                 {t("extract.resume.continue")}
               </button>

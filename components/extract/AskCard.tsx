@@ -69,7 +69,7 @@ export default function AskCard({
         type="button"
         disabled={text.trim() === ""}
         onClick={() => void submit()}
-        className="mt-2 min-h-11 rounded-full bg-ink-strong px-5 text-sm font-semibold text-white disabled:opacity-50"
+        className="mt-2 min-h-11 rounded-full bg-action-strong px-5 text-sm font-semibold text-on-action disabled:opacity-50"
       >
         {t("extract.ask.submit")}
       </BusyButton>

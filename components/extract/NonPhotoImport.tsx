@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { ArrowLeft } from "lucide-react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
@@ -161,15 +160,7 @@ export default function NonPhotoImport({ username, kind }: { username: string; k
     // unbreakable string anywhere below it can push this box past the
     // viewport before any nested `min-w-0 truncate` gets a chance to work.
     <div className="mx-auto w-full max-w-xl px-4 py-8">
-      <Link
-        href={`/${username}/extract`}
-        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body transition-colors hover:text-ink-strong"
-      >
-        <ArrowLeft className="h-4 w-4" aria-hidden strokeWidth={2.4} />
-        {t("extract.backToJournal")}
-      </Link>
-
-      <h1 className="mt-4 font-display text-2xl font-semibold text-ink-strong">{t(titleKey)}</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink-strong">{t(titleKey)}</h1>
       <p className="mt-1 text-sm text-ink-secondary">{t(wantsKey)}</p>
       <p className="mt-1 text-xs text-ink-secondary">
         {t("extract.hub.guideHint")}{" "}

@@ -233,7 +233,7 @@ export default function UploadStep({
         <button
           type="button"
           onClick={() => send(queued)}
-          className="mt-3 inline-flex min-h-11 items-center rounded-full bg-ink-strong px-5 text-base font-semibold text-white"
+          className="mt-3 inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action"
         >
           {t("extract.upload.send", { count: String(tiles.length) })}
         </button>
@@ -242,7 +242,7 @@ export default function UploadStep({
         <button
           type="button"
           onClick={() => send(failed)}
-          className="mt-3 inline-flex min-h-11 items-center rounded-full bg-ink-strong px-5 text-base font-semibold text-white"
+          className="mt-3 inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action"
         >
           {t("extract.upload.retry", { count: String(failed.length) })}
         </button>
