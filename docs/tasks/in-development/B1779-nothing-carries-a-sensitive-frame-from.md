@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: fernscout-helper icloud-export, describe.mjs, review.mjs
 found: "2026-09-15T06:24:46Z"
+started: "2026-09-15T06:40:01Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:40:01Z"
 ---
 
 # B1779 — Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date

@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: fernscout-helper icloud-export, export.mjs
 found: "2026-09-15T06:24:27Z"
+started: "2026-09-15T06:39:52Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:39:52Z"
 ---
 
 # B1772 — export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step

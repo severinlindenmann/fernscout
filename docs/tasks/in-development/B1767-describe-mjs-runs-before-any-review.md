@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: fernscout-helper icloud-export, describe.mjs, build.mjs
 found: "2026-09-15T06:24:07Z"
+started: "2026-09-15T06:39:45Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:39:45Z"
 ---
 
 # B1767 — describe.mjs runs before any review exists, so prose is written from photographs the person later removed

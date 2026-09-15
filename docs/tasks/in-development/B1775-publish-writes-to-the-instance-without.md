@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: fernscout-helper publish, sync
 found: "2026-09-15T06:24:43Z"
+started: "2026-09-15T06:39:55Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:39:55Z"
 ---
 
 # B1775 — publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything

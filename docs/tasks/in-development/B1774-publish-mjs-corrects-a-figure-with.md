@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: fernscout-helper publish, app/api/v2/[user]/figures/[id]
 found: "2026-09-15T06:24:42Z"
+started: "2026-09-15T06:39:54Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:39:54Z"
 ---
 
 # B1774 — publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero

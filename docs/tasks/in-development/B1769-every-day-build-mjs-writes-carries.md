@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: fernscout-helper icloud-export, build.mjs
 found: "2026-09-15T06:24:22Z"
+started: "2026-09-15T06:39:48Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:39:48Z"
 ---
 
 # B1769 — Every day build.mjs writes carries both time and declined.time, which the instance refuses

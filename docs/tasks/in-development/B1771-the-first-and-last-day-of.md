@@ -6,6 +6,9 @@ priority: high
 complexity: medium
 area: fernscout-helper icloud-export, narrow.mjs
 found: "2026-09-15T06:24:25Z"
+started: "2026-09-15T06:39:51Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:39:51Z"
 ---
 
 # B1771 — The first and last day of a trip keep photographs taken at the owner's own address

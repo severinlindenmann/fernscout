@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: fernscout-helper validate-content
 found: "2026-09-15T06:24:45Z"
+started: "2026-09-15T06:39:58Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:39:58Z"
 ---
 
 # B1777 — Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors

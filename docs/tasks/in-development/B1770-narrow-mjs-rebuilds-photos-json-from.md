@@ -6,6 +6,9 @@ priority: medium
 complexity: low
 area: fernscout-helper icloud-export, narrow.mjs, blur.mjs
 found: "2026-09-15T06:24:24Z"
+started: "2026-09-15T06:39:49Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:39:49Z"
 ---
 
 # B1770 — narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs

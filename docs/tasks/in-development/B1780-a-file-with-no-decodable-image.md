@@ -6,6 +6,9 @@ priority: low
 complexity: low
 area: fernscout-helper icloud-export, query.mjs
 found: "2026-09-15T06:24:47Z"
+started: "2026-09-15T06:40:03Z"
+session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
+claimed: "2026-09-15T06:40:03Z"
 ---
 
 # B1780 — A file with no decodable image survives every re-export and is rediscovered by each tool in turn

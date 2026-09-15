@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (232)
+## backlog (219)
 
 ### security (5)
 
@@ -61,16 +61,10 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (52)
+### issue (41)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1767](backlog/issue/B1767-describe-mjs-runs-before-any-review.md) | describe.mjs runs before any review exists, so prose is written from photographs the person later removed | ISSUE | high | medium |
-| [B1768](backlog/issue/B1768-build-mjs-writes-into-a-non.md) | build.mjs writes into a non-empty trip folder, so a rebuilt trip holds both the old entries and the new ones | ISSUE | high | low |
-| [B1769](backlog/issue/B1769-every-day-build-mjs-writes-carries.md) | Every day build.mjs writes carries both time and declined.time, which the instance refuses | ISSUE | high | low |
-| [B1771](backlog/issue/B1771-the-first-and-last-day-of.md) | The first and last day of a trip keep photographs taken at the owner's own address | ISSUE | high | medium |
-| [B1772](backlog/issue/B1772-export-mjs-does-not-check-what.md) | export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step | ISSUE | high | low |
-| [B1774](backlog/issue/B1774-publish-mjs-corrects-a-figure-with.md) | publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -99,9 +93,6 @@ Do not edit them by hand; run the script.
 | [B1753](backlog/issue/B1753-check-caddy-reports-the-running-config.md) | check:caddy reports the running config is in step while a directive from this release is missing from it | ISSUE | medium | low |
 | [B1755](backlog/issue/B1755-a-video-s-own-location-is.md) | A video's own location is thrown away, though ffprobe already hands it back in the call that reads its date | ISSUE | medium | low |
 | [B1757](backlog/issue/B1757-cost-reporting-folds-cached-tokens-in.md) | Cost reporting folds cached tokens in at face value, so every figure overstates | ISSUE | medium | low |
-| [B1770](backlog/issue/B1770-narrow-mjs-rebuilds-photos-json-from.md) | narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs | ISSUE | medium | low |
-| [B1775](backlog/issue/B1775-publish-writes-to-the-instance-without.md) | publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything | ISSUE | medium | medium |
-| [B1776](backlog/issue/B1776-figures-are-journal-content-the-sync.md) | figures are journal content the sync carries in neither direction | ISSUE | medium | medium |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -115,8 +106,6 @@ Do not edit them by hand; run the script.
 | [B1712](backlog/issue/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
 | [B1773](backlog/issue/B1773-a-stranger-sees-every-closed-journey.md) | A stranger sees every closed journey at once on a journal with thirty trips | ISSUE | low | low |
-| [B1777](backlog/issue/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low |
-| [B1780](backlog/issue/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low |
 
 ### big-feature (17)
 
@@ -140,7 +129,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (28)
+### small-feature (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -159,7 +148,6 @@ Do not edit them by hand; run the script.
 | [B1749](backlog/small-feature/B1749-there-is-one-circle-of-guests.md) | There is one circle of guests, so a trip held back from the wider circle is held back from close family too | FEATURE | medium | medium |
 | [B1758](backlog/small-feature/B1758-no-tool-carries-an-example-and.md) | No tool carries an example, and few-shot is the one prompt-side lever with evidence behind it | FEATURE | medium | low |
 | [B1761](backlog/small-feature/B1761-the-bench-world-cannot-stage-a.md) | The bench world cannot stage a photograph, a voice note, a pin, an invite or a balance | FEATURE | medium | medium |
-| [B1779](backlog/small-feature/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
@@ -170,7 +158,6 @@ Do not edit them by hand; run the script.
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
 | [B1655](backlog/small-feature/B1655-an-owner-cannot-change-their-own.md) | An owner cannot change their own email or phone number | FEATURE | low | medium |
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
-| [B1778](backlog/small-feature/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
 ### chore (7)
@@ -336,13 +323,26 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (3)
+## in-development (16)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
+| [B1767](in-development/B1767-describe-mjs-runs-before-any-review.md) | describe.mjs runs before any review exists, so prose is written from photographs the person later removed | ISSUE | high | medium | `135632db` |
+| [B1768](in-development/B1768-build-mjs-writes-into-a-non.md) | build.mjs writes into a non-empty trip folder, so a rebuilt trip holds both the old entries and the new ones | ISSUE | high | low | `135632db` |
+| [B1769](in-development/B1769-every-day-build-mjs-writes-carries.md) | Every day build.mjs writes carries both time and declined.time, which the instance refuses | ISSUE | high | low | `135632db` |
+| [B1771](in-development/B1771-the-first-and-last-day-of.md) | The first and last day of a trip keep photographs taken at the owner's own address | ISSUE | high | medium | `135632db` |
+| [B1772](in-development/B1772-export-mjs-does-not-check-what.md) | export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step | ISSUE | high | low | `135632db` |
+| [B1774](in-development/B1774-publish-mjs-corrects-a-figure-with.md) | publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero | ISSUE | high | low | `135632db` |
 | [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
+| [B1770](in-development/B1770-narrow-mjs-rebuilds-photos-json-from.md) | narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs | ISSUE | medium | low | `135632db` |
+| [B1775](in-development/B1775-publish-writes-to-the-instance-without.md) | publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything | ISSUE | medium | medium | `135632db` |
+| [B1776](in-development/B1776-figures-are-journal-content-the-sync.md) | figures are journal content the sync carries in neither direction | ISSUE | medium | medium | `135632db` |
+| [B1779](in-development/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium | `135632db` |
 | [B1781](in-development/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | `7163371b` |
+| [B1777](in-development/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low | `135632db` |
+| [B1778](in-development/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium | `135632db` |
+| [B1780](in-development/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low | `135632db` |
 
 ## testing (12)
 
