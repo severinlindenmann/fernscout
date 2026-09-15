@@ -74,7 +74,11 @@ the owner later wants them that is a decision, not an omission.
 - The clock is segmented digits with tabular figures; the card does not shift
   width as they change.
 - The bar reflects the current window and refills on an extension.
-- Segment count and colour follow the ladder; seconds only below an hour.
+- Segment count and colour follow the ladder. **Seconds are always visible
+  and always tick** — the approved draft shows live seconds at two days out,
+  and this line's original "seconds only below an hour" was overruled in the
+  drawing's favour during the build. A seconds box that only refreshes once
+  a minute freezes and then jumps by sixty, which reads as a broken clock.
 - The pulse is absent under `prefers-reduced-motion`.
 - Past zero reads as about-to-be-cleared, dashed, never negative.
 - Verified in a browser at 390px **in both themes, with more than one run

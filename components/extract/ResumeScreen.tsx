@@ -219,7 +219,7 @@ export default function ResumeScreen({
    *  `ExtractFlow`'s own fetch is still in flight; the summary bar simply
    *  stays hidden until it has a real figure, the same as it does for a
    *  journal that never approaches the ceiling. */
-  storage?: { usedBytes: number };
+  storage?: { usedBytes: number; runs: number };
   onContinue: (run: RunSummaryClient) => void;
   onStartNew: () => void;
   /** Called once a run is actually gone from disk, so the caller can drop it
@@ -283,10 +283,10 @@ export default function ResumeScreen({
         storage.usedBytes >= JOURNAL_STAGING_MAX_BYTES * JOURNAL_STAGING_WARN_FRACTION && (
           <div className="mt-3 rounded-xl border border-line-strong px-4 py-2.5">
             <p className="text-sm text-ink-secondary">
-              {tn("extract.resume.storage.bar", runs.length, {
+              {tn("extract.resume.storage.bar", storage.runs, {
                 used: formatGigabytes(storage.usedBytes, locale),
                 limit: formatGigabytes(JOURNAL_STAGING_MAX_BYTES, locale),
-                count: String(runs.length),
+                count: String(storage.runs),
               })}
             </p>
             <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-line-faint">

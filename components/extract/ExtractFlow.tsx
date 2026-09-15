@@ -115,6 +115,7 @@ export default function ExtractFlow({
   // the one the upload route itself just computed, not a stale figure from
   // whenever the list was last fetched.
   const [stagedBytes, setStagedBytes] = useState<number | undefined>(undefined);
+  const [stagedRuns, setStagedRuns] = useState(0);
   // Set the instant a run is picked off `ResumeScreen`, to whether *this*
   // resume is the one that will consume the run's single extension — read
   // from the pre-touch summary `ResumeScreen` was showing, before `DayBoard`
@@ -174,9 +175,14 @@ export default function ExtractFlow({
     try {
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/extract/runs`);
       if (!res.ok) throw new Error(String(res.status));
-      const json = (await res.json()) as { runs?: RunSummaryClient[]; stagedBytes?: number };
+      const json = (await res.json()) as {
+        runs?: RunSummaryClient[];
+        stagedBytes?: number;
+        stagedRuns?: number;
+      };
       const runs = Array.isArray(json.runs) ? json.runs : [];
       if (json.stagedBytes !== undefined) setStagedBytes(json.stagedBytes);
+      if (json.stagedRuns !== undefined) setStagedRuns(json.stagedRuns);
       if (runs.length > 0) {
         setResumable(runs);
         return;
@@ -339,7 +345,7 @@ export default function ExtractFlow({
         <ResumeScreen
           username={username}
           runs={resumable}
-          storage={stagedBytes === undefined ? undefined : { usedBytes: stagedBytes }}
+          storage={stagedBytes === undefined ? undefined : { usedBytes: stagedBytes, runs: stagedRuns }}
           onContinue={continueRun}
           onStartNew={startNew}
           onDestroyed={destroyRun}

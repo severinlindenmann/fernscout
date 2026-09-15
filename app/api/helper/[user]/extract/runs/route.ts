@@ -82,7 +82,8 @@ export async function GET(
     return notYourJournal(request, user);
   }
 
-  const runs: RunSummary[] = listRuns(user)
+  const all = listRuns(user);
+  const runs: RunSummary[] = all
     .filter((run) => unusedPhotoCount(run) > 0)
     .map((run) => ({ ...run, daysLeftToTell: daysLeftToTell(run) }));
   // The journal's whole staging footprint, across every run it owns — not
@@ -94,6 +95,12 @@ export async function GET(
   // total on every card for no reason.
   return Response.json({
     runs,
+    // `stagedRuns` counts what `stagedBytes` is a total of, which is not
+    // `runs.length`: a spent run holds real bytes but nothing left to
+    // resume, so it is out of the list above and inside both figures here.
+    // Saying "N GB across `runs.length` imports" would name a smaller
+    // number of imports than the bytes were actually measured over.
+    stagedRuns: all.length,
     stagedBytes: journalStagingBytes(user),
     stagedLimitBytes: JOURNAL_STAGING_MAX_BYTES,
   });

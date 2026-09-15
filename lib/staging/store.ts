@@ -11,6 +11,9 @@ export type StagedFile = {
   filename: string;
   bytes: number;
   sha256: string;
+  /** False when this run already held these exact bytes — nothing was
+   *  written, and the journal's footprint did not grow. */
+  alreadyPresent: boolean;
 };
 
 /** The id is the hash plus the extension, for the same reason `inboxId` does
@@ -31,8 +34,19 @@ export function putStagedFile(
   const dir = path.join(runDir(username, runId), "files");
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, id);
-  if (!fs.existsSync(file)) fs.writeFileSync(file, bytes);
-  return { id, filename, bytes: bytes.byteLength, sha256: sha };
+  const alreadyPresent = fs.existsSync(file);
+  if (!alreadyPresent) fs.writeFileSync(file, bytes);
+  // `alreadyPresent` is what lets a caller charge a quota against the bytes
+  // that actually landed: re-sending a photograph this run already holds
+  // adds nothing to the journal's footprint, so it must not be refused for
+  // crossing a ceiling it does not move.
+  return { id, filename, bytes: bytes.byteLength, sha256: sha, alreadyPresent };
+}
+
+/** Undo one `putStagedFile`, for a caller that could only decide to refuse
+ *  the file after hashing told it whether the bytes were new. */
+export function removeStagedFile(username: string, runId: string, id: string): void {
+  fs.rmSync(stagedFilePath(username, runId, id), { force: true });
 }
 
 // `runDir` validates the two segments and throws; `basename` is what stops
