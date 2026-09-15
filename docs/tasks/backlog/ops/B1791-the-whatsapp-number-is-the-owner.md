@@ -116,6 +116,50 @@ The send was made by calling Twilio directly with `From=+447862131685`.
 `TWILIO_FROM_NUMBER` was deliberately **not** changed, so live signup OTPs
 still go out on the Swiss number until the migration is decided.
 
+## Where this stopped — 2026-09-15
+
+**Meta rate-limited the number before the voice route was ever tested.**
+`#2494158` — "You have requested a verification code too many times."
+Reported cooldowns are commonly 1 hour and escalate to several hours or 24
+with repeated attempts; Meta publishes no figure. **Do not retry in a loop —
+each attempt appears to extend the window.**
+
+### What is now known about Meta and SMS
+
+Meta's verification SMS never arrived on **either** Twilio number:
+
+| Number | Meta SMS arrived |
+| --- | --- |
+| +41 76 601 46 49 (CH mobile) | no |
+| +44 7862 131685 (GB mobile) | no |
+
+And inbound SMS to the GB number **demonstrably works** — the owner's own
+reply was received and stored. So the failure is not Twilio filtering inbound
+and not this codebase. The best-fitting explanation is that **Meta or its SMS
+aggregator refuses to send verification codes to known CPaaS/virtual number
+ranges**, which both numbers are. That is an inference from two failures plus
+one working control, not a statement from Meta.
+
+### The voice route, armed but untested
+
+The GB number's `VoiceUrl` is set to a Twimlet that auto-answers and records
+with transcription:
+
+```
+https://twimlets.com/echo?Twiml=<Response><Record maxLength='40'
+  playBeep='false' transcribe='true' trim='do-not-trim'/></Response>
+```
+
+When the cooldown lifts, **spend the attempt on the voice call, not on SMS** —
+SMS has failed twice and voice is the only untested route. Pull the recording
+and transcript from the Calls/Recordings API afterwards.
+
+**If voice fails too**, that is the answer, not a setback: no CPaaS number can
+hold this registration, and B1067's recommendation — a second dedicated Swiss
+SIM on a real operator at CHF 10–25/month — becomes the path. The GB number is
+not wasted in that case; it still resolves B1317, which the Swiss number never
+could.
+
 ## Work
 
 1. ~~Prove inbound on the GB number.~~ **Done 2026-09-15 — see below.**
