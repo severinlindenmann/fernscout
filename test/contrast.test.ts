@@ -138,6 +138,69 @@ describe("accents are fills, not words", () => {
   });
 });
 
+describe("the dark theme's own text hues clear the floor (B1798)", () => {
+  /** `--color-<token>` as declared under `:root[data-theme="dark"]`, not the
+   *  light value `token()` above finds first. */
+  function darkToken(name: string): string {
+    const block = CSS.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    const match = block.match(new RegExp(`--color-${name}:\\s*(#[0-9a-fA-F]{6})`));
+    if (!match) throw new Error(`--color-${name} has no dark override in app/globals.css`);
+    return match[1];
+  }
+
+  /** The dark theme's own surface roles, read the same way `screenPalette`
+   *  does — the grounds `green-700` and `coral-600` text is actually set on. */
+  const DARK_GROUNDS = ["surface-base", "surface-raised", "surface-subtle", "surface-neutral", "surface-neutral-strong"];
+  function darkSurface(role: string): string {
+    const block = CSS.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+    const match = block.match(new RegExp(`--${role}:\\s*(#[0-9a-fA-F]{6})`));
+    if (!match) throw new Error(`--${role} has no dark value in app/globals.css`);
+    return match[1];
+  }
+
+  test("green-700 and coral-600 both got a dark override", () => {
+    expect(darkToken("green-700")).not.toBe(token("green-700"));
+    expect(darkToken("coral-600")).not.toBe(token("coral-600"));
+  });
+
+  test("both clear 4.5:1 against every surface role text sits on in dark mode", () => {
+    for (const name of ["green-700", "coral-600"]) {
+      const fg = darkToken(name);
+      for (const role of DARK_GROUNDS) {
+        expect(at(fg, darkSurface(role)), `${name} on ${role}`).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  test("the light fills these two hues sit on in a badge flip too, and still clear 4.5:1", () => {
+    // ApproveButton, PaymentCheckout, TripHero, admin/page.tsx and
+    // AccountPageContent all pair `text-green-700` with `bg-green-100`;
+    // OrderDocket and admin/page.tsx pair `text-coral-600` with
+    // `bg-coral-50`/`bg-coral-100`. Left literal, these fills stay pale in
+    // dark mode and the brighter dark text above would fail against them
+    // (1.95:1 measured for green-100 before this test was written) —
+    // exactly the trap one layer further in.
+    expect(at(darkToken("green-700"), darkToken("green-100"))).toBeGreaterThanOrEqual(4.5);
+    expect(at(darkToken("coral-600"), darkToken("coral-50"))).toBeGreaterThanOrEqual(4.5);
+    expect(at(darkToken("coral-600"), darkToken("coral-100"))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test("the dark overrides are mirrored in the prefers-color-scheme fallback block", () => {
+    // `:root[data-theme="dark"]` is the explicit toggle; the auto/system
+    // choice goes through `@media (prefers-color-scheme: dark) { :root:not([data-theme]) {} }`
+    // instead, and nothing keeps the two in sync but a person remembering to.
+    const media = CSS.match(
+      /@media \(prefers-color-scheme: dark\)[\s\S]*?:root:not\(\[data-theme\]\)\s*\{([\s\S]*?)\n {2}\}/,
+    )?.[1];
+    if (!media) throw new Error("prefers-color-scheme dark block not found");
+    for (const name of ["green-700", "coral-600", "green-100", "coral-50", "coral-100"]) {
+      const explicit = darkToken(name);
+      const auto = media.match(new RegExp(`--color-${name}:\\s*(#[0-9a-fA-F]{6})`))?.[1];
+      expect(auto, `--color-${name} in the auto-dark block`).toBe(explicit);
+    }
+  });
+});
+
 describe("no light accent is used as a text colour", () => {
   const FILL_ONLY = [
     "sky-300",

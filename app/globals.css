@@ -232,6 +232,38 @@ html {
   --surface-neutral-strong: #2a3550;
   --surface-selected: #33405a;
   --selected-mark: #facc15;
+  /*
+    B1798. `green-700` and `coral-600` are the two brand hues chosen to carry
+    text, and both were chosen against cream — 3.37:1 and 3.11:1 on this
+    theme's `#171d29`, below the 4.5:1 floor. Chosen, not computed: each is a
+    brighter step already in this hue's own family, so it reads as the same
+    green and the same coral rather than an invented shade.
+
+      green-700  #22c55e (= green-500's hex) — 7.41:1 on #171d29
+      coral-600  #f38ba6                      — 7.28:1 on #171d29
+
+    Both were also checked against every surface role text actually sits on
+    in this theme (surface-base through surface-selected) and against every
+    component that pairs the hue with a literal light fill below.
+  */
+  --color-green-700: #22c55e;
+  --color-coral-600: #f38ba6;
+  /*
+    The fills these two hues sit on in a badge (`bg-green-100`,
+    `bg-coral-50`, `bg-coral-100` — `components/ApproveButton.tsx`,
+    `components/order/OrderDocket.tsx`, `app/admin/page.tsx` among them) are
+    literal light tints and do not flip on their own. Leaving them pale would
+    put the brighter text above back under 4.5:1 the moment it lands on one
+    of these fills instead of the page — the same trap this ticket exists to
+    close, one layer further in. They flip alongside the text they carry:
+
+      green-100  #1c3327 — 5.94:1 against green-700's #22c55e
+      coral-50   #2b141a — 7.44:1 against coral-600's #f38ba6
+      coral-100  #33191f — 6.97:1 against coral-600's #f38ba6
+  */
+  --color-green-100: #1c3327;
+  --color-coral-50: #2b141a;
+  --color-coral-100: #33191f;
   --ink-strong: #f2ecdd;
   --ink-body: #e6e0d2;
   --ink-secondary: #d7d4ca;
@@ -264,6 +296,13 @@ html {
     --surface-neutral: #20283a;
     --surface-neutral-strong: #2a3550;
     --surface-selected: #33405a;
+    /* Same values as :root[data-theme="dark"] above, and the comment there —
+       this block is the automatic (`auto` choice, system dark) mirror of it. */
+    --color-green-700: #22c55e;
+    --color-coral-600: #f38ba6;
+    --color-green-100: #1c3327;
+    --color-coral-50: #2b141a;
+    --color-coral-100: #33191f;
     --ink-strong: #f2ecdd;
     --ink-body: #e6e0d2;
     --ink-secondary: #d7d4ca;

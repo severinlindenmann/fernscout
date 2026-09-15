@@ -30,7 +30,27 @@ export type ScreenTheme = "light" | "dark";
  * literal in the pattern rather than any value at all.
  */
 export function palette(css = readRepoFile("app/globals.css")): Swatch[] {
-  return [...css.matchAll(/--color-([a-z]+-\d+):\s*(#[0-9a-fA-F]{6})/g)].map(([, token, hex]) => ({
+  // Scoped to the bare `:root {}` block, not the whole file: a hue used as
+  // text can carry a second, dark-only value further down (B1798, see
+  // `darkHues` below), declared under `:root[data-theme="dark"]`, and that is
+  // a second value for the same token, not a second swatch.
+  const base = css.slice(0, css.indexOf(':root[data-theme="light"]'));
+  return [...base.matchAll(/--color-([a-z]+-\d+):\s*(#[0-9a-fA-F]{6})/g)].map(([, token, hex]) => ({
+    token,
+    hex: hex.toLowerCase(),
+  }));
+}
+
+/**
+ * The few brand hues that carry their own dark-theme value, parsed from
+ * `:root[data-theme="dark"]` the same way `screenPalette` reads its role
+ * tokens. Only `green-700`, `coral-600` and the light fills they sit on
+ * (`green-100`, `coral-50`, `coral-100`) are declared there today — B1798.
+ * Everything else in `palette()` stays literal across both themes.
+ */
+export function darkHues(css = readRepoFile("app/globals.css")): Swatch[] {
+  const block = css.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  return [...block.matchAll(/--color-([a-z]+-\d+):\s*(#[0-9a-fA-F]{6})/g)].map(([, token, hex]) => ({
     token,
     hex: hex.toLowerCase(),
   }));

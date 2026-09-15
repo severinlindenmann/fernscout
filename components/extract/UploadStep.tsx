@@ -204,16 +204,16 @@ export default function UploadStep({
             <li
               key={`${tile.file.name}-${n}`}
               data-state={tile.state}
-              className="flex items-center justify-between py-1.5 text-sm text-ink-body"
+              className="flex items-center justify-between gap-2 py-1.5 text-sm text-ink-body"
             >
-              <span className="truncate">{tile.file.name}</span>
+              <span className="min-w-0 truncate">{tile.file.name}</span>
               <span
                 className={
                   tile.state === "failed"
-                    ? "text-red-600"
+                    ? "shrink-0 text-coral-600"
                     : tile.state === "done"
-                      ? "text-green-700"
-                      : "text-ink-secondary"
+                      ? "shrink-0 text-green-700"
+                      : "shrink-0 text-ink-secondary"
                 }
               >
                 {t(STATE_KEY[tile.state])}
