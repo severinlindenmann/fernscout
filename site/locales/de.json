@@ -1478,7 +1478,6 @@
   "me.appearanceAuto": "Automatisch",
   "me.appearanceDark": "Dunkel",
   "me.appearanceLight": "Hell",
-  "me.appearanceResolved": "Derzeit {appearance}, nach der Einstellung dieses Geräts.",
   "me.appearanceTitle": "Darstellung",
   "me.askOwner": "Hier gibt es nichts auszufüllen — dieses Tagebuch führt kein Gästebuch. Der Link, den du bekommst, lässt dich hinein.",
   "me.askOwnerNamed": "Hier gibt es nichts auszufüllen — dieses Tagebuch führt kein Gästebuch. Es wird von {name} geführt: Der Link, den du von {name} bekommst, lässt dich hinein.",

@@ -1583,7 +1583,6 @@ export type TranslationKey =
   | "me.appearanceAuto"
   | "me.appearanceDark"
   | "me.appearanceLight"
-  | "me.appearanceResolved"
   | "me.appearanceTitle"
   | "me.askOwner"
   | "me.askOwnerNamed"

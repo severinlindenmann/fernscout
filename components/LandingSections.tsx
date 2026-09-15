@@ -240,7 +240,7 @@ export function SiteHeader({
             {t("home.agentLink")}
           </Link>
         )}
-        <ThemeSwitcher />
+        <ThemeSwitcher subtle />
         <LocaleSwitcher locales={locales} subtle />
       </div>
     </div>

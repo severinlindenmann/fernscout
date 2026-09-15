@@ -10,6 +10,7 @@ import SiteNav, { useNavEntries } from "./SiteNav";
 import SkipLink from "./SkipLink";
 import CurrencySwitcher from "./CurrencySwitcher";
 import LocaleSwitcher from "./LocaleSwitcher";
+import ThemeSwitcher from "./ThemeSwitcher";
 import TripSwitcher from "./TripSwitcher";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
@@ -247,6 +248,7 @@ export default function PageHeader({
               <TripSwitcher />
               <CurrencySwitcher />
               <LocaleSwitcher />
+              <ThemeSwitcher />
               <Link
                 href="/docs"
                 onClick={() => setMenuOpen(false)}
@@ -411,6 +413,7 @@ export default function PageHeader({
           <TripSwitcher />
           <CurrencySwitcher />
           <LocaleSwitcher />
+          <ThemeSwitcher />
           {/*
             The way to `/agent`, at `sm` and up — B797. Gated on `helper`
             together with Docs, same as the mobile panel and for the same

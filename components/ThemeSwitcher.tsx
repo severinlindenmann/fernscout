@@ -11,8 +11,17 @@ import {
   type ThemeChoice,
 } from "@/lib/theme";
 
-/** The header-sized sibling of the full Appearance panel on `/me`. */
-export default function ThemeSwitcher() {
+/**
+ * Appearance, as a header chip — the only control for it since B1781 retired
+ * the panel on `/<user>/me`.
+ *
+ * `subtle` is `LocaleSwitcher`'s prop and means the same thing here: on the
+ * landing page the chip sits alone above the headline, where a bordered pill
+ * reads as the first thing on the page. In the header it is one of a set and
+ * is drawn like the language chip beside it — without that, it was a bare
+ * moon between two pills and read as decoration.
+ */
+export default function ThemeSwitcher({ subtle = false }: { subtle?: boolean } = {}) {
   const { t } = useI18n();
   const [choice, setChoice] = useState<ThemeChoice>("auto");
   const [open, setOpen] = useState(false);
@@ -85,7 +94,11 @@ export default function ThemeSwitcher() {
         aria-haspopup="menu"
         aria-expanded={open}
         title={t("me.appearanceTitle")}
-        className="flex min-h-11 items-center gap-1 rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink-strong"
+        className={`flex min-h-11 items-center gap-1 rounded-full border px-2.5 text-xs font-bold transition-colors ${
+          subtle
+            ? "border-transparent bg-transparent text-ink-secondary hover:bg-surface-subtle hover:text-ink-strong"
+            : "border-line-quiet bg-surface-raised text-ink-body hover:border-line-prominent"
+        }`}
       >
         <Moon className="h-3.5 w-3.5" aria-hidden />
         <span className="sr-only">{labels[choice]}</span>
