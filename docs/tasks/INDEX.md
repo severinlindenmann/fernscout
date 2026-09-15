@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (227)
+## backlog (228)
 
 ### security (5)
 
@@ -167,7 +167,7 @@ Do not edit them by hand; run the script.
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (7)
+### chore (8)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -176,6 +176,7 @@ Do not edit them by hand; run the script.
 | [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
 | [B1688](backlog/chore/B1688-retracting-a-photographs-decline-is-written.md) | Retracting a photographs decline is written out four times instead of once | CHORE | medium | low |
 | [B1759](backlog/chore/B1759-nobody-has-priced-a-larger-model.md) | Nobody has priced a larger model on the turns the helper is worst at | CHORE | medium | low |
+| [B1804](backlog/chore/B1804-the-browser-capture-script-cannot-reach.md) | The browser capture script cannot reach a screen that needs a click, so only resting states get checked | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1762](backlog/chore/B1762-the-scenario-corpus-has-no-hungarian.md) | The scenario corpus has no Hungarian, and inventing it would poison the instrument | CHORE | low | low |
 
