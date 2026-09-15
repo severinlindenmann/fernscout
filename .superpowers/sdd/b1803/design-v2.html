@@ -1,0 +1,1242 @@
+<title>Camera Roll Import</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+/* ---------------------------------------------------------------------------
+   Tokens. The palette is Fernscout's own, read out of app/globals.css — cream
+   ground, navy ink, the waymark yellow as the one accent, green for "we have
+   it", coral for "we don't". Nothing here invents a seventh hue.
+   --------------------------------------------------------------------------- */
+:root {
+  --cream-50:  #fffaf0;
+  --cream-100: #fff3dc;
+  --cream-200: #ffe9bd;
+  --navy-900:  #1e293b;
+  --navy-800:  #253145;
+  --navy-700:  #3a4a63;
+  --navy-500:  #5a6a80;
+  --navy-400:  #8490a2;
+  --navy-300:  #aeb7c5;
+  --navy-200:  #d8dee8;
+  --navy-100:  #eceef4;
+  --yellow-300:#ffe08a;
+  --yellow-400:#ffd23f;
+  --yellow-600:#d69b0a;
+  --yellow-950:#4a3300;
+  --green-100: #ddf3e4;
+  --green-500: #22c55e;
+  --green-700: #15803d;
+  --sky-400:   #5ec8dc;
+  --sky-500:   #3fa9c4;
+  --coral-50:  #fdedf1;
+  --coral-100: #fbdce4;
+  --coral-600: #c2334a;
+  --blue-500:  #2f6fed;
+
+  --page:      var(--cream-100);
+  --surface:   var(--cream-50);
+  --surface-2: #fff;
+  --screen:    var(--cream-50);
+  --ink:       var(--navy-900);
+  --ink-body:  var(--navy-700);
+  --ink-muted: var(--navy-500);
+  --ink-faint: var(--navy-400);
+  --line:      rgba(30,41,59,.14);
+  --line-soft: rgba(30,41,59,.08);
+  --chrome:    var(--navy-800);
+  --shadow:    0 1px 2px rgba(30,41,59,.06), 0 10px 30px -12px rgba(30,41,59,.28);
+  --have-bg:   var(--green-100);
+  --have-ink:  var(--green-700);
+  --need-bg:   var(--coral-50);
+  --need-ink:  var(--coral-600);
+  --opt-bg:    var(--cream-200);
+  --opt-ink:   var(--yellow-950);
+  --soft-fill: var(--navy-100);
+
+  --display: "Fredoka", ui-rounded, "Hiragino Maru Gothic ProN", system-ui, sans-serif;
+  --sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page:      #151d2b;
+    --surface:   #1b2433;
+    --surface-2: #212c3d;
+    --screen:    #1b2433;
+    --ink:       var(--cream-50);
+    --ink-body:  #cdd5e2;
+    --ink-muted: #9aa6b8;
+    --ink-faint: #71809a;
+    --line:      rgba(255,250,240,.16);
+    --line-soft: rgba(255,250,240,.08);
+    --chrome:    #0f1520;
+    --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px -12px rgba(0,0,0,.6);
+    --have-bg:   rgba(34,197,94,.16);
+    --have-ink:  #6ee7a0;
+    --need-bg:   rgba(240,106,138,.16);
+    --need-ink:  #f6a7bb;
+    --opt-bg:    rgba(255,210,63,.14);
+    --opt-ink:   var(--yellow-300);
+    --soft-fill: rgba(255,250,240,.1);
+  }
+}
+:root[data-theme="dark"] {
+  --page:      #151d2b;
+  --surface:   #1b2433;
+  --surface-2: #212c3d;
+  --screen:    #1b2433;
+  --ink:       var(--cream-50);
+  --ink-body:  #cdd5e2;
+  --ink-muted: #9aa6b8;
+  --ink-faint: #71809a;
+  --line:      rgba(255,250,240,.16);
+  --line-soft: rgba(255,250,240,.08);
+  --chrome:    #0f1520;
+  --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px -12px rgba(0,0,0,.6);
+  --have-bg:   rgba(34,197,94,.16);
+  --have-ink:  #6ee7a0;
+  --need-bg:   rgba(240,106,138,.16);
+  --need-ink:  #f6a7bb;
+  --opt-bg:    rgba(255,210,63,.14);
+  --opt-ink:   var(--yellow-300);
+  --soft-fill: rgba(255,250,240,.1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink-body);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px 96px; }
+
+/* --- Masthead ----------------------------------------------------------- */
+.masthead { padding: 56px 0 16px; display: flex; flex-direction: column; gap: 18px; }
+.brandline { display: flex; align-items: center; gap: 10px; }
+.brandline span {
+  font: 500 12px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-muted);
+}
+h1 {
+  font-family: var(--display); font-weight: 500;
+  font-size: clamp(2.1rem, 7vw, 3.4rem); line-height: 1.05;
+  color: var(--ink); margin: 0; text-wrap: balance; letter-spacing: -.01em;
+}
+.standfirst { font-size: 1.05rem; max-width: 34em; margin: 0; color: var(--ink-body); }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 4px; }
+.meta b {
+  font: 500 11.5px/1 var(--mono); letter-spacing: .04em;
+  padding: 6px 9px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line); color: var(--ink-muted);
+}
+.meta b.new { background: var(--yellow-400); border-color: var(--yellow-600); color: var(--yellow-950); }
+
+/* --- What changed ------------------------------------------------------- */
+.changed {
+  margin: 34px 0 0; border-radius: 20px; background: var(--surface);
+  border: 1px solid var(--line-soft); padding: 22px;
+}
+.changed h2 { margin-top: 0; }
+.changelist { display: grid; gap: 2px; margin: 16px 0 0; padding: 0; list-style: none; }
+.changelist li {
+  display: grid; gap: 3px 16px; padding: 13px 0; border-top: 1px solid var(--line-soft);
+}
+@media (min-width: 760px) { .changelist li { grid-template-columns: 210px 1fr; } }
+.changelist .find { font: 600 .84rem/1.4 var(--sans); color: var(--ink); }
+.changelist .find em { display: block; font: 400 .74rem/1.4 var(--mono); font-style: normal; color: var(--ink-faint); margin-top: 3px; }
+.changelist .did { font-size: .93rem; margin: 0; }
+.changelist .did b { color: var(--ink); }
+
+/* --- Phases and steps --------------------------------------------------- */
+.phase {
+  margin: 56px 0 0; display: flex; align-items: baseline; gap: 14px;
+  padding-bottom: 12px; border-bottom: 2px solid var(--yellow-400);
+}
+.phase .n { font: 500 .72rem/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--yellow-600); }
+.phase h2 { font-family: var(--display); font-weight: 500; font-size: clamp(1.5rem,5vw,2.1rem); margin: 0; color: var(--ink); }
+.phase .t { margin-left: auto; font-size: .82rem; color: var(--ink-muted); text-align: right; }
+
+.step { padding: 38px 0 8px; border-top: 1px solid var(--line-soft); margin-top: 34px; }
+.step:first-of-type { border-top: 0; margin-top: 12px; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-muted); margin-bottom: 10px;
+}
+.eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green-500); }
+.eyebrow .tag { background: var(--yellow-400); color: var(--yellow-950); border-radius: 4px; padding: 3px 5px; letter-spacing: .06em; }
+h2 {
+  font-family: var(--display); font-weight: 500; font-size: clamp(1.45rem, 4.4vw, 2rem);
+  line-height: 1.15; color: var(--ink); margin: 0 0 10px; text-wrap: balance;
+}
+h3 { font-family: var(--display); font-weight: 500; font-size: 1.1rem; color: var(--ink); margin: 26px 0 8px; }
+.step > p { max-width: 34em; margin: 0 0 6px; }
+
+.pair { display: grid; gap: 28px; margin-top: 24px; align-items: start; }
+@media (min-width: 900px) { .pair { grid-template-columns: 360px 1fr; gap: 40px; } }
+@media (min-width: 900px) { .pair.two-up { grid-template-columns: 360px 360px; } }
+@media (min-width: 1060px) { .pair.three-up { grid-template-columns: repeat(3, 340px); gap: 26px; } }
+
+.notes { display: flex; flex-direction: column; gap: 16px; }
+.note h4 { font: 600 .9rem/1.3 var(--sans); color: var(--ink); margin: 0 0 3px; }
+.note p { margin: 0; font-size: .95rem; color: var(--ink-body); }
+.note.why { border-left: 3px solid var(--yellow-400); padding-left: 14px; }
+.note.watch { border-left: 3px solid var(--coral-600); padding-left: 14px; }
+.note.res { border-left: 3px solid var(--sky-500); padding-left: 14px; }
+.note.res h4::after {
+  content: "from the research"; font: 400 .66rem/1 var(--mono); letter-spacing: .06em;
+  color: var(--sky-500); margin-left: 8px; text-transform: uppercase;
+}
+
+/* --- Phone -------------------------------------------------------------- */
+.phone { width: 100%; max-width: 360px; margin: 0 auto; background: var(--chrome); border-radius: 34px; padding: 9px; box-shadow: var(--shadow); }
+.phone .screen { background: var(--screen); border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; min-height: 540px; }
+.statusbar { display: flex; justify-content: space-between; align-items: center; padding: 9px 18px 2px; font: 500 11px/1 var(--sans); color: var(--ink-muted); }
+.statusbar .bars { display: flex; gap: 2px; align-items: flex-end; }
+.statusbar .bars i { width: 3px; background: var(--ink-faint); border-radius: 1px; display: block; }
+.navbar { display: flex; align-items: center; gap: 10px; padding: 8px 16px 10px; border-bottom: 1px solid var(--line-soft); }
+.navbar .back { color: var(--ink-muted); font-size: 18px; line-height: 1; }
+.navbar .t { font: 600 .92rem/1 var(--sans); color: var(--ink); }
+.navbar .r { margin-left: auto; font: 500 .8rem/1 var(--sans); color: var(--yellow-600); }
+
+/* persistent progress strip — "how many, where am I, what happens at the end" */
+.prog { display: flex; align-items: center; gap: 8px; padding: 9px 16px; background: var(--soft-fill); }
+.prog .pips { display: flex; gap: 3px; flex: 1; }
+.prog .pips i { height: 4px; flex: 1; border-radius: 2px; background: var(--navy-200); display: block; }
+:root[data-theme="dark"] .prog .pips i { background: rgba(255,250,240,.2); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .prog .pips i { background: rgba(255,250,240,.2); } }
+.prog .pips i.on { background: var(--green-500); }
+.prog .pips i.now { background: var(--yellow-400); }
+.prog span { font: 500 .7rem/1 var(--mono); color: var(--ink-muted); white-space: nowrap; }
+
+.body { padding: 16px; display: flex; flex-direction: column; gap: 13px; flex: 1; }
+.body.tight { gap: 10px; }
+
+.scr-title { font-family: var(--display); font-weight: 500; font-size: 1.32rem; line-height: 1.15; color: var(--ink); margin: 2px 0 0; }
+.scr-sub { font-size: .87rem; color: var(--ink-muted); margin: -6px 0 2px; }
+
+.card { background: var(--surface-2); border: 1px solid var(--line); border-radius: 15px; padding: 14px; display: flex; flex-direction: column; gap: 5px; }
+.card.sel { border-color: var(--yellow-600); box-shadow: 0 0 0 2px var(--yellow-300); }
+.card .h { font: 600 .95rem/1.25 var(--sans); color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.card .d { font-size: .8rem; color: var(--ink-muted); line-height: 1.45; }
+
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px 16px; border-radius: 13px; border: 0; font: 600 .95rem/1 var(--sans); background: var(--yellow-400); color: var(--yellow-950); width: 100%; }
+.btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink-body); }
+.btn.quiet { background: var(--soft-fill); color: var(--ink-body); }
+.btn.danger { background: var(--coral-600); color: #fff; }
+.reassure { font-size: .76rem; color: var(--ink-faint); text-align: center; margin: -6px 0 0; }
+.spacer { flex: 1; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; font: 500 .72rem/1 var(--sans); padding: 6px 9px; border-radius: 999px; border: 1px solid transparent; white-space: nowrap; }
+.chip svg { width: 12px; height: 12px; flex: none; }
+.chip.have { background: var(--have-bg); color: var(--have-ink); }
+.chip.need { background: var(--need-bg); color: var(--need-ink); }
+.chip.opt  { background: var(--opt-bg);  color: var(--opt-ink); }
+.chip.flat { background: transparent; border-color: var(--line); color: var(--ink-muted); }
+
+.ph { border-radius: 9px; background: linear-gradient(135deg, var(--sky-400), var(--sky-500)); position: relative; overflow: hidden; }
+.ph::after { content: ""; position: absolute; inset: 0; background: radial-gradient(28px 20px at 72% 26%, rgba(255,250,240,.75), transparent 70%), linear-gradient(0deg, rgba(30,41,59,.35), transparent 55%); }
+.ph.a { background: linear-gradient(135deg, #ffd88a, #f0a35e); }
+.ph.b { background: linear-gradient(135deg, #8fd6b4, #3f9b7a); }
+.ph.c { background: linear-gradient(135deg, #b3c4e8, #6a7fae); }
+.ph.d { background: linear-gradient(135deg, #f6a7bb, #c2334a); }
+.ph .badge { position: absolute; z-index: 1; left: 4px; bottom: 4px; font: 500 .6rem/1 var(--mono); background: rgba(30,41,59,.8); color: var(--cream-50); padding: 3px 4px; border-radius: 4px; }
+.ph .badge.bad { background: var(--coral-600); }
+.ph .badge.ok { background: var(--green-700); }
+.strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+.strip .ph { aspect-ratio: 1; }
+.grid4 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.grid4 .ph { aspect-ratio: 1; }
+.grid4 .ph.on { outline: 3px solid var(--yellow-400); outline-offset: -3px; }
+
+.bar { height: 7px; border-radius: 99px; background: var(--soft-fill); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--yellow-400); border-radius: 99px; }
+.bar i.green { background: var(--green-500); }
+.bar.thin { height: 4px; }
+
+.tip { background: var(--opt-bg); border-radius: 13px; padding: 12px 13px; display: flex; flex-direction: column; gap: 7px; }
+.tip .th { font: 600 .78rem/1 var(--sans); color: var(--ink); }
+.tip ul { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 6px; }
+.tip li { font-size: .79rem; line-height: 1.45; color: var(--ink-body); }
+.tip.cool { background: var(--soft-fill); }
+.tip.bad { background: var(--need-bg); }
+.tip.bad .th { color: var(--need-ink); }
+
+.ask { background: var(--navy-900); color: var(--cream-50); border-radius: 15px; padding: 14px; font-size: .93rem; line-height: 1.45; }
+:root[data-theme="dark"] .ask { background: #0f1520; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ask { background: #0f1520; } }
+.ask .who { font: 500 .68rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--yellow-400); display: block; margin-bottom: 7px; }
+.ask.soft { background: var(--surface-2); color: var(--ink-body); border: 1px solid var(--line); }
+.ask.soft .who { color: var(--yellow-600); }
+
+.mic { width: 62px; height: 62px; border-radius: 50%; background: var(--coral-600); display: grid; place-items: center; margin: 0 auto; box-shadow: 0 0 0 8px var(--coral-100); }
+:root[data-theme="dark"] .mic { box-shadow: 0 0 0 8px rgba(194,51,74,.2); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mic { box-shadow: 0 0 0 8px rgba(194,51,74,.2); } }
+.mic svg { width: 25px; height: 25px; fill: #fff; }
+.mic.paused { background: var(--soft-fill); box-shadow: none; }
+.mic.paused svg { fill: var(--ink-muted); }
+.wave { display: flex; align-items: center; justify-content: center; gap: 3px; height: 24px; }
+.wave i { width: 3px; border-radius: 2px; background: var(--coral-600); display: block; opacity: .85; }
+
+.rows { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; gap: 10px; padding: 11px 2px; border-bottom: 1px solid var(--line-soft); font-size: .87rem; color: var(--ink-body); }
+.row:last-child { border-bottom: 0; }
+.row .k { color: var(--ink); font-weight: 600; }
+.row .v { margin-left: auto; font-family: var(--mono); font-size: .78rem; color: var(--ink-muted); }
+.row .v.ok { color: var(--have-ink); }
+.row .v.bad { color: var(--need-ink); }
+
+.toggle { width: 38px; height: 22px; border-radius: 99px; background: var(--green-500); position: relative; flex: none; }
+.toggle::after { content: ""; position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+.toggle.off { background: var(--navy-200); }
+:root[data-theme="dark"] .toggle.off { background: rgba(255,250,240,.24); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .toggle.off { background: rgba(255,250,240,.24); } }
+.toggle.off::after { right: auto; left: 2px; }
+
+.figure { display: flex; gap: 10px; align-items: center; }
+.avatar { width: 46px; height: 46px; border-radius: 50%; background: var(--opt-bg); display: grid; place-items: center; flex: none; border: 1px solid var(--line); }
+.avatar svg { width: 30px; height: 30px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.legend .chip { font-size: .78rem; }
+
+.callout { margin-top: 34px; border-radius: 18px; padding: 20px; background: var(--surface); border: 1px solid var(--line-soft); }
+.callout h3 { margin-top: 0; }
+.callout ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+.callout li { font-size: .95rem; }
+.callout code { font: 500 .85em/1 var(--mono); background: var(--soft-fill); padding: 2px 5px; border-radius: 5px; color: var(--ink); }
+
+.qbank { display: grid; gap: 10px; margin-top: 16px; }
+@media (min-width: 720px) { .qbank { grid-template-columns: 1fr 1fr; } }
+.q { background: var(--surface-2); border: 1px solid var(--line); border-radius: 13px; padding: 13px 14px; }
+.q .lbl { font: 500 .66rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 6px; }
+.q .good { color: var(--ink); font-weight: 600; font-size: .92rem; display: block; }
+.q .bad { color: var(--ink-faint); font-size: .84rem; display: block; margin-top: 6px; text-decoration: line-through; text-decoration-color: var(--need-ink); }
+
+footer { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--line-soft); color: var(--ink-muted); font-size: .88rem; }
+footer h3 { margin-top: 0; }
+footer ol { padding-left: 20px; display: flex; flex-direction: column; gap: 5px; margin: 10px 0 0; }
+footer a { color: var(--ink-body); }
+
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="brandline">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <path d="M5 27 C 11 22, 12 13, 20 6" fill="none" stroke="#ffe9bd" stroke-width="4.5" stroke-linecap="round"/>
+        <rect x="9" y="15" width="11" height="7.5" rx="1.6" transform="rotate(-38 14.5 18.75)" fill="#ffd23f"/>
+        <circle cx="22" cy="6.5" r="3.2" fill="#22c55e"/>
+      </svg>
+      <span>Fernscout · /extract</span>
+    </div>
+    <h1>Camera Roll Import</h1>
+    <p class="standfirst">A visual draft of the guided flow that turns a phone full of old photographs into a trip draft. Second pass: restructured around what the research says about wizards, uploads, voice questions and when to ask for money.</p>
+    <div class="meta">
+      <b class="new">v2</b><b>mobile first</b><b>B1751</b><b>draft — not built</b><b>15 Sep 2026</b>
+    </div>
+  </header>
+
+  <!-- ===================== WHAT CHANGED ===================== -->
+  <section class="changed">
+    <h2>Eight things the research changed</h2>
+    <p style="max-width:36em;margin:0">v1 was a clean linear wizard. Most of what follows is about the places a linear wizard quietly fails: a task too long for one sitting, an upload that half-succeeds, a question nobody can answer, and a price asked before anybody knows what they're buying.</p>
+    <ul class="changelist">
+      <li>
+        <span class="find">Staged disclosure breaks when steps are interdependent<em>NN/G, progressive disclosure</em></span>
+        <p class="did"><b>Steps 07–09 stopped being a wizard.</b> Picking days, fixing metadata and telling the story are not a sequence — people bounce between them. They are now one workspace you enter per day and leave whenever.</p>
+      </li>
+      <li>
+        <span class="find">A wizard must survive abandonment and re-entry<em>wizard pattern; reminiscence research</em></span>
+        <p class="did"><b>A resume screen, and permission to stop.</b> The interview literature is explicit that memory work goes better over days, not in one sitting. So the flow says so out loud and saves after every answer.</p>
+      </li>
+      <li>
+        <span class="find">People need to know how many steps, where they are, and what happens at the end<em>USWDS, complex forms</em></span>
+        <p class="did"><b>A persistent progress strip</b> on every screen, and an expectation-setter before the first tap: how long, what you'll need, what you get.</p>
+      </li>
+      <li>
+        <span class="find">Show per-file state, not one bar; make individual failures retryable<em>file-upload UX</em></span>
+        <p class="did"><b>The upload is a grid of tiles with their own states</b> and a "4 didn't make it — retry those" row. One bar for 120 files hides exactly the failure you need to see.</p>
+      </li>
+      <li>
+        <span class="find">State limits before the choice, not as a rejection after it<em>file-upload UX</em></span>
+        <p class="did"><b>Limits moved above the picker.</b> What's accepted and how many, before the person has spent four minutes selecting.</p>
+      </li>
+      <li>
+        <span class="find">Specific, sensory questions get stories; open prompts get nothing<em>life-story interviewing</em></span>
+        <p class="did"><b>Every question rewritten,</b> and a follow-up bank added — what it smelled like, who took the photograph, what happened right after. There's a side-by-side of what was cut.</p>
+      </li>
+      <li>
+        <span class="find">Voice input must expect recognition errors and interruption<em>voice UI practice</em></span>
+        <p class="did"><b>The transcript is editable, and pausing is a first-class control.</b> A read-only transcript from a phone in a café is a bug waiting to be published.</p>
+      </li>
+      <li>
+        <span class="find">Delay the price until value is visible; show one real result first<em>paywall timing</em></span>
+        <p class="did"><b>One free sample.</b> Before the credits screen, we describe a single photograph the person picks — free — so the offer is a thing they've seen rather than a promise.</p>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ===================== PHASE A ===================== -->
+  <div class="phase">
+    <span class="n">Phase one</span>
+    <h2>Bring it in</h2>
+    <span class="t">about 10 minutes<br>mostly waiting</span>
+  </div>
+
+  <section class="step" id="s1">
+    <div class="eyebrow"><span class="dot"></span> Step 01 <span class="tag">new in v2</span></div>
+    <h2>Say what this is before asking for anything</h2>
+    <p>Nobody hands over their camera roll to a screen that hasn't explained itself. This one costs a scroll and answers the three questions people actually have: how long, what happens to my photographs, and can I stop halfway.</p>
+
+    <div class="pair">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="t">Add an old trip</span></div>
+          <div class="body">
+            <p class="scr-title">Bring an old trip in from your photos.</p>
+            <p class="scr-sub">Four things happen, in this order.</p>
+            <div class="rows">
+              <div class="row"><span class="k">1 · You choose photographs</span><span class="v">5 min</span></div>
+              <div class="row"><span class="k">2 · We read what they know</span><span class="v">1 min</span></div>
+              <div class="row"><span class="k">3 · You tell us about the days</span><span class="v">3 min a day</span></div>
+              <div class="row"><span class="k">4 · You read it back</span><span class="v">yours to keep</span></div>
+            </div>
+            <div class="tip cool">
+              <span class="th">Where your photographs go</span>
+              <ul>
+                <li>They sit in a holding area that isn't part of your journal and doesn't count against your storage.</li>
+                <li>Anything you don't use is deleted within two days, automatically.</li>
+                <li>Nothing becomes visible to anyone until you publish it yourself.</li>
+              </ul>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Start with my photos</button>
+            <p class="reassure">You can stop at any point and pick it up later.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note res">
+          <h4>The three-line expectation setter</h4>
+          <p>Complex-form guidance is consistent: the structure — how many parts, where you are, what finishing looks like — has to be visible before the first input, or people ration their effort against an unknown.</p>
+        </div>
+        <div class="note res">
+          <h4>"You can change this anytime" is worth ~20%</h4>
+          <p>One study of a sign-up field found a single reassurance line cut abandonment by nearly a fifth. The line under the button is doing that job, and it is true.</p>
+        </div>
+        <div class="note why">
+          <h4>Privacy said plainly, not linked</h4>
+          <p>"Deleted within two days" and "doesn't count against your storage" are facts about how this works. Putting them behind a link is how people decide to do it later, which means never.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="s2">
+    <div class="eyebrow"><span class="dot"></span> Step 02</div>
+    <h2>Where it goes, and how you'll tell it</h2>
+    <p>Two questions, both cheap, both before any waiting. The first changes what happens to the dates. The second changes every screen after it — so it is asked once, here, and never buried in a setting.</p>
+
+    <div class="pair two-up">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:42</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Where it goes</span></div>
+          <div class="prog"><span class="pips"><i class="now"></i><i></i><i></i><i></i><i></i></span><span>1 of 5</span></div>
+          <div class="body">
+            <p class="scr-title">A new trip, or one you already have?</p>
+            <div class="card sel">
+              <span class="h">Start a new trip</span>
+              <span class="d">We work the dates out from the photographs. You name it at the end.</span>
+            </div>
+            <div class="card">
+              <span class="h">Add to a trip you have</span>
+              <span class="d">Photographs land on the days they were taken. Missing days get created.</span>
+            </div>
+            <div class="card" style="background:transparent;border-style:dashed">
+              <span class="h" style="font-size:.88rem">Vietnam &amp; Cambodia</span>
+              <span class="d">Jul 2019 · 14 days · your most recent</span>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Next: how you'll tell it</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:42</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">How you'll tell it</span></div>
+          <div class="prog"><span class="pips"><i class="on"></i><i class="now"></i><i></i><i></i><i></i></span><span>2 of 5</span></div>
+          <div class="body">
+            <p class="scr-title">Would you rather talk or type?</p>
+            <div class="card sel">
+              <span class="h">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+                Talk it through
+              </span>
+              <span class="d">We show you a day and ask about it. You answer out loud; we write it down and you can fix the wording.</span>
+            </div>
+            <div class="card">
+              <span class="h">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+                Type it
+              </span>
+              <span class="d">The same questions, with a keyboard.</span>
+            </div>
+            <div class="tip">
+              <span class="th">Switch whenever you like</span>
+              <ul><li>Every question takes either answer. Talk on the train, type in the café.</li></ul>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Next: choose photographs</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top:24px">
+      <div class="note res">
+        <h4>Buttons name the outcome, not the mechanism</h4>
+        <p>"Next: choose photographs" beats "Continue" in every measurement microcopy people publish — verb plus outcome, so the person knows what the tap costs before making it.</p>
+      </div>
+      <div class="note watch">
+        <h4>No transcription capability, no question</h4>
+        <p>If the instance can't transcribe, this screen never appears and the flow is the typing one. Absent, not broken.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="s3">
+    <div class="eyebrow"><span class="dot"></span> Step 03 <span class="tag">rebuilt</span></div>
+    <h2>Choosing, with the limits stated first</h2>
+    <p>v1 put the guidance next to the picker. v2 puts the hard limits <em>above</em> it: what's accepted, how many, how big. Learning the limit by being rejected after a four-minute selection is the single most expensive way to find out.</p>
+
+    <div class="pair two-up">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:43</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Choose photographs</span><span class="r">Vietnam</span></div>
+          <div class="prog"><span class="pips"><i class="on"></i><i class="on"></i><i class="now"></i><i></i><i></i></span><span>3 of 5</span></div>
+          <div class="body tight">
+            <div class="rows" style="margin-bottom:2px">
+              <div class="row"><span class="k">Photos and videos</span><span class="v">HEIC · JPEG · PNG · MOV · MP4</span></div>
+              <div class="row"><span class="k">Up to</span><span class="v">500 at a time</span></div>
+              <div class="row"><span class="k">Each one under</span><span class="v">50 MB · video 500 MB</span></div>
+            </div>
+            <button class="btn" style="padding:24px 16px;flex-direction:column;gap:6px">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="14" rx="2.5"/><circle cx="12" cy="13" r="3.4"/><path d="M8 6l1.4-2.2h5.2L16 6"/></svg>
+              Choose from your library
+            </button>
+            <div class="tip">
+              <span class="th">Two things worth knowing</span>
+              <ul>
+                <li><b>Photos kept in iCloud download first.</b> The first few minutes look slow — that's the download, not the upload.</li>
+                <li><b>About 15 a day is plenty.</b> The ones you'd actually show somebody. More photographs make a longer flow, not a better trip.</li>
+              </ul>
+            </div>
+            <div class="card" style="flex-direction:row;align-items:center;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span class="h" style="font-size:.9rem">Keep the screen awake</span>
+                <span class="d">A locked screen pauses the upload.</span>
+              </div>
+              <div class="toggle" style="margin-left:auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:47</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="t">Uploading 120</span><span class="r">Pause</span></div>
+          <div class="prog"><span class="pips"><i class="on"></i><i class="on"></i><i class="now"></i><i></i><i></i></span><span>3 of 5</span></div>
+          <div class="body tight">
+            <div class="bar"><i style="width:63%"></i></div>
+            <div class="chips">
+              <span class="chip have">76 done</span>
+              <span class="chip opt">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v10m0 0l4-4m-4 4l-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                6 coming from iCloud
+              </span>
+              <span class="chip flat">~3 min left</span>
+            </div>
+            <div class="grid4" style="grid-template-columns:repeat(4,1fr)">
+              <div class="ph a"><span class="badge ok">✓</span></div>
+              <div class="ph"><span class="badge ok">✓</span></div>
+              <div class="ph b"><span class="badge ok">✓</span></div>
+              <div class="ph c"><span class="badge">iCloud</span></div>
+              <div class="ph d"><span class="badge">62%</span></div>
+              <div class="ph b"><span class="badge ok">✓</span></div>
+              <div class="ph a"><span class="badge bad">!</span></div>
+              <div class="ph c"><span class="badge">queued</span></div>
+            </div>
+            <div class="tip bad">
+              <span class="th">4 didn't make it</span>
+              <ul><li>The connection dropped partway. Everything else is safely up — these four just need another go.</li></ul>
+              <button class="btn danger" style="padding:10px;font-size:.85rem">Retry those 4</button>
+            </div>
+            <div class="spacer"></div>
+            <p class="reassure">Leave this screen open. You can lock the phone once it says done.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top:24px">
+      <div class="note res">
+        <h4>One bar for 120 files hides the thing you need</h4>
+        <p>Upload guidance is blunt about it: show each file's own state, keep the successes when some fail, and make a failed file individually retryable rather than restarting the batch.</p>
+      </div>
+      <div class="note res">
+        <h4>Errors say what, why, and what next</h4>
+        <p>"4 didn't make it · the connection dropped · retry those 4" — the three-part shape, in one card, with the fix as a button rather than an instruction.</p>
+      </div>
+      <div class="note watch">
+        <h4>Chunked, so a retry isn't a restart</h4>
+        <p>A 33 MB clip that fails at 80% must resume, not begin again. On mobile data that difference is whether people finish.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PHASE B ===================== -->
+  <div class="phase">
+    <span class="n">Phase two</span>
+    <h2>Fill it out</h2>
+    <span class="t">a day at a time<br>come back whenever</span>
+  </div>
+
+  <section class="step" id="s4">
+    <div class="eyebrow"><span class="dot"></span> Step 04</div>
+    <h2>What the photographs already knew</h2>
+    <p>The first thing the person is told is how much they won't have to type. It also sets up the only honest version of what follows: some photographs will never have a place, and no amount of effort fixes that.</p>
+
+    <div class="pair">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:52</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="t">What we found</span></div>
+          <div class="prog"><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="now"></i><i></i></span><span>4 of 5</span></div>
+          <div class="body">
+            <p class="scr-title">120 photographs, 9 days.</p>
+            <p class="scr-sub">Read straight out of the files — nothing guessed.</p>
+            <div class="rows">
+              <div class="row"><span class="k">Dates</span><span class="v ok">118 of 120</span></div>
+              <div class="row"><span class="k">Places</span><span class="v ok">104 of 120</span></div>
+              <div class="row"><span class="k">Time of day</span><span class="v ok">118 of 120</span></div>
+              <div class="row"><span class="k">Weather</span><span class="v ok">we can look it up</span></div>
+              <div class="row"><span class="k">Who's in them</span><span class="v bad">you'll have to tell us</span></div>
+            </div>
+            <div class="tip cool">
+              <span class="th">The 16 without a place</span>
+              <ul><li>They were saved from somewhere else — sent to you, or downloaded — so they never carried one. We'll ask about those days instead of guessing.</li></ul>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">See my 9 days</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note why">
+          <h4>Say the numbers out loud</h4>
+          <p>"104 of 120 already know where they were" is the moment somebody stops bracing for a form. It is also a true statement about their own photographs, which is a different kind of credibility from a progress animation.</p>
+        </div>
+        <div class="note">
+          <h4>Weather is the one field that fills itself</h4>
+          <p>Given a place and a date, the archive reading is fetchable from a real source. Nothing invented, and it is worth saying that it came from somewhere.</p>
+        </div>
+        <div class="note watch">
+          <h4>A missing place stays missing</h4>
+          <p>No inherited coordinate from a neighbour without the person being told, and never a plausible city name. An empty field beats a confident wrong one.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="s5">
+    <div class="eyebrow"><span class="dot"></span> Step 05 <span class="tag">restructured</span></div>
+    <h2>The days are a workspace, not a queue</h2>
+    <p>This is the biggest change from v1. Choosing a day, fixing its metadata and telling its story are interdependent — people jump between them — and staged disclosure is the wrong pattern for interdependent steps. So the wizard stops here and a board takes over: pick any day, do as much as you like, come back.</p>
+
+    <div class="pair two-up">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:53</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">9 days</span><span class="r">Done for now</span></div>
+          <div class="prog"><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="now"></i></span><span>3 of 9 days told</span></div>
+          <div class="body tight">
+            <div class="card">
+              <span class="h">Tue 2 Jul <span class="chip have" style="margin-left:auto">told</span></span>
+              <div class="strip"><div class="ph a"></div><div class="ph"></div><div class="ph b"></div><div class="ph c"></div><div class="ph d"></div></div>
+              <span class="d">Hoi An · 12 photographs · 28°C, light rain</span>
+            </div>
+            <div class="card sel">
+              <span class="h">Fri 5 Jul <span class="chip need" style="margin-left:auto">no place</span></span>
+              <div class="strip"><div class="ph c"></div><div class="ph d"></div><div class="ph a"></div><div class="ph b"></div><div class="ph"></div></div>
+              <span class="d">9 photographs · none of them know where they were</span>
+              <div class="bar thin"><i style="width:28%"></i></div>
+            </div>
+            <div class="card">
+              <span class="h">Sat 6 Jul <span class="chip opt" style="margin-left:auto">not yet</span></span>
+              <div class="strip"><div class="ph b"></div><div class="ph a"></div><div class="ph c"></div><div class="ph"></div><div class="ph d"></div></div>
+              <span class="d">Hué · 14 photographs</span>
+              <div class="bar thin"><i style="width:55%"></i></div>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Tell me about Friday</button>
+            <p class="reassure">Any order you like. We save as you go.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>21:07</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="t">Welcome back</span></div>
+          <div class="body">
+            <div style="display:grid;place-items:center;padding:16px 0 2px">
+              <svg width="58" height="58" viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M5 27 C 11 22, 12 13, 20 6" fill="none" stroke="#ffe9bd" stroke-width="4.5" stroke-linecap="round"/>
+                <rect x="9" y="15" width="11" height="7.5" rx="1.6" transform="rotate(-38 14.5 18.75)" fill="#ffd23f"/>
+                <circle cx="22" cy="6.5" r="3.2" fill="#22c55e"/>
+              </svg>
+            </div>
+            <p class="scr-title" style="text-align:center">You're 3 days in.</p>
+            <p class="scr-sub" style="text-align:center">Vietnam &amp; Cambodia · left off on Friday 5 July</p>
+            <div class="rows">
+              <div class="row"><span class="k">Told</span><span class="v ok">Tue, Wed, Thu</span></div>
+              <div class="row"><span class="k">Left</span><span class="v">6 days</span></div>
+              <div class="row"><span class="k">Photographs held</span><span class="v">120 · safe for 41 more hours</span></div>
+            </div>
+            <div class="tip cool">
+              <span class="th">There's no hurry, but there is a clock</span>
+              <ul><li>Unused photographs are cleared after two days. Anything already attached to a day is yours and stays.</li></ul>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Carry on with Friday</button>
+            <button class="btn ghost">See all 9 days</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top:24px">
+      <div class="note res">
+        <h4>Memory work wants more than one sitting</h4>
+        <p>Life-story interviewers deliberately spread sessions over days or weeks — people remember more in between. A flow that demands nine days of stories in one go is fighting the way the material actually surfaces.</p>
+      </div>
+      <div class="note res">
+        <h4>Re-entry without losing work is the wizard's hardest requirement</h4>
+        <p>So it gets its own screen rather than a toast. It names where you stopped, what's left, and — honestly — how long the held photographs last.</p>
+      </div>
+      <div class="note watch">
+        <h4>The clock has to be said, not hidden</h4>
+        <p>A 48-hour holding area is fine. A 48-hour holding area somebody discovers by losing their upload is not.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="s6">
+    <div class="eyebrow"><span class="dot"></span> Step 06</div>
+    <h2>What each photograph knows, and what it doesn't</h2>
+    <p>Every chip is a field and a button. Green is known and still changeable, cream is optional and worth having, coral is a real gap. Not a form — the person taps only what they care about, and can leave the rest.</p>
+
+    <div class="pair two-up">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:55</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Tue 2 Jul</span><span class="r">12</span></div>
+          <div class="body tight">
+            <div class="grid4">
+              <div class="ph a on"></div><div class="ph"></div><div class="ph b"></div>
+              <div class="ph c"></div><div class="ph d"></div><div class="ph a"></div>
+            </div>
+            <div class="card">
+              <span class="h">Photograph 1 of 12</span>
+              <div class="chips">
+                <span class="chip have">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                  Hoi An
+                </span>
+                <span class="chip have">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                  10:07
+                </span>
+                <span class="chip opt">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+                  Who's in it?
+                </span>
+                <span class="chip opt">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 11h16M4 16h9"/></svg>
+                  Add a caption
+                </span>
+                <span class="chip flat">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                  Guests only
+                </span>
+              </div>
+            </div>
+            <div class="card">
+              <span class="h" style="font-size:.88rem">This day</span>
+              <span class="d">Hoi An · 12 photographs · 28°C, light rain</span>
+              <div class="chips"><span class="chip need">Describe this day</span></div>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Tell me about Tuesday</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:56</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Who can see this</span></div>
+          <div class="body">
+            <div class="ph a" style="height:140px"></div>
+            <div class="card">
+              <span class="h">Everyone</span>
+              <span class="d">Anyone with the trip's link — only if the trip itself is public.</span>
+            </div>
+            <div class="card sel">
+              <span class="h">Guests</span>
+              <span class="d">People you've let into your journal.</span>
+            </div>
+            <div class="card">
+              <span class="h">Just you</span>
+              <span class="d">Kept with the day, shown to nobody.</span>
+            </div>
+            <div class="tip">
+              <span class="th">Set it for the whole day instead?</span>
+              <ul><li>Apply to all 12 photographs from Tuesday.</li></ul>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Save who can see it</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="chip have">green · we already know this</span>
+      <span class="chip opt">cream · optional, worth adding</span>
+      <span class="chip need">coral · missing and it matters</span>
+      <span class="chip flat">plain · set, and changeable</span>
+    </div>
+
+    <div class="callout">
+      <h3>The fields behind the chips</h3>
+      <ul>
+        <li><b>Per photograph</b> — place, time of day, who is in it, caption, who may see it. Camera and lens are read and kept but never asked about; nobody wants to be quizzed on a focal length.</li>
+        <li><b>Per day</b> — the place it happened, a description, the weather, and who may see the day. Weather fills itself once place and date are known.</li>
+        <li><b>Per trip</b> — title, the people who came, and whether the trip is public, guests-only or private.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="step" id="s7">
+    <div class="eyebrow"><span class="dot"></span> Step 07 <span class="tag">rewritten</span></div>
+    <h2>The questions do the work</h2>
+    <p>The interviewing literature is unusually consistent here: open prompts get a sentence, and specific sensory ones get a paragraph. "What could you smell walking through the front door" is the example people cite because it reliably gets twenty minutes. Every question in v2 is built from something the photographs already said.</p>
+
+    <div class="pair three-up">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:02</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Tue 2 Jul · Hoi An</span><span class="r">1 of 3</span></div>
+          <div class="prog"><span class="pips"><i class="now"></i><i></i><i></i></span><span>day 4 of 9</span></div>
+          <div class="body tight">
+            <div class="strip"><div class="ph a"></div><div class="ph"></div><div class="ph b"></div><div class="ph c"></div><div class="ph d"></div></div>
+            <div class="ask">
+              <span class="who">First</span>
+              It's Tuesday morning in Hoi An, it's raining, and you took twelve photographs in about an hour. What were you doing?
+            </div>
+            <div class="wave">
+              <i style="height:8px"></i><i style="height:16px"></i><i style="height:24px"></i><i style="height:12px"></i><i style="height:20px"></i><i style="height:26px"></i><i style="height:10px"></i><i style="height:18px"></i><i style="height:22px"></i><i style="height:9px"></i><i style="height:15px"></i><i style="height:23px"></i>
+            </div>
+            <div class="mic">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm6-3a6 6 0 0 1-5 5.9V20h-2v-3.1A6 6 0 0 1 6 11h2a4 4 0 0 0 8 0h2z"/></svg>
+            </div>
+            <p class="scr-sub" style="text-align:center;margin:2px 0 0">Listening · tap to pause</p>
+            <div class="spacer"></div>
+            <button class="btn ghost">Type this one instead</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:04</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Check the wording</span><span class="r">Redo</span></div>
+          <div class="body tight">
+            <div class="mic paused">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg>
+            </div>
+            <p class="scr-sub" style="text-align:center;margin:2px 0 0">Paused · 1:12 recorded</p>
+            <div class="card" style="gap:6px">
+              <span class="d" style="font-size:.72rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em">What we heard — tap to fix</span>
+              <span style="font-size:.88rem;color:var(--ink-body);line-height:1.5">"We'd got in late the night before so we walked into the old town for breakfast. That yellow wall is the place we kept going back to — <span style="background:var(--need-bg);color:var(--need-ink);padding:0 3px;border-radius:3px">Ban Mi Fuong</span>, I think it was."</span>
+            </div>
+            <div class="tip cool">
+              <span class="th">One word looked uncertain</span>
+              <ul><li>Names and places are where transcription slips. Tap the highlighted bit to correct it.</li></ul>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Looks right — keep going</button>
+            <button class="btn ghost">Say it again</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:06</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Tue 2 Jul</span><span class="r">3 of 3</span></div>
+          <div class="prog"><span class="pips"><i class="on"></i><i class="on"></i><i class="now"></i></span><span>day 4 of 9</span></div>
+          <div class="body tight">
+            <div class="ph a" style="height:118px"></div>
+            <div class="ask">
+              <span class="who">One more, if you like</span>
+              You went back to that place more than once. What did it smell like in there?
+            </div>
+            <div class="chips">
+              <span class="chip flat">Who took this one?</span>
+              <span class="chip flat">What happened right after?</span>
+              <span class="chip flat">Why this photograph?</span>
+            </div>
+            <div class="tip cool">
+              <span class="th">Pick one or skip</span>
+              <ul><li>These are the small ones that turn a day into something worth reading. None of them is required.</li></ul>
+            </div>
+            <div class="spacer"></div>
+            <div style="display:flex;gap:9px">
+              <button class="btn ghost" style="flex:1">Skip</button>
+              <button class="btn" style="flex:2">Finish Tuesday</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>What got cut, and what replaced it</h3>
+    <div class="qbank">
+      <div class="q">
+        <span class="lbl">Opening a day</span>
+        <span class="good">"It's Tuesday morning in Hoi An, it's raining, and you took twelve photographs in about an hour. What were you doing?"</span>
+        <span class="bad">"Tell us about this day."</span>
+      </div>
+      <div class="q">
+        <span class="lbl">A day with no location</span>
+        <span class="good">"These nine were sent to you rather than taken on your phone, so they don't know where they were. Where were you on the Friday?"</span>
+        <span class="bad">"Location missing. Please enter a place."</span>
+      </div>
+      <div class="q">
+        <span class="lbl">Getting past the facts</span>
+        <span class="good">"What did it smell like in there?" · "What could you hear?" · "What was the weather actually doing — the reading says light rain."</span>
+        <span class="bad">"Add any additional details about this day."</span>
+      </div>
+      <div class="q">
+        <span class="lbl">People</span>
+        <span class="good">"Who took this one?" — it names a person without asking anyone to tag a face.</span>
+        <span class="bad">"Who is in this photo?"</span>
+      </div>
+      <div class="q">
+        <span class="lbl">Closing a day</span>
+        <span class="good">"What happened right after this?" — it either ends the day or opens the next one.</span>
+        <span class="bad">"Anything else?"</span>
+      </div>
+      <div class="q">
+        <span class="lbl">A day that was nothing</span>
+        <span class="good">"Travel day? Say so and we'll keep it short." — a real, one-tap answer.</span>
+        <span class="bad">Forcing a description on a day spent on a bus.</span>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top:24px">
+      <div class="note res">
+        <h4>Speech recognition will get the names wrong</h4>
+        <p>Voice guidance treats recognition error as the normal case, not the exception. So the transcript is editable, uncertain words are flagged rather than silently committed, and "say it again" is a button. A read-only transcript is a published mistake.</p>
+      </div>
+      <div class="note res">
+        <h4>Interruption is a feature</h4>
+        <p>Pausing is a first-class control, not a cancel. People stop mid-sentence because someone walks in; the flow has to survive that without losing the minute already recorded.</p>
+      </div>
+      <div class="note watch">
+        <h4>Three questions a day, hard limit</h4>
+        <p>One opener, one gap-filler, one optional follow-up. Nine days at three questions is twenty-seven answers, which is already a lot to ask of somebody's evening.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="s8">
+    <div class="eyebrow"><span class="dot"></span> Step 08</div>
+    <h2>Who was on this trip</h2>
+    <p>Asked once, for the whole trip, and only after a few days are told — by then the names have come up in the answers, so this screen can suggest them rather than start blank.</p>
+
+    <div class="pair two-up">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:18</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Who came</span></div>
+          <div class="body">
+            <p class="scr-title">How many of you went?</p>
+            <div class="card" style="flex-direction:row;align-items:center;gap:16px;justify-content:center;padding:18px">
+              <button class="btn quiet" style="width:46px;height:46px;border-radius:50%;font-size:1.3rem">−</button>
+              <span style="font-family:var(--display);font-size:2.4rem;color:var(--ink);line-height:1">2</span>
+              <button class="btn quiet" style="width:46px;height:46px;border-radius:50%;font-size:1.3rem">+</button>
+            </div>
+            <div class="card">
+              <span class="h" style="font-size:.9rem">Names, if you'd like</span>
+              <div class="rows">
+                <div class="row"><span class="k">You</span><span class="v">Severin</span></div>
+                <div class="row"><span class="k">Second</span><span class="v">tap to name</span></div>
+              </div>
+              <span class="d">You mentioned "Nora" on Tuesday and Thursday — is that them?</span>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Save who came</button>
+            <p class="reassure">Names are yours. They're never shown to anyone you haven't let in.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:20</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Draw the two of you</span><span class="r">Skip</span></div>
+          <div class="body tight">
+            <p class="scr-sub" style="margin-top:2px">Point at one photograph of each person. One face each — a group shot can't be told apart.</p>
+            <div class="figure">
+              <div class="ph a" style="width:58px;height:58px;border-radius:12px"></div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-weight:600;color:var(--ink);font-size:.9rem">Severin</span>
+                <span class="d" style="font-size:.78rem">from Tuesday, 10:07</span>
+              </div>
+              <div class="avatar" style="margin-left:auto">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--yellow-600)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="7.5" r="3.6"/><path d="M5 21c0-4 3.2-6.5 7-6.5s7 2.5 7 6.5"/></svg>
+              </div>
+            </div>
+            <div class="figure">
+              <div class="ph c" style="width:58px;height:58px;border-radius:12px"></div>
+              <div style="display:flex;flex-direction:column;gap:2px">
+                <span style="font-weight:600;color:var(--ink);font-size:.9rem">Nora</span>
+                <span class="d" style="font-size:.78rem">choose a photograph</span>
+              </div>
+              <div class="avatar" style="margin-left:auto;opacity:.45">
+                <svg viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="7.5" r="3.6"/><path d="M5 21c0-4 3.2-6.5 7-6.5s7 2.5 7 6.5"/></svg>
+              </div>
+            </div>
+            <div class="tip">
+              <span class="th">What this is for</span>
+              <ul><li>A drawn figure that walks through the trip's animation and its printed book. It is a drawing, not your photograph — your face is never published.</li></ul>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Draw them · 4 credits</button>
+            <p class="reassure">Nothing is charged until you press this.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PHASE C ===================== -->
+  <div class="phase">
+    <span class="n">Phase three</span>
+    <h2>Finish it</h2>
+    <span class="t">5 minutes<br>and a decision</span>
+  </div>
+
+  <section class="step" id="s9">
+    <div class="eyebrow"><span class="dot"></span> Step 09 <span class="tag">new in v2</span></div>
+    <h2>One free sample, then the price</h2>
+    <p>The clearest finding in the paywall research: let people see one real result before they are asked to pay, and put the whole price in front of them rather than behind a tap. So the person picks a photograph, we describe that one free, and only then does the offer appear.</p>
+
+    <div class="pair two-up">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:31</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">A free one, first</span></div>
+          <div class="body tight">
+            <p class="scr-title">Pick any photograph.</p>
+            <p class="scr-sub">We'll write its description now, free, so you can see whether it's worth the credits.</p>
+            <div class="grid4">
+              <div class="ph a on"></div><div class="ph"></div><div class="ph b"></div>
+              <div class="ph c"></div><div class="ph d"></div><div class="ph a"></div>
+            </div>
+            <div class="card" style="gap:7px">
+              <span class="d" style="font-size:.72rem;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.08em">What we'd write</span>
+              <span style="font-size:.9rem;color:var(--ink-body);line-height:1.5">"The yellow wall on Trần Phú, mid-morning, still wet from the overnight rain — the bánh mì place they kept coming back to."</span>
+              <div class="chips" style="margin-top:2px">
+                <span class="chip have">from your Tuesday</span>
+                <span class="chip flat">rewrite it</span>
+              </div>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Do this for all 120</button>
+            <button class="btn ghost">No thanks — use my own words</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:33</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Finishing touches</span><span class="r">180 credits</span></div>
+          <div class="body tight">
+            <div class="card">
+              <span class="h">Describe all 120 photographs <span class="chip flat" style="margin-left:auto">24</span></span>
+              <span class="d">A line like the one you just read, under each photograph.</span>
+              <div class="toggle" style="margin-top:6px"></div>
+            </div>
+            <div class="card">
+              <span class="h">Write the trip summary <span class="chip flat" style="margin-left:auto">6</span></span>
+              <span class="d">The paragraph at the top, from your nine days.</span>
+              <div class="toggle" style="margin-top:6px"></div>
+            </div>
+            <div class="card">
+              <span class="h">Draw Severin and Nora <span class="chip flat" style="margin-left:auto">4</span></span>
+              <span class="d">Figures for the animation and the printed book.</span>
+              <div class="toggle off" style="margin-top:6px"></div>
+            </div>
+            <div class="rows">
+              <div class="row"><span class="k">This will cost</span><span class="v">30 credits</span></div>
+              <div class="row"><span class="k">You have</span><span class="v ok">180 · 150 left after</span></div>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Spend 30 and build the trip</button>
+            <button class="btn ghost">Build it free from what I wrote</button>
+            <p class="reassure">Everything written is editable afterwards. Nothing gets published by this button.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes" style="margin-top:24px">
+      <div class="note res">
+        <h4>A taste of the real thing before the ask</h4>
+        <p>The pattern the paywall write-ups keep pointing at: one genuine generated result, free, then the offer. It converts because it stops being a promise — and here it also lets somebody decide the writing isn't for them, which is a fair outcome.</p>
+      </div>
+      <div class="note res">
+        <h4>The whole price, up front</h4>
+        <p>Every line priced, the total shown, and the balance after. No toggling to discover a number.</p>
+      </div>
+      <div class="note watch">
+        <h4>The free path is a real path</h4>
+        <p>"Build it free from what I wrote" produces a complete trip. The credits buy polish on top of the person's own words, which are the point.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="step" id="s10">
+    <div class="eyebrow"><span class="dot"></span> Step 10</div>
+    <h2>Read it back, fix anything, then publish</h2>
+    <p>The draft is the trip itself on the site's own pages, not a summary of one. Everything is still editable by hand, and publishing is a second, deliberate press that this flow never makes on anybody's behalf.</p>
+
+    <div class="pair two-up">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:38</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="back">←</span><span class="t">Preview</span><span class="r">Edit</span></div>
+          <div class="body tight">
+            <div class="ph b" style="height:128px"></div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-family:var(--display);font-size:1.3rem;color:var(--ink);line-height:1.2">Vietnam &amp; Cambodia</span>
+              <span class="chip opt" style="margin-left:auto">Draft</span>
+            </div>
+            <span class="d" style="font-size:.82rem;color:var(--ink-muted)">2–11 July 2019 · 9 days · 120 photographs · Severin and Nora</span>
+            <div class="card" style="gap:6px">
+              <span class="h" style="font-size:.88rem">Tue 2 Jul · Hoi An <span class="chip flat" style="margin-left:auto">edit</span></span>
+              <span class="d">"We'd got in late the night before so we walked into the old town for breakfast. That yellow wall is the place we kept going back to — bánh mì Phượng."</span>
+              <div class="strip"><div class="ph a"></div><div class="ph"></div><div class="ph b"></div><div class="ph c"></div><div class="ph d"></div></div>
+            </div>
+            <div class="card" style="gap:6px">
+              <span class="h" style="font-size:.88rem">Fri 5 Jul · Hué <span class="chip flat" style="margin-left:auto">edit</span></span>
+              <span class="d">"The train day. We'd booked seats on the wrong side…"</span>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn ghost">Keep editing</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>10:40</span><span class="bars"><i style="height:4px"></i><i style="height:6px"></i><i style="height:8px"></i><i style="height:10px"></i></span></div>
+          <div class="navbar"><span class="t">Ready</span></div>
+          <div class="body">
+            <div style="display:grid;place-items:center;padding:12px 0 2px">
+              <svg width="62" height="62" viewBox="0 0 32 32" aria-hidden="true">
+                <path d="M5 27 C 11 22, 12 13, 20 6" fill="none" stroke="#ffe9bd" stroke-width="4.5" stroke-linecap="round"/>
+                <rect x="9" y="15" width="11" height="7.5" rx="1.6" transform="rotate(-38 14.5 18.75)" fill="#ffd23f"/>
+                <circle cx="22" cy="6.5" r="3.2" fill="#22c55e"/>
+              </svg>
+            </div>
+            <p class="scr-title" style="text-align:center">Saved as a draft.</p>
+            <p class="scr-sub" style="text-align:center">Nobody can see it — not guests, not anyone with a link.</p>
+            <div class="rows">
+              <div class="row"><span class="k">Days</span><span class="v">9</span></div>
+              <div class="row"><span class="k">Photographs</span><span class="v">120</span></div>
+              <div class="row"><span class="k">Held back</span><span class="v">6 private</span></div>
+              <div class="row"><span class="k">Credits spent</span><span class="v">30</span></div>
+            </div>
+            <div class="tip cool">
+              <span class="th">Publishing is a separate decision</span>
+              <ul><li>Take a night over it. The draft keeps, and the unused photographs clear themselves.</li></ul>
+            </div>
+            <div class="spacer"></div>
+            <button class="btn">Publish this trip</button>
+            <button class="btn ghost">Leave it as a draft</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="callout">
+    <h3>What this is standing on, and what it still isn't</h3>
+    <ul>
+      <li><b>The iCloud wait and the sleeping screen are measured.</b> Both come from real handset runs — 99 photographs through a live upload, timings recorded. The wait is per-file download, not per-byte transfer.</li>
+      <li><b>The metadata proportions are real.</b> In one ordinary camera roll, every camera original carried a location and every saved-from-elsewhere image carried none. About one in five photographs will never have a place, and they cluster on the days somebody was sent pictures by the people they were with — which is exactly what Step 07's second question is for.</li>
+      <li><b>Videos are a known gap.</b> A clip carries its own coordinates and nothing reads them yet. Tracked separately.</li>
+      <li><b>Still unknown:</b> whether an upload survives being backgrounded, and where the selection ceiling is. Neither changes this shape; both change what Step 03 can promise.</li>
+      <li><b>Not designed here:</b> the temporary store behind the upload, how credits are priced, and what an instance does when somebody abandons after Phase one. The resume screen assumes an answer to the third that nobody has given yet.</li>
+    </ul>
+  </div>
+
+  <footer>
+    <h3>What this pass read</h3>
+    <ol>
+      <li><a href="https://www.nngroup.com/articles/progressive-disclosure/">Progressive Disclosure — Nielsen Norman Group</a> — staged disclosure suits independent steps, not interdependent ones.</li>
+      <li><a href="https://designsystem.digital.gov/patterns/complete-a-complex-form/progress-easily/">Progress easily — U.S. Web Design System</a> — how many parts, where you are, what finishing looks like.</li>
+      <li><a href="https://www.eleken.co/blog-posts/wizard-ui-pattern-explained">Wizard UI Pattern — Eleken</a> — exit and re-entry without losing work.</li>
+      <li><a href="https://blog.filestack.com/file-upload-ui-patterns-improve-completion-rates/">File Upload UI Patterns — Filestack</a> — per-file state, individual retry, limits before the choice.</li>
+      <li><a href="https://uploadcare.com/blog/file-uploader-ux-best-practices/">File uploader UX — Uploadcare</a> — resumable chunks on unstable mobile connections.</li>
+      <li><a href="https://www.keepsakeproject.co/blog/interview-questions-life-stories">Interview questions for life stories — Keepsake</a> — specific, sensory and surprising beats open-ended.</li>
+      <li><a href="https://www.storii.com/blog/10-great-tips-for-a-life-story-interview">Life story interview tips — Storii</a> — spread sessions over days; people remember more in between.</li>
+      <li><a href="https://www.uxmatters.com/mt/archives/2026/02/conversational-user-interfaces-7-practical-ux-principles-for-modern-ai-systems.php">Conversational UI principles — UXmatters</a> — maintain context, ask clarifying follow-ups.</li>
+      <li><a href="https://lollypop.design/blog/2025/august/voice-user-interface-design-best-practices/">Voice UI best practices — Lollypop</a> — expect recognition error and interruption.</li>
+      <li><a href="https://userpilot.com/blog/microcopy-ux/">Microcopy UX — Userpilot</a> — verb + outcome buttons; what/why/next errors; reassurance lines.</li>
+      <li><a href="https://dev.to/paywallpro/designing-onboarding-flows-that-convert-how-to-build-trust-before-the-paywall-knp">Trust before the paywall — PaywallPro</a> — one real result first, then the ask.</li>
+      <li><a href="https://blog.funnelfox.com/effective-paywall-screen-designs-mobile-apps/">Paywall screen design — FunnelFox</a> — show the whole price rather than hiding it behind a tap.</li>
+    </ol>
+    <p style="margin-top:18px">A visual draft for discussion — no code behind it. Screens are drawn, not screenshots; every photograph is a gradient.</p>
+  </footer>
+
+</div>
