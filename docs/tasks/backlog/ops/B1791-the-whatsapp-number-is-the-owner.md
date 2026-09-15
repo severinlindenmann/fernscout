@@ -242,6 +242,32 @@ where the people filling in this instance's forms are standing, not where the
 sender number is; setting it to 44 would misread every Swiss national number a
 contact types. The inbound webhook is WABA-level and follows automatically.
 
+## The Twilio half is migrated — done 2026-09-15
+
+SMS now sends on the UK number, and the domestic ceiling is gone. No code
+change; two live values:
+
+| Where | Key | Now |
+| --- | --- | --- |
+| `/etc/fernscout/env` | `TWILIO_FROM_NUMBER` | `+447862131685` |
+| `/var/lib/fernscout/config.json` | `features.sms.allowedPrefixes` | **removed** (unset means no restriction) |
+
+Backups kept as `env.bak-20260915` and `config.json.bak-20260915`. Service
+restarted, `/api/health` green, `sms` and `smsInbound` both enabled. Verified
+by a real send that arrived on the owner's phone from the UK number, and by an
+/admin send after the restart.
+
+**This closes B1317** — the instance is no longer Swiss-only for SMS. The
+prefix guard existed solely because the Swiss number could not leave `+41`.
+
+Noticed while verifying, filed as **B1800**: /admin shows an outbound row as
+`to +<recipient>` and never names the sender, which was complete with one
+number and is not with two.
+
+The Swiss Twilio number (+41 76 601 46 49, $9/month) is now redundant for
+sending and still costs money. It is kept for the moment because contacts may
+have texted it; releasing it is the owner's call, not this ticket's.
+
 ## Work
 
 1. ~~Prove inbound on the GB number.~~ **Done 2026-09-15 — see below.**
