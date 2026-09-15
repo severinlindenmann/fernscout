@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (225)
+## backlog (226)
 
 ### security (5)
 
@@ -61,7 +61,7 @@ Do not edit them by hand; run the script.
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 | [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (43)
+### issue (44)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -108,6 +108,7 @@ Do not edit them by hand; run the script.
 | [B1712](backlog/issue/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
 | [B1773](backlog/issue/B1773-a-stranger-sees-every-closed-journey.md) | A stranger sees every closed journey at once on a journal with thirty trips | ISSUE | low | low |
+| [B1800](backlog/issue/B1800-an-outbound-sms-in-admin-does.md) | An outbound SMS in /admin does not say which of the instance's numbers sent it | ISSUE | low | low |
 
 ### big-feature (19)
 
