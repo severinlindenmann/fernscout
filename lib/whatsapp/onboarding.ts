@@ -643,7 +643,7 @@ async function finish(state: State): Promise<true> {
   let signIn: string | null = null;
   if (isEnabled("auth", created.username)) {
     try {
-      signIn = signInUrl(site.url, created.username, await issueRelayLink(created.username, state.email ?? ""));
+      signIn = signInUrl(site.url, created.username, await issueRelayLink(created.username, state.email ?? ""), state.locale);
     } catch (err) {
       console.error(`[whatsapp:onboarding] no relay link for ${created.username}:`, err);
     }

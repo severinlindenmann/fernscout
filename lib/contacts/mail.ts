@@ -149,7 +149,7 @@ export async function sendCodeMail(
   // of a passcode mail — there is nothing yet to have confirmed.
   mayMailContact({ email: to, confirmedAt: null }, { allowUnconfirmed: true });
   const link = linkToken && isEnabled("auth", username)
-    ? signInUrl(baseUrl(), username, linkToken)
+    ? signInUrl(baseUrl(), username, linkToken, locale)
     : null;
   const codeText = translateIn(
     locale,
@@ -471,6 +471,7 @@ export async function sendApprovedMail(
       baseUrl(),
       username,
       await issueStandingLink(username, contact.email),
+      locale,
     );
     // B347 — this contact may hold write access to a trip, not only reading
     // rights, and the only mail they ever get about being approved is this

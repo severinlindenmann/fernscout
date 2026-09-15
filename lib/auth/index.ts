@@ -283,10 +283,34 @@ function generateLinkToken(): string {
   return crypto.randomBytes(32).toString("base64url");
 }
 
+/**
+ * `?lang=<tag>` — the language the mail carrying this link was written in.
+ *
+ * Without it the page a reader lands on is written in whatever their *browser*
+ * asks for: `readerLocale` puts the device's language ahead of the journal's
+ * own default, which is right for a cold PWA install (B625) and wrong here.
+ * A sign-in link was written in a language somebody already chose, sent to one
+ * address, and the page behind it has to keep saying what the mail said —
+ * a German letter whose button opens an English page reads as the wrong site.
+ *
+ * Carried on the URL rather than looked up from the token, because the page
+ * deliberately does not check the token before rendering (see the route) and
+ * a language that depended on a lookup would be answering that question. The
+ * proxy already turns `?lang` into the locale cookie, so it also outlives the
+ * redemption: the journal underneath stays in the language of the letter.
+ *
+ * Base tag only — a dictionary ships per language, and `proxy.ts` shortens it
+ * to the same two characters anyway.
+ */
+function withLang(url: string, locale?: string | null): string {
+  const tag = locale?.trim().toLowerCase().split("-")[0];
+  return tag && /^[a-z]{2}$/.test(tag) ? `${url}?lang=${tag}` : url;
+}
+
 /** Where a sign-in link points. One place, so the mail and the route cannot
  * disagree about the shape of it. */
-export function signInUrl(base: string, username: string, linkToken: string): string {
-  return `${base.replace(/\/$/, "")}/${username}/s/${linkToken}`;
+export function signInUrl(base: string, username: string, linkToken: string, locale?: string | null): string {
+  return withLang(`${base.replace(/\/$/, "")}/${username}/s/${linkToken}`, locale);
 }
 
 /**
@@ -297,8 +321,8 @@ export function signInUrl(base: string, username: string, linkToken: string): st
  * `USERNAME_RE` needs at least two characters, so no journal can ever be
  * called `s`, and the static segment therefore shadows nothing.
  */
-export function identitySignInUrl(base: string, linkToken: string): string {
-  return `${base.replace(/\/$/, "")}/s/${linkToken}`;
+export function identitySignInUrl(base: string, linkToken: string, locale?: string | null): string {
+  return withLang(`${base.replace(/\/$/, "")}/s/${linkToken}`, locale);
 }
 
 /** The longest destination worth keeping. Real ones are a trip id or a day

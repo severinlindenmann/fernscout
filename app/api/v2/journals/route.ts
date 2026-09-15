@@ -219,7 +219,7 @@ export async function POST(request: Request) {
   let signIn: string | null = null;
   if (isEnabled("auth")) {
     try {
-      signIn = signInUrl(serverSite().url, created.username, await issueRelayLink(created.username, session.email));
+      signIn = signInUrl(serverSite().url, created.username, await issueRelayLink(created.username, session.email), getUser(created.username)?.defaultLocale);
     } catch (err) {
       console.error(`[journals] no relay link for ${created.username}:`, err);
     }

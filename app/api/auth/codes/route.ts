@@ -175,7 +175,7 @@ async function handleIdentity(
                 {
                   kind: "button",
                   text: translateIn(locale, "mail.identityButton"),
-                  href: identitySignInUrl(site.url, linkToken),
+                  href: identitySignInUrl(site.url, linkToken, locale),
                 },
                 { kind: "paragraph", text: translateIn(locale, "mail.identityApp", vars) },
               ] as const)
@@ -326,7 +326,7 @@ async function handleJournal(
   const guestBlocks: MailBlock[] = linkToken
     ? [
         { kind: "paragraph", text: t("mail.signinTap", vars) },
-        { kind: "button", text: t("mail.signinOpen", vars), href: signInUrl(base, username, linkToken) },
+        { kind: "button", text: t("mail.signinOpen", vars), href: signInUrl(base, username, linkToken, locale) },
         { kind: "paragraph", text: t("mail.signinCode", vars) },
       ]
     : [
