@@ -123,6 +123,61 @@ export async function proposalFor(
         ? "agent.tool.noFiles"
         : "";
   if (missing !== "") {
+    /**
+     * "Start the day first" was a dead end — B1752.
+     *
+     * A day tool asked about a date the journal has no day for answered
+     * `agent.tool.noDay` — *"start the day first, and then this can go on
+     * it"* — and stopped. Measured over 84 real wordings, that is most of why
+     * the channel's own core flow proposed nothing three times in four: the
+     * person describes a day, the model reaches for the words tool, and the
+     * conversation ends by telling them to do the thing the software is for.
+     *
+     * So the refusal becomes the card it was pointing at. `start_day` already
+     * exists for exactly this and already carries `notes` — "anything they
+     * already said about the day, in their own words" (B969) — so the
+     * paragraph they just typed rides onto the card instead of being dropped
+     * and asked for again.
+     *
+     * **Nothing is written, and nothing is invented.** `start_day` proposes
+     * like every other write tool: the fields are on their screen and only
+     * their press creates the day. The date is the one the caller already
+     * named — this never guesses one, which is why a tool call with no date
+     * still gets the old sentence.
+     */
+    const date = args.date?.trim() ?? "";
+    /**
+     * **Only the two tools whose words survive the hop.** `start_day` carries
+     * `notes`, so a paragraph handed to `set_day_words` or `draft_words`
+     * arrives on the card intact and the person loses nothing. A file
+     * selection has no such passenger: `attach_files` redirected here would
+     * put up a card that creates the day and quietly forgets the
+     * photographs — which is B925's rule ("a day nobody has written is not a
+     * day to press on") broken from the other side. Its own test caught this
+     * the first time, which is why the list is explicit rather than "every
+     * tool that resolves a day".
+     */
+    const CARRIES_ITS_WORDS = new Set(["set_day_words", "draft_words"]);
+    if (missing === "agent.tool.noDay" && /^\d{4}-\d{2}-\d{2}$/.test(date) && CARRIES_ITS_WORDS.has(tool.name)) {
+      const startDay = TOOLS.find((one) => one.name === "start_day");
+      if (startDay && startDay.kind === "write") {
+        return proposalFor(
+          username,
+          startDay,
+          {
+            ...(args.trip ? { trip: args.trip } : {}),
+            date,
+            // Whichever of the two day-writing tools sent us here: the words
+            // are theirs either way and belong on the card, not in a second
+            // request to say it all again.
+            ...(args.notes || args.content ? { notes: (args.notes ?? args.content) as string } : {}),
+          },
+          say,
+          today,
+          selected,
+        );
+      }
+    }
     return { blocks: [{ shape: "say", text: say(missing) }] };
   }
 
