@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import CreditsScreen, { commitReadyDays } from "@/components/extract/CreditsScreen";
 import DayBoard from "@/components/extract/DayBoard";
 import { useI18n } from "@/components/LocaleProvider";
 import UploadStep from "@/components/extract/UploadStep";
@@ -14,9 +15,15 @@ type Run = { runId: string; expiresAt: string };
  * and then hands the upload step its `runId`. Once an upload attempt comes
  * back with nothing left to retry, the shell hands the run to `DayBoard` —
  * the workspace where the photographs get grouped into days and asked
- * about. "Done for now" (`onLeave`) is the whole of leaving: nothing further
- * happens here, since every answer and edit is already saved by the time it
- * reaches the board.
+ * about.
+ *
+ * "Done for now" (`onLeave`/`onLeaveBoard`) no longer ends the flow by
+ * itself — B1751 Task 4.1. Every answer and edit is already saved by the
+ * time it fires, so nothing is at risk, but there is still a decision this
+ * instance may have to offer: `CreditsScreen`, shown only when `credits`
+ * actually charges for anything (`GET .../account`'s own `credits: null`
+ * meaning it does not). With it off, the ready days are committed for free
+ * straight away and the flow ends the same way it always did.
  */
 export default function ExtractFlow({
   username,
@@ -37,6 +44,14 @@ export default function ExtractFlow({
   // "Done for now", pressed on the board — B1751 Task 2.3. Everything is
   // already saved by the time this fires, so leaving needs no confirmation.
   const [left, setLeft] = useState(false);
+  // Whether the board has been left and, if so, this journal's own balance —
+  // `null` means either "not looked yet" or "this instance charges for
+  // nothing" (`balanceOf`'s own two meanings for null, B366). Fetched only
+  // once the board is actually left, not up front: nobody needs to know a
+  // price before they have finished telling their days. `undefined` is "not
+  // fetched yet", `null` is "fetched, and this instance has no such number".
+  const [atBoardEnd, setAtBoardEnd] = useState(false);
+  const [credits, setCredits] = useState<number | null | undefined>(undefined);
 
   /**
    * `UploadStep` calls this after every attempt, success or partial failure
@@ -56,6 +71,20 @@ export default function ExtractFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Once the board is left, and only then, build the free days it left
+  // ready — no capability check of its own; `commitReadyDays` is the same
+  // free path `CreditsScreen`'s own free button calls, and `credits === null`
+  // (fetched by `onLeaveBoard`) is what says nobody is going to be asked for
+  // money on top of it, so there is nothing here for a screen to show.
+  useEffect(() => {
+    if (atBoardEnd && credits === null && run) {
+      commitReadyDays(username, run.runId)
+        .then(() => setLeft(true))
+        .catch(() => setLeft(true));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atBoardEnd, credits]);
+
   async function start() {
     setError(false);
     setRun(null);
@@ -70,6 +99,26 @@ export default function ExtractFlow({
       setRun(json);
     } catch {
       setError(true);
+    }
+  }
+
+  /**
+   * "Done for now" on the board leads here rather than straight to `left` —
+   * B1751 Task 4.1. What this instance charges decides what happens next:
+   * `credits: null` (`/api/helper/[user]/account`, itself reading
+   * `balanceOf`'s own null-means-off) skips the credits screen entirely
+   * (see the effect above), and a real number renders `CreditsScreen`.
+   */
+  async function onLeaveBoard() {
+    setAtBoardEnd(true);
+    try {
+      const res = await fetch(`/api/helper/${encodeURIComponent(username)}/account`);
+      const json = (await res.json().catch(() => null)) as { credits?: number | null } | null;
+      setCredits(json && typeof json.credits === "number" ? json.credits : null);
+    } catch {
+      // No balance to show is the same as "this instance charges for
+      // nothing" from here — the free path still has to work.
+      setCredits(null);
     }
   }
 
@@ -98,7 +147,7 @@ export default function ExtractFlow({
         </div>
       )}
 
-      {done && !left && run && (
+      {done && !atBoardEnd && run && (
         <>
           <p className="mt-4 text-sm text-ink-body">{t("extract.flow.done", { count: String(uploaded) })}</p>
           <DayBoard
@@ -106,9 +155,17 @@ export default function ExtractFlow({
             runId={run.runId}
             consentedSpeech={consentedSpeech}
             speechProvider={speechProvider}
-            onLeave={() => setLeft(true)}
+            onLeave={onLeaveBoard}
           />
         </>
+      )}
+
+      {atBoardEnd && !left && run && credits !== undefined && credits !== null && (
+        <CreditsScreen username={username} runId={run.runId} credits={credits} onDone={() => setLeft(true)} />
+      )}
+
+      {atBoardEnd && !left && (credits === undefined || credits === null) && (
+        <p className="mt-4 text-sm text-ink-secondary">{t("extract.flow.building")}</p>
       )}
 
       {left && <p className="mt-4 text-sm text-ink-body">{t("extract.flow.left")}</p>}

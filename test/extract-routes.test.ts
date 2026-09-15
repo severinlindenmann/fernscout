@@ -25,6 +25,21 @@ vi.mock("@/lib/helper/server", async (importOriginal) => {
   return { ...actual, isHelperOwner: async () => owner.yes };
 });
 
+/**
+ * `describePhotos` mocked for the sample and enrich routes — Ruling R5. What
+ * a vision model actually says is not assertable, and the things worth
+ * covering are on either side of it: the one-per-run rule, and what was
+ * spent and refunded. A `vi.fn` rather than a bare stub so a single test can
+ * make it reject, for the refund path.
+ */
+const helperModel = vi.hoisted(() => ({
+  describePhotos: vi.fn(async (images: { base64: string }[]) => images.map(() => "A quiet street.")),
+}));
+vi.mock("@/lib/helper/model", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/helper/model")>();
+  return { ...actual, describePhotos: helperModel.describePhotos };
+});
+
 let dir: string;
 beforeEach(() => {
   cap.enabled = false;
@@ -444,5 +459,141 @@ describe("the run and day routes with the capability on", () => {
     const after = readManifest("alex", runId);
     expect(after?.extendedAt).toBeDefined();
     expect(Date.parse(after!.expiresAt)).toBeGreaterThanOrEqual(Date.parse(before.expiresAt));
+  });
+});
+
+/**
+ * The sample and enrich routes — B1751 Task 4.1.
+ *
+ * A real database, unlike every other describe block in this file: the
+ * enrich route spends and refunds through `lib/credits.ts`, which refuses
+ * outright with nowhere to record a ledger row (see its own doc comment),
+ * so a real sqlite file is what lets the success and refusal paths actually
+ * run rather than both reading as "no database configured".
+ */
+describe("the sample and enrich routes — B1751 Task 4.1", () => {
+  let dbDir: string;
+
+  beforeEach(async () => {
+    cap.enabled = true;
+    dbDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-extract-credits-"));
+    process.env.DATABASE_URL = `sqlite:${path.join(dbDir, "test.db")}`;
+    const { getDatabase } = await import("@/lib/db");
+    const { migrateToLatest } = await import("@/lib/db/migrate");
+    await migrateToLatest(await getDatabase());
+    helperModel.describePhotos.mockClear();
+    helperModel.describePhotos.mockImplementation(async (images: { base64: string }[]) =>
+      images.map(() => "A quiet street."),
+    );
+  });
+
+  afterEach(async () => {
+    const { closeDatabase } = await import("@/lib/db");
+    await closeDatabase();
+    delete process.env.DATABASE_URL;
+    fs.rmSync(dbDir, { recursive: true, force: true });
+  });
+
+  async function stagedManifest(runId: string, filenames: string[]) {
+    const { putStagedFile } = await import("@/lib/staging/store");
+    const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+    const manifest = readManifest("alex", runId);
+    if (!manifest) throw new Error("run vanished");
+    const staged = filenames.map((name) => putStagedFile("alex", runId, name, CAMERA_JPEG));
+    for (const s of staged) manifest.photos.push({ id: s.id, filename: s.filename, bytes: s.bytes, kind: "image" });
+    writeManifest("alex", manifest);
+    return staged;
+  }
+
+  test("the sample is free, and only one per run", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const [staged] = await stagedManifest(runId, ["a.jpg"]);
+
+    const { POST } = await import("@/app/api/helper/[user]/extract/sample/route");
+    const call = () =>
+      POST(
+        new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId, photoId: staged.id }) }),
+        { params: Promise.resolve({ user: "alex" }) },
+      );
+    expect((await call()).status).toBe(200);
+    expect((await call()).status).toBe(409);
+  });
+
+  test("the sample never touches the credit ledger", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const [staged] = await stagedManifest(runId, ["a.jpg"]);
+    const { balanceOf } = await import("@/lib/credits");
+
+    const { POST } = await import("@/app/api/helper/[user]/extract/sample/route");
+    await POST(
+      new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId, photoId: staged.id }) }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+
+    // No grant either — a journal with nothing at all still gets its sample,
+    // because nothing is spent.
+    expect(await balanceOf("alex")).toBe(0);
+  });
+
+  test("spending credits captions every live photograph, at the ref the expiry warning reads", async () => {
+    const { grant, ledgerFor, balanceOf } = await import("@/lib/credits");
+    await grant("alex", 10, "test");
+
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    await stagedManifest(runId, ["a.jpg", "b.jpg"]);
+
+    const { POST } = await import("@/app/api/helper/[user]/extract/enrich/route");
+    const res = await POST(
+      new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId }) }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { spent: number; captioned: number };
+    // creditsForPhotos(2) === Math.ceil(2 / PHOTOS_PER_CREDIT) === 1.
+    expect(body.spent).toBe(1);
+    expect(body.captioned).toBe(2);
+    expect(await balanceOf("alex")).toBe(9);
+
+    // R4 — the ref is exactly `extract:<runId>`, the same string the nightly
+    // expiry warning reads the ledger by.
+    const ledger = await ledgerFor("alex", 10);
+    expect(ledger.some((row) => row.ref === `extract:${runId}` && row.reason === "helper")).toBe(true);
+
+    const { readManifest } = await import("@/lib/staging/manifest");
+    const after = readManifest("alex", runId);
+    expect(after?.photos.every((p) => p.caption === "A quiet street.")).toBe(true);
+  });
+
+  test("refuses without enough credits, and captions nothing", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    await stagedManifest(runId, ["a.jpg"]);
+
+    const { POST } = await import("@/app/api/helper/[user]/extract/enrich/route");
+    const res = await POST(
+      new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId }) }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(402);
+
+    const { readManifest } = await import("@/lib/staging/manifest");
+    const after = readManifest("alex", runId);
+    expect(after?.photos.every((p) => !p.caption)).toBe(true);
+  });
+
+  test("a spend that buys nothing is given back", async () => {
+    const { grant, balanceOf } = await import("@/lib/credits");
+    await grant("alex", 10, "test");
+    helperModel.describePhotos.mockRejectedValueOnce(new Error("boom"));
+
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    await stagedManifest(runId, ["a.jpg"]);
+
+    const { POST } = await import("@/app/api/helper/[user]/extract/enrich/route");
+    const res = await POST(
+      new Request("http://x", { method: "POST", body: JSON.stringify({ run: runId }) }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(502);
+    expect(await balanceOf("alex")).toBe(10);
   });
 });

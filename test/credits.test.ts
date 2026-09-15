@@ -364,6 +364,10 @@ describe("the grant path is not reachable over HTTP", () => {
     // `refreshProviderStatuses`) that keeps a retried webhook delivery or a
     // page opened twice from refunding twice.
     "lib/postcard/reconcile.ts",
+    // B1751 Task 4.1. Captioning every remaining photograph in a camera-roll
+    // import, charged before the model call and given back on a throw — the
+    // same shape as `day/describe-photos` next door.
+    "app/api/helper/[user]/extract/enrich/route.ts",
   ];
 
   test("only the sanctioned routes import refund from lib/credits", () => {
@@ -413,6 +417,17 @@ describe("the grant path is not reachable over HTTP", () => {
  * which is what the route-level `no_credits` behaviour above and the
  * per-route reading in `AGENTS.md`'s own review verify.
  */
+/**
+ * B1751 Task 4.1's one deliberate exception: a run's one free sample
+ * caption, which calls `describePhotos` and spends nothing — see
+ * `sampleTakenFor` on the manifest, which is the abuse control instead of a
+ * ledger row. A named, documented, existence-checked allowlist rather than a
+ * blanket loosening of the test below, for the same reason `REFUND_ALLOWED`
+ * above is one: a second free caller added later without a line here is
+ * exactly what the un-narrowed test would have caught.
+ */
+const FREE_MODEL_CALLERS_ALLOWED = ["app/api/helper/[user]/extract/sample/route.ts"];
+
 describe("every paid model call is reached only from a file that spends first", () => {
   /** Comments quote call shapes in prose (`lib/helper/caller.ts` names
    *  `answerInThread(username, …)` while explaining something else
@@ -476,11 +491,20 @@ describe("every paid model call is reached only from a file that spends first", 
     const offenders: string[] = [];
     for (const name of priced) {
       for (const caller of callersOf(name, "lib/helper/model.ts")) {
+        if (FREE_MODEL_CALLERS_ALLOWED.includes(caller)) continue;
         const src = fs.readFileSync(path.join(process.cwd(), caller), "utf8");
         if (!/\bspend\b/.test(src)) offenders.push(`${caller} calls ${name}() without importing spend`);
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  test("the allowed free callers exist and genuinely never import spend (allowlist not stale)", () => {
+    for (const rel of FREE_MODEL_CALLERS_ALLOWED) {
+      const full = path.join(process.cwd(), rel);
+      expect(fs.existsSync(full)).toBe(true);
+      expect(fs.readFileSync(full, "utf8")).not.toMatch(/\bspend\b/);
+    }
   });
 
   test("transcribeAudio, the one Deepgram door, is only reached from a file that imports spend", () => {

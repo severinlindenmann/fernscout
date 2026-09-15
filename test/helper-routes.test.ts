@@ -177,8 +177,14 @@ describe("the helper routes", () => {
   // staging and into `inbox/days/<date>/`, behind the same storage quota
   // every other real write in this repository already answers to. Same
   // cookie, same owner check as the fifty-one before it.
-  test("there are fifty-two of them, and each is guarded", () => {
-    expect(sources).toHaveLength(52);
+  // Fifty-four: `extract/sample` and `extract/enrich` (camera roll import,
+  // B1751, Task 4.1) — the free taste and the paid caption pass over a run
+  // still in staging: one photograph described for nothing, once, and every
+  // live photograph described for credits charged against `extract:<runId>`
+  // and refunded on a throw. Same cookie, same owner check as the fifty-two
+  // before them.
+  test("there are fifty-four of them, and each is guarded", () => {
+    expect(sources).toHaveLength(54);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
