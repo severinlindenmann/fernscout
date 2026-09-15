@@ -6,21 +6,12 @@ priority: medium
 complexity: medium
 area: fernscout-helper sync / media
 found: "2026-09-15T08:53:53Z"
+started: "2026-09-15T08:57:36Z"
+session: bc2533f4-ec0c-48c5-a804-21118288b081
+claimed: "2026-09-15T08:57:36Z"
 ---
 
 # B1789 — A photograph whose local bytes differ from the site's derivative is planned, never sent, and reported as a push that did not land, on every run
-
-## Why
-
-TODO — the problem, not the fix.
-
-## Work
-
-TODO
-
-## Acceptance
-
-TODO
 
 ## Why
 
@@ -43,9 +34,20 @@ Measured, both sides, same path:
   under the same hash-named path;
 - the day already names that `src`, so `pendingMedia()` in `publish.mjs` reads
   it as attached and uploads nothing;
+- the folder's copy **is** the original: its own SHA-256 is
+  `b12e927b9c59c9acd7d2fdd0c2059198`, which is the name it sits under. The
+  site holds that same original at
+  `trips/budapest-2023/originals/2023-07-08-morgen-in-salzburg/b12e…jpg`,
+  1,698,313 bytes, and the folder has that copy too — so the `media/` path
+  locally is a pre-upload staging copy nothing replaced;
 - so the push is planned, nothing is sent, `landed()` sees a remote hash that
   did not move, the path is never recorded as agreed, and the run exits
   non-zero. The next run plans the same file again. It never settles.
+
+**96 media files on that journal differ from the site's copy**, not one. The
+rest are hidden the same way B1787's were: the baseline remembers both sides,
+so nothing is planned and nothing looks wrong, and the folder is quietly not a
+mirror.
 
 B1787's rule does not reach it and should not: that one is about two documents
 saying one thing, and there is nothing to normalise about two different JPEGs.
