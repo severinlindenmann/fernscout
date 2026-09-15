@@ -156,5 +156,13 @@ says so.
 Both messages say in their first paragraph that days already committed are part
 of the journal and are not affected.
 
-Still unanswered, and smaller: whether a paid enrichment on a run that then
-expires is refunded.
+**Credits are not refunded** (owner, 2026-09-15). Enrichment is generated into
+the run; if the run expires, the output goes with the staged files and the
+credits stay spent. Defensible — the work was done and the model was paid for —
+but only if nobody meets it as a surprise, so the plan requires it said in three
+places: above the spend button before anybody pays, in the 24-hour warning, and
+in the final notice. The warning and notice name the actual number of credits
+spent on that run, read from the ledger rather than from the manifest, and say
+nothing about credits at all when the run cost nothing.
+
+Nothing about this ticket is now parked on the owner.
