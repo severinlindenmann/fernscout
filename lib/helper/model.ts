@@ -768,6 +768,25 @@ const THREAD_MAX_TOKENS = 700;
  */
 const HUB_AREA: AreaKey = "trips";
 
+/**
+ * Making `days` a second hub was tried and is **worse** — B1752.
+ *
+ * `trips` alone is the hub, so a turn whose area pick also answers `trips`
+ * has no day tools at all, and `start_day` lives only in `days`. Putting both
+ * in the floor looked like the obvious removal of that failure. Measured over
+ * the same 84 wordings: **67% to 63%, and 26% to 17% proposing without having
+ * to ask** — worse, for ~1,750 extra tokens a turn. More tools made the
+ * choice harder, which is what the tool-calling literature says about widening
+ * a tool list and what this repository has now measured for itself.
+ *
+ * Fixing the *router's prompt* was tried before that, and is also recorded as
+ * not working: 24% to 26%, inside the noise.
+ *
+ * Both are left written down rather than deleted, because each is the obvious
+ * idea and somebody will have it again. The number to beat is in B1752.
+ */
+
+
 const AREA_KEYS: readonly AreaKey[] = AREAS.map((area) => area.key);
 
 function areaTools(keys: ReadonlySet<AreaKey>) {

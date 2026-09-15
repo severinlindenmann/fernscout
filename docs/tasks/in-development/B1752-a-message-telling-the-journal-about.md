@@ -105,6 +105,58 @@ Take them separately; they are not one bug.
 - The place-read-as-a-date answer is either a third bug or a symptom; look at
   it once the two above are out of the way.
 
+## What was done, and what it moved
+
+**The dead end is fixed, and it is a real defect.** `lib/helper/tools/run.ts`
+answered `agent.tool.noDay` and stopped; it now hands back `start_day`'s own
+card for the date the caller already named, with the words they typed riding
+along as its `notes` (B969 built that argument for exactly this). Nothing is
+written — `start_day` proposes like every other write tool — and it never
+invents a date: a call naming none still gets the old sentence.
+`test/no-day-offers-to-start-one.test.ts` holds all four of those claims, so
+the fix is proven by the suite rather than by a pass rate that moves on its
+own.
+
+**It barely moved the number**: 64% to 67% over the same 84 cases, 24% to 26%
+proposing without having to ask. Inside the noise. The reason is in the
+failure reasons — the remaining cases mostly never call a day tool at all, so
+they never reach the path this fixes.
+
+**Making `days` a second hub was tried and is worse.** `start_day` lives only
+in `days`, and a turn whose area pick answers `trips` has no day tools; the
+obvious removal of that failure is to put both in the floor. Measured:
+**67% to 63%, and 26% to 17% straight away**, for ~1,750 extra tokens a turn.
+More tools made the choice harder. Reverted, with the numbers written into the
+comment above `HUB_AREA` so the next person to have the idea meets the result
+first.
+
+That is now three structural attempts on this one ticket — the router's
+prompt (24%→26%), a rule about answering one's own question (7/12 vs 9/12 on
+B1742), and a wider tool list (67%→63%) — and **none of them moved it.**
+Every change that has actually worked this week was deterministic code: the
+link a press returns (B1736), the typed press (B1743), this dead end. That
+pattern is worth believing now rather than testing a fourth time.
+
+## Where this stands
+
+**Not finished.** A third of the cases still propose nothing, and the two
+transcript-backed symptoms in the Why are unchanged: a journal with one
+matching trip offered a second one, and a place read as a date. What is ruled
+out is the whole class of fix that makes the model choose better by telling it
+to, or by handing it more.
+
+What has not been tried, in the order the evidence favours:
+
+1. **Few-shot examples on the day tools.** The one prompt-side lever with real
+   evidence behind it, and no tool in this registry carries an example today.
+2. **A bigger model on this turn.** Model choice moves tool-calling accuracy
+   more than any prompt or schema change; `HELPER_MODEL` is Haiku 4.5 for
+   cost. Worth pricing on this scenario alone.
+3. **Removing the choice.** A message carrying a date and a place, on a
+   journal with exactly one trip covering it, is not really an ambiguous
+   request. A deterministic pre-step — not a model — could resolve the trip
+   and the date before any tool is chosen.
+
 ## Acceptance
 
 - `npm run helper:bench -- --scenario day-from-a-note --jobs 8` improves on
