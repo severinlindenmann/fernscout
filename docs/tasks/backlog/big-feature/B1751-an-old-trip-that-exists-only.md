@@ -113,3 +113,38 @@ B1750 answers the phone questions this ticket rests on. B1595 is the
 day-assembly it must reuse. B1581 is the same export problem for bank
 statements. B1011 is the missing phone app the guide half partly substitutes
 for.
+
+## Implementation plan
+
+`docs/superpowers/plans/2026-09-15-camera-roll-import.md`, written 2026-09-15
+against the v2 visual draft. Five phases, each shippable on its own; Phases 0-4
+add no runtime dependency and need no provider account.
+
+The finding that shaped it: **more than half of this is already built.** The
+per-date staging folders (`lib/inbox.ts`), the day readiness record
+(`lib/dayReadiness.ts`), the three-answer field registry (`lib/tracks.ts` — the
+chips in the design *are* that registry), the day-creation path
+(`app/api/helper/[user]/assemble-day/route.ts`), EXIF, clustering, photo
+captions, transcription and credits all exist. The plan's largest section is a
+table of what not to rebuild, because an implementer re-deriving any one of
+them is the biggest risk in the work.
+
+What is genuinely new is small: a holding area outside the quota
+(`$DATA_DIR/staging/`, swept at 48h), a run manifest, a grouping step, the
+question wording, and the mobile surface.
+
+Two decisions taken in the plan that differ from this ticket as written:
+
+- **The flow is `/<user>/extract`, not `/extract`.** A top-level route shadows
+  a username and would need a permanent `ALWAYS_RESERVED` entry for a
+  per-journal feature. The guide half goes to `/docs/extract`.
+- **Object storage is Phase 5 and optional.** The decision recorded above is
+  honoured as a second driver behind the same interface; the local filesystem
+  driver is the default and the tested one, which is what keeps AGENTS.md's
+  "no paid provider account to develop or test" true.
+
+One question is parked for the owner rather than guessed: what happens to a run
+somebody abandons — whether they are mailed before it expires, whether
+returning extends the TTL, and whether a paid enrichment on an expired run is
+refunded. The plan builds the simplest reading and says in the component that
+it is a placeholder.
