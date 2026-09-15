@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper publish, app/api/v2/[user]/figures/[id]
 found: "2026-09-15T06:24:42Z"
 started: "2026-09-15T06:39:54Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:54Z"
+merged: "2026-09-15T07:09:14Z"
 ---
 
 # B1774 — publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero
@@ -45,3 +44,21 @@ ticket does not need it.
 
 `publish` run twice over a journal with figures exits 0 both times and says the
 figures were unchanged on the second pass.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `send()` PATCHed anything that already existed, and
+`app/api/v2/[user]/figures/[id]/route.ts` exports `GET`, `PUT` and `DELETE`
+only.
+
+`send()` takes `replace`, and the figure call site passes it: an existing
+figure is `PUT` with `If-Match`, which is that route's documented correction
+door. A figure the instance already holds unchanged is not written at all — the
+run prints `unchanged` rather than claiming a correction, the same comparison
+`sendJournal()` already did for `config.json`.
+
+No instance change: `PUT` + `If-Match` is the contract, and adding a figure
+`PATCH` for symmetry would be a second door for one fact.
+
+Keeper: five checks in `publish.test.mjs`, whose fake instance now answers 405
+to a `PATCH` on a figure exactly as the real route does.

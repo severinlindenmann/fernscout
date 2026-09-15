@@ -7,8 +7,7 @@ complexity: medium
 area: fernscout-helper icloud-export, describe.mjs, review.mjs
 found: "2026-09-15T06:24:46Z"
 started: "2026-09-15T06:40:01Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:40:01Z"
+merged: "2026-09-15T07:09:17Z"
 ---
 
 # B1779 — Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date
@@ -47,3 +46,23 @@ photograph is not a claim that there is nothing in it.
 A description pass can record a flag against a photograph; the review page
 lists the flagged frames of the trip and opens on them directly; dropping one
 is still a separate press.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `sheets/index.json` had nowhere to put "cell 7 shows a
+document with somebody's name on it", and the review page knew nothing of it.
+
+`review.json` carries `flags`, a map of filename to what was seen, written by
+whoever read the contact sheets. The page outlines those frames in red, says in
+its own words what was noticed under each one, counts them in the bar, and
+offers a jump straight to them. It marks; it does not decide — turning the
+photograph off is still a press.
+
+The save route was the part that would have quietly broken this: the page used
+to write the whole document back, which would have deleted `flags` and
+`observed` on the first keystroke. It now merges over what is already in the
+file.
+
+Keeper: three checks in `review.server.test.mjs`, one of them that a save keeps
+the flags and the observations. Documented in `icloud-export/SKILL.md` with the
+shape to write.

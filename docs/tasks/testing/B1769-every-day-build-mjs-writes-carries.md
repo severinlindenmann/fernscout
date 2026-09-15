@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper icloud-export, build.mjs
 found: "2026-09-15T06:24:22Z"
 started: "2026-09-15T06:39:48Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:48Z"
+merged: "2026-09-15T07:09:12Z"
 ---
 
 # B1769 — Every day build.mjs writes carries both time and declined.time, which the instance refuses
@@ -45,3 +44,18 @@ doing this again.
 `node build.mjs` on the fixture produces documents where no key is both set and
 declined, and `validate-content --offline` plus a live `?dryRun=true` accept
 every day it wrote.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `declined.time` was set unconditionally while
+`time: first.time` was also set, and `lib/api/v2/schemas/shared.ts:61` refuses
+exactly that.
+
+`time` is declined only when no photograph carried one, and is written only
+when one did. The rule itself is now checked rather than remembered: after each
+document is assembled, any key that appears in both the document and its
+`declined` map stops the build with the day named — so the next field to make
+this mistake fails locally instead of on the wire.
+
+Keeper: two checks in `build.metadata.test.mjs`, one of them the general
+invariant.

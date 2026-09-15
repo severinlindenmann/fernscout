@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper icloud-export, export.mjs
 found: "2026-09-15T06:24:27Z"
 started: "2026-09-15T06:39:52Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:52Z"
+merged: "2026-09-15T07:09:14Z"
 ---
 
 # B1772 — export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step
@@ -39,3 +38,18 @@ variation of this visible instead of silent.
 An export whose result does not match `uuids.txt` exits non-zero and names what
 is missing. An export containing a HEIC ends with a readable JPEG in its place,
 and `describe.mjs` builds a sheet with every photograph of the day in it.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: the exported JPEG count was printed and compared with
+nothing.
+
+Anything the export left in another format is converted with `sips`, its tags
+copied across with `exiftool` (the coordinates are the whole reason
+`--exiftool` is not optional), and the original removed. Then what is on disk
+is compared with `photos.json` by stem, and a missing photograph fails the run
+and is named. `--check` runs just that pass over an export that already
+happened — useful on its own, and the door this is tested through.
+
+Keeper: three checks in the new `icloud-export/export.test.mjs`, one of them a
+real HEIC made with `sips`.

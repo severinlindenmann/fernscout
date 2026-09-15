@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper icloud-export, query.mjs
 found: "2026-09-15T06:24:47Z"
 started: "2026-09-15T06:40:03Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:40:03Z"
+merged: "2026-09-15T07:09:17Z"
 ---
 
 # B1780 — A file with no decodable image survives every re-export and is rediscovered by each tool in turn
@@ -38,3 +37,17 @@ belongs in `export.mjs` beside B1772's instead; either way it is said once.
 
 A selection containing an undecodable file names it once at query time and does
 not carry it into `uuids.txt`; no later step reports it again.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `query.mjs` asked for no dimensions and had no way to
+know.
+
+It asks for `{photo.height}` and `{photo.width}` — verified against the
+installed `osxphotos` 0.76.1 before being written — and leaves out anything the
+library reports with no image in it, naming them once and saying they are
+broken in the library itself rather than something the export got wrong.
+
+No unit test: the filter is two conditions over a list, and the part that could
+be wrong was the template field names, which were checked against a real
+library rather than assumed.

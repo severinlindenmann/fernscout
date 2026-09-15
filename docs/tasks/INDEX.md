@@ -323,29 +323,14 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (17)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1767](in-development/B1767-describe-mjs-runs-before-any-review.md) | describe.mjs runs before any review exists, so prose is written from photographs the person later removed | ISSUE | high | medium | `135632db` |
-| [B1768](in-development/B1768-build-mjs-writes-into-a-non.md) | build.mjs writes into a non-empty trip folder, so a rebuilt trip holds both the old entries and the new ones | ISSUE | high | low | `135632db` |
-| [B1769](in-development/B1769-every-day-build-mjs-writes-carries.md) | Every day build.mjs writes carries both time and declined.time, which the instance refuses | ISSUE | high | low | `135632db` |
-| [B1771](in-development/B1771-the-first-and-last-day-of.md) | The first and last day of a trip keep photographs taken at the owner's own address | ISSUE | high | medium | `135632db` |
-| [B1772](in-development/B1772-export-mjs-does-not-check-what.md) | export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step | ISSUE | high | low | `135632db` |
-| [B1774](in-development/B1774-publish-mjs-corrects-a-figure-with.md) | publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero | ISSUE | high | low | `135632db` |
-| [B1782](in-development/B1782-a-day-pulled-down-from-the.md) | A day pulled down from the instance cannot be written back, because it carries the server's own weather source | ISSUE | high | low | `135632db` |
 | [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
-| [B1770](in-development/B1770-narrow-mjs-rebuilds-photos-json-from.md) | narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs | ISSUE | medium | low | `135632db` |
-| [B1775](in-development/B1775-publish-writes-to-the-instance-without.md) | publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything | ISSUE | medium | medium | `135632db` |
-| [B1776](in-development/B1776-figures-are-journal-content-the-sync.md) | figures are journal content the sync carries in neither direction | ISSUE | medium | medium | `135632db` |
-| [B1779](in-development/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium | `135632db` |
-| [B1783](in-development/B1783-the-one-source-name-a-caller.md) | The one source name a caller may never write is not published anywhere a caller can read it | ISSUE | medium | low | `135632db` |
-| [B1777](in-development/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low | `135632db` |
-| [B1778](in-development/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium | `135632db` |
-| [B1780](in-development/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low | `135632db` |
 
-## testing (14)
+## testing (29)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -357,12 +342,27 @@ _Nothing here._
 | [B1752](testing/B1752-a-message-telling-the-journal-about.md) | A message telling the journal about a day proposes nothing about three times in four | ISSUE | high | medium | — |
 | [B1754](testing/B1754-the-bench-scores-one-clarifying-question.md) | The bench scores one clarifying question as total failure, which is not how the product is meant to work | ISSUE | high | low | — |
 | [B1756](testing/B1756-get-api-v2-user-status-answers.md) | GET /api/v2/{user}/status answers 500 when the credit balance has a fraction | ISSUE | high | low | — |
+| [B1767](testing/B1767-describe-mjs-runs-before-any-review.md) | describe.mjs runs before any review exists, so prose is written from photographs the person later removed | ISSUE | high | medium | — |
+| [B1768](testing/B1768-build-mjs-writes-into-a-non.md) | build.mjs writes into a non-empty trip folder, so a rebuilt trip holds both the old entries and the new ones | ISSUE | high | low | — |
+| [B1769](testing/B1769-every-day-build-mjs-writes-carries.md) | Every day build.mjs writes carries both time and declined.time, which the instance refuses | ISSUE | high | low | — |
+| [B1771](testing/B1771-the-first-and-last-day-of.md) | The first and last day of a trip keep photographs taken at the owner's own address | ISSUE | high | medium | — |
+| [B1772](testing/B1772-export-mjs-does-not-check-what.md) | export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step | ISSUE | high | low | — |
+| [B1774](testing/B1774-publish-mjs-corrects-a-figure-with.md) | publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero | ISSUE | high | low | — |
+| [B1782](testing/B1782-a-day-pulled-down-from-the.md) | A day pulled down from the instance cannot be written back, because it carries the server's own weather source | ISSUE | high | low | — |
 | [B1784](testing/B1784-the-credits-spent-list-shows-a.md) | The credits-spent list shows a raw translation key and overflows the phone | ISSUE | high | low | — |
 | [B1765](testing/B1765-the-handover-prompt-never-shows-the.md) | The handover prompt never shows the auth header, and never says what a failed call means | ISSUE | medium | low | — |
 | [B1766](testing/B1766-long-trip-lists-overwhelm-three-pages.md) | Long trip lists overwhelm three pages: storage, what you can read, and the trips index | ISSUE | medium | low | — |
+| [B1770](testing/B1770-narrow-mjs-rebuilds-photos-json-from.md) | narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs | ISSUE | medium | low | — |
+| [B1775](testing/B1775-publish-writes-to-the-instance-without.md) | publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything | ISSUE | medium | medium | — |
+| [B1776](testing/B1776-figures-are-journal-content-the-sync.md) | figures are journal content the sync carries in neither direction | ISSUE | medium | medium | — |
+| [B1779](testing/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium | — |
 | [B1781](testing/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | — |
+| [B1783](testing/B1783-the-one-source-name-a-caller.md) | The one source name a caller may never write is not published anywhere a caller can read it | ISSUE | medium | low | — |
 | [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
 | [B1745](testing/B1745-buying-extra-storage-is-only-offered.md) | Buying extra storage is only offered once the journal is nearly full | FEATURE | low | low | — |
+| [B1777](testing/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low | — |
+| [B1778](testing/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium | — |
+| [B1780](testing/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low | — |
 
 ## completed (1489)
 

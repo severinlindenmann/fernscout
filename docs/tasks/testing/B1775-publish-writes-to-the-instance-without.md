@@ -7,8 +7,7 @@ complexity: medium
 area: fernscout-helper publish, sync
 found: "2026-09-15T06:24:43Z"
 started: "2026-09-15T06:39:55Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:55Z"
+merged: "2026-09-15T07:09:15Z"
 ---
 
 # B1775 — publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything
@@ -39,3 +38,19 @@ nothing.
 `publish` followed immediately by `sync down` reports nothing to do, on a
 journal where the two sides agree; a file genuinely edited on the instance
 afterwards is still planned for a pull.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: only `sync.mjs` wrote the baseline; `publish.mjs` did not
+mention it.
+
+`publish` now tracks every path it actually wrote — the journal document, each
+trip, each day, each photograph under its stored name after the rename — and at
+the end of a non-dry run reads the site's manifest back and records agreement
+for exactly those paths (`recordAgreed` in `shared/syncManifest.mjs`, which
+keeps both sides' hashes because the typed routes normalise what they are
+given). A run started by a sync (`--changed`) leaves the baseline alone: it is
+the sync's to write over the paths it planned.
+
+Keeper: five checks in `publish.test.mjs`, including that a publish invoked
+with `--changed` writes no baseline.

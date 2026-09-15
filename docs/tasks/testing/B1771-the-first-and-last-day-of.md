@@ -7,8 +7,7 @@ complexity: medium
 area: fernscout-helper icloud-export, narrow.mjs
 found: "2026-09-15T06:24:25Z"
 started: "2026-09-15T06:39:51Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:51Z"
+merged: "2026-09-15T07:09:13Z"
 ---
 
 # B1771 — The first and last day of a trip keep photographs taken at the owner's own address
@@ -46,3 +45,24 @@ what counts as "at home" differs between a village and a city block.
 A trip whose first and last day include photographs taken at a `--home`
 position reports them, and they are out of `photos.json` (or marked) rather
 than published as part of the trip.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `narrow.mjs` had no notion of home at all, and keeps
+anything within `--km` of anywhere the trip's own people stood that day.
+
+It takes `--home lat,lng` (repeatable, as `find-trips/discover.mjs` does) or
+`homes` in `household.json`, and leaves out photographs taken within
+`--home-km` (default 5) of a home **on the first and last day of the selection
+only** — a photograph at home mid-trip is somebody else's and the place filter
+already dealt with it. It says how many and on which days. `--keep-home` is how
+somebody says the departure morning's kitchen table really does belong. With no
+home position known the run says the check did not happen rather than passing
+silently.
+
+`--people <file>` was added at the same time, so the flag matches
+`discover.mjs` and a test can hand over a fixture instead of the household's
+own file.
+
+Keeper: six checks in `icloud-export/narrow.test.mjs`, including the
+no-home-known case.

@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper icloud-export, build.mjs
 found: "2026-09-15T06:24:21Z"
 started: "2026-09-15T06:39:46Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:46Z"
+merged: "2026-09-15T07:09:12Z"
 ---
 
 # B1768 — build.mjs writes into a non-empty trip folder, so a rebuilt trip holds both the old entries and the new ones
@@ -41,3 +40,16 @@ master is not a derivative and is not this script's to remove.
 Building a trip twice leaves exactly the entries and media folders the second
 build produced. Without `--force` the second build refuses and says the folder
 already holds a trip.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `build.mjs` did `mkdirSync(…, {recursive:true})` on the
+trip folder and wrote into it, with nothing clearing `entries/` or `media/`.
+
+It now refuses a second build into a folder that already holds entries or
+media, and `--force` removes those two directories before writing.
+`originals/` is never touched.
+
+Keeper: two checks in `build.metadata.test.mjs` — a day file under a naming
+scheme this build no longer writes survives the refusal, and is gone after
+`--force`.

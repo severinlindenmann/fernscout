@@ -7,8 +7,7 @@ complexity: low
 area: app/api/v2, lib/weather.ts
 found: "2026-09-15T06:42:48Z"
 started: "2026-09-15T06:43:42Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:43:42Z"
+merged: "2026-09-15T07:09:18Z"
 ---
 
 # B1783 — The one source name a caller may never write is not published anywhere a caller can read it
@@ -41,3 +40,20 @@ hit it.
 to `RESERVED_SOURCES` changes that answer with no second edit; the v2 schema
 test asserts the published list and the validator's own list are the same
 length.
+
+## Built, 2026-09-15 — fernscout `48fba671`
+
+**Valid when taken**: `/api/health:430` publishes `weather.reservedSources`
+(B1580) and `instanceStatus` said nothing about weather.
+
+`instanceStatus` carries `weather.reservedSources`, imported from
+`RESERVED_SOURCES` so one edit to the constant changes both doors. Required
+rather than optional: a client that has to cope with its absence is a client
+that hardcodes the name instead. `/api/v2/openapi.json` is generated from the
+schema, so the contract follows with no second edit.
+
+Keepers: two tests in `test/api-v2-status.test.ts` — the published list equals
+the constant, and every name it publishes is actually refused by `dayWrite`
+while somebody's own instrument is not. That is B1580's own argument: a
+document naming more than the write path enforces sends a client round a bend
+that is not there.

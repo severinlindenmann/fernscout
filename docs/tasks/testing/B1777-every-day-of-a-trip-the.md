@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper validate-content
 found: "2026-09-15T06:24:45Z"
 started: "2026-09-15T06:39:58Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:58Z"
+merged: "2026-09-15T07:09:16Z"
 ---
 
 # B1777 — Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors
@@ -37,3 +36,13 @@ the document, not about the address.
 Validating a journal the instance has never seen prints one line per trip and
 no per-day `unknown_trip`, and the trip-level errors are the whole of the
 output.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `askTheInstance()` returned nothing, so every day was
+asked about regardless of what the trip's own answer had been.
+
+It returns the verdict now, and a trip whose own dry run answered 404 has its
+days skipped with one line saying how many were not checked and why. A trip
+that exists and is refused for a content reason still has every day checked —
+that refusal is about the document, not the address.

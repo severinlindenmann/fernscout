@@ -7,8 +7,7 @@ complexity: medium
 area: fernscout-helper icloud-export, describe.mjs, build.mjs
 found: "2026-09-15T06:24:07Z"
 started: "2026-09-15T06:39:45Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:45Z"
+merged: "2026-09-15T07:09:11Z"
 ---
 
 # B1767 — describe.mjs runs before any review exists, so prose is written from photographs the person later removed
@@ -56,3 +55,23 @@ person and the agent, not to guess.
 says what to run first; with `--before-review` it runs as it does today. With a
 `review.json` newer than an entry's prose, `build.mjs` prints a warning naming
 the day.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `describe.mjs`'s review read was a bare `try/catch`, so a
+missing `review.json` and an empty one both read as "nothing dropped".
+
+`describe.mjs` now refuses unless a `review.json` with decisions in it exists,
+names the review command in the refusal, and takes `--before-review` for the
+deliberate other order (which warns, twice, that anything written has to be
+checked again). `build.mjs` compares `sheets/index.json`'s mtime with
+`review.json`'s and says how many photographs were turned off since the sheets
+were made. `SKILL.md`'s command list is the corrected order, with the reason.
+
+New keeper: `icloud-export/describe.test.mjs` — six checks, including that an
+empty `review.json` is not a review.
+
+**Found in passing, fixed here because the fix is the same line**: four tests
+written during the run — and `find-trips/discover.test.mjs`, which holds the
+two regression tests for the day-is-a-journey and household-is-not-one-unit
+faults — were in no runner at all. They are in `selftest.mjs`'s list now.

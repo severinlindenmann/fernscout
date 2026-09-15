@@ -7,8 +7,7 @@ complexity: low
 area: fernscout-helper icloud-export, narrow.mjs, blur.mjs
 found: "2026-09-15T06:24:24Z"
 started: "2026-09-15T06:39:49Z"
-session: 135632db-3afb-4bd0-bf02-4ee0fb20ab0d
-claimed: "2026-09-15T06:39:49Z"
+merged: "2026-09-15T07:09:13Z"
 ---
 
 # B1770 — narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs
@@ -37,3 +36,17 @@ is still on disk and the point of the step is that it is not optional.
 
 `narrow → blur → narrow` leaves every photograph inside a zone still pinned to
 the zone's coarse coordinate, and the run says so.
+
+## Built, 2026-09-15 — fernscout-helper `aa69dbd`
+
+**Valid when taken**: `narrow.mjs` rebuilds `photos.json` from
+`photos.all.json`, which keeps the true coordinates, and `blur.mjs` writes only
+`photos.json`.
+
+`narrow.mjs` reads the file it is about to overwrite, and re-applies the blur
+rather than asking: `blur.mjs` now records which zone file it used
+(`blurZones`), so the same blur is re-run with the same zones. `photos.all.json`
+still holds what was really recorded, which is the point of it.
+
+Keeper: four checks in the new `icloud-export/narrow.test.mjs` — narrow, blur,
+narrow again, and the coordinates are still the zone's.
