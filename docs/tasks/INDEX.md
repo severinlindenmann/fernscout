@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (222)
+## backlog (223)
 
 ### security (5)
 
@@ -107,7 +107,7 @@ Do not edit them by hand; run the script.
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
 | [B1773](backlog/issue/B1773-a-stranger-sees-every-closed-journey.md) | A stranger sees every closed journey at once on a journal with thirty trips | ISSUE | low | low |
 
-### big-feature (18)
+### big-feature (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -119,6 +119,7 @@ Do not edit them by hand; run the script.
 | [B1650](backlog/big-feature/B1650-the-helper-writes-days-incrementally-but.md) | The helper writes days incrementally, but a v2 write demands all 14 declinables at once | FEATURE | medium | high |
 | [B1664](backlog/big-feature/B1664-planned-trips-do-not-carry-their.md) | Planned trips do not carry their people and followers cleanly into departure | FEATURE | medium | high |
 | [B1786](backlog/big-feature/B1786-a-trip-cannot-be-shared-read.md) | A trip cannot be shared read-only without creating a guest account | FEATURE | medium | high |
+| [B1794](backlog/big-feature/B1794-create-an-isolated-invite-only-dev.md) | Create an isolated invite-only dev environment with safe provider modes and promotion | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B672](backlog/big-feature/B672-everything-is-served-off-one-vps.md) | Everything is served off one VPS disk by one Node process | FEATURE | medium | high |
