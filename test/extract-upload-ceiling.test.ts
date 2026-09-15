@@ -116,6 +116,28 @@ describe("the journal-wide staging ceiling", () => {
     expect(body.rejected).toEqual([{ filename: "new.jpg", reason: "journal_over_capacity" }]);
   });
 
+  test("a retry of a file already staged in this run is accepted even though the journal sits exactly at the ceiling", async () => {
+    const { putStagedFile } = await import("@/lib/staging/store");
+    await startRun("alex", "run-1");
+    // The run already holds a file that alone fills the (mocked) 1000-byte
+    // ceiling — the retry below resends the identical bytes, which
+    // `putStagedFile` recognises as content already on disk. It must not be
+    // charged a second time: nothing new is landing, so refusing it would
+    // reject a page's own retry button forever once a run sits at the limit.
+    const bytes = new Uint8Array(1000).fill(7);
+    putStagedFile("alex", "run-1", "big.jpg", Buffer.from(bytes));
+
+    const res = await upload("alex", "run-1", [{ name: "big.jpg", bytes }]);
+    const body = (await res.json()) as {
+      accepted: { filename: string }[];
+      rejected: { filename: string; reason: string }[];
+      stagedBytes: number;
+    };
+    expect(body.rejected).toEqual([]);
+    expect(body.accepted.map((p) => p.filename)).toEqual(["big.jpg"]);
+    expect(body.stagedBytes).toBe(1000);
+  });
+
   test("a different journal's staged bytes never count against this one", async () => {
     const { putStagedFile } = await import("@/lib/staging/store");
     await startRun("mira", "run-1");
