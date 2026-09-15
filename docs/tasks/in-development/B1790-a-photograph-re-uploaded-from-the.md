@@ -6,6 +6,9 @@ priority: medium
 complexity: medium
 area: fernscout-helper publish / media
 found: "2026-09-15T09:19:52Z"
+started: "2026-09-15T10:10:47Z"
+session: bc2533f4-ec0c-48c5-a804-21118288b081
+claimed: "2026-09-15T10:10:47Z"
 ---
 
 # B1790 — A photograph re-uploaded from the site's own derivative is stored a second time, orphaning the first
