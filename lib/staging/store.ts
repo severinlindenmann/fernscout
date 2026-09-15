@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { listRuns } from "./manifest";
 import { runDir } from "./paths";
 
 export type StagedFile = {
@@ -10,6 +11,9 @@ export type StagedFile = {
   filename: string;
   bytes: number;
   sha256: string;
+  /** False when this run already held these exact bytes — nothing was
+   *  written, and the journal's footprint did not grow. */
+  alreadyPresent: boolean;
 };
 
 /** The id is the hash plus the extension, for the same reason `inboxId` does
@@ -30,8 +34,19 @@ export function putStagedFile(
   const dir = path.join(runDir(username, runId), "files");
   fs.mkdirSync(dir, { recursive: true });
   const file = path.join(dir, id);
-  if (!fs.existsSync(file)) fs.writeFileSync(file, bytes);
-  return { id, filename, bytes: bytes.byteLength, sha256: sha };
+  const alreadyPresent = fs.existsSync(file);
+  if (!alreadyPresent) fs.writeFileSync(file, bytes);
+  // `alreadyPresent` is what lets a caller charge a quota against the bytes
+  // that actually landed: re-sending a photograph this run already holds
+  // adds nothing to the journal's footprint, so it must not be refused for
+  // crossing a ceiling it does not move.
+  return { id, filename, bytes: bytes.byteLength, sha256: sha, alreadyPresent };
+}
+
+/** Undo one `putStagedFile`, for a caller that could only decide to refuse
+ *  the file after hashing told it whether the bytes were new. */
+export function removeStagedFile(username: string, runId: string, id: string): void {
+  fs.rmSync(stagedFilePath(username, runId, id), { force: true });
 }
 
 // `runDir` validates the two segments and throws; `basename` is what stops
@@ -63,11 +78,36 @@ export function removeRun(username: string, runId: string): void {
   fs.rmSync(runDir(username, runId), { recursive: true, force: true });
 }
 
+/** Missing is zero, not an error — a run that opened but has not uploaded
+ *  anything yet has no `files` directory at all, and `journalStagingBytes`
+ *  below has to be able to sum a fresh run alongside an old one without a
+ *  caller pre-filtering which is which. */
 export function runBytes(username: string, runId: string): number {
   const dir = path.join(runDir(username, runId), "files");
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
   let total = 0;
-  for (const name of fs.readdirSync(dir, { withFileTypes: true })) {
+  for (const name of entries) {
     if (name.isFile()) total += fs.statSync(path.join(dir, name.name)).size;
   }
   return total;
+}
+
+/**
+ * Everything this journal is holding in staging right now, across every run
+ * it owns — B1807's answer to "how much room is left before the ceiling".
+ *
+ * `listRuns` rather than a raw directory walk: it is already the one place
+ * that turns a username into "every run this owner has", and reusing it
+ * means a stray, non-run entry under that owner's staging folder (the same
+ * kind `lib/staging/sweep.ts` guards against) is filtered out by the same
+ * "a manifest that will not parse is not a run" rule everywhere else applies
+ * it, rather than a second copy of that judgement here.
+ */
+export function journalStagingBytes(username: string): number {
+  return listRuns(username).reduce((total, run) => total + runBytes(username, run.runId), 0);
 }

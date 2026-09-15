@@ -35,6 +35,61 @@ describe("the staging store", () => {
     const { readStagedFile } = await import("@/lib/staging/store");
     expect(() => readStagedFile("alex", "../../etc", "x")).toThrow();
   });
+
+  test("a run with nothing uploaded yet reads as zero bytes, not a crash", async () => {
+    const { runBytes } = await import("@/lib/staging/store");
+    const { writeManifest } = await import("@/lib/staging/manifest");
+    writeManifest("alex", {
+      version: 1,
+      runId: "run-empty",
+      owner: "alex",
+      createdAt: "2026-09-15T10:00:00Z",
+      expiresAt: "2026-09-17T10:00:00Z",
+      tripId: null,
+      mode: "type",
+      state: "uploading",
+      photos: [],
+      days: [],
+    });
+    expect(runBytes("alex", "run-empty")).toBe(0);
+  });
+
+  test("journalStagingBytes sums every run this owner has staged — B1807", async () => {
+    const { putStagedFile, journalStagingBytes } = await import("@/lib/staging/store");
+    const { writeManifest } = await import("@/lib/staging/manifest");
+    for (const runId of ["run-a", "run-b"]) {
+      writeManifest("alex", {
+        version: 1,
+        runId,
+        owner: "alex",
+        createdAt: "2026-09-15T10:00:00Z",
+        expiresAt: "2026-09-17T10:00:00Z",
+        tripId: null,
+        mode: "type",
+        state: "uploading",
+        photos: [],
+        days: [],
+      });
+    }
+    putStagedFile("alex", "run-a", "IMG_0001.jpeg", Buffer.from("hello"));
+    putStagedFile("alex", "run-b", "IMG_0002.jpeg", Buffer.from("hello world"));
+    // A different owner's staged bytes must never count against this one.
+    writeManifest("mira", {
+      version: 1,
+      runId: "run-c",
+      owner: "mira",
+      createdAt: "2026-09-15T10:00:00Z",
+      expiresAt: "2026-09-17T10:00:00Z",
+      tripId: null,
+      mode: "type",
+      state: "uploading",
+      photos: [],
+      days: [],
+    });
+    putStagedFile("mira", "run-c", "IMG_0003.jpeg", Buffer.from("!"));
+
+    expect(journalStagingBytes("alex")).toBe(5 + 11);
+  });
 });
 
 describe("the run manifest", () => {

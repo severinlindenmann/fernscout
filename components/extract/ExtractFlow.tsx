@@ -109,6 +109,13 @@ export default function ExtractFlow({
   // resume screen never reappears mid-flow. A non-empty array is what
   // renders it.
   const [resumable, setResumable] = useState<RunSummaryClient[] | null | undefined>(undefined);
+  // This journal's whole staging footprint — B1807. Read from `checkResume`'s
+  // own response and kept fresh by `UploadStep`'s `onStorage`, so the number
+  // `ResumeScreen` shows the next time this owner opens the resume list is
+  // the one the upload route itself just computed, not a stale figure from
+  // whenever the list was last fetched.
+  const [stagedBytes, setStagedBytes] = useState<number | undefined>(undefined);
+  const [stagedRuns, setStagedRuns] = useState(0);
   // Set the instant a run is picked off `ResumeScreen`, to whether *this*
   // resume is the one that will consume the run's single extension — read
   // from the pre-touch summary `ResumeScreen` was showing, before `DayBoard`
@@ -168,8 +175,14 @@ export default function ExtractFlow({
     try {
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/extract/runs`);
       if (!res.ok) throw new Error(String(res.status));
-      const json = (await res.json()) as { runs?: RunSummaryClient[] };
+      const json = (await res.json()) as {
+        runs?: RunSummaryClient[];
+        stagedBytes?: number;
+        stagedRuns?: number;
+      };
       const runs = Array.isArray(json.runs) ? json.runs : [];
+      if (json.stagedBytes !== undefined) setStagedBytes(json.stagedBytes);
+      if (json.stagedRuns !== undefined) setStagedRuns(json.stagedRuns);
       if (runs.length > 0) {
         setResumable(runs);
         return;
@@ -332,6 +345,7 @@ export default function ExtractFlow({
         <ResumeScreen
           username={username}
           runs={resumable}
+          storage={stagedBytes === undefined ? undefined : { usedBytes: stagedBytes, runs: stagedRuns }}
           onContinue={continueRun}
           onStartNew={startNew}
           onDestroyed={destroyRun}
@@ -374,7 +388,13 @@ export default function ExtractFlow({
 
       {run && !done && (
         <div className="mt-4">
-          <UploadStep username={username} runId={run.runId} onDone={onUploadAttempt} />
+          <UploadStep
+            username={username}
+            runId={run.runId}
+            initialStagedBytes={stagedBytes}
+            onDone={onUploadAttempt}
+            onStorage={setStagedBytes}
+          />
         </div>
       )}
 

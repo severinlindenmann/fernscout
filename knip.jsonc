@@ -64,6 +64,10 @@
     // living inside it, and scanning them reports every file several times
     // over — the same reason eslint.config.mjs ignores `.claude/**`.
     ".claude/worktrees/**",
+    // A plan's own scratch workspace: briefs, reports, captures and the
+    // one-off scripts written to check a single branch. Tracked so a review
+    // can read them, never imported by the application.
+    ".superpowers/**",
     // A person's journals, and generated derivatives of them. Not code.
     "content/**",
     // Generated: the packed place index and the world map are built by

@@ -7,8 +7,8 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { VIDEO_EXTENSIONS } from "@/lib/ingest/video";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { readManifest, writeManifest, type PhotoRow } from "@/lib/staging/manifest";
-import { putStagedFile } from "@/lib/staging/store";
-import { IMAGE_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
+import { journalStagingBytes, putStagedFile, removeStagedFile } from "@/lib/staging/store";
+import { IMAGE_MAX_BYTES, JOURNAL_STAGING_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +75,13 @@ export async function POST(
   // queued the same file twice, or a retry click still mid-flight).
   const seenIds = new Set(current.photos.map((p) => p.id));
 
+  // Seeded from what this journal is already holding, across every run it
+  // owns — B1807. The ceiling is per journal, not per run: a run somebody
+  // forgot about still occupies real disk, and refusing only what one run's
+  // own bytes would add — while ignoring what is already staged elsewhere —
+  // would let three abandoned imports and a fresh one together sail past it.
+  let stagedBytes = journalStagingBytes(user);
+
   const accepted: PhotoRow[] = [];
   const rejected: { filename: string; reason: string }[] = [];
   for (const file of files) {
@@ -92,13 +99,34 @@ export async function POST(
     // Content-addressed, so a retried batch is idempotent: the same photograph
     // twice is one row, and the page's retry button cannot double a day.
     // Not a rejection — nothing was wrong with it — so it is simply not
-    // counted a second time in either array.
+    // counted a second time in either array, and no new bytes actually
+    // landed on disk for it either, so the running total is not charged for
+    // it twice.
     if (seenIds.has(stored.id)) continue;
+    // Accept what fits and refuse the rest, rather than failing the whole
+    // batch: somebody who selects 400 photographs and crosses the line at
+    // 380 keeps the 380. Charged against the bytes that actually landed —
+    // a photograph this run already holds moves the journal's footprint by
+    // nothing, and refusing a retry for crossing a ceiling it does not move
+    // is how the retry path breaks near the limit. The file is hashed
+    // before that is knowable, so a refusal takes back what it just wrote.
+    if (!stored.alreadyPresent && stagedBytes + stored.bytes > JOURNAL_STAGING_MAX_BYTES) {
+      removeStagedFile(user, runId, stored.id);
+      rejected.push({ filename: file.name, reason: "journal_over_capacity" });
+      continue;
+    }
     seenIds.add(stored.id);
+    if (!stored.alreadyPresent) stagedBytes += stored.bytes;
     accepted.push(analyseStaged(stored, bytes));
   }
 
   current.photos.push(...accepted);
   writeManifest(user, current);
-  return Response.json({ runId, accepted, rejected });
+  return Response.json({
+    runId,
+    accepted,
+    rejected,
+    stagedBytes,
+    stagedLimitBytes: JOURNAL_STAGING_MAX_BYTES,
+  });
 }

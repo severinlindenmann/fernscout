@@ -1,0 +1,52 @@
+{
+  "url": "http://localhost:3017/example/extract/photos",
+  "slug": "resume-dark-v2",
+  "theme": "dark",
+  "width": 390,
+  "first": {
+    "boxes": [
+      "01",
+      "19",
+      "59",
+      "38",
+      "20",
+      "13",
+      "45",
+      "01",
+      "13",
+      "59",
+      "38",
+      "02",
+      "38",
+      "00",
+      "00",
+      "00"
+    ],
+    "at": "2026-09-15T18:22:10.479Z",
+    "text": "Skip to content\nTrips\nFernscout Demo\nImport from your camera roll\n\nYou've got an import in progress.\n\nDays you've already finished are part of your journal and stay, whatever happens to this import.\n\n5.6 GB of 10.0 GB staged across 5 imports\n\n2026-09-15\n\n5 photographs · 0 days left to tell\n\n01\nDAYS\n:\n19\nHRS\n:\n59\nMIN\n:\n38\nSEC\n\n1 day and 19 hours left\n\nContinue\nDelete this import\n\n2026-09-15\n\none photograph · 0 days left to tell\n\n20\nHRS\n:\n13\nMIN\n:\n45\nSEC\n\n20 hours left\n\nContinue\nDelete this import\n\n2026-09-15\n\none photograph · 0 days left to tell\n\n01\nDAYS\n:\n13\nHRS\n:\n59\nMIN\n:\n38\nSEC\n\n1 day and 13 hours left\n\nContinue\nDelete this import\n\n2026-09-13\n\n2 photographs · 0 days left to tell\n\n02\nMIN\n:\n38\nSEC\n\n159 seconds left\n\nContinue\nDelete this import\n\n2026-09-13\n\none photograph · 0 days left to tell\n\n00\nHRS\n:\n00\nMIN\n:\n00\nSEC\n\nAbout to be cleared\n\nContinue\nDelete this import\nStart a new import instead"
+  },
+  "second": {
+    "boxes": [
+      "01",
+      "19",
+      "59",
+      "33",
+      "20",
+      "13",
+      "40",
+      "01",
+      "13",
+      "59",
+      "33",
+      "02",
+      "33",
+      "00",
+      "00",
+      "00"
+    ],
+    "at": "2026-09-15T18:22:15.759Z",
+    "text": "Skip to content\nTrips\nFernscout Demo\nImport from your camera roll\n\nYou've got an import in progress.\n\nDays you've already finished are part of your journal and stay, whatever happens to this import.\n\n5.6 GB of 10.0 GB staged across 5 imports\n\n2026-09-15\n\n5 photographs · 0 days left to tell\n\n01\nDAYS\n:\n19\nHRS\n:\n59\nMIN\n:\n33\nSEC\n\n1 day and 19 hours left\n\nContinue\nDelete this import\n\n2026-09-15\n\none photograph · 0 days left to tell\n\n20\nHRS\n:\n13\nMIN\n:\n40\nSEC\n\n20 hours left\n\nContinue\nDelete this import\n\n2026-09-15\n\none photograph · 0 days left to tell\n\n01\nDAYS\n:\n13\nHRS\n:\n59\nMIN\n:\n33\nSEC\n\n1 day and 13 hours left\n\nContinue\nDelete this import\n\n2026-09-13\n\n2 photographs · 0 days left to tell\n\n02\nMIN\n:\n33\nSEC\n\n154 seconds left\n\nContinue\nDelete this import\n\n2026-09-13\n\none photograph · 0 days left to tell\n\n00\nHRS\n:\n00\nMIN\n:\n00\nSEC\n\nAbout to be cleared\n\nContinue\nDelete this import\nStart a new import instead"
+  },
+  "tickWaitMs": 5000,
+  "consoleErrors": []
+}
