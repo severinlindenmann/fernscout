@@ -1,0 +1,268 @@
+<title>Resume Ticker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+/* Fernscout's own palette, read from app/globals.css. Dark-first, because the
+   screen this redraws is one somebody meets on a phone at night. */
+:root {
+  --cream-50:#fffaf0; --cream-100:#fff3dc; --cream-200:#ffe9bd;
+  --navy-900:#1e293b; --navy-800:#253145; --navy-700:#3a4a63;
+  --yellow-300:#ffe08a; --yellow-400:#ffd23f; --yellow-600:#d69b0a; --yellow-950:#4a3300;
+  --green-500:#22c55e; --green-700:#15803d;
+  --coral-300:#f6a7bb; --coral-400:#f06a8a; --coral-600:#c2334a;
+  --blue-500:#2f6fed;
+
+  --bg:#151d2b; --surface:#1b2433; --raised:#212c3d;
+  --ink:#f2ecdd; --ink-body:#cdd5e2; --ink-muted:#9aa6b8; --ink-faint:#71809a;
+  --line:rgba(255,250,240,.14); --line-soft:rgba(255,250,240,.07);
+  --display:"Fredoka",ui-rounded,system-ui,sans-serif;
+  --sans:"Plus Jakarta Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;
+}
+:root[data-theme="light"] {
+  --bg:var(--cream-100); --surface:var(--cream-50); --raised:#fff;
+  --ink:var(--navy-900); --ink-body:var(--navy-700); --ink-muted:#5a6a80; --ink-faint:#8490a2;
+  --line:rgba(30,41,59,.14); --line-soft:rgba(30,41,59,.07);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg:var(--cream-100); --surface:var(--cream-50); --raised:#fff;
+    --ink:var(--navy-900); --ink-body:var(--navy-700); --ink-muted:#5a6a80; --ink-faint:#8490a2;
+    --line:rgba(30,41,59,.14); --line-soft:rgba(30,41,59,.07);
+  }
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink-body);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px 80px}
+
+header.top{padding:48px 0 8px;display:flex;flex-direction:column;gap:14px}
+h1{font-family:var(--display);font-weight:500;font-size:clamp(2rem,6vw,3rem);line-height:1.05;margin:0;color:var(--ink);text-wrap:balance}
+.stand{max-width:34em;margin:0;font-size:1.02rem}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.meta b{font:500 11.5px/1 var(--mono);letter-spacing:.04em;padding:6px 9px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--ink-muted)}
+
+h2{font-family:var(--display);font-weight:500;font-size:1.5rem;margin:44px 0 4px;color:var(--ink)}
+h2+p{margin:0 0 18px;max-width:36em}
+h3{font:600 .82rem/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 12px}
+
+.row{display:grid;gap:22px}
+@media(min-width:880px){.row.two{grid-template-columns:1fr 1fr}.row.three{grid-template-columns:repeat(3,1fr)}}
+
+/* ── phone frame ─────────────────────────────────────────── */
+.phone{width:100%;max-width:360px;margin:0 auto;background:#0f1520;border-radius:32px;padding:8px;box-shadow:0 20px 50px -20px rgba(0,0,0,.7)}
+:root[data-theme="light"] .phone{background:var(--navy-800)}
+.screen{background:var(--bg);border-radius:25px;padding:18px 16px 22px;min-height:200px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px;display:flex;flex-direction:column;gap:11px}
+.card+.card{margin-top:11px}
+.cdate{font:600 .95rem/1 var(--sans);color:var(--ink)}
+.cmeta{font-size:.81rem;color:var(--ink-muted);margin:-6px 0 0}
+
+/* ── THE TICKER ──────────────────────────────────────────── */
+.ticker{display:flex;align-items:flex-end;gap:5px}
+.seg{display:flex;flex-direction:column;align-items:center;gap:4px}
+.digits{
+  font:600 1.55rem/1 var(--mono);letter-spacing:.02em;
+  color:var(--ink);background:var(--raised);
+  border:1px solid var(--line-soft);border-radius:9px;
+  padding:8px 7px;min-width:44px;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+.seg small{font:500 .58rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+.colon{font:600 1.35rem/1 var(--mono);color:var(--ink-faint);padding-bottom:20px}
+
+/* urgency ladder — the ticker changes character as the clock runs out */
+.calm .digits{color:var(--ink)}
+.soon .digits{color:var(--yellow-300);border-color:rgba(255,210,63,.3)}
+.soon .seg small{color:var(--yellow-600)}
+.urgent .digits{color:var(--coral-300);border-color:rgba(240,106,138,.38);background:rgba(194,51,74,.14)}
+.urgent .seg small{color:var(--coral-400)}
+.urgent .seconds{animation:pulse 1s steps(2,end) infinite}
+@keyframes pulse{0%,60%{opacity:1}61%,100%{opacity:.45}}
+@media (prefers-reduced-motion: reduce){.urgent .seconds{animation:none}}
+
+.gone .digits{color:var(--ink-faint);background:transparent;border-style:dashed}
+
+/* the bar under the ticker — how much of the window is left */
+.bar{height:3px;border-radius:99px;background:rgba(255,250,240,.1);overflow:hidden}
+:root[data-theme="light"] .bar{background:rgba(30,41,59,.1)}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--green-500)}
+.soon .bar i{background:var(--yellow-400)}
+.urgent .bar i{background:var(--coral-400)}
+
+.lede{font-size:.78rem;color:var(--ink-faint);margin:0}
+.lede b{color:var(--ink-muted);font-weight:600}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 20px;border:0;border-radius:999px;font:600 .95rem/1 var(--sans);background:var(--ink);color:var(--bg);align-self:flex-start;cursor:pointer}
+.kill{align-self:flex-start;background:none;border:0;padding:0;font:500 .78rem/1.4 var(--sans);color:var(--coral-400);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.ghost{display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);border-radius:999px;font:600 .92rem/1 var(--sans);color:var(--ink-body);margin-top:13px;background:none;width:100%}
+
+.note{border-left:3px solid var(--yellow-400);padding-left:13px;margin-top:16px}
+.note h4{font:600 .9rem/1.3 var(--sans);color:var(--ink);margin:0 0 3px}
+.note p{margin:0;font-size:.93rem}
+.note.warn{border-left-color:var(--coral-400)}
+
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.9rem}
+th{text-align:left;font:500 .68rem/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);padding:0 10px 8px 0}
+td{padding:9px 10px 9px 0;border-top:1px solid var(--line-soft);vertical-align:top}
+td code{font:500 .84em var(--mono);color:var(--ink)}
+footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line-soft);color:var(--ink-muted);font-size:.88rem}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <h1>Resume Ticker</h1>
+  <p class="stand">The screen where somebody meets the clock on their own photographs. It currently says <em>“noch 1 Tag und 20 Stunden”</em> in the same grey as everything else. This draft gives it digits that move.</p>
+  <div class="meta"><b>dark first</b><b>390px</b><b>B1805 redraw</b></div>
+</header>
+
+<h2>The card</h2>
+<p>Date, what is in the run, then the ticker — segmented, monospace, tabular figures so nothing shifts as digits change. A hairline bar underneath shows how much of the two-day window is left, which the numbers alone never convey.</p>
+
+<div class="phone">
+  <div class="screen">
+    <div class="card calm">
+      <span class="cdate">Dienstag, 15. September</span>
+      <p class="cmeta">33 Fotos · noch 2 Tage zu erzählen</p>
+      <div class="ticker">
+        <span class="seg"><span class="digits">01</span><small>Tage</small></span>
+        <span class="colon">:</span>
+        <span class="seg"><span class="digits">20</span><small>Std</small></span>
+        <span class="colon">:</span>
+        <span class="seg"><span class="digits">14</span><small>Min</small></span>
+        <span class="colon">:</span>
+        <span class="seg"><span class="digits seconds">07</span><small>Sek</small></span>
+      </div>
+      <div class="bar"><i style="width:88%"></i></div>
+      <p class="lede">bis deine Fotos gelöscht werden</p>
+      <button class="btn">Weiter</button>
+      <button class="kill">Diesen Import löschen</button>
+    </div>
+    <button class="ghost">Stattdessen einen neuen Import starten</button>
+  </div>
+</div>
+
+<div class="note">
+  <h4>Why the bar earns its three pixels</h4>
+  <p>“1 day 20 hours” is a number somebody has to weigh against a window they were never told the size of. The bar says <em>most of it is still there</em> without a sentence, and it is the thing that turns red long before the digits look alarming.</p>
+</div>
+
+<h2>The urgency ladder</h2>
+<p>The same component, four states. The drama is not decoration — it is the difference between a clock a person glances past and one that makes them finish the day they started.</p>
+
+<div class="row three">
+  <div>
+    <h3>Two days out — calm</h3>
+    <div class="phone"><div class="screen">
+      <div class="card calm">
+        <span class="cdate">33 Fotos</span>
+        <div class="ticker">
+          <span class="seg"><span class="digits">01</span><small>Tage</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits">20</span><small>Std</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits">14</span><small>Min</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits seconds">07</span><small>Sek</small></span>
+        </div>
+        <div class="bar"><i style="width:88%"></i></div>
+        <p class="lede">bis deine Fotos gelöscht werden</p>
+      </div>
+    </div></div>
+  </div>
+  <div>
+    <h3>Under six hours — soon</h3>
+    <div class="phone"><div class="screen">
+      <div class="card soon">
+        <span class="cdate">33 Fotos</span>
+        <div class="ticker">
+          <span class="seg"><span class="digits">04</span><small>Std</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits">38</span><small>Min</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits seconds">52</span><small>Sek</small></span>
+        </div>
+        <div class="bar"><i style="width:9%"></i></div>
+        <p class="lede"><b>Heute Abend</b> werden sie gelöscht</p>
+      </div>
+    </div></div>
+  </div>
+  <div>
+    <h3>Under an hour — urgent</h3>
+    <div class="phone"><div class="screen">
+      <div class="card urgent">
+        <span class="cdate">33 Fotos</span>
+        <div class="ticker">
+          <span class="seg"><span class="digits">00</span><small>Min</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits seconds">43</span><small>Sek</small></span>
+        </div>
+        <div class="bar"><i style="width:1.5%"></i></div>
+        <p class="lede"><b>Gleich weg.</b> Erzähl einen Tag, dann bleibt er.</p>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<div class="note warn">
+  <h4>The segments drop away as the clock does</h4>
+  <p>Four segments at two days, three under a day, two under an hour. The ticker gets <em>shorter</em> and louder as it runs out — a shape somebody reads before they read a digit. Only the last minute pulses, and only on the seconds; a card that throbs for two days is a card people close.</p>
+</div>
+
+<h2>When it has run out</h2>
+<p>The sweep runs when somebody opens an import, not on a timer — so a run genuinely outlives its own deadline and still appears. It must never show a negative, and it must not pretend there is time left.</p>
+
+<div class="row two">
+  <div>
+    <h3>Past zero</h3>
+    <div class="phone"><div class="screen">
+      <div class="card gone">
+        <span class="cdate">6 Fotos</span>
+        <div class="ticker">
+          <span class="seg"><span class="digits">00</span><small>Std</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits">00</span><small>Min</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits">00</span><small>Sek</small></span>
+        </div>
+        <div class="bar"><i style="width:0%"></i></div>
+        <p class="lede">Diese Fotos werden beim nächsten Aufräumen entfernt.</p>
+        <button class="btn">Weiter</button>
+        <button class="kill">Jetzt löschen</button>
+      </div>
+    </div></div>
+  </div>
+  <div>
+    <h3>Just extended</h3>
+    <div class="phone"><div class="screen">
+      <div class="card calm">
+        <span class="cdate">33 Fotos</span>
+        <div class="ticker">
+          <span class="seg"><span class="digits">01</span><small>Tage</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits">23</span><small>Std</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits">58</span><small>Min</small></span><span class="colon">:</span>
+          <span class="seg"><span class="digits seconds">12</span><small>Sek</small></span>
+        </div>
+        <div class="bar"><i style="width:100%"></i></div>
+        <p class="lede"><b>Weil du zurückgekommen bist</b>, hast du zwei Tage mehr. Das war die eine Verlängerung.</p>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<h2>What the build has to honour</h2>
+
+<table>
+<tr><th>Thing</th><th>Rule</th></tr>
+<tr><td><code>font-variant-numeric: tabular-nums</code></td><td>Non-negotiable. Proportional digits make the whole card jitter every second, which is the difference between a ticker and a twitch.</td></tr>
+<tr><td>Tick rate</td><td>Seconds are visible below one hour only. Above that the seconds segment is dropped and the tick drops with it — a list saying <code>01 : 20</code> does not need to wake the phone every second.</td></tr>
+<tr><td>Pulse</td><td>Last minute only, seconds only, and never under <code>prefers-reduced-motion</code>.</td></tr>
+<tr><td>Past zero</td><td><code>00 : 00 : 00</code>, dashed, and a line saying it goes at the next sweep. Never a negative, never a stale positive.</td></tr>
+<tr><td>Colour</td><td>Tokens only. The coral and yellow here are the dark-aware ones from B1798 — a raw hex would fail in light mode, which this feature has already shipped twice.</td></tr>
+<tr><td>Bar width</td><td>Fraction of the <em>current</em> window, so an extension refills it. Not a fraction of 48 hours.</td></tr>
+</table>
+
+<div class="note">
+  <h4>One thing I would argue against</h4>
+  <p>Flip-clock digits — the little cards that rotate. They look wonderful in isolation and they are a per-frame animation on a list that may hold several runs, on a phone, on a screen whose entire message is “you have time, but not unlimited time”. The tabular jump does that job at a fraction of the cost. If you want the flip, say so and it is yours; I would just rather you chose it knowing what it costs.</p>
+</div>
+
+<footer>A draft for discussion — no code behind it. German copy is machine-written and unverified, like the rest of this feature's; it is here to show the shape, not to ship.</footer>
+
+</div>

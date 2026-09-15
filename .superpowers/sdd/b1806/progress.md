@@ -1,0 +1,2 @@
+
+Ruling: the seconds box ticks at 1s at every counting tier — the approved drawing shows live seconds at two-days-out, and `segmentsFor` already drew a SEC box at every tier while `tickIntervalFor` refreshed it once a minute, so the box sat frozen for 60s and jumped by 60. The battery argument in my own rules table was overstated: one shared setTimeout at 1 Hz over a handful of cards. Cost if wrong: a per-second setState on a screen nobody is looking at; revert is one line in tickIntervalFor.

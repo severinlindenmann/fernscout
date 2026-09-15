@@ -49,24 +49,19 @@ export function countdownFor(expiresAt: string, now: Date): CountdownTier {
 }
 
 /**
- * How soon the display needs to be recomputed for this tier to stay honest
- * — a per-second re-render of "2 days left" is wasted work on a phone, and
- * the resume list can hold several runs at once.
+ * How soon the display needs to be recomputed for this tier to stay honest.
+ *
+ * One second at every tier that is still counting, because `segmentsFor`
+ * draws a seconds box at every one of them — a coarser interval would leave
+ * that box frozen for a minute and then jump it by sixty, which reads as a
+ * broken clock rather than a saved wake-up. It is one shared `setTimeout`
+ * over a handful of cards, not a per-frame animation.
  *
  * `0` means "never on its own" — a run already at `now` does not need a
  * timer to keep saying so.
  */
 export function tickIntervalFor(tier: CountdownTier): number {
-  switch (tier.unit) {
-    case "now":
-      return 0;
-    case "days":
-      return MINUTE;
-    case "minutes":
-      return 30_000;
-    case "seconds":
-      return 1000;
-  }
+  return tier.unit === "now" ? 0 : 1000;
 }
 
 /**

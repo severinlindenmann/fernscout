@@ -62,9 +62,9 @@ describe("countdownFor", () => {
 });
 
 describe("tickIntervalFor", () => {
-  test("scales down with urgency, and stops once it reads now", () => {
-    expect(tickIntervalFor({ unit: "days", days: 2, hours: 0 })).toBe(60_000);
-    expect(tickIntervalFor({ unit: "minutes", minutes: 90 })).toBe(30_000);
+  test("one second wherever a seconds box is drawn, and stops once it reads now", () => {
+    expect(tickIntervalFor({ unit: "days", days: 2, hours: 0 })).toBe(1000);
+    expect(tickIntervalFor({ unit: "minutes", minutes: 90 })).toBe(1000);
     expect(tickIntervalFor({ unit: "seconds", seconds: 30 })).toBe(1000);
     expect(tickIntervalFor({ unit: "now" })).toBe(0);
   });
