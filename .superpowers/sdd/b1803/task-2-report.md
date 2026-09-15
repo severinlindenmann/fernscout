@@ -117,3 +117,29 @@ the indicator call is identical in shape to the three I did see rendered
 (`FoundStep.tsx`, `current={4}`, `total={TOTAL_STEPS}`).
 
 Both gaps are named here rather than implied as covered.
+
+## Fix round 1 (commit `1499743b`)
+
+Four task-review findings addressed:
+
+1. **Undated-group double-count.** `DayBoard`'s `daysTotal` was `groups.length`
+   (includes the synthetic undated group); `FoundStep`'s day count already
+   excluded it. Shared fix: `lib/extract/dayCount.ts`'s `countDays`, called by
+   both. Its own file rather than a new export on `lib/extract/group.ts` —
+   that module's `clusterMedia` import reaches `lib/ingest/geo.ts`'s
+   `node:fs`, and a real (not type-only) import of anything from it broke the
+   client build (Turbopack: "the chunking context does not support external
+   modules (request: node:fs)"). Caught by the full `npm run verify`, not
+   assumed — first attempt put `countDays` in `group.ts` itself and the build
+   failed.
+2. **Wrong plural key.** `extract.step.daysTold`'s `tn()` was keyed on
+   `daysTold` instead of `daysTotal` (the number "day/days" actually
+   describes) — now fixed.
+3. **Pin icons removed** from TripModeStep's S2a cards — design-v2.html draws
+   none there; only S2b's talk/type cards carry an icon.
+4. Two new tests, each confirmed RED against the pre-fix code (`git stash`,
+   run, paste, restore) before being confirmed GREEN with the fix:
+   `test/extract-day-count.test.ts`, `test/extract-day-board-progress.test.tsx`.
+
+`npm run verify` green afterward: 642 test files, 8020 tests passed, all 5
+gates clean.
