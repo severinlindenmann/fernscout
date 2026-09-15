@@ -181,3 +181,18 @@ Ruling (finding 3): the pin icons come out. The brief's four-icon list named a
 pin, but no card in design-v2.html carries one — only S2b's mic and lines. The
 brief's own tiebreaker rule puts the design above its prose, and the prose is
 where my summary of the design was loose. Deletion over addition.
+
+Phase 2: complete (commits dbfa952e..244ca5eb, 1 fix round). Review's four
+findings all addressed with RED-then-GREEN evidence pasted for both new tests.
+Controller added one a11y fix the review missed: the indicator's wrapper
+aria-label duplicated its own visible label text.
+Also filed B1808 (high) from this phase's browser pass: headless Chrome defaults
+prefers-color-scheme to dark and check-page.mjs never emulates it, so every
+"light" capture this repository has taken without a theme cookie may be dark.
+Sibling of B1804. That is an instrument defect, not a branch defect — backlog.
+
+PHASE 3 — seven screens, dispatched in three groups rather than one, because
+one implementer holding seven screens is how composition gets skipped. Groups:
+3.1+3.2 (upload progress, day cards), 3.3+3.4+3.5 (the telling flow, including
+the screen that does not exist), 3.6+3.7 (who came, preview). Sequential, never
+parallel — they share ExtractFlow and the locale files.
