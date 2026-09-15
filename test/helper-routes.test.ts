@@ -171,8 +171,14 @@ describe("the helper routes", () => {
   // Task 2.3) — grouping a run's photographs into days, correcting what
   // clustering got wrong on one photograph, and answering one question about
   // one day. Same cookie, same owner check as the forty-nine before them.
-  test("there are fifty-one of them, and each is guarded", () => {
-    expect(sources).toHaveLength(51);
+  // Fifty-two: `extract/commit` (camera roll import, B1751, Task 3.1) — the
+  // first door in this whole plan that writes real bytes into
+  // `content/<user>/`: moving one confirmed day's kept photographs out of
+  // staging and into `inbox/days/<date>/`, behind the same storage quota
+  // every other real write in this repository already answers to. Same
+  // cookie, same owner check as the fifty-one before it.
+  test("there are fifty-two of them, and each is guarded", () => {
+    expect(sources).toHaveLength(52);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }
