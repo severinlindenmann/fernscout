@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import AccountPageContent, {
+  groupSpent,
   type PaymentPanel,
   type StoragePanel,
 } from "@/app/[user]/account/AccountPageContent";
@@ -113,9 +114,32 @@ describe("the payment section", () => {
       },
     });
     expect(html).toContain(dictionaryFor("en")["me.spentTitle"]);
-    expect(html).toContain(dictionaryFor("en")["me.spentReason.helper"]);
+    expect(html).toContain(dictionaryFor("en")["me.spentReason.ai"]);
     expect(html).toContain("14");
     expect(html).toContain(dictionaryFor("en")["me.spentAiNote"]);
+  });
+
+  /** B1784: every AI door on one line, and a reason with no group of its own
+   *  still reads as words rather than as `me.spentReason.<key>`. */
+  test("groups the ledger's reasons into what an owner understands", () => {
+    expect(
+      groupSpent([
+        { reason: "helper", credits: 14 },
+        { reason: "ask_thread", credits: 0.18 },
+        { reason: "transcription", credits: 0.12 },
+        { reason: "day_whatsapp", credits: 3 },
+        { reason: "something_new", credits: 1 },
+      ]),
+    ).toEqual([
+      { group: "ai", credits: 14.3 },
+      { group: "messages", credits: 3 },
+      { group: "other", credits: 1 },
+    ]);
+    const html = render({
+      payment: { ...payment, spent: [{ reason: "ask_thread", credits: 0.18 }] },
+    });
+    expect(html).not.toContain("me.spentReason.");
+    expect(html).toContain(dictionaryFor("en")["me.spentReason.ai"]);
   });
 
   test("shows no spend list at all when nothing has been spent", () => {
