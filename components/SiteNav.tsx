@@ -9,13 +9,14 @@ import {
   ChartNoAxesColumn,
   Compass,
   Search,
+  Upload,
   UserRound,
   Wallet,
 } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useSite } from "./SiteProvider";
 import { useTrip } from "./TripProvider";
-import { ACCOUNT_DESTINATION, TRIP_DESTINATIONS } from "@/lib/navDestinations";
+import { ACCOUNT_DESTINATION, EXTRACT_DESTINATION, TRIP_DESTINATIONS } from "@/lib/navDestinations";
 
 /** Icons keyed by `NavDestination.path` — the destinations themselves live in
  * lib/navDestinations.ts, shared with lib/search.ts, and know nothing about
@@ -26,6 +27,7 @@ const ICONS: Record<string, typeof BookOpen> = {
   "/map": Map,
   "/analytics": ChartNoAxesColumn,
   "/account": Wallet,
+  "/extract": Upload,
 };
 
 /** One destination, resolved to this reader's URLs and its own active state —
@@ -142,6 +144,20 @@ export function useNavEntries(): NavEntry[] {
       label: t(ACCOUNT_DESTINATION.labelKey),
       Icon: ICONS[ACCOUNT_DESTINATION.path],
       active: pathname === accountHref,
+    });
+  }
+
+  // The guided import — B1797. Owner-only, like the account destination
+  // above, and capability-gated on top of that: an instance with `extract`
+  // off has no such page at all, so the row must be absent rather than lead
+  // to a 404 — the same rule `helperEnabled` follows for `/agent`.
+  if (site.isOwner && site.extractEnabled) {
+    const extractHref = userHref(EXTRACT_DESTINATION.path);
+    entries.push({
+      href: extractHref,
+      label: t(EXTRACT_DESTINATION.labelKey),
+      Icon: ICONS[EXTRACT_DESTINATION.path],
+      active: pathname === extractHref || pathname.startsWith(`${extractHref}/`),
     });
   }
 

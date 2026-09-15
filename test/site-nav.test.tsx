@@ -50,6 +50,7 @@ const site: SiteSummary = {
   analyticsEnabled: true,
   helperEnabled: false,
   isOwner: false,
+  extractEnabled: false,
 };
 
 const trip = {
@@ -170,6 +171,43 @@ describe("SiteNav", () => {
         expect(render(true, false)).toContain("/alex/account");
       } finally {
         site.isOwner = false;
+      }
+    });
+  });
+
+  /**
+   * The import entry — B1797. Owner-only *and* capability-gated: a reader
+   * with no rights to it, and an owner on an instance where `extract` is
+   * off, must both see no row leading to a 404.
+   */
+  describe("the import destination", () => {
+    test("is absent for a reader who is not the owner, even with the capability on", () => {
+      site.extractEnabled = true;
+      try {
+        expect(render(false)).not.toContain("/alex/extract");
+      } finally {
+        site.extractEnabled = false;
+      }
+    });
+
+    test("is absent for the owner when the capability is off", () => {
+      site.isOwner = true;
+      try {
+        expect(render(false)).not.toContain("/alex/extract");
+      } finally {
+        site.isOwner = false;
+      }
+    });
+
+    test("is offered to the owner when the capability is on, at the journal's own base even inside a trip", () => {
+      site.isOwner = true;
+      site.extractEnabled = true;
+      try {
+        expect(render(false)).toContain("/alex/extract");
+        expect(render(true, false)).toContain("/alex/extract");
+      } finally {
+        site.isOwner = false;
+        site.extractEnabled = false;
       }
     });
   });

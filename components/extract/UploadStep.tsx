@@ -3,6 +3,13 @@
 import { useRef, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
+import { IMAGE_MAX_BYTES, VIDEO_MAX_BYTES } from "@/lib/validate/media";
+
+/** The whole run's own ceiling — `MAX_FILES_PER_RUN` in
+ *  `app/api/helper/[user]/extract/upload/route.ts`. Not imported: that file
+ *  pulls in server-only modules a client bundle cannot carry. Kept here as a
+ *  literal, checked against the route by `test/extract-upload-step.test.ts`. */
+const MAX_FILES_PER_RUN = 500;
 
 type TileState = "queued" | "sending" | "done" | "failed";
 type Tile = { file: File; state: TileState };
@@ -143,6 +150,30 @@ export default function UploadStep({
 
   return (
     <div>
+      {/* The limits, stated above the picker — B1797, the design's Step 03.
+       *  Learning a limit by being rejected after a four-minute selection is
+       *  the most expensive way to find it out; real numbers from
+       *  lib/validate/media.ts and the upload route's own ceiling. */}
+      <ul className="mb-3 divide-y divide-line-faint rounded-xl border border-line-strong text-sm">
+        <li className="flex items-center justify-between px-4 py-2.5">
+          <span className="text-ink-strong">{t("extract.upload.limits.formats")}</span>
+          <span className="text-ink-secondary">{t("extract.upload.limits.formatsValue")}</span>
+        </li>
+        <li className="flex items-center justify-between px-4 py-2.5">
+          <span className="text-ink-strong">{t("extract.upload.limits.upTo")}</span>
+          <span className="text-ink-secondary">{t("extract.upload.limits.upToValue", { count: String(MAX_FILES_PER_RUN) })}</span>
+        </li>
+        <li className="flex items-center justify-between px-4 py-2.5">
+          <span className="text-ink-strong">{t("extract.upload.limits.each")}</span>
+          <span className="text-ink-secondary">
+            {t("extract.upload.limits.eachValue", {
+              image: String(Math.round(IMAGE_MAX_BYTES / 1024 / 1024)),
+              video: String(Math.round(VIDEO_MAX_BYTES / 1024 / 1024)),
+            })}
+          </span>
+        </li>
+      </ul>
+
       <input
         id="extract-upload-input"
         type="file"

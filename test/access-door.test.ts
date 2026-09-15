@@ -81,6 +81,9 @@ describe("what the header is told about signing in", () => {
       "base",
       "baseCurrency",
       "canSignIn",
+      // B1797. Journal-wide and viewer-independent, exactly like
+      // `helperEnabled` below — whether `/<user>/extract` exists at all here.
+      "extractEnabled",
       // B433. Viewer-derived, like `signedIn`, and deliberately not
       // trip-derived: it is whether this reader holds an instance-wide
       // identity, which is a fact about them and the instance and cannot vary

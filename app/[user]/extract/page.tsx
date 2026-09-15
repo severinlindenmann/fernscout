@@ -1,30 +1,20 @@
-import { notFound } from "next/navigation";
-import { isEnabled } from "@/lib/capabilities";
-import { hasHelperConsent } from "@/lib/helper/consent";
-import { isHelperOwner } from "@/lib/helper/server";
-import { speechProvider } from "@/lib/helper/transcribe";
-import ExtractFlow from "@/components/extract/ExtractFlow";
+import ExtractHub from "@/components/extract/ExtractHub";
+import { requireExtractOwner } from "@/lib/extract/pageGate";
 
-/**
- * The camera roll import's own page — B1751, Task 1.3.
- *
- * `isEnabled` gates first: an instance with the capability off has no such
- * page at all, rather than a page explaining a button it will not show. Owner
- * check comes after, and both answer with the same `notFound()` — a stranger
- * asking for somebody else's `/extract` learns nothing about whether the
- * capability is even on here.
- */
 export const dynamic = "force-dynamic";
 
-export default async function ExtractPage({ params }: PageProps<"/[user]/extract">) {
+/**
+ * "What do you want to bring in?" — the import's front door, B1797.
+ *
+ * Before this, `/<user>/extract` *was* the photo flow: a title, a file
+ * button, and nothing else. It now offers four doors — photographs to the
+ * guided flow that already existed, and location history, contacts and bank
+ * statements each to a plain upload that hands the file to the importer
+ * already built for it (`ExtractHub`'s own doc comment says which route,
+ * and where each one falls short of a full round trip).
+ */
+export default async function ExtractHubPage({ params }: PageProps<"/[user]/extract">) {
   const { user } = await params;
-  if (!isEnabled("extract", user)) notFound();
-  if (!(await isHelperOwner(user))) notFound();
-  return (
-    <ExtractFlow
-      username={user}
-      consentedSpeech={hasHelperConsent(user, "speech")}
-      speechProvider={speechProvider()}
-    />
-  );
+  await requireExtractOwner(user);
+  return <ExtractHub username={user} />;
 }

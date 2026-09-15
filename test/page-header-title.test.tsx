@@ -59,6 +59,7 @@ const site: SiteSummary = {
   analyticsEnabled: true,
   helperEnabled: false,
   isOwner: false,
+  extractEnabled: false,
 };
 
 function markup(): string {

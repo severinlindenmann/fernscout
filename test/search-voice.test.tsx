@@ -69,6 +69,7 @@ const base: SiteSummary = {
   analyticsEnabled: false,
   helperEnabled: false,
   isOwner: false,
+  extractEnabled: false,
 };
 
 let host: HTMLDivElement;

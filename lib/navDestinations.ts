@@ -62,6 +62,18 @@ export const ACCOUNT_DESTINATION: NavDestination = {
   synonymsKey: "search.accountTerms",
 };
 
+/**
+ * Journal-scoped, owner-only, and capability-gated — B1797. The guided
+ * import lives at `/<user>/extract`, exactly like `ACCOUNT_DESTINATION`'s
+ * `/account`, and needs the same absent-not-broken treatment `helperEnabled`
+ * already gives `/agent`: `SiteNav` shows this only when both `site.isOwner`
+ * and `site.extractEnabled` hold.
+ */
+export const EXTRACT_DESTINATION: NavDestination = {
+  path: "/extract",
+  labelKey: "nav.extract",
+};
+
 export type SearchLevel = "public" | "reader" | "owner";
 
 export type SearchDestination = {

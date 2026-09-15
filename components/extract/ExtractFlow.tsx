@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import CreditsScreen, { commitReadyDays } from "@/components/extract/CreditsScreen";
 import DayBoard from "@/components/extract/DayBoard";
+import FoundStep from "@/components/extract/FoundStep";
+import IntroStep from "@/components/extract/IntroStep";
 import PreviewScreen from "@/components/extract/PreviewScreen";
 import ResumeScreen, { type RunSummaryClient } from "@/components/extract/ResumeScreen";
+import TripModeStep, { type TripOption } from "@/components/extract/TripModeStep";
 import { useI18n } from "@/components/LocaleProvider";
 import UploadStep from "@/components/extract/UploadStep";
 import { resumeExpiryState, type ResumeExpiryState } from "@/lib/staging/resumeState";
@@ -60,13 +65,31 @@ export default function ExtractFlow({
   username,
   consentedSpeech,
   speechProvider,
+  trips,
 }: {
   username: string;
   consentedSpeech: boolean;
   speechProvider: string;
+  /** This owner's real trips, for Step 02's "add to a trip you have" —
+   *  B1797. Fetched server-side by the page (`getTrips`, the same function
+   *  every other owner-facing trip list already calls) rather than a new
+   *  client route: the owner is looking at their own journal, and nothing
+   *  here needs filtering by reader. */
+  trips: TripOption[];
 }) {
   const { t } = useI18n();
   const [run, setRun] = useState<Run | null>(null);
+  // Step 01/02 — B1797. `awaitingStart` is true exactly when a fresh run is
+  // about to be minted and the person has not yet been asked anything: the
+  // moment between "no live run to resume" and `start()` actually firing.
+  // `askPhase` is which of the two screens is showing while that is true.
+  const [awaitingStart, setAwaitingStart] = useState(false);
+  const [askPhase, setAskPhase] = useState<"intro" | "ask">("intro");
+  // Whether this run's "What we found" screen (Step 04) has already been
+  // shown. Resumed runs skip it — `continueRun` sets this true straight
+  // away — because a returning visit has its own "welcome back" moment
+  // (`ResumeScreen`) and does not need a second one.
+  const [foundSeen, setFoundSeen] = useState(false);
   const [error, setError] = useState(false);
   // Accumulated across the initial send and every retry — `UploadStep`
   // reports only its own attempt's count, not a running total.
@@ -154,20 +177,33 @@ export default function ExtractFlow({
         return;
       }
       setResumable(null);
-      start();
+      beginAsking();
     } catch {
       setError(true);
     }
   }
 
-  async function start() {
+  /** No live run to resume — instead of minting one straight away, ask what
+   *  it should be. `askPhase` always resets to "intro": both entry points
+   *  (a first visit, and "start new" off `ResumeScreen`) get the same
+   *  expectation-setter, not just the returning one. */
+  function beginAsking() {
+    setAskPhase("intro");
+    setAwaitingStart(true);
+  }
+
+  /** `POST .../extract/start` with the person's own answers to Step 02 —
+   *  B1797. `RunManifest.tripId` and `.mode` have carried these fields since
+   *  B1751's Task 1.2; this is the first caller that ever sends them instead
+   *  of the route's own `{}`-body defaults (a new trip, typing mode). */
+  async function start(answers: { tripId: string | null; mode: "voice" | "type" }) {
     setError(false);
     setRun(null);
     try {
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/extract/start`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify(answers),
       });
       if (!res.ok) throw new Error(String(res.status));
       const json = (await res.json()) as Run;
@@ -195,11 +231,28 @@ export default function ExtractFlow({
     setRun({ runId: picked.runId, expiresAt: picked.expiresAt });
     setUploaded(picked.photos.length);
     setDone(picked.photos.length > 0);
+    // A resumed run already had its Step 02 answered when it was created,
+    // and a returning visit gets `resumeNotice` as its own "welcome back" —
+    // Step 04's "what we found" is a first-visit screen, not shown twice.
+    setFoundSeen(true);
   }
 
   function startNew() {
     setResumable(null);
-    start();
+    beginAsking();
+  }
+
+  /** Step 01's "Start with my photographs" — moves on to Step 02 without
+   *  starting anything yet. */
+  function onIntroContinue() {
+    setAskPhase("ask");
+  }
+
+  /** Step 02's own submit — the only place `start()` is ever called with
+   *  real answers rather than the defaults nobody used to ask for. */
+  function onAskSubmit(tripId: string | null, mode: "voice" | "type") {
+    setAwaitingStart(false);
+    start({ tripId, mode });
   }
 
   /** `DayBoard`'s first successful load after a resume — the same
@@ -237,7 +290,17 @@ export default function ExtractFlow({
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8">
-      <h1 className="text-2xl font-semibold text-ink-strong">{t("extract.title")}</h1>
+      {/* The way back — B1797. Every screen in this flow reaches it, because
+       *  it is drawn once, here, rather than on each screen individually. */}
+      <Link
+        href={`/${username}/extract`}
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body transition-colors hover:text-ink-strong"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden strokeWidth={2.4} />
+        {t("extract.backToJournal")}
+      </Link>
+
+      <h1 className="mt-2 font-display text-2xl font-semibold text-ink-strong">{t("extract.title")}</h1>
 
       {error && (
         <div className="mt-4">
@@ -256,8 +319,16 @@ export default function ExtractFlow({
         <ResumeScreen runs={resumable} onContinue={continueRun} onStartNew={startNew} />
       )}
 
-      {(resumable === undefined || (resumable === null && !run)) && !error && (
+      {(resumable === undefined || (resumable === null && !run && !awaitingStart)) && !error && (
         <p className="mt-4 text-sm text-ink-secondary">{t("extract.flow.starting")}</p>
+      )}
+
+      {/* Step 01 and Step 02 — B1797. Shown only while a fresh run is about
+       *  to be minted (see `beginAsking`); a resumed run skips straight past
+       *  both, since it was already asked once, when it was created. */}
+      {awaitingStart && askPhase === "intro" && <IntroStep onContinue={onIntroContinue} />}
+      {awaitingStart && askPhase === "ask" && (
+        <TripModeStep trips={trips} consentedSpeech={consentedSpeech} onSubmit={onAskSubmit} />
       )}
 
       {resumeNotice && (
@@ -288,18 +359,22 @@ export default function ExtractFlow({
         </div>
       )}
 
-      {done && !atBoardEnd && run && (
+      {done && !foundSeen && !atBoardEnd && run && (
         <>
           <p className="mt-4 text-sm text-ink-body">{t("extract.flow.done", { count: String(uploaded) })}</p>
-          <DayBoard
-            username={username}
-            runId={run.runId}
-            consentedSpeech={consentedSpeech}
-            speechProvider={speechProvider}
-            onLeave={onLeaveBoard}
-            onLoaded={onBoardLoaded}
-          />
+          <FoundStep username={username} runId={run.runId} onContinue={() => setFoundSeen(true)} />
         </>
+      )}
+
+      {done && foundSeen && !atBoardEnd && run && (
+        <DayBoard
+          username={username}
+          runId={run.runId}
+          consentedSpeech={consentedSpeech}
+          speechProvider={speechProvider}
+          onLeave={onLeaveBoard}
+          onLoaded={onBoardLoaded}
+        />
       )}
 
       {atBoardEnd && !left && run && credits !== undefined && credits !== null && (
