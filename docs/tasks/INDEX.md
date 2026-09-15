@@ -323,7 +323,7 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (16)
+## in-development (18)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -334,12 +334,14 @@ _Nothing here._
 | [B1771](in-development/B1771-the-first-and-last-day-of.md) | The first and last day of a trip keep photographs taken at the owner's own address | ISSUE | high | medium | `135632db` |
 | [B1772](in-development/B1772-export-mjs-does-not-check-what.md) | export.mjs does not check what landed on disk, so a photograph that exported as HEIC is invisible to every later step | ISSUE | high | low | `135632db` |
 | [B1774](in-development/B1774-publish-mjs-corrects-a-figure-with.md) | publish.mjs corrects a figure with PATCH and the route has none, so every run after the first exits non-zero | ISSUE | high | low | `135632db` |
+| [B1782](in-development/B1782-a-day-pulled-down-from-the.md) | A day pulled down from the instance cannot be written back, because it carries the server's own weather source | ISSUE | high | low | `135632db` |
 | [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
 | [B1770](in-development/B1770-narrow-mjs-rebuilds-photos-json-from.md) | narrow.mjs rebuilds photos.json from the unblurred copy, silently undoing blur.mjs | ISSUE | medium | low | `135632db` |
 | [B1775](in-development/B1775-publish-writes-to-the-instance-without.md) | publish writes to the instance without touching the sync baseline, so the next sync refuses to move anything | ISSUE | medium | medium | `135632db` |
 | [B1776](in-development/B1776-figures-are-journal-content-the-sync.md) | figures are journal content the sync carries in neither direction | ISSUE | medium | medium | `135632db` |
 | [B1779](in-development/B1779-nothing-carries-a-sensitive-frame-from.md) | Nothing carries a sensitive frame from the description pass to the review page, so the person hunts for it by date | FEATURE | medium | medium | `135632db` |
 | [B1781](in-development/B1781-appearance-is-a-panel-on-me.md) | Appearance is a panel on /me while language is a chip in the header | ISSUE | medium | low | `7163371b` |
+| [B1783](in-development/B1783-the-one-source-name-a-caller.md) | The one source name a caller may never write is not published anywhere a caller can read it | ISSUE | medium | low | `135632db` |
 | [B1777](in-development/B1777-every-day-of-a-trip-the.md) | Every day of a trip the instance does not hold yet is reported as unknown_trip, drowning the real errors | ISSUE | low | low | `135632db` |
 | [B1778](in-development/B1778-reviewing-more-than-one-trip-means.md) | Reviewing more than one trip means one server per trip on one port each | FEATURE | low | medium | `135632db` |
 | [B1780](in-development/B1780-a-file-with-no-decodable-image.md) | A file with no decodable image survives every re-export and is rediscovered by each tool in turn | ISSUE | low | low | `135632db` |
