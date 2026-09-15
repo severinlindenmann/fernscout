@@ -7,8 +7,7 @@ complexity: low
 area: extract, staging, limits
 found: "2026-09-15T17:45:30Z"
 started: "2026-09-15T17:46:00Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-15T17:46:00Z"
+merged: "2026-09-15T18:57:15Z"
 ---
 
 # B1807 — An import has no size limit, so one camera roll can fill the disk

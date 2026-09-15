@@ -7,8 +7,7 @@ complexity: low
 area: extract, resume, design
 found: "2026-09-15T17:44:14Z"
 started: "2026-09-15T17:44:41Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-15T17:44:41Z"
+merged: "2026-09-15T18:57:01Z"
 ---
 
 # B1806 — The deletion clock is a sentence in the same grey as everything else
