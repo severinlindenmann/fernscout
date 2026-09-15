@@ -36,3 +36,31 @@ describe("the staging store", () => {
     expect(() => readStagedFile("alex", "../../etc", "x")).toThrow();
   });
 });
+
+describe("the run manifest", () => {
+  test("round-trips, and a missing run reads as null", async () => {
+    const { writeManifest, readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", "run-none")).toBeNull();
+    writeManifest("alex", {
+      version: 1,
+      runId: "run-1",
+      owner: "alex",
+      createdAt: "2026-09-15T10:00:00Z",
+      expiresAt: "2026-09-17T10:00:00Z",
+      tripId: null,
+      mode: "voice",
+      state: "uploading",
+      photos: [{ id: "a.jpeg", filename: "IMG_1.jpeg", bytes: 5, kind: "image" }],
+      days: [],
+    });
+    expect(readManifest("alex", "run-1")?.photos[0].filename).toBe("IMG_1.jpeg");
+  });
+
+  test("a corrupt manifest reads as null rather than throwing", async () => {
+    const { readManifest } = await import("@/lib/staging/manifest");
+    const { runDir } = await import("@/lib/staging/paths");
+    fs.mkdirSync(runDir("alex", "run-bad"), { recursive: true });
+    fs.writeFileSync(path.join(runDir("alex", "run-bad"), "run.json"), "{ not json");
+    expect(readManifest("alex", "run-bad")).toBeNull();
+  });
+});
