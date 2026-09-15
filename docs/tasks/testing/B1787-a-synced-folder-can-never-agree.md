@@ -149,11 +149,11 @@ a converted journal and nothing afterwards.
 ## Verified, fernscout.ch/severin, 2026-09-15
 
 - **Zero pushes, and running either leg twice changes nothing.** The real run
-  took 199 files; `sync up --dry-run` then plans `push 1`, `sync down
-  --dry-run` plans `pull 0, unchanged 4994`, and a second pair says the same.
-  The one remaining push is a photograph whose local bytes differ from the
-  site's derivative — a different defect, captured as **B1789**, and the only
-  reason the up leg is not literally zero.
+  took 199 files; `sync up --dry-run` then planned `push 1`, `sync down
+  --dry-run` `pull 0, unchanged 4994`, and a second pair said the same. The one
+  remaining push was a photograph whose local bytes differ from the site's
+  derivative — a different defect, captured as **B1789** and since fixed, after
+  which the up leg plans `push 0` and the two sides agree on all 4994 files.
 - **`down --prefer-remote` leaves nothing that `up` calls changed locally.**
   Both legs now agree on all 4994 files; before the fix the same folder held
   199 that neither leg would resolve.
