@@ -447,6 +447,26 @@ body {
   animation: fs-weather-flash 3.5s ease-in-out infinite;
 }
 
+/* The deletion clock's last-minute pulse — B1806. Stingy on purpose: the
+   seconds segment only, and only in the last minute of an already-urgent
+   run, so a card that has been sitting near the top of the list for two
+   days never throbs. Two steps rather than a smooth fade, matching the
+   approved draft (`.superpowers/sdd/b1806/ticker.html`) — a card somebody
+   glances at for a second reads a blink more clearly than a fade. */
+@keyframes fs-ticker-pulse {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0.45;
+  }
+}
+.fs-ticker-pulse {
+  animation: fs-ticker-pulse 1s steps(2, end) infinite;
+}
+
 /* Non-negotiable, and the reason every one of the rules above is a class
    rather than an inline style: one query turns the whole feature still. The
    glyph stays — it is information — and only the movement goes. */
@@ -459,7 +479,8 @@ body {
   .fs-weather-flash,
   .fs-assemble-in,
   .fs-rise-in,
-  .fs-waymark-bounce {
+  .fs-waymark-bounce,
+  .fs-ticker-pulse {
     animation: none;
   }
   /* Not merely `animation: none` — with nothing else setting its opacity,

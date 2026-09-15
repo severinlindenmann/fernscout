@@ -3,8 +3,23 @@
 import { useEffect, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
-import { countdownFor, tickIntervalFor, type CountdownTier } from "@/lib/staging/countdown";
+import {
+  countdownFor,
+  segmentsFor,
+  tickIntervalFor,
+  urgencyFor,
+  windowFractionFor,
+  type CountdownTier,
+  type Segment,
+  type Urgency,
+} from "@/lib/staging/countdown";
 import type { RunManifest } from "@/lib/staging/manifest";
+import {
+  formatGigabytes,
+  JOURNAL_STAGING_MAX_BYTES,
+  JOURNAL_STAGING_WARN_FRACTION,
+} from "@/lib/validate/media";
+import type { TranslationKey } from "@/lib/i18n";
 
 /** What `GET .../extract/runs` hands back for one run — the manifest,
  *  unmodified (the route is read-only, see its own doc comment), plus how
@@ -50,6 +65,109 @@ function describe(tier: CountdownTier, t: Translate, tn: TranslateN): string {
   });
 }
 
+const SEGMENT_LABEL_KEY: Record<Segment["unit"], TranslationKey> = {
+  days: "extract.resume.ticker.days",
+  hours: "extract.resume.ticker.hours",
+  minutes: "extract.resume.ticker.minutes",
+  seconds: "extract.resume.ticker.seconds",
+};
+
+/**
+ * Digit-box colour, per the urgency ladder — tokens only, never a raw hex;
+ * this feature has already shipped a literal in the wrong slot twice.
+ *
+ * **Only `coral-600` carries text here, never `yellow-*` or `coral-300`/
+ * `coral-400`.** B1798 vetted exactly two brand hues to sit on this app's own
+ * surfaces as *text* at 4.5:1 or better — `green-700` and `coral-600` — and
+ * `test/contrast.test.ts` enforces it by banning every other accent as a
+ * `text-` class outright. `yellow-300`/`400`/`600` and `coral-300`/`400` are
+ * fill-only: real here as a background wash and a border, the same way the
+ * design draft's own yellow and coral read as a tinted card rather than
+ * coloured digits. `soon` therefore keeps the calm tier's ink text and adds
+ * only the wash and the border; the ladder still reads as three visibly
+ * different cards, just not through a third text hue that does not exist.
+ */
+const DIGIT_CLASS: Record<Urgency, string> = {
+  calm: "border-line-quiet bg-surface-raised text-ink-strong",
+  soon: "border-yellow-400/40 bg-yellow-400/15 text-ink-strong",
+  urgent: "border-coral-400/40 bg-coral-400/15 text-coral-600",
+  gone: "border-dashed border-line-quiet bg-transparent text-ink-faint",
+};
+const LABEL_CLASS: Record<Urgency, string> = {
+  calm: "text-ink-faint",
+  soon: "text-ink-muted",
+  urgent: "text-coral-600",
+  gone: "text-ink-faint",
+};
+const BAR_FILL_CLASS: Record<Urgency, string> = {
+  calm: "bg-green-500",
+  soon: "bg-yellow-400",
+  urgent: "bg-coral-400",
+  gone: "bg-transparent",
+};
+
+/**
+ * The digits, boxed and coloured — B1806. Purely presentational: every
+ * number and every colour decision comes from `segmentsFor`/`urgencyFor` in
+ * `lib/staging/countdown.ts`, so there is exactly one clock, not a second one
+ * hiding in this component's own thresholds.
+ *
+ * `aria-hidden` — the existing `describe()` sentence just above this in the
+ * card is the accessible, tested text for the same fact; the boxes are a
+ * second, purely visual reading of it; and a screen reader stepping through
+ * four separate digit boxes plus a colon between each would be a worse
+ * experience than the one sentence it already gets.
+ */
+function Ticker({
+  tier,
+  ms,
+  fraction,
+  t,
+}: {
+  tier: CountdownTier;
+  ms: number;
+  fraction: number;
+  t: Translate;
+}) {
+  const urgency = urgencyFor(tier);
+  const segments = segmentsFor(tier, ms);
+  // The pulse is stingy: the last minute only, the seconds box only, off
+  // entirely under `prefers-reduced-motion` (handled in app/globals.css —
+  // `.fs-ticker-pulse` is removed outright by that media query, not just
+  // slowed).
+  const pulsing = urgency === "urgent" && ms > 0 && ms < 60_000;
+
+  return (
+    <div className="mt-2" aria-hidden="true">
+      <div className="flex items-end gap-1">
+        {segments.map((seg, i) => (
+          <div key={seg.unit} className="flex items-end gap-1">
+            {i > 0 && <span className="pb-4 font-mono text-sm text-ink-faint">:</span>}
+            <span className="flex flex-col items-center gap-0.5">
+              <span
+                className={`min-w-10 rounded-md border px-1.5 py-1 text-center font-mono text-lg font-semibold tabular-nums ${DIGIT_CLASS[urgency]} ${
+                  pulsing && seg.unit === "seconds" ? "fs-ticker-pulse" : ""
+                }`}
+              >
+                {String(seg.value).padStart(2, "0")}
+              </span>
+              <span className={`font-mono text-[10px] uppercase tracking-wide ${LABEL_CLASS[urgency]}`}>
+                {t(SEGMENT_LABEL_KEY[seg.unit])}
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-line-faint">
+        <div
+          className={`h-full rounded-full ${BAR_FILL_CLASS[urgency]}`}
+          style={{ width: `${fraction * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 /**
  * "You left this half-finished" — B1751 Task 4.3. Shown by `ExtractFlow`
  * instead of minting a new run whenever `GET .../extract/runs` finds one
@@ -90,19 +208,25 @@ function describe(tier: CountdownTier, t: Translate, tn: TranslateN): string {
 export default function ResumeScreen({
   username,
   runs,
+  storage,
   onContinue,
   onStartNew,
   onDestroyed,
 }: {
   username: string;
   runs: RunSummaryClient[];
+  /** This journal's whole staging footprint — B1807. `undefined` while
+   *  `ExtractFlow`'s own fetch is still in flight; the summary bar simply
+   *  stays hidden until it has a real figure, the same as it does for a
+   *  journal that never approaches the ceiling. */
+  storage?: { usedBytes: number };
   onContinue: (run: RunSummaryClient) => void;
   onStartNew: () => void;
   /** Called once a run is actually gone from disk, so the caller can drop it
    *  from whatever list it is holding. */
   onDestroyed: (runId: string) => void;
 }) {
-  const { t, tn } = useI18n();
+  const { t, tn, locale } = useI18n();
   const [now, setNow] = useState(() => new Date());
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -148,11 +272,41 @@ export default function ResumeScreen({
       <p className="text-sm text-ink-body">{t("extract.resume.title")}</p>
       <p className="mt-1 text-xs text-ink-secondary">{t("extract.resume.daysStay")}</p>
 
+      {/* One figure for the whole journal, not one per run — the ceiling is
+       *  per journal (B1807), so repeating the same total on every card
+       *  below would say nothing a single line here does not already say.
+       *  Shown only once it is worth mentioning, and — because a person
+       *  refused an upload for exactly this reason lands here to fix it —
+       *  the destroy control on every card below is the answer, not a
+       *  dead end. */}
+      {storage !== undefined &&
+        storage.usedBytes >= JOURNAL_STAGING_MAX_BYTES * JOURNAL_STAGING_WARN_FRACTION && (
+          <div className="mt-3 rounded-xl border border-line-strong px-4 py-2.5">
+            <p className="text-sm text-ink-secondary">
+              {tn("extract.resume.storage.bar", runs.length, {
+                used: formatGigabytes(storage.usedBytes, locale),
+                limit: formatGigabytes(JOURNAL_STAGING_MAX_BYTES, locale),
+                count: String(runs.length),
+              })}
+            </p>
+            <div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-line-faint">
+              <div
+                className="h-full rounded-full bg-yellow-400"
+                style={{
+                  width: `${Math.min(100, (storage.usedBytes / JOURNAL_STAGING_MAX_BYTES) * 100)}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
       <ul className="mt-3 divide-y divide-line-faint rounded-xl border border-line-strong">
         {runs.map((run) => {
           const live = run.photos.filter((p) => !p.dropped).length;
           const left = run.daysLeftToTell;
           const tier = countdownFor(run.expiresAt, now);
+          const ms = Date.parse(run.expiresAt) - now.getTime();
+          const fraction = windowFractionFor(run, now);
           return (
             <li key={run.runId} className="px-4 py-3">
               <p className="text-sm font-semibold text-ink-strong">{run.createdAt.slice(0, 10)}</p>
@@ -161,6 +315,7 @@ export default function ResumeScreen({
                 {" · "}
                 {tn("extract.resume.daysLeft", left, { count: String(left) })}
               </p>
+              <Ticker tier={tier} ms={ms} fraction={fraction} t={t} />
               <p className="mt-1 text-xs text-ink-secondary">{describe(tier, t, tn)}</p>
               <button
                 type="button"
