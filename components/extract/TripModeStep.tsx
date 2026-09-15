@@ -1,6 +1,6 @@
 "use client";
 
-import { AlignLeft, MapPin, Mic } from "lucide-react";
+import { AlignLeft, Mic } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import StepIndicator from "@/components/extract/StepIndicator";
@@ -114,7 +114,6 @@ export default function TripModeStep({
 
       <div className="mt-4 flex flex-col gap-3">
         <OptionCard
-          icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
           title={t("extract.tripMode.newTrip")}
           description={t("extract.tripMode.newTripDescription")}
           selected={!existing}
@@ -122,7 +121,6 @@ export default function TripModeStep({
         />
         {trips.length > 0 && (
           <OptionCard
-            icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
             title={t("extract.tripMode.existingTrip")}
             description={t("extract.tripMode.existingTripDescription")}
             selected={existing}

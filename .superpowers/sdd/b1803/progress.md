@@ -165,3 +165,19 @@ naming is the correction for R37's root cause: sixteen implementers built from
 prose because I wrongly recorded the design file as unreachable from a subagent.
 Merged main into the branch first, so the B1806 ticker and B1807 ceiling are
 present rather than arriving as a conflict at merge time.
+
+Phase 2 review: spec FAIL on two points, quality one pluralisation bug + no
+tests. Verify green with both bugs present, which is finding 4's whole argument.
+
+Ruling (finding 1): the undated group is NOT a day, in both the numerator and
+the denominator. FoundStep already tells the person "9 days" and "See my 9
+days"; the board's indicator must not then say "of 10". The undated card still
+sits on the board — it is real work — it just does not inflate a count the
+previous screen already promised. One shared helper so the two screens cannot
+drift again. Cost if wrong: once a person dates that group it becomes a real
+day and the total grows by one mid-flow, which is honest but may read oddly.
+
+Ruling (finding 3): the pin icons come out. The brief's four-icon list named a
+pin, but no card in design-v2.html carries one — only S2b's mic and lines. The
+brief's own tiebreaker rule puts the design above its prose, and the prose is
+where my summary of the design was loose. Deletion over addition.

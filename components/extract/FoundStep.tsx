@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import StepIndicator from "@/components/extract/StepIndicator";
+import { countDays } from "@/lib/extract/dayCount";
 import type { DayGroup } from "@/lib/extract/group";
 import type { RunManifest } from "@/lib/staging/manifest";
 
@@ -70,7 +71,7 @@ export default function FoundStep({
 
   const photos = data.manifest.photos.filter((p) => !p.dropped);
   const total = photos.length;
-  const days = data.groups.filter((g) => !g.undated).length;
+  const days = countDays(data.groups);
   const withDate = photos.filter((p) => p.date).length;
   const withPlace = photos.filter((p) => p.lat !== undefined && p.lng !== undefined).length;
   const withTime = photos.filter((p) => p.takenAt).length;

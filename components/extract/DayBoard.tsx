@@ -8,6 +8,7 @@ import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoVie
 import StepIndicator from "@/components/extract/StepIndicator";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
+import { countDays } from "@/lib/extract/dayCount";
 import type { DayGroup } from "@/lib/extract/group";
 import type { Question } from "@/lib/extract/questions";
 import type { PhotoRow, RunManifest } from "@/lib/staging/manifest";
@@ -159,20 +160,24 @@ export default function DayBoard({
 
   const { manifest, groups, questions } = data;
   const photosById = new Map<string, PhotoRow>(manifest.photos.map((p) => [p.id, p]));
-  // The day board's own progress metric — B1803 Task 2.1. Not "which screen",
-  // this workspace has no screens to be one of; "days told" out of the run's
-  // own real day count, both read off `groups`/`manifest` rather than assumed.
+  // The day board's own progress metric — B1803 Task 2.1, fix round 1. Not
+  // "which screen", this workspace has no screens to be one of; "days told"
+  // out of the run's own real day count. The undated group is real work —
+  // it still gets its own card below — but it is not a day, in neither the
+  // numerator nor the denominator: `FoundStep` already promised a day count
+  // with `countDays` (`lib/extract/dayCount.ts`), and this board must not say a
+  // different number a screen later.
   const daysTold = groups.filter(
-    (group) => completenessFor(group, manifest, (questions[keyFor(group)] ?? []).length) === "ready",
+    (group) => !group.undated && completenessFor(group, manifest, (questions[keyFor(group)] ?? []).length) === "ready",
   ).length;
-  const daysTotal = groups.length;
+  const daysTotal = countDays(groups);
 
   return (
     <div className="mt-4">
       <StepIndicator
         total={daysTotal}
         current={daysTold}
-        label={tn("extract.step.daysTold", daysTold, { current: String(daysTold), total: String(daysTotal) })}
+        label={tn("extract.step.daysTold", daysTotal, { current: String(daysTold), total: String(daysTotal) })}
       />
       <ul className="divide-y divide-line-faint rounded-xl border border-line-strong">
         {groups.map((group, groupIndex) => {
@@ -263,8 +268,8 @@ export default function DayBoard({
                         <AskCard
                           key={question.id}
                           question={question}
-                          dayIndex={groupIndex + 1}
-                          dayTotal={daysTotal}
+                          dayIndex={group.undated ? undefined : groupIndex + 1}
+                          dayTotal={group.undated ? undefined : daysTotal}
                           questionIndex={questionIndex + 1}
                           questionTotal={open.length}
                           username={username}
