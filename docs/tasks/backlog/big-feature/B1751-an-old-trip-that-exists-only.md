@@ -143,8 +143,18 @@ Two decisions taken in the plan that differ from this ticket as written:
   driver is the default and the tested one, which is what keeps AGENTS.md's
   "no paid provider account to develop or test" true.
 
-One question is parked for the owner rather than guessed: what happens to a run
-somebody abandons — whether they are mailed before it expires, whether
-returning extends the TTL, and whether a paid enrichment on an expired run is
-refunded. The plan builds the simplest reading and says in the component that
-it is a placeholder.
+**The abandoned-run question is answered (owner, 2026-09-15).** A run expires
+48h after upload. A nightly sweep warns once the run is 24h old, and **sending
+that warning pins expiry to 24h after the warning** — the sweep runs nightly,
+so without the pin a mail promising "24 hours left" would mean one hour for
+somebody who uploaded at four in the morning. Continuing the run *is* the
+extension: any authenticated touch after the warning buys another 48h, once,
+with no button. An extended run then gets one final notice with no further
+offer — that last part is the agent's call rather than the owner's and the plan
+says so.
+
+Both messages say in their first paragraph that days already committed are part
+of the journal and are not affected.
+
+Still unanswered, and smaller: whether a paid enrichment on a run that then
+expires is refunded.
