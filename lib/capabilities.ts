@@ -124,6 +124,18 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
     // cheaper speech, it is unmetered speech billed to the operator.
     needs: { credits: "every minute is metered" },
   },
+  // Needs somebody to be signed in as, and the helper because every question
+  // this asks is a helper turn. Transcription is deliberately *not* required —
+  // without it the flow is the typing one, which is a whole feature rather
+  // than a broken one.
+  extract: {
+    env: ["SESSION_SECRET"],
+    db: false,
+    needs: {
+      auth: "somebody has to be signed in to import into their own journal",
+      helper: "the questions this asks are helper turns",
+    },
+  },
   // B589. Names a `url` in config, checked in configuredEnv() alongside the
   // other per-feature config problems, so an unset one refuses the same way
   // a missing environment variable does.
