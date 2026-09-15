@@ -1,6 +1,8 @@
 "use client";
 
+import { Camera } from "lucide-react";
 import { useRef, useState } from "react";
+import StepIndicator from "@/components/extract/StepIndicator";
 import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
 import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
 import type { PhotoBadge } from "@/components/extract/PhotoTile";
@@ -19,6 +21,10 @@ import {
  *  pulls in server-only modules a client bundle cannot carry. Kept here as a
  *  literal, checked against the route by `test/extract-upload-step.test.ts`. */
 const MAX_FILES_PER_RUN = 500;
+
+/** The wizard's own fixed shape (S2a–S4 of the design) — this is Step 03 of 5,
+ *  whether it is showing the picker or the grid mid-upload. */
+const TOTAL_STEPS = 5;
 
 export type TileState = "queued" | "sending" | "done" | "failed";
 type Tile = { file: File; state: TileState };
@@ -231,6 +237,11 @@ export default function UploadStep({
 
   return (
     <div>
+      <StepIndicator
+        total={TOTAL_STEPS}
+        current={3}
+        label={t("extract.step.ofTotal", { current: "3", total: String(TOTAL_STEPS) })}
+      />
       {/* The limits, stated above the picker — B1797, the design's Step 03.
        *  Learning a limit by being rejected after a four-minute selection is
        *  the most expensive way to find it out; real numbers from
@@ -298,8 +309,9 @@ export default function UploadStep({
       />
       <label
         htmlFor="extract-upload-input"
-        className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line-strong bg-surface-subtle px-5 text-base font-semibold text-ink-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
+        className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-yellow-400 px-5 py-3.5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
       >
+        <Camera className="h-5 w-5" aria-hidden="true" />
         {t("extract.upload.choose")}
       </label>
 
