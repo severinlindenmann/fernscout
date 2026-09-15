@@ -7,6 +7,7 @@ import { geodataAvailable, reverseGeocode } from "@/lib/ingest/geo";
 import { PHOTO_VISIBILITIES, parsePhotoVisibility } from "@/lib/photos";
 import { extendOnTouch } from "@/lib/staging/expiry";
 import { readManifest, writeManifest, type DayRow, type RunManifest } from "@/lib/staging/manifest";
+import { removeRun } from "@/lib/staging/store";
 import { captionProblem } from "@/lib/validate/media";
 
 export const dynamic = "force-dynamic";
@@ -151,4 +152,36 @@ export async function PATCH(
 
   writeManifest(user, current);
   return Response.json({ photo });
+}
+
+/**
+ * Destroy a run now, staged photographs and all — B1805. The resume screen's
+ * offer to somebody who no longer wants what they started uploading, rather
+ * than waiting out the sweep.
+ *
+ * Same shape as `GET`/`PATCH` above: `run` as a query param, not a dynamic
+ * segment, matching how this file already addresses one run. `removeRun`
+ * (`lib/staging/store.ts`) does the actual deletion — `rmSync` on the run's
+ * whole directory — and is the one thing a manifest read cannot make up for,
+ * so this checks the run exists first only to answer 404 rather than a
+ * silent no-op for an id nobody has.
+ */
+export async function DELETE(
+  request: Request,
+  { params }: RouteContext<"/api/helper/[user]/extract/run">,
+) {
+  const { user } = await params;
+  if (!isEnabled("extract", user)) {
+    return Response.json({ error: "extract_disabled" }, { status: 404 });
+  }
+  if (!(await isHelperOwner(user))) {
+    return notYourJournal(request, user);
+  }
+
+  const runId = new URL(request.url).searchParams.get("run") ?? "";
+  const manifest = readManifest(user, runId);
+  if (!manifest) return Response.json({ error: "no_such_run" }, { status: 404 });
+
+  removeRun(user, runId);
+  return Response.json({ ok: true });
 }
