@@ -30,11 +30,13 @@ afterEach(() => {
   container = undefined;
 });
 
-function stubRunWithPhotos(count: number) {
+function stubRunWithPhotos(count: number, opts: { sampleTakenFor?: string | null } = {}) {
+  const calls: string[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+      calls.push(url);
       if (url.includes("/extract/run")) {
         return {
           ok: true,
@@ -55,20 +57,24 @@ function stubRunWithPhotos(count: number) {
                 kind: "image",
               })),
               days: [],
-              sampleTakenFor: "run-1",
+              sampleTakenFor: opts.sampleTakenFor === undefined ? "run-1" : opts.sampleTakenFor,
             },
             groups: [],
             questions: {},
           }),
         } as Response;
       }
+      if (url.includes("/extract/sample")) {
+        return { ok: true, json: async () => ({ caption: "A quiet street in Hoi An." }) } as Response;
+      }
       throw new Error(`unexpected fetch: ${url}`);
     }),
   );
+  return calls;
 }
 
-async function render(credits: number, photoCount: number) {
-  stubRunWithPhotos(photoCount);
+async function render(credits: number, photoCount: number, opts: { sampleTakenFor?: string | null } = {}) {
+  const calls = stubRunWithPhotos(photoCount, opts);
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -84,6 +90,7 @@ async function render(credits: number, photoCount: number) {
     await Promise.resolve();
     await Promise.resolve();
   });
+  return calls;
 }
 
 describe("the credits screen", () => {
@@ -112,5 +119,40 @@ describe("the credits screen", () => {
     await render(10, 12);
 
     expect(container!.textContent).toContain("Build it from what I wrote");
+  });
+
+  // B1803 Task 1.3 — S9a: "A grid of photographs to choose from" replaces the
+  // old auto-request of whichever photograph sorted first.
+  describe("the free sample is picked from a grid, not assumed", () => {
+    test("no sample is requested until a photograph is tapped", async () => {
+      const calls = await render(10, 3, { sampleTakenFor: null });
+
+      expect(calls.some((u) => u.includes("/extract/sample"))).toBe(false);
+      expect(container!.textContent).toContain("Pick any photograph.");
+      expect(container!.querySelectorAll('button[aria-label="p0.jpg"]').length).toBeGreaterThan(0);
+    });
+
+    test("tapping a tile requests the sample for exactly that photograph", async () => {
+      await render(10, 3, { sampleTakenFor: null });
+
+      const tile = container!.querySelector('button[aria-label="p1.jpg"]') as HTMLElement;
+      await act(async () => {
+        tile.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      const fetchMock = globalThis.fetch as unknown as { mock: { calls: [RequestInfo | URL, RequestInit?][] } };
+      const sampleCall = fetchMock.mock.calls.find(([u]) => String(u).includes("/extract/sample"));
+      expect(sampleCall).toBeDefined();
+      expect(JSON.parse(String(sampleCall![1]?.body)).photoId).toBe("p1");
+      expect(container!.textContent).toContain("A quiet street in Hoi An.");
+    });
+
+    test("a run that already has its sample offers no grid to pick from again", async () => {
+      await render(10, 3, { sampleTakenFor: "run-1" });
+
+      expect(container!.textContent).not.toContain("Pick any photograph.");
+    });
   });
 });

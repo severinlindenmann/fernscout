@@ -113,6 +113,29 @@ describe("the preview screen", () => {
     expect(container!.textContent).toContain("One day still has unanswered questions");
   });
 
+  test("a finished day gets a hero and a strip of its own real photographs — B1803 Task 1.3", async () => {
+    stubRun(
+      baseManifest({
+        tripId: "japan-2026",
+        photos: [
+          { id: "p1", filename: "p1.jpg", bytes: 1, kind: "image" },
+          { id: "p2", filename: "p2.jpg", bytes: 1, kind: "image" },
+        ],
+        days: [{ date: "2026-06-01", answered: ["q1"], committed: true, entrySlug: "first-day" }],
+      }),
+      [{ date: "2026-06-01", photoIds: ["p1", "p2"], undated: false }],
+    );
+    await render();
+
+    // The hero — the first finished day's first photograph.
+    const hero = container!.querySelector('button[aria-label="p1.jpg"]');
+    expect(hero).not.toBeNull();
+    expect(hero!.querySelector("img")?.getAttribute("src")).toBe("/api/helper/alex/extract/thumb/run-1/p1");
+
+    // The per-day strip — both of the day's photographs, not just the hero.
+    expect(container!.querySelectorAll('button[aria-label="p2.jpg"]').length).toBeGreaterThan(0);
+  });
+
   test("the people form is offered once a trip exists", async () => {
     stubRun(
       baseManifest({
