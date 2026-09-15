@@ -98,13 +98,19 @@ Corrected, the baseline is **34/40**:
 | card-to-trip-whatsapp | 8/8 | |
 | day-from-a-note (whatsapp) | 5/8 | the channel's core flow |
 
-**The first prompt rule it was pointed at was rejected.** A sentence telling
+**The first prompt rule it was pointed at was *not shipped*.** A sentence telling
 the model that an answer to its own question settles that question —
 plausible, and the obvious fix for B1742's loop — scored **7/12 against a
 9/12 baseline** on `card-to-trip-vague`, for thirty tokens and a ceiling
-raise. Not shipped. That is the first time a prompt change in this repository
-has been refused on evidence rather than argued about, and it is the whole
-reason the script exists.
+raise. Not shipped.
+
+**Corrected later the same week, and the correction matters.** Twelve runs
+cannot separate those two numbers — B1752 then ran one scenario's 84 cases
+twice on identical code and got 60% and 68%. So this was an absence of
+evidence, not evidence of absence, and calling it "refused on evidence" was
+exactly the overclaim this script was built to stop. Declining to ship an
+unmeasurable change that costs tokens is still right; the reasoning was not.
+`scripts/helper-bench.mts` now prints a margin and compares case by case.
 
 **And it found a defect nothing else would have.** In about one run in six the
 model reads the journal's trips, sees Ungarn 2026, and proposes creating a
@@ -117,6 +123,6 @@ sentence, on the strength of the rule above having failed.
 - It is absent from `npm run verify` and says plainly that it spends money.
 - A baseline is recorded for the corpus as it stands.
 - B1742 is decidable with it. **Done**: at twelve runs the candidate rule
-  loses, 7/12 to 9/12, and B1742's remaining failure is now two named modes
+  is indistinguishable, 7/12 against 9/12 — see the correction below, and B1742's remaining failure is now two named modes
   rather than one vague one — a duplicate `create_trip` (B1746) and a turn
   that proposes nothing.
