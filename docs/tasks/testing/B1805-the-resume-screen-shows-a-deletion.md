@@ -7,8 +7,7 @@ complexity: low
 area: extract, resume
 found: "2026-09-15T16:56:21Z"
 started: "2026-09-15T16:56:49Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-15T16:56:49Z"
+merged: "2026-09-15T17:37:03Z"
 ---
 
 # B1805 — The resume screen shows a deletion timestamp nobody can read at a glance, and no way to let a run go early
