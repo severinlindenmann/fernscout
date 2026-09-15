@@ -7,8 +7,7 @@ complexity: low
 area: Auth, sign-in link
 found: "2026-09-15T08:41:26Z"
 started: "2026-09-15T08:41:51Z"
-session: 069a3138-5d0b-402b-80a5-637f302b51ca
-claimed: "2026-09-15T08:41:51Z"
+merged: "2026-09-15T08:49:13Z"
 ---
 
 # B1788 — Sign-in link page shows the literal word label on its button and renders in the browser's language, not the mail's

@@ -84,3 +84,47 @@ option lands.
 Reported from `fernscout-helper` while syncing a 26-trip journal; the helper
 side of it is `\.claude/skills/sync/sync.mjs` and the note in
 `publish.mjs` at B1782.
+
+## Built, 2026-09-15 — fernscout-helper
+
+**Valid when taken, and the Why is right about the asymmetry but wrong about
+where it becomes a loop.** The three options offered here are all server-side,
+and none of them is what keeps the 139 files moving. The server is consistent:
+`lib/sync/manifest.ts` hashes whole bytes, the day write refuses a reserved
+source by name, and `sync down` mirrors what it is given. The client is where
+it never settles, in two steps:
+
+- The one-time v1→v2 conversion rewrote `weatherData: {source: "open-meteo"}`
+  to `weather: true` on disk (`shared/convert.mjs:144`), so the folder holds
+  the ask where the site holds the answer. `plan()` is right to call that a
+  local change — it is one.
+- `landed()` (`sync/sync.mjs`) then asks whether the remote hash **moved**
+  after the push. Writing `weather: true` for a day the site already measured
+  changes nothing there, so it did not move, so the push is reported as
+  **stalled**, the baseline is never recorded, the run exits non-zero, and the
+  next run plans exactly the same 139. That is the loop, and it is why option
+  1 on its own would not have closed it: those files hold the ask, not a
+  byte-identical reading, so a server that accepted an identical reading back
+  would never see one.
+
+**Chosen with the owner, 2026-09-15: fix it on the client, leave the refusal
+alone.** Before anything moves — on **both** legs, because `down
+--prefer-remote` could not reach these files either — every planned push of a
+`.json` document is compared with the site's own copy through
+`sameAsWritten()`: both sides folded through `asWritten` (the ask and the
+answer it produced are one document) and through a canonical key order, which
+the typed routes normalise anyway. When the two say the same thing there is
+nothing to send, so the site's copy is written to disk instead, the run says
+so, and the path is recorded as agreed. The folder becomes the mirror it is
+supposed to be and the next run is quiet. A document differing in anything
+else — a title, somebody's own instrument's reading, a different sequence of
+photographs — is pushed exactly as before.
+
+Nothing in this repository changed: the refusal in `lib/api/v2/schemas/day.ts`
+and the byte-level manifest are untouched, which was the point of choosing this
+option over the ticket's options 2 and 3.
+
+Keeper: three checks in `sync.test.mjs` — the ask and the answer are one
+document, a re-ordered key is not an edit, and anything else that differs is
+still a push (a title that moved, two different readings from the same private
+instrument, a reading the server did not make, re-ordered photographs).
