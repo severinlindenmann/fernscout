@@ -139,6 +139,9 @@ const GROUPS: { status: TripStatus; key: TranslationKey }[] = [
   { status: "past", key: "trips.past" },
 ];
 
+/** How many trip cards the index opens with, before "show more" — B1766. */
+const TRIPS_SHOWN = 6;
+
 export default function TripsIndexContent({
   trips,
   locked = [],
@@ -180,6 +183,17 @@ export default function TripsIndexContent({
   whatsappSignIn?: boolean;
 }) {
   const { t, tn, localizedTrip } = useI18n();
+
+  /*
+   * The cards start at the six newest — B1766. `trips` already arrives in the
+   * order the groups below print in (current, then upcoming, then the past
+   * newest first), so a plain prefix is "the six newest" without a second
+   * sort; the groups just filter what is left. The map above is untouched:
+   * it keeps every route this reader may see, expanded or not, because a
+   * lifetime map missing two thirds of a lifetime is a different claim.
+   */
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? trips : trips.slice(0, TRIPS_SHOWN);
 
   // The map and its legend want each route's title already resolved to the
   // active locale — LifetimeMap itself just renders what it's handed.
@@ -261,7 +275,7 @@ export default function TripsIndexContent({
             {map}
 
             {GROUPS.map(({ status, key }) => {
-              const group = trips.filter((tr) => tr.status === status);
+              const group = shown.filter((tr) => tr.status === status);
               if (group.length === 0) return null;
               return (
                 <section key={status} className="mt-10">
@@ -274,6 +288,15 @@ export default function TripsIndexContent({
                 </section>
               );
             })}
+            {shown.length < trips.length && (
+              <button
+                type="button"
+                onClick={() => setExpanded(true)}
+                className="mt-6 min-h-11 px-2 text-sm text-ink-secondary underline underline-offset-4 transition-colors hover:text-ink-strong"
+              >
+                {t("common.showMore")}
+              </button>
+            )}
           </>
         )}
         {locked.length > 0 && <LockedTrips trips={locked} />}

@@ -526,6 +526,71 @@ function TripRow({
   );
 }
 
+// One line beside each trip, saying why it is open to this reader. The
+// wording is `resolveViewer`'s answer and never this component's: the panel
+// computing anything of its own about access is B41.
+// A tag, not a sentence — B887. Five rows each ending "sie steht in deinem
+// Tagebuch" is the same clause five times, and it pushed every trip title
+// into two or three lines to make room for it. The reason is still
+// `resolveViewer`'s answer and never this component's (B41); only its
+// length changed. The long forms stay in the locales: `me.via*` is what
+// the trip gate says when there is one row and space to explain it.
+const reason: Record<Viewer["trips"][number]["through"], TranslationKey> = {
+  public: "me.tagPublic",
+  owner: "me.tagOwner",
+  traveller: "me.tagTraveller",
+  guest: "me.tagGuest",
+};
+
+/**
+ * The trips this reader may open, five at a time — B1766.
+ *
+ * `tripsVisibleTo` hands them back in the journal's own order: what is
+ * happening now, then what is planned, then the past newest first. So the
+ * first five are the five most recent without a second sort, and a journal
+ * with thirty trips stops being a page of links to scroll past. Everything
+ * else is one press away and nothing is unreachable.
+ */
+const READABLE_TRIPS_SHOWN = 5;
+
+function ReadableTrips({
+  trips,
+  editableTrips,
+  username,
+}: {
+  trips: Viewer["trips"];
+  editableTrips?: TripEditPanel[];
+  username: string;
+}) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? trips : trips.slice(0, READABLE_TRIPS_SHOWN);
+  return (
+    <>
+      <ul className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
+        {shown.map((trip) => (
+          <TripRow
+            key={trip.id}
+            trip={trip}
+            edit={editableTrips?.find((candidate) => candidate.id === trip.id)}
+            username={username}
+            reasonKey={reason[trip.through]}
+          />
+        ))}
+      </ul>
+      {!expanded && trips.length > READABLE_TRIPS_SHOWN && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-2 min-h-11 px-2 text-sm text-ink-secondary underline underline-offset-4 transition-colors hover:text-ink-strong"
+        >
+          {t("common.showMore")}
+        </button>
+      )}
+    </>
+  );
+}
+
 function TripEditor({
   username,
   trip,
@@ -856,22 +921,6 @@ export default function MePageContent({
   // it reads itself again rather than showing the state from page load.
   const [keysChanged, setKeysChanged] = useState(0);
 
-  // One line beside each trip, saying why it is open to this reader. The
-  // wording is `resolveViewer`'s answer and never this component's: the panel
-  // computing anything of its own about access is B41.
-  // A tag, not a sentence — B887. Five rows each ending "sie steht in deinem
-  // Tagebuch" is the same clause five times, and it pushed every trip title
-  // into two or three lines to make room for it. The reason is still
-  // `resolveViewer`'s answer and never this component's (B41); only its
-  // length changed. The long forms stay in the locales: `me.via*` is what
-  // the trip gate says when there is one row and space to explain it.
-  const reason: Record<Viewer["trips"][number]["through"], TranslationKey> = {
-    public: "me.tagPublic",
-    owner: "me.tagOwner",
-    traveller: "me.tagTraveller",
-    guest: "me.tagGuest",
-  };
-
   /**
    * The trips this reader may *write* — B320.
    *
@@ -1042,19 +1091,11 @@ export default function MePageContent({
                     : t("me.nothing")}
               </p>
             ) : (
-              <ul className="mt-3 divide-y divide-line-quiet overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised">
-                {viewer.trips.map((trip) => (
-                  <TripRow
-                    key={trip.id}
-                    trip={trip}
-                    edit={editableTrips?.find(
-                      (candidate) => candidate.id === trip.id,
-                    )}
-                    username={username}
-                    reasonKey={reason[trip.through]}
-                  />
-                ))}
-              </ul>
+              <ReadableTrips
+                trips={viewer.trips}
+                editableTrips={editableTrips}
+                username={username}
+              />
             )}
           </section>
         )}

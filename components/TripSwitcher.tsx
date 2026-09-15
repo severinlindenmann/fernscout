@@ -22,6 +22,28 @@ const GROUPS: {
   { status: "past", key: "trips.past" },
 ];
 
+/** How many past trips the menu lists before deferring to "all trips" — B1766. */
+const PAST_SHOWN = 4;
+
+/**
+ * The past trips this menu prints — B1766.
+ *
+ * A journal with nine trips turned the menu into a scroll, and only the past
+ * list grows without bound, so only it is capped; the "all trips" link at the
+ * foot is already the way to the rest. The trip being read is kept whatever
+ * its position, so the menu never opens without the row it is marking active.
+ *
+ * Exported for the test: the menu itself only exists once somebody has pressed
+ * the button, which a static render never does.
+ */
+export function pastShown<T extends { id: string }>(all: T[], activeId?: string): T[] {
+  if (all.length <= PAST_SHOWN) return all;
+  return [
+    ...all.slice(0, PAST_SHOWN),
+    ...all.slice(PAST_SHOWN).filter((tr) => tr.id === activeId),
+  ];
+}
+
 /**
  * Which page of a trip we're on, so switching trips keeps you on the same
  * kind of page: /map → /trips/x/map, not /trips/x.
@@ -124,7 +146,10 @@ export default function TripSwitcher() {
           className="absolute left-0 right-auto z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-lg sm:left-auto sm:right-0"
         >
           {GROUPS.map(({ status, key }) => {
-            const group = trips.filter((tr) => tr.status === status);
+            const all = trips.filter((tr) => tr.status === status);
+            // Only the past list grows without bound, so only it is capped.
+            const group =
+              status === "past" ? pastShown(all, active?.trip.id) : all;
             if (group.length === 0) return null;
             return (
               <div
