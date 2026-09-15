@@ -62,16 +62,17 @@ export default function ThemePicker() {
   } as const;
 
   return (
-    <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
-      <h2 className="font-display text-xl font-semibold text-ink-strong">
+    /* One row, not a card with a lede — B1766. A heading, three buttons and
+       nothing else: the sentence under the title only said what the three
+       buttons already say, and the panel was taller than the settings that
+       actually change a journal. The control keeps its 44px touch height. */
+    <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+      <h2 className="font-display text-base font-semibold text-ink-strong">
         {t("me.appearanceTitle")}
       </h2>
-      <p className="mt-1.5 text-base leading-7 text-ink-secondary">
-        {t("me.appearanceLede")}
-      </p>
-      <fieldset className="mt-4">
+      <fieldset className="mt-3 sm:mt-0 sm:shrink-0">
         <legend className="sr-only">{t("me.appearanceTitle")}</legend>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 sm:flex">
           {THEME_CHOICES.map((item) => (
             <label
               key={item}
@@ -95,7 +96,7 @@ export default function ThemePicker() {
         </div>
       </fieldset>
       {choice === "auto" && (
-        <p className="mt-2 text-sm text-ink-muted" role="status">
+        <p className="mt-2 text-sm text-ink-muted sm:sr-only" role="status">
           {t("me.appearanceResolved", {
             appearance: systemDark ? labels.dark : labels.light,
           })}

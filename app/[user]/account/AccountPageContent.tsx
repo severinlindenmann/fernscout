@@ -310,7 +310,17 @@ const BAR_COLOURS = [
   "bg-sky-500",
 ];
 
+/**
+ * How many legend rows a journal with a lot of trips gets before it has to ask
+ * — B1766. The bar keeps every segment whatever this is: the shares are what
+ * make it a whole, and a bar that only adds up to 70% is a lie.
+ */
+const STORAGE_ROWS_SHOWN = 10;
+
 function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
+  const { t } = useI18n();
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? rows : rows.slice(0, STORAGE_ROWS_SHOWN);
   return (
     <>
       <div
@@ -326,7 +336,7 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
         ))}
       </div>
       <ul className="mt-3 space-y-1.5">
-        {rows.map((row, at) => (
+        {shown.map((row, at) => (
           <li
             key={row.key}
             className="flex items-center justify-between gap-3 text-base"
@@ -344,6 +354,15 @@ function StorageBar({ rows }: { rows: StoragePanel["rows"] }) {
           </li>
         ))}
       </ul>
+      {!expanded && rows.length > STORAGE_ROWS_SHOWN && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-2 min-h-11 px-2 text-sm text-ink-secondary underline underline-offset-4 transition-colors hover:text-ink-strong"
+        >
+          {t("common.showMore")}
+        </button>
+      )}
     </>
   );
 }

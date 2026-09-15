@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import TripSwitcher from "@/components/TripSwitcher";
+import TripSwitcher, { pastShown } from "@/components/TripSwitcher";
 import LocaleProvider from "@/components/LocaleProvider";
 import SiteProvider from "@/components/SiteProvider";
 import TripListProvider, { type TripSummary } from "@/components/TripListProvider";
@@ -78,5 +78,34 @@ describe("the trip switcher's width", () => {
       expect(classes).toContain("sm:w-[14rem]");
       expect(classes).toContain("sm:justify-between");
     }
+  });
+});
+
+/**
+ * The past list is capped — B1766.
+ *
+ * Nine trips made the menu a scroll on a phone. Four, plus the one being read
+ * wherever it sits, plus the "all trips" link that was always at the foot.
+ */
+describe("the past list", () => {
+  const past = [1, 2, 3, 4, 5, 6].map((n) => ({ id: `t${n}` }));
+
+  test("stops at four", () => {
+    expect(pastShown(past).map((t) => t.id)).toEqual(["t1", "t2", "t3", "t4"]);
+  });
+
+  test("keeps the trip being read, however far down it is", () => {
+    expect(pastShown(past, "t6").map((t) => t.id)).toEqual([
+      "t1",
+      "t2",
+      "t3",
+      "t4",
+      "t6",
+    ]);
+  });
+
+  test("leaves a short list alone", () => {
+    const short = past.slice(0, 3);
+    expect(pastShown(short, "t2")).toEqual(short);
   });
 });
