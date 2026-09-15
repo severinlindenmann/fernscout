@@ -71,7 +71,7 @@ function manifestPath(username: string, runId: string): string {
 export function readManifest(username: string, runId: string): RunManifest | null {
   try {
     const raw = JSON.parse(fs.readFileSync(manifestPath(username, runId), "utf8")) as RunManifest;
-    return raw && raw.version === 1 ? raw : null;
+    return raw && raw.version === 1 && Array.isArray(raw.photos) && Array.isArray(raw.days) ? raw : null;
   } catch {
     return null;
   }

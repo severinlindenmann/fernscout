@@ -162,8 +162,13 @@ describe("the helper routes", () => {
   // point at: recording an answer to what a date folder was asked, and
   // (Task 3) creating the real entry once nothing is left to ask. Same
   // cookie, same owner check.
-  test("there are forty-seven of them, and each is guarded", () => {
-    expect(sources).toHaveLength(47);
+  // Forty-nine: `extract/start` and `extract/upload` (camera roll import,
+  // B1751, Task 1.2) — the first door onto a guided import run: opening one
+  // and taking a batch of photographs into staging, outside the journal's
+  // storage quota until the days they belong to are confirmed. Same cookie,
+  // same owner check as the forty-seven before them.
+  test("there are forty-nine of them, and each is guarded", () => {
+    expect(sources).toHaveLength(49);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

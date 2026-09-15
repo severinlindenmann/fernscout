@@ -84,6 +84,7 @@
 		path /api/helper/*/day/media
 		path /api/v1/*/import
 		path /api/v1/*/trips/*/travellers/from-photo
+		path /api/helper/*/extract/upload
 		# B1750's throwaway phone-upload probe, and the reason this list is
 		# worth keeping in step: the probe fell into @smallbody's 10MB, Caddy
 		# truncated a batch of twenty photographs, and both Safari and Brave
@@ -96,7 +97,7 @@
 		path /api/helper/*/transcribe
 	}
 	@smallbody {
-		not path /api/v1/*/trips/*/media /api/v1/*/inbox /api/helper/*/inbox /api/helper/*/day/media /api/v1/*/import /api/v1/*/trips/*/travellers/from-photo /api/probe/upload /api/helper/*/transcribe
+		not path /api/v1/*/trips/*/media /api/v1/*/inbox /api/helper/*/inbox /api/helper/*/day/media /api/v1/*/import /api/v1/*/trips/*/travellers/from-photo /api/helper/*/extract/upload /api/probe/upload /api/helper/*/transcribe
 	}
 	request_body @bigbody {
 		max_size 520MiB

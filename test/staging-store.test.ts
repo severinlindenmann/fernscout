@@ -63,4 +63,15 @@ describe("the run manifest", () => {
     fs.writeFileSync(path.join(runDir("alex", "run-bad"), "run.json"), "{ not json");
     expect(readManifest("alex", "run-bad")).toBeNull();
   });
+
+  test("a manifest with no photos array reads as null rather than a crash later — R10", async () => {
+    const { readManifest } = await import("@/lib/staging/manifest");
+    const { runDir } = await import("@/lib/staging/paths");
+    fs.mkdirSync(runDir("alex", "run-no-photos"), { recursive: true });
+    fs.writeFileSync(
+      path.join(runDir("alex", "run-no-photos"), "run.json"),
+      JSON.stringify({ version: 1, runId: "run-no-photos", owner: "alex" }),
+    );
+    expect(readManifest("alex", "run-no-photos")).toBeNull();
+  });
 });

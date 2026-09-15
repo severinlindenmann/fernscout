@@ -33,13 +33,13 @@
     // spec before the routes that consume them exist. Remove this entry when
     // the first /api/v2 route imports from it.
     "lib/api/v2/schemas/index.ts",
-    // Camera roll import, phase 0 (B1751): the staging store's path helpers
-    // and `removeRun` are written for the manifest and cleanup that later
-    // tasks in the same plan add. Remove this entry once those import them.
-    "lib/staging/paths.ts",
-    "lib/staging/store.ts",
+    // Camera roll import (B1751): `manifest.ts`'s `DayRow` and
+    // `expiry.ts`'s `WARN_AFTER_MS`/`WARNED_GRACE_MS` are read by later
+    // tasks in the same plan (day grouping, the expiry sweep's own tests)
+    // that do not exist yet. `paths.ts`, `store.ts` and `sweep.ts` came off
+    // this list once Task 1.2's routes gave them real callers; remove these
+    // two once a caller outside their own file uses those three exports.
     "lib/staging/manifest.ts",
-    "lib/staging/sweep.ts",
     "lib/staging/expiry.ts",
     // The suite, and the fixtures it reaches for.
     "test/**/*.test.{ts,tsx}",
