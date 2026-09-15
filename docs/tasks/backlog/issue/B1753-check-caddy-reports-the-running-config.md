@@ -2,7 +2,7 @@
 id: B1753
 title: check:caddy reports the running config is in step while a directive from this release is missing from it
 type: ISSUE
-priority: medium
+priority: high
 complexity: low
 area: deploy, caddy
 found: "2026-09-14T20:20:39Z"
@@ -76,3 +76,41 @@ Not in scope: making the deploy reload Caddy. That is a separate decision and
 Found while deploying B1750, whose probe was silently capped at 10 MB for this
 reason. B66 is the ticket that built the check; B01 is the `header_up` line it
 was built to protect.
+
+## It has now happened for real — 2026-09-15
+
+Escalated to high. This is no longer theoretical.
+
+B1751's camera-roll import added `path /api/helper/*/extract/upload` to the
+`@bigbody` matcher. The deploy ran and printed `caddy: the running config carries
+what this release expects`. The owner then tried a real upload from a folder of
+HEIC and MOV files and **every batch failed with 413 Content Too Large.**
+
+On the box at the time:
+
+```
+curl -s localhost:2019/config/ | grep -c "extract/upload"   -> 0
+grep -c "extract/upload" /srv/fernscout/deploy/fernscout.caddy -> 2
+systemctl show caddy -p ActiveEnterTimestamp -> Mon 2026-09-14 09:31:31 CEST
+```
+
+The path was in the file twice, in the running config zero times, and Caddy had
+not reloaded in over a day. `systemctl reload caddy` fixed it instantly — a
+30 MB body to that path went from 413 to 401, the app's own auth gate, which is
+the correct answer.
+
+So the check reported success about a config that did not contain the directive
+under test. That is the second time; the first, a day earlier, was the same
+feature's throwaway probe and was caught by an agent testing it rather than by a
+person losing work.
+
+**What this changes about the fix.** A check that cannot see the difference is
+worse than no check, because the deploy output actively reassures. Whatever the
+cause turns out to be, the acceptance below should be read as: the deploy must
+either notice, or stop claiming.
+
+Worth considering as part of the fix, though the ticket does not mandate it: the
+deploy declines to reload Caddy on purpose (`scripts/deploy.sh:534` — "nothing
+about the proxy is this script's to change"), and that reasoning is sound for a
+shared host. But *detecting* the drift and saying so loudly is not the same as
+changing it, and the current behaviour does neither.

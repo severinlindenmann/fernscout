@@ -65,6 +65,7 @@ Do not edit them by hand; run the script.
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1753](backlog/issue/B1753-check-caddy-reports-the-running-config.md) | check:caddy reports the running config is in step while a directive from this release is missing from it | ISSUE | high | low |
 | [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
 | [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
@@ -90,7 +91,6 @@ Do not edit them by hand; run the script.
 | [B1725](backlog/issue/B1725-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
 | [B1739](backlog/issue/B1739-every-inbox-file-row-hydrates-with.md) | Every inbox file row hydrates with a mismatched date, because toLocaleDateString has no locale | ISSUE | medium | low |
 | [B1746](backlog/issue/B1746-create-trip-proposes-a-trip-whose.md) | create_trip proposes a trip whose title the journal already has, instead of using it | ISSUE | medium | low |
-| [B1753](backlog/issue/B1753-check-caddy-reports-the-running-config.md) | check:caddy reports the running config is in step while a directive from this release is missing from it | ISSUE | medium | low |
 | [B1755](backlog/issue/B1755-a-video-s-own-location-is.md) | A video's own location is thrown away, though ffprobe already hands it back in the call that reads its date | ISSUE | medium | low |
 | [B1757](backlog/issue/B1757-cost-reporting-folds-cached-tokens-in.md) | Cost reporting folds cached tokens in at face value, so every figure overstates | ISSUE | medium | low |
 | [B1795](backlog/issue/B1795-a-photo-description-spend-is-not.md) | A photo description spend is not refunded when every photograph fails to resize | ISSUE | medium | low |
