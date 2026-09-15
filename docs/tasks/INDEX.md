@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (219)
+## backlog (218)
 
 ### security (5)
 
@@ -106,7 +106,7 @@ Do not edit them by hand; run the script.
 | [B1712](backlog/issue/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
 
-### big-feature (18)
+### big-feature (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -117,7 +117,6 @@ Do not edit them by hand; run the script.
 | [B1646](backlog/big-feature/B1646-the-admin-panel-cannot-show-provider.md) | The admin panel cannot show provider balances, bills, or order attention | FEATURE | medium | high |
 | [B1650](backlog/big-feature/B1650-the-helper-writes-days-incrementally-but.md) | The helper writes days incrementally, but a v2 write demands all 14 declinables at once | FEATURE | medium | high |
 | [B1664](backlog/big-feature/B1664-planned-trips-do-not-carry-their.md) | Planned trips do not carry their people and followers cleanly into departure | FEATURE | medium | high |
-| [B1751](backlog/big-feature/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
 | [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B672](backlog/big-feature/B672-everything-is-served-off-one-vps.md) | Everything is served off one VPS disk by one Node process | FEATURE | medium | high |
@@ -323,11 +322,12 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (3)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
+| [B1751](in-development/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | `0e7f2abd` |
 | [B1766](in-development/B1766-long-trip-lists-overwhelm-three-pages.md) | Long trip lists overwhelm three pages: storage, what you can read, and the trips index | ISSUE | medium | low | `7163371b` |
 
 ## testing (11)
