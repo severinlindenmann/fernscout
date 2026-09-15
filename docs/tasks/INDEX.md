@@ -323,14 +323,13 @@ _Nothing here._
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1765](in-development/B1765-the-handover-prompt-never-shows-the.md) | The handover prompt never shows the auth header, and never says what a failed call means | ISSUE | medium | low | `4c78c009` |
 
-## testing (10)
+## testing (11)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -342,6 +341,7 @@ _Nothing here._
 | [B1752](testing/B1752-a-message-telling-the-journal-about.md) | A message telling the journal about a day proposes nothing about three times in four | ISSUE | high | medium | — |
 | [B1754](testing/B1754-the-bench-scores-one-clarifying-question.md) | The bench scores one clarifying question as total failure, which is not how the product is meant to work | ISSUE | high | low | — |
 | [B1756](testing/B1756-get-api-v2-user-status-answers.md) | GET /api/v2/{user}/status answers 500 when the credit balance has a fraction | ISSUE | high | low | — |
+| [B1765](testing/B1765-the-handover-prompt-never-shows-the.md) | The handover prompt never shows the auth header, and never says what a failed call means | ISSUE | medium | low | — |
 | [B1741](testing/B1741-the-dry-run-whatsapp-backend-writes.md) | The dry-run WhatsApp backend writes every outbound body to disk, now including a live invite token | ISSUE | low | low | — |
 | [B1745](testing/B1745-buying-extra-storage-is-only-offered.md) | Buying extra storage is only offered once the journal is nearly full | FEATURE | low | low | — |
 
