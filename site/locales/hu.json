@@ -1478,7 +1478,6 @@
   "me.appearanceAuto": "Automatikus",
   "me.appearanceDark": "Sötét",
   "me.appearanceLight": "Világos",
-  "me.appearanceResolved": "Jelenleg {appearance}, az eszköz beállítása alapján.",
   "me.appearanceTitle": "Megjelenés",
   "me.askOwner": "Itt nincs mit kitölteni — ehhez a naplóhoz nem tartozik vendégkönyv. A link, amit kapsz, az enged be.",
   "me.askOwnerNamed": "Itt nincs mit kitölteni — ehhez a naplóhoz nem tartozik vendégkönyv. A naplót {name} vezeti: az a link enged be, amit tőle kapsz.",

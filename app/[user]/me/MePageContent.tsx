@@ -34,7 +34,6 @@ import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
 import { LOCALE_LABEL, MAINTAINED_LOCALES, type TranslationKey } from "@/lib/i18n";
 import type { Viewer } from "@/lib/viewer";
-import ThemePicker from "@/components/ThemePicker";
 
 /** What the "Your details" panel needs to render `ContactManage` inline —
  * everything `/c/<token>` builds server-side, handed down instead of a link
@@ -1048,8 +1047,6 @@ export default function MePageContent({
             </strong>
           </p>
         )}
-
-        <ThemePicker />
 
         {viewer.email && (
           <section className="mt-6">

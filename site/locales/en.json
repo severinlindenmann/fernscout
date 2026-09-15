@@ -1478,7 +1478,6 @@
   "me.appearanceAuto": "Automatic",
   "me.appearanceDark": "Dark",
   "me.appearanceLight": "Light",
-  "me.appearanceResolved": "Currently {appearance}, following this device.",
   "me.appearanceTitle": "Appearance",
   "me.askOwner": "There is nothing to fill in here — this journal keeps no guestbook. The link they send you is what lets you in.",
   "me.askOwnerNamed": "There is nothing to fill in here — this journal keeps no guestbook. It is kept by {name}: the link {name} sends you is what lets you in.",

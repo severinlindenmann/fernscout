@@ -5,7 +5,6 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import LocaleProvider from "@/components/LocaleProvider";
-import ThemePicker from "@/components/ThemePicker";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
 import { dictionaryFor } from "@/lib/locales";
 import { THEME_BOOTSTRAP, THEME_STORAGE_KEY, themeChoice } from "@/lib/theme";
@@ -48,7 +47,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function render(Component = ThemePicker) {
+function render(Component = ThemeSwitcher) {
   act(() => {
     root.render(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
@@ -58,16 +57,30 @@ function render(Component = ThemePicker) {
   });
 }
 
-function option(label: string): HTMLInputElement {
-  const found = [...host.querySelectorAll<HTMLInputElement>('input[type="radio"]')].find(
-    (input) => input.parentElement?.textContent?.includes(label),
+/**
+ * The switcher's menu only exists once it is open — B1781 made this the only
+ * appearance control there is, so every test here presses the chip first.
+ */
+function openMenu() {
+  const trigger = host.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]');
+  if (!trigger) throw new Error("No appearance switcher");
+  if (trigger.getAttribute("aria-expanded") !== "true") act(() => trigger.click());
+}
+
+function option(label: string): HTMLButtonElement {
+  openMenu();
+  const found = [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(
+    (button) => button.textContent?.includes(label),
   );
   if (!found) throw new Error(`No ${label} appearance option`);
   return found;
 }
 
 function choose(label: string) {
-  act(() => option(label).click());
+  // `option` opens the menu, which is itself an `act` — so it runs before the
+  // one that presses, never nested inside it.
+  const button = option(label);
+  act(() => button.click());
 }
 
 describe("theme preference", () => {
@@ -94,26 +107,20 @@ describe("theme preference", () => {
     choose("Dark");
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
-    expect(option("Dark").checked).toBe(true);
+    expect(option("Dark").getAttribute("aria-checked")).toBe("true");
 
     choose("Light");
     expect(document.documentElement.dataset.theme).toBe("light");
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
   });
 
-  test("automatic removes the override and reports a live system change", () => {
+  test("automatic removes the override", () => {
     localStorage.setItem(THEME_STORAGE_KEY, "dark");
     render();
     choose("Automatic");
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBeNull();
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
-    expect(host.textContent).toContain("Currently Light");
-
-    act(() => {
-      dark = true;
-      listeners.forEach((listener) => listener());
-    });
-    expect(host.textContent).toContain("Currently Dark");
+    expect(option("Automatic").getAttribute("aria-checked")).toBe("true");
   });
 
   test("unavailable storage falls back to automatic", () => {
@@ -121,24 +128,18 @@ describe("theme preference", () => {
       throw new DOMException("refused");
     });
     render();
-    expect(option("Automatic").checked).toBe(true);
+    expect(option("Automatic").getAttribute("aria-checked")).toBe("true");
     expect(document.documentElement.hasAttribute("data-theme")).toBe(false);
   });
 
-  test("the compact switcher offers the same browser-local choices in page chrome", () => {
-    render(ThemeSwitcher);
-    const trigger = host.querySelector<HTMLButtonElement>('button[aria-label="Appearance"]');
-    if (!trigger) throw new Error("No compact appearance switcher");
-    act(() => trigger.click());
-
-    const darkChoice = [...host.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]')].find(
-      (button) => button.textContent?.includes("Dark"),
+  test("the switcher is in the page header, where the language chip is", () => {
+    const header = fs.readFileSync(
+      path.join(process.cwd(), "components/PageHeader.tsx"),
+      "utf8",
     );
-    if (!darkChoice) throw new Error("No Dark compact appearance choice");
-    act(() => darkChoice.click());
-
-    expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
+    // Both rows: the phone panel and the sm-and-up row. B1781 — the control
+    // used to be a panel on /<user>/me, which is not a place you pass.
+    expect(header.match(/<ThemeSwitcher \/>/g)?.length).toBe(2);
   });
 
   test("an explicit choice also overrides the browser chrome colour", () => {
