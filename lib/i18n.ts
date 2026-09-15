@@ -1410,6 +1410,7 @@ export type TranslationKey =
   | "extract.resume.daysLeft"
   | "extract.resume.daysLeft.one"
   | "extract.resume.daysStay"
+  | "extract.resume.expiresOn"
   | "extract.resume.extended"
   | "extract.resume.justExtended"
   | "extract.resume.notWarned"

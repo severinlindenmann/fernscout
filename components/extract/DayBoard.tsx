@@ -58,12 +58,19 @@ export default function DayBoard({
   consentedSpeech,
   speechProvider,
   onLeave,
+  onLoaded,
 }: {
   username: string;
   runId: string;
   consentedSpeech: boolean;
   speechProvider: string;
   onLeave: () => void;
+  /** Fired after every successful load, including the first one — B1751
+   *  Task 4.3. `GET .../extract/run` carries the same `extendOnTouch` call
+   *  it always has, so this is how `ExtractFlow` learns what a resumed
+   *  run's clock actually did the moment this board first asked the server
+   *  for it, without this component knowing anything about resuming. */
+  onLoaded?: (manifest: RunManifest) => void;
 }) {
   const { t, tn } = useI18n();
   const [data, setData] = useState<RunResponse | null>(null);
@@ -82,6 +89,7 @@ export default function DayBoard({
       if (!res.ok) throw new Error(String(res.status));
       const json = (await res.json()) as RunResponse;
       setData(json);
+      onLoaded?.(json.manifest);
     } catch {
       setError(true);
     }

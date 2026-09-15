@@ -1,62 +1,32 @@
 "use client";
 
-import { resumeExpiryState } from "@/lib/staging/resumeState";
 import { useI18n } from "@/components/LocaleProvider";
-import type { TranslationKey } from "@/lib/i18n";
 import type { RunManifest } from "@/lib/staging/manifest";
 
-/** What `GET .../extract/runs` hands back for one run — the manifest, plus
- *  whether that very request just extended it (see the route's own doc
- *  comment) and how many days still have open questions. `daysLeftToTell`
- *  is computed on the server, not here: `groupIntoDays` reaches
- *  `lib/ingest/geo.ts` and `node:fs` through `lib/ingest/cluster.ts`, and a
- *  client bundle that imports it anyway fails to build outright. Named
- *  separately from the server's `RunSummary` only because a client
- *  component cannot import a type from a module that also carries runtime
- *  code guarded by `server-only` — the same reason `lib/staging/resumeState.ts`
- *  exists as its own file. */
-export type RunSummaryClient = RunManifest & { justExtended: boolean; daysLeftToTell: number };
-
-/**
- * One run's clock, in the three sentences `lib/staging/resumeState.ts`
- * decides between. `t`/`tn` are threaded in rather than called from
- * `useI18n()` here, so this stays a small pure-ish renderer next to the
- * pure state function it reads.
- */
-function ExpiryLine({
-  run,
-  t,
-}: {
-  run: RunSummaryClient;
-  t: (key: TranslationKey, vars?: Record<string, string>) => string;
-}) {
-  const state = resumeExpiryState(run, run.justExtended);
-  if (state.kind === "notWarned") {
-    return <p className="mt-1 text-xs text-ink-secondary">{t("extract.resume.notWarned")}</p>;
-  }
-  if (state.kind === "justExtended") {
-    return (
-      <p className="mt-1 text-xs text-ink-secondary">
-        {t("extract.resume.justExtended", {
-          had: new Date(state.hadUntil).toLocaleString(),
-          until: new Date(state.until).toLocaleString(),
-        })}
-      </p>
-    );
-  }
-  return (
-    <p className="mt-1 text-xs text-ink-secondary">
-      {t("extract.resume.extended", { until: new Date(state.until).toLocaleString() })}
-    </p>
-  );
-}
+/** What `GET .../extract/runs` hands back for one run — the manifest,
+ *  unmodified (the route is read-only, see its own doc comment), plus how
+ *  many days still have open questions. `daysLeftToTell` is computed on the
+ *  server, not here: `groupIntoDays` reaches `lib/ingest/geo.ts` and
+ *  `node:fs` through `lib/ingest/cluster.ts`, and a client bundle that
+ *  imports it anyway fails to build outright. */
+export type RunSummaryClient = RunManifest & { daysLeftToTell: number };
 
 /**
  * "You left this half-finished" — B1751 Task 4.3. Shown by `ExtractFlow`
  * instead of minting a new run whenever `GET .../extract/runs` finds one
  * already live for this owner.
  *
- * Above the fold, in every state: finished days already belong to the
+ * **This list states facts, and claims no extension.** Each card's own
+ * `extract.resume.expiresOn` line is exactly `run.expiresAt` — true whether
+ * the run has been warned or not, and true whether it has already been
+ * extended or not, because it names nothing more than what is already on
+ * the manifest. The three-sentence "here is what just happened to your
+ * clock" framing — no hurry yet / you just got extended / no further
+ * extension — belongs to the run that was actually picked, not to a list
+ * somebody may only be glancing at: `ExtractFlow` renders it once, right
+ * after `Continue`, above whichever screen the resumed run lands on.
+ *
+ * Above the fold, in every case: finished days already belong to the
  * journal and are unaffected by anything on this screen or by the run
  * itself expiring — the sentence somebody reading "your photographs will be
  * deleted" needs first, not last.
@@ -89,7 +59,9 @@ export default function ResumeScreen({
                 {" · "}
                 {tn("extract.resume.daysLeft", left, { count: String(left) })}
               </p>
-              <ExpiryLine run={run} t={t} />
+              <p className="mt-1 text-xs text-ink-secondary">
+                {t("extract.resume.expiresOn", { until: new Date(run.expiresAt).toLocaleString() })}
+              </p>
               <button
                 type="button"
                 onClick={() => onContinue(run)}

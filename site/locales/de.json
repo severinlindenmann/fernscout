@@ -1305,6 +1305,7 @@
   "extract.resume.daysLeft": "noch {count} Tage zu erzählen",
   "extract.resume.daysLeft.one": "noch ein Tag zu erzählen",
   "extract.resume.daysStay": "Tage, die du bereits fertiggestellt hast, sind Teil deines Reisetagebuchs und bleiben erhalten, was auch immer mit diesem Import passiert.",
+  "extract.resume.expiresOn": "Fotos werden bis {until} aufbewahrt.",
   "extract.resume.extended": "Deine Fotos werden bis {until} aufbewahrt. Das ist die eine Verlängerung, die du bekommst — eine weitere gibt es nicht.",
   "extract.resume.justExtended": "Du hattest bis {had} Zeit. Weil du zurückgekommen bist, hast du jetzt bis {until} — das ist die eine Verlängerung.",
   "extract.resume.notWarned": "Es eilt nicht, aber es läuft eine Uhr: nicht verwendete Fotos werden etwa zwei Tage nach dem Hochladen gelöscht.",

@@ -733,7 +733,7 @@ describe("the runs route", () => {
       expect(body.runs.every((r) => r.owner === "alex")).toBe(true);
     });
 
-    test("a not-yet-warned run reports no extension and keeps its own expiry", async () => {
+    test("a not-yet-warned run reports its plain, unmodified expiry", async () => {
       const { runId } = (await (await startRunFor("alex")).json()) as { runId: string };
       const { readManifest } = await import("@/lib/staging/manifest");
       const before = readManifest("alex", runId);
@@ -743,16 +743,20 @@ describe("the runs route", () => {
       const res = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
         params: Promise.resolve({ user: "alex" }),
       });
-      const body = (await res.json()) as {
-        runs: { runId: string; justExtended: boolean; warnedAt?: string; expiresAt: string }[];
-      };
+      const body = (await res.json()) as { runs: { runId: string; warnedAt?: string; expiresAt: string }[] };
       const run = body.runs.find((r) => r.runId === runId);
       expect(run?.warnedAt).toBeUndefined();
-      expect(run?.justExtended).toBe(false);
       expect(run?.expiresAt).toBe(before.expiresAt);
     });
 
-    test("a warned, not-yet-extended run is extended by this very request, and says so", async () => {
+    // R30's own review finding — the concern was real: an earlier version of
+    // this route called `extendOnTouch` on every run it listed, so merely
+    // opening the resume screen extended every abandoned import a person
+    // had, spending each one's single extension without a choice. This is
+    // the test that would have caught it: listing a warned, not-yet-extended
+    // run twice must leave its `expiresAt` exactly where it was both times —
+    // the route reads, and only reads.
+    test("listing a warned, not-yet-extended run twice leaves its expiresAt unchanged both times", async () => {
       const { runId } = (await (await startRunFor("alex")).json()) as { runId: string };
       const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
       const before = readManifest("alex", runId);
@@ -764,24 +768,23 @@ describe("the runs route", () => {
       });
 
       const { GET } = await import("@/app/api/helper/[user]/extract/runs/route");
-      const res = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
-        params: Promise.resolve({ user: "alex" }),
-      });
-      const body = (await res.json()) as {
-        runs: { runId: string; justExtended: boolean; extendedAt?: string; expiresAt: string }[];
-      };
-      const run = body.runs.find((r) => r.runId === runId);
-      expect(run?.justExtended).toBe(true);
-      expect(run?.extendedAt).toBeDefined();
-      expect(Date.parse(run!.expiresAt)).toBeGreaterThan(Date.parse("2026-09-02T00:00:00.000Z"));
+      const call = () =>
+        GET(new Request("http://x/api/helper/alex/extract/runs"), { params: Promise.resolve({ user: "alex" }) });
 
-      // Look again: the same run is already extended, so this second look
-      // did not just do it again.
-      const second = await GET(new Request("http://x/api/helper/alex/extract/runs"), {
-        params: Promise.resolve({ user: "alex" }),
-      });
-      const secondBody = (await second.json()) as { runs: { runId: string; justExtended: boolean }[] };
-      expect(secondBody.runs.find((r) => r.runId === runId)?.justExtended).toBe(false);
+      const first = (await (await call()).json()) as { runs: { runId: string; extendedAt?: string; expiresAt: string }[] };
+      const firstRun = first.runs.find((r) => r.runId === runId);
+      expect(firstRun?.extendedAt).toBeUndefined();
+      expect(firstRun?.expiresAt).toBe("2026-09-02T00:00:00.000Z");
+
+      const second = (await (await call()).json()) as { runs: { runId: string; extendedAt?: string; expiresAt: string }[] };
+      const secondRun = second.runs.find((r) => r.runId === runId);
+      expect(secondRun?.extendedAt).toBeUndefined();
+      expect(secondRun?.expiresAt).toBe("2026-09-02T00:00:00.000Z");
+
+      // The manifest on disk is untouched too, not merely the two responses.
+      const after = readManifest("alex", runId);
+      expect(after?.extendedAt).toBeUndefined();
+      expect(after?.expiresAt).toBe("2026-09-02T00:00:00.000Z");
     });
   });
 });

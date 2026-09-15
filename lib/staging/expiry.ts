@@ -97,7 +97,7 @@ export type ExpirySweepResult = { warned: string[]; finalNotices: string[] };
  *  this prefix, and every one of them is money this warning owes the person
  *  an account of. `${ref}:` (with the trailing colon) is what stops
  *  `extract:run-1` from also matching `extract:run-10:…`. */
-async function spentOnRun(owner: string, runId: string): Promise<number> {
+export async function spentOnRun(owner: string, runId: string): Promise<number> {
   const ref = `extract:${runId}`;
   const rows = await ledgerFor(owner, 1000);
   return rows

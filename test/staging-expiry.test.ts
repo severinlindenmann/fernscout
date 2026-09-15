@@ -1,8 +1,17 @@
-import { describe, expect, test } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
-  EXTENSION_MS, WARNED_GRACE_MS, expiryActionFor, extendOnTouch, resumeExpiryState,
+  EXTENSION_MS, WARNED_GRACE_MS, expiryActionFor, extendOnTouch, resumeExpiryState, spentOnRun,
 } from "@/lib/staging/expiry";
 import type { RunManifest } from "@/lib/staging/manifest";
+
+// `spentOnRun` reads through `lib/credits.ts`, whose `spend`/`grant` both
+// refuse outright unless the `credits` capability is on (`creditsEnabled`).
+// Nothing else in this file touches capabilities at all, so this stays on
+// for the whole file rather than only the one describe block that needs it.
+vi.mock("@/lib/capabilities", () => ({ isEnabled: () => true }));
 
 const run = (over: Partial<RunManifest> = {}): RunManifest => ({
   version: 1, runId: "run-1", owner: "alex",
@@ -111,5 +120,61 @@ describe("resumeExpiryState — the three sentences the resume screen can say", 
     );
     const kinds = new Set([notWarned.kind, justExtended.kind, extended.kind]);
     expect(kinds.size).toBe(3);
+  });
+});
+
+/**
+ * `spentOnRun` — the number the expiry warning tells somebody they are
+ * about to lose (`lib/staging/expiry.ts`'s own `sendExpiryMail`). Needs a
+ * real database, unlike everything else in this file: it reads the ledger
+ * through `lib/credits.ts`, which refuses outright with nowhere to record
+ * one (see that module's own doc comment), so a real sqlite file is what
+ * lets the match and non-match paths actually run.
+ */
+describe("spentOnRun — what the expiry warning tells somebody they are about to lose", () => {
+  let dbDir: string;
+
+  beforeEach(async () => {
+    dbDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-staging-expiry-"));
+    process.env.DATABASE_URL = `sqlite:${path.join(dbDir, "test.db")}`;
+    const { getDatabase } = await import("@/lib/db");
+    const { migrateToLatest } = await import("@/lib/db/migrate");
+    await migrateToLatest(await getDatabase());
+  });
+
+  afterEach(async () => {
+    const { closeDatabase } = await import("@/lib/db");
+    await closeDatabase();
+    delete process.env.DATABASE_URL;
+    fs.rmSync(dbDir, { recursive: true, force: true });
+  });
+
+  test("sums every spend under this run's own ref, across more than one enrich (R30's widened ref)", async () => {
+    const { grant, spend } = await import("@/lib/credits");
+    await grant("alex", 10, "test");
+    // Two `extract/enrich` calls on the same run, two different photo-set
+    // hashes (a resume that added photographs between them) — both must
+    // count.
+    await spend("alex", 3, "helper", "extract:run-abc:aaa111");
+    await spend("alex", 2, "helper", "extract:run-abc:bbb222");
+    expect(await spentOnRun("alex", "run-abc")).toBe(5);
+  });
+
+  test("does not match a different run whose id is a text prefix of this one's", async () => {
+    const { grant, spend } = await import("@/lib/credits");
+    await grant("alex", 10, "test");
+    await spend("alex", 3, "helper", "extract:run-abc:aaa111"); // the run under test
+    // A different run whose id happens to start with "run-abc" — the
+    // trailing colon in the prefix match is what has to keep this out.
+    // `newRunId` (lib/staging/paths.ts) always produces a fixed-length
+    // ISO-timestamp id, so two *real* run ids can never actually collide
+    // like this — this constructs the case by hand to prove the boundary
+    // logic holds regardless of whether the generator can reach it.
+    await spend("alex", 4, "helper", "extract:run-abc-2:zzz999");
+    expect(await spentOnRun("alex", "run-abc")).toBe(3);
+  });
+
+  test("a run with nothing spent reports zero, not undefined or a crash", async () => {
+    expect(await spentOnRun("alex", "run-nothing-spent")).toBe(0);
   });
 });

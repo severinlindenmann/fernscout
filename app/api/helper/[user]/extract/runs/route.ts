@@ -1,17 +1,13 @@
 import "server-only";
 import { isEnabled } from "@/lib/capabilities";
 import { groupIntoDays } from "@/lib/extract/group";
-import { extendOnTouch } from "@/lib/staging/expiry";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
-import { listRuns, writeManifest, type RunManifest } from "@/lib/staging/manifest";
+import { listRuns, type RunManifest } from "@/lib/staging/manifest";
 
 export const dynamic = "force-dynamic";
 
-/** One run as this route hands it back — the manifest, whether this very
- *  request is what just extended it (which `resumeExpiryState`,
- *  `lib/staging/expiry.ts`, needs to tell "you were just extended" from
- *  "you were extended a while ago" — both leave the same fields set on
- *  `run` itself), and how many of its days still have open questions.
+/** One run as this route hands it back — the manifest, unmodified, plus how
+ *  many of its days still have open questions.
  *
  * **`daysLeftToTell` is computed here, not on the resume screen.**
  * `groupIntoDays` pulls in `lib/ingest/cluster.ts` for its distance check,
@@ -20,7 +16,7 @@ export const dynamic = "force-dynamic";
  * `node:fs` into the browser bundle and Turbopack refuses the build outright
  * rather than shipping it. This route already has everything the count
  * needs, so it is one more field on the response instead. */
-export type RunSummary = RunManifest & { justExtended: boolean; daysLeftToTell: number };
+export type RunSummary = RunManifest & { daysLeftToTell: number };
 
 function daysLeftToTell(run: RunManifest): number {
   const live = run.photos.filter((p) => !p.dropped);
@@ -33,14 +29,21 @@ function daysLeftToTell(run: RunManifest): number {
  * List this owner's own live import runs, newest first — B1751 Task 4.3,
  * the resume screen's data.
  *
- * `listRuns` already does the listing and the sort; this route is the gate
- * plus one thing `listRuns` itself cannot do: touch. Landing on the screen
- * that shows "here's where you left off" is itself coming back to an import
- * — the same authenticated touch every other route under
- * `app/api/helper/[user]/extract/` already carries via `extendOnTouch`, and
- * the one that lets the resume screen say, truthfully and in the past
- * tense, that arriving *is* the extension rather than a button still to
- * press.
+ * **Read-only.** An earlier version of this route called `extendOnTouch` on
+ * every run it listed, on the reasoning that landing on "here's where you
+ * left off" is itself coming back to an import. It is not: opening a *list*
+ * is not continuing a *run* — the owner's own rule ("continuing the run
+ * after the warning extends it, once") is about a specific run somebody
+ * chose to act on, and extending every abandoned run in the list the moment
+ * somebody merely glances at it spends each one's single extension without
+ * a choice, and holds their photographs on the server two days longer than
+ * the rule intends. This route now only reads: `listRuns` already does the
+ * listing and the sort, and there is nothing else for it to do.
+ *
+ * The actual extension still happens exactly once, the moment a run is
+ * actually resumed — `GET .../extract/run`'s own `extendOnTouch` call,
+ * unchanged, fires the instant `DayBoard` loads the picked run. Nothing new
+ * was added there; this route simply stopped duplicating it.
  */
 export async function GET(
   request: Request,
@@ -54,13 +57,6 @@ export async function GET(
     return notYourJournal(request, user);
   }
 
-  const now = new Date();
-  const runs: RunSummary[] = listRuns(user).map((run) => {
-    const extended = extendOnTouch(run, now);
-    const current = extended ?? run;
-    if (extended) writeManifest(user, extended);
-    return { ...current, justExtended: Boolean(extended), daysLeftToTell: daysLeftToTell(current) };
-  });
-
+  const runs: RunSummary[] = listRuns(user).map((run) => ({ ...run, daysLeftToTell: daysLeftToTell(run) }));
   return Response.json({ runs });
 }
