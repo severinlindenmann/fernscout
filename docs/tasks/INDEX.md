@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (193)
+## backlog (201)
 
 ### security (1)
 
@@ -57,10 +57,11 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 
-### issue (11)
+### issue (12)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1819](backlog/issue/B1819-an-android-location-export-is-accepted.md) | An Android location export is accepted and imports nothing | ISSUE | high | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
@@ -73,10 +74,11 @@ Do not edit them by hand; run the script.
 | [B1703](backlog/issue/B1703-an-unknown-field-is-named-but.md) | An unknown field is named but not suggested, so a near-miss like transport_mode gets no did-you-mean | ISSUE | low | low |
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
 
-### big-feature (17)
+### big-feature (18)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1820](backlog/big-feature/B1820-whatsapp-is-offered-forty-tools-and.md) | WhatsApp is offered forty tools and cannot reliably pick one | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
 | [B1593](backlog/big-feature/B1593-a-closed-journal-has-no-way.md) | A closed journal has no way to show a public shopfront of the parts its owner would share | FEATURE | medium | high |
@@ -95,7 +97,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (26)
+### small-feature (30)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -103,6 +105,10 @@ Do not edit them by hand; run the script.
 | [B1392](backlog/small-feature/B1392-staged-files-are-counted-in-the.md) | Staged files are counted in the storage card and on /agent, and neither offers a way to clear them | FEATURE | high | low |
 | [B1760](backlog/small-feature/B1760-a-date-and-a-place-on.md) | A date and a place on a journal with one matching trip is not really a choice for a model | FEATURE | high | medium |
 | [B1763](backlog/small-feature/B1763-there-is-no-written-way-to.md) | There is no written way to test a prompt change here, so everyone invents a wrong one | FEATURE | high | low |
+| [B1821](backlog/small-feature/B1821-a-trip-can-only-be-created.md) | A trip can only be created by talking to an agent | FEATURE | high | medium |
+| [B1822](backlog/small-feature/B1822-a-bank-statement-can-be-read.md) | A bank statement can be read but never filed | FEATURE | high | medium |
+| [B1823](backlog/small-feature/B1823-a-contacts-import-stops-at-staged.md) | A contacts import stops at staged and sends the person to the agent | FEATURE | high | medium |
+| [B1824](backlog/small-feature/B1824-an-import-asks-for-a-file.md) | An import asks for a file before it says why or how | FEATURE | high | medium |
 | [B1066](backlog/small-feature/B1066-every-journal-that-exists-was-created.md) | Every journal that exists was created without a number, and nothing decides what happens to them | FEATURE | medium | medium |
 | [B1069](backlog/small-feature/B1069-there-is-no-tool-surface-for.md) | There is no tool surface for an agent that would rather be guided than read a spec | FEATURE | medium | medium |
 | [B131](backlog/small-feature/B131-a-merge-to-main-does-not.md) | A merge to main does not reach fernscout.ch until somebody runs deploy.sh by hand | FEATURE | medium | low |
@@ -126,11 +132,12 @@ Do not edit them by hand; run the script.
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (3)
+### chore (4)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
+| [B1825](backlog/chore/B1825-the-import-hub-is-named-after.md) | The import hub is named after the machine's job | CHORE | medium | medium |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1762](backlog/chore/B1762-the-scenario-corpus-has-no-hungarian.md) | The scenario corpus has no Hungarian, and inventing it would poison the instrument | CHORE | low | low |
 
@@ -142,12 +149,13 @@ Do not edit them by hand; run the script.
 | [B1183](backlog/ops/B1183-whether-an-eu-art-27-representative.md) | Whether an EU Art. 27 representative is owed is a lawyer's question nobody has asked | OPS | medium | low |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
 
-### docs-and-skills (2)
+### docs-and-skills (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
+| [B1826](backlog/docs-and-skills/B1826-import-guidance-sits-in-documentation-instead.md) | Import guidance sits in documentation instead of in the flow | DOCS | medium | low |
 
 ### superseded (100)
 

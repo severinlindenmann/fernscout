@@ -107,3 +107,54 @@ Not doing: the GPS track. The book's route is day coordinates and stays that way
   longer prints as a thumbnail squiggle in an empty frame.
 - `npm run verify` green, with the label-collision rule covered by a test that
   fails on `main` for a loop route.
+
+## What the research found — 2026-09-16
+
+Two rounds. The owner rejected the first set of options as "buggy and not
+nice", which was fair: they were drawn in a plate carrée stretched to the
+frame, with a graticule standing in for land.
+
+**No map stack is warranted.** Everything actually broken is fixed by three
+things that need no provider, no account and no tile server:
+
+- **A projection chosen per route extent.** `d3-geo` (ISC, one dependency,
+  ~227 KB source) is usable as pure mathematics — `projection([lng, lat])`
+  returns `[x, y]`, and `d3.geoPath().context(...)` accepts any object with
+  `moveTo`/`lineTo`/`closePath`, so the adapter onto `PdfBuilder` is about
+  twenty lines. No DOM, no browser. Conic equal-area for a route that runs
+  east-west, azimuthal equal-area for a compact one.
+- **Figure-ground instead of graticule.** Land as a filled tone, water as a
+  second. `lib/worldCountries.json` is already here; for print the 1:50m
+  country set (`world-atlas`, ISC, 756 KB, Natural Earth, public domain) is
+  the right resolution. The 10m detail layers this repository *already ships*
+  in `lib/mapdata/basemap.json.gz` — relief, glaciers, lakes, rivers, borders,
+  peaks — are what stops a close frame being one flat fill, and the book's
+  renderer has never drawn them.
+- **Label placement that considers every placed label.** The literature
+  algorithm is simulated annealing over candidate positions with an energy
+  function penalising overlap and anchor distance (Christensen/Marks/Shieber
+  1995), which is what `d3-labeler` implements — unmaintained since 2018 and
+  coupled to `getBBox()`, so reimplement the ~150-line core against the
+  Helvetica metrics in `lib/photobook/text.ts` rather than depend on it.
+  `labelgun` is the simpler greedy alternative if dropping a label is
+  acceptable.
+
+**A fourth thing, learned by drawing it.** Framing on the whole route puts the
+flight in and out across the page and squeezes the actual journey into a
+corner. Polarsteps drops the transit legs on purpose. A leg far longer than
+the median is not part of the trip's geography.
+
+**Region fills for a single-country trip need data that is not here.** Only
+admin-1 *lines* are shipped (11 932 segments). The polygon set
+(`ne_10m_admin_1_states_provinces`) is public domain but tens of megabytes
+raw; it would go through `scripts/build-mapdata.mjs`, stripped by mapshaper to
+the countries a trip touches.
+
+**Free, self-hostable alternatives, if street-level detail is ever wanted:**
+Protomaps/PMTiles is the one that needs no account and yields real vector
+geometry — but it hands over MVT tiles to decode, not print-ready art.
+MapLibre-native and mbgl-renderer end in a raster that is soft at 300 dpi.
+Mapnik is the classic print renderer and a heavy native dependency.
+
+Options drawn for the owner, with real routes from `content/example`:
+`https://claude.ai/artifact/TeaPRjdWuNn77ULDoWknwo`

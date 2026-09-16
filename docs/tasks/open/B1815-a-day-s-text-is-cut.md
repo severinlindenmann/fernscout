@@ -97,3 +97,45 @@ Not doing: rewriting anyone's text, or summarising it to fit. Never.
 - `test/photobook-day-plans.test.ts` updated to the new contract, with the
   200-word case asserting the new behaviour rather than truncation.
 - `npm run verify` green.
+
+## What the research found — 2026-09-16
+
+The owner asked for a wider menu than "run on / shrink / two columns", with
+pictures. Twelve treatments were drawn; the ones with an observed precedent
+are marked as such.
+
+**The craft order, from typesetting practice:** edit the words, then micro-
+adjust tracking and leading within a tolerance, then let the frame grow.
+Scaling type hard and shrinking images are named as the most visible, last
+resorts. Fernscout skips every step of that and cuts — and cutting is the one
+move not available here at all, because the words belong to the person who
+wrote them.
+
+**Observed in a shipping product.** Polarsteps makes exactly one automatic
+decision on length: a step whose text exceeds one column loses its photograph
+and is promoted to a text-only page. That is the whole policy, and it is
+binary. Nothing else found — Blurb, Artifact Uprising and Papier all leave
+overflow to the customer, which is a gap rather than a solved problem.
+
+**Devices for a day that is too long:** the text-only page (Polarsteps), the
+run-on with a running head, the margin column that absorbs the overflow in a
+smaller size (Tufte's sidenotes), the pull quote to break the block.
+
+**Devices for a day that is too short** — the other half of the same problem,
+and the one nobody has raised yet: the enlarged display setting, the
+full-bleed photograph with the text as a caption, two short days sharing a
+spread (no product precedent found; inferred from modular-grid practice), the
+half-title breather page.
+
+**The whole-book answer** is a small set of named page shapes — four to six —
+chosen per day from the measured line count and photo count. Commercial
+modular photobook products ship the shapes and let a person choose; only
+Polarsteps chooses automatically, and only between two. Building the selection
+policy is the real work; the shapes are the easy part.
+
+Everything needed to measure is already here: `lib/photobook/text.ts` carries
+the Core-14 Helvetica advance widths and `wrap()` breaks lines exactly, so
+this is arithmetic in `plan.ts`, not a change of rendering technology.
+
+Options drawn for the owner, with real days from `content/example`:
+`https://claude.ai/artifact/TeaPRjdWuNn77ULDoWknwo`
