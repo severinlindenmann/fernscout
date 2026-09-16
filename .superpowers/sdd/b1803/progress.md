@@ -196,3 +196,18 @@ one implementer holding seven screens is how composition gets skipped. Groups:
 3.1+3.2 (upload progress, day cards), 3.3+3.4+3.5 (the telling flow, including
 the screen that does not exist), 3.6+3.7 (who came, preview). Sequential, never
 parallel — they share ExtractFlow and the locale files.
+
+Phase 3A: complete (3e1a3ed2..7e72447a, 1 fix round). Ruling made mid-round:
+the implementer cut S5a's "Tell me about Friday" primary button on the grounds
+that Phase 3's three-bullet summary for 3.2 was narrower than the screen spec.
+Overruled — the brief states the per-screen spec binds and design-v2.html wins
+ties; a summary is never a narrowing. Recorded because the same reasoning will
+recur on every later screen.
+Phase 3B: complete (8803b6f0..fa385f4b, 1 fix round). The implementer finished
+without committing; controller split the work into three commits. Deepgram's
+per-word confidence was already being discarded at transcribe.ts:105 — that is
+what made S7b buildable from a real signal rather than a heuristic.
+Two process facts worth keeping: an agent deleted its own browser evidence
+during cleanup (unverifiable claim, now prevented by copying captures into the
+workspace before cleanup), and a completed agent's transcript can vanish, so a
+fix round may need a fresh agent with the findings restated in full.
