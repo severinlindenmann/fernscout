@@ -548,6 +548,19 @@ describe("chapters", () => {
     expect(chaptersOf([day(0, { country: "" })])[0].country).toBe("Elsewhere");
     expect(chaptersOf([day(0, { country: "" })], "Máshol")[0].country).toBe("Máshol");
   });
+
+  test("consecutive country-less days merge into one chapter, but a country in between still splits it", () => {
+    const days = [
+      day(0, { country: "Japan" }),
+      day(1, { country: "" }),
+      day(2, { country: "" }),
+      day(3, { country: "" }),
+      day(4, { country: "Japan" }),
+    ];
+    const chapters = chaptersOf(days);
+    expect(chapters.map((c) => c.country)).toEqual(["Japan", "Elsewhere", "Japan"]);
+    expect(chapters[1].days).toHaveLength(3);
+  });
 });
 
 describe("the route view", () => {

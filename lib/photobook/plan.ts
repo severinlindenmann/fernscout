@@ -1030,11 +1030,12 @@ export function chaptersOf(days: BookDay[], elsewhere = "Elsewhere"): Chapter[] 
   const chapters: Chapter[] = [];
   for (const day of days) {
     const last = chapters[chapters.length - 1];
-    if (last && last.country === day.country) {
+    const label = day.country || elsewhere;
+    if (last && last.country === label) {
       last.days.push(day);
       continue;
     }
-    chapters.push({ country: day.country || elsewhere, countryCode: day.countryCode, days: [day] });
+    chapters.push({ country: label, countryCode: day.countryCode, days: [day] });
   }
   return chapters;
 }
