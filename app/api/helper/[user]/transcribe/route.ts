@@ -136,8 +136,15 @@ export async function POST(
     provider: speechProvider(),
     // The check-the-wording screen's own highlight (B1803 Task 3.4) —
     // absent whenever nothing was measured confident enough to flag, never
-    // guessed here or on the client.
-    ...(outcome.uncertainWord ? { uncertainWord: outcome.uncertainWord } : {}),
+    // guessed here or on the client. `uncertainWordOccurrence` (fix round 2)
+    // is which occurrence of that word this is, so a repeated word on the
+    // client is not always resolved to its first appearance.
+    ...(outcome.uncertainWord
+      ? {
+          uncertainWord: outcome.uncertainWord.word,
+          uncertainWordOccurrence: outcome.uncertainWord.occurrence,
+        }
+      : {}),
   };
   await remember(key, fingerprint, answer);
   return Response.json(answer);

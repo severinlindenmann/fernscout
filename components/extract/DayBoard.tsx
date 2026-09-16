@@ -377,6 +377,7 @@ export default function DayBoard({
                           questionIndex={questionIndex + 1}
                           questionTotal={open.length}
                           date={group.undated ? undefined : group.date}
+                          place={place}
                           username={username}
                           consentedSpeech={consentedSpeech}
                           speechProvider={speechProvider}

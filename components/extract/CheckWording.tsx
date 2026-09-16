@@ -5,7 +5,8 @@ import { Pause } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
 
 /**
- * Splits a transcript around its own flagged word — B1803 Task 3.4.
+ * Splits a transcript around its own flagged word — B1803 Task 3.4, fix
+ * round 2.
  *
  * A plain substring search rather than rejoining Deepgram's own `words`
  * array: `words[i].punctuated_word` already carries whatever punctuation
@@ -16,20 +17,39 @@ import { useI18n } from "@/components/LocaleProvider";
  * with a space in front of it that was never in the transcript Deepgram
  * actually returned.
  *
- * `null` whenever there is no word to flag, or the flagged word cannot
- * actually be found in the text (should not happen, but a screen that
- * cannot locate its own highlight shows a plain transcript rather than
+ * **Which occurrence, not just which word.** A transcript can say the same
+ * word twice — round 1 always highlighted the first, regardless of which
+ * one the provider actually measured low confidence on. `flagged.occurrence`
+ * (from `leastConfidentWord`, carried untouched by everything between it
+ * and here) says which one: 0 for the first appearance of that exact text
+ * in the transcript, 1 for the second, and so on. This walks forward that
+ * many matches with `indexOf`'s own search-from-index rather than any kind
+ * of token rejoin, so the exact original spacing and punctuation around
+ * *that* occurrence survives.
+ *
+ * `null` whenever there is no word to flag, or the flagged occurrence
+ * cannot actually be found in the text (should not happen, but a screen
+ * that cannot locate its own highlight shows a plain transcript rather than
  * throwing) — exported so `test/extract-check-wording.test.ts` can assert
  * both without mounting the component.
  */
 export function splitOnWord(
   text: string,
-  word: string | undefined,
+  flagged: { word: string; occurrence: number } | undefined,
 ): { pre: string; word: string; post: string } | null {
-  if (!word) return null;
-  const idx = text.indexOf(word);
-  if (idx === -1) return null;
-  return { pre: text.slice(0, idx), word: text.slice(idx, idx + word.length), post: text.slice(idx + word.length) };
+  if (!flagged || flagged.word === "") return null;
+  let idx = -1;
+  let searchFrom = 0;
+  for (let seen = 0; seen <= flagged.occurrence; seen++) {
+    idx = text.indexOf(flagged.word, searchFrom);
+    if (idx === -1) return null;
+    searchFrom = idx + flagged.word.length;
+  }
+  return {
+    pre: text.slice(0, idx),
+    word: text.slice(idx, idx + flagged.word.length),
+    post: text.slice(idx + flagged.word.length),
+  };
 }
 
 function clockFor(seconds: number): string {
@@ -43,11 +63,12 @@ function clockFor(seconds: number): string {
  * S7b — "Check the wording", the screen that did not exist. B1803 Task 3.4.
  *
  * The whole point of this screen is the one thing it must never do: invent
- * an uncertain word. `uncertainWord` is either what the transcribe route
- * actually measured low confidence on, or absent — and absent means a plain
- * transcript with no highlight and no "one word looked uncertain" panel,
- * never a guess dressed up as one (AGENTS.md; `lib/helper/transcribe.ts`'s
- * `leastConfidentWord`).
+ * an uncertain word. `uncertain` is either what the transcribe route
+ * actually measured low confidence on — the word plus which occurrence of
+ * it this is, for a word the transcript says more than once — or absent,
+ * and absent means a plain transcript with no highlight and no "one word
+ * looked uncertain" panel, never a guess dressed up as one (AGENTS.md;
+ * `lib/helper/transcribe.ts`'s `leastConfidentWord`).
  *
  * The highlighted word is editable in place — a native `<input>` swapped in
  * for the tapped span, never `window.prompt` (AGENTS.md forbids it) — and
@@ -56,19 +77,19 @@ function clockFor(seconds: number): string {
  */
 export default function CheckWording({
   text,
-  uncertainWord,
+  uncertain,
   recordedSeconds,
   onKeep,
   onRedo,
 }: {
   text: string;
-  uncertainWord?: string;
+  uncertain?: { word: string; occurrence: number };
   recordedSeconds: number;
   onKeep: (finalText: string) => void;
   onRedo: () => void;
 }) {
   const { t } = useI18n();
-  const split = splitOnWord(text, uncertainWord);
+  const split = splitOnWord(text, uncertain);
   const [correction, setCorrection] = useState(split?.word ?? "");
   const [editing, setEditing] = useState(false);
 

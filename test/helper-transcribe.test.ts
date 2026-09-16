@@ -408,7 +408,8 @@ describe("the dry-run backend", () => {
     );
     const said = await real.transcribeAudio(Buffer.from("bytes"), "audio/webm", "en");
     expect(said.uncertainWord).toBeTruthy();
-    expect(DRY_RUN_TRANSCRIPT).toContain(said.uncertainWord as string);
+    expect(DRY_RUN_TRANSCRIPT).toContain(said.uncertainWord!.word);
+    expect(said.uncertainWord!.occurrence).toBe(0);
   });
 });
 
@@ -419,7 +420,7 @@ describe("leastConfidentWord — the check-the-wording screen's own flag (B1803 
       { word: "fuong", punctuated_word: "Fuong,", confidence: 0.41 },
       { word: "think", punctuated_word: "think", confidence: 0.91 },
     ]);
-    expect(flagged).toBe("Fuong,");
+    expect(flagged).toEqual({ word: "Fuong,", occurrence: 0 });
   });
 
   test("says nothing when every word is confident — silence, not a guess", () => {
@@ -442,7 +443,21 @@ describe("leastConfidentWord — the check-the-wording screen's own flag (B1803 
     ).toBeUndefined();
     expect(
       leastConfidentWord([{ word: "x", confidence: UNCERTAIN_WORD_CONFIDENCE - 0.01 }]),
-    ).toBe("x");
+    ).toEqual({ word: "x", occurrence: 0 });
+  });
+
+  // B1803 Task 3b fix round 2 — a word said twice must carry which
+  // occurrence is the flagged one, not just its text: `splitOnWord`
+  // (`components/extract/CheckWording.tsx`) used to always land on the
+  // first occurrence in the transcript, regardless of which one this
+  // function actually meant.
+  test("carries which occurrence of a repeated word is the flagged one", () => {
+    const flagged = leastConfidentWord([
+      { word: "fuong", punctuated_word: "Fuong", confidence: 0.95 },
+      { word: "or", confidence: 0.97 },
+      { word: "fuong", punctuated_word: "Fuong", confidence: 0.41 },
+    ]);
+    expect(flagged).toEqual({ word: "Fuong", occurrence: 1 });
   });
 });
 

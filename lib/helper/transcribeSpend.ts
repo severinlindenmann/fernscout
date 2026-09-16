@@ -3,6 +3,7 @@ import { refund, spend } from "../credits";
 import { creditsForSeconds, MAX_SPEECH_SECONDS } from "./speech";
 import type { SpeechLanguage } from "./speech";
 import { transcribeAudio } from "./transcribe";
+import type { UncertainWord } from "./transcribe";
 
 /**
  * The whole money path around one transcription — spend, call, refund on
@@ -29,7 +30,7 @@ import { transcribeAudio } from "./transcribe";
 
 /** What this refused, or what it produced. */
 export type TranscribeOutcome =
-  | { ok: true; text: string; seconds: number; spent: number; uncertainWord?: string }
+  | { ok: true; text: string; seconds: number; spent: number; uncertainWord?: UncertainWord }
   | { ok: false; error: "no_credits" | "transcription_failed" | "recording_too_long"; cost: number };
 
 export async function spendAndTranscribe(

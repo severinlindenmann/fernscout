@@ -56,6 +56,10 @@ export const DRY_RUN_TRANSCRIPT =
  */
 const DRY_RUN_UNCERTAIN_WORD = "machine";
 
+/** `DRY_RUN_UNCERTAIN_WORD` appears exactly once in `DRY_RUN_TRANSCRIPT`, so
+ *  it is always the first (and only) occurrence. */
+const DRY_RUN_UNCERTAIN_OCCURRENCE = 0;
+
 /**
  * The line below which a word is shown to the person rather than trusted —
  * B1803 Task 3.4. Deepgram's own confidence for a correctly heard common
@@ -70,6 +74,15 @@ export const UNCERTAIN_WORD_CONFIDENCE = 0.6;
 
 type DeepgramWord = { word: string; punctuated_word?: string; confidence?: number };
 
+/** The one word `leastConfidentWord` flagged, plus which occurrence of it
+ *  this is in the provider's own word order — B1803 Task 3b fix round 2.
+ *  `occurrence` is how many earlier words in the *provider's* `words[]`
+ *  carried this exact (punctuated) text — 0 for the first, 1 for the
+ *  second, and so on — so a screen locating this word inside the plain
+ *  transcript string can pick the right occurrence when the word repeats,
+ *  rather than always landing on the first. */
+export type UncertainWord = { word: string; occurrence: number };
+
 /**
  * The one word most worth a second look, or nothing — B1803 Task 3.4.
  *
@@ -79,16 +92,32 @@ type DeepgramWord = { word: string; punctuated_word?: string; confidence?: numbe
  * response shape, a provider that does not return them — is answered with
  * `undefined`, the same as every word clearing the bar: silence, not a
  * guess dressed up as one.
+ *
+ * Also carries `occurrence` (fix round 2): a transcript can say the same
+ * word twice, and confidence is measured per *token*, not per distinct
+ * spelling — flagging only the text let `CheckWording`'s `splitOnWord`
+ * highlight whichever occurrence came first in the string, which is not
+ * necessarily the one Deepgram was actually unsure about.
  */
-export function leastConfidentWord(words: DeepgramWord[] | undefined): string | undefined {
+export function leastConfidentWord(words: DeepgramWord[] | undefined): UncertainWord | undefined {
   if (!words || words.length === 0) return undefined;
   let worst: DeepgramWord | undefined;
-  for (const word of words) {
-    if (typeof word.confidence !== "number") continue;
-    if (!worst || word.confidence < (worst.confidence ?? 1)) worst = word;
-  }
+  let worstIndex = -1;
+  words.forEach((word, index) => {
+    if (typeof word.confidence !== "number") return;
+    if (!worst || word.confidence < (worst.confidence ?? 1)) {
+      worst = word;
+      worstIndex = index;
+    }
+  });
   if (!worst || (worst.confidence ?? 1) >= UNCERTAIN_WORD_CONFIDENCE) return undefined;
-  return worst.punctuated_word ?? worst.word;
+  const flagged = worst.punctuated_word ?? worst.word;
+  let occurrence = 0;
+  for (let i = 0; i < worstIndex; i++) {
+    const earlier = words[i];
+    if ((earlier.punctuated_word ?? earlier.word) === flagged) occurrence++;
+  }
+  return { word: flagged, occurrence };
 }
 
 /** @public Exported only for `test/helper-transcribe.test.ts`, which reaches
@@ -110,13 +139,13 @@ export type Transcript = {
    *  route reconciles the charge against it, so a caller under-reporting its
    *  own minutes is charged for the ones it actually used. */
   seconds: number;
-  /** The one word `leastConfidentWord` flagged, in the same form it appears
-   *  in `text` (punctuated, so it can be found there by substring) — or
-   *  absent, which the check-the-wording screen (S7b) shows as a plain
-   *  transcript with no highlight and no "one word looked uncertain" panel.
-   *  Never invented: this is either what the provider measured or nothing
-   *  at all. */
-  uncertainWord?: string;
+  /** What `leastConfidentWord` flagged — the word, in the same form it
+   *  appears in `text`, and which occurrence of it this is (fix round 2,
+   *  for a word the transcript says more than once) — or absent, which the
+   *  check-the-wording screen (S7b) shows as a plain transcript with no
+   *  highlight and no "one word looked uncertain" panel. Never invented:
+   *  this is either what the provider measured or nothing at all. */
+  uncertainWord?: UncertainWord;
 };
 
 /**
@@ -131,7 +160,11 @@ export async function transcribeAudio(
   owner?: string,
 ): Promise<Transcript> {
   if (speechBackend() !== "deepgram") {
-    return { text: DRY_RUN_TRANSCRIPT, seconds: 0, uncertainWord: DRY_RUN_UNCERTAIN_WORD };
+    return {
+      text: DRY_RUN_TRANSCRIPT,
+      seconds: 0,
+      uncertainWord: { word: DRY_RUN_UNCERTAIN_WORD, occurrence: DRY_RUN_UNCERTAIN_OCCURRENCE },
+    };
   }
 
   const url = new URL(DEEPGRAM_URL);

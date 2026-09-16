@@ -27,7 +27,7 @@ import type { Question } from "@/lib/extract/questions";
  * - `"hero"` — S7a's own voice-first screen: the waveform, the large round
  *   microphone, "Listening · tap to pause". The default, since a person who
  *   came here to speak should not have to find a smaller control first.
- * - `"review"` — S7b, once a recording comes back. `text`/`uncertainWord`/
+ * - `"review"` — S7b, once a recording comes back. `text`/`uncertain`/
  *   `heldSeconds` are exactly what `RecordButton`'s `onText` handed over;
  *   nothing here invents or re-measures any of it.
  * - `"type"` — the original textarea-and-submit box, reached by "Type this
@@ -56,6 +56,7 @@ export default function AskCard({
   questionIndex,
   questionTotal,
   date,
+  place,
   username,
   consentedSpeech,
   speechProvider,
@@ -76,8 +77,15 @@ export default function AskCard({
   questionIndex?: number;
   questionTotal?: number;
   /** The group's own date (`undefined` for the undated group), for the
-   *  follow-up screen's "Finish {weekday}" — B1803 Task 3.5. */
+   *  follow-up screen's "Finish {weekday}" — B1803 Task 3.5 — and for the
+   *  header row's own `Tue 2 Jul` (fix round 2, S7a/S7c). */
   date?: string;
+  /** The day's own place, exactly as `DayBoard` already resolves it for its
+   *  own summary line (`group.placeName` or the answered "where were you"
+   *  gap question) — never a second, invented lookup. `undefined` whenever
+   *  the day has none, which the header shows as no place at all rather
+   *  than a guess (B1803 Task 3b fix round 2). */
+  place?: string;
   username: string;
   consentedSpeech: boolean;
   /** `""` — never a real provider name — means the capability itself is off
@@ -113,9 +121,11 @@ export default function AskCard({
   const [mode, setMode] = useState<"hero" | "review" | "type">(
     !isFollowUp && speechCapable ? "hero" : "type",
   );
-  const [pending, setPending] = useState<{ text: string; uncertainWord?: string; seconds: number } | null>(
-    null,
-  );
+  const [pending, setPending] = useState<{
+    text: string;
+    uncertain?: { word: string; occurrence: number };
+    seconds: number;
+  } | null>(null);
 
   async function submit(value: string) {
     const trimmed = value.trim();
@@ -157,10 +167,17 @@ export default function AskCard({
 
   // S7a's "FIRST" and S7c's "ONE MORE, IF YOU LIKE" — the only two the
   // design actually names (design-v2.html:868/916). A "gap" question (the
-  // day's second, filling in a missing location) gets no label at all
-  // rather than one invented for a case the design never drew.
+  // day's second, filling in a missing location — or, for an undated group,
+  // the day's own *first* question per `lib/extract/questions.ts`'s "when"
+  // gap) gets no label at all rather than one invented for a case the
+  // design never drew. Keyed on `question.kind`, not `questionIndex`: an
+  // undated group's "when" gap question lands at position 1 (it must come
+  // before the opening question — there is no "It's Tuesday morning" to say
+  // until "when" is answered), and position alone would wrongly dress it in
+  // a badge the design never gave a gap question — B1803 Task 3b fix
+  // round 2.
   const kindLabel =
-    questionIndex === 1 ? t("extract.ask.first") : isFollowUp ? t("extract.ask.oneMore") : null;
+    question.kind === "opening" ? t("extract.ask.first") : isFollowUp ? t("extract.ask.oneMore") : null;
 
   const followUpChips = [
     { key: "who", text: t("extract.ask.chip.who") },
@@ -170,8 +187,53 @@ export default function AskCard({
 
   const finishLabel = date ? t("extract.ask.finishDay", { weekday: weekdayLabel(date, locale) }) : t("extract.board.leave");
 
+  // The header row S7a and S7c both draw and S7b does not (`← Tue 2 Jul ·
+  // Hoi An` / `1 of 3`, design-v2.html:863/911) — B1803 Task 3b fix
+  // round 2. `weekdayLabel` is the same function `DayBoard` already
+  // exports and uses for its own day labels, reused rather than a second
+  // date formatter. The place only ever shows on the non-follow-up screen
+  // (S7a) — the design never draws it on S7c (design-v2.html:911) — and is
+  // omitted entirely, never guessed, for an undated group or a day with no
+  // place. `undefined` for `date` (the undated group) leaves the title with
+  // no date clause rather than an invented one.
+  const headerParts: string[] = [];
+  if (date) headerParts.push(weekdayLabel(date, locale));
+  if (!isFollowUp && place) headerParts.push(place);
+  const headerTitle = headerParts.join(" · ");
+  // The back arrow leaves this question the same way Skip/Finish already
+  // do — `onDone` is the board's own "collapse this day's panel" callback,
+  // and stepping back out of a single question screen is exactly that,
+  // not a second navigation stack invented for this header alone.
+  const showHeader = mode !== "review" && questionIndex !== undefined && questionTotal !== undefined;
+
   return (
     <div>
+      {showHeader && (
+        <div className="mb-2 flex min-w-0 items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => onDone?.()}
+            aria-label={t("extract.checkWording.back")}
+            className="shrink-0 text-lg text-ink-strong"
+          >
+            ←
+          </button>
+          {headerTitle !== "" && (
+            <span className="min-w-0 flex-1 truncate text-center text-sm font-semibold text-ink-strong">
+              {headerTitle}
+            </span>
+          )}
+          {/* The design's own `.navbar .r` colour (a yellow accent) is on
+              `test/contrast.test.ts`'s own "never a text colour" list — a
+              light accent readable only against the slideshow's blacked-out
+              backdrop this card does not have. The neutral secondary-ink
+              token below is `StepIndicator`'s own choice for the same kind
+              of small, secondary metadata label right beneath this one. */}
+          <span className="shrink-0 whitespace-nowrap text-sm font-medium text-ink-secondary">
+            {t("extract.step.ofTotal", { current: String(questionIndex), total: String(questionTotal) })}
+          </span>
+        </div>
+      )}
       {dayIndex !== undefined && dayTotal !== undefined && questionIndex !== undefined && questionTotal !== undefined && (
         <StepIndicator
           total={questionTotal}
@@ -202,7 +264,7 @@ export default function AskCard({
         <div className="rounded-xl border border-line-strong bg-surface-raised p-3">
           <CheckWording
             text={pending.text}
-            uncertainWord={pending.uncertainWord}
+            uncertain={pending.uncertain}
             recordedSeconds={pending.seconds}
             onKeep={(finalText) => void submit(finalText)}
             onRedo={() => {
@@ -297,8 +359,8 @@ export default function AskCard({
                 provider={speechProvider}
                 hero
                 hold={false}
-                onText={(said, uncertainWord, heldSeconds) => {
-                  setPending({ text: said, uncertainWord, seconds: heldSeconds ?? 0 });
+                onText={(said, uncertain, heldSeconds) => {
+                  setPending({ text: said, uncertain, seconds: heldSeconds ?? 0 });
                   setMode("review");
                 }}
               />

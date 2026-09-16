@@ -112,14 +112,15 @@ export default function RecordButton({
    * What was said, once. The host decides where it goes; nothing here writes
    * anything anywhere.
    *
-   * `uncertainWord` is the check-the-wording screen's own flag (B1803 Task
+   * `uncertain` is the check-the-wording screen's own flag (B1803 Task
    * 3.4) — the one word the transcribe route measured low confidence on, in
-   * the same punctuated form it appears in `said`, or absent when nothing
-   * was uncertain enough to name. `heldSeconds` is how long the recording
-   * actually ran, for "Paused · 1:12 recorded"; both are extra arguments a
-   * caller happy with just the text can ignore entirely.
+   * the same punctuated form it appears in `said`, plus which occurrence of
+   * it that is (fix round 2, for a word `said` says more than once) — or
+   * absent when nothing was uncertain enough to name. `heldSeconds` is how
+   * long the recording actually ran, for "Paused · 1:12 recorded"; both are
+   * extra arguments a caller happy with just the text can ignore entirely.
    */
-  onText: (said: string, uncertainWord?: string, heldSeconds?: number) => void;
+  onText: (said: string, uncertain?: { word: string; occurrence: number }, heldSeconds?: number) => void;
   /**
    * What the resting button says, where "hold to talk" is not the whole of it
    * — B981, and so far only the search page, where speaking goes straight to
@@ -367,11 +368,13 @@ export default function RecordButton({
         if (!response.ok)
           throw new Error(String(body.error ?? response.status));
         const said = String(body.text ?? "").trim();
-        const uncertainWord =
-          typeof body.uncertainWord === "string" && body.uncertainWord !== ""
-            ? body.uncertainWord
+        const uncertain =
+          typeof body.uncertainWord === "string" &&
+          body.uncertainWord !== "" &&
+          typeof body.uncertainWordOccurrence === "number"
+            ? { word: body.uncertainWord, occurrence: body.uncertainWordOccurrence }
             : undefined;
-        if (said !== "") onText(said, uncertainWord, held);
+        if (said !== "") onText(said, uncertain, held);
       } catch (thrown) {
         setError(t("agent.failed", { error: (thrown as Error).message }));
       } finally {
