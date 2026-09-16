@@ -6,6 +6,7 @@ complexity: low
 area: auth
 title: "An agent code for the instance admin is refused on every journal they do not own"
 found: 2026-09-11T20:45:00Z
+wontDo: "Settled by B1785: the owner was asked this exact question and decided agent tokens stay scoped to journals the admin address owns. The docs were corrected instead of the code. (B1166 is a different, real bug in the same area.)"
 ---
 
 # An agent code for the instance admin is refused on every journal they do not own
@@ -54,3 +55,7 @@ Not doing: changing the uniform `invalid_code` answer.
 A test covering `agentScope` with `FERNSCOUT_ADMIN_EMAIL` set and a journal
 owned by somebody else, asserting whichever of the two the decision is — and,
 if it is the second, no remaining doc or script telling an agent to try it.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. Settled by B1785: the owner was asked this exact question and decided agent tokens stay scoped to journals the admin address owns. The docs were corrected instead of the code. (B1166 is a different, real bug in the same area.)

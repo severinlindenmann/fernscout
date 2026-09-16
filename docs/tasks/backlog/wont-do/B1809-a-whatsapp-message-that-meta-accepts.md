@@ -6,6 +6,7 @@ priority: high
 complexity: low
 area: whatsapp, observability
 found: "2026-09-16T18:50:00Z"
+wontDo: "Already fixed and merged to main before triage (d2e71366, e1e74904, 3660ccb3): the webhook now parses Meta's statuses[] and logs a refused delivery with the masked recipient, reason and wamid."
 ---
 
 # B1809 — A WhatsApp message that Meta accepts and then fails to deliver leaves no trace on this server
@@ -53,3 +54,7 @@ the reason is thrown away, not that it is unrecorded.
 A WhatsApp send that Meta accepts and then fails produces a log line naming
 the recipient (masked), the wamid and Meta's own error code and title.
 `npm run verify` clean.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. Already fixed and merged to main before triage (d2e71366, e1e74904, 3660ccb3): the webhook now parses Meta's statuses[] and logs a refused delivery with the masked recipient, reason and wamid.

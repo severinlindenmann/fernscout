@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: helper, tests
 found: "2026-09-11T21:35:00Z"
+wontDo: "Fixed and committed in the sibling fernscout-helper repository on 2026-09-11. This file is a historical record."
 ---
 
 # B1538 — validate-content truncated its own JSON report, and selftest blamed the fixture
@@ -71,3 +72,7 @@ it got would have made the truncation obvious at once.
 - `selftest.mjs` is green.
 - The exit code still distinguishes errors from none.
 - No other `process.exit()` in the helper races a pending stdout write.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. Fixed and committed in the sibling fernscout-helper repository on 2026-09-11. This file is a historical record.

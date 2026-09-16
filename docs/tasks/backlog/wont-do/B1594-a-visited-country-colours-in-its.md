@@ -6,6 +6,7 @@ priority: medium
 complexity: medium
 area: maps, countries
 found: "2026-09-12T15:48:49Z"
+wontDo: "Already fixed: scripts/build-world-countries.mts carries a SPLITS table with exactly this case (France to GF, maxLng -20), citing this ticket."
 ---
 
 # B1594 — A visited country colours in its overseas territories, so the map claims places nobody went
@@ -90,3 +91,7 @@ Not in scope: raising the baked resolution, and any handling of territories
 - The component under this is `components/LifetimeMap.tsx` (fill at :185); check
   it in a browser on an existing journal, not only in a test — the fill is only
   drawn when `visits.length > 0`.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. Already fixed: scripts/build-world-countries.mts carries a SPLITS table with exactly this case (France to GF, maxLng -20), citing this ticket.

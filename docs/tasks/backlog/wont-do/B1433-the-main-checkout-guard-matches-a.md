@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: harness, hooks
 found: "2026-09-11T09:17:45Z"
+wontDo: ".claude/hooks/main-checkout-guard.mjs is gitignored and per-machine, so there is nothing in the tracked repository to change, test or merge. Hand-apply it on the machine that needs it."
 ---
 
 # B1433 — The main-checkout guard matches a path pattern, so it blocks edits in a different repository entirely
@@ -102,3 +103,7 @@ No test accompanies this: the hook is gitignored, has no copy in any
 worktree, and Vitest here cannot invoke a `PreToolUse` hook at all — there is
 no harness in this repository that runs it. A person applying this by hand
 should smoke-test it directly: `echo '{"tool_input":{"file_path":"/path/outside/this/repo/x"},"cwd":"..."}' | node .claude/hooks/main-checkout-guard.mjs` and confirm it now exits with no `deny`.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. .claude/hooks/main-checkout-guard.mjs is gitignored and per-machine, so there is nothing in the tracked repository to change, test or merge. Hand-apply it on the machine that needs it.

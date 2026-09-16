@@ -49,68 +49,29 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (229)
+## backlog (190)
 
-### security (5)
+### security (1)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1158](backlog/security/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
-| [B1233](backlog/security/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
-| [B1690](backlog/security/B1690-the-deletion-confirmation-link-and-the.md) | The deletion confirmation link and the two invite links carry their token in the URL path | SECURITY | medium | medium |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
-| [B1689](backlog/security/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
 
-### issue (46)
+### issue (11)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1753](backlog/issue/B1753-check-caddy-reports-the-running-config.md) | check:caddy reports the running config is in step while a directive from this release is missing from it | ISSUE | high | low |
-| [B1809](backlog/issue/B1809-a-whatsapp-message-that-meta-accepts.md) | A WhatsApp message that Meta accepts and then fails to deliver leaves no trace on this server | ISSUE | high | low |
-| [B1022](backlog/issue/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
-| [B1166](backlog/issue/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
-| [B1308](backlog/issue/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
-| [B1431](backlog/issue/B1431-a-model-turn-that-throws-says.md) | A model turn that throws says nothing, on every ordinary WhatsApp reply | ISSUE | medium | low |
-| [B1508](backlog/issue/B1508-a-scratch-journal-named-test-something.md) | A scratch journal named test-something poisons the depersonalised guard with common words | ISSUE | medium | low |
-| [B1513](backlog/issue/B1513-costs-cannot-be-imported-before-a-trip-exists.md) | Statement costs cannot be imported before a trip exists, and publish will not run until they are | ISSUE | medium | medium |
-| [B1535](backlog/issue/B1535-an-agent-code-for-the-instance.md) | An agent code for the instance admin is refused on every journal they do not own | ISSUE | medium | low |
-| [B1538](backlog/issue/B1538-validate-content-truncated-its-own-json.md) | validate-content truncated its own JSON report, and selftest blamed the fixture | ISSUE | medium | low |
 | [B1540](backlog/issue/B1540-the-country-is-in-every-exported.md) | The country is in every exported photo and the helper throws it away, so the photobook says "elsewhere" on every day | ISSUE | medium | low |
-| [B1570](backlog/issue/B1570-helper-gps-import-and-photobook-order.md) | Helper GPS import and photobook order still use unlocked storageRefusal check | ISSUE | medium | low |
-| [B1584](backlog/issue/B1584-captions-and-photovisibility-are-accepted-on.md) | captions and photoVisibility are accepted on a day and appear in no published contract as keys | ISSUE | medium | low |
-| [B1594](backlog/issue/B1594-a-visited-country-colours-in-its.md) | A visited country colours in its overseas territories, so the map claims places nobody went | ISSUE | medium | medium |
-| [B1611](backlog/issue/B1611-journalstatus-shows-the-credit-balance-to.md) | journalStatus shows the credit balance to a trip-scoped token where v1 hid it | ISSUE | medium | low |
-| [B1614](backlog/issue/B1614-the-contract-test-s-scan-window.md) | The contract test's scan window could not see cookie-only doors, so a live error code read as dead | ISSUE | medium | low |
-| [B1620](backlog/issue/B1620-three-v2-surfaces-drop-information-v1.md) | Three v2 surfaces drop information v1 exposed: day-list test inheritance, status drafts' test flag, and mail send error detail | ISSUE | medium | low |
-| [B1627](backlog/issue/B1627-the-v2-media-door-validates-format.md) | The v2 media door validates format for a trip photo but not one declined to the inbox | ISSUE | medium | low |
-| [B1692](backlog/issue/B1692-the-sync-manifest-never-lists-content.md) | The sync manifest never lists content/<user>/figures/ | ISSUE | medium | low |
-| [B1707](backlog/issue/B1707-sudo-env-restic-password-writes-the.md) | sudo ENV=RESTIC_PASSWORD writes the repository password into the journal | ISSUE | medium | low |
-| [B1723](backlog/issue/B1723-sixty-one-task-files-have-unparseable.md) | Sixty-one task files have unparseable frontmatter, so they are invisible everywhere that reads docs tasks | ISSUE | medium | low |
-| [B1725](backlog/issue/B1725-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
-| [B1739](backlog/issue/B1739-every-inbox-file-row-hydrates-with.md) | Every inbox file row hydrates with a mismatched date, because toLocaleDateString has no locale | ISSUE | medium | low |
-| [B1746](backlog/issue/B1746-create-trip-proposes-a-trip-whose.md) | create_trip proposes a trip whose title the journal already has, instead of using it | ISSUE | medium | low |
-| [B1755](backlog/issue/B1755-a-video-s-own-location-is.md) | A video's own location is thrown away, though ffprobe already hands it back in the call that reads its date | ISSUE | medium | low |
-| [B1757](backlog/issue/B1757-cost-reporting-folds-cached-tokens-in.md) | Cost reporting folds cached tokens in at face value, so every figure overstates | ISSUE | medium | low |
-| [B1795](backlog/issue/B1795-a-photo-description-spend-is-not.md) | A photo description spend is not refunded when every photograph fails to resize | ISSUE | medium | low |
-| [B1796](backlog/issue/B1796-inline-code-in-the-documentation-pages.md) | Inline code in the documentation pages is invisible against the dark background | ISSUE | medium | low |
-| [B1801](backlog/issue/B1801-eight-components-use-a-raw-tailwind.md) | Eight components use a raw Tailwind red for errors where the brand coral belongs | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
-| [B1433](backlog/issue/B1433-the-main-checkout-guard-matches-a.md) | The main-checkout guard matches a path pattern, so it blocks edits in a different repository entirely | ISSUE | low | low |
-| [B1475](backlog/issue/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
-| [B1514](backlog/issue/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
-| [B1571](backlog/issue/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 | [B1583](backlog/issue/B1583-a-publish-run-against-an-unreachable.md) | A publish run against an unreachable instance dies with a raw Node stack trace instead of a sentence | ISSUE | low | low |
 | [B1658](backlog/issue/B1658-trip-budget-and-trip-rates-carry.md) | trip/budget and trip/rates carry the day/trip completeness conflict B1650 found, unrepointed | ISSUE | low | low |
 | [B1703](backlog/issue/B1703-an-unknown-field-is-named-but.md) | An unknown field is named but not suggested, so a near-miss like transport_mode gets no did-you-mean | ISSUE | low | low |
-| [B1712](backlog/issue/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
-| [B1773](backlog/issue/B1773-a-stranger-sees-every-closed-journey.md) | A stranger sees every closed journey at once on a journal with thirty trips | ISSUE | low | low |
-| [B1800](backlog/issue/B1800-an-outbound-sms-in-admin-does.md) | An outbound SMS in /admin does not say which of the instance's numbers sent it | ISSUE | low | low |
 
 ### big-feature (19)
 
@@ -168,40 +129,27 @@ Do not edit them by hand; run the script.
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (8)
+### chore (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1412](backlog/chore/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
-| [B1449](backlog/chore/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
 | [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
-| [B1688](backlog/chore/B1688-retracting-a-photographs-decline-is-written.md) | Retracting a photographs decline is written out four times instead of once | CHORE | medium | low |
-| [B1759](backlog/chore/B1759-nobody-has-priced-a-larger-model.md) | Nobody has priced a larger model on the turns the helper is worst at | CHORE | medium | low |
-| [B1804](backlog/chore/B1804-the-browser-capture-script-cannot-reach.md) | The browser capture script cannot reach a screen that needs a click, so only resting states get checked | CHORE | medium | low |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1762](backlog/chore/B1762-the-scenario-corpus-has-no-hungarian.md) | The scenario corpus has no Hungarian, and inventing it would poison the instrument | CHORE | low | low |
 
-### ops (8)
+### ops (3)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1791](backlog/ops/B1791-the-whatsapp-number-is-the-owner.md) | The WhatsApp number is the owner's personal SIM, and the Twilio number meant to replace it cannot be verified by Meta | OPS | high | medium |
-| [B107](backlog/ops/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1137](backlog/ops/B1137-there-is-no-place-to-try.md) | There is no place to try a change against real data before it reaches fernscout.ch | OPS | medium | medium |
 | [B1183](backlog/ops/B1183-whether-an-eu-art-27-representative.md) | Whether an EU Art. 27 representative is owed is a lawyer's question nobody has asked | OPS | medium | low |
-| [B1536](backlog/ops/B1536-enable-the-stannp-webhook-on-the.md) | Enable the Stannp webhook on the live instance | OPS | medium | low |
 | [B437](backlog/ops/B437-no-postcard-has-ever-been-posted.md) | No postcard has ever been posted through a real provider account | OPS | medium | medium |
-| [B546](backlog/ops/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
-| [B1036](backlog/ops/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 
-### docs-and-skills (5)
+### docs-and-skills (2)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
-| [B1144](backlog/docs-and-skills/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
 | [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
-| [B1478](backlog/docs-and-skills/B1478-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
-| [B1483](backlog/docs-and-skills/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
 
 ### superseded (97)
@@ -306,28 +254,81 @@ Do not edit them by hand; run the script.
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 | [B988](backlog/superseded/B988-the-visitor-hash-test-pins-a.md) | The visitor-hash test pins a salt that has already been drawn, so it fails about one run in three hundred | ISSUE | low | low |
 
-### wont-do (14)
+### wont-do (27)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1681](backlog/wont-do/B1681-the-owner-s-journal-was-deleted.md) | The owner's journal was deleted from the live instance during an automated run | OPS | high | low |
+| [B1809](backlog/wont-do/B1809-a-whatsapp-message-that-meta-accepts.md) | A WhatsApp message that Meta accepts and then fails to deliver leaves no trace on this server | ISSUE | high | low |
 | [B386](backlog/wont-do/B386-a-whatsapp-recipient-has-no-way.md) | A WhatsApp recipient has no way to stop the messages from inside WhatsApp | ISSUE | high | medium |
 | [B520](backlog/wont-do/B520-a-restart-during-an-upload-takes.md) | a restart during an upload takes the site down for ninety seconds | ISSUE | high | low |
+| [B1022](backlog/wont-do/B1022-nothing-can-produce-the-url-that.md) | Nothing can produce the URL that reopens a conversation | ISSUE | medium | low |
+| [B1233](backlog/wont-do/B1233-b1230-s-trusted-caller-seam-has.md) | B1230's trusted-caller seam has had a focused review and no full security sweep | SECURITY | medium | low |
+| [B1535](backlog/wont-do/B1535-an-agent-code-for-the-instance.md) | An agent code for the instance admin is refused on every journal they do not own | ISSUE | medium | low |
+| [B1538](backlog/wont-do/B1538-validate-content-truncated-its-own-json.md) | validate-content truncated its own JSON report, and selftest blamed the fixture | ISSUE | medium | low |
 | [B1542](backlog/wont-do/B1542-the-title-page-s-reverse-is.md) | The title page's reverse is printed on, so the title leaf reads as a page rather than a title | ISSUE | medium | low |
+| [B1584](backlog/wont-do/B1584-captions-and-photovisibility-are-accepted-on.md) | captions and photoVisibility are accepted on a day and appear in no published contract as keys | ISSUE | medium | low |
+| [B1594](backlog/wont-do/B1594-a-visited-country-colours-in-its.md) | A visited country colours in its overseas territories, so the map claims places nobody went | ISSUE | medium | medium |
+| [B1614](backlog/wont-do/B1614-the-contract-test-s-scan-window.md) | The contract test's scan window could not see cookie-only doors, so a live error code read as dead | ISSUE | medium | low |
 | [B1662](backlog/wont-do/B1662-a-v2-day-s-private-guest.md) | A v2 day's private/guest photograph visibility is not enforced by the file-serving route | ISSUE | medium | medium |
+| [B1692](backlog/wont-do/B1692-the-sync-manifest-never-lists-content.md) | The sync manifest never lists content/<user>/figures/ | ISSUE | medium | low |
+| [B1725](backlog/wont-do/B1725-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
 | [B590](backlog/wont-do/B590-a-fulfilment-instance-has-no-route.md) | A fulfilment instance has no route to accept an uploaded print job | FEATURE | medium | high |
 | [B591](backlog/wont-do/B591-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to relay a print job to a fulfilment instance | FEATURE | medium | high |
 | [B592](backlog/wont-do/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
 | [B1017](backlog/wont-do/B1017-photobook-fonts-are-embedded-whole-not.md) | Photobook fonts are embedded whole, not subset | CHORE | low | medium |
+| [B1036](backlog/wont-do/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 | [B1048](backlog/wont-do/B1048-two-merge-commits-on-main-label.md) | Two merge commits on main label themselves B1026 and B1027, which are different tickets | CHORE | low | low |
 | [B1267](backlog/wont-do/B1267-the-menu-holds-two-entries-both.md) | The menu holds two entries both labelled Trips that go to different places | ISSUE | low | low |
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
+| [B1433](backlog/wont-do/B1433-the-main-checkout-guard-matches-a.md) | The main-checkout guard matches a path pattern, so it blocks edits in a different repository entirely | ISSUE | low | low |
+| [B1571](backlog/wont-do/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (0)
+## open (39)
 
-_Nothing here._
+| # | Finding | Type | Priority | Complexity |
+| --- | --- | --- | --- | --- |
+| [B1144](open/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
+| [B1753](open/B1753-check-caddy-reports-the-running-config.md) | check:caddy reports the running config is in step while a directive from this release is missing from it | ISSUE | high | low |
+| [B1791](open/B1791-the-whatsapp-number-is-the-owner.md) | The WhatsApp number is the owner's personal SIM, and the Twilio number meant to replace it cannot be verified by Meta | OPS | high | medium |
+| [B107](open/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
+| [B1158](open/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
+| [B1166](open/B1166-the-instance-admin-is-mailed-an.md) | the instance admin is mailed an agent code it can never redeem | ISSUE | medium | low |
+| [B1308](open/B1308-a-retry-s-blocks-accumulate-onto.md) | A retry's blocks accumulate onto the first, wrong attempt's own blocks | ISSUE | medium | medium |
+| [B1412](open/B1412-the-delete-trip-link-sits-on.md) | the delete-trip link sits on the trip page, where a reader is reading, rather than with the trip's other owner controls | CHORE | medium | low |
+| [B1431](open/B1431-a-model-turn-that-throws-says.md) | A model turn that throws says nothing, on every ordinary WhatsApp reply | ISSUE | medium | low |
+| [B1449](open/B1449-the-thread-prompt-is-21-tokens.md) | The thread prompt is 21 tokens from its ceiling, and the ceiling measures a different string than the wire | CHORE | medium | low |
+| [B1478](open/B1478-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
+| [B1483](open/B1483-a-dispatched-agent-works-in-a.md) | A dispatched agent works in a worktree but its working directory is the shared checkout, so anything reading the current diff reads the wrong one | DOCS | medium | low |
+| [B1508](open/B1508-a-scratch-journal-named-test-something.md) | A scratch journal named test-something poisons the depersonalised guard with common words | ISSUE | medium | low |
+| [B1513](open/B1513-costs-cannot-be-imported-before-a-trip-exists.md) | Statement costs cannot be imported before a trip exists, and publish will not run until they are | ISSUE | medium | medium |
+| [B1536](open/B1536-enable-the-stannp-webhook-on-the.md) | Enable the Stannp webhook on the live instance | OPS | medium | low |
+| [B1570](open/B1570-helper-gps-import-and-photobook-order.md) | Helper GPS import and photobook order still use unlocked storageRefusal check | ISSUE | medium | low |
+| [B1611](open/B1611-journalstatus-shows-the-credit-balance-to.md) | journalStatus shows the credit balance to a trip-scoped token where v1 hid it | ISSUE | medium | low |
+| [B1620](open/B1620-three-v2-surfaces-drop-information-v1.md) | Three v2 surfaces drop information v1 exposed: day-list test inheritance, status drafts' test flag, and mail send error detail | ISSUE | medium | low |
+| [B1627](open/B1627-the-v2-media-door-validates-format.md) | The v2 media door validates format for a trip photo but not one declined to the inbox | ISSUE | medium | low |
+| [B1688](open/B1688-retracting-a-photographs-decline-is-written.md) | Retracting a photographs decline is written out four times instead of once | CHORE | medium | low |
+| [B1690](open/B1690-the-deletion-confirmation-link-and-the.md) | The deletion confirmation link and the two invite links carry their token in the URL path | SECURITY | medium | medium |
+| [B1707](open/B1707-sudo-env-restic-password-writes-the.md) | sudo ENV=RESTIC_PASSWORD writes the repository password into the journal | ISSUE | medium | low |
+| [B1723](open/B1723-sixty-one-task-files-have-unparseable.md) | Sixty-one task files have unparseable frontmatter, so they are invisible everywhere that reads docs tasks | ISSUE | medium | low |
+| [B1739](open/B1739-every-inbox-file-row-hydrates-with.md) | Every inbox file row hydrates with a mismatched date, because toLocaleDateString has no locale | ISSUE | medium | low |
+| [B1746](open/B1746-create-trip-proposes-a-trip-whose.md) | create_trip proposes a trip whose title the journal already has, instead of using it | ISSUE | medium | low |
+| [B1755](open/B1755-a-video-s-own-location-is.md) | A video's own location is thrown away, though ffprobe already hands it back in the call that reads its date | ISSUE | medium | low |
+| [B1757](open/B1757-cost-reporting-folds-cached-tokens-in.md) | Cost reporting folds cached tokens in at face value, so every figure overstates | ISSUE | medium | low |
+| [B1759](open/B1759-nobody-has-priced-a-larger-model.md) | Nobody has priced a larger model on the turns the helper is worst at | CHORE | medium | low |
+| [B1795](open/B1795-a-photo-description-spend-is-not.md) | A photo description spend is not refunded when every photograph fails to resize | ISSUE | medium | low |
+| [B1796](open/B1796-inline-code-in-the-documentation-pages.md) | Inline code in the documentation pages is invisible against the dark background | ISSUE | medium | low |
+| [B1801](open/B1801-eight-components-use-a-raw-tailwind.md) | Eight components use a raw Tailwind red for errors where the brand coral belongs | ISSUE | medium | low |
+| [B1804](open/B1804-the-browser-capture-script-cannot-reach.md) | The browser capture script cannot reach a screen that needs a click, so only resting states get checked | CHORE | medium | low |
+| [B546](open/B546-the-open-meteo-free-tier-is.md) | The Open-Meteo free tier is non-commercial and this instance takes money | OPS | medium | low |
+| [B1475](open/B1475-the-map-s-aria-label-derives.md) | The map's aria-label derives its own tense and never learns the trip is over | ISSUE | low | low |
+| [B1514](open/B1514-publish-stops-a-whole-run-on-a-transient-502.md) | publish stops a whole run on a transient 502 from a media upload | ISSUE | low | low |
+| [B1689](open/B1689-notifynewpeople-can-mail-an-arbitrary-address.md) | notifyNewPeople can mail an arbitrary address on every trip write, unlimited | SECURITY | low | low |
+| [B1712](open/B1712-the-hero-s-or-divider-separates.md) | The hero's or-divider separates the WhatsApp button from nothing when the helper is off | ISSUE | low | low |
+| [B1773](open/B1773-a-stranger-sees-every-closed-journey.md) | A stranger sees every closed journey at once on a journal with thirty trips | ISSUE | low | low |
+| [B1800](open/B1800-an-outbound-sms-in-admin-does.md) | An outbound SMS in /admin does not say which of the instance's numbers sent it | ISSUE | low | low |
 
 ## waiting (0)
 

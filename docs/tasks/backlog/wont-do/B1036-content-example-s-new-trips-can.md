@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: deploy
 found: "2026-09-08T21:38:36Z"
+wontDo: "The sync script is not tracked here, the flicker only ever touches the non-real demo journal, and it heals itself within seconds."
 ---
 
 # B1036 — content/example's new trips can flicker as malformed during ship.sh's demo sync
@@ -64,3 +65,7 @@ A person looks at this, decides whether the demo journal flickering for a
 few seconds during rare deploys is worth a hand-edit to their own gitignored
 script, and closes it `wontDo` or applies the staging-then-rename change
 themselves.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. The sync script is not tracked here, the flicker only ever touches the non-real demo journal, and it heals itself within seconds.

@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: helper, sessions
 found: "2026-09-08T19:35:04Z"
+wontDo: "Already built by B1109 the day after this was filed: app/api/helper/[user]/sessions/route.ts and the history panel in HelperRoom.tsx both exist and reopen a stored session."
 ---
 
 # B1022 — Nothing can produce the URL that reopens a conversation
@@ -51,3 +52,7 @@ established where rare things live.
 
 An owner can reach a conversation from last week without typing a URL, and the
 URL they end up at is the one that reopens it.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. Already built by B1109 the day after this was filed: app/api/helper/[user]/sessions/route.ts and the history panel in HelperRoom.tsx both exist and reopen a stored session.

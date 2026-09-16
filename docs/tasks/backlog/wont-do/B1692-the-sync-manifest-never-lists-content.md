@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: sync, api
 found: "2026-09-14T05:05:40Z"
+wontDo: "Already fixed: lib/sync/manifest.ts carries an explicit figures case, landed under B1776."
 ---
 
 # B1692 — The sync manifest never lists content/<user>/figures/
@@ -59,3 +60,7 @@ live during B1512.
   way it already names `originals`.
 - A test asserts one of the two, the way `test/gps-store.test.ts` asserts
   `gps/` is never reachable.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. Already fixed: lib/sync/manifest.ts carries an explicit figures case, landed under B1776.

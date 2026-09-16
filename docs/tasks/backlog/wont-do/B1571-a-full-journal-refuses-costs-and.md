@@ -6,6 +6,7 @@ priority: low
 complexity: low
 area: import
 found: "2026-09-12T08:55:00Z"
+wontDo: "Already fixed: the v2 import route guards on `!dryRun && chosenKind !== \"contacts\"`, citing this ticket. The costs kind no longer exists at all."
 ---
 
 # B1571 — A full journal refuses costs and contacts imports though those kinds write nothing
@@ -27,3 +28,7 @@ kind branch so only writing kinds pay it.
 
 A journal over its ceiling can still run a `costs` dry-run import; a `gps`
 import is still refused.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. Already fixed: the v2 import route guards on `!dryRun && chosenKind !== "contacts"`, citing this ticket. The costs kind no longer exists at all.

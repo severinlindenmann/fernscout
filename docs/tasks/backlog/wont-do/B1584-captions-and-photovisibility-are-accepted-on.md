@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: lib/contentModel, contract
 found: "2026-09-12T12:42:00Z"
+wontDo: "Overtaken by B1700, which retired content-model.json entirely (the route answers 410) and removed the day model this ticket is about."
 ---
 
 # B1584 — captions and photoVisibility are accepted on a day and appear in no published contract as keys
@@ -49,3 +50,7 @@ separately so the gap is recorded as its own fact.
   that never appear in a file.
 - `test/content-model.test.ts` still agrees with `lib/validate/*` over the
   fixtures.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. Overtaken by B1700, which retired content-model.json entirely (the route answers 410) and removed the day model this ticket is about.

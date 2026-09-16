@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: Testing
 found: 2026-09-12T00:00:00Z
+wontDo: "The scan window was widened by B1613's merge. What remained was a future policy question about cookie-only doors, with no build item attached."
 ---
 
 ## Why
@@ -69,3 +70,7 @@ this migration has not reached yet, for a contract decision nobody has taken.
   (Done — `expected_src` is restored and the suite is green.)
 - A decision recorded, when step 5 lands, on whether `/api/web`'s refusals
   join the published vocabulary.
+
+## Closed unbuilt
+
+Decided against on 2026-09-16 during a triage of every issue, chore, docs, ops and security ticket in the backlog. The scan window was widened by B1613's merge. What remained was a future policy question about cookie-only doors, with no build item attached.
