@@ -6,9 +6,16 @@ priority: low
 complexity: medium
 area: sms, twilio
 found: "2026-09-10T15:35:25Z"
+wontDo: The owner decided against it in the triage of 2026-09-16, moving the file by hand, and confirmed the decision on 2026-09-16 when the move was queried. No reasoning was recorded beyond the decision itself.
 ---
 
 # B1317 — The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send
+
+## Closed unbuilt
+
+Decided against by the owner on 2026-09-16. The file is kept because ids are
+forever; nothing here is owed. If the reasoning matters later, it is the
+owner's to add.
 
 ## Why
 

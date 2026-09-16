@@ -73,7 +73,7 @@ Do not edit them by hand; run the script.
 | [B1703](backlog/issue/B1703-an-unknown-field-is-named-but.md) | An unknown field is named but not suggested, so a near-miss like transport_mode gets no did-you-mean | ISSUE | low | low |
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
 
-### big-feature (19)
+### big-feature (17)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -87,17 +87,15 @@ Do not edit them by hand; run the script.
 | [B1786](backlog/big-feature/B1786-a-trip-cannot-be-shared-read.md) | A trip cannot be shared read-only without creating a guest account | FEATURE | medium | high |
 | [B1794](backlog/big-feature/B1794-create-an-isolated-invite-only-dev.md) | Create an isolated invite-only dev environment with safe provider modes and promotion | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
-| [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B672](backlog/big-feature/B672-everything-is-served-off-one-vps.md) | Everything is served off one VPS disk by one Node process | FEATURE | medium | high |
 | [B678](backlog/big-feature/B678-the-helper-re-implements-the-file.md) | The helper re-implements the file-shape rules, so a journal is judged by a copy of them | FEATURE | medium | high |
 | [B788](backlog/big-feature/B788-when-real-money-arrives-the-operator.md) | When real money arrives, the operator page shows a mock's idea of a transaction | FEATURE | medium | high |
 | [B1011](backlog/big-feature/B1011-a-phone-cannot-record-its-own.md) | A phone cannot record its own position, and there is no app in the store | FEATURE | low | high |
 | [B1581](backlog/big-feature/B1581-revolut-purchase-history-requires-manual-statement.md) | Revolut purchase history requires manual statement imports | FEATURE | low | high |
-| [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (27)
+### small-feature (26)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -121,7 +119,6 @@ Do not edit them by hand; run the script.
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
 | [B1028](backlog/small-feature/B1028-the-owner-s-own-trip-form.md) | The owner's own trip form cannot edit the three fields the API just gained | FEATURE | low | low |
-| [B1317](backlog/small-feature/B1317-the-sms-number-is-domestic-only.md) | The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send | FEATURE | low | medium |
 | [B1441](backlog/small-feature/B1441-postcard-order-status-only-updates-when.md) | Postcard order status only updates when the page is opened | FEATURE | low | medium |
 | [B1497](backlog/small-feature/B1497-a-book-whose-cover-the-planner.md) | A book whose cover the planner picked cannot show it anywhere outside the preview frame | FEATURE | low | medium |
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
@@ -257,7 +254,7 @@ Do not edit them by hand; run the script.
 | [B90](backlog/superseded/B90-a-journal-can-only-reach-its.md) | A journal can only reach its readers by email or push, and neither is where most people are | FEATURE | low | high |
 | [B988](backlog/superseded/B988-the-visitor-hash-test-pins-a.md) | The visitor-hash test pins a salt that has already been drawn, so it fails about one run in three hundred | ISSUE | low | low |
 
-### wont-do (27)
+### wont-do (30)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -276,6 +273,7 @@ Do not edit them by hand; run the script.
 | [B1662](backlog/wont-do/B1662-a-v2-day-s-private-guest.md) | A v2 day's private/guest photograph visibility is not enforced by the file-serving route | ISSUE | medium | medium |
 | [B1692](backlog/wont-do/B1692-the-sync-manifest-never-lists-content.md) | The sync manifest never lists content/<user>/figures/ | ISSUE | medium | low |
 | [B1725](backlog/wont-do/B1725-every-page-downloads-two-font-files.md) | Every page downloads two font files it never uses, and warns about it | ISSUE | medium | low |
+| [B49](backlog/wont-do/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B590](backlog/wont-do/B590-a-fulfilment-instance-has-no-route.md) | A fulfilment instance has no route to accept an uploaded print job | FEATURE | medium | high |
 | [B591](backlog/wont-do/B591-a-self-hosted-instance-has-no.md) | A self-hosted instance has no way to relay a print job to a fulfilment instance | FEATURE | medium | high |
 | [B592](backlog/wont-do/B592-a-relayed-job-s-status-never.md) | A relayed job's status never flows back to the instance that sent it | FEATURE | medium | medium |
@@ -283,9 +281,11 @@ Do not edit them by hand; run the script.
 | [B1036](backlog/wont-do/B1036-content-example-s-new-trips-can.md) | content/example's new trips can flicker as malformed during ship.sh's demo sync | OPS | low | low |
 | [B1048](backlog/wont-do/B1048-two-merge-commits-on-main-label.md) | Two merge commits on main label themselves B1026 and B1027, which are different tickets | CHORE | low | low |
 | [B1267](backlog/wont-do/B1267-the-menu-holds-two-entries-both.md) | The menu holds two entries both labelled Trips that go to different places | ISSUE | low | low |
+| [B1317](backlog/wont-do/B1317-the-sms-number-is-domestic-only.md) | The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send | FEATURE | low | medium |
 | [B1364](backlog/wont-do/B1364-first-book-price-reads-money-then.md) | First-book price reads money-then-credits, unlike every other price line | CHORE | low | low |
 | [B1433](backlog/wont-do/B1433-the-main-checkout-guard-matches-a.md) | The main-checkout guard matches a path pattern, so it blocks edits in a different repository entirely | ISSUE | low | low |
 | [B1571](backlog/wont-do/B1571-a-full-journal-refuses-costs-and.md) | A full journal refuses costs and contacts imports though those kinds write nothing | ISSUE | low | low |
+| [B290](backlog/wont-do/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 

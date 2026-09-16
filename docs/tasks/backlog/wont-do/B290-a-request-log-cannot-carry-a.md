@@ -6,9 +6,16 @@ priority: low
 complexity: high
 area: operations, logging
 found: "2026-09-04T13:12:24Z"
+wontDo: The owner decided against it in the triage of 2026-09-16, moving the file by hand, and confirmed the decision on 2026-09-16 when the move was queried. No reasoning was recorded beyond the decision itself.
 ---
 
 # B290 — A request log cannot carry a status or a duration without replacing next start
+
+## Closed unbuilt
+
+Decided against by the owner on 2026-09-16. The file is kept because ids are
+forever; nothing here is owed. If the reasoning matters later, it is the
+owner's to add.
 
 ## Why
 

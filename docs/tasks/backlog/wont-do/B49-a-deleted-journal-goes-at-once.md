@@ -6,9 +6,16 @@ priority: medium
 complexity: high
 area: journals, jobs, deploy
 found: "2026-09-01"
+wontDo: The owner decided against it in the triage of 2026-09-16, moving the file by hand, and confirmed the decision on 2026-09-16 when the move was queried. No reasoning was recorded beyond the decision itself.
 ---
 
 # B49 — A deleted journal goes at once, with no grace period to change your mind
+
+## Closed unbuilt
+
+Decided against by the owner on 2026-09-16. The file is kept because ids are
+forever; nothing here is owed. If the reasoning matters later, it is the
+owner's to add.
 
 ## Why
 
