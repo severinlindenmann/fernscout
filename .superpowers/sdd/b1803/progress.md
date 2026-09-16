@@ -211,3 +211,29 @@ Two process facts worth keeping: an agent deleted its own browser evidence
 during cleanup (unverifiable claim, now prevented by copying captures into the
 workspace before cleanup), and a completed agent's transcript can vanish, so a
 fix round may need a fresh agent with the findings restated in full.
+
+Phase 3C review: spec FAIL. The German-capitalisation false positive in the
+companion suggester is real and was predicted before the review ran.
+
+Ruling (finding 1): the suggestion is OFFERED ONLY WHERE THE SIGNAL CARRIES
+INFORMATION. German capitalises every noun, so mid-sentence capitalisation
+separates nothing there — "Strand" is indistinguishable from "Nora" — and the
+whole algorithm rests on that one signal. So: no suggestion at all for a
+German-language answer. English and Hungarian capitalise proper nouns only, so
+the signal means something in both and the suggestion stands. Showing nothing
+is the designed-for state; the screen already works without it.
+Not a heuristic patched with more heuristics: a language where the evidence
+does not exist gets silence, which is the same rule the uncertain-word
+highlight already follows when Deepgram sends no confidence.
+Cost if wrong: a German-speaking person never sees a suggestion they might
+have liked. Cheap, and the reverse error puts an invented companion in front
+of them.
+
+Ruling (finding 3): the English brand/common-noun false positive stays, as a
+documented ceiling. The copy already ASKS ("is that them?") rather than
+asserting, quoting the person's own word back at them; a person who reads
+"You mentioned 'Strand'..." ignores it. That is a different act from writing
+a name into their journal. But the ceiling must be written down where the
+next reader finds it, and the German case must be written down beside it —
+the report discussed false positives and never mentioned the language axis at
+all.
