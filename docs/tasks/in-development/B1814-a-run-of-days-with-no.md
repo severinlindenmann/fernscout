@@ -78,3 +78,41 @@ open remainder.
 - The existing single-day case still resolves to "Elsewhere".
 - Japan / nothing / Japan still yields three chapters.
 - Seen in a real render of a trip that has such a gap, not only in a fixture.
+
+## Status — valid, fixed
+
+Confirmed valid on re-read: `chaptersOf` (`lib/photobook/plan.ts:1029`) really
+did compare `last.country` (resolved label) against `day.country` (raw field),
+so a country-less run never merged.
+
+Fix: resolve `day.country || elsewhere` once per day into `label`, and compare
+`last.country === label` — like against like, same couple of lines beside the
+existing comment. `lib/photobook/plan.ts:1029-1040`.
+
+Test added at `test/photobook.test.ts:552` (Japan / three empty days / Japan →
+`["Japan", "Elsewhere", "Japan"]`, middle chapter holds all three days).
+Confirmed it fails against unmodified `plan.ts` (three separate "Elsewhere"
+chapters instead of one), then passes after the fix. Existing single-day case
+and the revisited-country case both still pass.
+
+Real-render check: walked every entry file under every trip in
+`content/example/trips/*/entries/*.json` and printed `country`. Every day in
+every real trip in this repository already carries a resolved country
+(Switzerland, Italy, Thailand, Laos, Vietnam, Japan, Portugal, United States);
+none is empty, so there is no real trip in this content tree with the gap this
+ticket describes. No render evidence was possible on real content — relying on
+the unit test only, stated here explicitly rather than implying a render that
+did not happen.
+
+`npm run verify` (full run, `VERIFY_WILL_WAIT=1`, timeout 900000): build,
+TypeScript and ESLint all clean (only pre-existing `no-unused-vars` warnings).
+Vitest stops on one failing test, `test/task-ids.test.ts` — three tasks
+(B49, B290, B1317) are filed under `backlog/wont-do/` but their frontmatter
+`type`/`complexity` categorise them elsewhere. Confirmed pre-existing and
+unrelated to this branch: stashed both `plan.ts` and `photobook.test.ts`
+changes and reran that one test file, same failure, identical. This branch's
+base commit on `main` (894eefdd) has the same failure. Filed separately as
+B1816 rather than absorbed into this ticket, since it is task-file
+categorisation, not photobook chapters, and any `wont-do` re-filing decision
+belongs to a person. All 8019 non-task-id tests pass, including the full
+`photobook.test.ts` file (108/108).
