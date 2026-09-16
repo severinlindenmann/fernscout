@@ -27,6 +27,20 @@ export const SPEECH_LANGUAGES = ["en", "de", "de-CH", "hu"] as const;
 export type SpeechLanguage = (typeof SPEECH_LANGUAGES)[number];
 
 /**
+ * Each language's own name, in itself — never translated, the same
+ * convention `LOCALE_LABEL` in lib/i18n.ts uses for a list of languages.
+ * Shared by `RecordButton`'s per-recording select and `TripModeStep`'s
+ * once-before-the-first-recording question (B1803 Task 4.1) so the two
+ * cannot drift into naming the same four languages differently.
+ */
+export const SPEECH_LANGUAGE_LABEL: Record<SpeechLanguage, string> = {
+  en: "English",
+  de: "Deutsch",
+  "de-CH": "Schwiizerdütsch",
+  hu: "Magyar",
+};
+
+/**
  * One credit per five **started** minutes, and the number lives here only —
  * the same shape `PHOTOS_PER_CREDIT` has in `./credits.ts`, so the button and
  * the route cannot disagree about the price.

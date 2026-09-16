@@ -3,6 +3,7 @@ import { refund, spend } from "../credits";
 import { creditsForSeconds, MAX_SPEECH_SECONDS } from "./speech";
 import type { SpeechLanguage } from "./speech";
 import { transcribeAudio } from "./transcribe";
+import type { UncertainWord } from "./transcribe";
 
 /**
  * The whole money path around one transcription — spend, call, refund on
@@ -29,7 +30,7 @@ import { transcribeAudio } from "./transcribe";
 
 /** What this refused, or what it produced. */
 export type TranscribeOutcome =
-  | { ok: true; text: string; seconds: number; spent: number }
+  | { ok: true; text: string; seconds: number; spent: number; uncertainWord?: UncertainWord }
   | { ok: false; error: "no_credits" | "transcription_failed" | "recording_too_long"; cost: number };
 
 export async function spendAndTranscribe(
@@ -38,9 +39,18 @@ export async function spendAndTranscribe(
   mediaType: string,
   language: SpeechLanguage,
   claimedSeconds: number,
+  /** The staging run this recording was made inside, when there is one —
+   *  B1803 final review, finding 4. It only changes the ledger ref: an
+   *  import's own "Credits spent" row reads `spentOnRun`, which matches
+   *  `extract:<runId>` and `extract:<runId>:…`, so without the run on the
+   *  ref every voice answer in an import was money charged that the import
+   *  could not account for, and the row hid itself showing nothing. The
+   *  shape is checked by the route that supplies it. */
+  runId?: string,
 ): Promise<TranscribeOutcome> {
   const credits = creditsForSeconds(claimedSeconds);
-  const ledgerRef = `${username}/speech/${Math.ceil(claimedSeconds)}s`;
+  const seconds = Math.ceil(claimedSeconds);
+  const ledgerRef = runId ? `extract:${runId}:speech:${seconds}s` : `${username}/speech/${seconds}s`;
   if (!(await spend(username, credits, "transcription", ledgerRef))) {
     return { ok: false, error: "no_credits", cost: credits };
   }
@@ -83,5 +93,11 @@ export async function spendAndTranscribe(
     spent = measured;
   }
 
-  return { ok: true, text: transcript.text, seconds: transcript.seconds, spent };
+  return {
+    ok: true,
+    text: transcript.text,
+    seconds: transcript.seconds,
+    spent,
+    uncertainWord: transcript.uncertainWord,
+  };
 }

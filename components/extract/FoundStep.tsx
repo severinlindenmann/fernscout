@@ -2,10 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import StepIndicator from "@/components/extract/StepIndicator";
+import { countDays } from "@/lib/extract/dayCount";
 import type { DayGroup } from "@/lib/extract/group";
 import type { RunManifest } from "@/lib/staging/manifest";
 
 type RunResponse = { manifest: RunManifest; groups: DayGroup[] };
+
+/** The wizard's own fixed shape (S2a–S4 of the design) — this is Step 04 of 5. */
+const TOTAL_STEPS = 5;
 
 /**
  * Step 04 of the design — "what the photographs already knew".
@@ -66,7 +71,7 @@ export default function FoundStep({
 
   const photos = data.manifest.photos.filter((p) => !p.dropped);
   const total = photos.length;
-  const days = data.groups.filter((g) => !g.undated).length;
+  const days = countDays(data.groups);
   const withDate = photos.filter((p) => p.date).length;
   const withPlace = photos.filter((p) => p.lat !== undefined && p.lng !== undefined).length;
   const withTime = photos.filter((p) => p.takenAt).length;
@@ -74,6 +79,11 @@ export default function FoundStep({
 
   return (
     <div className="mt-4">
+      <StepIndicator
+        total={TOTAL_STEPS}
+        current={4}
+        label={t("extract.step.ofTotal", { current: "4", total: String(TOTAL_STEPS) })}
+      />
       <h2 className="font-display text-xl font-semibold leading-tight text-ink-strong">
         {tn("extract.board.photoCount", total, { count: String(total) })},{" "}
         {tn("extract.found.dayCount", days, { count: String(days) })}

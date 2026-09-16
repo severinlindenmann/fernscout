@@ -193,8 +193,13 @@ describe("the helper routes", () => {
   // sibling of `inbox/[id]/thumbnail` against the staging store instead of
   // the undated inbox. Same cookie, same owner check as the fifty-five
   // before it.
-  test("there are fifty-six of them, and each is guarded", () => {
-    expect(sources).toHaveLength(56);
+  // Fifty-seven: `extract/party` (B1803, Task 3.6) — "how many of you went?"
+  // and their names, saved onto the run's own manifest rather than
+  // `trip.json`'s `people:` (that block needs an email each and grants
+  // write access; this needs neither). Same cookie, same owner check as the
+  // fifty-six before it.
+  test("there are fifty-seven of them, and each is guarded", () => {
+    expect(sources).toHaveLength(57);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

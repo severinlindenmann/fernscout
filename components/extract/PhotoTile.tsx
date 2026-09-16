@@ -40,7 +40,6 @@ export type PhotoBadge =
   | { tone: "done" }
   | { tone: "failed" }
   | { tone: "queued" }
-  | { tone: "icloud" }
   | { tone: "progress"; percent: number };
 
 const SIZE_CLASS: Record<PhotoTileSize, string> = {
@@ -52,19 +51,23 @@ const SIZE_CLASS: Record<PhotoTileSize, string> = {
 
 // The two glyphs the design draws directly rather than spelling out — a
 // checkmark and an exclamation mark read the same in every language, so
-// unlike "iCloud" and "queued" below they carry no translation key of their
-// own. The accessible name still does, from `BADGE_SR_KEY`.
+// unlike "queued" below they carry no translation key of their own. The
+// accessible name still does, from `BADGE_SR_KEY`.
 const BADGE_GLYPH: Partial<Record<PhotoBadge["tone"], string>> = {
   done: "✓",
   failed: "!",
 };
 
-// "iCloud" and "queued" are printed on the tile itself, so their translation
-// doubles as both the visible text and the accessible name — no separate sr
-// key needed the way the glyphs below need one.
+// "queued" is printed on the tile itself, so its translation doubles as both
+// the visible text and the accessible name — no separate sr key needed the
+// way the glyphs below need one.
+//
+// There is no "iCloud" badge, deliberately: whether a file is still in
+// iCloud is not knowable from the File API (see the ticket's own ruling on
+// the omitted badges), so the tone was removed with its string rather than
+// left as an affordance nothing can honestly construct.
 const BADGE_TEXT_KEY: Partial<Record<PhotoBadge["tone"], TranslationKey>> = {
   queued: "extract.upload.state.queued",
-  icloud: "extract.photo.badge.icloud",
 };
 
 // Reused rather than invented: the same words `UploadStep`'s own list already
@@ -84,7 +87,6 @@ const BADGE_CLASS: Record<PhotoBadge["tone"], string> = {
   // scrim `Lightbox`'s own floating controls sit on, chosen because it reads
   // over any photograph rather than only over the app's own surfaces.
   queued: "bg-overlay-strong/70 text-overlay-ink",
-  icloud: "bg-overlay-strong/70 text-overlay-ink",
   progress: "bg-overlay-strong/70 text-overlay-ink",
 };
 

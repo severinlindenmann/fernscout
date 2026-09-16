@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { badgeForTileState, chunk, failedIndices } from "@/components/extract/UploadStep";
+import { badgeForTileState, chunk, etaMinutes, failedIndices } from "@/components/extract/UploadStep";
 
 /**
  * The two pure reads `UploadStep` builds its per-file guarantee on — B1751,
@@ -79,5 +79,34 @@ describe("badgeForTileState", () => {
 
   test("sending gets no badge — there is no real per-file progress to show", () => {
     expect(badgeForTileState("sending")).toBeUndefined();
+  });
+});
+
+/**
+ * `~N min left` — B1803 Task 3.1. Computed only from bytes actually
+ * confirmed uploaded and the real elapsed time, never a guess: no bytes
+ * landed yet, or nothing left to send, and there is nothing true to report.
+ */
+describe("etaMinutes", () => {
+  test("undefined until at least one byte has actually landed", () => {
+    expect(etaMinutes(0, 1000, 5000)).toBeUndefined();
+  });
+
+  test("undefined with no elapsed time to measure a rate from", () => {
+    expect(etaMinutes(500, 1000, 0)).toBeUndefined();
+  });
+
+  test("undefined once everything measured has already landed", () => {
+    expect(etaMinutes(1000, 1000, 5000)).toBeUndefined();
+  });
+
+  test("a real rate projects the remaining bytes forward, rounded to whole minutes", () => {
+    // 500 bytes in 60,000ms (1 min) => rate 500B/min; 1000 bytes left => 2 min.
+    expect(etaMinutes(500, 1500, 60_000)).toBe(2);
+  });
+
+  test("never rounds down to zero minutes — always at least 1", () => {
+    // Nearly finished: a tiny sliver left at a fast rate would round to 0.
+    expect(etaMinutes(999_000, 1_000_000, 60_000)).toBe(1);
   });
 });

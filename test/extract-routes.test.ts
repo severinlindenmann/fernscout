@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { geodataAvailable } from "@/lib/ingest/geo";
 
 /**
  * The start and upload routes — B1751 Task 1.2.
@@ -82,6 +83,19 @@ function startRunFor(user: string): Promise<Response> {
   );
 }
 
+function startRunWith(body: Record<string, unknown>): Promise<Response> {
+  return import("@/app/api/helper/[user]/extract/start/route").then(({ POST }) =>
+    POST(
+      new Request("http://x/api/helper/alex/extract/start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    ),
+  );
+}
+
 function upload(runId: string, files: File[]): Promise<Response> {
   const form = new FormData();
   form.set("run", runId);
@@ -112,6 +126,27 @@ describe("the extract routes with the capability on", () => {
     const manifest = readManifest("alex", body.runId);
     expect(manifest?.state).toBe("uploading");
     expect(manifest?.photos).toEqual([]);
+  });
+
+  test("B1803 Task 4.2 — a voice run's chosen language lands on the manifest", async () => {
+    const res = await startRunWith({ mode: "voice", language: "de-CH" });
+    const { runId } = (await res.json()) as { runId: string };
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.language).toBe("de-CH");
+  });
+
+  test("B1803 Task 4.2 — a typing run never carries a language, even if one was sent", async () => {
+    const res = await startRunWith({ mode: "type", language: "hu" });
+    const { runId } = (await res.json()) as { runId: string };
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.language).toBeUndefined();
+  });
+
+  test("B1803 Task 4.2 — an unsupported language string is dropped, not stored", async () => {
+    const res = await startRunWith({ mode: "voice", language: "fr" });
+    const { runId } = (await res.json()) as { runId: string };
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.language).toBeUndefined();
   });
 
   test("upload takes a real photograph into staging and analyses it", async () => {
@@ -306,6 +341,32 @@ describe("the run and day routes with the capability on", () => {
     expect(body.questions["2019-07-02"].length).toBeGreaterThan(0);
   });
 
+  describe.runIf(geodataAvailable())("GET carries a real place name for the day board", () => {
+    test("B1803 Task 3.2 — a group with a coordinate gets the same reverse-geocoded name its own question already used", async () => {
+      const { runId } = (await (await startRun()).json()) as { runId: string };
+      const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+      const manifest = readManifest("alex", runId);
+      if (!manifest) throw new Error("run vanished");
+      manifest.photos.push({
+        id: "a",
+        filename: "a.jpg",
+        bytes: 1,
+        kind: "image",
+        takenAt: "2019-07-02T10:00:00",
+        lat: 15.8801,
+        lng: 108.338,
+      });
+      writeManifest("alex", manifest);
+
+      const { GET } = await import("@/app/api/helper/[user]/extract/run/route");
+      const res = await GET(new Request(`http://x?run=${runId}`), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+      const body = (await res.json()) as { groups: { placeName?: string }[] };
+      expect(body.groups[0].placeName).toBeTruthy();
+    });
+  });
+
   test("PATCH applies only the fields present in the body", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
@@ -442,6 +503,67 @@ describe("the run and day routes with the capability on", () => {
     expect(body.day.words).toContain("First answer.");
     expect(body.day.words).toContain("Second answer.");
     expect(body.day.answered).toEqual(["first", "second"]);
+  });
+
+  // B1803 Task 3.5 — the follow-up screen's "Skip". "None of them is
+  // required" has to hold for the actual data, not just the button's
+  // wording: skipping must still close the question out (so it is never
+  // asked again) but must never invent an answer nobody gave.
+  test("POST .../day with skip:true marks the question answered and appends nothing", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    const res = await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({
+          run: runId,
+          date: "2019-07-02",
+          questionId: "follow-up:2019-07-02",
+          answer: "",
+          skip: true,
+        }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { day: { words?: string; answered: string[] } };
+    expect(body.day.words).toBeUndefined();
+    expect(body.day.answered).toEqual(["follow-up:2019-07-02"]);
+  });
+
+  // B1803 final review, finding 1 — the route checked only that `date` was
+  // a string, so a `""` (the undated group's own date, which must stay
+  // storable) and a "banana" were equally acceptable and both landed on the
+  // manifest as a `DayRow`. The shape is what has to be checked: the
+  // undated group's empty date, or a real yyyy-mm-dd, and nothing else.
+  test("POST .../day refuses a date that is neither empty nor yyyy-mm-dd", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    const res = await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({ run: runId, date: "banana", questionId: "q", answer: "Hi." }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(400);
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.days).toHaveLength(0);
+  });
+
+  test("POST .../day still stores the undated group's own answers, whose date is ''", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    const res = await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({ run: runId, date: "", questionId: "when:undated", answer: "Some time in July." }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(200);
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.days[0]).toMatchObject({ date: "", answered: ["when:undated"] });
   });
 
   test("R2 — POST .../day on a warned run extends it", async () => {

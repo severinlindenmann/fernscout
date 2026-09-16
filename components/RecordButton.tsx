@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import BusyButton from "@/components/BusyButton";
-import { Mic } from "lucide-react";
+import { Mic, Pause } from "lucide-react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import {
   MAX_SPEECH_SECONDS,
   MINUTES_PER_CREDIT,
+  SPEECH_LANGUAGE_LABEL,
   SPEECH_LANGUAGES,
 } from "@/lib/helper/speech";
 
@@ -52,16 +53,6 @@ import {
  * the caller's own container rather than floating over it.
  */
 
-/** Language names in their own language, the same convention `LOCALE_LABEL`
- *  in lib/i18n.ts uses — a list of languages is the one list nobody wants
- *  translated. */
-const LANGUAGE_LABEL: Record<string, string> = {
-  en: "English",
-  de: "Deutsch",
-  "de-CH": "Schwiizerdütsch",
-  hu: "Magyar",
-};
-
 function remembered(username: string): string {
   try {
     return window.localStorage.getItem(`fs.speech.${username}`) ?? "";
@@ -76,11 +67,13 @@ export default function RecordButton({
   provider,
   disabled,
   compact,
+  hero,
   onText,
   label,
   icon,
   compactClassName,
   language: fixedLanguage,
+  run,
   hold: holdToTalk = true,
   maxSeconds = MAX_SPEECH_SECONDS,
   onSettled,
@@ -93,14 +86,39 @@ export default function RecordButton({
    *  server, since the client never has the config to answer this itself.
    *  `"dry-run"` on an instance with no transcriber configured — B744. */
   provider: string;
+  /** The staging import run this recording is being made inside, when there
+   *  is one — B1803 final review, finding 4. Sent to the transcribe route,
+   *  which puts it on the ledger ref so that import's own "Credits spent"
+   *  row can name what the voice answers really cost. Absent everywhere
+   *  else this button is mounted, which leaves the ref exactly as it was. */
+  run?: string;
   disabled?: boolean;
   /** An icon inside somebody else's box rather than a button of its own —
    *  B767. The host must be `relative`, since the icon pins itself to the
    *  host's top right corner. */
   compact?: boolean;
-  /** What was said, once. The host decides where it goes; nothing here writes
-   *  anything anywhere. */
-  onText: (said: string) => void;
+  /**
+   * The question screen's own voice-first control (S7a) — B1803 Task 3.3.
+   * A large round button and an animated waveform rather than either of
+   * `compact`'s icon or the plain pill below; the same recording mechanics
+   * underneath (consent, hold/toggle, the meter, unmount safety) as
+   * everywhere else this component is mounted. Mutually exclusive with
+   * `compact` — a caller sets one or the other, never both.
+   */
+  hero?: boolean;
+  /**
+   * What was said, once. The host decides where it goes; nothing here writes
+   * anything anywhere.
+   *
+   * `uncertain` is the check-the-wording screen's own flag (B1803 Task
+   * 3.4) — the one word the transcribe route measured low confidence on, in
+   * the same punctuated form it appears in `said`, plus which occurrence of
+   * it that is (fix round 2, for a word `said` says more than once) — or
+   * absent when nothing was uncertain enough to name. `heldSeconds` is how
+   * long the recording actually ran, for "Paused · 1:12 recorded"; both are
+   * extra arguments a caller happy with just the text can ignore entirely.
+   */
+  onText: (said: string, uncertain?: { word: string; occurrence: number }, heldSeconds?: number) => void;
   /**
    * What the resting button says, where "hold to talk" is not the whole of it
    * — B981, and so far only the search page, where speaking goes straight to
@@ -335,6 +353,7 @@ export default function RecordButton({
               seconds: held,
               language,
               locale,
+              ...(run ? { run } : {}),
               // One key per recording, so a tap that times out and is retried is
               // answered rather than charged twice.
               idempotency_key: `${started.current}/${blob.size}`,
@@ -348,7 +367,13 @@ export default function RecordButton({
         if (!response.ok)
           throw new Error(String(body.error ?? response.status));
         const said = String(body.text ?? "").trim();
-        if (said !== "") onText(said);
+        const uncertain =
+          typeof body.uncertainWord === "string" &&
+          body.uncertainWord !== "" &&
+          typeof body.uncertainWordOccurrence === "number"
+            ? { word: body.uncertainWord, occurrence: body.uncertainWordOccurrence }
+            : undefined;
+        if (said !== "") onText(said, uncertain, held);
       } catch (thrown) {
         setError(t("agent.failed", { error: (thrown as Error).message }));
       } finally {
@@ -361,7 +386,7 @@ export default function RecordButton({
         onSettled?.();
       }
     },
-    [language, locale, onSettled, onText, t, username],
+    [language, locale, onSettled, onText, run, t, username],
   );
 
   const start = useCallback(async () => {
@@ -671,7 +696,7 @@ export default function RecordButton({
         <option value="">{t("agent.speechLanguageDefault")}</option>
         {SPEECH_LANGUAGES.map((code) => (
           <option key={code} value={code}>
-            {LANGUAGE_LABEL[code] ?? code}
+            {SPEECH_LANGUAGE_LABEL[code] ?? code}
           </option>
         ))}
       </select>
@@ -697,6 +722,84 @@ export default function RecordButton({
       {announced}
     </p>
   );
+
+  // The question screen's own voice-first control (S7a) — B1803 Task 3.3.
+  // Consent still comes first, exactly as it does everywhere else this
+  // component is mounted: `consenting` above already covers that and this
+  // branch is never reached while it is true.
+  if (hero) {
+    const waveBars = 12;
+    return (
+      <div className="flex flex-col items-center gap-2">
+        {/* Decorative — the words below (`heard`/announced) are what a
+           screen reader actually gets; a wandering row of bars read aloud
+           would be noise. Static, motionless bars when not recording, and
+           `fs-waveform` (removed under `prefers-reduced-motion`) while it
+           runs — see app/globals.css. */}
+        <div aria-hidden className="flex h-8 items-end gap-1">
+          {Array.from({ length: waveBars }, (_, i) => {
+            // ponytail: a fixed zig-zag rather than each bar reading its own
+            // frequency band off the analyser — decorative motion, not a
+            // real spectrum; wire per-bar bins off `analyserNode` if this
+            // ever needs to look less uniform.
+            const restHeight = 4 + (i % 3) * 3;
+            return (
+              <span
+                key={i}
+                className={`w-1 rounded-full bg-coral-400 ${recording ? "fs-waveform" : ""}`}
+                style={{
+                  height: recording ? `${restHeight + level * 18}px` : `${restHeight}px`,
+                  animationDelay: `${i * 90}ms`,
+                }}
+              />
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          disabled={disabled || busy}
+          aria-label={howName}
+          {...hold}
+          style={
+            recording
+              ? { transform: `scale(${1 + level * 0.12})`, transition: "transform 80ms linear" }
+              : undefined
+          }
+          className="flex h-20 w-20 items-center justify-center rounded-full bg-coral-600 text-on-deep shadow-md transition-transform focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none disabled:opacity-50"
+        >
+          {recording ? <Pause className="h-8 w-8" aria-hidden /> : <Mic className="h-8 w-8" aria-hidden />}
+        </button>
+        <p role="status" className="text-center text-sm text-cream-50">
+          {busy
+            ? t("agent.speechWorking")
+            : recording
+              ? t("extract.ask.listening")
+              : (label ?? t("extract.ask.tapToSpeak"))}
+        </p>
+        {/* ponytail: the language picker (`chooseLanguage`) is skipped here
+           rather than restyled for a dark card — it is already reachable
+           from the same recording once "Type this one instead" is not
+           needed, and every other state this branch draws (the journal's
+           own default) is correct without it. A dark-styled copy of
+           `chooseLanguage` if a mixed-language household asks for it here
+           specifically. */}
+        {spoken}
+        {/* Not the shared `failed` block below — that pairs `coral-600` with
+           whatever the *site* theme's own light/dark surface is, and this
+           card's background is a fixed dark navy regardless of site theme
+           (see `.fs-ask-dark`, app/globals.css). `coral-600`/`coral-100`
+           flip together (test/contrast.test.ts's own "badge flip" case), so
+           a small self-contained chip stays legible here in both themes
+           where bare `coral-600` text against a fixed dark ground would
+           not. */}
+        {error && (
+          <p role="alert" className="inline-block rounded-md bg-coral-100 px-2 py-1 text-sm text-coral-600">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
 
   // The icon in somebody else's box — no words on it, so no price on it
   // either, and nothing to read before the ask box's own line.
@@ -780,7 +883,7 @@ export default function RecordButton({
               <option value="">{t("agent.speechLanguageDefault")}</option>
               {SPEECH_LANGUAGES.map((code) => (
                 <option key={code} value={code}>
-                  {LANGUAGE_LABEL[code] ?? code}
+                  {SPEECH_LANGUAGE_LABEL[code] ?? code}
                 </option>
               ))}
             </select>

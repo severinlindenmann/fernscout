@@ -1,6 +1,8 @@
 "use client";
 
+import { Camera } from "lucide-react";
 import { useRef, useState } from "react";
+import StepIndicator from "@/components/extract/StepIndicator";
 import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
 import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
 import type { PhotoBadge } from "@/components/extract/PhotoTile";
@@ -19,6 +21,10 @@ import {
  *  pulls in server-only modules a client bundle cannot carry. Kept here as a
  *  literal, checked against the route by `test/extract-upload-step.test.ts`. */
 const MAX_FILES_PER_RUN = 500;
+
+/** The wizard's own fixed shape (S2a–S4 of the design) — this is Step 03 of 5,
+ *  whether it is showing the picker or the grid mid-upload. */
+const TOTAL_STEPS = 5;
 
 export type TileState = "queued" | "sending" | "done" | "failed";
 type Tile = { file: File; state: TileState };
@@ -63,6 +69,25 @@ export function badgeForTileState(state: TileState): PhotoBadge | undefined {
  *  with no progress of its own; on mobile data a big one is a long silence,
  *  and a dropped connection costs the batch rather than the whole run. */
 const BATCH = 10;
+
+/**
+ * "~N min left" from real measured throughput — B1803 Task 3.1.
+ *
+ * The design's middle chip is `6 coming from iCloud`, which this build
+ * cannot honestly show (the File API gives no iCloud-residency signal — see
+ * the module docblock). What replaces it has to earn the same trust: a
+ * minutes-left figure computed from bytes actually confirmed uploaded in
+ * *this* attempt and the real elapsed time since it started, never a guess
+ * at a rate. No bytes landed yet, or nothing left to send, and there is
+ * nothing true to say — `undefined`, not a number made up to fill the chip.
+ */
+export function etaMinutes(doneBytes: number, totalBytes: number, elapsedMs: number): number | undefined {
+  if (doneBytes <= 0 || elapsedMs <= 0) return undefined;
+  const remainingBytes = Math.max(0, totalBytes - doneBytes);
+  if (remainingBytes <= 0) return undefined;
+  const rate = doneBytes / elapsedMs; // bytes per ms, measured, not assumed
+  return Math.max(1, Math.round(remainingBytes / rate / 60000));
+}
 
 /** Indices, `size` at a time — pulled out of `send` below so the arithmetic
  *  is checked on its own rather than only by driving the whole component. */
@@ -124,12 +149,18 @@ export default function UploadStep({
    *  than the number from whenever they last opened it. */
   onStorage?: (usedBytes: number) => void;
 }) {
-  const { t, locale } = useI18n();
+  const { t, tn, locale } = useI18n();
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [busy, setBusy] = useState(false);
+  // Once `send` has run at least once — the point the design's "Uploading"
+  // screen (S3b) takes over from the plain picker. Never reset back to
+  // `false`: a finished attempt still shows the bar and chips at 100% while
+  // the failure panel (if any) is on screen, same as the design.
+  const [started, setStarted] = useState(false);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [rejectionReasons, setRejectionReasons] = useState<string[]>([]);
   const [stagedBytes, setStagedBytes] = useState<number | undefined>(initialStagedBytes);
+  const [eta, setEta] = useState<number | undefined>(undefined);
   const lock = useRef<WakeLockSentinel | null>(null);
 
   async function acquireWakeLock() {
@@ -164,12 +195,25 @@ export default function UploadStep({
 
   async function send(indices: number[]) {
     setBusy(true);
+    setStarted(true);
     setRejectionReasons([]);
+    setEta(undefined);
     await acquireWakeLock();
     let uploaded = 0;
     // This attempt's own outstanding count — not read back from `tiles`
     // state, which may not have flushed by the time `finally` runs.
     let failed = 0;
+    // Real bytes confirmed uploaded in this attempt — what `etaMinutes`
+    // above turns into a minutes-left figure. Never counts a failed slice:
+    // a dropped batch transferred no bytes this attempt kept.
+    let uploadedBytes = 0;
+    // Shrinks when a batch fails outright (below) — a failed batch is not
+    // still in flight, it needs a manual retry, so its bytes must not go on
+    // inflating what "remaining" means for the eta B1803 fix round 1: this
+    // stayed the whole attempt's total forever, skewing every later
+    // estimate high by exactly the size of the batch that never sent.
+    let totalBytes = indices.reduce((sum, n) => sum + tiles[n].file.size, 0);
+    const startedAt = Date.now();
     const reasons = new Set<string>();
     try {
       for (const slice of chunk(indices, BATCH)) {
@@ -206,6 +250,10 @@ export default function UploadStep({
           );
           uploaded += slice.length - rejectedInSlice.length;
           failed += rejectedInSlice.length;
+          uploadedBytes += slice
+            .filter((n) => !rejectedInSlice.includes(n))
+            .reduce((sum, n) => sum + tiles[n].file.size, 0);
+          setEta(etaMinutes(uploadedBytes, totalBytes, Date.now() - startedAt));
           if (data.stagedBytes !== undefined) {
             setStagedBytes(data.stagedBytes);
             onStorage?.(data.stagedBytes);
@@ -213,14 +261,20 @@ export default function UploadStep({
         } catch {
           // One batch failing leaves every other batch's success intact and
           // the failed tiles individually retryable — a single bar for a
-          // few hundred files would hide exactly this.
+          // few hundred files would hide exactly this. Its bytes leave the
+          // eta's own denominator too, for the same reason: they are not
+          // still being sent, so they must not go on looking like "left to
+          // send" for the rest of the attempt.
           failed += slice.length;
+          totalBytes -= slice.reduce((sum, n) => sum + tiles[n].file.size, 0);
+          setEta(etaMinutes(uploadedBytes, totalBytes, Date.now() - startedAt));
           setTiles((t) => t.map((x, n) => (slice.includes(n) ? { ...x, state: "failed" } : x)));
         }
       }
     } finally {
       await releaseWakeLock();
       setBusy(false);
+      setEta(undefined);
       setRejectionReasons([...reasons]);
       onDone(uploaded, failed);
     }
@@ -231,6 +285,11 @@ export default function UploadStep({
 
   return (
     <div>
+      <StepIndicator
+        total={TOTAL_STEPS}
+        current={3}
+        label={t("extract.step.ofTotal", { current: "3", total: String(TOTAL_STEPS) })}
+      />
       {/* The limits, stated above the picker — B1797, the design's Step 03.
        *  Learning a limit by being rejected after a four-minute selection is
        *  the most expensive way to find it out; real numbers from
@@ -298,8 +357,9 @@ export default function UploadStep({
       />
       <label
         htmlFor="extract-upload-input"
-        className="inline-flex min-h-11 cursor-pointer items-center rounded-full border border-line-strong bg-surface-subtle px-5 text-base font-semibold text-ink-strong peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
+        className="flex min-h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-yellow-400 px-5 py-3.5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-blue-500 peer-disabled:opacity-50"
       >
+        <Camera className="h-5 w-5" aria-hidden="true" />
         {t("extract.upload.choose")}
       </label>
 
@@ -308,6 +368,34 @@ export default function UploadStep({
       <p className="mt-1 text-sm text-ink-secondary">
         <strong>{t("extract.upload.awake")}</strong> — {t("extract.upload.awakeWhy")}
       </p>
+
+      {/* The design's "Uploading" screen (S3b) — the bar and the three
+       *  chips it draws, minus the one chip this build refuses to invent.
+       *  `~N min left` only ever appears once real bytes have actually
+       *  landed this attempt; the middle "coming from iCloud" chip stays out
+       *  entirely — see `etaMinutes` above and the module docblock. */}
+      {started && tiles.length > 0 && (
+        <div className="mt-3">
+          <div className="h-1.5 overflow-hidden rounded-full bg-line-faint">
+            <div
+              className="h-full rounded-full bg-yellow-400 transition-[width]"
+              style={{ width: `${tiles.length ? Math.round(((tiles.filter((x) => x.state === "done").length + failed.length) / tiles.length) * 100) : 0}%` }}
+            />
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+              {tn("extract.upload.chips.done", tiles.filter((x) => x.state === "done").length, {
+                count: String(tiles.filter((x) => x.state === "done").length),
+              })}
+            </span>
+            {eta !== undefined && (
+              <span className="rounded-full border border-line-strong px-2.5 py-1 text-xs font-medium text-ink-secondary">
+                {tn("extract.upload.chips.etaMinutes", eta, { count: String(eta) })}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {tiles.length > 0 && (
         <div className="mt-3">
@@ -353,20 +441,35 @@ export default function UploadStep({
         onNext={() => setOpenIndex((i) => (i === null ? null : (i + 1) % tiles.length))}
       />
 
+      {/* The design's failure panel (S3b) — its own explanation and its own
+       *  retry button, coral, not a bare red line above the picker's regular
+       *  button. */}
       {failed.length > 0 && (
-        <p role="status" className="mt-2 text-sm text-coral-600">
-          {t("extract.upload.failed")}
-        </p>
-      )}
-
-      {/* One line per distinct reason, not per file — a hundred rejected
-       *  photographs from the same full run is one sentence, not a hundred. */}
-      {rejectionReasons.length > 0 && (
-        <ul className="mt-1 text-sm text-coral-600">
-          {rejectionReasons.map((reason) => (
-            <li key={reason}>{t(REJECT_REASON_KEY[reason] ?? "extract.upload.rejected.other")}</li>
-          ))}
-        </ul>
+        <div role="status" className="mt-3 rounded-xl border border-coral-400 bg-coral-50 p-4">
+          <p className="text-sm font-semibold text-coral-600">
+            {tn("extract.upload.failurePanel.title", failed.length, { count: String(failed.length) })}
+          </p>
+          <p className="mt-1 text-sm text-coral-600">{t("extract.upload.failed")}</p>
+          {/* One line per distinct rejection reason, not per file — a
+           *  hundred rejected photographs from the same full run is one
+           *  sentence, not a hundred. */}
+          {rejectionReasons.length > 0 && (
+            <ul className="mt-1 text-sm text-coral-600">
+              {rejectionReasons.map((reason) => (
+                <li key={reason}>{t(REJECT_REASON_KEY[reason] ?? "extract.upload.rejected.other")}</li>
+              ))}
+            </ul>
+          )}
+          {!busy && (
+            <button
+              type="button"
+              onClick={() => send(failed)}
+              className="mt-3 inline-flex min-h-11 items-center rounded-full bg-coral-600 px-5 text-base font-semibold text-on-deep transition-colors hover:bg-coral-400"
+            >
+              {t("extract.upload.retry", { count: String(failed.length) })}
+            </button>
+          )}
+        </div>
       )}
 
       {tiles.length > 0 && !busy && failed.length === 0 && (
@@ -378,14 +481,14 @@ export default function UploadStep({
           {t("extract.upload.send", { count: String(tiles.length) })}
         </button>
       )}
-      {failed.length > 0 && !busy && (
-        <button
-          type="button"
-          onClick={() => send(failed)}
-          className="mt-3 inline-flex min-h-11 items-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action"
-        >
-          {t("extract.upload.retry", { count: String(failed.length) })}
-        </button>
+
+      {/* The design's own reassurance line for this screen — distinct from
+       *  `extract.upload.awakeWhy` above, which explains *why* to keep the
+       *  screen on before uploading starts. This one is the same promise
+       *  once it actually has: the wake lock this component holds is what
+       *  makes "you can lock the phone once it says done" true. */}
+      {started && (
+        <p className="mt-2 text-sm text-ink-secondary">{t("extract.upload.reassure")}</p>
       )}
     </div>
   );

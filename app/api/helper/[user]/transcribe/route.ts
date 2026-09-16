@@ -44,6 +44,10 @@ const LIMIT = { max: 30, windowMs: 15 * 60 * 1000 };
  *  might. Anything else is refused before a byte is sent anywhere. */
 const AUDIO_TYPES = ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"];
 
+/** The shape `newRunId` (`lib/staging/manifest.ts`) produces. Anything else
+ *  is ignored rather than refused — a recording is still a recording. */
+const RUN_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -121,7 +125,13 @@ export async function POST(
   // measured — the whole money path, shared with the WhatsApp door
   // (B1060) through `lib/helper/transcribe.ts:spendAndTranscribe` rather
   // than kept here as a copy for it to drift from.
-  const outcome = await spendAndTranscribe(user, audio, mediaType, language, claimed);
+  // The import run this recording belongs to, when the caller is inside one
+  // — B1803 final review, finding 4. It reaches nothing but the ledger ref,
+  // and the shape is checked here rather than trusted: a run id is what
+  // `newRunId` produces, and nothing else becomes part of a ledger row.
+  const run = text(body.run);
+  const runId = RUN_ID_RE.test(run) ? run : undefined;
+  const outcome = await spendAndTranscribe(user, audio, mediaType, language, claimed, runId);
   if (!outcome.ok) {
     const status =
       outcome.error === "no_credits" ? 402 : outcome.error === "recording_too_long" ? 400 : 502;
@@ -134,6 +144,17 @@ export async function POST(
     language,
     spent: outcome.spent,
     provider: speechProvider(),
+    // The check-the-wording screen's own highlight (B1803 Task 3.4) —
+    // absent whenever nothing was measured confident enough to flag, never
+    // guessed here or on the client. `uncertainWordOccurrence` (fix round 2)
+    // is which occurrence of that word this is, so a repeated word on the
+    // client is not always resolved to its first appearance.
+    ...(outcome.uncertainWord
+      ? {
+          uncertainWord: outcome.uncertainWord.word,
+          uncertainWordOccurrence: outcome.uncertainWord.occurrence,
+        }
+      : {}),
   };
   await remember(key, fingerprint, answer);
   return Response.json(answer);

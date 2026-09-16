@@ -3,6 +3,7 @@ import { readStagedFile } from "@/lib/staging/store";
 import { readManifest, writeManifest, type PhotoRow, type RunManifest } from "@/lib/staging/manifest";
 import { storeInboxFile, moveInboxFileToDay, updateInboxMeta, type InboxMeta } from "@/lib/inbox";
 import { appendWords, readDayReadiness, writeDayReadiness } from "@/lib/dayReadiness";
+import { effectiveDate, photosForDate } from "@/lib/extract/dayCount";
 import { withStorageQuota } from "@/lib/storageQuota";
 import { getTrip, tripRef } from "@/lib/trips";
 import { createTrip } from "@/lib/tripWrite";
@@ -180,14 +181,8 @@ function freshState(username: string, runId: string, date: string): CommitState 
   return {
     manifest,
     row: manifest.days.find((d) => d.date === date),
-    kept: manifest.photos.filter((p) => !p.dropped && effectiveDate(p) === date),
+    kept: photosForDate(manifest.photos, date),
   };
-}
-
-/** The date a kept row belongs to — the person's own edit if they made one,
- *  the camera's own reading otherwise. Never a guess past either of those. */
-function effectiveDate(photo: PhotoRow): string | undefined {
-  return photo.date ?? photo.takenAt?.slice(0, 10);
 }
 
 const MONTHS = [

@@ -3,17 +3,10 @@ import { isEnabled } from "@/lib/capabilities";
 import { commitDay } from "@/lib/extract/commit";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { extendOnTouch } from "@/lib/staging/expiry";
-import { readManifest, writeManifest } from "@/lib/staging/manifest";
+import { DATE_RE, readManifest, writeManifest } from "@/lib/staging/manifest";
 import { POST as assembleDay } from "@/app/api/helper/[user]/assemble-day/route";
 
 export const dynamic = "force-dynamic";
-
-/** The same shape `extract/run`'s own `PATCH` already checks `date` against
- *  before it can reach a `photo.date` that later names a directory —
- *  `date` reaches `lib/inbox.ts`'s day-folder helpers unvalidated by design
- *  (its own comment: "every caller already has it from a place that did"),
- *  and this route is that place. */
-const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 /**
  * Commit one confirmed day out of staging and into the journal — B1751, Task

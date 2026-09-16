@@ -5,21 +5,12 @@ import { questionsForDay, type Question } from "@/lib/extract/questions";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { geodataAvailable, reverseGeocode } from "@/lib/ingest/geo";
 import { PHOTO_VISIBILITIES, parsePhotoVisibility } from "@/lib/photos";
-import { extendOnTouch } from "@/lib/staging/expiry";
-import { readManifest, writeManifest, type DayRow, type RunManifest } from "@/lib/staging/manifest";
+import { extendOnTouch, spentOnRun } from "@/lib/staging/expiry";
+import { DATE_RE, readManifest, writeManifest, type DayRow, type RunManifest } from "@/lib/staging/manifest";
 import { removeRun } from "@/lib/staging/store";
 import { captionProblem } from "@/lib/validate/media";
 
 export const dynamic = "force-dynamic";
-
-/**
- * `yyyy-mm-dd` with month and day in range — not a calendar (30 February
- * passes), but past this a caller cannot hand back "banana" or "../../etc":
- * this value becomes a folder name under `inbox/days/<date>/` once a later
- * task commits it, so a bare format check earns its keep even without a real
- * calendar behind it.
- */
-const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 /** Stable key for the response's `questions` map — a group's own `date`,
  *  except the one undated group, whose `date` is `""` and would collide with
@@ -45,18 +36,27 @@ function dayRowFor(manifest: RunManifest, group: DayGroup): DayRow {
  * in it missing GPS — gets no place name and `questionsForDay` asks where it
  * was instead of stating a place nobody's photograph said.
  */
-function groupsAndQuestions(manifest: RunManifest): { groups: DayGroup[]; questions: Record<string, Question[]> } {
+function groupsAndQuestions(
+  manifest: RunManifest,
+): { groups: (DayGroup & { placeName?: string })[]; questions: Record<string, Question[]> } {
   const live = manifest.photos.filter((p) => !p.dropped);
   const groups = groupIntoDays(live);
   const questions: Record<string, Question[]> = {};
+  // `placeName` rides along on each group in the response now, not just
+  // baked into a question's sentence — the day board (B1803 Task 3.2) reads
+  // it for its own summary line ("Hoi An · 12 photographs") and must show
+  // the same real reverse-geocoded name this file already computes here,
+  // never a second guess of its own.
+  const withPlace: (DayGroup & { placeName?: string })[] = [];
   for (const group of groups) {
     let placeName: string | undefined;
     if (!group.undated && group.lat !== undefined && group.lng !== undefined && geodataAvailable()) {
       placeName = reverseGeocode(group.lat, group.lng)?.name;
     }
     questions[keyFor(group)] = questionsForDay(group, manifest.photos, dayRowFor(manifest, group), placeName);
+    withPlace.push({ ...group, placeName });
   }
-  return { groups, questions };
+  return { groups: withPlace, questions };
 }
 
 export async function GET(
@@ -81,7 +81,12 @@ export async function GET(
   const current = extended ?? manifest;
 
   const { groups, questions } = groupsAndQuestions(current);
-  return Response.json({ manifest: current, groups, questions });
+  // The Ready screen's own "Credits spent" row (S10b, B1803 Task 3.7) —
+  // read from the ledger by this run's own ref prefix, never a number kept
+  // on the manifest itself, so it cannot drift from what was actually
+  // charged.
+  const spentCredits = await spentOnRun(user, current.runId);
+  return Response.json({ manifest: current, groups, questions, spentCredits });
 }
 
 export async function PATCH(

@@ -56,6 +56,31 @@ function idFrom(username: string, title: string, start: string): string {
   return id;
 }
 
+/**
+ * A trip's own title and dates, read back — B1803 Task 3.7.
+ *
+ * The Preview screen (`PreviewScreen.tsx`) has to name the real trip a run
+ * just committed into: `assemble-day` (via `lib/extract/commit.ts`) makes
+ * up the title itself when a run starts a brand-new trip
+ * (`titleFromSpan`), so nothing on the client already knows it. This is the
+ * one honest way to get it back — the same `getTrip` read every other page
+ * on the site uses, not a second copy of the title kept anywhere else.
+ *
+ * Owner only, no `isEnabled` gate — the same stance `POST` above takes and
+ * for the same reason: reading a trip the owner already has costs nothing
+ * and asks no model.
+ */
+export async function GET(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
+  const { user } = await params;
+  if (!(await isHelperOwner(user))) {
+    return notYourJournal(request, user);
+  }
+  const id = new URL(request.url).searchParams.get("id") ?? "";
+  const trip = id ? getTrip(tripRef(user, id)) : null;
+  if (!trip) return Response.json({ error: "unknown_trip" }, { status: 404 });
+  return Response.json({ title: trip.title, start: trip.start, end: trip.end });
+}
+
 export async function POST(request: Request, { params }: RouteContext<"/api/helper/[user]/trip">) {
   const { user } = await params;
   if (!(await isHelperOwner(user))) {

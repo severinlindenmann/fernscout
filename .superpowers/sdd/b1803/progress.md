@@ -155,3 +155,120 @@ own Lightbox, and photographs on all six screens that discuss them.
 Owed and recorded: a real browser pass over the deeper screens, blocked on the
 capture script being unable to click (filed as its own chore). Phase 3 rebuilds
 those screens and will need the same pass, so it lands there.
+
+PHASE 2 — dispatched as ONE implementer (sonnet), base ebc6be54. Tasks 2.1 and
+2.2 are both chrome across the same set of screens; splitting them would make
+two implementers edit the same files in sequence for no separate review surface.
+Brief: task-2-brief.md — Phase 2's own text plus the complete per-screen
+specification, with design-v2.html named as the tiebreaker above both. That
+naming is the correction for R37's root cause: sixteen implementers built from
+prose because I wrongly recorded the design file as unreachable from a subagent.
+Merged main into the branch first, so the B1806 ticker and B1807 ceiling are
+present rather than arriving as a conflict at merge time.
+
+Phase 2 review: spec FAIL on two points, quality one pluralisation bug + no
+tests. Verify green with both bugs present, which is finding 4's whole argument.
+
+Ruling (finding 1): the undated group is NOT a day, in both the numerator and
+the denominator. FoundStep already tells the person "9 days" and "See my 9
+days"; the board's indicator must not then say "of 10". The undated card still
+sits on the board — it is real work — it just does not inflate a count the
+previous screen already promised. One shared helper so the two screens cannot
+drift again. Cost if wrong: once a person dates that group it becomes a real
+day and the total grows by one mid-flow, which is honest but may read oddly.
+
+Ruling (finding 3): the pin icons come out. The brief's four-icon list named a
+pin, but no card in design-v2.html carries one — only S2b's mic and lines. The
+brief's own tiebreaker rule puts the design above its prose, and the prose is
+where my summary of the design was loose. Deletion over addition.
+
+Phase 2: complete (commits dbfa952e..244ca5eb, 1 fix round). Review's four
+findings all addressed with RED-then-GREEN evidence pasted for both new tests.
+Controller added one a11y fix the review missed: the indicator's wrapper
+aria-label duplicated its own visible label text.
+Also filed B1808 (high) from this phase's browser pass: headless Chrome defaults
+prefers-color-scheme to dark and check-page.mjs never emulates it, so every
+"light" capture this repository has taken without a theme cookie may be dark.
+Sibling of B1804. That is an instrument defect, not a branch defect — backlog.
+
+PHASE 3 — seven screens, dispatched in three groups rather than one, because
+one implementer holding seven screens is how composition gets skipped. Groups:
+3.1+3.2 (upload progress, day cards), 3.3+3.4+3.5 (the telling flow, including
+the screen that does not exist), 3.6+3.7 (who came, preview). Sequential, never
+parallel — they share ExtractFlow and the locale files.
+
+Phase 3A: complete (3e1a3ed2..7e72447a, 1 fix round). Ruling made mid-round:
+the implementer cut S5a's "Tell me about Friday" primary button on the grounds
+that Phase 3's three-bullet summary for 3.2 was narrower than the screen spec.
+Overruled — the brief states the per-screen spec binds and design-v2.html wins
+ties; a summary is never a narrowing. Recorded because the same reasoning will
+recur on every later screen.
+Phase 3B: complete (8803b6f0..fa385f4b, 1 fix round). The implementer finished
+without committing; controller split the work into three commits. Deepgram's
+per-word confidence was already being discarded at transcribe.ts:105 — that is
+what made S7b buildable from a real signal rather than a heuristic.
+Two process facts worth keeping: an agent deleted its own browser evidence
+during cleanup (unverifiable claim, now prevented by copying captures into the
+workspace before cleanup), and a completed agent's transcript can vanish, so a
+fix round may need a fresh agent with the findings restated in full.
+
+Phase 3C review: spec FAIL. The German-capitalisation false positive in the
+companion suggester is real and was predicted before the review ran.
+
+Ruling (finding 1): the suggestion is OFFERED ONLY WHERE THE SIGNAL CARRIES
+INFORMATION. German capitalises every noun, so mid-sentence capitalisation
+separates nothing there — "Strand" is indistinguishable from "Nora" — and the
+whole algorithm rests on that one signal. So: no suggestion at all for a
+German-language answer. English and Hungarian capitalise proper nouns only, so
+the signal means something in both and the suggestion stands. Showing nothing
+is the designed-for state; the screen already works without it.
+Not a heuristic patched with more heuristics: a language where the evidence
+does not exist gets silence, which is the same rule the uncertain-word
+highlight already follows when Deepgram sends no confidence.
+Cost if wrong: a German-speaking person never sees a suggestion they might
+have liked. Cheap, and the reverse error puts an invented companion in front
+of them.
+
+Ruling (finding 3): the English brand/common-noun false positive stays, as a
+documented ceiling. The copy already ASKS ("is that them?") rather than
+asserting, quoting the person's own word back at them; a person who reads
+"You mentioned 'Strand'..." ignores it. That is a different act from writing
+a name into their journal. But the ceiling must be written down where the
+next reader finds it, and the German case must be written down beside it —
+the report discussed false positives and never mentioned the language axis at
+all.
+
+Phase 3C: complete (d9d22465..3337d812, 1 fix round). The German gate is
+`locale.startsWith("de")`, which also catches de-CH — correct, since Swiss
+German capitalises nouns the same way. Evidence re-captured against the example
+journal's real asia-2023 trip.
+PHASE 3 COMPLETE — 7 screens across 3 groups, 3 fix rounds.
+
+PHASE 4 — the voice language question. Infrastructure exists and the UI never
+asks: SPEECH_LANGUAGES in lib/helper/speech.ts is already ["en","de","de-CH","hu"]
+and the transcribe route already takes an explicit `language` override.
+
+FINAL WHOLE-BRANCH REVIEW: DO-NOT-MERGE. Ten findings, one a persistent crash.
+Verify was green through all of them — the fourth time on this feature that a
+green suite proved nothing about the defect that mattered.
+
+Ruling (finding 1, the crash): fix at every layer it passes through, because
+each one is independently wrong. weekdayLabel must not throw on a date it
+cannot parse; suggestCompanion must not cite a day that has no date (there is
+no "on Tuesday" for an undated day); and extract/day must validate the date
+shape rather than accepting any string. The undated group's own date IS "" by
+design and its answers must remain storable, so "" is valid input to the route
+and invalid input to anything that formats a weekday.
+
+Ruling (finding 2): manifest.mode is read by nothing, so "Type it out" is
+stored and ignored. Read it. An answer a person gave that changes nothing is
+worse than never asking - it is the inert-field class this repository already
+has a rule about.
+
+Ruling (finding 4, credits): the row must never show 0 while the person was
+charged. Thread the run onto the speech spend's ref so the figure can be true.
+If that cannot be done cleanly, HIDE the row - an absent figure is honest, a
+wrong one is not. Do not leave it showing 0.
+
+Ruling (finding 6): the journal slug is not a person's name. Empty field with
+the placeholder; a name is typed by a person or it does not exist.

@@ -6,12 +6,15 @@ import DayBoard from "@/components/extract/DayBoard";
 import FoundStep from "@/components/extract/FoundStep";
 import IntroStep from "@/components/extract/IntroStep";
 import PreviewScreen from "@/components/extract/PreviewScreen";
+import ReadyScreen from "@/components/extract/ReadyScreen";
 import ResumeScreen, { type RunSummaryClient } from "@/components/extract/ResumeScreen";
 import TripModeStep, { type TripOption } from "@/components/extract/TripModeStep";
 import { useI18n } from "@/components/LocaleProvider";
 import UploadStep from "@/components/extract/UploadStep";
+import WhoCameScreen from "@/components/extract/WhoCameScreen";
 import { resumeExpiryState, type ResumeExpiryState } from "@/lib/staging/resumeState";
 import type { RunManifest } from "@/lib/staging/manifest";
+import type { SpeechLanguage } from "@/lib/helper/speech";
 
 type Run = { runId: string; expiresAt: string };
 
@@ -64,6 +67,7 @@ export default function ExtractFlow({
   consentedSpeech,
   speechProvider,
   trips,
+  defaultSpeechLanguage = "en",
 }: {
   username: string;
   consentedSpeech: boolean;
@@ -74,6 +78,18 @@ export default function ExtractFlow({
    *  client route: the owner is looking at their own journal, and nothing
    *  here needs filtering by reader. */
   trips: TripOption[];
+  /**
+   * The journal's own best guess for which language a voice answer will be
+   * in — B1803 Task 4.1. Computed server-side by the page from
+   * `defaultLocaleFor(username)`, the same locale `speechLanguageFor` already
+   * prefers over the reader's own UI locale for the identical reason: a
+   * journal written in Swiss German is a journal whose owner speaks Swiss
+   * German, regardless of what language they happen to be reading the site
+   * in today. `"en"` only when the page did not supply one (every real
+   * caller does; this default only matters to a test mounting the component
+   * directly).
+   */
+  defaultSpeechLanguage?: SpeechLanguage;
 }) {
   const { t } = useI18n();
   const [run, setRun] = useState<Run | null>(null);
@@ -103,7 +119,18 @@ export default function ExtractFlow({
   // price before they have finished telling their days. `undefined` is "not
   // fetched yet", `null` is "fetched, and this instance has no such number".
   const [atBoardEnd, setAtBoardEnd] = useState(false);
+  // "Who came" (S8a, B1803 Task 3.6) — asked once, right after the board,
+  // before either the credits screen or the free build path. `true` the
+  // moment "Save who came" (or its own retry) has actually saved, never
+  // before — the free-build effect below waits on this the same way it
+  // already waits on `credits`.
+  const [partyDone, setPartyDone] = useState(false);
   const [credits, setCredits] = useState<number | null | undefined>(undefined);
+  // Toggles between `ReadyScreen` (the flow's real terminal screen once
+  // `left` is true) and `PreviewScreen`, the way the design's own back
+  // arrow does — B1803 Task 3.7. Reset is never needed: once `left` is
+  // true nothing else in this flow runs again.
+  const [showPreview, setShowPreview] = useState(false);
   // `undefined` until `GET .../extract/runs` answers; `null` once the person
   // has either picked a run to continue or chosen to start fresh, so the
   // resume screen never reappears mid-flow. A non-empty array is what
@@ -149,13 +176,13 @@ export default function ExtractFlow({
   // (fetched by `onLeaveBoard`) is what says nobody is going to be asked for
   // money on top of it, so there is nothing here for a screen to show.
   useEffect(() => {
-    if (atBoardEnd && credits === null && run) {
+    if (atBoardEnd && partyDone && credits === null && run) {
       commitReadyDays(username, run.runId)
         .then(() => setLeft(true))
         .catch(() => setLeft(true));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atBoardEnd, credits]);
+  }, [atBoardEnd, partyDone, credits]);
 
   /**
    * The one call this shell makes before deciding whether to start a fresh
@@ -206,8 +233,15 @@ export default function ExtractFlow({
   /** `POST .../extract/start` with the person's own answers to Step 02 —
    *  B1797. `RunManifest.tripId` and `.mode` have carried these fields since
    *  B1751's Task 1.2; this is the first caller that ever sends them instead
-   *  of the route's own `{}`-body defaults (a new trip, typing mode). */
-  async function start(answers: { tripId: string | null; mode: "voice" | "type" }) {
+   *  of the route's own `{}`-body defaults (a new trip, typing mode).
+   *  `language` (B1803 Task 4.1/4.2) rides along only for a voice run —
+   *  `onAskSubmit` below never sets it for a typing one, and the route
+   *  drops it either way if it did. */
+  async function start(answers: {
+    tripId: string | null;
+    mode: "voice" | "type";
+    language?: SpeechLanguage;
+  }) {
     setError(false);
     setRun(null);
     try {
@@ -274,10 +308,12 @@ export default function ExtractFlow({
   }
 
   /** Step 02's own submit — the only place `start()` is ever called with
-   *  real answers rather than the defaults nobody used to ask for. */
-  function onAskSubmit(tripId: string | null, mode: "voice" | "type") {
+   *  real answers rather than the defaults nobody used to ask for.
+   *  `language` is `undefined` for a typing run, exactly as `TripModeStep`
+   *  hands it over — B1803 Task 4.1. */
+  function onAskSubmit(tripId: string | null, mode: "voice" | "type", language?: SpeechLanguage) {
     setAwaitingStart(false);
-    start({ tripId, mode });
+    start({ tripId, mode, language });
   }
 
   /** `DayBoard`'s first successful load after a resume — the same
@@ -361,7 +397,12 @@ export default function ExtractFlow({
        *  both, since it was already asked once, when it was created. */}
       {awaitingStart && askPhase === "intro" && <IntroStep onContinue={onIntroContinue} />}
       {awaitingStart && askPhase === "ask" && (
-        <TripModeStep trips={trips} consentedSpeech={consentedSpeech} onSubmit={onAskSubmit} />
+        <TripModeStep
+          trips={trips}
+          consentedSpeech={consentedSpeech}
+          defaultLanguage={defaultSpeechLanguage}
+          onSubmit={onAskSubmit}
+        />
       )}
 
       {resumeNotice && (
@@ -416,15 +457,24 @@ export default function ExtractFlow({
         />
       )}
 
-      {atBoardEnd && !left && run && credits !== undefined && credits !== null && (
+      {atBoardEnd && !partyDone && run && (
+        <WhoCameScreen username={username} runId={run.runId} onDone={() => setPartyDone(true)} onBack={() => setAtBoardEnd(false)} />
+      )}
+
+      {atBoardEnd && partyDone && !left && run && credits !== undefined && credits !== null && (
         <CreditsScreen username={username} runId={run.runId} credits={credits} onDone={() => setLeft(true)} />
       )}
 
-      {atBoardEnd && !left && (credits === undefined || credits === null) && (
+      {atBoardEnd && partyDone && !left && (credits === undefined || credits === null) && (
         <p className="mt-4 text-sm text-ink-secondary">{t("extract.flow.building")}</p>
       )}
 
-      {left && run && <PreviewScreen username={username} runId={run.runId} />}
+      {left && run && !showPreview && (
+        <ReadyScreen username={username} runId={run.runId} onPreview={() => setShowPreview(true)} />
+      )}
+      {left && run && showPreview && (
+        <PreviewScreen username={username} runId={run.runId} onBack={() => setShowPreview(false)} />
+      )}
     </div>
   );
 }
