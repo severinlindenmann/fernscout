@@ -1,0 +1,543 @@
+<title>The Day Funnel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --cream-50:#fffaf0; --cream-100:#fff3dc; --cream-200:#ffe9bd;
+  --navy-900:#1e293b; --navy-700:#3a4a63; --navy-600:#44546c; --navy-500:#5a6a80;
+  --navy-300:#aeb7c5; --navy-200:#d8dee8; --navy-100:#eceef4; --navy-50:#f7f8fa;
+  --yellow-300:#ffe08a; --yellow-400:#ffd23f; --yellow-600:#d69b0a; --yellow-950:#4a3300;
+  --green-100:#ddf3e4; --green-500:#22c55e; --green-700:#15803d;
+  --blue-500:#2f6fed;
+
+  --ground:var(--cream-50);
+  --panel:#fffdf7;
+  --panel-2:var(--cream-100);
+  --ink:var(--navy-900);
+  --ink-body:var(--navy-700);
+  --ink-mute:var(--navy-500);
+  --ink-faint:#8490a2;
+  --rule:#ecdfc6;
+  --rule-soft:#f3e8d4;
+  --accent:var(--yellow-400);
+  --accent-deep:var(--yellow-600);
+  --live:var(--green-700);
+  --live-soft:var(--green-100);
+  --bot-bubble:#ffffff;
+  --him-bubble:var(--cream-200);
+  --phone-ground:#f6eede;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ground:#171d29; --panel:#1d2532; --panel-2:#222b3a;
+    --ink:#f2ecdd; --ink-body:#e6e0d2; --ink-mute:#b3b6bd; --ink-faint:#9298a3;
+    --rule:#33405a; --rule-soft:#2a3446;
+    --accent:var(--yellow-400); --accent-deep:var(--yellow-300);
+    --live:#22c55e; --live-soft:#1c3327;
+    --bot-bubble:#232d3d; --him-bubble:#3a3117; --phone-ground:#141a24;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#171d29; --panel:#1d2532; --panel-2:#222b3a;
+  --ink:#f2ecdd; --ink-body:#e6e0d2; --ink-mute:#b3b6bd; --ink-faint:#9298a3;
+  --rule:#33405a; --rule-soft:#2a3446;
+  --accent:var(--yellow-400); --accent-deep:var(--yellow-300);
+  --live:#22c55e; --live-soft:#1c3327;
+  --bot-bubble:#232d3d; --him-bubble:#3a3117; --phone-ground:#141a24;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground); color:var(--ink-body);
+  font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px; line-height:1.6; margin:0;
+  padding-inline:20px; padding-block:0 72px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3,h4{font-family:Fredoka,"Plus Jakarta Sans",sans-serif;color:var(--ink);text-wrap:balance;margin:0}
+h1{font-size:clamp(2.4rem,6vw,3.9rem);font-weight:600;line-height:1.02;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.2vw,2.05rem);font-weight:600;line-height:1.14;letter-spacing:-.01em}
+h3{font-size:1.16rem;font-weight:600;line-height:1.3}
+h4{font-size:.99rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent-deep);text-underline-offset:3px}
+:focus-visible{outline:2.5px solid var(--blue-500);outline-offset:2px;border-radius:3px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.85em}
+
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:500;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint);
+}
+
+/* ---- masthead ---- */
+header.mast{
+  padding-block:clamp(44px,8vw,86px) clamp(30px,5vw,50px);
+  border-bottom:1px solid var(--rule);
+  display:flex;flex-direction:column;gap:22px;
+}
+.mark{display:flex;align-items:center;gap:11px}
+.mark svg{display:block;flex:none}
+.mark span{font-family:Fredoka,sans-serif;font-weight:600;color:var(--ink);font-size:1.02rem;letter-spacing:-.01em}
+.standfirst{font-size:clamp(1.05rem,2.1vw,1.3rem);color:var(--ink-body);max-width:56ch;line-height:1.5}
+.standfirst strong{color:var(--ink);font-weight:600}
+.mastmeta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px}
+
+.tag{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.07em;
+  text-transform:uppercase;padding:5px 11px;border-radius:999px;
+  border:1px solid var(--rule);color:var(--ink-mute);background:var(--panel);
+}
+.tag.hot{border-color:var(--accent);background:var(--accent);color:var(--yellow-950)}
+.tag.live{border-color:transparent;background:var(--live-soft);color:var(--live)}
+
+section{padding-block:clamp(40px,6vw,68px);border-bottom:1px solid var(--rule-soft)}
+section:last-of-type{border-bottom:0}
+.shead{display:flex;flex-direction:column;gap:12px;margin-bottom:30px}
+
+/* ---- thesis ---- */
+.thesis{
+  font-family:Fredoka,sans-serif;font-weight:500;
+  font-size:clamp(1.35rem,3.4vw,2.1rem);line-height:1.26;color:var(--ink);
+  max-width:20ch;letter-spacing:-.015em;
+}
+.thesis em{font-style:normal;background:linear-gradient(transparent 62%,var(--accent) 62%);padding-inline:2px}
+.swap{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin-top:34px;border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:var(--panel)}
+.swap>div{flex:1 1 220px;padding:22px 24px;display:flex;flex-direction:column;gap:7px}
+.swap>div+div{border-left:1px solid var(--rule)}
+.swap .num{font-family:Fredoka,sans-serif;font-size:2.6rem;font-weight:600;line-height:1;color:var(--ink)}
+.swap .was .num{color:var(--ink-faint);text-decoration:line-through;text-decoration-thickness:2px}
+.swap .now .num{color:var(--accent-deep)}
+.swap .lbl{font-size:.85rem;color:var(--ink-mute)}
+@media(max-width:560px){.swap>div+div{border-left:0;border-top:1px solid var(--rule)}}
+
+/* ---- constraint cards ---- */
+.cons{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.cons article{background:var(--panel);padding:22px 20px;display:flex;flex-direction:column;gap:9px}
+.cons .when{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.09em;text-transform:uppercase;color:var(--accent-deep)}
+.cons p{font-size:.89rem;color:var(--ink-mute);line-height:1.52}
+.cons h4{color:var(--ink)}
+
+/* ---- the trail ---- */
+.trail{position:relative;padding-left:46px}
+.trail::before{
+  content:"";position:absolute;left:13px;top:10px;bottom:10px;width:3px;
+  background:var(--accent);border-radius:2px;
+}
+.stop{position:relative;padding-block:15px}
+.stop::before{
+  content:"";position:absolute;left:-39px;top:21px;width:15px;height:15px;
+  background:var(--accent);border:3px solid var(--ground);border-radius:3px;
+  transform:rotate(45deg);
+}
+.stop.ask::before{background:var(--cream-200);border-color:var(--ground);box-shadow:0 0 0 2px var(--accent-deep)}
+.stop.end::before{background:var(--live);transform:none;border-radius:50%;box-shadow:0 0 0 3px var(--live-soft)}
+.stop .sid{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-faint);letter-spacing:.08em}
+.stop h4{margin-top:3px}
+.stop p{font-size:.92rem;color:var(--ink-mute);margin-top:5px;max-width:58ch}
+.stop .free{display:inline-block;margin-top:9px;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--live-soft);color:var(--live)}
+.stop .paid{display:inline-block;margin-top:9px;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--accent);color:var(--yellow-950)}
+.offshoot{
+  margin:10px 0 4px;padding:12px 15px;border-left:3px solid var(--navy-200);
+  background:var(--panel);border-radius:0 9px 9px 0;
+}
+.offshoot .oh{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)}
+.offshoot p{font-size:.86rem;margin-top:4px;color:var(--ink-mute)}
+
+/* ---- phones ---- */
+.rail{display:flex;gap:20px;overflow-x:auto;padding-block:6px 18px;scroll-snap-type:x mandatory}
+.rail::-webkit-scrollbar{height:9px}
+.rail::-webkit-scrollbar-thumb{background:var(--navy-200);border-radius:9px}
+.phone{flex:0 0 306px;scroll-snap-align:start;display:flex;flex-direction:column;gap:11px}
+.phone>.cap{display:flex;flex-direction:column;gap:3px}
+.phone .cap .t{font-weight:600;color:var(--ink);font-size:.95rem}
+.phone .cap .d{font-size:.81rem;color:var(--ink-mute)}
+.screen{
+  background:var(--phone-ground);border:1px solid var(--rule);border-radius:20px;
+  padding:14px 12px;display:flex;flex-direction:column;gap:9px;min-height:440px;
+}
+.bub{max-width:88%;padding:9px 12px;border-radius:14px;font-size:.825rem;line-height:1.48;white-space:pre-line}
+.bub.bot{align-self:flex-start;background:var(--bot-bubble);border:1px solid var(--rule-soft);border-bottom-left-radius:5px;color:var(--ink-body)}
+.bub.him{align-self:flex-end;background:var(--him-bubble);border-bottom-right-radius:5px;color:var(--ink)}
+.bub .lnk{color:var(--accent-deep);word-break:break-all}
+.bub .meta{display:block;margin-top:5px;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--ink-faint)}
+.attach{align-self:flex-end;display:flex;align-items:center;gap:7px;padding:7px 11px;border-radius:12px;background:var(--him-bubble);font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--ink);border-bottom-right-radius:5px}
+.btns{align-self:flex-start;display:flex;flex-wrap:wrap;gap:5px;max-width:88%}
+.btns b{
+  font-weight:500;font-size:.75rem;padding:6px 11px;border-radius:999px;
+  background:var(--bot-bubble);border:1px solid var(--accent-deep);color:var(--accent-deep);
+}
+.btns b.pick{background:var(--accent);border-color:var(--accent);color:var(--yellow-950);font-weight:600}
+.sys{align-self:center;font-family:"IBM Plex Mono",monospace;font-size:.67rem;color:var(--ink-faint);text-align:center;padding:5px 10px;letter-spacing:.04em}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.875rem;min-width:520px}
+th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+tr:last-child td{border-bottom:0}
+td strong{color:var(--ink);font-weight:600}
+.yes{color:var(--live);font-weight:600}
+.no{color:var(--ink-faint)}
+
+/* ---- code ---- */
+pre{
+  background:var(--panel);border:1px solid var(--rule);border-radius:12px;
+  padding:17px 19px;overflow-x:auto;margin:0;
+  font-family:"IBM Plex Mono",monospace;font-size:.795rem;line-height:1.66;color:var(--ink-body);
+}
+pre .k{color:var(--accent-deep)}
+pre .c{color:var(--ink-faint)}
+
+.note{
+  border-left:3px solid var(--accent);padding:3px 0 3px 17px;
+  font-size:.95rem;color:var(--ink-body);max-width:60ch;
+}
+.note strong{color:var(--ink)}
+
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:26px}
+ul.clean{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:13px}
+ul.clean li{display:flex;gap:11px;font-size:.93rem;color:var(--ink-mute);line-height:1.52}
+ul.clean li::before{content:"";flex:none;width:9px;height:9px;margin-top:7px;background:var(--accent);transform:rotate(45deg);border-radius:2px}
+ul.clean li strong{color:var(--ink);font-weight:600}
+ul.clean.open li::before{background:transparent;border:2px solid var(--navy-300);border-radius:50%;transform:none;width:10px;height:10px;margin-top:6px}
+
+footer{padding-top:34px;color:var(--ink-faint);font-size:.83rem;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="mark">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M5 27 C 9 19, 11 13, 22 6" stroke="#ffe9bd" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      <path d="M11.5 20.5 L 17 15 L 22.5 20.5 L 17 26 Z" fill="#ffd23f"/>
+      <circle cx="24.5" cy="7.5" r="3.2" fill="#15803d"/>
+    </svg>
+    <span>Fernscout</span>
+  </div>
+  <div class="eyebrow">Concept 1 of 3 · WhatsApp</div>
+  <h1>The Day Funnel</h1>
+  <p class="standfirst">WhatsApp stops being an assistant that can do anything and becomes <strong>one thing done perfectly</strong>: today's day, captured and published. Everything else is named, and handed to a page.</p>
+  <div class="mastmeta">
+    <span class="tag hot">Draft concept</span>
+    <span class="tag">16 Sept 2026</span>
+    <span class="tag live">Compliance-forced</span>
+  </div>
+</header>
+
+<section>
+  <div class="col">
+    <p class="thesis">The model didn't fail. It was handed <em>forty ways</em> to be wrong and asked to pick one.</p>
+    <div class="swap">
+      <div class="was">
+        <span class="num">40</span>
+        <span class="lbl">tools across 7 areas, offered on every inbound message, with a <code>switch_area</code> tool that can widen back to all of them</span>
+      </div>
+      <div class="now">
+        <span class="num">6</span>
+        <span class="lbl">tools: resolve the day, stage files, read state, draft words, polish, publish. Most states run no model at all</span>
+      </div>
+    </div>
+    <p class="note" style="margin-top:30px"><strong>The corollary nobody enjoys:</strong> most of this funnel is deterministic. Day resolution, folder opening, the mechanical draft, the redirects, the nudge — no LLM, no credits, no ambiguity. The model is left with the one job it is genuinely good at: turning a spoken note into prose, when asked and paid for.</p>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Not a preference</div>
+    <h2>Four constraints that decide the design</h2>
+    <p style="color:var(--ink-mute);font-size:.95rem">Three are Meta's, dated. One is arithmetic. None are negotiable, and together they draw the flow almost without us.</p>
+  </div>
+  <div class="cons">
+    <article>
+      <span class="when">15 Jan 2026 · in force</span>
+      <h4>General-purpose bots are banned</h4>
+      <p>Meta prohibits open-domain AI on the Business Platform. AI is allowed only where it is <em>"ancillary to a legitimate business service, not the centerpiece"</em> — and a handoff path to another channel is required. The current agent is on the wrong side of this line. The redirects <em>are</em> the required handoff.</p>
+    </article>
+    <article>
+      <span class="when">Always</span>
+      <h4>The 24-hour window</h4>
+      <p>Free-form replies only within 24h of <em>his</em> last message; every inbound resets it. Outside, only an approved template. So the nudge lands at <strong>+20h or never</strong>. Marketing templates can't rescue it — capped at 2/user/day across all businesses, and paused for US numbers since April 2025.</p>
+    </article>
+    <article>
+      <span class="when">1 Oct 2026 · six weeks out</span>
+      <h4>Questions start costing money</h4>
+      <p>In-window service messages become billable. "Ask at most one thing per turn, at most twice" stops being a UX preference and becomes a line item. Every gap you can derive from EXIF is a question you never pay for.</p>
+    </article>
+    <article>
+      <span class="when">Arithmetic</span>
+      <h4>Three buttons, twenty characters</h4>
+      <p>Reply buttons cap at 3, titles at 20 chars. A fourth option forces a list message, which reads as a form. <code>Veröffentlichen</code> fits at 15; <code>Jetzt veröffentlichen</code> at 21 does not. That is a test across all three locales, not a hope.</p>
+    </article>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">The flow</div>
+    <h2>One trail, with marked exits</h2>
+    <p style="color:var(--ink-mute);font-size:.95rem">Waymarks are states the person passes through. Hollow marks are the only two places the funnel asks him anything. Grey offshoots leave the trail for a page — and nothing is ever dropped on the way out.</p>
+  </div>
+
+  <div class="trail">
+    <div class="stop">
+      <div class="sid">S1</div><h4>Something arrives</h4>
+      <p>Photo, voice note, text, or a location pin. Contact cards, documents and videos leave immediately — they have their own pages now.</p>
+      <span class="free">No model</span>
+    </div>
+
+    <div class="stop">
+      <div class="sid">S2</div><h4>Which day this is</h4>
+      <p>Derived, not asked. Photo EXIF date wins when all photos agree. Otherwise the message timestamp in the journal's timezone — with 00:00–03:59 meaning <em>yesterday</em>, because someone writing up at 01:30 means the day that just ended. <code>getCurrentTrip()</code> already derives the trip from its date range; no new resolver needed.</p>
+      <span class="free">No model</span>
+      <div class="offshoot">
+        <div class="oh">Exit · no trip, or older than 3 days</div>
+        <p>Files stay in the undated inbox, nothing lost, and he gets the link to the page that assigns them. The 3-day cutoff covers the flight home plus one jetlagged evening; past that the job is backfill, which needs a calendar.</p>
+      </div>
+    </div>
+
+    <div class="stop ask">
+      <div class="sid">S4 · asks</div><h4>Only when the date is genuinely unclear</h4>
+      <p>Three buttons: <code>Today</code> / <code>Yesterday</code> / <code>Another day</code>. Never four. "Another day" is an exit, not a fourth branch.</p>
+      <span class="free">No model</span>
+    </div>
+
+    <div class="stop">
+      <div class="sid">S3</div><h4>The day folder opens</h4>
+      <p><code>inbox/days/&lt;date&gt;/</code> — already built, already has <code>moveInboxFileToDay()</code>. Re-entering with more photos just adds them. Idempotent by construction.</p>
+      <span class="free">No model</span>
+    </div>
+
+    <div class="stop">
+      <div class="sid">S5</div><h4>The mechanical draft</h4>
+      <p>Gallery sorted by EXIF time, cover = first photo, coordinates from EXIF or the pin, transcript and text verbatim in arrival order. Title empty unless he gave one. <strong>An empty title beats an invented one.</strong> This costs nothing and is fully publishable.</p>
+      <span class="free">Free · no model</span>
+    </div>
+
+    <div class="stop ask">
+      <div class="sid">S6 · asks</div><h4>At most one gap, at most twice</h4>
+      <p>In order: location, if no photo has GPS and no pin arrived. Then whether anything happened at all, if there's no text and no voice. Title is folded into the confirmation, never its own turn. <strong>Costs, transport, weather, tags and people are never asked here</strong> — they are web fields, and every extra ask was a way to be wrong.</p>
+      <span class="free">No model</span>
+    </div>
+
+    <div class="stop">
+      <div class="sid">S8</div><h4>The draft link, always</h4>
+      <p>Sent whatever happens, with a one-line inventory of what actually went in: "12 photos, a 40-second note, no location." This is simultaneously the escape hatch Meta requires and the one NN/g recommends.</p>
+      <span class="free">Free</span>
+    </div>
+
+    <div class="stop">
+      <div class="sid">S9</div><h4>The polish offer — priced before the spend</h4>
+      <p>Writing prose from the transcript, and describing photographs. Offered once per day folder, with the number stated first. Short on credits? He is told, and the free draft still publishes. <strong>The free version is never a hostage.</strong></p>
+      <span class="paid">Credits · the only paid step</span>
+    </div>
+
+    <div class="stop">
+      <div class="sid">S13</div><h4>One nudge, at +20h</h4>
+      <p>Inside his own window so it is free-form and free, and only if a gap is open and the draft unpublished. Window closed — send nothing. He has the link; the page holds the state. It says so out loud: <em>"That's the only reminder I'll send."</em></p>
+      <span class="free">Free</span>
+    </div>
+
+    <div class="stop end">
+      <div class="sid">S10</div><h4>Publish — owner, explicit, in words</h4>
+      <p>The bot restates what is about to go live, then offers the button, <strong>never in the same message</strong>. A thumbs-up is not consent. Silence is not consent. "Looks good" is not consent. Afterwards it reports what the call returned — never "published!" because it was asked for.</p>
+      <span class="free">Free</span>
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:32px"><strong>Already works:</strong> publishing from WhatsApp resolves through <code>isHelperOwner</code> on the v1 helper route, which accepts a WhatsApp caller. The v2 route is unreachable from chat — no path connects a trusted caller to a bearer session. Leave it on v1; moving it means touching <code>mayActAsOwner</code>, which is a security-review gate.</p>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Seen from his phone</div>
+    <h2>Eight scenarios, four worth looking at</h2>
+    <p style="color:var(--ink-mute);font-size:.95rem">Tone rules held throughout: state only what arrived, name what is missing rather than filling it, one ask per turn. No exclamation marks. No "Great!". No invented place, meal, weather or feeling.</p>
+  </div>
+
+  <div class="rail">
+
+    <div class="phone">
+      <div class="cap"><span class="t">1 · Happy path</span><span class="d">Evening, active trip, everything present</span></div>
+      <div class="screen">
+        <div class="attach">◳ 12 photos</div>
+        <div class="bub bot">Got 12 photos. Give me a moment.</div>
+        <div class="attach">▮ voice 0:47</div>
+        <div class="bub bot">Transcribed your note — that spent 1 credit.
+The photos are dated 14 September and eight of them have GPS, all in Kanazawa. I've put them on that day.
+<span class="lnk">fernscout.ch/severin/japan-2026/2026-09-14</span>
+Cover is the first photo of the day. Title is empty.
+
+Want me to write the day up from your note? That's 4 credits. Without it the note goes in as you spoke it.</div>
+        <div class="btns"><b class="pick">Write it up</b><b>Leave as spoken</b><b>Not now</b></div>
+        <div class="bub him">Write it up</div>
+        <div class="bub bot">Done — 4 credits, 38 left.
+Title: "Kanazawa, the long way round". The text is from your note, nothing added.
+
+It's a draft. Nobody can see it yet.</div>
+        <div class="bub him">that's good. publish it</div>
+        <div class="bub bot">Publishing 14 September, "Kanazawa, the long way round", 12 photos, to fernscout.ch/severin.</div>
+        <div class="btns"><b class="pick">Publish it</b><b>Not yet</b></div>
+        <div class="bub bot">Published. It's live.</div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="cap"><span class="t">3 · Location gap</span><span class="d">Photos with no GPS at all</span></div>
+      <div class="screen">
+        <div class="attach">◳ 6 photos</div>
+        <div class="bub bot">Got 6 photos, dated today.
+None of them carry GPS, so I don't know where you were.
+Send a location pin, or just tell me the place.</div>
+        <div class="bub him">somewhere up above Wengen, I don't know the name</div>
+        <div class="bub bot">I'll put "above Wengen" as the location and leave the coordinates empty — you can drop an exact point on the page later.
+<span class="lnk">fernscout.ch/severin/alps-2026/2026-09-16</span></div>
+        <div class="sys">— it writes his words, not a guessed summit or trail name —</div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="cap"><span class="t">5 · Redirect, mid-flow</span><span class="d">He sends a contact card</span></div>
+      <div class="screen">
+        <div class="attach">▤ Mika Tanaka.vcf</div>
+        <div class="bub bot">I only do days here — one day at a time, photos and notes.
+People go on <span class="lnk">fernscout.ch/severin/people</span>, and invites are on <span class="lnk">fernscout.ch/severin/readers</span>.
+
+Back to 14 September: still no location on it. A pin or a place name and it's done.</div>
+        <div class="sys">— boundary, link, straight back to the open job —
+— no apology, no offer to try anyway —</div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="cap"><span class="t">7 · Out of credits</span><span class="d">The free draft must still publish</span></div>
+      <div class="screen">
+        <div class="attach">◳ 7 photos</div>
+        <div class="attach">▮ voice 1:12</div>
+        <div class="bub bot">Got 7 photos and your note, on 16 September.
+<span class="lnk">fernscout.ch/severin/japan-2026/2026-09-16</span>
+
+Writing the day up from your note is 4 credits. Your balance is 1.
+The draft stands either way — your note is in it word for word, and you can publish it as it is.</div>
+        <div class="btns"><b class="pick">Publish as it is</b><b>Top up</b></div>
+        <div class="bub him">publish as it is</div>
+        <div class="bub bot">Publishing 16 September, no title, 7 photos, your note as you spoke it.</div>
+        <div class="btns"><b class="pick">Publish it</b><b>Not yet</b></div>
+        <div class="bub bot">Published.</div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <div class="cap"><span class="t">8 · Silence</span><span class="d">The one nudge, then nothing</span></div>
+      <div class="screen">
+        <div class="sys">Tuesday 20:15</div>
+        <div class="attach">◳ 11 photos</div>
+        <div class="bub bot">Got 11 photos, dated today, all with GPS in Hakone. Filed on 15 September.
+<span class="lnk">fernscout.ch/severin/japan-2026/2026-09-15</span>
+No title and nothing written yet. Tell me about the day whenever you like.</div>
+        <div class="sys">… silence …</div>
+        <div class="sys">Wednesday 16:15 · +20h · inside his window</div>
+        <div class="bub bot">Yesterday's 11 photos from Hakone are still a draft with nothing written on it.
+Send me a voice note and I'll write it up, or finish it here: <span class="lnk">fernscout.ch/severin/japan-2026/2026-09-15</span>
+
+That's the only reminder I'll send.</div>
+        <div class="sys">… silence …</div>
+        <div class="sys">Window closes 20:15.
+Nothing further. Ever.
+The draft waits on the web.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">The mechanism</div>
+    <h2>The folder is the record. The chat is a cache.</h2>
+  </div>
+  <div class="pair">
+    <div>
+      <p style="margin-bottom:18px">The 24-hour thread TTL stops being a problem the moment conversational memory is no longer where state lives. A dropped thread loses turns; it loses nothing that matters. The next message resolves to the same date, opens the same folder, reads the same file, and carries on mid-sentence.</p>
+      <p class="note"><strong>Three fields on the existing <code>day.json</code></strong> — no new file format, and the merge-patch writer already in <code>lib/dayReadiness.ts</code> takes them unchanged.</p>
+      <ul class="clean" style="margin-top:22px">
+        <li><strong>stage</strong> — so a reconnecting funnel knows whether it is collecting, drafted, or waiting on a publish confirmation</li>
+        <li><strong>asked</strong> — so it never re-asks a question he answered three messages and one expiry ago</li>
+        <li><strong>draftWords</strong> — today <code>draft_words</code> writes nothing, so a draft dies with the thread and the credits are spent for nothing</li>
+      </ul>
+    </div>
+    <div>
+<pre><span class="c">// content/&lt;user&gt;/inbox/days/2026-09-14/day.json</span>
+{
+  <span class="k">"without"</span>:   ["location"],
+  <span class="k">"unrecorded"</span>: [],
+  <span class="k">"weatherAsked"</span>: false,
+
+  <span class="c">// added by the funnel —</span>
+  <span class="c">// three fields, one existing writer</span>
+  <span class="k">"funnel"</span>: {
+    <span class="k">"stage"</span>:  <span class="k">"drafted"</span>,
+    <span class="k">"asked"</span>:  <span class="k">"location"</span>,
+    <span class="k">"asksSent"</span>: 1,
+    <span class="k">"nudgedAt"</span>: null,
+    <span class="k">"draftWords"</span>: {
+      <span class="k">"title"</span>: <span class="k">"Kanazawa, the long way round"</span>,
+      <span class="k">"prose"</span>: <span class="k">"…"</span>,
+      <span class="k">"warnings"</span>: []
+    }
+  }
+}</pre>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Where the money goes</div>
+    <h2>Free is the default, and free is complete</h2>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Step</th><th>Model?</th><th>Cost</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Day resolution</strong></td><td class="no">none</td><td class="yes">free</td><td>EXIF date, message timestamp, trip range</td></tr>
+        <tr><td><strong>Folder + staging</strong></td><td class="no">none</td><td class="yes">free</td><td>Files moved into the day, deduped by hash</td></tr>
+        <tr><td><strong>Mechanical draft</strong></td><td class="no">none</td><td class="yes">free</td><td>Gallery, cover, coordinates, transcript verbatim</td></tr>
+        <tr><td><strong>Gap questions</strong></td><td class="no">none</td><td class="yes">free*</td><td>Deterministic — *until 1 Oct 2026, when each reply is billable</td></tr>
+        <tr><td>Transcription</td><td>yes</td><td>metered</td><td>Already charged at arrival, not here</td></tr>
+        <tr><td>Write the day up</td><td>yes</td><td><code>WRITE_DAY_CREDITS</code></td><td>Prose from his note. Offered, priced, declinable</td></tr>
+        <tr><td>Describe photographs</td><td>yes</td><td>metered</td><td>Same offer, same turn</td></tr>
+        <tr><td><strong>Publish</strong></td><td class="no">none</td><td class="yes">free</td><td>Owner only, explicit words, restated first</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note" style="margin-top:22px"><strong>One caution from the build map:</strong> shrinking the WhatsApp tool list to six will likely drop the prompt under Haiku's 4,096-token cache floor, silently losing the caching saving. The <code>readers</code> area already sits at ~3,990, under the line. Worth measuring, not discovering.</p>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Before building</div>
+    <h2>Still open</h2>
+  </div>
+  <div class="col">
+    <ul class="clean open">
+      <li><strong>Is 3 days the right tail?</strong> It covers the flight home plus one jetlagged evening. Longer, and a stray photo silently attaches itself to a finished trip.</li>
+      <li><strong>Does the funnel ever ask for a title?</strong> Currently folded into the confirmation. The alternative is never asking and letting the page handle it.</li>
+      <li><strong>What happens to the other six tool areas on WhatsApp?</strong> Redirect is the plan — but <code>switch_area</code> can currently widen back to everything, so the restriction has to bite in <code>runTool</code>, not just in what the model is offered.</li>
+      <li><strong>Hungarian.</strong> Every string here needs a real <code>hu</code> entry. Nobody on this has working Hungarian, and the repo rule forbids inventing one — this is a hand-off, not a to-do.</li>
+      <li><strong>Utility template for the closed-window case?</strong> Currently: send nothing. An approved utility template would allow one late nudge, at the cost of an approval cycle and a real per-message fee.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <span>Fernscout · concept 1 of 3</span><span style="color:var(--rule)">·</span>
+  <span>Next: the import hub, and the plan</span>
+</footer>
+
+</div>

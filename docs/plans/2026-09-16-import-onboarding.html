@@ -1,0 +1,549 @@
+<title>Bring It In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --cream-50:#fffaf0; --cream-100:#fff3dc; --cream-200:#ffe9bd;
+  --navy-900:#1e293b; --navy-700:#3a4a63; --navy-500:#5a6a80; --navy-300:#aeb7c5;
+  --navy-200:#d8dee8; --navy-100:#eceef4;
+  --yellow-300:#ffe08a; --yellow-400:#ffd23f; --yellow-600:#d69b0a; --yellow-950:#4a3300;
+  --green-100:#ddf3e4; --green-700:#15803d;
+  --blue-500:#2f6fed;
+  --coral:#c2405f;
+
+  --ground:var(--cream-50); --panel:#fffdf7; --panel-2:var(--cream-100);
+  --ink:var(--navy-900); --ink-body:var(--navy-700); --ink-mute:var(--navy-500); --ink-faint:#8490a2;
+  --rule:#ecdfc6; --rule-soft:#f4ead7;
+  --accent:var(--yellow-400); --accent-deep:var(--yellow-600);
+  --live:var(--green-700); --live-soft:var(--green-100);
+  --warn:var(--coral); --warn-soft:#fdeaef;
+  --screen:#ffffff;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ground:#171d29; --panel:#1d2532; --panel-2:#222b3a;
+    --ink:#f2ecdd; --ink-body:#e6e0d2; --ink-mute:#b3b6bd; --ink-faint:#9298a3;
+    --rule:#33405a; --rule-soft:#2a3446;
+    --accent-deep:var(--yellow-300);
+    --live:#22c55e; --live-soft:#1c3327;
+    --warn:#f38ba6; --warn-soft:#33191f;
+    --screen:#222b3a;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#171d29; --panel:#1d2532; --panel-2:#222b3a;
+  --ink:#f2ecdd; --ink-body:#e6e0d2; --ink-mute:#b3b6bd; --ink-faint:#9298a3;
+  --rule:#33405a; --rule-soft:#2a3446;
+  --accent-deep:var(--yellow-300);
+  --live:#22c55e; --live-soft:#1c3327;
+  --warn:#f38ba6; --warn-soft:#33191f;
+  --screen:#222b3a;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--ground);color:var(--ink-body);
+  font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:16px;line-height:1.6;
+  margin:0;padding-inline:20px;padding-block:0 72px;-webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1100px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3,h4{font-family:Fredoka,"Plus Jakarta Sans",sans-serif;color:var(--ink);text-wrap:balance;margin:0}
+h1{font-size:clamp(2.4rem,6vw,3.9rem);font-weight:600;line-height:1.02;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.2vw,2.05rem);font-weight:600;line-height:1.14;letter-spacing:-.01em}
+h3{font-size:1.18rem;font-weight:600}
+h4{font-size:1rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent-deep);text-underline-offset:3px}
+:focus-visible{outline:2.5px solid var(--blue-500);outline-offset:2px;border-radius:3px}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.85em}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+
+header.mast{padding-block:clamp(44px,8vw,86px) clamp(30px,5vw,50px);border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:20px}
+.mark{display:flex;align-items:center;gap:11px}
+.mark span{font-family:Fredoka,sans-serif;font-weight:600;color:var(--ink);font-size:1.02rem}
+.standfirst{font-size:clamp(1.05rem,2.1vw,1.3rem);color:var(--ink-body);max-width:56ch;line-height:1.5}
+.standfirst strong{color:var(--ink);font-weight:600}
+.mastmeta{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.tag{display:inline-flex;align-items:center;gap:7px;font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:999px;border:1px solid var(--rule);color:var(--ink-mute);background:var(--panel)}
+.tag.hot{border-color:var(--accent);background:var(--accent);color:var(--yellow-950)}
+.tag.bad{border-color:transparent;background:var(--warn-soft);color:var(--warn)}
+
+section{padding-block:clamp(40px,6vw,66px);border-bottom:1px solid var(--rule-soft)}
+section:last-of-type{border-bottom:0}
+.shead{display:flex;flex-direction:column;gap:12px;margin-bottom:30px}
+.shead p{color:var(--ink-mute);font-size:.95rem;max-width:64ch}
+
+/* alarm */
+.alarm{border:1px solid var(--warn);border-radius:14px;overflow:hidden;background:var(--panel)}
+.alarm .top{background:var(--warn-soft);padding:16px 22px;display:flex;flex-wrap:wrap;gap:12px;align-items:baseline}
+.alarm .top h3{color:var(--warn)}
+.alarm .top .k{font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--warn)}
+.alarm .body{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.alarm p{font-size:.93rem;color:var(--ink-mute);max-width:66ch}
+.alarm strong{color:var(--ink)}
+pre{background:var(--panel-2);border:1px solid var(--rule);border-radius:10px;padding:15px 17px;overflow-x:auto;margin:0;font-family:"IBM Plex Mono",monospace;font-size:.78rem;line-height:1.7;color:var(--ink-body)}
+pre .ok{color:var(--live)}
+pre .bad{color:var(--warn)}
+pre .c{color:var(--ink-faint)}
+
+/* skeleton steps */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.steps article{background:var(--panel);padding:20px 18px;display:flex;flex-direction:column;gap:8px}
+.steps .n{font-family:Fredoka,sans-serif;font-size:1.5rem;font-weight:600;color:var(--accent-deep);line-height:1}
+.steps h4{color:var(--ink);font-size:.97rem}
+.steps p{font-size:.85rem;color:var(--ink-mute);line-height:1.5}
+.steps article.write{background:var(--accent)}
+.steps article.write .n,.steps article.write h4{color:var(--yellow-950)}
+.steps article.write p{color:var(--yellow-950);opacity:.82}
+
+/* screens */
+.rail{display:flex;gap:18px;overflow-x:auto;padding-block:6px 18px;scroll-snap-type:x mandatory}
+.rail::-webkit-scrollbar{height:9px}
+.rail::-webkit-scrollbar-thumb{background:var(--navy-200);border-radius:9px}
+.mock{flex:0 0 330px;scroll-snap-align:start;display:flex;flex-direction:column;gap:10px}
+.mock>.cap{display:flex;gap:9px;align-items:baseline}
+.mock .cap .s{font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--accent-deep);letter-spacing:.08em}
+.mock .cap .t{font-weight:600;color:var(--ink);font-size:.92rem}
+.win{background:var(--screen);border:1px solid var(--rule);border-radius:14px;padding:20px 19px;display:flex;flex-direction:column;gap:13px;min-height:410px}
+.dots{display:flex;gap:5px;align-items:center;margin-bottom:2px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--navy-200);display:block}
+.dots i.on{background:var(--accent-deep);width:19px;border-radius:4px}
+.win h5{font-family:Fredoka,sans-serif;font-size:1.13rem;font-weight:600;color:var(--ink);margin:0;line-height:1.24}
+.win p{font-size:.845rem;color:var(--ink-mute);line-height:1.55}
+.win p.promise{color:var(--ink);background:var(--live-soft);padding:10px 12px;border-radius:9px;font-size:.8rem;border-left:3px solid var(--live)}
+.win p.warnline{color:var(--ink);background:var(--warn-soft);padding:10px 12px;border-radius:9px;font-size:.8rem;border-left:3px solid var(--warn)}
+.win ol{margin:0;padding-left:19px;font-size:.825rem;color:var(--ink-mute);line-height:1.62;display:flex;flex-direction:column;gap:5px}
+.win ol b{color:var(--ink)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--rule);margin-bottom:2px}
+.tabs b{font-size:.78rem;padding:6px 11px;border-radius:7px 7px 0 0;color:var(--ink-faint);font-weight:500}
+.tabs b.on{background:var(--panel-2);color:var(--ink);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent-deep)}
+.shot{background:var(--panel-2);border:1px dashed var(--rule);border-radius:9px;padding:13px;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--ink-faint);text-align:center;line-height:1.55}
+.shot em{color:var(--accent-deep);font-style:normal}
+.btnrow{display:flex;flex-wrap:wrap;gap:7px;margin-top:auto;padding-top:8px}
+.btn{font-size:.79rem;font-weight:600;padding:9px 14px;border-radius:9px;background:var(--accent);color:var(--yellow-950);border:1px solid var(--accent)}
+.btn.ghost{background:transparent;color:var(--ink-mute);border-color:var(--rule);font-weight:500}
+.door{border:1px solid var(--rule);border-radius:10px;padding:12px 13px;display:flex;flex-direction:column;gap:6px;background:var(--panel)}
+.door .dt{font-weight:600;color:var(--ink);font-size:.85rem}
+.door p{font-size:.78rem}
+.wait{font-family:"IBM Plex Mono",monospace;font-size:.72rem;color:var(--ink-faint);display:flex;align-items:center;gap:7px}
+.stat{display:flex;flex-direction:column;gap:2px;padding:11px 0;border-bottom:1px solid var(--rule-soft)}
+.stat .v{font-family:Fredoka,sans-serif;font-size:1.45rem;font-weight:600;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:.76rem;color:var(--ink-mute)}
+.rows{display:flex;flex-direction:column;font-size:.8rem}
+.rows .r{display:flex;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid var(--rule-soft)}
+.rows .r span.nm{color:var(--ink);font-weight:500;flex:1}
+.rows .r span.em{color:var(--ink-faint);font-family:"IBM Plex Mono",monospace;font-size:.72rem}
+.rows .r.off{opacity:.55}
+.rows .r .bx{width:14px;height:14px;border:1.5px solid var(--navy-300);border-radius:3px;flex:none}
+.rows .r .bx.on{background:var(--accent-deep);border-color:var(--accent-deep)}
+.rows .r .bx.no{border-style:dashed}
+.why{font-size:.72rem;color:var(--warn);font-family:"IBM Plex Mono",monospace}
+.radio{display:flex;gap:8px;align-items:flex-start;font-size:.8rem;color:var(--ink-mute);padding:5px 0}
+.radio i{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--navy-300);flex:none;margin-top:3px;display:block}
+.radio i.on{border-color:var(--accent-deep);border-width:4px}
+.radio b{color:var(--ink);font-weight:600}
+
+/* table */
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.855rem;min-width:720px}
+th,td{text-align:left;padding:12px 15px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace;font-size:.67rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+tr:last-child td{border-bottom:0}
+td strong{color:var(--ink);font-weight:600}
+.pill{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.pill.done{background:var(--live-soft);color:var(--live)}
+.pill.half{background:var(--cream-200);color:var(--yellow-950)}
+.pill.none{background:var(--warn-soft);color:var(--warn)}
+
+ul.clean{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:13px}
+ul.clean li{display:flex;gap:11px;font-size:.93rem;color:var(--ink-mute);line-height:1.52}
+ul.clean li::before{content:"";flex:none;width:9px;height:9px;margin-top:7px;background:var(--accent);transform:rotate(45deg);border-radius:2px}
+ul.clean li strong{color:var(--ink);font-weight:600}
+ul.clean.open li::before{background:transparent;border:2px solid var(--navy-300);border-radius:50%;transform:none;width:10px;height:10px;margin-top:6px}
+.note{border-left:3px solid var(--accent);padding:3px 0 3px 17px;font-size:.95rem;color:var(--ink-body);max-width:62ch}
+.note strong{color:var(--ink)}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:26px}
+footer{padding-top:34px;color:var(--ink-faint);font-size:.83rem;display:flex;flex-wrap:wrap;gap:8px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="mark">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M5 27 C 9 19, 11 13, 22 6" stroke="#ffe9bd" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      <path d="M11.5 20.5 L 17 15 L 22.5 20.5 L 17 26 Z" fill="#ffd23f"/>
+      <circle cx="24.5" cy="7.5" r="3.2" fill="#15803d"/>
+    </svg>
+    <span>Fernscout</span>
+  </div>
+  <div class="eyebrow">Concept 2 of 3 · The import hub</div>
+  <h1>Bring It In</h1>
+  <p class="standfirst">Four kinds of thing a person already owns, stuck in four places that do not want to give them up. <strong>One flow, five steps, no manual</strong> — because the page teaches at the moment of need or nobody learns at all.</p>
+  <div class="mastmeta">
+    <span class="tag hot">Draft concept</span>
+    <span class="tag">16 Sept 2026</span>
+    <span class="tag bad">1 live bug found</span>
+  </div>
+</header>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Found while researching the copy</div>
+    <h2>Android location imports silently do nothing</h2>
+  </div>
+  <div class="alarm">
+    <div class="top">
+      <span class="k">Verified, not inferred</span>
+      <h3>The file is accepted and produces zero positions</h3>
+    </div>
+    <div class="body">
+      <p>Google moved Timeline onto the phone in 2024. Android and iOS now write <strong>different files with different shapes</strong> — and the Android one passes our detector, then parses to nothing. No error, no warning. The person waits, sees an empty map, and concludes the feature is broken. It is.</p>
+<pre><span class="c">// both shapes fed to importers/gps/google-timeline.ts</span>
+iOS/documented        detect=true  fixes=<span class="ok">1</span>
+Android Timeline.json detect=true  fixes=<span class="bad">0</span>   <span class="c">← accepted, imports nothing</span></pre>
+      <p><strong>Cause:</strong> <code>parseGeoUri()</code> in <code>importers/gps/schema.ts:48</code> requires a <code>geo:</code> prefix. Android writes <code>"35.0116°, 135.7681°"</code>. The object wrapper is fine — <code>detect</code> already matches <code>semanticSegments</code> and <code>parse</code> unwraps it, which is precisely why it gets far enough to fail quietly.</p>
+      <p>Other Android/iOS divergences the parser will meet next: <code>placeId</code> vs <code>placeID</code>, numbers as strings, and <code>visit.placeLocation</code> being a direct string rather than nested under <code>latLng</code>.</p>
+      <p class="note" style="border-color:var(--warn)"><strong>This blocks the Location flow.</strong> Writing beautiful step-by-step instructions that send half your users to a file the importer eats and discards makes the experience worse, not better. Fix the parser first; it is a separate, small, testable ticket.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">The skeleton</div>
+    <h2>Five steps, and only one of them changes anything</h2>
+    <p>Every import type wears the same shape. NN/g's wizard rules apply exactly: this is unfamiliar, infrequent work, the steps must be visible, and the person must be able to leave and come back. Nothing is written until the last button — and that button is named after what it does, never "Continue".</p>
+  </div>
+  <div class="steps">
+    <article><span class="n">1</span><h4>Why</h4><p>What this gets you, and what will never happen to it. The privacy promise lives here, at the question — not in a footer.</p></article>
+    <article><span class="n">2</span><h4>Get it</h4><p>Platform-tabbed steps with a screenshot per tap, naming the exact filename to expect.</p></article>
+    <article><span class="n">3</span><h4>Deliver it</h4><p>Two doors: send it on WhatsApp, or pick it here. Equal weight, same destination.</p></article>
+    <article><span class="n">4</span><h4>Peek</h4><p>What we read, stated in real numbers. Nothing written yet, and it says so.</p></article>
+    <article class="write"><span class="n">5</span><h4>Decide → write</h4><p>The check-answers screen. Every row changeable. The only step that touches the journal.</p></article>
+  </div>
+  <p class="note" style="margin-top:28px"><strong>The rule that kills the docs:</strong> NN/g's wizard guidance says each step must be <em>self-sufficient</em> — needing no information from elsewhere in the app. Measured against that, the <code>/docs/extract</code> link sitting at the bottom of the hub today isn't a helpful extra. It's the bug.</p>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Location history · the hardest one</div>
+    <h2>Six screens, end to end</h2>
+    <p>Hardest because the data is the most sensitive thing in the repository, the export moved house, and the two platforms disagree about everything including the filename.</p>
+  </div>
+  <div class="rail">
+
+    <div class="mock">
+      <div class="cap"><span class="s">L1</span><span class="t">Why</span></div>
+      <div class="win">
+        <div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+        <h5>Where you actually went</h5>
+        <p>Your phone has been quietly keeping a line of where you were. Bring it here and your trip gets a real map — the roads you took, not a straight line between two hotels.</p>
+        <p class="promise"><strong>This is the most private thing in your journal, and it is treated that way.</strong> The full history is never published, never shown to a visitor, and never leaves this server. What visitors see is a single line for one trip, trimmed to that trip's dates and nothing else.</p>
+        <div class="shot">[ two small maps, side by side ]<br><em>left: two pins, dashed straight line, greyed</em><br><em>right: the same, following real roads</em><br>caption — "Without · With"</div>
+        <div class="btnrow"><span class="btn">Show me how to get it</span><span class="btn ghost">Not now</span></div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="cap"><span class="s">L2</span><span class="t">Get it</span></div>
+      <div class="win">
+        <div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i></div>
+        <h5>Get the file off your phone</h5>
+        <p>Google moved this onto your phone in 2024 — it is not in your Google account any more, and Takeout will not give it to you. It takes about twenty seconds on the phone itself.</p>
+        <div class="tabs"><b class="on">Android</b><b>iPhone</b></div>
+        <ol>
+          <li>Open your phone's <b>Settings</b> app — not Google Maps.</li>
+          <li><b>Location</b> → <b>Location services</b> → <b>Timeline</b></li>
+          <li>Tap <b>Export Timeline data</b>, then <b>Continue</b></li>
+          <li>Choose where to save it, tap <b>Save</b></li>
+        </ol>
+        <p>You will get a file called <code>Timeline.json</code>. That is the one.</p>
+        <div class="shot">[ 3 cropped phone shots in a row ]<br><em>one yellow ring per shot, on the thing to tap</em><br>no arrows, no numbers on the image —<br>the list carries that</div>
+        <div class="btnrow"><span class="btn">I have the file</span><span class="btn ghost">I cannot find it</span></div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="cap"><span class="s">L3</span><span class="t">Deliver it</span></div>
+      <div class="win">
+        <div class="dots"><i></i><i></i><i class="on"></i><i></i><i></i></div>
+        <h5>Send it over</h5>
+        <p>Two ways. Both end up in the same place.</p>
+        <div class="door">
+          <span class="dt">Send it on WhatsApp</span>
+          <p>Opens a chat with your journal. Attach the file with the paperclip and choose <b>Document</b> — sending it as a photo will not work for this.</p>
+          <span class="btn" style="align-self:flex-start">Open WhatsApp</span>
+        </div>
+        <div class="door">
+          <span class="dt">Pick the file here</span>
+          <p>If the file is already on this device.</p>
+          <span class="btn ghost" style="align-self:flex-start">Choose a file</span>
+        </div>
+        <p class="warnline"><strong>Waiting for your file.</strong> This page is watching. It appears here by itself.</p>
+        <div class="wait">⟳ nothing yet · checked 4s ago</div>
+        <div class="btnrow"><span class="btn ghost">Finish this later</span></div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="cap"><span class="s">L4</span><span class="t">Peek</span></div>
+      <div class="win">
+        <div class="dots"><i></i><i></i><i></i><i class="on"></i><i></i></div>
+        <h5>Here is what we read</h5>
+        <div class="stat"><span class="v">41,207</span><span class="l">positions read</span></div>
+        <div class="stat"><span class="v">12 – 28 Mar 2025</span><span class="l">the span they cover</span></div>
+        <div class="stat"><span class="v">14 of 16 days</span><span class="l">of Japan 2025 — and no day of any other trip</span></div>
+        <p class="promise"><strong>Nothing has been written yet, and nothing is visible to anyone.</strong> This is a read.</p>
+        <div class="shot">[ bounding extent only, greyed ]<br><em>an area — deliberately not the route</em><br>"Roughly this area. The line gets drawn<br>next, for the trips you choose."</div>
+        <div class="btnrow"><span class="btn">Choose what to do with it</span><span class="btn ghost">That is not right</span></div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="cap"><span class="s">L4b</span><span class="t">Peek · it failed</span></div>
+      <div class="win">
+        <div class="dots"><i></i><i></i><i></i><i class="on"></i><i></i></div>
+        <h5>We could not read that file</h5>
+        <p class="warnline">It came through as <code>photo_2025.jpg</code>, which is a picture, not a Timeline export. On WhatsApp, attach it with the paperclip and choose <b>Document</b> — sending a file as a photo changes it.</p>
+        <p>Every failure names the likely cause and the way back. A wizard that can only go forward strands people at exactly the step they got wrong.</p>
+        <div class="shot">the other common causes, each with<br>its own sentence —<br><em>wrong app · pre-2024 Takeout ·<br>an export that is genuinely empty</em></div>
+        <div class="btnrow"><span class="btn">Back to the steps</span><span class="btn ghost">Try another file</span></div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="cap"><span class="s">L5</span><span class="t">Decide</span></div>
+      <div class="win">
+        <div class="dots"><i></i><i></i><i></i><i></i><i class="on"></i></div>
+        <h5>What happens to it</h5>
+        <p style="color:var(--ink);font-weight:600;font-size:.82rem">Draw a track for these trips</p>
+        <div class="rows">
+          <div class="r"><span class="bx on"></span><span class="nm">Japan 2025</span><span class="em">14 days covered</span></div>
+          <div class="r off"><span class="bx no"></span><span class="nm">Iceland 2024</span><span class="em">no positions</span></div>
+        </div>
+        <p>Each trip's line is trimmed to that trip's own dates. Nothing outside those dates is ever drawn, or ever visible.</p>
+        <p style="color:var(--ink);font-weight:600;font-size:.82rem">The rest of your history</p>
+        <div class="radio"><i class="on"></i><span><b>Keep it, privately</b> — stays on this server, only you can reach it, future trips can use it</span></div>
+        <div class="radio"><i></i><span><b>Throw it away</b> after drawing the tracks</span></div>
+        <div class="btnrow"><span class="btn">Draw the track for Japan 2025</span></div>
+      </div>
+    </div>
+
+  </div>
+  <p class="note" style="margin-top:6px"><strong>Note the last button.</strong> It is generated from what was ticked — GOV.UK's check-answers rule: name the action, never "Continue". "Draw the track for Japan 2025" tells you what is about to happen while you can still stop it.</p>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Contacts · the most stubbed</div>
+    <h2>Where it stops today, and where it should stop</h2>
+    <p>Today the contacts flow stages a vCard and tells you to go to <code>/agent</code>. The parser is real; only the browser door is missing. These two screens are the whole gap.</p>
+  </div>
+  <div class="rail">
+
+    <div class="mock">
+      <div class="cap"><span class="s">C2</span><span class="t">Get it</span></div>
+      <div class="win">
+        <div class="dots"><i></i><i class="on"></i><i></i><i></i><i></i></div>
+        <h5>Just the people from the trip</h5>
+        <p>You do not need your whole address book here — and you should not bring it. Pick the handful of people who were actually on this trip.</p>
+        <div class="tabs"><b>Android</b><b class="on">iPhone</b><b>Google</b></div>
+        <p>The iPhone cannot share several contacts at once. Two ways round it:</p>
+        <ol>
+          <li><b>One at a time</b> — open a contact, <b>Share Contact</b>, save it. Repeat.</li>
+          <li><b>All at once, from a computer</b> — <b>icloud.com</b> → <b>Contacts</b> → select → gear → <b>Export vCard</b></li>
+        </ol>
+        <p class="warnline">A contact without an email address cannot be added — a contact here is kept by its address.</p>
+        <div class="btnrow"><span class="btn">I have the file</span><span class="btn ghost">I cannot find it</span></div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="cap"><span class="s">C4</span><span class="t">Peek</span></div>
+      <div class="win">
+        <div class="dots"><i></i><i></i><i></i><i class="on"></i><i></i></div>
+        <h5>Seven people on that card</h5>
+        <p>Tick who was actually on the trip. Nobody is added until you press the button, and nobody hears from this journal until they confirm their own address.</p>
+        <div class="rows">
+          <div class="r"><span class="bx on"></span><span class="nm">Anna Keller</span><span class="em">anna@…</span></div>
+          <div class="r"><span class="bx on"></span><span class="nm">Marek Dvořák</span><span class="em">marek@…</span></div>
+          <div class="r off"><span class="bx on"></span><span class="nm">Yuki Tanaka</span><span class="em">already a contact</span></div>
+          <div class="r off"><span class="bx no"></span><span class="nm">Hans Müller</span><span class="why">no email — cannot be added</span></div>
+        </div>
+        <p><strong>2 of these have no email address</strong> and cannot become contacts this way.</p>
+        <p class="promise">Never silently dropped. A person who exported seven and sees three must be told what happened to the other four, inline, with the reason.</p>
+        <div class="btnrow"><span class="btn">Decide about the 2 I ticked</span></div>
+      </div>
+    </div>
+
+    <div class="mock">
+      <div class="cap"><span class="s">C5</span><span class="t">Decide</span></div>
+      <div class="win">
+        <div class="dots"><i></i><i></i><i></i><i></i><i class="on"></i></div>
+        <h5>Who they are to this journal</h5>
+        <p style="color:var(--ink);font-weight:600;font-size:.84rem">Anna Keller · anna@…</p>
+        <div class="radio"><i class="on"></i><span><b>Was on the trip</b> — can be named on a day, can be sent things</span></div>
+        <div class="radio"><i></i><span><b>Just gets to read it</b> — receives a link, appears nowhere in the journal</span></div>
+        <div class="rows" style="margin-top:4px">
+          <div class="r"><span class="bx on"></span><span class="nm">Japan 2025</span></div>
+          <div class="r"><span class="bx"></span><span class="nm">Iceland 2024</span></div>
+        </div>
+        <p class="promise"><strong>What happens when you press the button:</strong> each of these gets one mail asking whether they want anything from this journal. Until each one answers, they receive nothing else — not a postcard, not a day letter, not a link.</p>
+        <div class="btnrow"><span class="btn">Add 2 people and send their confirmations</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">All four</div>
+    <h2>What each one peeks at, and what it asks</h2>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th></th><th>Photographs</th><th>Location</th><th>Contacts</th><th>Costs</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Why</strong></td>
+          <td>Days write themselves from what you shot</td>
+          <td>A line on the map that is actually where you went</td>
+          <td>The people who were there, so they can be named</td>
+          <td>What the trip cost, in real numbers</td>
+        </tr>
+        <tr>
+          <td><strong>Promise</strong></td>
+          <td>Originals kept as print masters</td>
+          <td><strong>Never published.</strong> Public map shows one clipped line</td>
+          <td>Nobody contacted until they confirm themselves</td>
+          <td>Nothing leaves this server; no account linked</td>
+        </tr>
+        <tr>
+          <td><strong>Peek shows</strong></td>
+          <td>Thumbnails by day · how many carry GPS · span</td>
+          <td>Fix count · date span · days covered · extent only</td>
+          <td>Name · email · who exists · who <em>can't</em> be added</td>
+          <td>Detected bank · first 10 rows · span · problems</td>
+        </tr>
+        <tr>
+          <td><strong>Decide asks</strong></td>
+          <td>New or existing trip · which days · stays a draft</td>
+          <td>Which trips get a track · keep or discard the raw</td>
+          <td>Guest or buddy · which trips</td>
+          <td>Which trip · category per row · currency check</td>
+        </tr>
+        <tr>
+          <td><strong>Write button</strong></td>
+          <td>"Make these days (as drafts)"</td>
+          <td>"Draw the track for Japan 2025"</td>
+          <td>"Add 3 people and send their confirmations"</td>
+          <td>"File 47 costs to Japan 2025"</td>
+        </tr>
+        <tr>
+          <td><strong>Built today</strong></td>
+          <td><span class="pill done">Full flow</span></td>
+          <td><span class="pill half">Writes, no peek/decide</span></td>
+          <td><span class="pill none">Stub — stops at staged</span></td>
+          <td><span class="pill none">Reads, never writes</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">The second door</div>
+    <h2>WhatsApp as a file-transfer device</h2>
+  </div>
+  <div class="pair">
+    <div>
+      <p style="margin-bottom:18px">The file is on the phone. The screen is on the desk. That split is the whole reason both doors exist — and it needs almost no new plumbing, because inbound WhatsApp media already lands in <code>content/&lt;user&gt;/inbox/</code> within seconds.</p>
+      <ul class="clean">
+        <li><strong>The link</strong> is <code>wa.me/&lt;number&gt;?text=…</code> — one tap on a phone, a QR code on desktop captioned "scan with the phone that has the file"</li>
+        <li><strong>Always, in bold, under the button:</strong> attach with the paperclip → <em>Document</em>. Sent as a photo, the file is re-encoded and the location is thrown away. The dispatch code already documents this</li>
+        <li><strong>The page watches</strong> — records <code>openedAt</code>, polls every 3s, first file arriving after that with a matching extension wins</li>
+        <li><strong>After ~10 minutes</strong> it stops and says so, with the browser door as the fallback</li>
+      </ul>
+      <p class="note" style="margin-top:22px"><strong>One route to build:</strong> <code>listInbox()</code> exists in <code>lib/inbox.ts</code>, but only the bearer-token <code>GET /api/v2/&lt;user&gt;/inbox</code> exposes it. The cookie-side twin is roughly ten lines, and it is the only new plumbing either door needs.</p>
+      <p style="margin-top:18px;font-size:.9rem;color:var(--ink-mute)">No pairing code. Two simultaneous imports on one journal is not a real case, and a four-character code is a thing to type. Add one if inbox races actually show up.</p>
+    </div>
+    <div>
+      <div class="win" style="min-height:auto">
+        <h5 style="font-size:1rem">The prefilled messages</h5>
+        <pre style="font-size:.74rem">Location
+  <span class="c">Fernscout: here is my
+  Timeline export</span>
+
+Contacts
+  <span class="c">Fernscout: these are
+  the people</span>
+
+Costs
+  <span class="c">Fernscout: here is my
+  statement</span>
+
+Photographs
+  <span class="c">Fernscout: photographs
+  for my journal</span></pre>
+        <p style="font-size:.8rem">Short on purpose — WhatsApp shows this in the compose box and people do edit it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">The name</div>
+    <h2>Call it <span style="background:linear-gradient(transparent 62%,var(--accent) 62%)">import</span>, and keep the warmth in the heading</h2>
+  </div>
+  <div class="tw">
+    <table style="min-width:600px">
+      <thead><tr><th>Candidate</th><th>DE</th><th>HU</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Import</strong></td><td>Import</td><td>Importálás</td><td><strong>Take it.</strong> The word every app they just came from uses — Photos, Contacts, their bank. Zero teaching cost, works as a noun in all three. Boring, which is the point</td></tr>
+        <tr><td>Bring in</td><td>Mitbringen</td><td>Behozatal</td><td>Warmest, matches the current heading — but has no usable noun in DE/HU. "Behozatal" reads as customs. Breaks exactly where it must not</td></tr>
+        <tr><td>Collect</td><td>Sammeln</td><td>Gyűjtés</td><td>Nice for photos, wrong for a bank statement. Implies Fernscout goes and fetches, which it does not</td></tr>
+        <tr><td>Add</td><td>Hinzufügen</td><td>Hozzáadás</td><td>Already means "add a day", "add a trip". Collides</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note" style="margin-top:24px">The route and the nav label are the boring word. The <strong>heading</strong> is free to be a sentence, and should stay one: <em>"What do you want to bring in?"</em> · <em>"Was möchtest du mitbringen?"</em></p>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Before building</div>
+    <h2>Costs, and what's still open</h2>
+  </div>
+  <div class="pair">
+    <div>
+      <ul class="clean">
+        <li><strong>~215 <code>extract.*</code> locale keys × 3 languages</strong> get renamed with the route. Budget for it, and run <code>npm run i18n:keys</code> after</li>
+        <li><strong>B1803 is in development on these exact files right now.</strong> A rename would collide head-on. Sequence it, don't parallelise it</li>
+        <li><strong>B1797 is already in testing</strong> and is literally "the import drops a person onto a bare file picker with no framing" — check its outcome before re-scoping this</li>
+        <li><strong>Deleting the docs is a locale change too</strong> — <code>docs.extract.title</code>, <code>extract.hub.guideHint</code> and <code>guideLink</code> all go</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="clean open">
+        <li><strong>Hungarian is not written.</strong> Every string in this concept has an EN and DE line; the HU lines are drafts nobody confident in the language has checked. The repo rule forbids shipping an invented translation</li>
+        <li><strong>Google Photos Takeout sidecars</strong> — location lives in a <code>*.supplemental-metadata.json</code> next to a stripped image. Read it, or tell people to run exiftool? Reading it is kinder and not much code</li>
+        <li><strong>Which banks after Revolut?</strong> Wise and N26 are the traveller defaults; CAMT.053 XML would cover most Swiss banks with one parser</li>
+        <li><strong>Do the screenshots get maintained?</strong> Google moved this export once already. A screenshot that lies is worse than prose</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>Fernscout · concept 2 of 3</span><span style="color:var(--rule)">·</span>
+  <span>Next: the plan — what gets built, in what order</span>
+</footer>
+
+</div>
