@@ -398,6 +398,49 @@ Inbound on the new number. No real inbound message has arrived yet — the one
 webhook callback per send has been a status, never a message. Test it after
 billing unblocks the send, so a single round trip proves both directions.
 
+## Both directions proven on the new number — 2026-09-16
+
+The full round trip, from the log rather than from assertion:
+
+```
+19:05:02  POST /api/webhooks/whatsapp
+19:05:03  [helper-cache] ask_thread in=588 out=9
+19:05:04  [helper-cache] ask_thread in=484 out=37
+19:05:06  POST /api/webhooks/whatsapp      <- the reply's statuses
+19:05:07  POST /api/webhooks/whatsapp
+```
+
+An inbound message reached the webhook, dispatch ran, **the helper answered**,
+and the answer was delivered. Outbound templates, inbound messages and the
+conversational reply all work on +44 7862 131685.
+
+**A successful inbound message logs nothing.** `[whatsapp:inbound]` appears
+only on a rate-limit or a handler error, so grepping for it to prove arrival
+reports failure on a working system. Use the `POST /api/webhooks/whatsapp`
+request line and what follows it instead. This cost a wrong "inbound is not
+working" call during this migration.
+
+## What remains — the personal SIM is still registered
+
+**`+41 78 217 26 46` reads `CONNECTED` / `VERIFIED` on WABA
+1043886595223059.** Nothing about the new number changes that, and it is the
+whole reason this ticket exists.
+
+Outstanding, in order:
+
+1. **Tell contacts from the old number while it still works.** There is no
+   "Change Number" notification for a Cloud API number with no app presence.
+   Threads on contacts' phones do not follow.
+2. **Deregister it** — `POST /1253568101181150/deregister`, 2FA/PIN off
+   first, before the SIM lapses. 10 calls per number per rolling 72 hours;
+   over that is `133016` and a further 72-hour lock.
+3. Optional: business verification on portfolio `1154303934071130`. Still
+   `not_verified`; it is portfolio-level, so it now carries regardless of
+   number.
+
+Until step 2 is done the risk B1067 recorded is unchanged, however well the
+new number works.
+
 ## Work
 
 1. ~~Prove inbound on the GB number.~~ **Done 2026-09-15 — see below.**
