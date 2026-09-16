@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (201)
+## backlog (204)
 
 ### security (1)
 
@@ -57,15 +57,18 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 
-### issue (12)
+### issue (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
+| [B1808](backlog/issue/B1808-check-page-mjs-captures-dark-mode.md) | check-page.mjs captures dark mode when asked for light, so every light-theme screenshot this repository has taken may be dark | ISSUE | high | low |
 | [B1819](backlog/issue/B1819-an-android-location-export-is-accepted.md) | An Android location export is accepted and imports nothing | ISSUE | high | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
 | [B1540](backlog/issue/B1540-the-country-is-in-every-exported.md) | The country is in every exported photo and the helper throws it away, so the photobook says "elsewhere" on every day | ISSUE | medium | low |
+| [B1827](backlog/issue/B1827-committing-an-untitled-day-into-a.md) | Committing an untitled day into a trip whose originals already hold a day folder is refused as slug_taken | ISSUE | medium | low |
+| [B1828](backlog/issue/B1828-a-finished-import-keeps-offering-continue.md) | A finished import keeps offering Continue and warns about photographs already in the journal | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -347,14 +350,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1803](in-development/B1803-the-import-talks-about-photographs-the.md) | The import talks about photographs the person cannot see | FEATURE | high | high | `0e7f2abd` |
 
-## testing (17)
+## testing (18)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -363,6 +365,7 @@ _Nothing here._
 | [B1798](testing/B1798-green-and-coral-text-fail-the.md) | Green and coral text fail the contrast floor in dark mode, across thirty-five components | ISSUE | high | low | — |
 | [B1799](testing/B1799-the-upload-list-pushes-the-page.md) | The upload list pushes the page wider than a phone viewport | ISSUE | high | low | — |
 | [B1802](testing/B1802-the-import-s-primary-buttons-are.md) | The import's primary buttons are cream on cream in dark mode, and its pages have no header | ISSUE | high | low | — |
+| [B1803](testing/B1803-the-import-talks-about-photographs-the.md) | The import talks about photographs the person cannot see | FEATURE | high | high | — |
 | [B1807](testing/B1807-an-import-has-no-size-limit.md) | Staging has no size limit, so one journal's abandoned imports can fill the disk | FEATURE | high | low | — |
 | [B1810](testing/B1810-colour-shades-the-theme-never-defined.md) | Colour shades the theme never defined fall back to Tailwind's own palette, so cards and banners stay light in dark mode | ISSUE | high | medium | — |
 | [B1811](testing/B1811-the-cover-step-shows-eight-photographs.md) | The cover step shows eight photographs and tells the person the rest come later | FEATURE | high | low | — |

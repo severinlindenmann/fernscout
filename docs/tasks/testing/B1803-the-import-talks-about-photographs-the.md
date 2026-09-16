@@ -7,8 +7,7 @@ complexity: high
 area: extract, design, photos, voice
 found: "2026-09-15T15:18:04Z"
 started: "2026-09-15T15:33:09Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-15T15:33:09Z"
+merged: "2026-09-16T22:01:37Z"
 ---
 
 # B1803 — The import talks about photographs the person cannot see
