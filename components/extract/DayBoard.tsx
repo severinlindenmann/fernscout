@@ -71,6 +71,34 @@ export function dayProgressPercent(answeredCount: number, openCount: number): nu
   return Math.round((answeredCount / total) * 100);
 }
 
+/**
+ * The design's primary button below the day list (S5a) — B1803 fix round 1.
+ * "It names the next day worth doing" is binding per the per-screen spec and
+ * design-v2.html:704, not a scope Phase 3's own three-bullet summary could
+ * narrow away. The day it names has to be real: the first *dated* group (in
+ * the run's own chronological order — `groupIntoDays` already sorts them,
+ * the undated group always last) whose status is not `"told"`. The undated
+ * group is never "the next day" — it has no weekday to name.
+ */
+export function nextDayToTell(
+  days: { date: string; undated: boolean; status: DayStatus }[],
+): string | undefined {
+  return days.find((d) => !d.undated && d.status !== "told")?.date;
+}
+
+/** The real weekday for a group's own date, in the reader's own language —
+ *  `Intl.DateTimeFormat`, not a hand-maintained list of translated weekday
+ *  names (`lib/extract/questions.ts` already has one, English-only, for a
+ *  reason that does not apply here: this is one placeholder in an otherwise
+ *  translated sentence, not a whole assembled sentence). Noon UTC, the same
+ *  fixed instant `questionsForDay` reads its own weekday from, so the day
+ *  cannot shift under a reader in a timezone behind or ahead of UTC. */
+export function weekdayLabel(date: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(
+    new Date(`${date}T12:00:00Z`),
+  );
+}
+
 const BADGE_CLASS: Record<DayStatus, string> = {
   told: "border-green-500 bg-green-100 text-green-700",
   noPlace: "border-coral-400 bg-coral-100 text-coral-600",
@@ -120,7 +148,7 @@ export default function DayBoard({
    *  for it, without this component knowing anything about resuming. */
   onLoaded?: (manifest: RunManifest) => void;
 }) {
-  const { t, tn } = useI18n();
+  const { t, tn, locale } = useI18n();
   const [data, setData] = useState<RunResponse | null>(null);
   const [error, setError] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -204,6 +232,13 @@ export default function DayBoard({
     (group) => !group.undated && statusFor(questions[keyFor(group)] ?? []) === "told",
   ).length;
   const daysTotal = countDays(groups);
+  const nextDate = nextDayToTell(
+    groups.map((group) => ({
+      date: group.date,
+      undated: group.undated,
+      status: statusFor(questions[keyFor(group)] ?? []),
+    })),
+  );
 
   return (
     <div className="mt-4">
@@ -346,6 +381,24 @@ export default function DayBoard({
           );
         })}
       </ul>
+
+      {/* The design's primary action (S5a) — real, not a queue: naming the
+       *  next untold day is a suggestion, not a requirement, hence "Any
+       *  order you like" right beneath it rather than a forced sequence. */}
+      {nextDate ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setSelected(nextDate)}
+            className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+          >
+            {t("extract.board.tellMeAbout", { weekday: weekdayLabel(nextDate, locale) })}
+          </button>
+          <p className="mt-2 text-xs text-ink-secondary">{t("extract.board.anyOrder")}</p>
+        </>
+      ) : (
+        <p className="mt-4 text-sm text-ink-secondary">{t("extract.board.allTold")}</p>
+      )}
 
       <button
         type="button"
