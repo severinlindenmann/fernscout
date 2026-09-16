@@ -65,7 +65,31 @@ ticket rather than being folded into this one.
 Not doing: any change to the print geometry. This is the on-screen preview only;
 the PDF is unaffected.
 
-## Acceptance
+## Findings
+
+`valid`. Applied the suggested override verbatim at `preview.ts:921`, beside
+the `.spread.solo` rule at `:916`.
+
+Measured with a real Chrome (CDP) against `example`'s "Across and back" trip
+(pre-existing content, not a fixture) via `/example/photobook`, comparing
+`.spread.solo figure` to an interior `.spread:not(.solo) figure` inside the
+iframe's own document:
+
+- Desktop (1280px), before: solo 78px vs interior 160px — exactly half the
+  width, a quarter of the area, as the trace predicted.
+- Desktop (1280px), after: solo 156px vs interior 160px — matches within 4px
+  (a pre-existing `calc(25% - .5rem)` vs `calc(50% - .5rem)` gap-arithmetic
+  rounding artifact, ~2.5%, not the doubling bug this ticket is about).
+- Phone (390px), before and after: solo 181.44px vs interior 181.44px, both
+  runs — unchanged, confirms the mobile rule (`:881`) was untouched and the
+  title page still takes half its snap step.
+
+Cover verdict: **settled, no second ticket.** At desktop width the front-cover
+panel (`.spread.cover figure.page.right`) measured 160px — identical to the
+interior page's 160px. The static reading held: `coverHtml` already uses the
+non-solo rules, so the cover was never mis-sized. The owner's "different
+scale" read was the tiny title page next to a full-width cover pair, which
+this fix resolves as a side effect.
 
 - At desktop width, a title-page figure and an interior day page in the same
   preview have the same computed width. Measured in a browser, on a trip that
