@@ -10,7 +10,7 @@ import { balanceOf, grant, spend } from "@/lib/credits";
 import { clearIdempotencyStore } from "@/lib/idempotency";
 import { clearLocaleCache } from "@/lib/locales";
 import { creditsForSeconds, speechLanguageFor } from "@/lib/helper/speech";
-import { DRY_RUN_TRANSCRIPT } from "@/lib/helper/transcribe";
+import { DRY_RUN_TRANSCRIPT, leastConfidentWord, UNCERTAIN_WORD_CONFIDENCE } from "@/lib/helper/transcribe";
 
 /**
  * Speech into text — B686.
@@ -394,6 +394,55 @@ describe("the dry-run backend", () => {
     const said = await real.transcribeAudio(Buffer.from("bytes"), "audio/webm", "hu");
     expect(said.text).toBe(DRY_RUN_TRANSCRIPT);
     expect(said.seconds).toBe(0);
+  });
+
+  // B1803 Task 3.4 — the check-the-wording screen has to work locally, with
+  // no Deepgram account, and it can only do that if dry-run hands it
+  // *something* to highlight. The word itself has to actually be in the
+  // canned transcript, or the screen would be pointing at nothing.
+  test("flags one of its own words uncertain, so the check-the-wording screen has something real to show", async () => {
+    vi.doUnmock("@/lib/helper/transcribe");
+    vi.resetModules();
+    const real = await vi.importActual<typeof import("@/lib/helper/transcribe")>(
+      "@/lib/helper/transcribe",
+    );
+    const said = await real.transcribeAudio(Buffer.from("bytes"), "audio/webm", "en");
+    expect(said.uncertainWord).toBeTruthy();
+    expect(DRY_RUN_TRANSCRIPT).toContain(said.uncertainWord as string);
+  });
+});
+
+describe("leastConfidentWord — the check-the-wording screen's own flag (B1803 Task 3.4)", () => {
+  test("names the single lowest-confidence word when it clears the bar", () => {
+    const flagged = leastConfidentWord([
+      { word: "we", punctuated_word: "We", confidence: 0.98 },
+      { word: "fuong", punctuated_word: "Fuong,", confidence: 0.41 },
+      { word: "think", punctuated_word: "think", confidence: 0.91 },
+    ]);
+    expect(flagged).toBe("Fuong,");
+  });
+
+  test("says nothing when every word is confident — silence, not a guess", () => {
+    expect(
+      leastConfidentWord([
+        { word: "we", confidence: 0.98 },
+        { word: "walked", confidence: 0.95 },
+      ]),
+    ).toBeUndefined();
+  });
+
+  test("says nothing at all when there is no per-word confidence — degrade to silence", () => {
+    expect(leastConfidentWord(undefined)).toBeUndefined();
+    expect(leastConfidentWord([])).toBeUndefined();
+  });
+
+  test("the threshold is the documented 0.6, not some other number nobody can see", () => {
+    expect(
+      leastConfidentWord([{ word: "x", confidence: UNCERTAIN_WORD_CONFIDENCE }]),
+    ).toBeUndefined();
+    expect(
+      leastConfidentWord([{ word: "x", confidence: UNCERTAIN_WORD_CONFIDENCE - 0.01 }]),
+    ).toBe("x");
   });
 });
 

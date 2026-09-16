@@ -134,6 +134,10 @@ export async function POST(
     language,
     spent: outcome.spent,
     provider: speechProvider(),
+    // The check-the-wording screen's own highlight (B1803 Task 3.4) —
+    // absent whenever nothing was measured confident enough to flag, never
+    // guessed here or on the client.
+    ...(outcome.uncertainWord ? { uncertainWord: outcome.uncertainWord } : {}),
   };
   await remember(key, fingerprint, answer);
   return Response.json(answer);

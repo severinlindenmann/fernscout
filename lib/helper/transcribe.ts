@@ -43,6 +43,54 @@ const DEEPGRAM_URL = "https://api.deepgram.com/v1/listen";
 export const DRY_RUN_TRANSCRIPT =
   "This is a dry-run transcript. No audio left this machine and nothing was written down.";
 
+/**
+ * `dry-run`'s own canned "uncertain word" — B1803 Task 3.4.
+ *
+ * The check-the-wording screen (S7b) needs *something* to highlight in
+ * local development, where there is no real Deepgram confidence to read.
+ * This is not a second fiction bolted onto the first: `DRY_RUN_TRANSCRIPT`
+ * above is already an explicitly-labelled fake sentence nobody spoke, and
+ * flagging one of its own words as "uncertain" stays inside that same,
+ * already-declared fake — it is not a real transcript wearing a fake
+ * confidence score.
+ */
+const DRY_RUN_UNCERTAIN_WORD = "machine";
+
+/**
+ * The line below which a word is shown to the person rather than trusted —
+ * B1803 Task 3.4. Deepgram's own confidence for a correctly heard common
+ * word is almost always well above 0.85; the words that actually slip
+ * (names, places, anything rare) tend to land in the 0.3–0.6 band the
+ * design's own example ("Ban Mi Fuong") is drawn from. 0.6 catches that
+ * band without flagging the ordinary, slightly-uncertain word every
+ * recording has a few of — a lower bar would turn this into background
+ * noise nobody reads, which is worse than not asking at all.
+ */
+export const UNCERTAIN_WORD_CONFIDENCE = 0.6;
+
+type DeepgramWord = { word: string; punctuated_word?: string; confidence?: number };
+
+/**
+ * The one word most worth a second look, or nothing — B1803 Task 3.4.
+ *
+ * Never a guess: this only ever names a word the provider itself measured
+ * low confidence on, and only the single lowest one, matching the design's
+ * own "one word looked uncertain" (singular). No `words` at all — an older
+ * response shape, a provider that does not return them — is answered with
+ * `undefined`, the same as every word clearing the bar: silence, not a
+ * guess dressed up as one.
+ */
+export function leastConfidentWord(words: DeepgramWord[] | undefined): string | undefined {
+  if (!words || words.length === 0) return undefined;
+  let worst: DeepgramWord | undefined;
+  for (const word of words) {
+    if (typeof word.confidence !== "number") continue;
+    if (!worst || word.confidence < (worst.confidence ?? 1)) worst = word;
+  }
+  if (!worst || (worst.confidence ?? 1) >= UNCERTAIN_WORD_CONFIDENCE) return undefined;
+  return worst.punctuated_word ?? worst.word;
+}
+
 /** @public Exported only for `test/helper-transcribe.test.ts`, which reaches
  * it through `vi.importActual` — a dynamic specifier knip cannot trace, so
  * the export would otherwise read as unused. B235. */
@@ -62,6 +110,13 @@ export type Transcript = {
    *  route reconciles the charge against it, so a caller under-reporting its
    *  own minutes is charged for the ones it actually used. */
   seconds: number;
+  /** The one word `leastConfidentWord` flagged, in the same form it appears
+   *  in `text` (punctuated, so it can be found there by substring) — or
+   *  absent, which the check-the-wording screen (S7b) shows as a plain
+   *  transcript with no highlight and no "one word looked uncertain" panel.
+   *  Never invented: this is either what the provider measured or nothing
+   *  at all. */
+  uncertainWord?: string;
 };
 
 /**
@@ -76,7 +131,7 @@ export async function transcribeAudio(
   owner?: string,
 ): Promise<Transcript> {
   if (speechBackend() !== "deepgram") {
-    return { text: DRY_RUN_TRANSCRIPT, seconds: 0 };
+    return { text: DRY_RUN_TRANSCRIPT, seconds: 0, uncertainWord: DRY_RUN_UNCERTAIN_WORD };
   }
 
   const url = new URL(DEEPGRAM_URL);
@@ -100,11 +155,15 @@ export async function transcribeAudio(
 
   const body = (await response.json()) as {
     metadata?: { duration?: number };
-    results?: { channels?: { alternatives?: { transcript?: string }[] }[] };
+    results?: {
+      channels?: { alternatives?: { transcript?: string; words?: DeepgramWord[] }[] }[];
+    };
   };
-  const text = body.results?.channels?.[0]?.alternatives?.[0]?.transcript;
+  const alternative = body.results?.channels?.[0]?.alternatives?.[0];
+  const text = alternative?.transcript;
   if (typeof text !== "string") throw new Error("deepgram: no transcript in the answer");
   const seconds = typeof body.metadata?.duration === "number" ? body.metadata.duration : 0;
+  const uncertainWord = leastConfidentWord(alternative?.words);
 
   // What the instance was billed — B746. Deepgram's own measured duration, not
   // the caller's claim, for the same reason the route reconciles the charge
@@ -121,5 +180,5 @@ export async function transcribeAudio(
     });
   }
 
-  return { text: text.trim(), seconds };
+  return { text: text.trim(), seconds, uncertainWord };
 }

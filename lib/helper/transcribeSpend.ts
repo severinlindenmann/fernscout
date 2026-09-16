@@ -29,7 +29,7 @@ import { transcribeAudio } from "./transcribe";
 
 /** What this refused, or what it produced. */
 export type TranscribeOutcome =
-  | { ok: true; text: string; seconds: number; spent: number }
+  | { ok: true; text: string; seconds: number; spent: number; uncertainWord?: string }
   | { ok: false; error: "no_credits" | "transcription_failed" | "recording_too_long"; cost: number };
 
 export async function spendAndTranscribe(
@@ -83,5 +83,11 @@ export async function spendAndTranscribe(
     spent = measured;
   }
 
-  return { ok: true, text: transcript.text, seconds: transcript.seconds, spent };
+  return {
+    ok: true,
+    text: transcript.text,
+    seconds: transcript.seconds,
+    spent,
+    uncertainWord: transcript.uncertainWord,
+  };
 }
