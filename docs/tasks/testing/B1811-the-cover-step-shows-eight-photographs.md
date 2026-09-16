@@ -7,8 +7,7 @@ complexity: low
 area: photobook composer
 found: "2026-09-16T18:10:51Z"
 started: "2026-09-16T18:14:22Z"
-session: 5728e1b2-3fad-40e0-b87e-adbfa4c2dc7f
-claimed: "2026-09-16T18:14:22Z"
+merged: "2026-09-16T19:18:48Z"
 ---
 
 # B1811 — The cover step shows eight photographs and tells the person the rest come later

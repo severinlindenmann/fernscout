@@ -7,8 +7,7 @@ complexity: low
 area: photobook preview
 found: "2026-09-16T18:10:56Z"
 started: "2026-09-16T18:14:23Z"
-session: 5728e1b2-3fad-40e0-b87e-adbfa4c2dc7f
-claimed: "2026-09-16T18:14:23Z"
+merged: "2026-09-16T19:18:49Z"
 ---
 
 # B1812 — The title page renders at a quarter the area of every other page in the preview

@@ -7,8 +7,7 @@ complexity: medium
 area: dark mode, photobook, postcards
 found: "2026-09-16T18:10:43Z"
 started: "2026-09-16T18:14:21Z"
-session: 5728e1b2-3fad-40e0-b87e-adbfa4c2dc7f
-claimed: "2026-09-16T18:14:21Z"
+merged: "2026-09-16T19:18:48Z"
 ---
 
 # B1810 — Colour shades the theme never defined fall back to Tailwind's own palette, so cards and banners stay light in dark mode

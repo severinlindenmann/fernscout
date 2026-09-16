@@ -339,18 +339,14 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (6)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
 | [B1803](in-development/B1803-the-import-talks-about-photographs-the.md) | The import talks about photographs the person cannot see | FEATURE | high | high | `0e7f2abd` |
-| [B1810](in-development/B1810-colour-shades-the-theme-never-defined.md) | Colour shades the theme never defined fall back to Tailwind's own palette, so cards and banners stay light in dark mode | ISSUE | high | medium | `5728e1b2` |
-| [B1811](in-development/B1811-the-cover-step-shows-eight-photographs.md) | The cover step shows eight photographs and tells the person the rest come later | FEATURE | high | low | `5728e1b2` |
-| [B1812](in-development/B1812-the-title-page-renders-at-a.md) | The title page renders at a quarter the area of every other page in the preview | ISSUE | high | low | `5728e1b2` |
-| [B1814](in-development/B1814-a-run-of-days-with-no.md) | A run of days with no country prints one Anderswo divider page each, not one chapter | ISSUE | high | low | `5728e1b2` |
 
-## testing (13)
+## testing (17)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -360,6 +356,10 @@ _Nothing here._
 | [B1799](testing/B1799-the-upload-list-pushes-the-page.md) | The upload list pushes the page wider than a phone viewport | ISSUE | high | low | — |
 | [B1802](testing/B1802-the-import-s-primary-buttons-are.md) | The import's primary buttons are cream on cream in dark mode, and its pages have no header | ISSUE | high | low | — |
 | [B1807](testing/B1807-an-import-has-no-size-limit.md) | Staging has no size limit, so one journal's abandoned imports can fill the disk | FEATURE | high | low | — |
+| [B1810](testing/B1810-colour-shades-the-theme-never-defined.md) | Colour shades the theme never defined fall back to Tailwind's own palette, so cards and banners stay light in dark mode | ISSUE | high | medium | — |
+| [B1811](testing/B1811-the-cover-step-shows-eight-photographs.md) | The cover step shows eight photographs and tells the person the rest come later | FEATURE | high | low | — |
+| [B1812](testing/B1812-the-title-page-renders-at-a.md) | The title page renders at a quarter the area of every other page in the preview | ISSUE | high | low | — |
+| [B1814](testing/B1814-a-run-of-days-with-no.md) | A run of days with no country prints one Anderswo divider page each, not one chapter | ISSUE | high | low | — |
 | [B1751](testing/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | — |
 | [B1787](testing/B1787-a-synced-folder-can-never-agree.md) | A synced folder can never agree with the site, because the weather it answers with may not be sent back | ISSUE | medium | medium | — |
 | [B1789](testing/B1789-a-photograph-whose-local-bytes-differ.md) | A photograph whose local bytes differ from the site's derivative is planned, never sent, and reported as a push that did not land, on every run | ISSUE | medium | medium | — |
