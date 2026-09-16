@@ -247,3 +247,28 @@ PHASE 3 COMPLETE — 7 screens across 3 groups, 3 fix rounds.
 PHASE 4 — the voice language question. Infrastructure exists and the UI never
 asks: SPEECH_LANGUAGES in lib/helper/speech.ts is already ["en","de","de-CH","hu"]
 and the transcribe route already takes an explicit `language` override.
+
+FINAL WHOLE-BRANCH REVIEW: DO-NOT-MERGE. Ten findings, one a persistent crash.
+Verify was green through all of them — the fourth time on this feature that a
+green suite proved nothing about the defect that mattered.
+
+Ruling (finding 1, the crash): fix at every layer it passes through, because
+each one is independently wrong. weekdayLabel must not throw on a date it
+cannot parse; suggestCompanion must not cite a day that has no date (there is
+no "on Tuesday" for an undated day); and extract/day must validate the date
+shape rather than accepting any string. The undated group's own date IS "" by
+design and its answers must remain storable, so "" is valid input to the route
+and invalid input to anything that formats a weekday.
+
+Ruling (finding 2): manifest.mode is read by nothing, so "Type it out" is
+stored and ignored. Read it. An answer a person gave that changes nothing is
+worse than never asking - it is the inert-field class this repository already
+has a rule about.
+
+Ruling (finding 4, credits): the row must never show 0 while the person was
+charged. Thread the run onto the speech spend's ref so the figure can be true.
+If that cannot be done cleanly, HIDE the row - an absent figure is honest, a
+wrong one is not. Do not leave it showing 0.
+
+Ruling (finding 6): the journal slug is not a person's name. Empty field with
+the placeholder; a name is typed by a person or it does not exist.
