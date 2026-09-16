@@ -73,6 +73,7 @@ export default function RecordButton({
   icon,
   compactClassName,
   language: fixedLanguage,
+  run,
   hold: holdToTalk = true,
   maxSeconds = MAX_SPEECH_SECONDS,
   onSettled,
@@ -85,6 +86,12 @@ export default function RecordButton({
    *  server, since the client never has the config to answer this itself.
    *  `"dry-run"` on an instance with no transcriber configured — B744. */
   provider: string;
+  /** The staging import run this recording is being made inside, when there
+   *  is one — B1803 final review, finding 4. Sent to the transcribe route,
+   *  which puts it on the ledger ref so that import's own "Credits spent"
+   *  row can name what the voice answers really cost. Absent everywhere
+   *  else this button is mounted, which leaves the ref exactly as it was. */
+  run?: string;
   disabled?: boolean;
   /** An icon inside somebody else's box rather than a button of its own —
    *  B767. The host must be `relative`, since the icon pins itself to the
@@ -346,6 +353,7 @@ export default function RecordButton({
               seconds: held,
               language,
               locale,
+              ...(run ? { run } : {}),
               // One key per recording, so a tap that times out and is retried is
               // answered rather than charged twice.
               idempotency_key: `${started.current}/${blob.size}`,
@@ -378,7 +386,7 @@ export default function RecordButton({
         onSettled?.();
       }
     },
-    [language, locale, onSettled, onText, t, username],
+    [language, locale, onSettled, onText, run, t, username],
   );
 
   const start = useCallback(async () => {

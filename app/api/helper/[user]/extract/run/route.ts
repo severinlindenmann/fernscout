@@ -6,20 +6,11 @@ import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { geodataAvailable, reverseGeocode } from "@/lib/ingest/geo";
 import { PHOTO_VISIBILITIES, parsePhotoVisibility } from "@/lib/photos";
 import { extendOnTouch, spentOnRun } from "@/lib/staging/expiry";
-import { readManifest, writeManifest, type DayRow, type RunManifest } from "@/lib/staging/manifest";
+import { DATE_RE, readManifest, writeManifest, type DayRow, type RunManifest } from "@/lib/staging/manifest";
 import { removeRun } from "@/lib/staging/store";
 import { captionProblem } from "@/lib/validate/media";
 
 export const dynamic = "force-dynamic";
-
-/**
- * `yyyy-mm-dd` with month and day in range — not a calendar (30 February
- * passes), but past this a caller cannot hand back "banana" or "../../etc":
- * this value becomes a folder name under `inbox/days/<date>/` once a later
- * task commits it, so a bare format check earns its keep even without a real
- * calendar behind it.
- */
-const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 
 /** Stable key for the response's `questions` map — a group's own `date`,
  *  except the one undated group, whose `date` is `""` and would collide with

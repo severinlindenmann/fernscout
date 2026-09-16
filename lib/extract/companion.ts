@@ -53,6 +53,11 @@ const WORD_RE = /^[A-Z][a-zA-Z'-]{1,30}$/;
  * English and Hungarian both capitalise proper nouns only, so the signal
  * means something in both and the suggestion stands there.
  *
+ * `site/locales/de.json`'s own `extract.whoCame.suggestion` therefore can
+ * never render, **by design** — it is kept only so the three locale files
+ * stay key-for-key identical (`npm run i18n:keys`). Do not "fix" the gate
+ * below to make that German string appear.
+ *
  * ponytail: a capitalised-word heuristic, not a real name-entity
  * recognizer — even gated to a language where capitalisation is
  * informative, it can still miss a name given only once, or snag a
@@ -114,6 +119,16 @@ export function suggestCompanion(manifest: RunManifest, locale: string): Compani
   // only ever as a sentence's own first word.
   const datesFor = new Map<string, Set<string>>();
   for (const { date, sentences } of perDay) {
+    // A day with no date of its own — the undated group's, whose `date` is
+    // `""` (`lib/extract/group.ts`), carried onto a `DayRow` by
+    // `POST .../extract/day` — can never be one of the days a name is
+    // *cited* on: there is no "on Tuesday" to say about it, and the screen
+    // that prints these dates formats each one as a weekday. It still took
+    // part in pass one above, so its answers can confirm a word is used as
+    // a name; it simply contributes no date, which means a name mentioned
+    // on one real day plus an undated one stays below the two-day bar and
+    // is not suggested. B1803 final review, finding 1.
+    if (!date) continue;
     for (const words of sentences) {
       for (const raw of words) {
         const word = clean(raw);

@@ -169,3 +169,72 @@ describe("the day board's day count matches what FoundStep already promised", ()
     expect(container!.textContent).not.toContain("of 3 days told");
   });
 });
+
+/**
+ * B1803 final review, finding 5 — the counter beside the bar and the bar
+ * itself disagreed. The bar's denominator is `answered + open`; the card's
+ * was `open` alone, so it shrank as answers landed and the same remaining
+ * question re-read itself as "1 of 1" while the bar sat at 50%. A
+ * question's position within a day has to be stable while the day is being
+ * answered.
+ */
+describe("a question's position within its day is stable as answers land", () => {
+  function stubPartlyAnswered() {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        if (!String(input).includes("/extract/run")) throw new Error(`unexpected fetch: ${input}`);
+        return {
+          ok: true,
+          json: async () => ({
+            manifest: {
+              version: 1,
+              runId: "run-1",
+              owner: "alex",
+              createdAt: "2026-09-01T00:00:00.000Z",
+              expiresAt: "2026-09-05T00:00:00.000Z",
+              tripId: null,
+              mode: "type",
+              state: "telling",
+              photos: [],
+              // One of this day's two questions is already answered.
+              days: [{ date: "2026-06-02", answered: ["q1"], words: "We walked." }],
+            },
+            groups: [{ date: "2026-06-02", photoIds: [], undated: false }],
+            questions: { "2026-06-02": [{ id: "q2", kind: "opening", text: "And then?" }] },
+          }),
+        } as Response;
+      }),
+    );
+  }
+
+  test("the one question left of two reads '2 of 2', matching the bar's own 50%", async () => {
+    stubPartlyAnswered();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root!.render(
+        <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+          <DayBoard username="alex" runId="run-1" consentedSpeech={false} speechProvider="" onLeave={() => {}} />
+        </LocaleProvider>,
+      );
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const dayButton = [...container!.querySelectorAll("button")].find((b) =>
+      b.textContent?.includes("2026-06-02"),
+    )!;
+    await act(async () => {
+      dayButton.click();
+    });
+
+    // The question counter in the card's own header, right after the day's
+    // weekday — "day 1 of 1" beside it is the *day* label and is correct.
+    expect(container!.textContent).toContain("Tuesday2 of 2");
+    expect(container!.innerHTML).toContain("width: 50%");
+  });
+});

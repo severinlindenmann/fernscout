@@ -531,6 +531,41 @@ describe("the run and day routes with the capability on", () => {
     expect(body.day.answered).toEqual(["follow-up:2019-07-02"]);
   });
 
+  // B1803 final review, finding 1 — the route checked only that `date` was
+  // a string, so a `""` (the undated group's own date, which must stay
+  // storable) and a "banana" were equally acceptable and both landed on the
+  // manifest as a `DayRow`. The shape is what has to be checked: the
+  // undated group's empty date, or a real yyyy-mm-dd, and nothing else.
+  test("POST .../day refuses a date that is neither empty nor yyyy-mm-dd", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    const res = await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({ run: runId, date: "banana", questionId: "q", answer: "Hi." }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(400);
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.days).toHaveLength(0);
+  });
+
+  test("POST .../day still stores the undated group's own answers, whose date is ''", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    const res = await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({ run: runId, date: "", questionId: "when:undated", answer: "Some time in July." }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(200);
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.days[0]).toMatchObject({ date: "", answered: ["when:undated"] });
+  });
+
   test("R2 — POST .../day on a warned run extends it", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     const { readManifest, writeManifest } = await import("@/lib/staging/manifest");

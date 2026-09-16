@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { committedDays } from "@/components/extract/PreviewScreen";
+import { photosForDate } from "@/lib/extract/dayCount";
 import { useI18n } from "@/components/LocaleProvider";
 import type { RunManifest } from "@/lib/staging/manifest";
 
@@ -91,16 +92,13 @@ export default function ReadyScreen({
 
   const { manifest, spentCredits } = data;
   const days = committedDays(manifest);
-  const photosById = new Map(manifest.photos.map((p) => [p.id, p]));
-  const committedPhotoIds = new Set<string>();
-  for (const day of manifest.days) {
-    if (!day.committed) continue;
-    for (const p of manifest.photos) {
-      if (p.date === day.date && !p.dropped) committedPhotoIds.add(p.id);
-    }
-  }
-  const photoCount = committedPhotoIds.size;
-  const heldBack = [...committedPhotoIds].filter((id) => photosById.get(id)?.visibility === "private").length;
+  // Counted the way `lib/extract/commit.ts` actually moved them —
+  // `photosForDate`, the one shared rule, not this screen's own reading of
+  // `photo.date` (which missed every photograph the camera had dated and
+  // nobody had touched) — B1803 final review, finding 3.
+  const committedPhotos = days.flatMap((day) => photosForDate(manifest.photos, day.date));
+  const photoCount = committedPhotos.length;
+  const heldBack = committedPhotos.filter((p) => p.visibility === "private").length;
 
   return (
     <div className="mt-4 flex flex-col gap-4">
@@ -181,16 +179,19 @@ export default function ReadyScreen({
       >
         {t("extract.ready.publish")}
       </Link>
-      {/* Does nothing — leaving it as a draft is already the state this
-       *  screen is reporting. The button exists so the choice is named and
-       *  visible, matching the design, not because it has an action of its
-       *  own to perform. */}
-      <button
-        type="button"
+      {/* B1803 final review, finding 9. This was a primary-looking button
+       *  with an `onClick` that did nothing, which reads as broken. Leaving
+       *  it as a draft is not an action to perform — it is already the
+       *  state this screen is reporting — so the honest affordance is the
+       *  way *out* of the flow: the trip these days landed in, or the
+       *  journal itself when nothing was committed. Nothing is published,
+       *  changed or written by following it. */}
+      <Link
+        href={manifest.tripId && days.length > 0 ? `/${username}/trips/${manifest.tripId}` : `/${username}`}
         className="inline-flex min-h-11 items-center justify-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong"
       >
         {t("extract.ready.keepAsDraft")}
-      </button>
+      </Link>
     </div>
   );
 }

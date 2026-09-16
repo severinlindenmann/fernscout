@@ -39,9 +39,18 @@ export async function spendAndTranscribe(
   mediaType: string,
   language: SpeechLanguage,
   claimedSeconds: number,
+  /** The staging run this recording was made inside, when there is one —
+   *  B1803 final review, finding 4. It only changes the ledger ref: an
+   *  import's own "Credits spent" row reads `spentOnRun`, which matches
+   *  `extract:<runId>` and `extract:<runId>:…`, so without the run on the
+   *  ref every voice answer in an import was money charged that the import
+   *  could not account for, and the row hid itself showing nothing. The
+   *  shape is checked by the route that supplies it. */
+  runId?: string,
 ): Promise<TranscribeOutcome> {
   const credits = creditsForSeconds(claimedSeconds);
-  const ledgerRef = `${username}/speech/${Math.ceil(claimedSeconds)}s`;
+  const seconds = Math.ceil(claimedSeconds);
+  const ledgerRef = runId ? `extract:${runId}:speech:${seconds}s` : `${username}/speech/${seconds}s`;
   if (!(await spend(username, credits, "transcription", ledgerRef))) {
     return { ok: false, error: "no_credits", cost: credits };
   }

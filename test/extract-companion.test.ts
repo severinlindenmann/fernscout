@@ -118,4 +118,33 @@ describe("suggestCompanion", () => {
     );
     expect(result).toBeNull();
   });
+  // B1803 final review, finding 1 — the exact repro from the review. The
+  // undated group's own date is `""`, and a `""` in `dates` becomes "on
+  // <Invalid Date>" the moment the screen formats it. There is no "on
+  // Tuesday" for a day with no date, so an undated day never contributes a
+  // date at all. It can still *confirm* a word is used as a name (pass
+  // one), it simply cannot be one of the two days that word has to appear
+  // on, which is why one dated day plus one undated day suggests nothing.
+  test("a day with no date of its own is never one of the days a name is cited on", () => {
+    const result = suggestCompanion(
+      manifest([
+        { date: "", answered: [], words: "We met Nora at the hostel." },
+        { date: "2019-07-02", answered: [], words: "Dinner with Nora again." },
+      ]),
+      "en",
+    );
+    expect(result).toBeNull();
+  });
+
+  test("two real dates still suggest, and the undated day beside them adds no empty date", () => {
+    const result = suggestCompanion(
+      manifest([
+        { date: "", answered: [], words: "We met Nora at the hostel." },
+        { date: "2019-07-02", answered: [], words: "Dinner with Nora again." },
+        { date: "2019-07-03", answered: [], words: "Nora came to the market with us." },
+      ]),
+      "en",
+    );
+    expect(result).toEqual({ name: "Nora", dates: ["2019-07-02", "2019-07-03"] });
+  });
 });

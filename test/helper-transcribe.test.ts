@@ -363,6 +363,42 @@ describe("the ledger", () => {
   });
 });
 
+/**
+ * B1803 final review, finding 4 — "Credits spent" on the import's own last
+ * screen read `spentOnRun`, which matches `extract:<runId>` refs only, while
+ * every transcription in that import was written under `<user>/speech/<n>s`.
+ * Twenty questions answered by voice, twenty charges, and the row hid itself
+ * because the figure was zero. The run the recording belongs to now rides on
+ * the ledger ref, so the figure can be true.
+ */
+describe("a recording made inside an import run", () => {
+  beforeEach(async () => {
+    await consent();
+  });
+
+  test("is charged against that run, so the import's own credits row can name it", async () => {
+    const { spentOnRun } = await import("@/lib/staging/expiry");
+    const done = await read(await call({ run: "run-1" }));
+    expect(done.body.spent).toBe(0.04);
+    expect(await spentOnRun("alex", "run-1")).toBe(0.04);
+  });
+
+  test("a recording outside any run is charged to nobody's run", async () => {
+    const { spentOnRun } = await import("@/lib/staging/expiry");
+    await read(await call());
+    expect(await spentOnRun("alex", "run-1")).toBe(0);
+  });
+
+  test("a refunded recording is not reported as spent", async () => {
+    const { spentOnRun } = await import("@/lib/staging/expiry");
+    transcribeAudio.mockRejectedValueOnce(new Error("deepgram is unhappy"));
+    const failed = await read(await call({ run: "run-1" }));
+    expect(failed.status).toBe(502);
+    expect(await balanceOf("alex")).toBe(10);
+    expect(await spentOnRun("alex", "run-1")).toBe(0);
+  });
+});
+
 describe("the audio itself", () => {
   test("is not written anywhere — not under the content root, not under the data dir", async () => {
     await consent();

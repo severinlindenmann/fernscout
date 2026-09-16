@@ -61,13 +61,13 @@ function stubRun(manifest: Record<string, unknown>, groups: unknown[] = [], trip
   );
 }
 
-async function render() {
+async function render(locale = "en") {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
     root!.render(
-      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
+      <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
         <PreviewScreen username="alex" runId="run-1" />
       </LocaleProvider>,
     );
@@ -122,9 +122,15 @@ describe("the preview screen", () => {
     stubRun(
       baseManifest({
         tripId: "japan-2026",
+        // Real rows: a photograph only lands in a dated group because it
+        // carries a `takenAt` of its own (`lib/extract/group.ts`), and that
+        // reading is what `commitDay` moves it by. The fixture used to
+        // carry neither date — nothing the commit path could ever have
+        // moved — which is what let the screen's group-based count look
+        // right while disagreeing with the journal (final review, finding 3).
         photos: [
-          { id: "p1", filename: "p1.jpg", bytes: 1, kind: "image" },
-          { id: "p2", filename: "p2.jpg", bytes: 1, kind: "image" },
+          { id: "p1", filename: "p1.jpg", bytes: 1, kind: "image", takenAt: "2026-06-01T09:00:00" },
+          { id: "p2", filename: "p2.jpg", bytes: 1, kind: "image", takenAt: "2026-06-01T11:00:00" },
         ],
         days: [{ date: "2026-06-01", answered: ["q1"], committed: true, entrySlug: "first-day" }],
       }),
@@ -159,9 +165,15 @@ describe("the preview screen", () => {
     stubRun(
       baseManifest({
         tripId: "vietnam-2019",
+        // Real rows: a photograph only lands in a dated group because it
+        // carries a `takenAt` of its own (`lib/extract/group.ts`), and that
+        // reading is what `commitDay` moves it by. The fixture used to
+        // carry neither date — nothing the commit path could ever have
+        // moved — which is what let the screen's group-based count look
+        // right while disagreeing with the journal (final review, finding 3).
         photos: [
-          { id: "p1", filename: "p1.jpg", bytes: 1, kind: "image" },
-          { id: "p2", filename: "p2.jpg", bytes: 1, kind: "image" },
+          { id: "p1", filename: "p1.jpg", bytes: 1, kind: "image", takenAt: "2019-07-02T09:00:00" },
+          { id: "p2", filename: "p2.jpg", bytes: 1, kind: "image", takenAt: "2019-07-05T11:00:00" },
         ],
         days: [
           { date: "2019-07-02", answered: ["q1"], committed: true, entrySlug: "day-1" },
@@ -213,5 +225,55 @@ describe("the preview screen", () => {
 
     expect(container!.textContent).toContain("Severin");
     expect(container!.textContent).toContain("Nora");
+  });
+});
+
+/**
+ * B1803 final review, findings 3 and 7.
+ *
+ * Finding 3: this screen counted a day's photographs by the server's own
+ * `takenAt` clustering while `ReadyScreen` counted `photo.date` and
+ * `lib/extract/commit.ts` moved them by `date ?? takenAt` — three readings
+ * of one fact. A photograph the person dated by hand (no `takenAt` of its
+ * own, so still in the undated *group*) was committed into the journal and
+ * then described here as one that "wasn't added either".
+ *
+ * Finding 7: `new Intl.ListFormat()` with no locale joins names in English
+ * whatever the reader's language is.
+ */
+describe("the preview screen counts what was really committed", () => {
+  const datedByHand = {
+    tripId: "japan-2026",
+    photos: [
+      { id: "p1", filename: "p1.jpg", bytes: 1, kind: "image", takenAt: "2026-06-01T10:00:00" },
+      // No `takenAt` — so the server's grouping leaves it in the undated
+      // group — but the person set its date on the board, which is what
+      // `commitDay` actually moves it by.
+      { id: "p2", filename: "p2.jpg", bytes: 1, kind: "image", date: "2026-06-01" },
+    ],
+    days: [{ date: "2026-06-01", answered: ["q1"], committed: true, entrySlug: "first-day" }],
+  };
+  const groups = [
+    { date: "2026-06-01", photoIds: ["p1"], undated: false },
+    { date: "", photoIds: ["p2"], undated: true },
+  ];
+
+  test("a photograph the person dated counts as added, and is never called 'not added'", async () => {
+    stubRun(baseManifest(datedByHand), groups, { title: "Japan" });
+    await render();
+
+    expect(container!.textContent).toContain("2 photographs");
+    expect(container!.textContent).not.toMatch(/wasn't added either/);
+  });
+
+  test("travellers' names are joined in the reader's own language", async () => {
+    stubRun(
+      baseManifest({ ...datedByHand, partyNames: ["Nora", "Peter"] }),
+      groups,
+      { title: "Japan" },
+    );
+    await render("de");
+
+    expect(container!.textContent).toContain("Nora und Peter");
   });
 });

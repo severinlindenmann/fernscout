@@ -61,6 +61,8 @@ export default function AskCard({
   consentedSpeech,
   speechProvider,
   speechLanguage,
+  answerMode,
+  runId,
   photos = [],
   onAnswer,
   onSkip,
@@ -105,6 +107,26 @@ export default function AskCard({
    * default exactly as it always did.
    */
   speechLanguage?: string;
+  /**
+   * Which way this run said it wanted to answer — the manifest's own
+   * `mode`, asked once on Step 02 ("Speak it" / "Type it out") and, until
+   * B1803's final review, written and read by nothing. A run that chose
+   * typing opens every question in the typing box rather than the
+   * voice-first hero, which is what the answer was for; the mic is still
+   * there beside the box for a question somebody would rather speak.
+   * `undefined` for a caller with no manifest on hand (a test, a future
+   * entry point), which keeps the old behaviour: voice-first wherever
+   * speech is available at all.
+   */
+  answerMode?: "voice" | "type";
+  /**
+   * The staging run this question belongs to — passed through to
+   * `RecordButton` so a transcription is charged against this import's own
+   * ledger ref (`extract:<runId>:speech:<n>s`) and the import's "Credits
+   * spent" row can name what it really cost (B1803 final review, finding
+   * 4). Nothing else uses it here.
+   */
+  runId?: string;
   /** The day's own photographs, for the strip (or hero) above the question.
    *  Optional so every existing caller keeps compiling before it is wired. */
   photos?: PhotoStripItem[];
@@ -130,9 +152,10 @@ export default function AskCard({
   // outright; a real provider name (including "none" in tests that are not
   // exercising this distinction) means speech is at least on the table.
   const speechCapable = speechProvider !== "";
-  const [mode, setMode] = useState<"hero" | "review" | "type">(
-    !isFollowUp && speechCapable ? "hero" : "type",
-  );
+  // The run's own answer to "Speak it or type it out?" decides which of the
+  // two this opens in — B1803 final review, finding 2.
+  const voiceFirst = !isFollowUp && speechCapable && answerMode !== "type";
+  const [mode, setMode] = useState<"hero" | "review" | "type">(voiceFirst ? "hero" : "type");
   const [pending, setPending] = useState<{
     text: string;
     uncertain?: { word: string; occurrence: number };
@@ -147,7 +170,7 @@ export default function AskCard({
       await onAnswer(trimmed);
       setText("");
       setPending(null);
-      setMode(!isFollowUp && speechCapable ? "hero" : "type");
+      setMode(voiceFirst ? "hero" : "type");
     } finally {
       setBusy(false);
     }
@@ -197,7 +220,11 @@ export default function AskCard({
     { key: "why", text: t("extract.ask.chip.why") },
   ];
 
-  const finishLabel = date ? t("extract.ask.finishDay", { weekday: weekdayLabel(date, locale) }) : t("extract.board.leave");
+  // `weekdayLabel` returns "" for a date it cannot parse (the undated
+  // group's own `""` among them) — so the weekday clause is dropped rather
+  // than printed empty, here and in the header below.
+  const weekday = date ? weekdayLabel(date, locale) : "";
+  const finishLabel = weekday ? t("extract.ask.finishDay", { weekday }) : t("extract.board.leave");
 
   // The header row S7a and S7c both draw and S7b does not (`← Tue 2 Jul ·
   // Hoi An` / `1 of 3`, design-v2.html:863/911) — B1803 Task 3b fix
@@ -209,7 +236,7 @@ export default function AskCard({
   // place. `undefined` for `date` (the undated group) leaves the title with
   // no date clause rather than an invented one.
   const headerParts: string[] = [];
-  if (date) headerParts.push(weekdayLabel(date, locale));
+  if (weekday) headerParts.push(weekday);
   if (!isFollowUp && place) headerParts.push(place);
   const headerTitle = headerParts.join(" · ");
   // The back arrow leaves this question the same way Skip/Finish already
@@ -316,6 +343,7 @@ export default function AskCard({
                     consented={consentedSpeech}
                     provider={speechProvider}
                     language={speechLanguage}
+                    run={runId}
                     compact
                     onText={(said) => setText((prev) => (prev ? `${prev} ${said}` : said))}
                   />
@@ -371,6 +399,7 @@ export default function AskCard({
                 consented={consentedSpeech}
                 provider={speechProvider}
                 language={speechLanguage}
+                run={runId}
                 hero
                 hold={false}
                 onText={(said, uncertain, heldSeconds) => {
@@ -402,6 +431,7 @@ export default function AskCard({
                     consented={consentedSpeech}
                     provider={speechProvider}
                     language={speechLanguage}
+                    run={runId}
                     compact
                     onText={(said) => setText((prev) => (prev ? `${prev} ${said}` : said))}
                   />

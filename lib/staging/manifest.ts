@@ -23,6 +23,18 @@ export type PhotoRow = {
   dropped?: boolean;
 };
 
+/** The one shape a date may take anywhere in a run — `yyyy-mm-dd`, with a
+ *  real month and a plausible day. Not a calendar (30 February is not the
+ *  point): it is the check that stands between a caller's string and a value
+ *  that becomes a folder name under `inbox/days/<date>/`, a `DayRow.date`,
+ *  and a weekday a screen formats. Lives beside the rows it guards so the
+ *  extract routes share one copy rather than three that can drift.
+ *
+ *  The undated group's own `""` is deliberately NOT matched here — a route
+ *  that accepts it says so itself (`POST .../extract/day`), and nothing that
+ *  formats a weekday ever should. */
+export const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
 export type DayRow = {
   date: string;
   words?: string;
@@ -90,10 +102,16 @@ export type RunManifest = {
    * the run's own manifest, and nowhere a reader could ever see it.
    */
   partySize?: number;
-  /** `partyNames[0]` is always "you", the owner; later entries are however
-   *  many of `partySize` the owner chose to name. A shorter array than
-   *  `partySize` is not an error — it is exactly as many names as were
-   *  given, the rest counted but not named. */
+  /** `partyNames[0]` is the owner's own slot ("You" on the screen); later
+   *  entries are however many of `partySize` the owner chose to name. A
+   *  shorter array than `partySize` is not an error — it is exactly as many
+   *  names as were given, the rest counted but not named.
+   *
+   *  An entry may be `""`: the slots are positional, so a person who named
+   *  their companion and left their own name blank stores `["", "Nora"]`
+   *  rather than `["Nora"]`, which on the next load would put Nora in the
+   *  owner's own field. Every reader already drops blanks
+   *  (`PreviewScreen`). Trailing blanks are not stored at all. */
   partyNames?: string[];
 };
 

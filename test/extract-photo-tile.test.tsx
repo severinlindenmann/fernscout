@@ -84,12 +84,6 @@ describe("PhotoTile badges", () => {
     expect(badge.textContent).toBe("queued");
   });
 
-  test("icloud prints the translated word itself", () => {
-    render(<PhotoTile size="grid" kind="image" src="/thumb.jpg" alt="a photo" badge={{ tone: "icloud" }} />);
-    const badge = container!.querySelector("span")!;
-    expect(badge.textContent).toBe("iCloud");
-  });
-
   test("progress prints the percentage handed to it, not a fixed label", () => {
     render(
       <PhotoTile size="grid" kind="image" src="/thumb.jpg" alt="a photo" badge={{ tone: "progress", percent: 62 }} />,

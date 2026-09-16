@@ -2,7 +2,7 @@ import "server-only";
 import { isEnabled } from "@/lib/capabilities";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { extendOnTouch } from "@/lib/staging/expiry";
-import { readManifest, writeManifest, type DayRow } from "@/lib/staging/manifest";
+import { DATE_RE, readManifest, writeManifest, type DayRow } from "@/lib/staging/manifest";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,15 @@ export async function POST(
     typeof body.answer !== "string"
   ) {
     return Response.json({ error: "invalid_body" }, { status: 400 });
+  }
+  // The *shape*, not merely the type — B1803 final review, finding 1. `""`
+  // is real and must stay storable: it is the undated group's own date
+  // (`lib/extract/group.ts`), and its answers belong on the manifest like
+  // anybody else's. Anything that is neither that nor a real `yyyy-mm-dd`
+  // has no business becoming a `DayRow.date`, which later names a folder
+  // and is formatted as a weekday by every screen that reads it back.
+  if (body.date !== "" && !DATE_RE.test(body.date)) {
+    return Response.json({ error: "invalid_date", expected: "yyyy-mm-dd" }, { status: 400 });
   }
   const skip = body.skip === true;
   const answer = body.answer.trim();

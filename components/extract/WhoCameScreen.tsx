@@ -6,6 +6,15 @@ import { useI18n } from "@/components/LocaleProvider";
 import { suggestCompanion } from "@/lib/extract/companion";
 import type { RunManifest } from "@/lib/staging/manifest";
 
+/** The two name fields as they are stored: trimmed, positional, and without
+ *  trailing blanks — `["", "Nora"]` when only the companion was named,
+ *  `[]` when neither was. */
+function trimmedNames(names: readonly string[]): string[] {
+  const out = names.map((n) => n.trim());
+  while (out.length > 0 && out[out.length - 1] === "") out.pop();
+  return out;
+}
+
 const MIN_PARTY = 1;
 const MAX_PARTY = 20;
 
@@ -67,8 +76,13 @@ export default function WhoCameScreen({
       const json = (await res.json()) as { manifest: RunManifest };
       setManifest(json.manifest);
       if (typeof json.manifest.partySize === "number") setSize(json.manifest.partySize);
+      // Empty, never the journal's own slug — B1803 final review, finding
+      // 6. `username` is `asia-2023` for a journal at that address, and
+      // pre-filling it here saved "asia-2023" as a traveller's name on the
+      // next tap and rendered it as a person on the preview screen. A name
+      // is typed by a person or it does not exist.
       const saved = json.manifest.partyNames;
-      setNames([saved?.[0] ?? username, saved?.[1] ?? ""]);
+      setNames([saved?.[0] ?? "", saved?.[1] ?? ""]);
     } catch {
       setError(true);
     }
@@ -93,7 +107,10 @@ export default function WhoCameScreen({
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/extract/party`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ run: runId, size, names: names.filter((n) => n.trim() !== "") }),
+        // Positional, with trailing blanks dropped — the two fields are
+        // "You" and "Second", so a blank first slot has to survive the
+        // round trip or the second name reloads into the first field.
+        body: JSON.stringify({ run: runId, size, names: trimmedNames(names) }),
       });
       if (!res.ok) throw new Error(String(res.status));
       onDone();
@@ -174,6 +191,7 @@ export default function WhoCameScreen({
             <input
               value={names[0]}
               onChange={(e) => setNames([e.target.value, names[1]])}
+              placeholder={t("extract.whoCame.tapToName")}
               className="min-w-0 flex-1 rounded-full border border-line-strong px-3 py-1.5 text-right text-sm text-ink-strong"
             />
           </label>

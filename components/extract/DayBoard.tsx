@@ -94,9 +94,17 @@ export function nextDayToTell(
  *  fixed instant `questionsForDay` reads its own weekday from, so the day
  *  cannot shift under a reader in a timezone behind or ahead of UTC. */
 export function weekdayLabel(date: string, locale: string): string {
-  return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(
-    new Date(`${date}T12:00:00Z`),
-  );
+  // The undated group's own date is `""` (`lib/extract/group.ts`), and a
+  // `DayRow` can carry it too — so a string that is not a real calendar
+  // date reaches here in the ordinary course of the flow, not only through
+  // a bug. `Intl.DateTimeFormat.format` *throws* on an Invalid Date, which
+  // took the whole screen down with no error boundary under it (B1803 final
+  // review, finding 1). There is no weekday for a day with no date, so
+  // there is no label: an empty string, which every caller already drops
+  // rather than printing a gap.
+  const at = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(at.getTime())) return "";
+  return new Intl.DateTimeFormat(locale, { weekday: "long", timeZone: "UTC" }).format(at);
 }
 
 const BADGE_CLASS: Record<DayStatus, string> = {
@@ -368,20 +376,31 @@ export default function DayBoard({
                     {open.length === 0 ? (
                       <p className="text-sm text-ink-secondary">{t("extract.board.doneDay")}</p>
                     ) : (
-                      open.map((question, questionIndex) => (
+                      open.map((question, openIndex) => (
                         <AskCard
                           key={question.id}
                           question={question}
                           dayIndex={group.undated ? undefined : groupIndex + 1}
                           dayTotal={group.undated ? undefined : daysTotal}
-                          questionIndex={questionIndex + 1}
-                          questionTotal={open.length}
+                          // A question's position within its day, stable
+                          // while the day is being answered — B1803 final
+                          // review, finding 5. The denominator is the same
+                          // `answered + open` the bar above divides by, so
+                          // the counter and the bar can no longer disagree;
+                          // counting the open questions alone made the
+                          // denominator shrink with every answer, and the
+                          // one question left of two re-read itself as
+                          // "1 of 1" beside a bar sitting at 50%.
+                          questionIndex={answeredCount + openIndex + 1}
+                          questionTotal={answeredCount + open.length}
                           date={group.undated ? undefined : group.date}
                           place={place}
                           username={username}
                           consentedSpeech={consentedSpeech}
                           speechProvider={speechProvider}
                           speechLanguage={manifest.language}
+                          answerMode={manifest.mode}
+                          runId={runId}
                           photos={group.photoIds
                             .map((id) => photosById.get(id))
                             .filter((p): p is PhotoRow => Boolean(p))

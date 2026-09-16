@@ -64,4 +64,16 @@ describe("weekdayLabel", () => {
     expect(weekdayLabel("2026-06-02", "en")).toBe("Tuesday");
     expect(weekdayLabel("2026-06-02", "de")).toBe("Dienstag");
   });
+
+  // B1803 final review, finding 1. The undated group's own date is `""`
+  // (`lib/extract/group.ts`), and `""` reaching a weekday formatter used to
+  // throw a RangeError out of `Intl.DateTimeFormat.format` — taking the
+  // whole screen down with no error boundary under it. There is no weekday
+  // for a day with no date, so there is no label either: an empty string,
+  // which every caller already drops rather than printing.
+  test("a date it cannot parse gets no label, and never throws", () => {
+    expect(weekdayLabel("", "en")).toBe("");
+    expect(weekdayLabel("banana", "en")).toBe("");
+    expect(weekdayLabel("0000-99-99", "en")).toBe("");
+  });
 });

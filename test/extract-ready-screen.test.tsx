@@ -138,3 +138,50 @@ describe("ReadyScreen", () => {
     expect(container!.textContent).toContain("Ready");
   });
 });
+
+/**
+ * B1803 final review, findings 3 and 9.
+ *
+ * Finding 3: this screen counted a committed day's photographs with
+ * `photo.date === day.date`, but `lib/extract/commit.ts` moves them by
+ * `date ?? takenAt.slice(0,10)` — so an ordinary photograph the camera
+ * dated itself, and which really is in the journal, was counted as nothing
+ * here. One helper now answers that question for both screens and the
+ * commit path.
+ *
+ * Finding 9: "Leave it as a draft" was a primary-looking button with an
+ * `onClick` that did nothing at all.
+ */
+describe("ReadyScreen counts the photographs the commit actually moved", () => {
+  test("a photograph the camera dated, with no hand-set date, still counts", async () => {
+    stub(
+      baseManifest({
+        photos: [
+          // No `photo.date` — the camera's own reading is what `commitDay`
+          // moved it by, and it is in the journal.
+          { id: "p1", filename: "p1.jpg", bytes: 1, kind: "image", takenAt: "2026-06-01T10:00:00" },
+        ],
+        days: [{ date: "2026-06-01", answered: ["q1"], committed: true, entrySlug: "day-1" }],
+      }),
+    );
+    await render();
+
+    const photographs = [...container!.querySelectorAll("div")].find((d) =>
+      d.textContent?.startsWith("Photographs"),
+    );
+    expect(photographs!.textContent).toBe("Photographs1");
+  });
+
+  test("'Leave it as a draft' is a real way out of the flow, not an inert button", async () => {
+    stub(
+      baseManifest({
+        days: [{ date: "2026-06-01", answered: ["q1"], committed: true, entrySlug: "day-1" }],
+      }),
+    );
+    await render();
+
+    const leave = [...container!.querySelectorAll("a")].find((a) => a.textContent === "Leave it as a draft");
+    expect(leave).toBeDefined();
+    expect(leave!.getAttribute("href")).toBe("/alex/trips/japan-2026");
+  });
+});

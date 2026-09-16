@@ -100,8 +100,14 @@ export type ExpirySweepResult = { warned: string[]; finalNotices: string[] };
 export async function spentOnRun(owner: string, runId: string): Promise<number> {
   const ref = `extract:${runId}`;
   const rows = await ledgerFor(owner, 1000);
+  // Every row under the prefix, refunds included — B1803 final review,
+  // finding 4. Voice answers now ride on this ref too
+  // (`extract:<runId>:speech:<n>s`, from `lib/helper/transcribeSpend.ts`),
+  // and a transcription whose provider call failed is refunded under the
+  // same ref: counting only the negative rows would report money the person
+  // already has back as money they spent.
   return rows
-    .filter((row) => (row.ref === ref || Boolean(row.ref?.startsWith(`${ref}:`))) && row.delta < 0)
+    .filter((row) => row.ref === ref || Boolean(row.ref?.startsWith(`${ref}:`)))
     .reduce((sum, row) => sum - row.delta, 0);
 }
 

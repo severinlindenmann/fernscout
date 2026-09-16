@@ -155,3 +155,23 @@ describe("AskCard threads the run's chosen language to RecordButton", () => {
     expect(container!.querySelector("select")).not.toBeNull();
   });
 });
+
+/**
+ * B1803 final review, finding 2 — "Type it out" was stored on the manifest
+ * (`extract/start`'s own `mode`) and read by nothing, so a person who chose
+ * typing got the voice-first hero on every question of every day and had to
+ * press "Type this one instead" each time. The answer they gave has to
+ * change what they see.
+ */
+describe("AskCard honours the run's own answer mode", () => {
+  test("a run that chose typing gets the typing box even where speech is available", () => {
+    render(openingQuestion, { speechProvider: "deepgram", answerMode: "type" });
+    expect(container!.querySelector("textarea")).not.toBeNull();
+    expect(container!.textContent).not.toContain("Type this one instead");
+  });
+
+  test("a run that chose voice still gets the voice-first hero", () => {
+    render(openingQuestion, { speechProvider: "deepgram", answerMode: "voice" });
+    expect(container!.textContent).toContain("Type this one instead");
+  });
+});

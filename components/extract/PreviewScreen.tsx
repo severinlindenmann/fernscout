@@ -5,6 +5,7 @@ import Link from "next/link";
 import PhotoStrip, { type PhotoStripItem } from "@/components/extract/PhotoStrip";
 import PhotoViewer, { type PhotoViewerItem } from "@/components/extract/PhotoViewer";
 import { useI18n } from "@/components/LocaleProvider";
+import { photosForDate, undatedPhotos } from "@/lib/extract/dayCount";
 import type { DayGroup } from "@/lib/extract/group";
 import type { Question } from "@/lib/extract/questions";
 import type { DayRow, PhotoRow, RunManifest } from "@/lib/staging/manifest";
@@ -66,7 +67,7 @@ export default function PreviewScreen({
    *  when this is reached on its own, e.g. directly from a test. */
   onBack?: () => void;
 }) {
-  const { t, tn, formatShortDate, formatLongDate } = useI18n();
+  const { t, tn, locale, formatShortDate, formatLongDate } = useI18n();
   const [data, setData] = useState<RunResponse | null>(null);
   const [error, setError] = useState(false);
   const [trip, setTrip] = useState<TripHeader | null | undefined>(undefined);
@@ -153,16 +154,17 @@ export default function PreviewScreen({
   const tripId = manifest.tripId;
   const days = committedDays(manifest);
   const skipped = skippedGroups(manifest, groups);
-  const undated = groups.find((g) => g.undated);
-  const undatedCount = undated?.photoIds.length ?? 0;
+  // Only photographs with no date from either source — B1803 final review,
+  // finding 3. The server's undated *group* is built from `takenAt` alone,
+  // so a photograph the person dated by hand on the board is still in it
+  // while `commitDay` has already moved it into the journal; counting the
+  // group here printed "wasn't added either" about a photograph that was.
+  const undatedCount = undatedPhotos(manifest.photos).length;
 
-  const photosById = new Map<string, PhotoRow>(manifest.photos.map((p) => [p.id, p]));
-  const groupByDate = new Map<string, DayGroup>(groups.filter((g) => !g.undated).map((g) => [g.date, g]));
-
+  /** The same rule `lib/extract/commit.ts` moved them by, not the server's
+   *  `takenAt` clustering this screen used to read. */
   function photosFor(date: string): PhotoRow[] {
-    const group = groupByDate.get(date);
-    if (!group) return [];
-    return group.photoIds.map((id) => photosById.get(id)).filter((p): p is PhotoRow => Boolean(p));
+    return photosForDate(manifest.photos, date);
   }
 
   function openViewer(photos: PhotoRow[], tappedId: string) {
@@ -202,7 +204,12 @@ export default function PreviewScreen({
     summaryParts.push(tn("extract.preview.photoCount", totalPhotos, { count: String(totalPhotos) }));
   }
   if (partyNames.length > 0) {
-    summaryParts.push(t("extract.preview.peopleLine", { names: new Intl.ListFormat().format(partyNames) }));
+    summaryParts.push(t("extract.preview.peopleLine", {
+        // The reader's own language — B1803 final review, finding 7. A
+        // locale-less `Intl.ListFormat` joins with "and" for a German
+        // reader.
+        names: new Intl.ListFormat(locale, { type: "conjunction" }).format(partyNames),
+      }));
   }
 
   return (

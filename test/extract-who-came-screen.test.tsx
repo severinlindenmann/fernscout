@@ -122,7 +122,11 @@ describe("WhoCameScreen", () => {
       await Promise.resolve();
     });
 
-    expect(sent).toMatchObject({ run: "run-1", size: 2, names: ["alex", "Nora"] });
+    // Only the name a person actually typed — B1803 final review, finding
+    // 6. The "You" field starts empty, so nothing is saved for it unless
+    // somebody writes something there; its slot is kept so the companion's
+    // name does not reload into the owner's own field.
+    expect(sent).toMatchObject({ run: "run-1", size: 2, names: ["", "Nora"] });
   });
 
   test("a German-language answer never suggests a name — the capitalisation signal carries no information there", async () => {
@@ -137,6 +141,38 @@ describe("WhoCameScreen", () => {
     await render("de");
 
     expect(container!.textContent).not.toMatch(/Strand/);
+  });
+
+  // B1803 final review, finding 6 — the journal slug is not a person's
+  // name. "asia-2023" pre-filled into "You" was saved on the next tap and
+  // then rendered as a traveller on the preview screen.
+  test("the 'You' field starts empty, never pre-filled with the journal's own slug", async () => {
+    stub(baseManifest());
+    await render();
+
+    const first = container!.querySelectorAll("input")[0] as HTMLInputElement;
+    expect(first.value).toBe("");
+    expect(first.getAttribute("placeholder")).toBe("tap to name");
+  });
+
+  // B1803 final review, finding 1 — the exact repro. An undated group's
+  // answers carry `date: ""` onto the manifest, `suggestCompanion` cited it
+  // as a day, and formatting `""` as a weekday threw a RangeError out of
+  // render with no error boundary under it: the run could never be
+  // finished and every reload died again on the persisted cause.
+  test("a manifest carrying an undated day's answers renders instead of throwing", async () => {
+    stub(
+      baseManifest({
+        days: [
+          { date: "", answered: [], words: "We met Nora at the hostel." },
+          { date: "2019-07-02", answered: [], words: "Dinner with Nora again." },
+        ],
+      }),
+    );
+    await render("en");
+
+    expect(container!.textContent).toContain("How many of you went?");
+    expect(container!.textContent).not.toMatch(/Invalid Date/);
   });
 
   test("has a header naming the screen, with a working way back", async () => {
