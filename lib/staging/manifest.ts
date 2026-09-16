@@ -68,6 +68,24 @@ export type RunManifest = {
   /** Set once the last notice has gone out, so an extended run cannot be told
    *  twice. Written by the expiry sweep; nothing else touches it. */
   finalNoticeAt?: string;
+  /**
+   * "How many of you went?" and their names (S8a, B1803 Task 3.6) — set once,
+   * for the whole run, by `PATCH .../extract/party`.
+   *
+   * Deliberately **not** `trip.json`'s `people:` block
+   * (`lib/api/tripParty.ts`): that list grants write access to the trip and
+   * requires an email per person, because it is who may write to the whole
+   * trip. This is the opposite kind of fact — purely descriptive, nobody's
+   * address required, and never shown to anyone the owner has not
+   * separately let in (`extract.whoCame.reassure`) — so it lives here, on
+   * the run's own manifest, and nowhere a reader could ever see it.
+   */
+  partySize?: number;
+  /** `partyNames[0]` is always "you", the owner; later entries are however
+   *  many of `partySize` the owner chose to name. A shorter array than
+   *  `partySize` is not an error — it is exactly as many names as were
+   *  given, the rest counted but not named. */
+  partyNames?: string[];
 };
 
 function manifestPath(username: string, runId: string): string {
