@@ -357,21 +357,36 @@ status webhook visible:
 | `131053 Media upload error` | the test payload's header image URL 404'd — a fault in the test, not the setup |
 | `131042 Business eligibility payment issue` | **the new WABA has no payment method** |
 
-The second is the live blocker. Business-initiated conversations — which every
-marketing template is — are billed per conversation, and Meta refuses them on
-a WABA with no billing attached. The old WABA had one; this one is fresh.
+**`131042` turned out to be transient, and the diagnosis above was wrong.**
+The WABA already had a valid card attached (VISA, Kontostatus *Genehmigt*).
+A retry minutes later, with **nothing changed on the owner's side**,
+delivered. So Meta's billing-eligibility check is eventually consistent and
+lags the payment method being present.
+
+**The honest response to `131042` is to wait and retry before touching billing
+settings.** Reading it as "no payment method" sent this ticket hunting in the
+wrong place; the error text names a cause that may simply not have propagated
+yet.
 
 **The template itself is proven good.** Meta reaches the billing check only
 after validating the template, language, parameters and header image, so
 `fernscout_day_published_v2` is approved, correctly recreated and accepted.
 
-### Owner steps, both console-only
+### Outbound is proven — 2026-09-16
 
-1. Attach a payment method to WABA `1451782100105607` — WhatsApp Manager →
-   Account tools → Payment methods.
-2. Add the owner's personal user as an admin **on that WABA** — creating an
-   asset in a portfolio does not grant it, which is why Insights refused with
-   *"Nur ein WABA-Admin kann Insights bestätigen"*.
+A `fernscout_day_published_v2` (de) template with image header, three body
+parameters and the URL button **delivered** to the owner's phone from
++44 7862 131685: two status callbacks, no `failed`. Marketing templates work
+on the new number.
+
+A passcode-format SMS also delivered from the same number
+(`<code> is your Fernscout code. It expires in 30 minutes.`).
+
+### Owner step still open
+
+Add the owner's personal user as an admin **on WABA 1451782100105607** —
+creating an asset in a portfolio does not grant it, which is why Insights
+refused with *"Nur ein WABA-Admin kann Insights bestätigen"*.
 
 Billing state could not be read from here: `primary_funding_id` and friends
 answer `(#10) requires that the Business that owns this App is a Business
