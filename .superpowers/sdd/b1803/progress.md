@@ -237,3 +237,13 @@ a name into their journal. But the ceiling must be written down where the
 next reader finds it, and the German case must be written down beside it —
 the report discussed false positives and never mentioned the language axis at
 all.
+
+Phase 3C: complete (d9d22465..3337d812, 1 fix round). The German gate is
+`locale.startsWith("de")`, which also catches de-CH — correct, since Swiss
+German capitalises nouns the same way. Evidence re-captured against the example
+journal's real asia-2023 trip.
+PHASE 3 COMPLETE — 7 screens across 3 groups, 3 fix rounds.
+
+PHASE 4 — the voice language question. Infrastructure exists and the UI never
+asks: SPEECH_LANGUAGES in lib/helper/speech.ts is already ["en","de","de-CH","hu"]
+and the transcribe route already takes an explicit `language` override.
