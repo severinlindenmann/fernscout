@@ -216,6 +216,10 @@ export default function FirstBookFlow({
   const [mayOverwrite, setMayOverwrite] = useState(handArranged === 0);
   /** The layout waiting on that answer. */
   const [asking, setAsking] = useState<DayLayout | null>(null);
+  /** The cover step's default eight, expanded to the whole trip in place —
+   * B1811. Collapses back on leaving the step so a return visit is not stuck
+   * mid-scroll in a long grid. */
+  const [showAllCovers, setShowAllCovers] = useState(false);
 
   const chooseLayout = (layout: DayLayout) => {
     if (!mayOverwrite) {
@@ -465,7 +469,9 @@ export default function FirstBookFlow({
           <div
             role="radiogroup"
             aria-label={t("photobook.option.coverLegend")}
-            className="grid w-full grid-cols-3 gap-2 sm:grid-cols-4"
+            className={`grid w-full grid-cols-3 gap-2 sm:grid-cols-4 ${
+              showAllCovers ? "max-h-[60vh] overflow-y-auto" : ""
+            }`}
           >
             <button
               type="button"
@@ -480,9 +486,9 @@ export default function FirstBookFlow({
             >
               {t("photobook.option.coverDefault")}
             </button>
-            {/* Eight, not the whole gallery: a first choice with a good default
-                behind it. The settings panel offers every photograph. */}
-            {media.slice(0, 8).map((tile) => (
+            {/* Eight by default — a first choice with a good default behind
+                it. The toggle below reveals the rest in place. */}
+            {(showAllCovers ? media : media.slice(0, 8)).map((tile) => (
               <button
                 key={tile.src}
                 type="button"
@@ -498,6 +504,16 @@ export default function FirstBookFlow({
               </button>
             ))}
           </div>
+          {media.length > 8 && (
+            <button
+              type="button"
+              aria-pressed={showAllCovers}
+              onClick={() => setShowAllCovers((v) => !v)}
+              className="mt-2 min-h-11 text-sm font-semibold text-ink-secondary underline underline-offset-2"
+            >
+              {showAllCovers ? t("photobook.first.coverShowFewer") : t("photobook.first.coverShowAll")}
+            </button>
+          )}
         </Question>
       )}
 

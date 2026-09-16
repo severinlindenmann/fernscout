@@ -2154,6 +2154,8 @@ export type TranslationKey =
   | "photobook.first.changeable"
   | "photobook.first.cover"
   | "photobook.first.coverHint"
+  | "photobook.first.coverShowAll"
+  | "photobook.first.coverShowFewer"
   | "photobook.first.coverType"
   | "photobook.first.coverType.hard"
   | "photobook.first.coverType.hardHint"

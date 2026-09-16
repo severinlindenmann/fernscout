@@ -70,3 +70,36 @@ default tile. Both stay as they are.
 - A trip with many photographs does not make the step unscrollably long on a
   phone.
 - `npm run verify` green, `npm run i18n:keys` clean.
+
+## Done, 2026-09-16
+
+Built as the owner decided: local `showAllCovers` state in `FirstBookFlow.tsx`,
+a "Show all photographs" toggle under the grid, and the expanded grid gets
+`max-h-[60vh] overflow-y-auto` so a large trip scrolls inside the step instead
+of growing it. `photobook.first.coverHint` rewritten in all three languages to
+stop promising a later chance; new keys `photobook.first.coverShowAll` /
+`coverShowFewer` for the toggle's two states (German, English, Hungarian —
+written by hand, not machine-translated). `npm run i18n:keys` run after.
+
+Did not touch `BookSettingsPanel.tsx` — its own unsliced grid already does the
+"show everything" job for the returning-owner composer, and duplicating the
+toggle there was not needed to satisfy this ticket (ticket said extraction is
+optional and only worth it if the toggle would otherwise be written twice —
+it wasn't).
+
+Verified on the demo journal's `parks-2025` trip (43 photographs, pre-existing,
+untouched by this branch) at 390px and 1280px: expanded the toggle, selected a
+photograph past the original eight (`independence-pass/01.jpg` at desktop,
+`needles-district/02.jpg` at phone width), advanced to the composer, and
+confirmed the chosen photograph rendered as the book's front cover in the live
+preview — both via `localStorage`'s persisted `BookOptions.cover` and visually
+in the flip-book preview. No console errors on a fresh navigation.
+
+**One unrelated pre-existing failure found in `npm run verify`**, present
+identically on `main` before this branch touched anything:
+`test/task-ids.test.ts` fails because three tasks in `backlog/wont-do/` are
+misfiled against their frontmatter's declared category folder (from the
+2026-09-16 triage commit). Not something this branch caused or fixed — captured
+separately as B1817. Everything else in `npm run verify` is green (ESLint and
+knip run standalone as confirmation, since the aborted `vitest` step meant
+`verify` itself did not reach them).
