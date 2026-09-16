@@ -471,6 +471,32 @@ describe("the run and day routes with the capability on", () => {
     expect(body.day.answered).toEqual(["first", "second"]);
   });
 
+  // B1803 Task 3.5 — the follow-up screen's "Skip". "None of them is
+  // required" has to hold for the actual data, not just the button's
+  // wording: skipping must still close the question out (so it is never
+  // asked again) but must never invent an answer nobody gave.
+  test("POST .../day with skip:true marks the question answered and appends nothing", async () => {
+    const { runId } = (await (await startRun()).json()) as { runId: string };
+    const { POST } = await import("@/app/api/helper/[user]/extract/day/route");
+    const res = await POST(
+      new Request("http://x", {
+        method: "POST",
+        body: JSON.stringify({
+          run: runId,
+          date: "2019-07-02",
+          questionId: "follow-up:2019-07-02",
+          answer: "",
+          skip: true,
+        }),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { day: { words?: string; answered: string[] } };
+    expect(body.day.words).toBeUndefined();
+    expect(body.day.answered).toEqual(["follow-up:2019-07-02"]);
+  });
+
   test("R2 — POST .../day on a warned run extends it", async () => {
     const { runId } = (await (await startRun()).json()) as { runId: string };
     const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
