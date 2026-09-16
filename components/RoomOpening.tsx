@@ -226,7 +226,7 @@ export default function RoomOpening({
             href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex min-h-11 items-center rounded-full border border-green-700 bg-green-600 px-4 text-sm font-semibold text-on-deep transition-colors hover:bg-green-500"
+            className="inline-flex min-h-11 items-center rounded-full border border-green-700 bg-green-500 px-4 text-sm font-semibold text-on-bright transition-colors hover:brightness-110"
           >
             {t("agent.open.whatsapp")}
           </a>

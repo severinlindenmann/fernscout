@@ -330,7 +330,7 @@ export default function ExtractFlow({
 
       {error && (
         <div className="mt-4">
-          <p className="text-sm text-red-700">{t("extract.flow.startError")}</p>
+          <p className="text-sm text-coral-600">{t("extract.flow.startError")}</p>
           <button
             type="button"
             onClick={checkResume}

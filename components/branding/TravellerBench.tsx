@@ -155,7 +155,7 @@ function OneFigure() {
         </div>
 
         <div>
-          <div className="flex min-h-[300px] items-end justify-center rounded-xl border border-line-quiet bg-sky-200 p-4">
+          <div className="flex min-h-[300px] items-end justify-center rounded-xl border border-line-quiet bg-sky-300 p-4">
             <Figurine figure={figure} width={size} />
           </div>
           <pre className="mt-3 overflow-x-auto rounded-xl border border-line-quiet bg-surface-raised p-3 font-mono text-xs text-ink-strong">
@@ -211,7 +211,7 @@ function Row<T extends string>({
       <div className="mt-3 flex flex-wrap gap-3">
         {values.map((v) => (
           <figure key={v} className="w-[104px] overflow-hidden rounded-lg border border-line-quiet">
-            <div className="flex h-[130px] items-end justify-center bg-sky-200 pb-1">
+            <div className="flex h-[130px] items-end justify-center bg-sky-300 pb-1">
               <Figurine figure={make(v)} width={92} />
             </div>
             <figcaption className="bg-surface-raised px-2 py-1.5 text-center font-mono text-[11px] text-ink-body">
@@ -233,7 +233,7 @@ function Presets() {
       <div className="flex flex-wrap gap-3">
         {STARTING_POINTS.map((p) => (
           <figure key={p.name} className="w-[124px] overflow-hidden rounded-lg border border-line-quiet">
-            <div className="flex h-[150px] items-end justify-center bg-sky-200 pb-1">
+            <div className="flex h-[150px] items-end justify-center bg-sky-300 pb-1">
               <Figurine figure={p.figure} width={104} />
             </div>
             <figcaption className="bg-surface-raised px-2 py-1.5 text-center font-mono text-[11px] text-ink-body">
@@ -250,7 +250,7 @@ function Presets() {
         The arrangement the hero and the travel scene use — figures shrink together
         rather than the party overflowing.
       </p>
-      <div className="mt-3 flex min-h-[170px] items-end rounded-xl border border-line-quiet bg-sky-200 p-4">
+      <div className="mt-3 flex min-h-[170px] items-end rounded-xl border border-line-quiet bg-sky-300 p-4">
         <Travelers figures={STARTING_POINTS.slice(0, 5).map((p) => p.figure)} size={80} available={820} />
       </div>
     </Section>

@@ -97,7 +97,7 @@ export default function Invites({
         >
           Allow this address
         </BusyButton>
-        {wrong ? <p className="w-full text-sm text-red-700">{wrong}</p> : null}
+        {wrong ? <p className="w-full text-sm text-coral-600">{wrong}</p> : null}
       </form>
 
       {invites.length === 0 ? (

@@ -380,7 +380,7 @@ export default function BookSettingsPanel({
                   aria-label={tile.caption || tile.src}
                   onClick={() => setOptions((o) => ({ ...o, cover: tile.src }))}
                   className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
-                    options.cover === tile.src ? "border-yellow-500" : "border-line-quiet"
+                    options.cover === tile.src ? "border-yellow-600" : "border-line-quiet"
                   }`}
                 >
                   <Image

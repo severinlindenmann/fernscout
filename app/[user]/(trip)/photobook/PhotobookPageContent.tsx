@@ -630,7 +630,7 @@ export default function PhotobookPageContent({
             straight to its own receipt page instead. */}
         {outcome && (
           <div
-            className="mt-6 max-w-xl rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900"
+            className="mt-6 max-w-xl rounded-lg border border-yellow-600 bg-yellow-50 px-4 py-3 text-sm text-yellow-900"
             role="status"
           >
             <p>{t(OUTCOME_MESSAGE[outcome.state])}</p>

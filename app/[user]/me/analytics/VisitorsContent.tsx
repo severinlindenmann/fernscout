@@ -142,7 +142,7 @@ export default function VisitorsContent({
           </>
         )}
 
-        <section className="mt-10 rounded-2xl border border-line-quiet bg-sky-50/50 p-5 sm:p-6">
+        <section className="mt-10 rounded-2xl border border-line-quiet bg-sky-300/10 p-5 sm:p-6">
           <h2 className="font-display text-lg font-semibold text-ink-strong">
             {t("visitors.howTitle")}
           </h2>

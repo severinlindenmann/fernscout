@@ -354,7 +354,7 @@ export default function UploadStep({
       />
 
       {failed.length > 0 && (
-        <p role="status" className="mt-2 text-sm text-red-700">
+        <p role="status" className="mt-2 text-sm text-coral-600">
           {t("extract.upload.failed")}
         </p>
       )}
@@ -362,7 +362,7 @@ export default function UploadStep({
       {/* One line per distinct reason, not per file — a hundred rejected
        *  photographs from the same full run is one sentence, not a hundred. */}
       {rejectionReasons.length > 0 && (
-        <ul className="mt-1 text-sm text-red-700">
+        <ul className="mt-1 text-sm text-coral-600">
           {rejectionReasons.map((reason) => (
             <li key={reason}>{t(REJECT_REASON_KEY[reason] ?? "extract.upload.rejected.other")}</li>
           ))}

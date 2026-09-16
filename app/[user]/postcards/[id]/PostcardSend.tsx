@@ -194,7 +194,7 @@ export default function PostcardSend({
           className={`mb-3 scroll-mt-4 rounded-lg border px-3 py-2 text-sm ${
             sent
               ? "border-action-strong bg-surface-raised font-semibold text-ink-strong"
-              : "border-yellow-300 bg-yellow-50 text-yellow-900"
+              : "border-yellow-600 bg-yellow-50 text-yellow-900"
           }`}
         >
           {results[result]}

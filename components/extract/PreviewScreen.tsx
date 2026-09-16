@@ -102,7 +102,7 @@ export default function PreviewScreen({ username, runId }: { username: string; r
   if (error) {
     return (
       <div className="mt-4">
-        <p className="text-sm text-red-700">{t("extract.preview.error")}</p>
+        <p className="text-sm text-coral-600">{t("extract.preview.error")}</p>
         <button
           type="button"
           onClick={() => void load()}
@@ -270,7 +270,7 @@ export default function PreviewScreen({ username, runId }: { username: string; r
               {peopleBusy ? t("extract.preview.adding") : t("extract.preview.addPerson")}
             </button>
           </form>
-          {peopleError && <p className="mt-2 text-sm text-red-700">{t("extract.preview.peopleError")}</p>}
+          {peopleError && <p className="mt-2 text-sm text-coral-600">{t("extract.preview.peopleError")}</p>}
           {people && (
             <p className="mt-2 text-sm text-ink-secondary">
               {tn("extract.preview.peopleAdded", people.length, { count: String(people.length) })}

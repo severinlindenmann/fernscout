@@ -222,7 +222,7 @@ function VehicleBench() {
       </div>
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
         {MODES.filter((m) => m !== "walk").map((mode) => (
-          <figure key={mode} className="overflow-hidden rounded-xl border border-line-quiet bg-sky-200">
+          <figure key={mode} className="overflow-hidden rounded-xl border border-line-quiet bg-sky-300">
             <div className="relative flex h-[150px] items-end justify-center">
               {surface !== "none" && <StaticGround surface={surface} />}
               <div
@@ -237,7 +237,7 @@ function VehicleBench() {
             </figcaption>
           </figure>
         ))}
-        <figure className="overflow-hidden rounded-xl border border-line-quiet bg-sky-200">
+        <figure className="overflow-hidden rounded-xl border border-line-quiet bg-sky-300">
           <div className="relative flex h-[150px] items-end justify-center">
             {surface !== "none" && <StaticGround surface={surface} />}
             <div className="relative z-10 mb-4">
@@ -403,7 +403,7 @@ function PartyBench() {
         <Slider label="Figure size" value={size} min={32} max={140} step={2} onChange={setSize} />
         <Slider label="How many" value={count} min={1} max={10} step={1} onChange={setCount} />
       </div>
-      <div className="mt-5 flex min-h-[190px] items-end rounded-xl border border-line-quiet bg-sky-200 p-4">
+      <div className="mt-5 flex min-h-[190px] items-end rounded-xl border border-line-quiet bg-sky-300 p-4">
         <Travelers figures={Array.from({ length: count }, () => figure)} size={size} available={860} />
       </div>
     </Section>

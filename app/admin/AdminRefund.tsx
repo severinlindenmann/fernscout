@@ -99,7 +99,7 @@ export default function AdminRefund({
       >
         Refund
       </button>
-      {said && !said.ok ? <p className="mt-1 text-xs text-red-700">{said.text}</p> : null}
+      {said && !said.ok ? <p className="mt-1 text-xs text-coral-600">{said.text}</p> : null}
     </>
   );
 }

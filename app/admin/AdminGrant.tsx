@@ -94,7 +94,7 @@ export default function AdminGrant({ journal }: { journal: string }) {
         </BusyButton>
         {said ? (
           <p
-            className={`w-full text-sm ${said.ok ? "text-ink-body" : "text-red-700"}`}
+            className={`w-full text-sm ${said.ok ? "text-ink-body" : "text-coral-600"}`}
           >
             {said.text}
           </p>

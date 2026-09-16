@@ -106,7 +106,7 @@ function Card({
       aria-checked={chosen}
       onClick={onChoose}
       className={`flex min-h-11 flex-col items-start gap-1.5 rounded-xl border-2 p-2.5 text-left ${
-        chosen ? "border-yellow-600 bg-yellow-50" : "border-line-quiet bg-surface-raised"
+        chosen ? "border-yellow-600 bg-surface-selected" : "border-line-quiet bg-surface-raised"
       }`}
     >
       {children && <span className="text-ink-strong">{children}</span>}
@@ -411,7 +411,7 @@ export default function FirstBookFlow({
                   className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg border-2 px-2.5 py-1.5 text-left ${
                     excluded(day.date)
                       ? "border-line-quiet bg-surface-raised opacity-60"
-                      : "border-yellow-600 bg-yellow-50"
+                      : "border-yellow-600 bg-surface-selected"
                   }`}
                 >
                   <span
