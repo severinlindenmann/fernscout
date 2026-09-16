@@ -339,6 +339,50 @@ up. It was not written to any file here. **It should be rotated** in App
 Dashboard → Settings → Basic, and `WHATSAPP_APP_SECRET` updated in
 `/etc/fernscout/env`.
 
+## The switch is live; delivery blocked on billing — 2026-09-16
+
+Done: Swiss Twilio number **released** (permanently; $9/month saved, one
+number left on the account). Env repointed —
+`WHATSAPP_PHONE_NUMBER_ID=1301526083048758`,
+`WHATSAPP_WABA_ID=1451782100105607` (the key was **absent**, not empty, so it
+had to be appended). `features.whatsapp.number` → `+44 7862 131685`.
+Restarted, healthy, all three templates **APPROVED** on the new WABA.
+
+**A template send is accepted by the Graph API and then refused by Meta.**
+Two distinct reasons, found only because B1809 shipped mid-debug and made the
+status webhook visible:
+
+| Error | Cause |
+| --- | --- |
+| `131053 Media upload error` | the test payload's header image URL 404'd — a fault in the test, not the setup |
+| `131042 Business eligibility payment issue` | **the new WABA has no payment method** |
+
+The second is the live blocker. Business-initiated conversations — which every
+marketing template is — are billed per conversation, and Meta refuses them on
+a WABA with no billing attached. The old WABA had one; this one is fresh.
+
+**The template itself is proven good.** Meta reaches the billing check only
+after validating the template, language, parameters and header image, so
+`fernscout_day_published_v2` is approved, correctly recreated and accepted.
+
+### Owner steps, both console-only
+
+1. Attach a payment method to WABA `1451782100105607` — WhatsApp Manager →
+   Account tools → Payment methods.
+2. Add the owner's personal user as an admin **on that WABA** — creating an
+   asset in a portfolio does not grant it, which is why Insights refused with
+   *"Nur ein WABA-Admin kann Insights bestätigen"*.
+
+Billing state could not be read from here: `primary_funding_id` and friends
+answer `(#10) requires that the Business that owns this App is a Business
+Solution Provider`, on both WABAs. Do not re-attempt it from the API.
+
+### Still unproven
+
+Inbound on the new number. No real inbound message has arrived yet — the one
+webhook callback per send has been a status, never a message. Test it after
+billing unblocks the send, so a single round trip proves both directions.
+
 ## Work
 
 1. ~~Prove inbound on the GB number.~~ **Done 2026-09-15 — see below.**
