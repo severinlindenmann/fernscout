@@ -467,6 +467,45 @@ body {
   animation: fs-ticker-pulse 1s steps(2, end) infinite;
 }
 
+/* The question screen's own waveform (S7a) — B1803 Task 3.3. Each bar reads
+   the same keyframe with its own `animation-delay` (set inline, per bar, by
+   RecordButton's `hero` branch), which is what turns one shared animation
+   into a wave rather than every bar pulsing in lockstep. */
+@keyframes fs-waveform {
+  0%,
+  100% {
+    transform: scaleY(0.6);
+  }
+  50% {
+    transform: scaleY(1.4);
+  }
+}
+.fs-waveform {
+  animation: fs-waveform 0.9s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* The check-the-wording screen's own dark question card (S7a/S7b) —
+   B1803 Tasks 3.3/3.4, `--color-navy-900`/`--color-cream-50` exactly as
+   design-v2.html's own `.ask` rule. A darker literal value in dark mode,
+   also matching the design file: `--color-navy-900` does not get its own
+   dark override (B1803 Task 3.3 does not add one for a single card), and
+   dark mode's `--surface-raised` (`#1f2736`) sits close enough to
+   `navy-900` (`#1e293b`) that the card would otherwise all but vanish into
+   its own container. */
+.fs-ask-dark {
+  background: var(--color-navy-900);
+  color: var(--color-cream-50);
+}
+:root[data-theme="dark"] .fs-ask-dark {
+  background: #0f1520;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fs-ask-dark {
+    background: #0f1520;
+  }
+}
+
 /* Non-negotiable, and the reason every one of the rules above is a class
    rather than an inline style: one query turns the whole feature still. The
    glyph stays — it is information — and only the movement goes. */
@@ -480,7 +519,8 @@ body {
   .fs-assemble-in,
   .fs-rise-in,
   .fs-waymark-bounce,
-  .fs-ticker-pulse {
+  .fs-ticker-pulse,
+  .fs-waveform {
     animation: none;
   }
   /* Not merely `animation: none` — with nothing else setting its opacity,

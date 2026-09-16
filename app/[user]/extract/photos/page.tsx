@@ -1,5 +1,6 @@
 import ExtractFlow from "@/components/extract/ExtractFlow";
 import PageHeader from "@/components/PageHeader";
+import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { requireExtractOwner } from "@/lib/extract/pageGate";
 import { speechProvider } from "@/lib/helper/transcribe";
@@ -29,13 +30,22 @@ export default async function ExtractPhotosPage({ params }: PageProps<"/[user]/e
     title: trip.title,
     year: trip.start.slice(0, 4),
   }));
+  // Transcription is an optional capability (AGENTS.md) and it must be
+  // absent, not broken, when this instance has it off — B1803 Task 3.3/3.4
+  // put a whole voice-first screen where there used to be one small mic
+  // icon, so a caller with the capability off must never even try to
+  // consent or record. `""` (never a real `speechProvider()`, always a
+  // string) is what `AskCard`/`RecordButton` treat as "there is no speech
+  // here at all", matching the pattern `app/[user]/search/page.tsx` already
+  // uses for the same capability.
+  const transcriptionOn = isEnabled("transcription", user);
   return (
     <div className="min-h-screen">
       <PageHeader />
       <ExtractFlow
         username={user}
-        consentedSpeech={hasHelperConsent(user, "speech")}
-        speechProvider={speechProvider()}
+        consentedSpeech={transcriptionOn && hasHelperConsent(user, "speech")}
+        speechProvider={transcriptionOn ? speechProvider() : ""}
         trips={trips}
       />
     </div>

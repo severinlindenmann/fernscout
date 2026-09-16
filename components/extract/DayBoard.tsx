@@ -200,6 +200,19 @@ export default function DayBoard({
     await load();
   }
 
+  /** The follow-up screen's own "Skip" (S7c) — B1803 Task 3.5. Closes the
+   *  question out without inventing an answer nobody gave; see the route's
+   *  own comment on why `skip: true` appends nothing to `words`. */
+  async function skipQuestion(group: DayGroup, question: Question) {
+    const res = await fetch(`/api/helper/${encodeURIComponent(username)}/extract/day`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ run: runId, date: group.date, questionId: question.id, answer: "", skip: true }),
+    });
+    if (!res.ok) throw new Error(String(res.status));
+    await load();
+  }
+
   if (error) {
     return (
       <div className="mt-4">
@@ -363,6 +376,7 @@ export default function DayBoard({
                           dayTotal={group.undated ? undefined : daysTotal}
                           questionIndex={questionIndex + 1}
                           questionTotal={open.length}
+                          date={group.undated ? undefined : group.date}
                           username={username}
                           consentedSpeech={consentedSpeech}
                           speechProvider={speechProvider}
@@ -371,6 +385,8 @@ export default function DayBoard({
                             .filter((p): p is PhotoRow => Boolean(p))
                             .map((p) => ({ id: p.id, kind: p.kind, src: thumbSrc(username, runId, p.id), alt: p.filename }))}
                           onAnswer={(text) => answerQuestion(group, question, text)}
+                          onSkip={() => skipQuestion(group, question)}
+                          onDone={() => setSelected(null)}
                         />
                       ))
                     )}
