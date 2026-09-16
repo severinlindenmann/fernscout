@@ -6,10 +6,12 @@ import DayBoard from "@/components/extract/DayBoard";
 import FoundStep from "@/components/extract/FoundStep";
 import IntroStep from "@/components/extract/IntroStep";
 import PreviewScreen from "@/components/extract/PreviewScreen";
+import ReadyScreen from "@/components/extract/ReadyScreen";
 import ResumeScreen, { type RunSummaryClient } from "@/components/extract/ResumeScreen";
 import TripModeStep, { type TripOption } from "@/components/extract/TripModeStep";
 import { useI18n } from "@/components/LocaleProvider";
 import UploadStep from "@/components/extract/UploadStep";
+import WhoCameScreen from "@/components/extract/WhoCameScreen";
 import { resumeExpiryState, type ResumeExpiryState } from "@/lib/staging/resumeState";
 import type { RunManifest } from "@/lib/staging/manifest";
 
@@ -103,7 +105,18 @@ export default function ExtractFlow({
   // price before they have finished telling their days. `undefined` is "not
   // fetched yet", `null` is "fetched, and this instance has no such number".
   const [atBoardEnd, setAtBoardEnd] = useState(false);
+  // "Who came" (S8a, B1803 Task 3.6) — asked once, right after the board,
+  // before either the credits screen or the free build path. `true` the
+  // moment "Save who came" (or its own retry) has actually saved, never
+  // before — the free-build effect below waits on this the same way it
+  // already waits on `credits`.
+  const [partyDone, setPartyDone] = useState(false);
   const [credits, setCredits] = useState<number | null | undefined>(undefined);
+  // Toggles between `ReadyScreen` (the flow's real terminal screen once
+  // `left` is true) and `PreviewScreen`, the way the design's own back
+  // arrow does — B1803 Task 3.7. Reset is never needed: once `left` is
+  // true nothing else in this flow runs again.
+  const [showPreview, setShowPreview] = useState(false);
   // `undefined` until `GET .../extract/runs` answers; `null` once the person
   // has either picked a run to continue or chosen to start fresh, so the
   // resume screen never reappears mid-flow. A non-empty array is what
@@ -149,13 +162,13 @@ export default function ExtractFlow({
   // (fetched by `onLeaveBoard`) is what says nobody is going to be asked for
   // money on top of it, so there is nothing here for a screen to show.
   useEffect(() => {
-    if (atBoardEnd && credits === null && run) {
+    if (atBoardEnd && partyDone && credits === null && run) {
       commitReadyDays(username, run.runId)
         .then(() => setLeft(true))
         .catch(() => setLeft(true));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atBoardEnd, credits]);
+  }, [atBoardEnd, partyDone, credits]);
 
   /**
    * The one call this shell makes before deciding whether to start a fresh
@@ -416,15 +429,24 @@ export default function ExtractFlow({
         />
       )}
 
-      {atBoardEnd && !left && run && credits !== undefined && credits !== null && (
+      {atBoardEnd && !partyDone && run && (
+        <WhoCameScreen username={username} runId={run.runId} onDone={() => setPartyDone(true)} />
+      )}
+
+      {atBoardEnd && partyDone && !left && run && credits !== undefined && credits !== null && (
         <CreditsScreen username={username} runId={run.runId} credits={credits} onDone={() => setLeft(true)} />
       )}
 
-      {atBoardEnd && !left && (credits === undefined || credits === null) && (
+      {atBoardEnd && partyDone && !left && (credits === undefined || credits === null) && (
         <p className="mt-4 text-sm text-ink-secondary">{t("extract.flow.building")}</p>
       )}
 
-      {left && run && <PreviewScreen username={username} runId={run.runId} />}
+      {left && run && !showPreview && (
+        <ReadyScreen username={username} runId={run.runId} onPreview={() => setShowPreview(true)} />
+      )}
+      {left && run && showPreview && (
+        <PreviewScreen username={username} runId={run.runId} onBack={() => setShowPreview(false)} />
+      )}
     </div>
   );
 }

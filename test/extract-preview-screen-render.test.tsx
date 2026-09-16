@@ -43,13 +43,18 @@ function baseManifest(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function stubRun(manifest: Record<string, unknown>, groups: unknown[] = []) {
+function stubRun(manifest: Record<string, unknown>, groups: unknown[] = [], trip?: Record<string, unknown>) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.includes("/extract/run")) {
         return { ok: true, json: async () => ({ manifest, groups, questions: {} }) } as Response;
+      }
+      if (url.includes("/trip?id=")) {
+        return trip
+          ? ({ ok: true, json: async () => trip } as Response)
+          : ({ ok: false, status: 404, json: async () => ({}) } as Response);
       }
       throw new Error(`unexpected fetch: ${url}`);
     }),
@@ -148,5 +153,65 @@ describe("the preview screen", () => {
 
     expect(container!.querySelector("form")).not.toBeNull();
     expect(container!.querySelector('a[href="/agent"]')).not.toBeNull();
+  });
+
+  test("names the real trip and marks it Draft — B1803 Task 3.7", async () => {
+    stubRun(
+      baseManifest({
+        tripId: "vietnam-2019",
+        photos: [
+          { id: "p1", filename: "p1.jpg", bytes: 1, kind: "image" },
+          { id: "p2", filename: "p2.jpg", bytes: 1, kind: "image" },
+        ],
+        days: [
+          { date: "2019-07-02", answered: ["q1"], committed: true, entrySlug: "day-1" },
+          { date: "2019-07-05", answered: ["q1"], committed: true, entrySlug: "day-2" },
+        ],
+      }),
+      [
+        { date: "2019-07-02", photoIds: ["p1"], undated: false },
+        { date: "2019-07-05", photoIds: ["p2"], undated: false },
+      ],
+      { title: "Vietnam & Cambodia" },
+    );
+    await render();
+
+    expect(container!.textContent).toContain("Vietnam & Cambodia");
+    expect(container!.textContent).toContain("Draft");
+    // Day and photograph counts describe what this run actually committed —
+    // never a guess at a trip-wide total this component was never given.
+    expect(container!.textContent).toContain("2 days");
+    expect(container!.textContent).toContain("2 photographs");
+  });
+
+  test("a trip whose title fails to load still shows its real, already-committed days", async () => {
+    stubRun(
+      baseManifest({
+        tripId: "vietnam-2019",
+        days: [{ date: "2019-07-02", answered: ["q1"], committed: true, entrySlug: "day-1" }],
+      }),
+      [{ date: "2019-07-02", photoIds: ["p1"], undated: false }],
+    );
+    await render();
+
+    expect(container!.querySelector('a[href="/vietnam-2019/day-1"]')).toBeNull();
+    expect(container!.querySelector('a[href="/alex/trips/vietnam-2019/day/day-1"]')).not.toBeNull();
+    expect(container!.textContent).toContain("Couldn't load the trip's title");
+  });
+
+  test("who came, once saved, is named in the summary line — never invented", async () => {
+    stubRun(
+      baseManifest({
+        tripId: "vietnam-2019",
+        partySize: 2,
+        partyNames: ["Severin", "Nora"],
+        days: [{ date: "2019-07-02", answered: ["q1"], committed: true, entrySlug: "day-1" }],
+      }),
+      [{ date: "2019-07-02", photoIds: ["p1"], undated: false }],
+    );
+    await render();
+
+    expect(container!.textContent).toContain("Severin");
+    expect(container!.textContent).toContain("Nora");
   });
 });

@@ -16,41 +16,60 @@ function thumbSrc(username: string, runId: string, photoId: string): string {
 
 type RunResponse = { manifest: RunManifest; groups: DayGroup[]; questions: Record<string, Question[]> };
 type Person = { name: string; email: string };
+type TripHeader = { title: string };
 
 /**
- * The run's last screen — B1751, Task 4.2.
+ * S10a — "Read it back, fix anything, then publish" — B1751 Task 4.2,
+ * rebuilt for B1803 Task 3.7.
  *
  * **This is not a second renderer.** Every day it names is a real entry
  * `lib/extract/commit.ts` already wrote, at the real slug
  * `POST .../extract/commit` recorded on `DayRow.entrySlug`. This screen
  * builds nothing of its own to preview — it links to
  * `/[user]/trips/[trip]/day/[slug]`, the same page anybody else reading this
- * journal will eventually see, draft banner and all.
+ * journal will eventually see, draft banner and all. Editing wording is not
+ * done here either: `/agent` is the journal's only editor (see AGENTS.md),
+ * so the "Edit" link and "Keep editing" both go there rather than opening a
+ * text box this screen would have to keep in sync with the real thing.
  *
- * **This never publishes, and cannot.** `app/api/helper/[user]/day/publish/
- * route.ts` is the owner's own call, made in words, from the agent room —
- * `DraftNotice` (rendered by the real day page this screen links to) already
- * says so. The most this screen does toward that is a link to `/agent`; see
- * `test/extract-no-publish.test.ts` for the grep this repo's reviewers would
- * otherwise have to run by hand.
+ * **This never publishes, and cannot.** Nothing under this component ever
+ * calls `.../day/publish` — that is `ReadyScreen`'s own button, one screen
+ * further on, and it is the owner's own deliberate press there, never a
+ * side effect of looking at a preview.
  *
- * **A hero, and a strip per day — B1803 Task 1.3.** The hero is the first
- * photograph of the first day this run actually finished; a day with no
- * finished day before it gets none, rather than a placeholder. Each
- * finished day's own strip is the same run's real photographs for that
- * date, looked up the same way `DayBoard` does. Tapping any tile opens the
- * shared viewer over that day's whole set.
+ * **The summary line describes this run, not a guess at the whole trip.**
+ * `committedDays` is the only thing this component reads a date span,
+ * a day count and a photograph count from — an existing trip a person
+ * chose to add into (Step 02's "add to a trip you have") may carry more
+ * days than this run itself told, and inventing a trip-wide total neither
+ * this manifest nor `groups` actually knows would be exactly the kind of
+ * plausible-looking number AGENTS.md rules out. The trip's own **title**
+ * is the one fact this screen cannot derive locally — a brand-new trip's
+ * title is decided server-side (`titleFromSpan`) — so it is the one thing
+ * fetched separately, from `GET .../trip?id=`, and its absence (a failed
+ * fetch) never blocks the real days below from rendering.
  *
- * **A day the person never told a story about is not invented one.** Only a
- * `DayRow` with both `committed` and `entrySlug` set — meaning
- * `commitReadyDays` actually finished it — gets a link. Everything else is
- * named honestly as not added, with the one true reason (`skippedGroups`
- * below), rather than shown as if it were part of the trip.
+ * **"Draft" is not a guess either.** Every day this screen can possibly
+ * name came out of `commitReadyDays`/`extract/commit`, which never
+ * publishes (`test/extract-no-publish.test.ts`) — so every one of them is a
+ * draft, unconditionally, for as long as this screen exists to show it.
  */
-export default function PreviewScreen({ username, runId }: { username: string; runId: string }) {
-  const { t, tn } = useI18n();
+export default function PreviewScreen({
+  username,
+  runId,
+  onBack,
+}: {
+  username: string;
+  runId: string;
+  /** Present only when a screen further on (`ReadyScreen`) is what led
+   *  here — renders the back arrow the design's own navbar carries. Absent
+   *  when this is reached on its own, e.g. directly from a test. */
+  onBack?: () => void;
+}) {
+  const { t, tn, formatShortDate, formatLongDate } = useI18n();
   const [data, setData] = useState<RunResponse | null>(null);
   const [error, setError] = useState(false);
+  const [trip, setTrip] = useState<TripHeader | null | undefined>(undefined);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [people, setPeople] = useState<Person[] | null>(null);
@@ -67,8 +86,20 @@ export default function PreviewScreen({ username, runId }: { username: string; r
       if (!res.ok) throw new Error(String(res.status));
       const json = (await res.json()) as RunResponse;
       setData(json);
+      if (json.manifest.tripId) void loadTrip(json.manifest.tripId);
     } catch {
       setError(true);
+    }
+  }
+
+  async function loadTrip(tripId: string) {
+    try {
+      const res = await fetch(`/api/helper/${encodeURIComponent(username)}/trip?id=${encodeURIComponent(tripId)}`);
+      if (!res.ok) throw new Error(String(res.status));
+      const json = (await res.json()) as TripHeader;
+      setTrip(json);
+    } catch {
+      setTrip(null);
     }
   }
 
@@ -146,10 +177,54 @@ export default function PreviewScreen({ username, runId }: { username: string; r
 
   // The trip's hero — the first photograph of the first day this run
   // actually finished. Absent (never a placeholder) when nothing did.
-  const heroPhoto = days.length > 0 ? photosFor(days[0].date)[0] : undefined;
+  const sortedDays = [...days].sort((a, b) => a.date.localeCompare(b.date));
+  const heroPhoto = sortedDays.length > 0 ? photosFor(sortedDays[0].date)[0] : undefined;
+  const totalPhotos = sortedDays.reduce((sum, d) => sum + photosFor(d.date).length, 0);
+  const partyNames = (manifest.partyNames ?? []).filter((n) => n.trim() !== "");
+
+  // The summary line — every fragment already fully localized, joined by
+  // neutral punctuation rather than one sentence with several
+  // interpolations (the reason `lib/extract/questions.ts` gives for taking
+  // the opposite approach there does not apply to independent facts like
+  // these, only to grammatically dependent ones).
+  const summaryParts: string[] = [];
+  if (sortedDays.length > 0) {
+    summaryParts.push(
+      t("extract.preview.dateRange", {
+        start: formatShortDate(sortedDays[0].date),
+        end: formatShortDate(sortedDays[sortedDays.length - 1].date),
+        year: sortedDays[0].date.slice(0, 4),
+      }),
+    );
+    summaryParts.push(tn("extract.preview.dayCount", sortedDays.length, { count: String(sortedDays.length) }));
+  }
+  if (totalPhotos > 0) {
+    summaryParts.push(tn("extract.preview.photoCount", totalPhotos, { count: String(totalPhotos) }));
+  }
+  if (partyNames.length > 0) {
+    summaryParts.push(t("extract.preview.peopleLine", { names: new Intl.ListFormat().format(partyNames) }));
+  }
 
   return (
     <div className="mt-4 flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-sm font-semibold text-ink-strong"
+            aria-label={t("extract.preview.header")}
+          >
+            ← {t("extract.preview.header")}
+          </button>
+        ) : (
+          <span />
+        )}
+        <Link href="/agent" className="text-sm font-semibold text-ink-strong underline">
+          {t("extract.preview.edit")}
+        </Link>
+      </div>
+
       {heroPhoto && (
         <PhotoStrip
           size="hero"
@@ -162,59 +237,77 @@ export default function PreviewScreen({ username, runId }: { username: string; r
               alt: heroPhoto.filename,
             },
           ]}
-          onSelect={(id) => openViewer(photosFor(days[0].date), id)}
+          onSelect={(id) => openViewer(photosFor(sortedDays[0].date), id)}
         />
       )}
 
       <div>
-        <h2 className="text-lg font-semibold text-ink-strong">{t("extract.preview.title")}</h2>
+        {tripId && days.length > 0 && (
+          <div className="flex items-center gap-2">
+            <h2 className="min-w-0 truncate font-display text-lg font-semibold text-ink-strong">
+              {trip === undefined ? "…" : (trip?.title ?? tripId)}
+            </h2>
+            <span className="shrink-0 rounded-full border border-line-strong px-2 py-0.5 text-xs font-semibold text-ink-secondary">
+              {t("extract.preview.draft")}
+            </span>
+          </div>
+        )}
+        {trip === null && <p className="mt-1 text-xs text-ink-secondary">{t("extract.preview.tripLoadError")}</p>}
+        {summaryParts.length > 0 && (
+          <p className="mt-1 text-sm text-ink-secondary">{summaryParts.join(" · ")}</p>
+        )}
 
         {tripId && days.length > 0 ? (
-          <>
-            <p className="mt-2 text-sm text-ink-body">
-              {tn("extract.preview.summary", days.length, { count: String(days.length) })}
-            </p>
-            <ul className="mt-2 flex flex-col gap-2">
-              {days.map((d) => {
-                const dayPhotos = photosFor(d.date);
-                return (
-                  <li key={d.date}>
-                    <Link
-                      href={`/${username}/trips/${tripId}/day/${d.entrySlug}`}
-                      className="text-sm font-semibold text-ink-strong underline"
-                    >
-                      {d.date}
-                    </Link>
-                    {dayPhotos.length > 0 && (
-                      <div className="mt-1">
-                        <PhotoStrip
-                          size="strip"
-                          columns={5}
-                          photos={dayPhotos.slice(0, 5).map(
-                            (p): PhotoStripItem => ({
-                              id: p.id,
-                              kind: p.kind,
-                              src: thumbSrc(username, runId, p.id),
-                              alt: p.filename,
-                            }),
-                          )}
-                          onSelect={(id) => openViewer(dayPhotos, id)}
-                        />
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-            <Link
-              href={`/${username}/trips/${tripId}`}
-              className="mt-3 inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong"
-            >
-              {t("extract.preview.viewTrip")}
-            </Link>
-          </>
+          <ul className="mt-4 flex flex-col gap-4">
+            {sortedDays.map((d) => {
+              const dayPhotos = photosFor(d.date);
+              return (
+                <li key={d.date} className="rounded-2xl border border-line-faint bg-surface-raised p-3">
+                  <Link
+                    href={`/${username}/trips/${tripId}/day/${d.entrySlug}`}
+                    className="flex min-w-0 items-center gap-2"
+                  >
+                    <span className="min-w-0 truncate text-sm font-semibold text-ink-strong">
+                      {formatLongDate(d.date)}
+                      {d.location ? ` · ${d.location}` : ""}
+                    </span>
+                    <span className="ml-auto shrink-0 rounded-full border border-line-strong px-2 py-0.5 text-xs font-semibold text-ink-secondary">
+                      {t("extract.preview.edit")}
+                    </span>
+                  </Link>
+                  {d.words && <p className="mt-2 text-sm text-ink-body">{d.words}</p>}
+                  {dayPhotos.length > 0 && (
+                    <div className="mt-2">
+                      <PhotoStrip
+                        size="strip"
+                        columns={5}
+                        photos={dayPhotos.slice(0, 5).map(
+                          (p): PhotoStripItem => ({
+                            id: p.id,
+                            kind: p.kind,
+                            src: thumbSrc(username, runId, p.id),
+                            alt: p.filename,
+                          }),
+                        )}
+                        onSelect={(id) => openViewer(dayPhotos, id)}
+                      />
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         ) : (
           <p className="mt-2 text-sm text-ink-body">{t("extract.preview.nothingAdded")}</p>
+        )}
+
+        {tripId && days.length > 0 && (
+          <Link
+            href={`/${username}/trips/${tripId}`}
+            className="mt-3 inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong"
+          >
+            {t("extract.preview.viewTrip")}
+          </Link>
         )}
 
         {skipped.length > 0 && (
@@ -236,6 +329,13 @@ export default function PreviewScreen({ username, runId }: { username: string; r
             </Link>
           </p>
         )}
+
+        <Link
+          href="/agent"
+          className="mt-3 inline-flex min-h-11 items-center rounded-full border border-line-strong px-5 text-base font-semibold text-ink-strong"
+        >
+          {t("extract.preview.keepEditing")}
+        </Link>
       </div>
 
       {tripId && (
