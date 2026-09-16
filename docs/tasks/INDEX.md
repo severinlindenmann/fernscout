@@ -286,18 +286,14 @@ Do not edit them by hand; run the script.
 | [B594](backlog/wont-do/B594-re-run-claude-security-scan-on.md) | Re-run claude-security scan on B07's provider payment gate once Workflow is available | CHORE | low | low |
 | [B666](backlog/wont-do/B666-a-phone-cannot-send-its-position.md) | A phone cannot send its position to a journal while the trip is happening | FEATURE | low | medium |
 
-## open (45)
+## open (41)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1144](open/B1144-a-dispatched-worktree-agent-cannot-run.md) | A dispatched worktree agent cannot run claude-security, so the one skill work-on-a-task requires on an auth change is the one it cannot reach | DOCS | high | low |
 | [B1753](open/B1753-check-caddy-reports-the-running-config.md) | check:caddy reports the running config is in step while a directive from this release is missing from it | ISSUE | high | low |
 | [B1791](open/B1791-the-whatsapp-number-is-the-owner.md) | The WhatsApp number is the owner's personal SIM, and the Twilio number meant to replace it cannot be verified by Meta | OPS | high | medium |
-| [B1810](open/B1810-colour-shades-the-theme-never-defined.md) | Colour shades the theme never defined fall back to Tailwind's own palette, so cards and banners stay light in dark mode | ISSUE | high | medium |
-| [B1811](open/B1811-the-cover-step-shows-eight-photographs.md) | The cover step shows eight photographs and tells the person the rest come later | FEATURE | high | low |
-| [B1812](open/B1812-the-title-page-renders-at-a.md) | The title page renders at a quarter the area of every other page in the preview | ISSUE | high | low |
 | [B1813](open/B1813-the-route-map-often-reads-as.md) | The route map often reads as an empty frame with overlapping place names | FEATURE | high | high |
-| [B1814](open/B1814-a-run-of-days-with-no.md) | A run of days with no country prints one Anderswo divider page each, not one chapter | ISSUE | high | low |
 | [B1815](open/B1815-a-day-s-text-is-cut.md) | A day's text is cut where it does not fit, and the book has one shape for every length of writing | FEATURE | high | high |
 | [B107](open/B107-postcards-have-only-ever-run-from.md) | Postcards have only ever run from a laptop CLI, never as a capability of the deployed site | OPS | medium | medium |
 | [B1158](open/B1158-the-off-site-backup-key-is.md) | The off-site backup key is a full-access key that travels inside the snapshot it protects | SECURITY | medium | low |
@@ -340,12 +336,16 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (6)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
 | [B1803](in-development/B1803-the-import-talks-about-photographs-the.md) | The import talks about photographs the person cannot see | FEATURE | high | high | `0e7f2abd` |
+| [B1810](in-development/B1810-colour-shades-the-theme-never-defined.md) | Colour shades the theme never defined fall back to Tailwind's own palette, so cards and banners stay light in dark mode | ISSUE | high | medium | `5728e1b2` |
+| [B1811](in-development/B1811-the-cover-step-shows-eight-photographs.md) | The cover step shows eight photographs and tells the person the rest come later | FEATURE | high | low | `5728e1b2` |
+| [B1812](in-development/B1812-the-title-page-renders-at-a.md) | The title page renders at a quarter the area of every other page in the preview | ISSUE | high | low | `5728e1b2` |
+| [B1814](in-development/B1814-a-run-of-days-with-no.md) | A run of days with no country prints one Anderswo divider page each, not one chapter | ISSUE | high | low | `5728e1b2` |
 
 ## testing (13)
 

@@ -6,6 +6,9 @@ priority: high
 complexity: low
 area: photobook, chapters
 found: "2026-09-16T18:11:04Z"
+started: "2026-09-16T18:14:23Z"
+session: 5728e1b2-3fad-40e0-b87e-adbfa4c2dc7f
+claimed: "2026-09-16T18:14:23Z"
 ---
 
 # B1814 — A run of days with no country prints one Anderswo divider page each, not one chapter
