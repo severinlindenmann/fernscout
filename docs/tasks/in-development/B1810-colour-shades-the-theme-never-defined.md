@@ -83,6 +83,66 @@ them; a pairing that is internally readable in both themes is not a defect.
 Not doing: a redesign of the wizard, or any change to the printed book's
 colours. `lib/photobook/render.ts` has its own palette and paper is not themed.
 
+## Resolution
+
+Confirmed valid and considerably wider than the "Where it shows" list: a
+repo-wide scan of every `bg|border|text|…-<hue>-<shade>` class against
+`@theme`'s tokens found 37 undefined-shade occurrences on ambiguous hues, not
+only `yellow`/`red` — also `green-600`, `green-800` and `sky-50/100/200`. The
+acceptance line ("no remaining occurrence… in `app/` or `components/`") is a
+blanket rule, so all of them were fixed, not only the photobook/postcard
+files named above.
+
+Decision made once, applied everywhere:
+- **The caution-banner pattern** (`border-yellow-600 bg-yellow-50 …
+  text-yellow-900`, already the deliberately contrast-checked shape in
+  `HelperRoom.tsx`'s low-credits notice, B1155) is now backed by real tokens:
+  `--color-yellow-50/100/900` added to `app/globals.css`, light values equal
+  to Tailwind's own stock hexes (what was already rendering), dark values
+  following B1798's method — `yellow-900` (text) reuses `yellow-400`'s own
+  hex (10.38:1 on the new dark fill) rather than inventing a new step.
+  `BookLevelView.tsx`, `PhotobookPageContent.tsx`, `PostcardSend.tsx` and
+  `postcards/[id]/page.tsx` were normalised onto this exact class string
+  (their `border-yellow-300`/`border-yellow-700` variants folded into
+  `border-yellow-600`).
+- **"Chosen" cards** (`FirstBookFlow.tsx`, both spots) swapped `bg-yellow-50`
+  for `bg-surface-selected`, the house pattern the ticket named
+  (`LocaleSwitcher`/`ThemeSwitcher`), keeping `border-yellow-600` as the
+  accent.
+- **Wrong-shade copies** (`yellow-500` → `yellow-600` in
+  `BookSettingsPanel.tsx`, `DayControls.tsx`, `PostcardCropper.tsx`;
+  `green-800` → `green-700` in `HelperRoom.tsx`, `extract/DayBoard.tsx`)
+  matched to the sibling line already using the defined shade.
+- **`text-red-700`** (11 files, all error text — admin panels and the
+  `extract` flow) swapped to `text-coral-600`, the existing, already
+  dark-flipped error-text token used everywhere else in the app for exactly
+  this role. No new red ramp invented.
+- **`green-600`** (`RoomOpening.tsx`'s WhatsApp button) swapped to
+  `green-500` + `text-on-bright` + `hover:brightness-110`, matching
+  `GamePath.tsx`'s already-shipped `border-green-700 bg-green-500
+  text-on-bright` combo instead of reusing `green-700` as a *background*
+  (that token was deliberately redefined for dark-mode *text* by B1798, and
+  using it as a fill would make the button glow bright green in dark mode).
+- **`sky-50/100/200`** (badges, icon circles and branding-workbench ground
+  panels) collapsed onto `sky-300`, the one pale sky shade this app already
+  defines and pairs with `text-on-bright`/translucent fills elsewhere.
+
+Added `test/undefined-color-tokens.test.ts`'s missing guard: a second test
+extending the same file, checking `sky`/`yellow`/`green`/`blue`/`red` (the
+ambiguous hues the original test's own comment named but did not assert)
+against every `--color-*` token defined anywhere in `globals.css`. Verified it
+fails on `main` (37 findings) and passes after the fix (0) — see the session
+report for both outputs.
+
+`lib/photobook/render.ts` (the printed book) was not touched, per the ticket.
+
+**Second, unrelated problem found and filed separately (not fixed here):**
+`npm run verify`'s vitest stage fails on a pre-existing issue —
+`test/task-ids.test.ts` rejects three tickets the recent wont-do triage moved
+into `backlog/wont-do/` because their `type`/`complexity` frontmatter still
+names their old category folder. Confirmed pre-existing on `main` before this
+branch touched anything. Filed as B1818.
+
 ## Acceptance
 
 - The photobook wizard at `/[user]/trips/<trip>/photobook`, in dark mode, at

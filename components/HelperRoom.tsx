@@ -2005,7 +2005,7 @@ function HistoryPanel({
                       </span>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          day.draft ? "bg-yellow-400 text-on-bright" : "bg-green-100 text-green-800"
+                          day.draft ? "bg-yellow-400 text-on-bright" : "bg-green-100 text-green-700"
                         }`}
                       >
                         {day.draft ? t("draft.badge") : t("agent.room.dayOnline")}

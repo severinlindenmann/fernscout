@@ -85,7 +85,7 @@ export default function PushInstallOnboarding() {
         <ol className="mt-5 space-y-3.5">
           {steps.map(([Icon, label], i) => (
             <li key={i} className="flex items-center gap-3 text-sm text-ink-body">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-50 text-on-bright">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-300 text-on-bright">
                 <Icon className="h-4 w-4" aria-hidden />
               </span>
               {label}

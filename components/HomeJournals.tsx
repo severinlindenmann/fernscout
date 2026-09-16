@@ -72,9 +72,9 @@ function RoleBadge({ role }: { role: MineJournal["role"] }) {
   const { t } = useI18n();
   const tone =
     role === "owner"
-      ? "bg-yellow-100 text-on-bright"
+      ? "bg-yellow-300 text-on-bright"
       : role === "traveller"
-        ? "bg-sky-100 text-on-bright"
+        ? "bg-sky-300 text-on-bright"
         : "bg-surface-subtle text-ink-body";
   return (
     <span

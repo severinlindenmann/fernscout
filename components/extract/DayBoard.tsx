@@ -39,7 +39,7 @@ function completenessFor(group: DayGroup, manifest: RunManifest, openCount: numb
 const BADGE_CLASS: Record<Completeness, string> = {
   new: "border-line-faint text-ink-secondary",
   started: "border-amber-400 bg-amber-100 text-amber-800",
-  ready: "border-green-500 bg-green-100 text-green-800",
+  ready: "border-green-500 bg-green-100 text-green-700",
 };
 
 /** A literal lookup rather than a template string, so every key `t()` can be
@@ -140,7 +140,7 @@ export default function DayBoard({
   if (error) {
     return (
       <div className="mt-4">
-        <p className="text-sm text-red-700">{t("extract.board.error")}</p>
+        <p className="text-sm text-coral-600">{t("extract.board.error")}</p>
         <button
           type="button"
           onClick={() => void load()}

@@ -313,7 +313,7 @@ export default function CreditsScreen({
       </button>
 
       {error && (
-        <p role="status" className="text-sm text-red-700">
+        <p role="status" className="text-sm text-coral-600">
           {t("extract.credits.error")}
         </p>
       )}

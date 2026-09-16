@@ -229,7 +229,7 @@ export default function DayControls({
                     t("photobook.option.photoName", { index: String(i + 1), total: String(dayPhotos.length) })
                   }
                   className={`relative block aspect-square w-full overflow-hidden rounded-md border ${
-                    inBook ? "border-yellow-500" : "border-line-quiet opacity-30"
+                    inBook ? "border-yellow-600" : "border-line-quiet opacity-30"
                   }`}
                 >
                   <Image src={tile.src} loader={mediaLoader} alt="" fill sizes="10vw" className="object-cover" />

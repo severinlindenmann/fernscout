@@ -58,7 +58,7 @@ export default function FoundStep({
   }, [username, runId]);
 
   if (error) {
-    return <p className="mt-4 text-sm text-red-700">{t("extract.found.error")}</p>;
+    return <p className="mt-4 text-sm text-coral-600">{t("extract.found.error")}</p>;
   }
   if (!data) {
     return <p className="mt-4 text-sm text-ink-secondary">{t("extract.found.loading")}</p>;

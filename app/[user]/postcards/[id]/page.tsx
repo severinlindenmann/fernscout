@@ -476,7 +476,7 @@ export default async function PostcardOrderPage({
               ) : null}
 
               {mismatched > 0 && isPending(order) ? (
-                <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
+                <p className="mt-4 rounded-lg border border-yellow-600 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
                   {mismatched === 1 && firstMismatch
                     ? t("postcard.page.mismatchOne", {
                         name: people.get(firstMismatch)!.to.name,

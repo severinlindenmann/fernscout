@@ -609,7 +609,7 @@ export default function InviteRedeem({
           </p>
 
           {error && (
-            <p role="alert" className="mt-6 text-lg text-red-700">
+            <p role="alert" className="mt-6 text-lg text-coral-600">
               {t(error)}
             </p>
           )}
@@ -640,7 +640,7 @@ export default function InviteRedeem({
             />
           </div>
           {error && (
-            <p role="alert" className="mt-6 text-lg text-red-700">
+            <p role="alert" className="mt-6 text-lg text-coral-600">
               {t(error)}
             </p>
           )}

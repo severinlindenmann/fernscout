@@ -189,7 +189,7 @@ export default function NonPhotoImport({ username, kind }: { username: string; k
         </div>
       )}
 
-      {errorKey && <p className="mt-4 text-sm text-red-700">{t(errorKey)}</p>}
+      {errorKey && <p className="mt-4 text-sm text-coral-600">{t(errorKey)}</p>}
 
       {kind === "contacts" && staged && (
         <div className="mt-4 rounded-xl bg-surface-subtle p-4">

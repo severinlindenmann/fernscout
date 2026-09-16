@@ -30,6 +30,16 @@ const CSS = fs.readFileSync(path.join(ROOT, "app", "globals.css"), "utf8");
 const UTILITIES =
   "bg|border|text|decoration|ring|outline|divide|from|via|to|fill|stroke|accent|caret|shadow|placeholder";
 const UNAMBIGUOUS_HUES = new Set(["navy", "cream", "coral"]);
+// B1810: the ambiguous hues left uncovered above — Tailwind's own default
+// palette names, where an undefined shade does not vanish (like `navy-300`
+// did) but silently resolves to Tailwind's *stock* hex instead, fixed in
+// both themes because it was never one of this app's tokens to begin with.
+// `bg-yellow-50`, `text-yellow-900`, `border-yellow-500`, `text-red-700`
+// all compiled and looked plausible on cream, and never flipped in dark
+// mode. Checked against `--color-*` names directly (not `palette()`, which
+// is scoped to the light `:root` block only) because a shade defined solely
+// under a dark block would still need catching here.
+const AMBIGUOUS_HUES = new Set(["sky", "yellow", "green", "blue", "red"]);
 
 function walk(dir: string): string[] {
   const out: string[] = [];
@@ -70,6 +80,27 @@ describe("every colour class on an unambiguous hue names a defined token", () =>
         if (!UNAMBIGUOUS_HUES.has(hue)) continue;
         const token = `${hue}-${shade}`;
         if (!definedTokens.has(token)) missing.add(`${token} (${path.relative(ROOT, file)})`);
+      }
+    }
+
+    expect([...missing].sort()).toEqual([]);
+  });
+
+  test("no undefined shade is used on sky, yellow, green, blue or red", () => {
+    // Any block, light or dark — a shade this app never defines anywhere is
+    // still the bug, whichever `:root` it would have needed to appear in.
+    const definedAnywhere = new Set(
+      [...CSS.matchAll(/--color-([a-z]+-\d+):/g)].map(([, token]) => token),
+    );
+    const files = CODE_DIRS.flatMap((d) => walk(path.join(ROOT, d)));
+    const missing = new Set<string>();
+
+    for (const file of files) {
+      const text = fs.readFileSync(file, "utf8");
+      for (const [, hue, shade] of text.matchAll(pattern)) {
+        if (!AMBIGUOUS_HUES.has(hue)) continue;
+        const token = `${hue}-${shade}`;
+        if (!definedAnywhere.has(token)) missing.add(`${token} (${path.relative(ROOT, file)})`);
       }
     }
 

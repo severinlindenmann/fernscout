@@ -200,7 +200,7 @@ export default function PostcardCropper({
           onChange={(e) => setCrop({ ...crop, zoom: Number(e.target.value) })}
           onPointerUp={() => save(crop)}
           onKeyUp={() => save(crop)}
-          className="h-6 min-w-0 flex-1 accent-yellow-500"
+          className="h-6 min-w-0 flex-1 accent-yellow-600"
         />
         <BusyButton
           busy={saving}

@@ -70,6 +70,23 @@
   --color-yellow-400: #ffd23f;
   --color-yellow-600: #d69b0a;
   --color-yellow-950: #4a3300;
+  /*
+    B1810. `yellow-50`, `yellow-100` and `yellow-900` were never defined, so
+    the caution-banner classes already used across the photobook, postcards
+    and the helper room (`border-yellow-600 bg-yellow-50 ... text-yellow-900`)
+    silently drew from Tailwind's own fixed palette instead of this one —
+    correct-looking on cream by accident, and unchanged in dark mode because
+    Tailwind's palette does not know this app has one.
+
+    Light values are Tailwind's stock hexes for these shades, unchanged from
+    what was already rendering, because the light-mode banner was never the
+    complaint. Dark values follow B1798's method below: `yellow-900`, the
+    text-bearing shade, reuses `yellow-400`'s own hex (10.38:1 on the dark
+    banner fill) rather than inventing a new step in the ramp.
+  */
+  --color-yellow-50: #fefce8;
+  --color-yellow-100: #fef9c3;
+  --color-yellow-900: #713f12;
 
   --color-green-100: #ddf3e4;
   --color-green-500: #22c55e;
@@ -162,6 +179,9 @@
   --color-yellow-400: var(--color-yellow-400);
   --color-yellow-600: var(--color-yellow-600);
   --color-yellow-950: var(--color-yellow-950);
+  --color-yellow-50: var(--color-yellow-50);
+  --color-yellow-100: var(--color-yellow-100);
+  --color-yellow-900: var(--color-yellow-900);
 
   --color-green-100: var(--color-green-100);
   --color-green-500: var(--color-green-500);
@@ -264,6 +284,13 @@ html {
   --color-green-100: #1c3327;
   --color-coral-50: #2b141a;
   --color-coral-100: #33191f;
+  /* B1810 — the caution-banner shades, same method as the green/coral pair
+     above. yellow-50/yellow-100 become dark amber-tinted fills instead of
+     Tailwind's pale stock hexes; yellow-900 reuses yellow-400's own hex as
+     its text so the banner stays legible without inventing a new step. */
+  --color-yellow-50: #2e2610;
+  --color-yellow-100: #3a2f14;
+  --color-yellow-900: #ffd23f;
   --ink-strong: #f2ecdd;
   --ink-body: #e6e0d2;
   --ink-secondary: #d7d4ca;
@@ -303,6 +330,9 @@ html {
     --color-green-100: #1c3327;
     --color-coral-50: #2b141a;
     --color-coral-100: #33191f;
+    --color-yellow-50: #2e2610;
+    --color-yellow-100: #3a2f14;
+    --color-yellow-900: #ffd23f;
     --ink-strong: #f2ecdd;
     --ink-body: #e6e0d2;
     --ink-secondary: #d7d4ca;

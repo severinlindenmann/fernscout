@@ -364,7 +364,7 @@ export default function BookLevelView({
         <div className="order-2 lg:order-1 mt-5 lg:mt-0">
       {/* Nothing at all when there is nothing wrong — B549. */}
       {lines.length > 0 && (
-        <div className="mt-5 rounded-lg border border-yellow-300 bg-yellow-50 p-3 text-yellow-900">
+        <div className="mt-5 rounded-lg border border-yellow-600 bg-yellow-50 p-3 text-yellow-900">
           <p className="text-sm font-semibold">{t("photobook.warn.heading")}</p>
           <ul className="mt-1 space-y-1 text-sm">
             {lines.map(([code, key]) => {
@@ -385,7 +385,7 @@ export default function BookLevelView({
                   key={fix.key}
                   type="button"
                   onClick={fix.apply}
-                  className="min-h-11 rounded-full border-2 border-yellow-700 px-4 text-sm font-semibold text-yellow-900"
+                  className="min-h-11 rounded-full border-2 border-yellow-600 px-4 text-sm font-semibold text-yellow-900"
                 >
                   {t(fix.key)}
                 </button>
@@ -615,14 +615,14 @@ export default function BookLevelView({
           {unbuyable &&
             preview?.unbuyableReason &&
             preview.unbuyableReason !== "no-recipient" && (
-              <p className="mt-2 text-sm text-red-700">
+              <p className="mt-2 text-sm text-coral-600">
                 {t(UNBUYABLE_MESSAGE[preview.unbuyableReason])}
               </p>
             )}
           {/* Not a dead disabled button: the one place credits are bought is
               the owner's own page, and this is the link to it — B551. */}
           {tooPoor && credits !== null && balance !== null && (
-            <p className="mt-2 text-sm text-red-700">
+            <p className="mt-2 text-sm text-coral-600">
               {t("photobook.tooPoor", {
                 credits: String(credits),
                 balance: String(balance),
