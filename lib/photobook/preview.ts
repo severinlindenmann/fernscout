@@ -914,6 +914,11 @@ export function renderPreview(
     /* Page one alone still takes half a row rather than a whole one: in a
        grid there is no snap step for it to own. */
     body.bare:not(.read)[data-view="spreads"] .spread.solo { flex:0 0 calc(25% - .5rem); }
+    /* The mobile rule above halves the lone figure again inside a container
+       already sized to one interior page (B1812) — override it here, beside
+       the rule it belongs with, so the title page fills the width it was
+       given rather than a quarter of the row's area. */
+    body.bare:not(.read)[data-view="spreads"] .spread.solo figure { flex:1 1 0; }
     /* The date under each day's page, which is what the drawing labels the
        grid with. Read off the same attribute extractSpreads matches on, so
        nothing new has to be stamped; front matter has no date and gets no
