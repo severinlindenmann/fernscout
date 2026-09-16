@@ -4,7 +4,7 @@ import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempoten
 import { NO_JOURNAL } from "@/lib/auth";
 import { rateLimitFor } from "@/lib/rateLimit";
 import { handleInboundMessage } from "@/lib/whatsapp/dispatch";
-import { parseInboundMessages, verifyWebhookSignature } from "@/lib/whatsapp/inbound";
+import { parseInboundMessages, parseOutboundStatuses, verifyWebhookSignature } from "@/lib/whatsapp/inbound";
 import { maskNumber } from "@/lib/whatsapp/index";
 
 // The signature is computed over the exact bytes Meta sent, so nothing may
@@ -93,6 +93,20 @@ export async function POST(request: Request) {
   }
 
   const messages = parseInboundMessages(body);
+
+  /**
+   * The other half of a delivery — B1809. A message the Graph API answered
+   * `accepted` for can still be refused, and this callback carries the only
+   * reason this server is ever given. Logged before the messages because a
+   * refusal is the rarer and more urgent event; a delivery needs no line.
+   */
+  for (const status of parseOutboundStatuses(body)) {
+    if (status.status !== "failed") continue;
+    const reason = status.errorCode ? `${status.errorCode} ${status.errorTitle ?? ""}`.trim() : "no reason given";
+    console.error(
+      `[whatsapp:outbound] failed to ${maskNumber(status.recipient)} — ${reason} (${status.wamid})`,
+    );
+  }
 
   for (const message of messages) {
     /**
