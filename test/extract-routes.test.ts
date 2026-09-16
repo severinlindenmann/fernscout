@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { geodataAvailable } from "@/lib/ingest/geo";
 
 /**
  * The start and upload routes — B1751 Task 1.2.
@@ -304,6 +305,32 @@ describe("the run and day routes with the capability on", () => {
     expect(body.groups).toHaveLength(1);
     expect(body.groups[0].photoIds).toEqual(["a", "b"]);
     expect(body.questions["2019-07-02"].length).toBeGreaterThan(0);
+  });
+
+  describe.runIf(geodataAvailable())("GET carries a real place name for the day board", () => {
+    test("B1803 Task 3.2 — a group with a coordinate gets the same reverse-geocoded name its own question already used", async () => {
+      const { runId } = (await (await startRun()).json()) as { runId: string };
+      const { readManifest, writeManifest } = await import("@/lib/staging/manifest");
+      const manifest = readManifest("alex", runId);
+      if (!manifest) throw new Error("run vanished");
+      manifest.photos.push({
+        id: "a",
+        filename: "a.jpg",
+        bytes: 1,
+        kind: "image",
+        takenAt: "2019-07-02T10:00:00",
+        lat: 15.8801,
+        lng: 108.338,
+      });
+      writeManifest("alex", manifest);
+
+      const { GET } = await import("@/app/api/helper/[user]/extract/run/route");
+      const res = await GET(new Request(`http://x?run=${runId}`), {
+        params: Promise.resolve({ user: "alex" }),
+      });
+      const body = (await res.json()) as { groups: { placeName?: string }[] };
+      expect(body.groups[0].placeName).toBeTruthy();
+    });
   });
 
   test("PATCH applies only the fields present in the body", async () => {

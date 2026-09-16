@@ -24,32 +24,65 @@ function thumbSrc(username: string, runId: string, photoId: string): string {
   return `/api/helper/${encodeURIComponent(username)}/extract/thumb/${encodeURIComponent(runId)}/${encodeURIComponent(photoId)}`;
 }
 
-type RunResponse = { manifest: RunManifest; groups: DayGroup[]; questions: Record<string, Question[]> };
+type DayGroupWithPlace = DayGroup & {
+  /** The run route's own reverse-geocoded read of this group's coordinate —
+   *  `app/api/helper/[user]/extract/run/route.ts`, the same lookup that
+   *  already went into a question's own sentence. `undefined` whenever the
+   *  group has no coordinate at all (this is exactly when a "where were
+   *  you" gap question exists for it) or offline geodata is not installed —
+   *  never a second guess made up on this side of the wire. */
+  placeName?: string;
+};
+
+type RunResponse = { manifest: RunManifest; groups: DayGroupWithPlace[]; questions: Record<string, Question[]> };
 
 function keyFor(group: DayGroup): string {
   return group.undated ? "undated" : group.date;
 }
 
-type Completeness = "new" | "started" | "ready";
+/**
+ * The design's three status pills (S5a) — B1803 Task 3.2.
+ *
+ * `"noPlace"` is not "has fewer answers than usual"; it is real: this day
+ * still has an open gap question whose `fills` is `"location"`
+ * (`lib/extract/questions.ts` only ever creates one when the group's own
+ * coordinate is missing). Once that specific question is answered it drops
+ * out of `open` and the status moves on — to `"told"` if nothing else was
+ * outstanding, `"notYet"` otherwise.
+ */
+export type DayStatus = "told" | "noPlace" | "notYet";
 
-function completenessFor(group: DayGroup, manifest: RunManifest, openCount: number): Completeness {
-  if (openCount === 0) return "ready";
-  const answered = manifest.days.find((d) => d.date === group.date)?.answered.length ?? 0;
-  return answered > 0 ? "started" : "new";
+export function statusFor(open: Pick<Question, "fills">[]): DayStatus {
+  if (open.length === 0) return "told";
+  return open.some((q) => q.fills === "location") ? "noPlace" : "notYet";
 }
 
-const BADGE_CLASS: Record<Completeness, string> = {
-  new: "border-line-faint text-ink-secondary",
-  started: "border-amber-400 bg-amber-100 text-amber-800",
-  ready: "border-green-500 bg-green-100 text-green-800",
+/**
+ * The thin per-card progress bar (S5a) — how much of this day's *currently
+ * known* question set is already answered. Real arithmetic on
+ * `DayRow.answered` and the run route's own `open` list, never a step count
+ * invented for the bar: a day can only ever have up to
+ * `MAX_QUESTIONS_PER_DAY` questions in play at once, and this is the
+ * fraction of them already put to bed.
+ */
+export function dayProgressPercent(answeredCount: number, openCount: number): number {
+  const total = answeredCount + openCount;
+  if (total <= 0) return 0;
+  return Math.round((answeredCount / total) * 100);
+}
+
+const BADGE_CLASS: Record<DayStatus, string> = {
+  told: "border-green-500 bg-green-100 text-green-700",
+  noPlace: "border-coral-400 bg-coral-100 text-coral-600",
+  notYet: "border-line-faint bg-cream-100 text-ink-secondary",
 };
 
 /** A literal lookup rather than a template string, so every key `t()` can be
  *  asked for stays checked at compile time — `UploadStep`'s `STATE_KEY`. */
-const STATUS_KEY: Record<Completeness, TranslationKey> = {
-  new: "extract.board.status.new",
-  started: "extract.board.status.started",
-  ready: "extract.board.status.ready",
+const STATUS_KEY: Record<DayStatus, TranslationKey> = {
+  told: "extract.board.status.told",
+  noPlace: "extract.board.status.noPlace",
+  notYet: "extract.board.status.notYet",
 };
 
 /**
@@ -168,7 +201,7 @@ export default function DayBoard({
   // with `countDays` (`lib/extract/dayCount.ts`), and this board must not say a
   // different number a screen later.
   const daysTold = groups.filter(
-    (group) => !group.undated && completenessFor(group, manifest, (questions[keyFor(group)] ?? []).length) === "ready",
+    (group) => !group.undated && statusFor(questions[keyFor(group)] ?? []) === "told",
   ).length;
   const daysTotal = countDays(groups);
 
@@ -183,8 +216,27 @@ export default function DayBoard({
         {groups.map((group, groupIndex) => {
           const key = keyFor(group);
           const open = questions[key] ?? [];
-          const state = completenessFor(group, manifest, open.length);
+          const state = statusFor(open);
           const isSelected = selected === key;
+          const answeredCount = manifest.days.find((d) => d.date === group.date)?.answered.length ?? 0;
+          // The person's own free-text answer to the "where were you" gap
+          // question wins nothing over the automatic read — the two never
+          // coexist. That question only exists when `group.placeName` could
+          // never have been computed (`group.lat === undefined`), so
+          // whichever of the two is present is simply the one this day
+          // actually has.
+          const place = group.placeName ?? manifest.days.find((d) => d.date === group.date)?.location;
+          const photoCount = group.photoIds.length;
+          // No weather field exists anywhere in this run's own data
+          // (`RunManifest`/`DayRow`/`DayGroup`) — it is looked up later, once
+          // a day is committed into the journal proper
+          // (`lib/dayReadiness.ts`'s own weather read, past this flow). An
+          // empty field beats a confident wrong one, so the summary line
+          // below never carries a temperature or a condition this run has
+          // not actually seen.
+          const summary = place
+            ? tn("extract.board.summary.withPlace", photoCount, { place, count: String(photoCount) })
+            : tn("extract.board.summary.noPlace", photoCount, { count: String(photoCount) });
           return (
             <li key={key} className={isSelected ? "rounded-lg ring-2 ring-yellow-300" : undefined}>
               <button
@@ -198,15 +250,19 @@ export default function DayBoard({
                 <span className="text-sm font-semibold text-ink-strong">
                   {group.undated ? t("extract.board.undated") : group.date}
                 </span>
-                <span className="flex items-center gap-2">
-                  <span className="text-xs text-ink-secondary">
-                    {tn("extract.board.photoCount", group.photoIds.length, { count: String(group.photoIds.length) })}
-                  </span>
-                  <span className={`rounded-full border px-2 py-0.5 text-xs font-semibold ${BADGE_CLASS[state]}`}>
-                    {t(STATUS_KEY[state])}
-                  </span>
+                <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs font-semibold ${BADGE_CLASS[state]}`}>
+                  {t(STATUS_KEY[state])}
                 </span>
               </button>
+              <p className="truncate px-4 pb-2 text-xs text-ink-secondary">{summary}</p>
+              {state !== "told" && (
+                <div className="mx-4 mb-2 h-1 overflow-hidden rounded-full bg-line-faint">
+                  <div
+                    className="h-full rounded-full bg-yellow-400"
+                    style={{ width: `${dayProgressPercent(answeredCount, open.length)}%` }}
+                  />
+                </div>
+              )}
 
               {group.photoIds.length > 0 && (
                 <div className="px-4 pb-3">

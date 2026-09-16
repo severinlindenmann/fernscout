@@ -45,18 +45,27 @@ function dayRowFor(manifest: RunManifest, group: DayGroup): DayRow {
  * in it missing GPS — gets no place name and `questionsForDay` asks where it
  * was instead of stating a place nobody's photograph said.
  */
-function groupsAndQuestions(manifest: RunManifest): { groups: DayGroup[]; questions: Record<string, Question[]> } {
+function groupsAndQuestions(
+  manifest: RunManifest,
+): { groups: (DayGroup & { placeName?: string })[]; questions: Record<string, Question[]> } {
   const live = manifest.photos.filter((p) => !p.dropped);
   const groups = groupIntoDays(live);
   const questions: Record<string, Question[]> = {};
+  // `placeName` rides along on each group in the response now, not just
+  // baked into a question's sentence — the day board (B1803 Task 3.2) reads
+  // it for its own summary line ("Hoi An · 12 photographs") and must show
+  // the same real reverse-geocoded name this file already computes here,
+  // never a second guess of its own.
+  const withPlace: (DayGroup & { placeName?: string })[] = [];
   for (const group of groups) {
     let placeName: string | undefined;
     if (!group.undated && group.lat !== undefined && group.lng !== undefined && geodataAvailable()) {
       placeName = reverseGeocode(group.lat, group.lng)?.name;
     }
     questions[keyFor(group)] = questionsForDay(group, manifest.photos, dayRowFor(manifest, group), placeName);
+    withPlace.push({ ...group, placeName });
   }
-  return { groups, questions };
+  return { groups: withPlace, questions };
 }
 
 export async function GET(
