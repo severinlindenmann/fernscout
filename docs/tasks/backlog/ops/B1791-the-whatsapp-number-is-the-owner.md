@@ -420,26 +420,30 @@ reports failure on a working system. Use the `POST /api/webhooks/whatsapp`
 request line and what follows it instead. This cost a wrong "inbound is not
 working" call during this migration.
 
-## What remains — the personal SIM is still registered
+## The personal SIM is deregistered — done
 
 **`+41 78 217 26 46` reads `CONNECTED` / `VERIFIED` on WABA
 1043886595223059.** Nothing about the new number changes that, and it is the
 whole reason this ticket exists.
 
-Outstanding, in order:
+**Resolved 2026-09-16.** `POST /1253568101181150/deregister` returned
+`{"success": true}` on the first call — no 2FA/PIN removal was needed, despite
+that being the most commonly reported blocker. The old number now reads
+`DISCONNECTED` on WABA 1043886595223059; the live sender is unaffected
+(`CONNECTED`).
 
-1. **Tell contacts from the old number while it still works.** There is no
-   "Change Number" notification for a Cloud API number with no app presence.
-   Threads on contacts' phones do not follow.
-2. **Deregister it** — `POST /1253568101181150/deregister`, 2FA/PIN off
-   first, before the SIM lapses. 10 calls per number per rolling 72 hours;
-   over that is `133016` and a further 72-hour lock.
-3. Optional: business verification on portfolio `1154303934071130`. Still
-   `not_verified`; it is portfolio-level, so it now carries regardless of
-   number.
+The SIM may now lapse without leaving a live Meta registration on a number
+that will be reassigned. That is the risk B1067 opened and this ticket
+inherited, and it is closed.
 
-Until step 2 is done the risk B1067 recorded is unchanged, however well the
-new number works.
+**The owner decided not to notify contacts** (2026-09-16), having been told
+that threads on contacts' phones do not follow a number change and that no
+"Change Number" notification exists for a Cloud API number. Existing threads
+with the old number simply stop. Recorded as a decision, not an oversight.
+
+Still optional: business verification on portfolio `1154303934071130`, still
+`not_verified`. It is portfolio-level, so it now carries regardless of which
+number is attached.
 
 ## Work
 
