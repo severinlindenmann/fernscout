@@ -232,6 +232,51 @@ export function parseInboundMessages(body: unknown): InboundMessage[] {
   return out;
 }
 
+/** One delivery status Meta reported for a message this server sent. */
+export type OutboundStatus = {
+  wamid: string;
+  status: string;
+  recipient: string;
+  /** Present only on `failed` — Meta's own code and title for the refusal. */
+  errorCode?: number;
+  errorTitle?: string;
+};
+
+/**
+ * The `statuses` half of a webhook delivery — B1809.
+ *
+ * Meta reports `sent`, `delivered`, `read` and `failed` on the same callback
+ * shape the messages arrive in, and a `failed` one carries the only
+ * explanation this server ever gets for a message the Graph API already
+ * answered `accepted` for. Parsing messages and discarding these made a
+ * refused send indistinguishable from a delivered one.
+ */
+export function parseOutboundStatuses(body: unknown): OutboundStatus[] {
+  const out: OutboundStatus[] = [];
+  const entries = isRecord(body) && Array.isArray(body.entry) ? body.entry : [];
+  for (const entry of entries) {
+    const changes = isRecord(entry) && Array.isArray(entry.changes) ? entry.changes : [];
+    for (const change of changes) {
+      const value = isRecord(change) ? change.value : undefined;
+      const statuses = isRecord(value) && Array.isArray(value.statuses) ? value.statuses : [];
+      for (const s of statuses) {
+        if (!isRecord(s) || typeof s.id !== "string" || typeof s.status !== "string") continue;
+        // Meta sends an `errors` array; only the first carries the reason
+        // anybody acts on, and a second has never been observed here.
+        const error = Array.isArray(s.errors) && isRecord(s.errors[0]) ? s.errors[0] : undefined;
+        out.push({
+          wamid: s.id,
+          status: s.status,
+          recipient: typeof s.recipient_id === "string" ? s.recipient_id : "",
+          ...(typeof error?.code === "number" ? { errorCode: error.code } : {}),
+          ...(typeof error?.title === "string" ? { errorTitle: error.title } : {}),
+        });
+      }
+    }
+  }
+  return out;
+}
+
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
