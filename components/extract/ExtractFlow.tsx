@@ -430,7 +430,7 @@ export default function ExtractFlow({
       )}
 
       {atBoardEnd && !partyDone && run && (
-        <WhoCameScreen username={username} runId={run.runId} onDone={() => setPartyDone(true)} />
+        <WhoCameScreen username={username} runId={run.runId} onDone={() => setPartyDone(true)} onBack={() => setAtBoardEnd(false)} />
       )}
 
       {atBoardEnd && partyDone && !left && run && credits !== undefined && credits !== null && (

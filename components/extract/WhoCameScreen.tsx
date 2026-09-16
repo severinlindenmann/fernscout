@@ -37,10 +37,17 @@ export default function WhoCameScreen({
   username,
   runId,
   onDone,
+  onBack,
 }: {
   username: string;
   runId: string;
   onDone: () => void;
+  /** The header's own back arrow (S8a: `← Who came`) — steps back onto the
+   *  board, the same place "Done for now" just left, so a person who wants
+   *  to fix an answer before naming who came is not stuck here to do it.
+   *  Optional only so a caller with nowhere to send it back to (a test, a
+   *  future entry point) does not have to invent one. */
+  onBack?: () => void;
 }) {
   const { t, locale } = useI18n();
   const [manifest, setManifest] = useState<RunManifest | null>(null);
@@ -73,7 +80,7 @@ export default function WhoCameScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, runId]);
 
-  const suggestion = manifest ? suggestCompanion(manifest) : null;
+  const suggestion = manifest ? suggestCompanion(manifest, locale) : null;
   // Nothing is suggested once the second name is already something other
   // than the placeholder this screen started with — a person who has
   // already named their companion does not need to be asked again.
@@ -118,6 +125,23 @@ export default function WhoCameScreen({
 
   return (
     <div className="mt-4 flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-sm font-semibold text-ink-strong"
+            aria-label={t("extract.whoCame.header")}
+          >
+            ← {t("extract.whoCame.header")}
+          </button>
+        ) : (
+          // The header names the screen even with nowhere wired to send a
+          // back-press — S8a's header is item 1 of the spec regardless of
+          // whether a caller gave this a place to go back to.
+          <span className="text-sm font-semibold text-ink-strong">← {t("extract.whoCame.header")}</span>
+        )}
+      </div>
       <h2 className="font-display text-xl font-semibold text-ink-strong">{t("extract.whoCame.title")}</h2>
 
       <div className="flex items-center justify-center gap-4 rounded-2xl border border-line-faint bg-surface-subtle p-4">

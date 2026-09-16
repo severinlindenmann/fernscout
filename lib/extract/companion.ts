@@ -39,15 +39,42 @@ const WORD_RE = /^[A-Z][a-zA-Z'-]{1,30}$/;
  * "where were you" (`Hoi An`, `Hué`) must never be offered back to them as
  * a person.
  *
+ * **German gets no suggestion at all — not a weaker one, none.** German
+ * capitalises every noun, not just proper ones, so "Wir gingen zum Strand"
+ * / "Am Strand war es kalt" makes "Strand" ("the beach") pass every check
+ * above exactly as "Nora" would: mid-sentence, repeated, on two different
+ * days. There is no threshold that fixes this — the capitalisation signal
+ * this whole function is built on simply carries no information in German,
+ * the same way Deepgram's own confidence carries none when it sends no
+ * number at all (`CheckWording.tsx`'s uncertain-word highlight goes silent
+ * there too, for the identical reason). `locale` is checked first and
+ * German returns `null` before either pass ever runs.
+ *
+ * English and Hungarian both capitalise proper nouns only, so the signal
+ * means something in both and the suggestion stands there.
+ *
  * ponytail: a capitalised-word heuristic, not a real name-entity
- * recognizer — it can still miss a name given only once, or, on a longer
- * write-up, snag a genuinely repeated proper noun that isn't a person. The
- * ties-are-refused rule below is the guard against the second case actually
- * reaching the screen; there is no dependency-free upgrade path better than
- * that until a NER model is already a repo dependency for some other
+ * recognizer — even gated to a language where capitalisation is
+ * informative, it can still miss a name given only once, or snag a
+ * genuinely repeated common noun or brand ("Ibis", "Zara") that happens to
+ * open two sentences and read mid-sentence in a third. Left as a known
+ * false-positive rather than patched with a second heuristic, because the
+ * screen only ever *asks* ("is that them?") rather than asserting — quoting
+ * a person's own word back at them as a question is a different act from
+ * writing a name into their journal. The ties-are-refused rule below is the
+ * one guard that is worth having on top: two equally-likely candidates is
+ * exactly the case where picking one would be inventing the answer, and
+ * there is no dependency-free upgrade path better than either of these
+ * until a real NER model is already a repo dependency for some other
  * reason.
  */
-export function suggestCompanion(manifest: RunManifest): CompanionSuggestion | null {
+export function suggestCompanion(manifest: RunManifest, locale: string): CompanionSuggestion | null {
+  // German capitalises every noun — see the doc comment above. No fixture
+  // of German prose can be told apart from a fixture of English prose by
+  // this function, so this is the one branch guarded by a level, not a
+  // heuristic.
+  if (locale.startsWith("de")) return null;
+
   const locationWords = new Set<string>();
   for (const day of manifest.days) {
     if (!day.location) continue;

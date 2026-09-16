@@ -104,6 +104,12 @@ export default function ReadyScreen({
 
   return (
     <div className="mt-4 flex flex-col gap-4">
+      {/* S10b's own header (design-v2.html: `<div class="navbar"><span
+       *  class="t">Ready</span></div>`) — no back arrow, unlike every other
+       *  screen this flow draws: `ReadyScreen` is the flow's real terminal
+       *  screen, reached the instant `commitReadyDays` finishes, and there
+       *  is no earlier state in this run left to step back into. */}
+      <p className="text-center text-sm font-semibold text-ink-strong">{t("extract.ready.title")}</p>
       <div className="grid place-items-center py-2">
         <svg width="48" height="48" viewBox="0 0 32 32" aria-hidden="true">
           <path

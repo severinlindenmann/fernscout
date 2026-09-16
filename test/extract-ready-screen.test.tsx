@@ -130,4 +130,11 @@ describe("ReadyScreen", () => {
     });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
+
+  test("has a header naming the screen — S10b, item 1 of the spec", async () => {
+    stub(baseManifest({ days: [{ date: "2026-06-01", answered: ["q1"], committed: true, entrySlug: "day-1" }] }));
+    await render();
+
+    expect(container!.textContent).toContain("Ready");
+  });
 });

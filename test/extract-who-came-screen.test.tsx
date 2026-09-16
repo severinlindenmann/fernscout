@@ -59,14 +59,14 @@ function stub(manifest: Record<string, unknown>, patchSpy?: (body: unknown) => v
   );
 }
 
-async function render() {
+async function render(locale = "en", onBack?: () => void) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
     root!.render(
-      <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
-        <WhoCameScreen username="alex" runId="run-1" onDone={() => {}} />
+      <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+        <WhoCameScreen username="alex" runId="run-1" onDone={() => {}} onBack={onBack} />
       </LocaleProvider>,
     );
   });
@@ -123,5 +123,35 @@ describe("WhoCameScreen", () => {
     });
 
     expect(sent).toMatchObject({ run: "run-1", size: 2, names: ["alex", "Nora"] });
+  });
+
+  test("a German-language answer never suggests a name — the capitalisation signal carries no information there", async () => {
+    stub(
+      baseManifest({
+        days: [
+          { date: "2026-06-02", answered: [], words: "Wir gingen zum Strand und assen Eis." },
+          { date: "2026-06-03", answered: [], words: "Am Strand war es heute kalt." },
+        ],
+      }),
+    );
+    await render("de");
+
+    expect(container!.textContent).not.toMatch(/Strand/);
+  });
+
+  test("has a header naming the screen, with a working way back", async () => {
+    let backCalled = false;
+    stub(baseManifest());
+    await render("en", () => {
+      backCalled = true;
+    });
+
+    expect(container!.textContent).toContain("Who came");
+    const back = container!.querySelector('button[aria-label="Who came"]') as HTMLButtonElement | null;
+    expect(back).not.toBeNull();
+    await act(async () => {
+      back!.click();
+    });
+    expect(backCalled).toBe(true);
   });
 });
