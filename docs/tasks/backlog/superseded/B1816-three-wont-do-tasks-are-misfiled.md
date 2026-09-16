@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: tasks, tooling
 found: "2026-09-16T18:23:33Z"
+superseded: Fixed on main by npm run tasks -- tidy: the three files were a hand-move committed by accident and are back in the folders their frontmatter names. If they were meant as wont-do, that is a wontDo: field and a person's reason, not a re-file.
 ---
 
 # B1816 — Three wont-do tasks are misfiled against their own frontmatter lane

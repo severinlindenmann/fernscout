@@ -6,6 +6,7 @@ priority: medium
 complexity: low
 area: tasks, testing
 found: "2026-09-16T18:30:17Z"
+superseded: B1816 — the same finding, captured by a sibling agent in the same hour. Fixed there.
 ---
 
 # B1818 — test/task-ids.test.ts fails after a wont-do triage move: frontmatter does not name the wont-do lane

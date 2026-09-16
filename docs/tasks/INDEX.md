@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (190)
+## backlog (193)
 
 ### security (1)
 
@@ -87,13 +87,13 @@ Do not edit them by hand; run the script.
 | [B1786](backlog/big-feature/B1786-a-trip-cannot-be-shared-read.md) | A trip cannot be shared read-only without creating a guest account | FEATURE | medium | high |
 | [B1794](backlog/big-feature/B1794-create-an-isolated-invite-only-dev.md) | Create an isolated invite-only dev environment with safe provider modes and promotion | FEATURE | medium | high |
 | [B34](backlog/big-feature/B34-a-trip-taken-by-two-people.md) | A trip taken by two people appears in only one of their journals | FEATURE | medium | high |
-| [B49](backlog/wont-do/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
+| [B49](backlog/big-feature/B49-a-deleted-journal-goes-at-once.md) | A deleted journal goes at once, with no grace period to change your mind | FEATURE | medium | high |
 | [B672](backlog/big-feature/B672-everything-is-served-off-one-vps.md) | Everything is served off one VPS disk by one Node process | FEATURE | medium | high |
 | [B678](backlog/big-feature/B678-the-helper-re-implements-the-file.md) | The helper re-implements the file-shape rules, so a journal is judged by a copy of them | FEATURE | medium | high |
 | [B788](backlog/big-feature/B788-when-real-money-arrives-the-operator.md) | When real money arrives, the operator page shows a mock's idea of a transaction | FEATURE | medium | high |
 | [B1011](backlog/big-feature/B1011-a-phone-cannot-record-its-own.md) | A phone cannot record its own position, and there is no app in the store | FEATURE | low | high |
 | [B1581](backlog/big-feature/B1581-revolut-purchase-history-requires-manual-statement.md) | Revolut purchase history requires manual statement imports | FEATURE | low | high |
-| [B290](backlog/wont-do/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
+| [B290](backlog/big-feature/B290-a-request-log-cannot-carry-a.md) | A request log cannot carry a status or a duration without replacing next start | FEATURE | low | high |
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
@@ -121,7 +121,7 @@ Do not edit them by hand; run the script.
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
 | [B1028](backlog/small-feature/B1028-the-owner-s-own-trip-form.md) | The owner's own trip form cannot edit the three fields the API just gained | FEATURE | low | low |
-| [B1317](backlog/wont-do/B1317-the-sms-number-is-domestic-only.md) | The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send | FEATURE | low | medium |
+| [B1317](backlog/small-feature/B1317-the-sms-number-is-domestic-only.md) | The SMS number is domestic-only - a non-Swiss number cannot receive a code or a send | FEATURE | low | medium |
 | [B1441](backlog/small-feature/B1441-postcard-order-status-only-updates-when.md) | Postcard order status only updates when the page is opened | FEATURE | low | medium |
 | [B1497](backlog/small-feature/B1497-a-book-whose-cover-the-planner.md) | A book whose cover the planner picked cannot show it anywhere outside the preview frame | FEATURE | low | medium |
 | [B1531](backlog/small-feature/B1531-the-stored-derivative-is-jpeg-for.md) | The stored derivative is JPEG for a reader that never sees it and a printer that only sometimes needs it | FEATURE | low | medium |
@@ -152,7 +152,7 @@ Do not edit them by hand; run the script.
 | [B1384](backlog/docs-and-skills/B1384-the-documentation-describes-a-fernscout-that.md) | The documentation describes a Fernscout that no longer exists | DOCS | medium | high |
 | [B1547](backlog/docs-and-skills/B1547-documentation-txt-reads-machine-generated-and.md) | documentation.txt reads machine-generated and has drifted from the API | DOCS | medium | low |
 
-### superseded (97)
+### superseded (100)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -203,6 +203,9 @@ Do not edit them by hand; run the script.
 | [B1443](backlog/superseded/B1443-the-files-pane-still-quotes-a.md) | The files pane still quotes a label that is not on it, and PhotoPicker's override for it is never passed | ISSUE | medium | low |
 | [B1477](backlog/superseded/B1477-the-print-bench-shows-one-postcard.md) | The print bench shows one postcard and one book; it should show every format and what Gelato actually requires | DOCS | medium | medium |
 | [B1644](backlog/superseded/B1644-trip-reminder-has-no-v2-wire.md) | Trip reminder has no v2 wire home — the on/off switch writes a dead trip.md | ISSUE | medium | medium |
+| [B1816](backlog/superseded/B1816-three-wont-do-tasks-are-misfiled.md) | Three wont-do tasks are misfiled against their own frontmatter lane | ISSUE | medium | low |
+| [B1817](backlog/superseded/B1817-three-wont-do-tasks-live-outside.md) | Three wont-do tasks live outside the lane their frontmatter names | ISSUE | medium | low |
+| [B1818](backlog/superseded/B1818-test-task-ids-test-ts-fails.md) | test/task-ids.test.ts fails after a wont-do triage move: frontmatter does not name the wont-do lane | ISSUE | medium | low |
 | [B260](backlog/superseded/B260-the-mcp-resource-advertises-no-authorization.md) | The MCP resource advertises no authorization server, so a connector cannot get a token by itself | FEATURE | medium | high |
 | [B275](backlog/superseded/B275-a-day-cannot-be-held-back.md) | A day cannot be held back from a public trip, so one private afternoon makes the whole trip guests-only | FEATURE | medium | high |
 | [B341](backlog/superseded/B341-a-malformed-plan-md-throws-uncaught.md) | A malformed plan.md throws uncaught out of getPlan, crashing the trip and map pages | ISSUE | medium | low |
