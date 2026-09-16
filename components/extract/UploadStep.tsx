@@ -207,7 +207,12 @@ export default function UploadStep({
     // above turns into a minutes-left figure. Never counts a failed slice:
     // a dropped batch transferred no bytes this attempt kept.
     let uploadedBytes = 0;
-    const totalBytes = indices.reduce((sum, n) => sum + tiles[n].file.size, 0);
+    // Shrinks when a batch fails outright (below) — a failed batch is not
+    // still in flight, it needs a manual retry, so its bytes must not go on
+    // inflating what "remaining" means for the eta B1803 fix round 1: this
+    // stayed the whole attempt's total forever, skewing every later
+    // estimate high by exactly the size of the batch that never sent.
+    let totalBytes = indices.reduce((sum, n) => sum + tiles[n].file.size, 0);
     const startedAt = Date.now();
     const reasons = new Set<string>();
     try {
@@ -256,8 +261,13 @@ export default function UploadStep({
         } catch {
           // One batch failing leaves every other batch's success intact and
           // the failed tiles individually retryable — a single bar for a
-          // few hundred files would hide exactly this.
+          // few hundred files would hide exactly this. Its bytes leave the
+          // eta's own denominator too, for the same reason: they are not
+          // still being sent, so they must not go on looking like "left to
+          // send" for the rest of the attempt.
           failed += slice.length;
+          totalBytes -= slice.reduce((sum, n) => sum + tiles[n].file.size, 0);
+          setEta(etaMinutes(uploadedBytes, totalBytes, Date.now() - startedAt));
           setTiles((t) => t.map((x, n) => (slice.includes(n) ? { ...x, state: "failed" } : x)));
         }
       }
