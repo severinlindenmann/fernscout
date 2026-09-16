@@ -224,7 +224,7 @@ export default function DayBoard({
   if (error) {
     return (
       <div className="mt-4">
-        <p className="text-sm text-red-700">{t("extract.board.error")}</p>
+        <p className="text-sm text-coral-600">{t("extract.board.error")}</p>
         <button
           type="button"
           onClick={() => void load()}

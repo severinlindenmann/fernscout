@@ -124,7 +124,7 @@ export default function WhoCameScreen({
   if (error) {
     return (
       <div className="mt-4">
-        <p className="text-sm text-red-700">{t("extract.whoCame.error")}</p>
+        <p className="text-sm text-coral-600">{t("extract.whoCame.error")}</p>
         <button
           type="button"
           onClick={() => void load()}
@@ -222,7 +222,7 @@ export default function WhoCameScreen({
         )}
       </div>
 
-      {saveError && <p className="text-sm text-red-700">{t("extract.whoCame.saveError")}</p>}
+      {saveError && <p className="text-sm text-coral-600">{t("extract.whoCame.saveError")}</p>}
 
       <button
         type="button"
