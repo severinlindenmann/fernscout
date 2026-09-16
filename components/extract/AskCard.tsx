@@ -60,6 +60,7 @@ export default function AskCard({
   username,
   consentedSpeech,
   speechProvider,
+  speechLanguage,
   photos = [],
   onAnswer,
   onSkip,
@@ -93,6 +94,17 @@ export default function AskCard({
    *  then does this whole card fall back to typing-only, with no attempt at
    *  a consent panel or a microphone at all. */
   speechProvider: string;
+  /**
+   * Which language a recording is transcribed in — B1803 Task 4.1/4.2, the
+   * run manifest's own `.language`, answered once on Step 02 and never
+   * asked again. Passed straight through as `RecordButton`'s `fixedLanguage`
+   * so its own per-recording select (right for a control mounted with no
+   * such answer on hand) does not draw a second time here. `undefined` for a
+   * run that started before this ticket, or one that never asked because it
+   * chose typing — `RecordButton` falls back to its own remembered-or-journal
+   * default exactly as it always did.
+   */
+  speechLanguage?: string;
   /** The day's own photographs, for the strip (or hero) above the question.
    *  Optional so every existing caller keeps compiling before it is wired. */
   photos?: PhotoStripItem[];
@@ -303,6 +315,7 @@ export default function AskCard({
                     username={username}
                     consented={consentedSpeech}
                     provider={speechProvider}
+                    language={speechLanguage}
                     compact
                     onText={(said) => setText((prev) => (prev ? `${prev} ${said}` : said))}
                   />
@@ -357,6 +370,7 @@ export default function AskCard({
                 username={username}
                 consented={consentedSpeech}
                 provider={speechProvider}
+                language={speechLanguage}
                 hero
                 hold={false}
                 onText={(said, uncertain, heldSeconds) => {
@@ -387,6 +401,7 @@ export default function AskCard({
                     username={username}
                     consented={consentedSpeech}
                     provider={speechProvider}
+                    language={speechLanguage}
                     compact
                     onText={(said) => setText((prev) => (prev ? `${prev} ${said}` : said))}
                   />

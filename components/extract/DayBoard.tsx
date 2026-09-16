@@ -381,6 +381,7 @@ export default function DayBoard({
                           username={username}
                           consentedSpeech={consentedSpeech}
                           speechProvider={speechProvider}
+                          speechLanguage={manifest.language}
                           photos={group.photoIds
                             .map((id) => photosById.get(id))
                             .filter((p): p is PhotoRow => Boolean(p))

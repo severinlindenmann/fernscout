@@ -83,6 +83,19 @@ function startRunFor(user: string): Promise<Response> {
   );
 }
 
+function startRunWith(body: Record<string, unknown>): Promise<Response> {
+  return import("@/app/api/helper/[user]/extract/start/route").then(({ POST }) =>
+    POST(
+      new Request("http://x/api/helper/alex/extract/start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ user: "alex" }) },
+    ),
+  );
+}
+
 function upload(runId: string, files: File[]): Promise<Response> {
   const form = new FormData();
   form.set("run", runId);
@@ -113,6 +126,27 @@ describe("the extract routes with the capability on", () => {
     const manifest = readManifest("alex", body.runId);
     expect(manifest?.state).toBe("uploading");
     expect(manifest?.photos).toEqual([]);
+  });
+
+  test("B1803 Task 4.2 — a voice run's chosen language lands on the manifest", async () => {
+    const res = await startRunWith({ mode: "voice", language: "de-CH" });
+    const { runId } = (await res.json()) as { runId: string };
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.language).toBe("de-CH");
+  });
+
+  test("B1803 Task 4.2 — a typing run never carries a language, even if one was sent", async () => {
+    const res = await startRunWith({ mode: "type", language: "hu" });
+    const { runId } = (await res.json()) as { runId: string };
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.language).toBeUndefined();
+  });
+
+  test("B1803 Task 4.2 — an unsupported language string is dropped, not stored", async () => {
+    const res = await startRunWith({ mode: "voice", language: "fr" });
+    const { runId } = (await res.json()) as { runId: string };
+    const { readManifest } = await import("@/lib/staging/manifest");
+    expect(readManifest("alex", runId)?.language).toBeUndefined();
   });
 
   test("upload takes a real photograph into staging and analyses it", async () => {

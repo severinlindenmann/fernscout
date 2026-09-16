@@ -1418,6 +1418,7 @@
   "extract.tripMode.typeDescription": "Dieselben Fragen, mit der Tastatur.",
   "extract.tripMode.switchTitle": "Wechsle, wann immer du willst",
   "extract.tripMode.switchBody": "Jede Frage nimmt beide Antworten an. Im Zug erzählen, im Café tippen.",
+  "extract.tripMode.languageTitle": "In welcher Sprache wirst du sprechen?",
   "extract.tripMode.nextMode": "Weiter: wie du es erzählst",
   "extract.tripMode.nextPhotos": "Weiter: Fotos auswählen",
   "extract.step.ofTotal": "{current} von {total}",

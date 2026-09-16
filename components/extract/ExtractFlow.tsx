@@ -14,6 +14,7 @@ import UploadStep from "@/components/extract/UploadStep";
 import WhoCameScreen from "@/components/extract/WhoCameScreen";
 import { resumeExpiryState, type ResumeExpiryState } from "@/lib/staging/resumeState";
 import type { RunManifest } from "@/lib/staging/manifest";
+import type { SpeechLanguage } from "@/lib/helper/speech";
 
 type Run = { runId: string; expiresAt: string };
 
@@ -66,6 +67,7 @@ export default function ExtractFlow({
   consentedSpeech,
   speechProvider,
   trips,
+  defaultSpeechLanguage = "en",
 }: {
   username: string;
   consentedSpeech: boolean;
@@ -76,6 +78,18 @@ export default function ExtractFlow({
    *  client route: the owner is looking at their own journal, and nothing
    *  here needs filtering by reader. */
   trips: TripOption[];
+  /**
+   * The journal's own best guess for which language a voice answer will be
+   * in — B1803 Task 4.1. Computed server-side by the page from
+   * `defaultLocaleFor(username)`, the same locale `speechLanguageFor` already
+   * prefers over the reader's own UI locale for the identical reason: a
+   * journal written in Swiss German is a journal whose owner speaks Swiss
+   * German, regardless of what language they happen to be reading the site
+   * in today. `"en"` only when the page did not supply one (every real
+   * caller does; this default only matters to a test mounting the component
+   * directly).
+   */
+  defaultSpeechLanguage?: SpeechLanguage;
 }) {
   const { t } = useI18n();
   const [run, setRun] = useState<Run | null>(null);
@@ -219,8 +233,15 @@ export default function ExtractFlow({
   /** `POST .../extract/start` with the person's own answers to Step 02 —
    *  B1797. `RunManifest.tripId` and `.mode` have carried these fields since
    *  B1751's Task 1.2; this is the first caller that ever sends them instead
-   *  of the route's own `{}`-body defaults (a new trip, typing mode). */
-  async function start(answers: { tripId: string | null; mode: "voice" | "type" }) {
+   *  of the route's own `{}`-body defaults (a new trip, typing mode).
+   *  `language` (B1803 Task 4.1/4.2) rides along only for a voice run —
+   *  `onAskSubmit` below never sets it for a typing one, and the route
+   *  drops it either way if it did. */
+  async function start(answers: {
+    tripId: string | null;
+    mode: "voice" | "type";
+    language?: SpeechLanguage;
+  }) {
     setError(false);
     setRun(null);
     try {
@@ -287,10 +308,12 @@ export default function ExtractFlow({
   }
 
   /** Step 02's own submit — the only place `start()` is ever called with
-   *  real answers rather than the defaults nobody used to ask for. */
-  function onAskSubmit(tripId: string | null, mode: "voice" | "type") {
+   *  real answers rather than the defaults nobody used to ask for.
+   *  `language` is `undefined` for a typing run, exactly as `TripModeStep`
+   *  hands it over — B1803 Task 4.1. */
+  function onAskSubmit(tripId: string | null, mode: "voice" | "type", language?: SpeechLanguage) {
     setAwaitingStart(false);
-    start({ tripId, mode });
+    start({ tripId, mode, language });
   }
 
   /** `DayBoard`'s first successful load after a resume — the same
@@ -374,7 +397,12 @@ export default function ExtractFlow({
        *  both, since it was already asked once, when it was created. */}
       {awaitingStart && askPhase === "intro" && <IntroStep onContinue={onIntroContinue} />}
       {awaitingStart && askPhase === "ask" && (
-        <TripModeStep trips={trips} consentedSpeech={consentedSpeech} onSubmit={onAskSubmit} />
+        <TripModeStep
+          trips={trips}
+          consentedSpeech={consentedSpeech}
+          defaultLanguage={defaultSpeechLanguage}
+          onSubmit={onAskSubmit}
+        />
       )}
 
       {resumeNotice && (

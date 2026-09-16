@@ -133,14 +133,16 @@ describe("ExtractFlow asks before it starts a fresh run", () => {
     expect(calls[0].body).toEqual({ tripId: null, mode: "type" });
   });
 
-  test("leaving 'talk it through' selected sends voice mode", async () => {
+  test("leaving 'talk it through' selected sends voice mode and the default language", async () => {
     const calls = await mount(true);
 
     clickByText("Start with my photographs");
     await act(async () => {});
     clickByText("Next: how you'll tell it");
     await act(async () => {});
-    // "Talk it through" is selected by default — just submit.
+    // "Talk it through" is selected by default — just submit. `ExtractFlow`
+    // was mounted with no `defaultSpeechLanguage` prop, so its own "en"
+    // default is what the language question preselects (B1803 Task 4.1).
     clickByText("Next: choose photographs");
     await act(async () => {
       await Promise.resolve();
@@ -148,6 +150,49 @@ describe("ExtractFlow asks before it starts a fresh run", () => {
     });
 
     expect(calls).toHaveLength(1);
-    expect(calls[0].body).toEqual({ tripId: null, mode: "voice" });
+    expect(calls[0].body).toEqual({ tripId: null, mode: "voice", language: "en" });
+  });
+
+  test("choosing a different language on the mode screen sends that one", async () => {
+    const calls = await mount(true);
+
+    clickByText("Start with my photographs");
+    await act(async () => {});
+    clickByText("Next: how you'll tell it");
+    await act(async () => {});
+    // "Talk it through" stays selected; pick Hungarian instead of the
+    // preselected "en" — B1803 Task 4.1's "let the person change it".
+    clickByText("Magyar");
+    await act(async () => {});
+    clickByText("Next: choose photographs");
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ tripId: null, mode: "voice", language: "hu" });
+  });
+
+  test("switching to 'type it' drops the language question and sends none", async () => {
+    const calls = await mount(true);
+
+    clickByText("Start with my photographs");
+    await act(async () => {});
+    clickByText("Next: how you'll tell it");
+    await act(async () => {});
+    clickByText("Type it");
+    await act(async () => {});
+
+    expect(container!.textContent).not.toContain("Which language will you speak?");
+
+    clickByText("Next: choose photographs");
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body).toEqual({ tripId: null, mode: "type" });
   });
 });

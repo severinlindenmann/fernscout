@@ -1567,6 +1567,7 @@ export type TranslationKey =
   | "extract.tripMode.back"
   | "extract.tripMode.existingTrip"
   | "extract.tripMode.existingTripDescription"
+  | "extract.tripMode.languageTitle"
   | "extract.tripMode.modeTitle"
   | "extract.tripMode.newTrip"
   | "extract.tripMode.newTripDescription"

@@ -1418,6 +1418,7 @@
   "extract.tripMode.typeDescription": "The same questions, with a keyboard.",
   "extract.tripMode.switchTitle": "Switch whenever you like",
   "extract.tripMode.switchBody": "Every question takes either answer. Talk on the train, type in the café.",
+  "extract.tripMode.languageTitle": "Which language will you speak?",
   "extract.tripMode.nextMode": "Next: how you'll tell it",
   "extract.tripMode.nextPhotos": "Next: choose photographs",
   "extract.step.ofTotal": "{current} of {total}",

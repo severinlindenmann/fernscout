@@ -4,6 +4,7 @@ import { AlignLeft, Mic } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import StepIndicator from "@/components/extract/StepIndicator";
+import { SPEECH_LANGUAGE_LABEL, SPEECH_LANGUAGES, type SpeechLanguage } from "@/lib/helper/speech";
 
 export type TripOption = { id: string; title: string; year: string };
 
@@ -24,21 +25,42 @@ const TOTAL_STEPS = 5;
  * screen never appears and the flow is the typing one." Absent, matching
  * `helperEnabled`'s own rule elsewhere in this codebase, rather than a
  * disabled control nobody can explain.
+ *
+ * **Which language, asked here too — B1803 Task 4.1.** `SPEECH_LANGUAGES`
+ * (`lib/helper/speech.ts`) has carried Swiss German and Hungarian since
+ * B686, and `POST .../transcribe` has always accepted an explicit
+ * `language` override; nothing in the UI ever asked, so every recording
+ * used the journal's own guess and a person whose voice was not their
+ * journal's language had no way to say so before speaking. This is where
+ * that question belongs: it appears only once "Talk it through" is the
+ * selected answer, since that is the moment speaking has actually been
+ * chosen — the same "not until it is needed" rule `RecordButton`'s own
+ * per-recording select already follows. `onSubmit`'s `language` is absent
+ * whenever `mode` ends up `"type"`, exactly as `consentedSpeech`'s absence
+ * skips this whole screen: a run that will never record has nothing to
+ * carry here, and the manifest field stays unset rather than storing a
+ * choice nobody was asked to make.
  */
 export default function TripModeStep({
   trips,
   consentedSpeech,
+  defaultLanguage,
   onSubmit,
 }: {
   trips: TripOption[];
   consentedSpeech: boolean;
-  onSubmit: (tripId: string | null, mode: "voice" | "type") => void;
+  /** The journal's own best guess — B1803 Task 4.1. Preselected, and the
+   *  person changes it right here if their voice is not their journal's
+   *  language. */
+  defaultLanguage: SpeechLanguage;
+  onSubmit: (tripId: string | null, mode: "voice" | "type", language?: SpeechLanguage) => void;
 }) {
   const { t } = useI18n();
   const [screen, setScreen] = useState<"trip" | "mode">("trip");
   const [existing, setExisting] = useState(false);
   const [tripId, setTripId] = useState<string | null>(null);
   const [mode, setMode] = useState<"voice" | "type">("voice");
+  const [language, setLanguage] = useState<SpeechLanguage>(defaultLanguage);
 
   function next() {
     if (consentedSpeech) {
@@ -84,6 +106,22 @@ export default function TripModeStep({
           />
         </div>
 
+        {mode === "voice" && (
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-ink-strong">{t("extract.tripMode.languageTitle")}</p>
+            <div className="mt-2 flex flex-col gap-3">
+              {SPEECH_LANGUAGES.map((code) => (
+                <OptionCard
+                  key={code}
+                  title={SPEECH_LANGUAGE_LABEL[code]}
+                  selected={language === code}
+                  onSelect={() => setLanguage(code)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-4 rounded-xl bg-surface-subtle p-4">
           <p className="text-sm font-semibold text-ink-strong">{t("extract.tripMode.switchTitle")}</p>
           <p className="mt-1 text-sm text-ink-body">{t("extract.tripMode.switchBody")}</p>
@@ -91,7 +129,7 @@ export default function TripModeStep({
 
         <button
           type="button"
-          onClick={() => onSubmit(existing ? tripId : null, mode)}
+          onClick={() => onSubmit(existing ? tripId : null, mode, mode === "voice" ? language : undefined)}
           disabled={existing && !tripId}
           className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-yellow-400 px-5 text-base font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
         >
@@ -171,7 +209,9 @@ function OptionCard({
 }: {
   icon?: ReactNode;
   title: string;
-  description: string;
+  /** Absent for the language cards (B1803 Task 4.1) — a language's own name
+   *  needs no second line under it. */
+  description?: string;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -189,7 +229,7 @@ function OptionCard({
         {icon}
         {title}
       </span>
-      <span className="text-xs text-ink-secondary">{description}</span>
+      {description && <span className="text-xs text-ink-secondary">{description}</span>}
     </button>
   );
 }

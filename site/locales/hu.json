@@ -1418,6 +1418,7 @@
   "extract.tripMode.typeDescription": "Ugyanazok a kérdések, billentyűzettel.",
   "extract.tripMode.switchTitle": "Válts, amikor csak akarsz",
   "extract.tripMode.switchBody": "Minden kérdésre mindkét válasz működik. A vonaton mesélj, a kávézóban gépelj.",
+  "extract.tripMode.languageTitle": "Milyen nyelven fogsz beszélni?",
   "extract.tripMode.nextMode": "Tovább: hogyan meséled el",
   "extract.tripMode.nextPhotos": "Tovább: fényképek kiválasztása",
   "extract.step.ofTotal": "{current}/{total}",

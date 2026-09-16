@@ -117,3 +117,41 @@ describe("AskCard's header row (S7a/S7c) — design-v2.html:863/911", () => {
     expect(container!.textContent).toContain("1 of 2");
   });
 });
+
+/**
+ * `speechLanguage` — B1803 Task 4.2. Once Step 02's mode screen has already
+ * asked which language a voice answer will be in, `RecordButton`'s own
+ * per-recording select (the correction for a caller with no such answer on
+ * hand) must not draw a second time: `AskCard` has to pass the manifest's
+ * choice straight through as `RecordButton`'s `language` prop.
+ */
+describe("AskCard threads the run's chosen language to RecordButton", () => {
+  function clickMic() {
+    const mic = Array.from(container!.querySelectorAll("button")).find((b) =>
+      b.getAttribute("aria-label")?.includes("Press to start"),
+    );
+    if (!mic) throw new Error("no record button found");
+    act(() => {
+      mic.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+  }
+
+  test("with a run language set, the per-recording select never appears", () => {
+    render(followUpQuestion, {
+      consentedSpeech: true,
+      speechProvider: "deepgram",
+      speechLanguage: "hu",
+    });
+    clickMic();
+    expect(container!.querySelector("select")).toBeNull();
+  });
+
+  test("with no run language, the per-recording select still offers a choice", () => {
+    render(followUpQuestion, {
+      consentedSpeech: true,
+      speechProvider: "deepgram",
+    });
+    clickMic();
+    expect(container!.querySelector("select")).not.toBeNull();
+  });
+});

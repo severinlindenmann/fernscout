@@ -2,6 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { runDir, stagingRoot } from "./paths";
+import type { SpeechLanguage } from "@/lib/helper/speech";
 
 export type PhotoRow = {
   id: string;
@@ -54,6 +55,14 @@ export type RunManifest = {
   /** null means "a new trip, named at the end". */
   tripId: string | null;
   mode: "voice" | "type";
+  /**
+   * Which language a voice answer is transcribed in — B1803 Task 4.1/4.2.
+   * Asked once, on Step 02's mode screen, alongside `mode`, and never asked
+   * again: `RecordButton`'s own per-recording select is skipped whenever a
+   * caller hands it this value as its `language` prop. Absent for a `"type"`
+   * run, which never records anything and so was never asked.
+   */
+  language?: SpeechLanguage;
   state: "uploading" | "analysed" | "telling" | "committed";
   photos: PhotoRow[];
   days: DayRow[];

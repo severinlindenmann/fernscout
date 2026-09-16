@@ -3,7 +3,9 @@ import PageHeader from "@/components/PageHeader";
 import { isEnabled } from "@/lib/capabilities";
 import { hasHelperConsent } from "@/lib/helper/consent";
 import { requireExtractOwner } from "@/lib/extract/pageGate";
+import { speechLanguageFor } from "@/lib/helper/speech";
 import { speechProvider } from "@/lib/helper/transcribe";
+import { defaultLocaleFor } from "@/lib/locales";
 import { getTrips } from "@/lib/trips";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +41,14 @@ export default async function ExtractPhotosPage({ params }: PageProps<"/[user]/e
   // here at all", matching the pattern `app/[user]/search/page.tsx` already
   // uses for the same capability.
   const transcriptionOn = isEnabled("transcription", user);
+  // The mode screen's own "which language" question (B1803 Task 4.1)
+  // defaults to the journal's own locale, never the reader's UI language —
+  // `speechLanguageFor` with no override or UI fallback is exactly
+  // `supported(defaultLocaleFor(user))`, the same preference the transcribe
+  // route itself gives the journal's locale over anything else. `"en"` only
+  // when the journal is written in a language this cannot transcribe at
+  // all, matching every other unsupported-language fallback in this file.
+  const defaultSpeechLanguage = speechLanguageFor(null, defaultLocaleFor(user)) ?? "en";
   return (
     <div className="min-h-screen">
       <PageHeader />
@@ -46,6 +56,7 @@ export default async function ExtractPhotosPage({ params }: PageProps<"/[user]/e
         username={user}
         consentedSpeech={transcriptionOn && hasHelperConsent(user, "speech")}
         speechProvider={transcriptionOn ? speechProvider() : ""}
+        defaultSpeechLanguage={defaultSpeechLanguage}
         trips={trips}
       />
     </div>

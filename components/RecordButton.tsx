@@ -8,6 +8,7 @@ import { useI18n } from "@/components/LocaleProvider";
 import {
   MAX_SPEECH_SECONDS,
   MINUTES_PER_CREDIT,
+  SPEECH_LANGUAGE_LABEL,
   SPEECH_LANGUAGES,
 } from "@/lib/helper/speech";
 
@@ -51,16 +52,6 @@ import {
  * seconds, the language, an error — rendered in normal flow below the box by
  * the caller's own container rather than floating over it.
  */
-
-/** Language names in their own language, the same convention `LOCALE_LABEL`
- *  in lib/i18n.ts uses — a list of languages is the one list nobody wants
- *  translated. */
-const LANGUAGE_LABEL: Record<string, string> = {
-  en: "English",
-  de: "Deutsch",
-  "de-CH": "Schwiizerdütsch",
-  hu: "Magyar",
-};
 
 function remembered(username: string): string {
   try {
@@ -697,7 +688,7 @@ export default function RecordButton({
         <option value="">{t("agent.speechLanguageDefault")}</option>
         {SPEECH_LANGUAGES.map((code) => (
           <option key={code} value={code}>
-            {LANGUAGE_LABEL[code] ?? code}
+            {SPEECH_LANGUAGE_LABEL[code] ?? code}
           </option>
         ))}
       </select>
@@ -884,7 +875,7 @@ export default function RecordButton({
               <option value="">{t("agent.speechLanguageDefault")}</option>
               {SPEECH_LANGUAGES.map((code) => (
                 <option key={code} value={code}>
-                  {LANGUAGE_LABEL[code] ?? code}
+                  {SPEECH_LANGUAGE_LABEL[code] ?? code}
                 </option>
               ))}
             </select>
