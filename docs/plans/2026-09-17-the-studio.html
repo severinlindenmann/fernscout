@@ -1,0 +1,353 @@
+<title>Three Doors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --cream-50:#fffaf0; --cream-100:#fff3dc; --cream-200:#ffe9bd;
+  --navy-900:#1e293b; --navy-700:#3a4a63; --navy-500:#5a6a80; --navy-300:#aeb7c5;
+  --navy-200:#d8dee8;
+  --yellow-300:#ffe08a; --yellow-400:#ffd23f; --yellow-600:#d69b0a; --yellow-950:#4a3300;
+  --green-100:#ddf3e4; --green-700:#15803d;
+  --blue-500:#2f6fed; --coral:#c2405f;
+
+  --ground:var(--cream-50); --panel:#fffdf7; --panel-2:var(--cream-100);
+  --ink:var(--navy-900); --ink-body:var(--navy-700); --ink-mute:var(--navy-500); --ink-faint:#8490a2;
+  --rule:#ecdfc6; --rule-soft:#f4ead7;
+  --accent:var(--yellow-400); --accent-deep:var(--yellow-600);
+  --live:var(--green-700); --live-soft:var(--green-100);
+  --warn:var(--coral); --warn-soft:#fdeaef;
+  --screen:#ffffff;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    --ground:#171d29; --panel:#1d2532; --panel-2:#222b3a;
+    --ink:#f2ecdd; --ink-body:#e6e0d2; --ink-mute:#b3b6bd; --ink-faint:#9298a3;
+    --rule:#33405a; --rule-soft:#2a3446; --accent-deep:var(--yellow-300);
+    --live:#22c55e; --live-soft:#1c3327; --warn:#f38ba6; --warn-soft:#33191f;
+    --screen:#222b3a;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#171d29; --panel:#1d2532; --panel-2:#222b3a;
+  --ink:#f2ecdd; --ink-body:#e6e0d2; --ink-mute:#b3b6bd; --ink-faint:#9298a3;
+  --rule:#33405a; --rule-soft:#2a3446; --accent-deep:var(--yellow-300);
+  --live:#22c55e; --live-soft:#1c3327; --warn:#f38ba6; --warn-soft:#33191f;
+  --screen:#222b3a;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink-body);font-family:"Plus Jakarta Sans",system-ui,sans-serif;font-size:16px;line-height:1.6;margin:0;padding-inline:20px;padding-block:0 72px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1100px;margin:0 auto}
+.col{max-width:68ch}
+h1,h2,h3,h4{font-family:Fredoka,"Plus Jakarta Sans",sans-serif;color:var(--ink);text-wrap:balance;margin:0}
+h1{font-size:clamp(2.4rem,6vw,3.9rem);font-weight:600;line-height:1.02;letter-spacing:-.02em}
+h2{font-size:clamp(1.5rem,3.2vw,2.05rem);font-weight:600;line-height:1.14;letter-spacing:-.01em}
+h3{font-size:1.16rem;font-weight:600}
+h4{font-size:.99rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent-deep)}
+:focus-visible{outline:2.5px solid var(--blue-500);outline-offset:2px;border-radius:3px}
+code{font-family:"IBM Plex Mono",ui-monospace,Menlo,monospace;font-size:.85em}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:.7rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+header.mast{padding-block:clamp(44px,8vw,86px) clamp(30px,5vw,50px);border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:20px}
+.mark{display:flex;align-items:center;gap:11px}
+.mark span{font-family:Fredoka,sans-serif;font-weight:600;color:var(--ink);font-size:1.02rem}
+.standfirst{font-size:clamp(1.05rem,2.1vw,1.3rem);color:var(--ink-body);max-width:58ch;line-height:1.5}
+.standfirst strong{color:var(--ink);font-weight:600}
+.mastmeta{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.tag{display:inline-flex;gap:7px;font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.07em;text-transform:uppercase;padding:5px 11px;border-radius:999px;border:1px solid var(--rule);color:var(--ink-mute);background:var(--panel)}
+.tag.hot{border-color:var(--accent);background:var(--accent);color:var(--yellow-950)}
+section{padding-block:clamp(40px,6vw,66px);border-bottom:1px solid var(--rule-soft)}
+section:last-of-type{border-bottom:0}
+.shead{display:flex;flex-direction:column;gap:12px;margin-bottom:30px}
+.shead p{color:var(--ink-mute);font-size:.95rem;max-width:64ch}
+
+/* doors */
+.doors{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:20px}
+.door{border:1px solid var(--rule);border-radius:16px;background:var(--panel);padding:26px 24px;display:flex;flex-direction:column;gap:13px;position:relative;overflow:hidden}
+.door.main{border-color:var(--accent-deep);border-width:2px}
+.door .lintel{height:5px;background:var(--accent);border-radius:3px;width:42px}
+.door.two .lintel{background:var(--live)}
+.door.three .lintel{background:var(--navy-300)}
+.door .who{font-family:"IBM Plex Mono",monospace;font-size:.69rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)}
+.door h3{font-size:1.3rem}
+.door .route{font-family:"IBM Plex Mono",monospace;font-size:.8rem;color:var(--accent-deep)}
+.door p{font-size:.88rem;color:var(--ink-mute);line-height:1.55}
+.door .reach{margin-top:auto;padding-top:14px;border-top:1px solid var(--rule-soft);display:flex;flex-direction:column;gap:3px}
+.door .reach b{font-family:Fredoka,sans-serif;font-size:1.22rem;color:var(--ink);font-weight:600}
+.door .reach span{font-size:.79rem;color:var(--ink-mute)}
+
+/* skeleton */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.steps article{background:var(--panel);padding:20px 18px;display:flex;flex-direction:column;gap:8px}
+.steps .n{font-family:Fredoka,sans-serif;font-size:1.45rem;font-weight:600;color:var(--accent-deep);line-height:1}
+.steps h4{color:var(--ink);font-size:.95rem}
+.steps p{font-size:.84rem;color:var(--ink-mute);line-height:1.5}
+.steps article.doit{background:var(--accent)}
+.steps article.doit .n,.steps article.doit h4{color:var(--yellow-950)}
+.steps article.doit p{color:var(--yellow-950);opacity:.82}
+
+/* hub mock */
+.hub{background:var(--screen);border:1px solid var(--rule);border-radius:16px;padding:26px 24px;display:flex;flex-direction:column;gap:22px;max-width:640px}
+.hub .ht{font-family:Fredoka,sans-serif;font-size:1.4rem;font-weight:600;color:var(--ink)}
+.grp{display:flex;flex-direction:column;gap:8px}
+.grp .gl{font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+.tile{display:flex;align-items:baseline;gap:10px;padding:11px 14px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+.tile.big{background:var(--accent);border-color:var(--accent);padding:16px 18px}
+.tile .nm{font-weight:600;color:var(--ink);font-size:.93rem}
+.tile.big .nm{font-size:1.1rem;font-family:Fredoka,sans-serif;color:var(--yellow-950)}
+.tile .sub{font-size:.79rem;color:var(--ink-mute)}
+.tile.big .sub{color:var(--yellow-950);opacity:.8}
+.tile.off{opacity:.72;border-style:dashed}
+.tile .why{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--warn)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:520px){.row2{grid-template-columns:1fr}}
+
+.tw{overflow-x:auto;border:1px solid var(--rule);border-radius:12px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.865rem;min-width:620px}
+th,td{text-align:left;padding:12px 15px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{font-family:"IBM Plex Mono",monospace;font-size:.67rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:500}
+tr:last-child td{border-bottom:0}
+td strong{color:var(--ink);font-weight:600}
+.pill{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.pill.done{background:var(--live-soft);color:var(--live)}
+.pill.half{background:var(--cream-200);color:var(--yellow-950)}
+.pill.none{background:var(--warn-soft);color:var(--warn)}
+.note{border-left:3px solid var(--accent);padding:3px 0 3px 17px;font-size:.95rem;color:var(--ink-body);max-width:62ch}
+.note strong{color:var(--ink)}
+ul.clean{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+ul.clean li{display:flex;gap:11px;font-size:.92rem;color:var(--ink-mute);line-height:1.5}
+ul.clean li::before{content:"";flex:none;width:9px;height:9px;margin-top:7px;background:var(--accent);transform:rotate(45deg);border-radius:2px}
+ul.clean li strong{color:var(--ink);font-weight:600}
+ul.clean.open li::before{background:transparent;border:2px solid var(--navy-300);border-radius:50%;transform:none;width:10px;height:10px;margin-top:6px}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:26px}
+.seq{display:flex;flex-direction:column;gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:14px;overflow:hidden}
+.seq .r{background:var(--panel);padding:17px 20px;display:flex;gap:16px;align-items:flex-start}
+.seq .n{font-family:Fredoka,sans-serif;font-size:1.35rem;font-weight:600;color:var(--accent-deep);width:30px;flex:none;line-height:1.1}
+.seq .m{display:flex;flex-direction:column;gap:4px}
+.seq p{font-size:.86rem;color:var(--ink-mute)}
+footer{padding-top:34px;color:var(--ink-faint);font-size:.83rem;display:flex;flex-wrap:wrap;gap:8px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="mark">
+    <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M5 27 C 9 19, 11 13, 22 6" stroke="#ffe9bd" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+      <path d="M11.5 20.5 L 17 15 L 22.5 20.5 L 17 26 Z" fill="#ffd23f"/>
+      <circle cx="24.5" cy="7.5" r="3.2" fill="#15803d"/>
+    </svg>
+    <span>Fernscout</span>
+  </div>
+  <div class="eyebrow">Concept 4 · revises concepts 1–3</div>
+  <h1>Three Doors</h1>
+  <p class="standfirst">The studio, your own agent, and WhatsApp. <strong>Two of them reach everything</strong>; the third is for the evening in a tent. The hosted chat is not one of them.</p>
+  <div class="mastmeta">
+    <span class="tag hot">Draft concept</span>
+    <span class="tag">17 Sept 2026</span>
+  </div>
+</header>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">The shape</div>
+    <h2>Each door is complete on its own terms</h2>
+  </div>
+  <div class="doors">
+    <article class="door main">
+      <span class="lintel"></span>
+      <span class="who">Door one · anybody</span>
+      <h3>The studio</h3>
+      <span class="route">/[user]/studio</span>
+      <p>No agent, no terminal, no API key. Every action is a guided flow you pick from one place — adding a day, editing one, making a trip, inviting somebody, bringing in a statement.</p>
+      <div class="reach"><b>Everything</b><span>the whole of Fernscout, as flows</span></div>
+    </article>
+    <article class="door two">
+      <span class="lintel"></span>
+      <span class="who">Door two · bring your own</span>
+      <h3>Your own agent</h3>
+      <span class="route">the v2 API · the helper repo</span>
+      <p>For people who already work with an agent and would rather it did the typing. Pointed at the schemas and the helper repository, running on their machine, their model, their bill.</p>
+      <div class="reach"><b>Everything</b><span>whatever a flow can do, a caller can do</span></div>
+    </article>
+    <article class="door three">
+      <span class="lintel"></span>
+      <span class="who">Door three · the shortcut</span>
+      <h3>WhatsApp</h3>
+      <span class="route">the daily entry</span>
+      <p>The evening in a tent. Photographs, a voice note, publish. Everything else it names and redirects into a studio flow.</p>
+      <div class="reach"><b>One job</b><span>today's day, done properly</span></div>
+    </article>
+  </div>
+  <div class="pair" style="margin-top:34px">
+    <div>
+      <h3 style="margin-bottom:12px">The API is a front door, not a convenience</h3>
+      <p style="font-size:.93rem;color:var(--ink-mute)">"Bring your own agent" only means something if the v2 contract genuinely covers what the studio covers. <strong style="color:var(--ink)">A flow and an endpoint are two faces of one capability.</strong> Every studio flow reaching something the API cannot reach is a broken promise — and <code>keep-the-contract</code> is the check that catches it.</p>
+    </div>
+    <div>
+      <h3 style="margin-bottom:12px">Why the hosted chat is not a door</h3>
+      <p style="font-size:.93rem;color:var(--ink-mute)"><code>/agent</code> tried to be doors one and two at once: a chat that does the work itself, hosted by us, on our credits, against a model we picked. But the person who wants an agent mostly <em>already has one</em>. It retires into the other two — actions become flows, agency becomes theirs.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Door one</div>
+    <h2>Every action wears the same five steps</h2>
+    <p>Generalised from the import shape in concept 2, which turned out to be a general answer wearing an import costume. Not every flow needs all five; every flow uses them in this order.</p>
+  </div>
+  <div class="steps">
+    <article><span class="n">1</span><h4>What this is</h4><p>One sentence on what you get, and any promise that must be made at the moment of asking.</p></article>
+    <article><span class="n">2</span><h4>Gather</h4><p>The questions, or the file. One thing per screen.</p></article>
+    <article><span class="n">3</span><h4>Preview</h4><p>What will happen, in real content. Says out loud that nothing has been written.</p></article>
+    <article><span class="n">4</span><h4>Decide</h4><p>Check answers. Every row changeable, every choice visible.</p></article>
+    <article class="doit"><span class="n">5</span><h4>Do it</h4><p>One button named after its consequence. Never Next, never Save.</p></article>
+  </div>
+  <div class="pair" style="margin-top:30px">
+    <div>
+      <ul class="clean">
+        <li><strong>Nothing is written before step 5.</strong> A person can back out anywhere and the journal is untouched</li>
+        <li><strong>A flow can be left and resumed</strong> — the photographs flow already does this; it becomes part of the skeleton</li>
+      </ul>
+    </div>
+    <div>
+      <ul class="clean">
+        <li><strong>Steps are self-sufficient</strong> — no step needs information from elsewhere in the app. This is the rule that deletes the documentation</li>
+        <li><strong>Publishing is always its own decision</strong>, never a side effect of a flow finishing</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">The hub</div>
+    <h2>What a person actually sees</h2>
+    <p>Grouped by what they are trying to do, main flow first and largest. A flow that cannot run right now shows the reason — hiding it is how somebody concludes the software can't do something it can.</p>
+  </div>
+  <div class="hub">
+    <span class="ht">Studio</span>
+    <div class="grp">
+      <span class="gl">Write</span>
+      <div class="tile big"><span class="nm">Add a day</span><span class="sub">the main flow</span></div>
+      <div class="row2">
+        <div class="tile"><span class="nm">Edit a day</span></div>
+        <div class="tile"><span class="nm">Move, split or merge</span></div>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="gl">Plan</span>
+      <div class="row2">
+        <div class="tile"><span class="nm">New trip</span></div>
+        <div class="tile"><span class="nm">Who may read it</span></div>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="gl">People</span>
+      <div class="row2">
+        <div class="tile"><span class="nm">Invite a reader</span></div>
+        <div class="tile"><span class="nm">Who was there</span></div>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="gl">Bring in</span>
+      <div class="row2">
+        <div class="tile"><span class="nm">Photographs</span></div>
+        <div class="tile"><span class="nm">Location history</span></div>
+        <div class="tile"><span class="nm">Contacts</span></div>
+        <div class="tile"><span class="nm">A bank statement</span></div>
+      </div>
+    </div>
+    <div class="grp">
+      <span class="gl">Print</span>
+      <div class="row2">
+        <div class="tile"><span class="nm">A postcard</span></div>
+        <div class="tile off"><span class="nm">A photobook</span><span class="why">needs a trip</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Reality check</div>
+    <h2>Mostly an arrangement job, not fourteen features</h2>
+  </div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Flow</th><th>Today</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><strong>Add a day</strong></td><td>Does not exist in the browser. Agent only</td><td><span class="pill none">gap</span></td></tr>
+        <tr><td><strong>Edit a day</strong></td><td><code>EditDay.tsx</code> — a panel on the day page, findable only if you are already looking at the day</td><td><span class="pill half">rehouse</span></td></tr>
+        <tr><td>Correct or take down</td><td>Exists, in <code>OwnerTools</code></td><td><span class="pill half">rehouse</span></td></tr>
+        <tr><td><strong>Move, split, merge days</strong></td><td>Does not exist. Agent only</td><td><span class="pill none">gap</span></td></tr>
+        <tr><td>New trip</td><td>Agent only — B1821</td><td><span class="pill none">ticketed</span></td></tr>
+        <tr><td>Invite somebody</td><td><code>ContactsAdmin</code> — a page, not a flow</td><td><span class="pill half">rehouse</span></td></tr>
+        <tr><td>Who was there</td><td>Stub — B1823</td><td><span class="pill none">ticketed</span></td></tr>
+        <tr><td>Photographs</td><td>A full flow already — the model for the skeleton</td><td><span class="pill done">done</span></td></tr>
+        <tr><td>Location history</td><td>Writes, no preview step — and B1819 blocks it</td><td><span class="pill none">ticketed</span></td></tr>
+        <tr><td>A bank statement</td><td>Reads, never writes — B1822</td><td><span class="pill none">ticketed</span></td></tr>
+        <tr><td>Postcard, photobook</td><td>Exist as their own pages</td><td><span class="pill half">rehouse</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note" style="margin-top:24px"><strong>Two genuine gaps</strong> — adding a day, and moving or merging them. Two stubs already ticketed. Everything else exists and needs a front door and a common shape.</p>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">What this revises</div>
+    <h2>Yesterday's plan had the split the wrong way round</h2>
+  </div>
+  <div class="col">
+    <p style="margin-bottom:20px">Concepts 1–3 assumed WhatsApp owns day creation and the browser mops up. The narrowing was right; the split was not. The funnel still gets built — it is no longer the primary path.</p>
+    <ul class="clean">
+      <li><strong>B1820</strong> keeps its design, loses its primacy. Its redirects now point into studio flows — deep into a flow, not at the hub</li>
+      <li><strong>B1821</strong> becomes the <em>New trip</em> flow</li>
+      <li><strong>B1822, B1823</strong> become <em>Bring in</em> flows</li>
+      <li><strong>B1824</strong> is where the flow skeleton is built. No longer import-specific — the hub consumes it. These two should be taken together</li>
+      <li><strong>B1825</strong> changes target: <code>/extract</code> → <code>/studio</code>, not <code>/import</code>. Its collision with B1803 cleared when B1803 merged</li>
+      <li><strong>B1826</strong> unchanged — and <code>/docs/helper</code> matters more now, because it is door two's front page</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Order</div>
+    <h2>Six steps</h2>
+  </div>
+  <div class="seq">
+    <div class="r"><span class="n">1</span><div class="m"><h4>The skeleton and the hub</h4><p>The flow component, resume, preview and decide, and <code>/studio</code> listing them. Nothing else can be a flow until this exists.</p></div></div>
+    <div class="r"><span class="n">2</span><div class="m"><h4>Add a day</h4><p>The main flow, and the first proof the skeleton works for something that is not a file upload.</p></div></div>
+    <div class="r"><span class="n">3</span><div class="m"><h4>The existing work, rehoused</h4><p>Edit a day, new trip, invite, the imports — wearing the skeleton, appearing in the hub.</p></div></div>
+    <div class="r"><span class="n">4</span><div class="m"><h4>Move, split, merge</h4><p>The remaining genuine gap.</p></div></div>
+    <div class="r"><span class="n">5</span><div class="m"><h4>The rename</h4><p>Whenever convenient after the hub exists, since it now points at <code>/studio</code>.</p></div></div>
+    <div class="r"><span class="n">6</span><div class="m"><h4>The WhatsApp funnel</h4><p>Last, because its redirects need flows to redirect into.</p></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="shead col">
+    <div class="eyebrow">Open</div>
+    <h2>Still to decide</h2>
+  </div>
+  <div class="col">
+    <ul class="clean open">
+      <li><strong>Does the studio replace the day page's owner controls, or sit alongside them?</strong> Somebody looking at a day should probably still be able to fix it there — the studio is the front door, not the only door</li>
+      <li><strong>Does each flow get its own linkable, resumable URL?</strong> Almost certainly yes, and that is how WhatsApp's redirects should work: deep into a flow, not at the hub</li>
+      <li><strong>How much of <code>OwnerTools</code> survives?</strong></li>
+      <li><strong>Hungarian</strong>, for every new string. Not written, must not be invented</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <span>Fernscout · concept 4</span><span style="color:var(--rule)">·</span>
+  <span>Revises: The Day Funnel · Bring It In · The Narrowing</span>
+</footer>
+
+</div>
