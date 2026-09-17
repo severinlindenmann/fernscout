@@ -1271,7 +1271,7 @@
   "extract.board.tellMeAbout": "Tell me about {weekday}",
   "extract.board.undated": "No date",
   "extract.checkWording.back": "Back",
-  "extract.checkWording.correctLabel": "Correct the highlighted word",
+  "extract.checkWording.correctLabel": "Correct what we heard",
   "extract.checkWording.heardLabel": "What we heard — tap to fix",
   "extract.checkWording.keep": "Looks right — keep going",
   "extract.checkWording.paused": "Paused · {clock} recorded",
