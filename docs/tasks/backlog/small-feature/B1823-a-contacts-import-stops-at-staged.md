@@ -55,3 +55,10 @@ An invite creates a request, not access. The copy must not imply otherwise.
 - Nothing is written and no mail is sent before the final button.
 - Verified in a real browser with a real test vCard.
 - `npm run verify` passes.
+
+## Revised 17 September 2026 — this is the *Who was there* studio flow
+
+Per `docs/plans/2026-09-17-the-studio.md`, this becomes a flow inside the studio
+(B1829). Keep it distinct in the hub from B1833's *Invite a reader*: this one is
+who was on the trip, that one is who may read it. Conflating them is how
+somebody accidentally grants reading rights to an address book.

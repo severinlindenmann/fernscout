@@ -100,3 +100,22 @@ notifying readers).
 - Driven as a real conversation, not by curl — `test-a-feature` persona flows or
   dispatch directly.
 - `npm run verify` passes.
+
+## Revised 17 September 2026 — WhatsApp is the shortcut, not the front door
+
+`docs/plans/2026-09-17-the-studio.md` reverses the split this ticket was
+written under. Fernscout has three front doors: the studio (B1829), a person's
+own agent against the v2 API, and WhatsApp. **Two of them reach everything;
+WhatsApp reaches the daily entry.**
+
+The funnel's design is unchanged and still wanted. What changes:
+
+- Day creation is no longer WhatsApp's alone — B1830 builds it in the browser,
+  and that is the primary path. WhatsApp is the evening in a tent.
+- The redirects now point into **studio flows**, and should reach *into* a flow
+  by URL rather than dropping somebody at the hub.
+- This ticket now comes **after** the studio flows exist, because a redirect
+  needs somewhere to land.
+
+Nothing above the fold in this ticket is retracted; the compliance argument, the
+24-hour window, the pricing and the button limits all still hold.

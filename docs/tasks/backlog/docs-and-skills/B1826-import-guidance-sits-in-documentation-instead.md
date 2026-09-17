@@ -67,3 +67,18 @@ it leaves people with neither.
 - `npm run i18n:keys` is clean; knip reports no orphaned files.
 - The rewritten page is looked at in a browser, not just diffed.
 - `npm run verify` passes.
+
+## Revised 17 September 2026 — `/docs/helper` is door two's front page
+
+Per `docs/plans/2026-09-17-the-studio.md`, Fernscout has three front doors, and
+one of them is **a person's own agent** driven by the v2 API and the helper
+repository. That makes the rewritten `/docs/helper` more important than this
+ticket first assumed: it is not a footnote for self-hosters, it is the entry
+point for anybody who wants an agent to do the work.
+
+It should say plainly that an agent reaches everything through the API, what
+the helper repository provides, and how to point your own agent at it — and it
+should not promise the hosted `/agent` chat forever, which is on a retirement
+path into the studio and into door two.
+
+The deletions above are unchanged.

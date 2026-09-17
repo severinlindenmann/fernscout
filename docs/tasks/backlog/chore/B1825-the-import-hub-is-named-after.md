@@ -62,3 +62,16 @@ No behaviour changes. Run `npm run i18n:keys` after the English keys move.
 - `npm run i18n:keys` is clean and no `extract.*` key is orphaned.
 - Verified in a real browser at desktop and phone width, old path and new.
 - `npm run verify` passes.
+
+## Revised 17 September 2026 — the target is `/studio`, not `/import`
+
+Per `docs/plans/2026-09-17-the-studio.md`, the import hub is absorbed rather
+than renamed: bringing something in is one flow among many, so the destination
+is **`/[user]/studio`**, with the import flows under it.
+
+Everything in the Work section still applies; only the destination string
+changes. The naming argument for "import" over "extract" is superseded — the
+hub is not only about imports any more.
+
+**The collision with B1803 has cleared** — B1803 merged on 17 September. This
+now waits on B1829 instead, since the hub it renames into has to exist.

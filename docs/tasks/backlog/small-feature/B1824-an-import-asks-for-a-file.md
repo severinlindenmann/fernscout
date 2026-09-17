@@ -82,3 +82,14 @@ Hungarian is not written and must not be invented.
 - Verified in a real browser at desktop and phone width, per type — the suite
   cannot judge whether a sequence reads as why → how → doors → peek → decide.
 - `npm run verify` passes.
+
+## Revised 17 September 2026 — this ticket builds the studio's flow skeleton
+
+Per `docs/plans/2026-09-17-the-studio.md`, the five-step shape described above
+is not import-specific. It is the shape **every** owner action wears, and the
+studio hub (B1829) consumes it.
+
+So this ticket's deliverable widens by one word: the skeleton is general, and
+the four import types are its first four users. **B1829 and this ticket should
+be taken together** — one is the skeleton, the other is the hub that lists what
+wears it.

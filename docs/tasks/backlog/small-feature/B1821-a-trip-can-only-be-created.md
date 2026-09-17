@@ -73,3 +73,12 @@ Hungarian is not written and must not be invented — see the plan.
   `npm run i18n:keys` is clean.
 - Verified in a real browser at desktop and phone width.
 - `npm run verify` passes.
+
+## Revised 17 September 2026 — this is the *New trip* studio flow
+
+Per `docs/plans/2026-09-17-the-studio.md`, this becomes one flow inside the
+studio (B1829) rather than a standalone page, and wears B1829's skeleton:
+what this is → gather → preview → decide → do it.
+
+The two-screen design above survives intact as the *gather* steps. Build it
+after B1829, or accept that it will be rehoused.

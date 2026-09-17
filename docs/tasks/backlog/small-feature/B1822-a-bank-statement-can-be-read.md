@@ -62,3 +62,9 @@ the next candidates and belong in their own ticket.
 - Verified in a real browser with a real test CSV — a 200 is not proof; the
   costs must be visible on the trip.
 - `npm run verify` passes.
+
+## Revised 17 September 2026 — this is a *Bring in* studio flow
+
+Per `docs/plans/2026-09-17-the-studio.md`, the import hub is absorbed into the
+studio (B1829). This becomes the *Bring in → A bank statement* flow, wearing
+the same skeleton as every other action. The work described above is unchanged.
