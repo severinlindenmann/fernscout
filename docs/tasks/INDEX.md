@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (209)
+## backlog (211)
 
 ### security (1)
 
@@ -57,7 +57,7 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 
-### issue (15)
+### issue (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -69,6 +69,7 @@ Do not edit them by hand; run the script.
 | [B1540](backlog/issue/B1540-the-country-is-in-every-exported.md) | The country is in every exported photo and the helper throws it away, so the photobook says "elsewhere" on every day | ISSUE | medium | low |
 | [B1827](backlog/issue/B1827-committing-an-untitled-day-into-a.md) | Committing an untitled day into a trip whose originals already hold a day folder is refused as slug_taken | ISSUE | medium | low |
 | [B1828](backlog/issue/B1828-a-finished-import-keeps-offering-continue.md) | A finished import keeps offering Continue and warns about photographs already in the journal | ISSUE | medium | low |
+| [B1835](backlog/issue/B1835-the-day-board-says-every-day.md) | The day board says every day is told while the undated card still has unanswered questions | ISSUE | medium | low |
 | [B1040](backlog/issue/B1040-analytics-visitors-pinned-salt-test-still.md) | analytics-visitors' pinned-salt test still fails intermittently under --sequence.shuffle, unlike standalone runs | ISSUE | low | medium |
 | [B1238](backlog/issue/B1238-describe-photos-has-no-model-tool.md) | describe_photos has no model tool, so WhatsApp can never reach it | ISSUE | low | medium |
 | [B1427](backlog/issue/B1427-the-draft-banner-s-height-at.md) | The draft banner's height at 390px needs its own cleanup pass | ISSUE | low | low |
@@ -140,12 +141,13 @@ Do not edit them by hand; run the script.
 | [B1661](backlog/small-feature/B1661-a-day-never-asks-about-location.md) | A day never asks about location/country/countryCode/timezone or translations before it exists | FEATURE | low | medium |
 | [B716](backlog/small-feature/B716-no-way-to-browse-or-search.md) | No way to browse or search by a single tag on the site | FEATURE | low | low |
 
-### chore (4)
+### chore (5)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1632](backlog/chore/B1632-retire-the-v1-invites-channels-contacts.md) | Retire the v1 invites, channels, contacts and reactions routes now that v2 doors exist beside them | CHORE | medium | high |
 | [B1825](backlog/chore/B1825-the-import-hub-is-named-after.md) | The import hub is named after the machine's job | CHORE | medium | medium |
+| [B1836](backlog/chore/B1836-the-telling-flow-s-screens-cannot.md) | The telling flow's screens cannot be looked at without a live microphone | CHORE | medium | medium |
 | [B1135](backlog/chore/B1135-fernscout-ch-publishes-dmarc-quarantine-with.md) | fernscout.ch publishes DMARC quarantine with no rua, so nobody would learn if mail stopped being accepted | CHORE | low | low |
 | [B1762](backlog/chore/B1762-the-scenario-corpus-has-no-hungarian.md) | The scenario corpus has no Hungarian, and inventing it would poison the instrument | CHORE | low | low |
 
@@ -355,14 +357,13 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (2)
+## in-development (1)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
-| [B1834](in-development/B1834-the-transcript-says-tap-to-correct.md) | The transcript says tap to correct but only the flagged word is tappable, and nothing at all when none was flagged | ISSUE | high | low | `0e7f2abd` |
 
-## testing (18)
+## testing (19)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
@@ -377,6 +378,7 @@ _Nothing here._
 | [B1811](testing/B1811-the-cover-step-shows-eight-photographs.md) | The cover step shows eight photographs and tells the person the rest come later | FEATURE | high | low | — |
 | [B1812](testing/B1812-the-title-page-renders-at-a.md) | The title page renders at a quarter the area of every other page in the preview | ISSUE | high | low | — |
 | [B1814](testing/B1814-a-run-of-days-with-no.md) | A run of days with no country prints one Anderswo divider page each, not one chapter | ISSUE | high | low | — |
+| [B1834](testing/B1834-the-transcript-says-tap-to-correct.md) | The transcript says tap to correct but only the flagged word is tappable, and nothing at all when none was flagged | ISSUE | high | low | — |
 | [B1751](testing/B1751-an-old-trip-that-exists-only.md) | An old trip that exists only as photographs on a phone has no way into a journal | FEATURE | medium | high | — |
 | [B1787](testing/B1787-a-synced-folder-can-never-agree.md) | A synced folder can never agree with the site, because the weather it answers with may not be sent back | ISSUE | medium | medium | — |
 | [B1789](testing/B1789-a-photograph-whose-local-bytes-differ.md) | A photograph whose local bytes differ from the site's derivative is planned, never sent, and reported as a push that did not land, on every run | ISSUE | medium | medium | — |

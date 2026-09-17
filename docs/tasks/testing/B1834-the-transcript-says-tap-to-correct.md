@@ -7,8 +7,7 @@ complexity: low
 area: extract, check the wording
 found: "2026-09-17T05:12:00Z"
 started: "2026-09-17T05:12:19Z"
-session: 0e7f2abd-d7ef-4dd2-9733-1fd412b78b47
-claimed: "2026-09-17T05:12:19Z"
+merged: "2026-09-17T05:30:21Z"
 ---
 
 # B1834 — The transcript says tap to correct but only the flagged word is tappable, and nothing at all when none was flagged
