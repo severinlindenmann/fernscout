@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (210)
+## backlog (209)
 
 ### security (1)
 
@@ -57,13 +57,12 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 
-### issue (16)
+### issue (15)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1808](backlog/issue/B1808-check-page-mjs-captures-dark-mode.md) | check-page.mjs captures dark mode when asked for light, so every light-theme screenshot this repository has taken may be dark | ISSUE | high | low |
 | [B1819](backlog/issue/B1819-an-android-location-export-is-accepted.md) | An Android location export is accepted and imports nothing | ISSUE | high | low |
-| [B1834](backlog/issue/B1834-the-transcript-says-tap-to-correct.md) | The transcript says tap to correct but only the flagged word is tappable, and nothing at all when none was flagged | ISSUE | high | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
@@ -356,11 +355,12 @@ Do not edit them by hand; run the script.
 
 _Nothing here._
 
-## in-development (1)
+## in-development (2)
 
 | # | Finding | Type | Priority | Complexity | Held by |
 | --- | --- | --- | --- | --- | --- |
 | [B1742](in-development/B1742-the-agent-still-asks-for-an.md) | The agent still asks for an email that is on the contact card the person selected | ISSUE | high | low | `47321abb` |
+| [B1834](in-development/B1834-the-transcript-says-tap-to-correct.md) | The transcript says tap to correct but only the flagged word is tappable, and nothing at all when none was flagged | ISSUE | high | low | `0e7f2abd` |
 
 ## testing (18)
 
