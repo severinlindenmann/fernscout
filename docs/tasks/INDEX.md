@@ -49,7 +49,7 @@ Do not edit them by hand; run the script.
 
 <!-- generated:begin -->
 
-## backlog (204)
+## backlog (210)
 
 ### security (1)
 
@@ -57,12 +57,13 @@ Do not edit them by hand; run the script.
 | --- | --- | --- | --- | --- |
 | [B1446](backlog/security/B1446-anthropic-api-key-may-be-exposed.md) | Anthropic API key may be exposed and needs rotation | SECURITY | low | low |
 
-### issue (15)
+### issue (16)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1808](backlog/issue/B1808-check-page-mjs-captures-dark-mode.md) | check-page.mjs captures dark mode when asked for light, so every light-theme screenshot this repository has taken may be dark | ISSUE | high | low |
 | [B1819](backlog/issue/B1819-an-android-location-export-is-accepted.md) | An Android location export is accepted and imports nothing | ISSUE | high | low |
+| [B1834](backlog/issue/B1834-the-transcript-says-tap-to-correct.md) | The transcript says tap to correct but only the flagged word is tappable, and nothing at all when none was flagged | ISSUE | high | low |
 | [B1187](backlog/issue/B1187-the-signup-wizard-s-first-trip.md) | The signup wizard's first-trip step lost its data in a persona round | ISSUE | medium | medium |
 | [B1265](backlog/issue/B1265-the-model-asserted-a-false-trip.md) | The model asserted a false trip date window and no check caught the arithmetic | ISSUE | medium | low |
 | [B1307](backlog/issue/B1307-the-model-misstates-a-date-its.md) | The model misstates a date its own tool returned, and the error compounds into the next press | ISSUE | medium | low |
@@ -77,11 +78,12 @@ Do not edit them by hand; run the script.
 | [B1703](backlog/issue/B1703-an-unknown-field-is-named-but.md) | An unknown field is named but not suggested, so a near-miss like transport_mode gets no did-you-mean | ISSUE | low | low |
 | [B1764](backlog/issue/B1764-a-place-name-was-read-as.md) | A place name was read as a date and reported as being after the end of the trip | ISSUE | low | low |
 
-### big-feature (18)
+### big-feature (19)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
 | [B1820](backlog/big-feature/B1820-whatsapp-is-offered-forty-tools-and.md) | WhatsApp is offered forty tools and cannot reliably pick one | FEATURE | high | high |
+| [B1829](backlog/big-feature/B1829-there-is-no-one-place-to.md) | There is no one place to do things, so every action needs an agent or a hidden control | FEATURE | high | high |
 | [B1049](backlog/big-feature/B1049-a-model-choosing-among-forty-three.md) | A model choosing among forty-three tools chooses worse than one choosing among seventeen | FEATURE | medium | high |
 | [B1537](backlog/big-feature/B1537-a-journal-can-only-have-one.md) | A journal can only have one owner - couples and families can't share ownership | FEATURE | medium | high |
 | [B1593](backlog/big-feature/B1593-a-closed-journal-has-no-way.md) | A closed journal has no way to show a public shopfront of the parts its owner would share | FEATURE | medium | high |
@@ -100,7 +102,7 @@ Do not edit them by hand; run the script.
 | [B674](backlog/big-feature/B674-there-is-no-way-to-post.md) | There is no way to post from a phone without a browser | FEATURE | low | high |
 | [B714](backlog/big-feature/B714-a-trip-inside-one-city-draws.md) | A trip inside one city draws on a baked world outline, because there are no real map tiles | FEATURE | low | high |
 
-### small-feature (30)
+### small-feature (34)
 
 | # | Finding | Type | Priority | Complexity |
 | --- | --- | --- | --- | --- |
@@ -124,6 +126,10 @@ Do not edit them by hand; run the script.
 | [B1758](backlog/small-feature/B1758-no-tool-carries-an-example-and.md) | No tool carries an example, and few-shot is the one prompt-side lever with evidence behind it | FEATURE | medium | low |
 | [B1761](backlog/small-feature/B1761-the-bench-world-cannot-stage-a.md) | The bench world cannot stage a photograph, a voice note, a pin, an invite or a balance | FEATURE | medium | medium |
 | [B1792](backlog/small-feature/B1792-open-signed-in-owner-s-journal.md) | Open signed-in owner's journal when launching the PWA | FEATURE | medium | low |
+| [B1830](backlog/small-feature/B1830-a-day-cannot-be-created-in.md) | A day cannot be created in the browser | FEATURE | medium | medium |
+| [B1831](backlog/small-feature/B1831-editing-a-day-is-a-hidden.md) | Editing a day is a hidden panel rather than something a person can find | FEATURE | medium | medium |
+| [B1832](backlog/small-feature/B1832-a-day-cannot-be-moved-split.md) | A day cannot be moved, split or merged without an agent | FEATURE | medium | medium |
+| [B1833](backlog/small-feature/B1833-inviting-and-sharing-are-pages-rather.md) | Inviting and sharing are pages rather than flows | FEATURE | medium | medium |
 | [B958](backlog/small-feature/B958-the-room-never-says-which-trip.md) | The room never says which trip or which day is being talked about | FEATURE | medium | medium |
 | [B991](backlog/small-feature/B991-the-admin-journal-list-is-a.md) | The admin journal list is a wall of rows with the controls in the wrong places | FEATURE | medium | medium |
 | [B1025](backlog/small-feature/B1025-push-exists-as-a-capability-and.md) | Push exists as a capability and is not a channel this day can be sent on | FEATURE | low | medium |
