@@ -1271,7 +1271,7 @@
   "extract.board.tellMeAbout": "Meséld el ezt a napot: {weekday}",
   "extract.board.undated": "Nincs dátum",
   "extract.checkWording.back": "Vissza",
-  "extract.checkWording.correctLabel": "A kiemelt szó javítása",
+  "extract.checkWording.correctLabel": "A szöveg javítása",
   "extract.checkWording.heardLabel": "Amit hallottunk — koppints a javításhoz",
   "extract.checkWording.keep": "Így jó — folytassuk",
   "extract.checkWording.paused": "Szünet · {clock} felvéve",

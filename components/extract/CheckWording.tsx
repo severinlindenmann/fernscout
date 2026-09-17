@@ -70,10 +70,16 @@ function clockFor(seconds: number): string {
  * looked uncertain" panel, never a guess dressed up as one (AGENTS.md;
  * `lib/helper/transcribe.ts`'s `leastConfidentWord`).
  *
- * The highlighted word is editable in place — a native `<input>` swapped in
- * for the tapped span, never `window.prompt` (AGENTS.md forbids it) — and
- * "Looks right — keep going" hands back the transcript with that correction
- * folded in, not the original.
+ * **The whole transcript is editable, not only the flagged word** (B1834).
+ * Round 1 made the flagged word the single tappable thing on the card while
+ * the label above it said "tap to fix" unconditionally — so a recording with
+ * no low-confidence word showed a promise over inert text, which is what a
+ * person reported from a handset. Transcription mishears more than one word
+ * at a time; the highlight says where to look first, it does not say what
+ * may be changed. Tapping anywhere in the transcript opens the whole of it
+ * in a `textarea` — never `window.prompt`, which AGENTS.md forbids — and
+ * "Looks right — keep going" hands back what the person left there, not the
+ * original.
  */
 export default function CheckWording({
   text,
@@ -90,10 +96,10 @@ export default function CheckWording({
 }) {
   const { t } = useI18n();
   const split = splitOnWord(text, uncertain);
-  const [correction, setCorrection] = useState(split?.word ?? "");
+  // The person's version of the whole transcript. Seeded from what was
+  // heard, then theirs — every word of it, not just the flagged one.
+  const [draft, setDraft] = useState(text);
   const [editing, setEditing] = useState(false);
-
-  const finalText = split ? `${split.pre}${correction}${split.post}` : text;
 
   return (
     <div>
@@ -128,37 +134,38 @@ export default function CheckWording({
         <span className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
           {t("extract.checkWording.heardLabel")}
         </span>
-        <p className="mt-1 text-sm leading-relaxed text-ink-body">
-          {split ? (
-            <>
-              {split.pre}
-              {editing ? (
-                <input
-                  autoFocus
-                  value={correction}
-                  onChange={(e) => setCorrection(e.target.value)}
-                  onBlur={() => setEditing(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") setEditing(false);
-                  }}
-                  aria-label={t("extract.checkWording.correctLabel")}
-                  className="inline-block max-w-40 rounded border border-coral-400 bg-surface-raised px-1 text-sm text-ink-body"
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setEditing(true)}
-                  className="rounded bg-coral-100 px-1 font-medium text-coral-600"
-                >
-                  {correction}
-                </button>
-              )}
-              {split.post}
-            </>
-          ) : (
-            text
-          )}
-        </p>
+        {editing ? (
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={() => setEditing(false)}
+            rows={Math.max(3, Math.ceil(draft.length / 44))}
+            aria-label={t("extract.checkWording.correctLabel")}
+            className="mt-1 w-full rounded border border-coral-400 bg-surface-raised p-2 text-sm leading-relaxed text-ink-body"
+          />
+        ) : (
+          /* The resting state still picks the flagged word out, so the eye
+           * goes there first — but the tap target is the whole paragraph,
+           * because any word in it may be the wrong one. A button rather
+           * than a click handler on the <p>: this is a real control and
+           * has to be reachable from a keyboard. */
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="mt-1 block w-full text-left text-sm leading-relaxed text-ink-body"
+          >
+            {split && draft === text ? (
+              <>
+                {split.pre}
+                <span className="rounded bg-coral-100 px-1 font-medium text-coral-600">{split.word}</span>
+                {split.post}
+              </>
+            ) : (
+              draft
+            )}
+          </button>
+        )}
       </div>
 
       {split && (
@@ -170,7 +177,7 @@ export default function CheckWording({
 
       <button
         type="button"
-        onClick={() => onKeep(finalText)}
+        onClick={() => onKeep(draft)}
         className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full bg-action-strong px-5 text-base font-semibold text-on-action"
       >
         {t("extract.checkWording.keep")}

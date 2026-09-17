@@ -1271,7 +1271,7 @@
   "extract.board.tellMeAbout": "Erzähl mir von {weekday}",
   "extract.board.undated": "Kein Datum",
   "extract.checkWording.back": "Zurück",
-  "extract.checkWording.correctLabel": "Das hervorgehobene Wort korrigieren",
+  "extract.checkWording.correctLabel": "Den Wortlaut korrigieren",
   "extract.checkWording.heardLabel": "Was wir gehört haben — zum Korrigieren antippen",
   "extract.checkWording.keep": "Passt so — weiter",
   "extract.checkWording.paused": "Pausiert · {clock} aufgenommen",
