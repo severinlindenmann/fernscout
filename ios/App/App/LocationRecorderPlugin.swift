@@ -20,6 +20,8 @@ public class LocationRecorderPlugin: CAPPlugin, CAPBridgedPlugin {
             CAPPluginMethod(name: "setToken", returnType: CAPPluginReturnPromise),
             CAPPluginMethod(name: "armedTrips", returnType: CAPPluginReturnPromise),
             CAPPluginMethod(name: "openSettings", returnType: CAPPluginReturnPromise),
+            CAPPluginMethod(name: "locationPermission", returnType: CAPPluginReturnPromise),
+            CAPPluginMethod(name: "requestLocationPermission", returnType: CAPPluginReturnPromise),
             CAPPluginMethod(name: "scheduleBeforeTrip", returnType: CAPPluginReturnPromise),
             CAPPluginMethod(name: "notificationPermissionStatus", returnType: CAPPluginReturnPromise),
             CAPPluginMethod(name: "requestNotificationPermission", returnType: CAPPluginReturnPromise),
@@ -208,6 +210,20 @@ public class LocationRecorderPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func openSettings(_ call: CAPPluginCall) {
         Recorder.shared.openSettings()
         call.resolve()
+    }
+
+    private func reply(_ call: CAPPluginCall, _ p: Recorder.PermissionReply) {
+        call.resolve(["status": p.status, "precise": p.precise, "canAskAlways": p.canAskAlways])
+    }
+
+    @objc func locationPermission(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { self.reply(call, Recorder.shared.locationPermission()) }
+    }
+
+    /// Resolves with what the owner actually chose once iOS's prompts are
+    /// gone — or at once, unchanged, when iOS has no prompt left to show.
+    @objc func requestLocationPermission(_ call: CAPPluginCall) {
+        Recorder.shared.requestAlwaysPermission { permission in self.reply(call, permission) }
     }
 
     /// `trips`: `[{id, url, body, at}]`, `at` an ISO 8601 string — the fire

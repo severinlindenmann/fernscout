@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Landing from "@/components/Landing";
 import Pricing from "@paid/credits/components/Pricing";
+import { iosAppStoreUrl, iosAppWaitlistAvailable } from "@/lib/appWaitlist";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
@@ -67,6 +68,15 @@ const helperEnabled = isEnabled("helper");
 
 export default async function Root() {
   const site = serverSite();
+  // B2341. Computed per request, unlike `helperEnabled` above: an operator
+  // sets `features.iosApp.storeUrl` without a redeploy, and a module-scope
+  // constant evaluated once at process start would never see it change.
+  // `storeUrl` wins outright when set — the waitlist half is never even
+  // asked. Both undefined/false is a fresh clone's answer, and is what
+  // renders nothing at all; see `AppWaitlistDoor`.
+  const iosAppOn = isEnabled("iosApp");
+  const appStoreUrl = iosAppOn ? iosAppStoreUrl() : undefined;
+  const appWaitlistAvailable = iosAppOn && !appStoreUrl && iosAppWaitlistAvailable();
   // The notice is the operator's own words in the reader's language — see
   // bannerFor(). Same locale rule as the tab title above, and for the same
   // reason: a German page with an English warning across the top of it is the
@@ -123,6 +133,8 @@ export default async function Root() {
         // note on CODE_TTL_MINUTES.
         codeMinutes={CODE_TTL_MINUTES}
         helperEnabled={helperEnabled}
+        appStoreUrl={appStoreUrl}
+        appWaitlistAvailable={appWaitlistAvailable}
         // What the pitch under the hero may claim — B1711. Same gate as
         // everything else on this page: the server decides, so a card for a
         // capability this instance does not have is absent from the document

@@ -25,6 +25,7 @@ export default function DayStrip({
   start,
   end,
   writtenDates,
+  pendingDates,
 }: {
   /** Selected date, ISO `yyyy-mm-dd`, or `""` for none yet. */
   value: string;
@@ -36,9 +37,13 @@ export default function DayStrip({
   end: string;
   /** ISO dates that already have a day written, for the entry mark. */
   writtenDates: string[] | Set<string>;
+  /** ISO dates with a day still waiting in the offline outbox — B2330. Drawn
+   *  distinctly from `writtenDates`: nothing here is on the server yet. */
+  pendingDates?: string[] | Set<string>;
 }) {
   const { t, locale, formatLongDate } = useI18n();
   const written = writtenDates instanceof Set ? writtenDates : new Set(writtenDates);
+  const pending = pendingDates instanceof Set ? pendingDates : new Set(pendingDates ?? []);
   const weekdays = weekdayNames(locale);
 
   const [anchor, setAnchor] = useState(() => value || end);
@@ -87,11 +92,14 @@ export default function DayStrip({
           const selected = date === value;
           const isToday = date === end && !isOutOfRange(date, start, end);
           const hasEntry = written.has(date);
+          const isPending = pending.has(date);
           const disabled = isOutOfRange(date, start, end);
 
           const label = hasEntry
             ? t("studio.day.strip.dayWithEntry", { date: formatLongDate(date) })
-            : formatLongDate(date);
+            : isPending
+              ? t("studio.day.strip.dayWaiting", { date: formatLongDate(date) })
+              : formatLongDate(date);
 
           return (
             <button
@@ -120,6 +128,11 @@ export default function DayStrip({
                 <span className="mt-0.5 flex items-center gap-1 text-[10px] leading-none" aria-hidden="true">
                   <span className={selected ? "text-yellow-950" : "text-green-700"}>✓</span>
                   <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                </span>
+              )}
+              {!hasEntry && isPending && (
+                <span className="mt-0.5 flex items-center gap-1 text-[10px] leading-none" aria-hidden="true">
+                  <span className="h-1.5 w-1.5 rounded-full border border-dashed border-amber-600" />
                 </span>
               )}
             </button>

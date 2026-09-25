@@ -13,6 +13,8 @@
 // POST here mints its own id (`crypto.randomUUID()`, which satisfies
 // `ID_RE`) — a person clicking a button has no client-chosen id to offer.
 import { invitesListResponse, invitePutResponse } from "@/lib/contacts/invitesResponse";
+import { joinCodeFor, joinUrl } from "@/lib/contacts/welcome";
+import { readDryRun } from "@/lib/api/v2/route";
 import { contactsReady } from "@/lib/api/v2/social";
 import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
@@ -46,6 +48,11 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
   return invitesListResponse(user, request);
 }
 
+/**
+ * B2291/B2293 — the answer also carries `joinUrl`, the short `/j/<code>` the
+ * Readers page shows (the long `url` keeps working, by redirect). Null where
+ * the code cannot be shown again (no contacts key).
+ */
 export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/invites">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
@@ -56,5 +63,12 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   const { user } = await params;
   const denied = await guard(user);
   if (denied) return denied;
-  return invitePutResponse(user, crypto.randomUUID(), request);
+  const id = crypto.randomUUID();
+  const response = await invitePutResponse(user, id, request);
+  if (response.status !== 201 || readDryRun(request)) return response;
+  const code = await joinCodeFor(user, id);
+  return Response.json(
+    { ...(await response.json()), joinUrl: code ? joinUrl(code) : null },
+    { status: 201, headers: { "Cache-Control": "private, no-store" } },
+  );
 }

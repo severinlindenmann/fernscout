@@ -158,7 +158,7 @@ export default function TripSwitcher({
              no way to scroll it back. The width cap is for the narrowest
              phones, where 15rem plus the header's padding still would not
              fit. */
-          className={`absolute left-0 right-auto z-40 mt-2 overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-lg ${
+          className={`fs-pop absolute left-0 right-auto z-40 mt-2 origin-top-left sm:origin-top-right overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-lg ${
             wide ? "w-full" : "w-60 max-w-[calc(100vw-2rem)] sm:left-auto sm:right-0"
           }`}
         >

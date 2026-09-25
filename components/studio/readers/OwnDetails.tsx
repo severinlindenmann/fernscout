@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BusyButton from "@/components/BusyButton";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
-import type { TranslationKey } from "@/lib/i18n";
+import { translate, type TranslationKey } from "@/lib/i18n";
 
 /**
  * The button that gives the owner a contact row of their own — B619.
@@ -23,19 +23,7 @@ import type { TranslationKey } from "@/lib/i18n";
  * It lives on this page rather than `/{user}/me` since B621: their own row is
  * one more entry in the address book, next to everybody else's.
  */
-function AddOwnDetails({
-  username,
-  t,
-  onAdded,
-}: {
-  username: string;
-  t: (key: TranslationKey) => string;
-  /** The panel's own `refresh()`. `router.refresh()` alone re-renders the
-   * server component, and the contact and invite lists below are `useState`
-   * seeded once from its props — so without this the new row appears in the
-   * card and nowhere else until a reload. */
-  onAdded: () => Promise<void>;
-}) {
+function AddOwnDetails({ username, t }: { username: string; t: (key: TranslationKey) => string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -54,9 +42,7 @@ function AddOwnDetails({
       return;
     }
     // The row now exists, so the server renders the edit form in this
-    // section's place — and the lists below re-read themselves, because
-    // their copy of the contacts is client state.
-    await onAdded();
+    // section's place.
     router.refresh();
   }
 
@@ -78,7 +64,8 @@ function AddOwnDetails({
 }
 
 /** The owner's own row — B621, moved off `/{user}/me`: what a postcard to
- * themselves is addressed to. Below the readers since B2133; it is not one. */
+ * themselves is addressed to. On the studio's Settings page since B2291: it
+ * is not a reader, and Readers is only about who is let in. */
 export default function OwnDetails({
   username,
   locales,
@@ -86,8 +73,6 @@ export default function OwnDetails({
   defaultCountryCode,
   addressLookupEnabled,
   own,
-  t,
-  onAdded,
 }: {
   username: string;
   locales: string[];
@@ -95,11 +80,10 @@ export default function OwnDetails({
   defaultCountryCode?: string;
   addressLookupEnabled: boolean;
   own?: { token: string; contact: ManageContact };
-  t: (key: TranslationKey) => string;
-  onAdded: () => Promise<void>;
 }) {
+  const t = (key: TranslationKey) => translate(dictionary, key);
   return (
-    <section className="mt-10">
+    <section id="own-details" className="mt-10 scroll-mt-24">
       <h2 className="font-display text-lg font-semibold text-ink-strong">{t("me.details")}</h2>
       <p className="mt-1 text-sm text-ink-body">{t("me.detailsBodyOwner")}</p>
       {own ? (
@@ -122,7 +106,7 @@ export default function OwnDetails({
           </div>
         </details>
       ) : (
-        <AddOwnDetails username={username} t={t} onAdded={onAdded} />
+        <AddOwnDetails username={username} t={t} />
       )}
     </section>
   );

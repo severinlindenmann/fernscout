@@ -41,7 +41,12 @@ final class Recorder: NSObject {
     static let shared = Recorder()
 
     private let manager = CLLocationManager()
-    private var lastRegion: CLCircularRegion?
+    /// The last fix seen, whatever service delivered it — where a pause
+    /// drops the resume fence.
+    private var lastLocation: CLLocation?
+    /// Whether standard (GPS) updates are running right now. Off while the
+    /// phone sits still; the low-power services below wake it back up.
+    private var moving = false
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
 
     // MARK: - UserDefaults-backed state
@@ -85,6 +90,15 @@ final class Recorder: NSObject {
         get { defaults?.string(forKey: Self.lastErrorKey) }
         set { defaults?.set(newValue, forKey: Self.lastErrorKey) }
     }
+    /// Whether iOS's one-time "Change to Always Allow" prompt has already
+    /// been spent. iOS shows it at most once per install; after that the
+    /// only way to "Always" is the Settings app, so the studio page offers
+    /// Settings instead of a button that would silently do nothing.
+    private static let alwaysAskedKey = "recorder-always-asked"
+    private var alwaysAsked: Bool {
+        get { defaults?.bool(forKey: Self.alwaysAskedKey) ?? false }
+        set { defaults?.set(newValue, forKey: Self.alwaysAskedKey) }
+    }
     private var unauthorizedNoticePosted: Bool {
         get { defaults?.bool(forKey: Self.unauthorizedNoticePostedKey) ?? false }
         set { defaults?.set(newValue, forKey: Self.unauthorizedNoticePostedKey) }
@@ -104,14 +118,148 @@ final class Recorder: NSObject {
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         manager.distanceFilter = 100
+        // Travel mixes walking, trains and cars — `.other` keeps iOS's
+        // automatic pause from tuning itself to any one of them.
+        manager.activityType = .other
         manager.allowsBackgroundLocationUpdates = manager.authorizationStatus == .authorizedAlways
-        manager.showsBackgroundLocationIndicator = true
+        // No blue status-bar pill while recording in the background: the
+        // recorder runs quietly for the whole trip, the way a location
+        // timeline does, rather than looking like an app held open. This
+        // only affects "Always" — with "While using", iOS shows the pill
+        // regardless, and `status()` already reports that as
+        // `when_in_use_only` so the studio can send the owner to Settings.
+        manager.showsBackgroundLocationIndicator = false
         manager.pausesLocationUpdatesAutomatically = manager.authorizationStatus == .authorizedAlways
         applyStopRule()
-        if !armed.isEmpty {
-            manager.startUpdatingLocation()
-            manager.startMonitoringSignificantLocationChanges()
+        if !armed.isEmpty { beginTracking() }
+    }
+
+    // MARK: - Timeline-style tracking
+
+    /// How a location timeline stays on all day without the phone showing
+    /// an app held open or draining its battery: three low-power services
+    /// that keep running — and relaunch the app — even after it is swiped
+    /// away (significant location changes, visits, and a small fence around
+    /// where the phone last settled), with GPS itself running only between
+    /// "left a place" and "stopped somewhere". All three need "Always".
+    private func beginTracking() {
+        manager.startMonitoringSignificantLocationChanges()
+        manager.startMonitoringVisits()
+        startMoving()
+    }
+
+    private func endTracking() {
+        moving = false
+        manager.stopUpdatingLocation()
+        manager.stopMonitoringSignificantLocationChanges()
+        manager.stopMonitoringVisits()
+        clearResumeFence()
+    }
+
+    /// Left a place — trace the road with GPS until the phone settles again.
+    private func startMoving() {
+        clearResumeFence()
+        moving = true
+        manager.startUpdatingLocation()
+    }
+
+    /// Stopped somewhere — GPS off, and a 150 m fence around the spot so
+    /// leaving it restarts GPS within a minute or so instead of waiting for
+    /// the next significant change (~500 m) or visit departure (minutes).
+    private func settle(at coordinate: CLLocationCoordinate2D) {
+        moving = false
+        manager.stopUpdatingLocation()
+        clearResumeFence()
+        let fence = CLCircularRegion(center: coordinate, radius: 150, identifier: Self.resumeFenceId)
+        fence.notifyOnExit = true
+        fence.notifyOnEntry = false
+        manager.startMonitoring(for: fence)
+    }
+
+    private static let resumeFenceId = "recorder-resume"
+
+    private func clearResumeFence() {
+        for region in manager.monitoredRegions where region.identifier == Self.resumeFenceId {
+            manager.stopMonitoring(for: region)
         }
+    }
+
+    /// One fix into the buffer, if any armed trip's window covers it.
+    private func record(at time: Date, _ coordinate: CLLocationCoordinate2D) {
+        guard withinAnyArmedWindow(time) else { return }
+        appendFix(Fix(t: Int(time.timeIntervalSince1970), lat: coordinate.latitude, lon: coordinate.longitude))
+        maybeUpload()
+    }
+
+    // MARK: - Location permission
+
+    struct PermissionReply {
+        /// "always" | "whenInUse" | "denied" | "restricted" | "notDetermined"
+        let status: String
+        /// `false` when the owner turned Precise Location off — fixes then
+        /// come back kilometres wide, too coarse to draw a road with.
+        let precise: Bool
+        /// Whether `requestAlwaysPermission` can still show a system prompt;
+        /// otherwise only the Settings app can change it.
+        let canAskAlways: Bool
+    }
+
+    func locationPermission() -> PermissionReply {
+        let status: String
+        switch manager.authorizationStatus {
+        case .authorizedAlways: status = "always"
+        case .authorizedWhenInUse: status = "whenInUse"
+        case .denied: status = "denied"
+        case .restricted: status = "restricted"
+        default: status = "notDetermined"
+        }
+        let canAsk = status == "notDetermined" || (status == "whenInUse" && !alwaysAsked)
+        return PermissionReply(status: status, precise: manager.accuracyAuthorization == .fullAccuracy, canAskAlways: canAsk)
+    }
+
+    private var permissionWaiters: [(PermissionReply) -> Void] = []
+    /// Set while the first ("While Using") prompt is up, so its answer goes
+    /// straight on to the "Always" upgrade prompt.
+    private var upgradeAfterWhenInUse = false
+
+    /// Apple's two-step route to "Always": ask "While Using" first, then —
+    /// once it is granted, while the app is still in front — ask for the
+    /// upgrade, which iOS shows immediately as "Change to Always Allow".
+    /// Calls `completion` with whatever the owner ended up choosing, never
+    /// with what was merely asked for.
+    func requestAlwaysPermission(_ completion: @escaping (PermissionReply) -> Void) {
+        DispatchQueue.main.async { [self] in
+            switch manager.authorizationStatus {
+            case .notDetermined:
+                permissionWaiters.append(completion)
+                upgradeAfterWhenInUse = true
+                manager.requestWhenInUseAuthorization()
+            case .authorizedWhenInUse where !alwaysAsked:
+                permissionWaiters.append(completion)
+                askAlways()
+            default:
+                completion(locationPermission())
+            }
+        }
+    }
+
+    /// "Keep Only While Using" changes nothing, so no authorization callback
+    /// fires for it — the prompt's dismissal (the app becoming active again)
+    /// is what ends the wait. If iOS shows no prompt at all (the app never
+    /// resigns active), the wait ends after a moment instead of hanging.
+    private func askAlways() {
+        alwaysAsked = true
+        let wait = AlwaysPromptWait { [weak self] in self?.finishPermission() }
+        manager.requestAlwaysAuthorization()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { wait.endUnlessPrompted() }
+    }
+
+    private func finishPermission() {
+        let waiters = permissionWaiters
+        permissionWaiters.removeAll()
+        guard !waiters.isEmpty else { return }
+        let reply = locationPermission()
+        waiters.forEach { $0(reply) }
     }
 
     // MARK: - Plugin-facing calls
@@ -134,14 +282,13 @@ final class Recorder: NSObject {
         s.removeValue(forKey: trip)
         stopped = s
 
-        manager.requestWhenInUseAuthorization()
-        // "Always" is asked once, in context, from B2198's own arming
-        // button — this call is a no-op if the system already asked.
-        manager.requestAlwaysAuthorization()
+        // The studio page walks the owner through "Always" before arming;
+        // this only covers a caller that skipped that step, and does
+        // nothing once iOS has no prompt left to show.
+        requestAlwaysPermission { _ in }
         manager.allowsBackgroundLocationUpdates = manager.authorizationStatus == .authorizedAlways
         manager.pausesLocationUpdatesAutomatically = manager.authorizationStatus == .authorizedAlways
-        manager.startUpdatingLocation()
-        manager.startMonitoringSignificantLocationChanges()
+        beginTracking()
         scheduleStopNotice(trip: trip, end: end, body: stopBody, base: base, user: user)
     }
 
@@ -166,8 +313,7 @@ final class Recorder: NSObject {
             finalUploadThenPurge(removedTrip) // ponytail: whole-buffer purge, correct only
             // because a second, still-armed trip would keep its own fixes
             // in the same file — see the doc comment on `purgeBuffer`.
-            manager.stopUpdatingLocation()
-            manager.stopMonitoringSignificantLocationChanges()
+            endTracking()
             // Security review (2026-09-24), finding 4 — nothing left armed,
             // nothing left to upload with.
             GpsCredentialStore.clear()
@@ -249,8 +395,7 @@ final class Recorder: NSObject {
         t.openEnded = true
         a[trip] = t
         armed = a
-        manager.startUpdatingLocation()
-        manager.startMonitoringSignificantLocationChanges()
+        beginTracking()
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [stopNoticeId(trip)])
         scheduleOpenEndedReminder(trip: trip, body: openEndedBody, base: t.base, user: t.user)
     }
@@ -389,8 +534,7 @@ final class Recorder: NSObject {
                 // Security review (2026-09-24), finding 9 — one last upload
                 // attempt before the buffer goes.
                 finalUploadThenPurge(lastStopped)
-                manager.stopUpdatingLocation()
-                manager.stopMonitoringSignificantLocationChanges()
+                endTracking()
                 // Security review (2026-09-24), finding 4 — nothing left
                 // armed, nothing left to upload with.
                 GpsCredentialStore.clear()
@@ -661,28 +805,41 @@ final class Recorder: NSObject {
 extension Recorder: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         applyStopRule()
-        guard let loc = locations.last else { return }
-        let now = loc.timestamp
-        if withinAnyArmedWindow(now) {
-            appendFix(Fix(t: Int(now.timeIntervalSince1970), lat: loc.coordinate.latitude, lon: loc.coordinate.longitude))
-            maybeUpload()
+        guard !armed.isEmpty else { return }
+        for loc in locations where loc.horizontalAccuracy >= 0 { // negative: iOS's own "invalid"
+            record(at: loc.timestamp, loc.coordinate)
+            lastLocation = loc
         }
-        lastRegion = CLCircularRegion(center: loc.coordinate, radius: 150, identifier: "recorder-resume")
+        // A fix while GPS is off came from the significant-change service:
+        // the phone has moved ~500 m since it settled, so trace from here.
+        if !moving { startMoving() }
     }
 
+    /// Arrivals and departures, the way a timeline marks "stayed here from
+    /// … to …". iOS delivers these even to an app it has to relaunch.
+    func locationManager(_ manager: CLLocationManager, didVisit visit: CLVisit) {
+        applyStopRule()
+        guard !armed.isEmpty else { return }
+        if visit.arrivalDate != .distantPast { record(at: visit.arrivalDate, visit.coordinate) }
+        if visit.departureDate == .distantFuture {
+            settle(at: visit.coordinate)
+        } else {
+            record(at: visit.departureDate, visit.coordinate)
+            if !moving { startMoving() }
+        }
+    }
+
+    /// iOS paused GPS because the phone stopped moving. Apple: pauses do
+    /// not resume by themselves, so fence the spot and restart on exit.
     func locationManagerDidPauseLocationUpdates(_ manager: CLLocationManager) {
-        // Apple: pauses do not resume by themselves. Monitor a 150 m region
-        // around the last fix and restart on exit, inside a background task.
-        guard let region = lastRegion else { return }
-        region.notifyOnExit = true
-        region.notifyOnEntry = false
-        manager.startMonitoring(for: region)
+        guard let loc = lastLocation else { return }
+        settle(at: loc.coordinate)
     }
 
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
+        guard region.identifier == Self.resumeFenceId, !armed.isEmpty else { return }
         let task = UIApplication.shared.beginBackgroundTask()
-        manager.stopMonitoring(for: region)
-        manager.startUpdatingLocation()
+        startMoving()
         if task != .invalid { UIApplication.shared.endBackgroundTask(task) }
     }
 
@@ -691,9 +848,58 @@ extension Recorder: CLLocationManagerDelegate {
         // whatever has already been read; nothing to purge or report here.
     }
 
-    func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        let status = manager.authorizationStatus
         manager.allowsBackgroundLocationUpdates = status == .authorizedAlways
         manager.pausesLocationUpdatesAutomatically = status == .authorizedAlways
+        switch status {
+        case .notDetermined:
+            break
+        case .authorizedWhenInUse where upgradeAfterWhenInUse:
+            upgradeAfterWhenInUse = false
+            askAlways()
+        default:
+            upgradeAfterWhenInUse = false
+            finishPermission()
+        }
+        // "Always" granted later, from Settings — the low-power services
+        // could not run without it, so start them now.
+        if status == .authorizedAlways, !armed.isEmpty { beginTracking() }
+    }
+}
+
+/// One "Change to Always Allow" prompt's wait, a class so the notification
+/// blocks can share its state. Ends once: when the app becomes active again
+/// after the prompt, or — if no prompt ever took the app out of the
+/// foreground — when `endUnlessPrompted()` is called.
+private final class AlwaysPromptWait {
+    private var prompted = false
+    private var observers: [NSObjectProtocol] = []
+    private var onEnd: (() -> Void)?
+
+    init(onEnd: @escaping () -> Void) {
+        self.onEnd = onEnd
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.prompted = true
+        })
+        // Strong `self`: these observers are what keep the wait alive until
+        // it ends, and `end()` removes them, breaking the cycle.
+        observers.append(center.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { _ in
+            self.end()
+        })
+    }
+
+    func endUnlessPrompted() {
+        if !prompted { end() }
+    }
+
+    private func end() {
+        observers.forEach { NotificationCenter.default.removeObserver($0) }
+        observers.removeAll()
+        let run = onEnd
+        onEnd = nil
+        run?()
     }
 }
 

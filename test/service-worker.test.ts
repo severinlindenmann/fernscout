@@ -894,6 +894,13 @@ describe("a trip kept for reading with no signal", () => {
 describe("the studio kept for the signed-in owner — B2329", () => {
   const STUDIO = "https://journal.test/alex/studio";
   const ADD_DAY = "https://journal.test/alex/studio/day/new";
+  // B2330 (wave 2) — the pages Add/Edit day and the planner navigate
+  // between while writing offline, added to the same explicit allowlist.
+  const EDIT_DAY = "https://journal.test/alex/studio/day/edit";
+  const PLAN_TRIP = "https://journal.test/alex/studio/plan/japan-2026";
+  const NEW_TRIP = "https://journal.test/alex/studio/trip/new";
+  // Never on the allowlist, widened or not — an order/delete/payment page.
+  const ORDERS = "https://journal.test/alex/studio/orders";
 
   function studioPage(body: string) {
     return new Response(body, {
@@ -926,6 +933,10 @@ describe("the studio kept for the signed-in owner — B2329", () => {
     if (url === HOME) return homePayload("aaaa1111");
     if (url === STUDIO) return studioPage("<html>studio hub</html>");
     if (url === ADD_DAY) return studioPage("<html>add a day</html>");
+    if (url === EDIT_DAY) return studioPage("<html>edit day</html>");
+    if (url === PLAN_TRIP) return studioPage("<html>plan</html>");
+    if (url === NEW_TRIP) return studioPage("<html>new trip</html>");
+    if (url === ORDERS) return studioPage("<html>orders</html>");
     return new Response("");
   };
 
@@ -970,6 +981,31 @@ describe("the studio kept for the signed-in owner — B2329", () => {
     expect(await hub?.text()).toBe("<html>studio hub</html>");
     const addDay = await visit(offline.handlers, ADD_DAY);
     expect(await addDay?.text()).toBe("<html>add a day</html>");
+  });
+
+  // B2330 (wave 2) — Edit a day and the planner join the same allowlist, so
+  // a soft or hard navigation between the pages these flows use still opens
+  // offline. An order/delete/payment page never joins it, widened or not.
+  test("Edit day, a trip's plan and new-trip also join the allowlist; an orders page never does", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(network());
+    await run(handlers, HOME);
+    await visit(handlers, EDIT_DAY);
+    await visit(handlers, PLAN_TRIP);
+    await visit(handlers, NEW_TRIP);
+    await visit(handlers, ORDERS);
+
+    const personal = caches.named.get("personal-aaaa1111");
+    const kept = [...personal!.keys()];
+    expect(kept).toEqual(expect.arrayContaining([EDIT_DAY, PLAN_TRIP, NEW_TRIP]));
+    expect(kept).not.toContain(ORDERS);
+
+    const offline = loadWorkerWithCaches(async () => {
+      throw new Error("offline");
+    });
+    offline.caches.named.set("personal-aaaa1111", personal!);
+    offline.caches.named.set("personal-pointer", caches.named.get("personal-pointer")!);
+    const plan = await visit(offline.handlers, PLAN_TRIP);
+    expect(await plan?.text()).toBe("<html>plan</html>");
   });
 
   /** Same boundary as the home payload's own personal cache — B412. */

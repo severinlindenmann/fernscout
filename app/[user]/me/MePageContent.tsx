@@ -11,6 +11,7 @@ import OfflineTrips from "@/components/OfflineTrips";
 import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import ThisPhone from "@/components/studio/ThisPhone";
+import ConnectionInfo, { type BuildInfo, type Hosting } from "@/components/ConnectionInfo";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
@@ -170,6 +171,8 @@ export default function MePageContent({
   signinNotice,
   hasAbout = false,
   signupEnabled,
+  build,
+  hosting,
 }: {
   viewer: Viewer;
   username: string;
@@ -233,6 +236,10 @@ export default function MePageContent({
    * the plain guide link regardless.
    */
   signupEnabled: boolean;
+  /** This build's version and commit — see `ConnectionInfo`. */
+  build: BuildInfo;
+  /** `site.hosting` from the server config — see `ConnectionInfo`. */
+  hosting?: Hosting;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -630,6 +637,7 @@ export default function MePageContent({
         {/* Owner, on a phone only — B2208. */}
         {viewer.owner && <ThisPhone username={username} />}
         {viewer.email && <SignOut owner={viewer.owner ? username : undefined} />}
+        <ConnectionInfo build={build} hosting={hosting} />
       </main>
     </div>
   );

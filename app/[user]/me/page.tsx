@@ -10,6 +10,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { operatorMayRead } from "@/lib/helper/sessions";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { ownerShortName, serverSite } from "@/lib/site";
+import pkg from "@/package.json";
 import { resolveViewer } from "@/lib/viewer";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/contactNumber";
@@ -172,6 +173,11 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
       // app/agent/page.tsx: whether a stranger with no journal here can get
       // one through the wizard at all.
       signupEnabled={isEnabled("signup")}
+      // What this page was built from, and the server the operator describes
+      // in `site.hosting`. Which server the reader actually reached is read
+      // off `location` in the component: only the browser knows that.
+      build={{ version: pkg.version, commit: process.env.GIT_SHA?.slice(0, 7) }}
+      hosting={serverSite().hosting}
     />
   );
 }

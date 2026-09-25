@@ -69,6 +69,11 @@ export const FEATURE_NAMES = [
   // reasoning — a shadow-only hillshade under a photobook's route map,
   // fetched from keyless tiles and off by default.
   "mapRelief",
+  // B2341. The landing page's "Get the iPhone app" door — instance-wide,
+  // like `signup`'s own gating, not a journal's to opt into. Off by default:
+  // a fresh clone shows no app button at all until an operator turns this
+  // on. See lib/capabilities.ts for the storeUrl/waitlist split.
+  "iosApp",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -162,6 +167,9 @@ export const OPERATOR_ONLY_FEATURES = [
   "addressLookup",
   "weather",
   "analytics",
+  // B2341. The landing page's own decision, not a journal's — nobody signs
+  // into a journal to see this door.
+  "iosApp",
 ] as const satisfies readonly FeatureName[];
 
 /**
@@ -388,6 +396,22 @@ export type ServerConfig = {
     banner?: {
       enabled: boolean;
       text: string;
+      translations?: Record<string, string>;
+    };
+    /**
+     * Where the server at `host` stands, in the operator's own words — shown
+     * on `/<user>/me` as "Connected to the secure … web server <host> <where>".
+     *
+     * `where` is a whole phrase ("in Europe") rather than a place name,
+     * because a language inflects it: Hungarian says "Európában", not "in
+     * Európa". It is only ever said about `host` itself — a browser that
+     * reached a different host (every fork that kept this block) is told it
+     * is on a self-hosted server instead, and is told nothing about where.
+     * Absent means the page never names a place.
+     */
+    hosting?: {
+      host: string;
+      where: string;
       translations?: Record<string, string>;
     };
     /**
@@ -641,6 +665,13 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // `weather`: the provider (AWS's keyless Terrarium tiles) needs no key and
   // no signup.
   mapRelief: { enabled: false },
+  // B2341. Off by default like every optional capability, and off means the
+  // landing page shows no app button at all — a self-hoster's fresh clone
+  // has never had an iPhone app to point at. `storeUrl` has no default on
+  // purpose: an operator sets it only once the app is actually on the App
+  // Store, and until then the door is a waitlist instead. See
+  // lib/capabilities.ts for how the two states are told apart.
+  iosApp: { enabled: false },
 };
 
 /**
@@ -1027,6 +1058,7 @@ export function parseServerConfig(raw: unknown): ServerConfig {
       repository: optionalUrl(site, "repository", "site.repository", problems),
       credit: parseCredit(site.credit, problems),
       banner: parseBanner(site.banner, problems),
+      hosting: parseHosting(site.hosting, problems),
       showcase: parseShowcase(site.showcase, problems),
       operatorEmail:
         typeof site.operatorEmail === "string" &&
@@ -1220,6 +1252,39 @@ function parseBanner(
   return {
     enabled: true,
     text: raw.text.trim(),
+    ...(Object.keys(translations).length > 0 ? { translations } : {}),
+  };
+}
+
+function parseHosting(
+  raw: unknown,
+  problems: string[],
+): ServerConfig["site"]["hosting"] {
+  if (raw === undefined) return undefined;
+  if (
+    !isRecord(raw) ||
+    typeof raw.host !== "string" ||
+    raw.host.trim() === "" ||
+    typeof raw.where !== "string" ||
+    raw.where.trim() === "" ||
+    (raw.translations !== undefined &&
+      (!isRecord(raw.translations) ||
+        Object.values(raw.translations).some((v) => typeof v !== "string")))
+  ) {
+    problems.push(
+      "site.hosting must be { host: string, where: string, translations?: " +
+        "{ [locale]: string } }, or absent",
+    );
+    return undefined;
+  }
+  const translations: Record<string, string> = {};
+  for (const [locale, text] of Object.entries(raw.translations ?? {})) {
+    const trimmed = (text as string).trim();
+    if (trimmed !== "") translations[locale] = trimmed;
+  }
+  return {
+    host: raw.host.trim().toLowerCase(),
+    where: raw.where.trim(),
     ...(Object.keys(translations).length > 0 ? { translations } : {}),
   };
 }

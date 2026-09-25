@@ -21,6 +21,7 @@ import {
   type HomeJournal,
 } from "@/components/HomeJournals";
 import IdentitySignIn from "@/components/IdentitySignIn";
+import ServerChoice from "@/components/ServerChoice";
 import { useI18n } from "@/components/LocaleProvider";
 
 export type { PublicJournal };
@@ -87,6 +88,8 @@ export default function Landing({
   codeMinutes,
   helperEnabled = false,
   whatsappNumber,
+  appStoreUrl,
+  appWaitlistAvailable = false,
   postcardsEnabled = false,
   photobookEnabled = false,
   pricing,
@@ -123,6 +126,10 @@ export default function Landing({
    * none configured, and `LandingHero` renders nothing for it.
    */
   whatsappNumber?: string;
+  /** B2341. Both resolved server-side in `app/page.tsx` and handed straight
+   *  to `LandingHero`'s own `AppWaitlistDoor`. */
+  appStoreUrl?: string;
+  appWaitlistAvailable?: boolean;
   /**
    * Whether this instance can actually print and post a card, and lay a trip
    * out as a book — B1711. They are two of the three things the pitch below
@@ -299,6 +306,8 @@ export default function Landing({
             }
           />
           {colophon}
+          {/* Inside the iPhone app only: which server it is talking to. */}
+          <ServerChoice signedIn />
         </main>
       </div>
     );
@@ -345,6 +354,8 @@ export default function Landing({
             <LandingHero
               helperEnabled={helperEnabled}
               whatsappNumber={whatsappNumber}
+              appStoreUrl={appStoreUrl}
+              appWaitlistAvailable={appWaitlistAvailable}
             />
             {/* Directly under the hero — B1711. The hero says a day goes in;
                 this says what comes out of it, which is the half of the
@@ -376,6 +387,9 @@ export default function Landing({
         {publicList}
         <DocsLink />
         {colophon}
+        {/* Inside the iPhone app only, and only once we know nobody is
+            signed in: point the app at the reader's own server. */}
+        {phase === "out" && <ServerChoice signedIn={false} />}
       </main>
     </div>
   );

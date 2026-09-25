@@ -5,6 +5,7 @@ import { rateLimitFor } from "@/lib/rateLimit";
 import {
   addSelfContact,
   approveContact,
+  contactKey,
   deleteContact,
   getContact,
   listContacts,
@@ -177,7 +178,8 @@ export async function GET(request: Request) {
         contact,
         devices,
         relationshipsFor(
-          contact.email,
+          // The stored key, so a mobile-only buddy is matched too (B2291).
+          contactKey(contact),
           ownEmail,
           tripMemberships,
           contact.status === "active" && liveGrants.has(contact.id),
