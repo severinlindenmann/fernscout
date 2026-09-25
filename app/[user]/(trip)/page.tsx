@@ -3,6 +3,7 @@ import { recordTripView } from "@/lib/analytics/record";
 import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
+import { requestLocale } from "@/lib/locales";
 import { buildStoryProps } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
@@ -36,6 +37,9 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   const { trip, index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
     showCosts: await mayViewCosts(current),
     ...read,
+    // The window's prose is rendered here, in this reader's language — see
+    // lib/prose.ts.
+    locale: await requestLocale(),
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();

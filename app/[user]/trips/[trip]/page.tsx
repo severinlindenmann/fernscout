@@ -137,6 +137,9 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
     showCosts: await mayViewCosts(trip),
     ...read,
+    // The window's prose is rendered here, in this reader's language — see
+    // lib/prose.ts.
+    locale: await requestLocale(),
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();

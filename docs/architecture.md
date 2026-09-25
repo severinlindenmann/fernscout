@@ -104,7 +104,9 @@ phone (B283).
 
 Only a window of days around the current one is passed into the client tree;
 the rest arrive from `story.json` on demand. That is deliberate — serialising a
-five-month trip into one tree was measured at ~2 MB of HTML.
+five-month trip into one tree was measured at ~2 MB of HTML. Each day arrives
+with its prose already rendered on the server, in the reader's language
+(`lib/prose.ts`), so the browser never downloads a markdown parser.
 
 ## Languages
 

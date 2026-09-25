@@ -104,6 +104,9 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
     openAt: entry.date,
     showCosts: await mayViewCosts(current),
     ...read,
+    // The window's prose is rendered here, in this reader's language — see
+    // lib/prose.ts.
+    locale: await requestLocale(),
   });
 
   const userConfig = getUser(user);
