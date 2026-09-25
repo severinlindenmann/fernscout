@@ -4,7 +4,7 @@ import { isIndexable } from "./access";
 import { analyticsAvailable, analyticsCardsFor } from "./analytics";
 import { isEnabled } from "./capabilities";
 import { isOwner } from "./contacts/session";
-import { DOCS_PAGES, isGuide, readGuide } from "./docs";
+import { DOCS_PAGES } from "./docs";
 import { getAllEntries, type ReadOptions } from "./entries";
 import type { TranslationKey } from "./i18n";
 import { hasLegal } from "./legal";
@@ -173,19 +173,14 @@ function tripDoc(username: string, trip: Trip, tripBase: string): SearchDoc {
  * The documentation pages — B890.
  *
  * Public, and identical in both builders: `/docs` is the same pages for
- * a stranger and for the owner, so there is nothing here to gate. The three
- * guides carry their whole markdown as `body` (in every language this journal
- * offers, since a reader searching in German should find the German guide's
- * words), which is what makes "wie melde ich mich an" land on the guest
- * guide rather than nowhere. The technical pages carry their label
- * only: their prose is `README.md` and `CONTRIBUTING.md`, English, and about
- * running the software rather than about this journal — indexing all of it
- * into every journal's payload would cost every reader for a question almost
- * none of them are asking. (The roadmap page and its `docs/tasks/` read were
- * retired by B2248: task bodies carried the owner's contact details.)
- *
- * `body` is indexed and never stored (see lib/searchOptions.ts), so the cost
- * of a guide is its vocabulary, not its prose.
+ * a stranger and for the owner, so there is nothing here to gate. Each page
+ * carries its label and its one-line blurb, in every language this journal
+ * offers, and no body: their prose is `README.md`, `CONTRIBUTING.md` and
+ * `docs/`, English, and about running the software rather than about this
+ * journal — indexing all of it into every journal's payload would cost every
+ * reader for a question almost none of them are asking. (The reader guides
+ * that used to carry their markdown here are retired — `lib/docs.ts`; the
+ * roadmap page and its `docs/tasks/` read were retired by B2248.)
  */
 function docsDocs(username: string): SearchDoc[] {
   const locales = localesFor(username);
@@ -193,7 +188,11 @@ function docsDocs(username: string): SearchDoc[] {
     // The hub itself, and the imprint — B903. The imprint only where this
     // instance has one: `hasLegal` is what keeps the footer link honest, and
     // a search result is a link like any other.
-    { id: "hub", href: "/docs", labelKey: "docs.title", termsKey: "search.docsTechTerms" },
+    //
+    // The hub carries the "help" vocabulary since the reader guides were
+    // retired: it is where somebody asking for help now lands, and B974's
+    // point still holds — "Hilfe" should not rank Hosting first.
+    { id: "hub", href: "/docs", labelKey: "docs.title", termsKey: "search.docsTerms" },
     ...(hasLegal()
       ? [
           {
@@ -207,18 +206,10 @@ function docsDocs(username: string): SearchDoc[] {
   ];
   const pages = DOCS_PAGES.map((page) => {
     const words = new Set<string>();
-    const bodies: string[] = [];
     for (const code of locales) {
       words.add(translateIn(code, page.labelKey));
-      // The guides are what somebody asking for *help* wants; the technical
-      // four are for somebody deciding whether to self-host, and they used to
-      // share one vocabulary — which put Hosting, Contributing and API above
-      // all three guides for the word "Hilfe" (B974).
-      words.add(translateIn(code, isGuide(page.id) ? "search.docsTerms" : "search.docsTechTerms"));
-      if (isGuide(page.id)) {
-        words.add(translateIn(code, `guides.${page.id}.lede`));
-        bodies.push(stripMarkdown(readGuide(page.id, code).markdown));
-      }
+      words.add(translateIn(code, page.blurbKey));
+      words.add(translateIn(code, "search.docsTechTerms"));
     }
     return {
       id: `doc:${page.id}`,
@@ -229,7 +220,7 @@ function docsDocs(username: string): SearchDoc[] {
       tripTitle: "",
       date: "",
       url: page.href,
-      body: bodies.join("\n"),
+      body: "",
       tags: [],
       terms: [...words].join(" "),
     };

@@ -43,86 +43,31 @@ export function section(markdown: string, heading: string): string {
 }
 
 /**
- * The three reader guides — B445.
- *
- * Prose for people rather than for agents: what a guest can do, what an owner
- * decides, what somebody on a trip may write. Markdown files under
- * `docs/guides/<locale>/`, read at request time like everything else on this
- * page, so correcting a sentence is an edit rather than a release.
- *
- * **Translated, unlike the rest of `/docs`.** The other pages here are for
- * somebody deciding whether to self-host or send a patch, and English is a
- * fair assumption for them. The guest guide's reader is a family member who
- * was sent a link and is not sure what they are looking at — writing that one
- * in a language they do not read would be writing it for nobody.
- *
- * **`creator` and `buddy` survived B1826**, which set out to delete both for
- * the same reason it deleted `/docs/extract`: guided flows were meant to
- * carry their guidance in place. They could not — `app/[user]/me/MePageContent.tsx`'s
- * "read more" link (B445) sends an owner to `creator` and anybody with a
- * writable trip to `buddy`, unconditionally, and nothing in this batch of
- * tickets builds an in-page replacement for "who am I and what can I do
- * here" the way the studio's flows replaced the import guide. Deleting them
- * would have been exactly the defect spec.md §4 exists to prevent: a step
- * (this one, on `/<user>/me`) needing information from elsewhere in the app
- * that no longer exists. Reported rather than worked around; only `extract`
- * was actually retired.
- */
-export const GUIDES = ["guest", "creator", "buddy"] as const;
-export type Guide = (typeof GUIDES)[number];
-
-export function isGuide(value: string): value is Guide {
-  return (GUIDES as readonly string[]).includes(value);
-}
-
-/**
- * One guide, in the best language available.
- *
- * Falls back to English rather than failing: a missing translation should cost
- * a reader the language, never the page. The caller is told which language it
- * actually got, so it can say so rather than quietly presenting English as
- * though it were the translation.
- */
-export function readGuide(guide: Guide, locale: string): { markdown: string; locale: string } {
-  /**
-   * The locale is a path segment, so it is checked rather than trusted.
-   *
-   * Today it can only be two letters — `proxy.ts` matches `LANGUAGE_TAG` and
-   * slices to two before the cookie is ever written — so this guards nothing
-   * that is currently reachable. It is here because the guarantee lives three
-   * files away from the `path.join` that depends on it, and a future caller
-   * passing a header straight through would turn this into a file read of its
-   * choosing. `guide` needs no such guard: it comes from `isGuide`, which is a
-   * whitelist of three literals.
-   */
-  const asked = /^[a-z]{2}$/.test(locale) ? locale : "en";
-  for (const code of [asked, "en"]) {
-    try {
-      return { markdown: readRepoFile(`docs/guides/${code}/${guide}.md`), locale: code };
-    } catch {
-      // Next candidate. A guide with no English copy either is a broken
-      // build, and the throw below is the right way to find out.
-    }
-  }
-  throw new Error(`no copy of the "${guide}" guide, in any language`);
-}
-
-/**
  * Every documentation page, once — B470.
  *
- * The hub renders these as cards and the inner pages render them as a nav, and
- * both read this list. Before it existed the guides were an array in one
- * component and the technical sections were anchors hand-written in another,
- * which is exactly how they came to be drawn as the same kind of control while
+ * The hub renders these and the inner pages render them as a nav, and both
+ * read this list. Before it existed the guides were an array in one component
+ * and the technical sections were anchors hand-written in another, which is
+ * exactly how they came to be drawn as the same kind of control while
  * behaving differently — one navigated, one scrolled.
  *
- * The `group` is the axis the old page flattened: **who you are** (a reader, an
- * owner, somebody who was on the trip) against **what you want to build**
- * (host it, change it, call it). Keeping the two apart is what lets the hub
- * say, in the reader's own language, that only one of the halves is
- * translated.
+ * **No reader guides any more.** There used to be three — for readers, owners
+ * and travel buddies — as translated markdown files. Every one of
+ * them had been overtaken by the screens it described: the owner's said there
+ * was no editing screen and never would be, a week after the studio shipped;
+ * the buddy's was a longer copy of what `/<user>/me` already says beside the
+ * instructions it explains; and the reader's walked through a sign-in card
+ * and an iPhone install sheet that now explain themselves
+ * (`PushInstallOnboarding`). The screens carry their own guidance, so the
+ * guides were retired rather than rewritten, and `/docs/guide/*` redirects to
+ * the hub (`next.config.ts`).
+ *
+ * What is left is for somebody deciding whether to self-host, call the API,
+ * send a patch or run their own agent — English, because those pages are read
+ * from `README.md`, `CONTRIBUTING.md` and `docs/` at request time (B23). The
+ * hub's own words are translated and say so.
  */
-export type DocsPageId = Guide | "hosting" | "contributing" | "api" | "helper";
+export type DocsPageId = "hosting" | "api" | "contributing" | "helper";
 
 export type DocsPage = {
   id: DocsPageId;
@@ -132,40 +77,30 @@ export type DocsPage = {
    * `string` so a renamed key fails the typecheck here instead of rendering
    * the key itself onto the page. */
   labelKey: TranslationKey;
-  group: "guides" | "technical";
+  /** One sentence under the label on the hub: what is behind the link. */
+  blurbKey: TranslationKey;
 };
 
 export const DOCS_PAGES: readonly DocsPage[] = [
-  { id: "guest", href: "/docs/guide/guest", labelKey: "guides.guest.title", group: "guides" },
-  { id: "creator", href: "/docs/guide/creator", labelKey: "guides.creator.title", group: "guides" },
-  { id: "buddy", href: "/docs/guide/buddy", labelKey: "guides.buddy.title", group: "guides" },
-  { id: "hosting", href: "/docs/hosting", labelKey: "docs.hosting.title", group: "technical" },
+  { id: "hosting", href: "/docs/hosting", labelKey: "docs.hosting.title", blurbKey: "docs.hosting.blurb" },
+  { id: "api", href: "/docs/api", labelKey: "docs.api.title", blurbKey: "docs.api.blurb" },
   {
     id: "contributing",
     href: "/docs/contributing",
     labelKey: "docs.contributing.title",
-    group: "technical",
+    blurbKey: "docs.contributing.blurb",
   },
-  { id: "api", href: "/docs/api", labelKey: "docs.api.title", group: "technical" },
-  { id: "helper", href: "/docs/helper", labelKey: "docs.helper.title", group: "technical" },
+  { id: "helper", href: "/docs/helper", labelKey: "docs.helper.title", blurbKey: "docs.helper.blurb" },
 ];
 
 /**
- * The same list, shaped for `DocsNav`, with the group boundary marked.
+ * The same list, shaped for `DocsNav`.
  *
  * Returns a structural shape rather than importing `DocsNavEntry`: `lib/` does
  * not import from `components/`, and the two would be the same type anyway.
  */
-export function docsNavEntries(): {
-  href: string;
-  labelKey: TranslationKey;
-  startsGroup: boolean;
-}[] {
-  return DOCS_PAGES.map((page, i) => ({
-    href: page.href,
-    labelKey: page.labelKey,
-    startsGroup: page.group === "technical" && DOCS_PAGES[i - 1]?.group !== "technical",
-  }));
+export function docsNavEntries(): { href: string; labelKey: TranslationKey }[] {
+  return DOCS_PAGES.map((page) => ({ href: page.href, labelKey: page.labelKey }));
 }
 
 /**

@@ -21,7 +21,7 @@ describe("the docs shell", () => {
     const layout = read("app/docs/layout.tsx");
     // B1728: one step up rather than one page back. B822 had made this the
     // fallback of a control that otherwise called `router.back()`; the arrow
-    // is a plain link again, and on a guide it goes to the hub rather than
+    // is a plain link again, and on an inner page it goes to the hub rather than
     // straight out to "/", which is a route `/docs` never had before.
     expect(layout).toContain("DocsUpLink");
     expect(layout).toContain('hubHref="/docs"');
@@ -35,7 +35,7 @@ describe("the docs shell", () => {
     for (const file of [
       "app/docs/page.tsx",
       "app/docs/api/page.tsx",
-      "app/docs/guide/[guide]/page.tsx",
+      "app/docs/hosting/page.tsx",
     ]) {
       expect(read(file), file).not.toContain("LocaleSwitcher");
     }

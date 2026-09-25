@@ -118,8 +118,10 @@ describe("what a German reader gets for the words they type", () => {
     expect(top("Route")[0].url).toBe(`/${USER}/map`);
   });
 
-  test("Hilfe reaches a guide, which is what is written for a person", () => {
-    expect(top("Hilfe")[0].url).toMatch(/^\/docs\/guide\//);
+  test("Hilfe reaches the docs hub, not a page about hosting", () => {
+    // It reached a reader guide until those were retired; the hub is now
+    // where somebody asking for help is sent (`lib/search.ts`).
+    expect(top("Hilfe")[0].url).toBe("/docs");
   });
 
   test("Dokumentation still reaches the documentation", () => {

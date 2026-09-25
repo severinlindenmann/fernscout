@@ -447,7 +447,7 @@ describe("journal-scoped destinations and trip rows", () => {
       await jsonFor("stranger"),
       await jsonFor("owner"),
     ]) {
-      expect(json).toContain("/docs/guide/guest");
+      expect(json).toContain("/docs/hosting");
       expect(json).toContain("/docs/api");
     }
   });

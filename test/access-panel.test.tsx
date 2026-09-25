@@ -611,8 +611,8 @@ describe("the sessions-consent block — B1385", () => {
  * B1386 — a signed-out stranger with no journal of their own used to be
  * offered one door: the plain guide link, which explains a journal they have
  * no way to reach. When signup is open, the foot of the page points at the
- * repo's own sign-in surface instead; the owner and a buddy keep the plain
- * guide link either way, and so does a stranger when signup is off.
+ * repo's own sign-in surface instead. The guide link itself is gone with the
+ * reader guides, so otherwise the foot of the page has no link at all.
  *
  * B1905 moved that destination from `/agent` to `/?start=1` — this reader
  * owns no journal, so there is no `/<user>/studio` to send them to either;
@@ -624,20 +624,26 @@ describe("the foot-of-page link for somebody with no journal — B1386", () => {
     const html = render({ viewer: stranger, canSignIn: true, signupEnabled: true });
     expect(html).toContain('href="/welcome"');
     expect(html).not.toContain('href="/agent"');
-    expect(html).not.toContain('href="/docs/guide/guest"');
   });
 
-  test("falls back to the guide link when signup is off", () => {
+  test("offers nothing when signup is off — not a door that does not open", () => {
     const html = render({ viewer: stranger, canSignIn: true, signupEnabled: false });
-    expect(html).toContain('href="/docs/guide/guest"');
+    expect(html).not.toContain('href="/welcome"');
     expect(html).not.toContain('href="/agent"');
   });
 
+  test("links no retired guide, for anybody", () => {
+    for (const viewer of [stranger, owner]) {
+      for (const signupEnabled of [true, false]) {
+        expect(render({ viewer, signupEnabled })).not.toContain('href="/docs/guide/');
+      }
+    }
+  });
+
   // B2163 — the owner is not new here; the header's docs link is enough.
-  test("the owner gets no guide link and no sign-in door, signup on or off", () => {
+  test("the owner gets no sign-in door, signup on or off", () => {
     for (const signupEnabled of [true, false]) {
       const html = render({ viewer: owner, signupEnabled });
-      expect(html).not.toContain('href="/docs/guide/');
       expect(html).not.toContain('href="/?start=1"');
       expect(html).not.toContain('href="/welcome"');
       expect(html).not.toContain('href="/agent"');

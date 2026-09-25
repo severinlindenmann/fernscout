@@ -12,33 +12,25 @@ import { dictionaryFor } from "@/lib/locales";
  * navigated and the other scrolled.
  */
 describe("the documentation pages", () => {
-  test("there are seven, in two groups", () => {
-    // B1826 removed `/docs/extract` (the guided flows it explained now carry
-    // that guidance in place, per spec.md §4) — nine down to eight, six
-    // technical pages down to five. `guest`, `creator` and `buddy` all
-    // survive: `lib/docs.ts`'s own doc comment on `GUIDES` says why B1826
-    // could not delete the last two despite setting out to. B2248 retired
-    // `/docs/roadmap` — task bodies published the owner's contact details —
-    // eight down to seven, five technical pages down to four.
-    expect(DOCS_PAGES).toHaveLength(7);
-    expect(DOCS_PAGES.filter((p) => p.group === "guides")).toHaveLength(3);
-    expect(DOCS_PAGES.filter((p) => p.group === "technical")).toHaveLength(4);
+  test("there are four, and no reader guides", () => {
+    // B1826 removed `/docs/extract`, B2248 `/docs/roadmap`, and the three
+    // reader guides went once the screens they described carried their own
+    // guidance — see `lib/docs.ts` above `DOCS_PAGES`.
+    expect(DOCS_PAGES.map((p) => p.id)).toEqual(["hosting", "api", "contributing", "helper"]);
+    expect(DOCS_PAGES.some((p) => p.href.startsWith("/docs/guide/"))).toBe(false);
   });
 
-  test("every page has a real route and a label in every language", () => {
+  test("every page has a real route, and a label and a blurb in every language", () => {
     for (const page of DOCS_PAGES) {
       expect(page.href).toMatch(/^\/docs\//);
       for (const locale of ["en", "de", "hu"]) {
         expect(dictionaryFor(locale)[page.labelKey], `${locale} ${page.labelKey}`).toBeTruthy();
+        expect(dictionaryFor(locale)[page.blurbKey], `${locale} ${page.blurbKey}`).toBeTruthy();
       }
     }
   });
 
-  test("the nav marks where the second group begins, exactly once", () => {
-    const entries = docsNavEntries();
-    expect(entries).toHaveLength(DOCS_PAGES.length);
-    expect(entries.filter((e) => e.startsGroup)).toHaveLength(1);
-    // And it is the first technical page, not an arbitrary one.
-    expect(entries.findIndex((e) => e.startsGroup)).toBe(3);
+  test("the nav is the same list, in the same order", () => {
+    expect(docsNavEntries().map((e) => e.href)).toEqual(DOCS_PAGES.map((p) => p.href));
   });
 });

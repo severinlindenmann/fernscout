@@ -22,7 +22,6 @@ in a checkout; this folder is the long form for a person.
 | [ROADMAP.md](ROADMAP.md) | the decision log, cited by number from the code |
 | [testing/](testing/) | the coverage matrix: which flows exercise which capability |
 | [branding/](branding/) | the mark, the palette, and what not to do to them |
-| [guides/](guides/) | the reader-facing guides (guest, buddy, creator), served live at `/docs/guide/<id>` in every maintained locale |
 | [screenshots/](screenshots/) | how the pictures in the root `README.md` were made, and the size ceiling they are kept under |
 
 ## How much to trust this

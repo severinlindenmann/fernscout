@@ -16,7 +16,7 @@ import path from "node:path";
  * so in the reader's own language — so a static English title on them is
  * correct rather than a slip, and they are excluded by name.
  */
-const TRANSLATED_PAGES = ["app/docs/page.tsx", "app/docs/guide/[guide]/page.tsx"];
+const TRANSLATED_PAGES = ["app/docs/page.tsx"];
 
 /** English by decision — see the note above. */
 const ENGLISH_PAGES = [

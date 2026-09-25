@@ -66,13 +66,14 @@ describe("buildSearchIndex", () => {
     // The one public entry, plus its trip's own row — which is the Story
     // destination, so there is no separate row for that (B890) — plus
     // Gallery and Map (B823; no Analytics, no costs and no weather, since
-    // this fixture carries none), the nine documentation rows (seven pages —
+    // this fixture carries none), the six documentation rows (four pages —
     // B1797 added and B1826 removed `/docs/extract`; B2248 retired
-    // `/docs/roadmap` — the hub and the imprint — B903), and `/trips`, the
+    // `/docs/roadmap`; the three reader guides were retired later — the hub
+    // and the imprint — B903), and `/trips`, the
     // one journal-scoped destination this fixture offers a stranger: `auth`
     // is off here, so there is no sign-in door to find. Nothing from the
     // closed trips contributes any kind of document.
-    expect(index.documentCount).toBe(1 + 1 + 2 + 9 + 1);
+    expect(index.documentCount).toBe(1 + 1 + 2 + 6 + 1);
   });
 
   test("an unlisted trip's content is not indexed at all", () => {
@@ -104,19 +105,15 @@ describe("everything else this site renders — B890", () => {
     expect([...ids].filter((id) => id.startsWith("trip:"))).toEqual(["trip:public-2026"]);
   });
 
-  test("a guide is found by a word that only appears in its own markdown", () => {
+  test("somebody asking for help lands on the hub, not on Hosting", () => {
     const index = buildSearchIndex("creator")!;
-    const hits = index.search("notifications", { prefix: true }).filter((h) => h.kind === "doc");
-    expect(hits.length).toBeGreaterThan(0);
-    expect(hits.map((h) => h.url)).toContain("/docs/guide/guest");
+    const hits = index.search("help", { prefix: true }).filter((h) => h.kind === "doc");
+    expect(hits[0]?.url).toBe("/docs");
   });
 
   test("the documentation is public — a stranger's index carries every docs page, the hub and the imprint", () => {
     const json = buildSearchIndexJson("creator")!;
     for (const url of [
-      "/docs/guide/guest",
-      "/docs/guide/creator",
-      "/docs/guide/buddy",
       "/docs/hosting",
       "/docs/contributing",
       "/docs/api",
