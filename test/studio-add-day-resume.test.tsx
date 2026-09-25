@@ -108,6 +108,7 @@ const FULL_MODEL: StudioHubModel = {
   account: { credits: null, purchasesOpen: 0, storage: null },
   print: { unfinished: [], recentOrders: [] },
   addDayTrip: { id: "reise", title: "Reise", current: true },
+  toldToday: false,
   planTrip: null,
   cannotRun: { postcard: false, photobook: false, changeDay: false, reshapeDay: false },
   resumableImports: [],

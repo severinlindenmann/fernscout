@@ -6,6 +6,9 @@ import StudioHub from "@/components/studio/StudioHub";
 import StudioBarProvider from "@/components/studio/StudioBar";
 import LocaleProvider from "@/components/LocaleProvider";
 import { dictionaryFor } from "@/lib/locales";
+import { translate, plural } from "@/lib/i18n";
+import { buildHubGroups, filterHubGroups } from "@/lib/studio/hubGroups";
+import { typeInto } from "./support/type-input";
 import type { StudioHubModel } from "@/lib/studio/hub";
 
 /**
@@ -43,7 +46,7 @@ afterEach(() => {
 // throws. Wrapping it here is the only change this needed: the provider
 // renders its own `ActionBar` as a sibling right after `StudioHub`, in the
 // same container, so every anchor-count assertion below still finds it.
-function render(model: StudioHubModel) {
+function render(model: StudioHubModel, speak = false) {
   container = document.createElement("div");
   document.body.appendChild(container);
   root = createRoot(container);
@@ -51,7 +54,7 @@ function render(model: StudioHubModel) {
     root!.render(
       <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
         <StudioBarProvider username="alex">
-          <StudioHub username="alex" model={model} />
+          <StudioHub username="alex" model={model} speak={speak} />
         </StudioBarProvider>
       </LocaleProvider>,
     );
@@ -135,6 +138,7 @@ const FULL_BASE: Extract<StudioHubModel, { kind: "full" }> = {
   account: { credits: null, purchasesOpen: 0, storage: null },
   print: { unfinished: [], recentOrders: [] },
   addDayTrip: { id: "alps-2024", title: "Four days round the Alps", current: true },
+  toldToday: false,
   planTrip: null,
   cannotRun: { postcard: false, photobook: false, changeDay: false, reshapeDay: false },
   resumableImports: [],
@@ -228,26 +232,52 @@ describe("H4 — half-done work resumes from the hub, above the list", () => {
     expect(el.textContent).not.toContain("1 photographs");
   });
 
-  test("several runs read in the plural and each still names its own size", () => {
+  // B2304 — the strip is one slim line now, not a full list: only the first
+  // item shows, the rest sit behind "+N more" until tapped.
+  test("only the first item shows by default; the rest expand behind '+N more'", () => {
     const el = render({
       ...FULL_BASE,
       resumableImports: [
-        { runId: "r1", createdAt: "2026-09-01T00:00:00.000Z", expiresAt: "2026-09-05T00:00:00.000Z", livePhotoCount: 142, daysLeftToTell: 3, stagedBytes: 1_400_000_000 },
-        { runId: "r2", createdAt: "2026-09-02T00:00:00.000Z", expiresAt: "2026-09-06T00:00:00.000Z", livePhotoCount: 4, daysLeftToTell: 1, stagedBytes: 12_000_000 },
+        { runId: "r1", createdAt: "2026-09-01T00:00:00.000Z", expiresAt: "2026-11-01T00:00:00.000Z", livePhotoCount: 142, daysLeftToTell: 3, stagedBytes: 1_400_000_000 },
+        { runId: "r2", createdAt: "2026-09-02T00:00:00.000Z", expiresAt: "2026-11-02T00:00:00.000Z", livePhotoCount: 4, daysLeftToTell: 1, stagedBytes: 12_000_000 },
       ],
     });
-    expect(el.querySelectorAll("[data-half-done] a").length).toBe(2);
+    expect(el.querySelectorAll("[data-half-done] a").length).toBe(1);
     expect(el.textContent).toContain("142 photographs");
+    expect(el.textContent).not.toContain("4 photographs");
+    const more = Array.from(el.querySelectorAll<HTMLButtonElement>("[data-half-done] button")).find((b) => b.textContent === "+1 more")!;
+    expect(more).toBeTruthy();
+    act(() => more.click());
+    expect(el.querySelectorAll("[data-half-done] a").length).toBe(2);
     expect(el.textContent).toContain("4 photographs");
-    // The link back is the real, existing flow — B1829 reuses it rather
-    // than inventing a second resumable surface, and B1825 moved that flow's
-    // own address from `/extract` to `/studio/photos` — the same address
-    // the hub's own "Photographs" card already uses, so the two resume
-    // banners share it with that card: three anchors. B1992 added a fourth,
-    // in the phone-only sticky `ActionBar` at the foot of the page — the
-    // same address again, for the same reason every one of these anchors
-    // points here.
-    expect(el.querySelectorAll('a[href="/alex/studio/photos"]').length).toBe(4);
+  });
+
+  // An import with a real deadline is never buried behind "+N more".
+  test("an import expiring within 3 days is promoted to the shown line", () => {
+    const soon = new Date(Date.now() + 2 * 86_400_000).toISOString();
+    const el = render({
+      ...FULL_BASE,
+      resumableImports: [
+        { runId: "r1", createdAt: "2026-09-01T00:00:00.000Z", expiresAt: "2026-12-24T00:00:00.000Z", livePhotoCount: 9, daysLeftToTell: 3, stagedBytes: 900_000 },
+        { runId: "r2", createdAt: "2026-09-02T00:00:00.000Z", expiresAt: soon, livePhotoCount: 4, daysLeftToTell: 1, stagedBytes: 12_000_000 },
+      ],
+    });
+    expect(el.textContent).toContain("4 photographs");
+    expect(el.textContent).not.toContain("9 photographs");
+  });
+
+  test("the resume link is the real, existing flow, shared with the Photographs row", () => {
+    const el = render({
+      ...FULL_BASE,
+      resumableImports: [
+        { runId: "r1", createdAt: "2026-09-01T00:00:00.000Z", expiresAt: "2026-11-01T00:00:00.000Z", livePhotoCount: 142, daysLeftToTell: 3, stagedBytes: 1_400_000_000 },
+      ],
+    });
+    // B1829 reuses the same address B1825 moved from `/extract` to
+    // `/studio/photos` rather than inventing a second resumable surface —
+    // the half-done row and the Bring in group's own "Bring in an old trip"
+    // row: two anchors. B2304 removed the phone bar's own third.
+    expect(el.querySelectorAll('a[href="/alex/studio/photos"]').length).toBe(2);
   });
 });
 
@@ -266,11 +296,11 @@ describe("B1951 — the main card never calls a finished trip the trip you are o
       ...FULL_BASE,
       addDayTrip: { id: "alps-2023", title: "Three weeks in Japan", current: false },
     });
-    // The main card is now the new-trip flow.
+    // The main card is now the between-trips hero (B2304: "Start a trip").
     const mainCard = el.querySelector("a[data-hero]");
     expect(mainCard).not.toBeNull();
     expect(mainCard!.getAttribute("href")).toBe("/alex/studio/trip/new");
-    expect(mainCard!.textContent).toContain("A new trip");
+    expect(mainCard!.textContent).toContain("Start a trip");
     // Nothing on the page claims the finished trip is the one the person is on.
     expect(el.textContent).not.toContain("the trip you are on");
     // Adding a day to the finished trip is still reachable, honestly labelled.
@@ -289,10 +319,13 @@ describe("B1951 — the main card never calls a finished trip the trip you are o
     expect(el.textContent).not.toContain("A new trip");
   });
 
-  test("no current and no past trip (every trip still upcoming): unchanged generic main card, no trip named", () => {
+  // B2304 — this is the owner's own Ungarn 2026 state (no current trip, one
+  // still upcoming): "Start a trip", not a trip-less "Add a day" any more.
+  test("no current and no past trip (every trip still upcoming): the between-trips hero, no trip named", () => {
     const el = render({ ...FULL_BASE, addDayTrip: null });
-    expect(el.textContent).toContain("Add a day");
-    expect(el.textContent).toContain("Photographs, a few words, and it waits as a draft.");
+    const mainCard = el.querySelector("a[data-hero]")!;
+    expect(mainCard.textContent).toContain("Start a trip");
+    expect(mainCard.getAttribute("href")).toBe("/alex/studio/trip/new");
     expect(el.textContent).not.toContain("the trip you are on");
     expect(el.textContent).not.toContain("Add a day to");
   });
@@ -331,9 +364,19 @@ describe("B2066 — the Desk", () => {
     for (const row of rows) expect(row.querySelector("[data-desc]")?.textContent?.trim(), row.textContent ?? "").toBeTruthy();
   });
 
-  test.each(heroStates.slice(0, 3))("'A new trip' appears exactly once (%s)", (_, model) => {
+  // B2304 — the hero no longer ever says "A new trip" itself (the ended-trip
+  // and no-current-trip states both say "Start a trip" now), so the Plan
+  // group's own row is the only place left carrying that exact text — and
+  // it stays suppressed for an ended trip (unchanged grid: "not twice") even
+  // though the hero's wording differs, so that state now reads zero times.
+  const newTripCounts: [string, StudioHubModel, number][] = [
+    ["current trip", FULL_BASE, 1],
+    ["ended trip", { ...FULL_BASE, addDayTrip: { id: "jp", title: "Japan", current: false } }, 0],
+    ["no current or past trip", { ...FULL_BASE, addDayTrip: null }, 1],
+  ];
+  test.each(newTripCounts)("'A new trip' appears the right number of times (%s)", (_, model, count) => {
     const el = render(model);
-    expect(el.textContent!.split("A new trip").length - 1).toBe(1);
+    expect(el.textContent!.split("A new trip").length - 1).toBe(count);
   });
 
   test("the empty state is exactly the hero, Bring in (photographs, your route) and Journal", () => {
@@ -381,6 +424,11 @@ describe("B2110 — the Readers row tells the truth", () => {
 /** B2193 — "Waiting for your words": one card per day with waiting
  *  photographs, the no-date ones apart, and the section absent when nothing
  *  waits. */
+// B2304 — during a trip the full card list is replaced by one condensed row
+// (see "the during-trip rows" below), so this describe block now reads
+// against a between-trips model, the state that still renders it.
+const NOT_DURING_TRIP: Extract<StudioHubModel, { kind: "full" }> = { ...FULL_BASE, addDayTrip: null };
+
 describe("B2193 — waiting photographs as day cards", () => {
   const card = (date: string, n: number, extra: Partial<{ place: string; trip: { id: string; title: string }; newTrip: { start: string; end: string } }> = {}) => ({
     date,
@@ -392,7 +440,7 @@ describe("B2193 — waiting photographs as day cards", () => {
 
   test("three dates are three cards; each opens the composer with that day's photographs", () => {
     const el = render({
-      ...FULL_BASE,
+      ...NOT_DURING_TRIP,
       waitingDays: {
         cards: [
           card("2026-09-22", 31, { place: "Porto", trip: { id: "pt", title: "Portugal" } }),
@@ -419,11 +467,11 @@ describe("B2193 — waiting photographs as day cards", () => {
 
   test("five cards, then the rest behind one button", () => {
     const el = render({
-      ...FULL_BASE,
+      ...NOT_DURING_TRIP,
       waitingDays: { cards: ["01", "02", "03", "04", "05", "06", "07"].map((d) => card(`2026-09-${d}`, 1)), undatedIds: [] },
     });
     expect(el.querySelectorAll("[data-day-card]")).toHaveLength(5);
-    const more = Array.from(el.querySelectorAll("button")).find((b) => b.textContent === "Show 2 more days")!;
+    const more = Array.from(el.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "Show 2 more days")!;
     act(() => more.click());
     expect(el.querySelectorAll("[data-day-card]")).toHaveLength(7);
   });
@@ -431,14 +479,14 @@ describe("B2193 — waiting photographs as day cards", () => {
   test("a run of uncovered days proposes its trip once, on its first card", () => {
     const run = { start: "2026-04-10", end: "2026-04-13" };
     const el = render({
-      ...FULL_BASE,
+      ...NOT_DURING_TRIP,
       waitingDays: { cards: ["10", "11", "13"].map((d) => card(`2026-04-${d}`, 1, { newTrip: run })), undatedIds: [] },
     });
     expect(Array.from(el.querySelectorAll('[data-day-card] a[href*="trip/new"]'), (a) => a.textContent)).toEqual(["Start a trip for 10 Apr – 13 Apr"]);
   });
 
   test("nothing waiting: no section at all, not an empty panel", () => {
-    expect(render({ ...FULL_BASE, waitingDays: { cards: [], undatedIds: [] } }).querySelector("[data-waiting-days]")).toBeNull();
+    expect(render({ ...NOT_DURING_TRIP, waitingDays: { cards: [], undatedIds: [] } }).querySelector("[data-waiting-days]")).toBeNull();
   });
 
   test("before the first trip, a card proposes one and offers no day to write", () => {
@@ -449,5 +497,226 @@ describe("B2193 — waiting photographs as day cards", () => {
     const cards = Array.from(el.querySelectorAll("[data-day-card]"));
     expect(cards).toHaveLength(1);
     expect(Array.from(cards[0].querySelectorAll("a"), (a) => a.textContent)).toEqual(["Start a trip for 22 Sep"]);
+  });
+});
+
+/**
+ * B2304 — the hero, chosen by state: during a trip (write, speak, or told
+ * already), a trip starting tomorrow, between trips, or an empty journal.
+ * Never more than one applies, so exactly one hero renders.
+ */
+describe("B2304 — the hero, chosen by state", () => {
+  test("during a trip, told already: offers to add more or change it, not to tell about today again", () => {
+    const el = render({ ...FULL_BASE, toldToday: true });
+    const hero = el.querySelector("a[data-hero]")!;
+    expect(hero.textContent).toContain("Today is told");
+    expect(hero.textContent).toContain("Four days round the Alps");
+    expect(hero.getAttribute("href")).toBe("/alex/studio/day/new?from=hub");
+    const alt = el.querySelector("a[data-hero-alt]")!;
+    expect(alt.textContent).toBe("Change it");
+    expect(alt.getAttribute("href")).toBe("/alex/studio/day/edit");
+    expect(el.textContent).not.toContain("Tell about today");
+  });
+
+  test("during a trip, speak on, not told yet: the mic hero, with a write-instead link", () => {
+    const el = render(FULL_BASE, true);
+    const hero = el.querySelector("a[data-hero]")!;
+    expect(hero.textContent).toContain("Tell about today");
+    expect(hero.textContent).toContain("Start talking");
+    expect(hero.getAttribute("href")).toBe("/alex/studio/day/new?mode=speak&from=hub");
+    const alt = el.querySelector("a[data-hero-alt]")!;
+    expect(alt.textContent).toBe("Write instead");
+    expect(alt.getAttribute("href")).toBe("/alex/studio/day/new?from=hub");
+  });
+
+  test("during a trip, speak on, but already told today: told-today wins over the mic", () => {
+    const el = render({ ...FULL_BASE, toldToday: true }, true);
+    const hero = el.querySelector("a[data-hero]")!;
+    expect(hero.textContent).toContain("Today is told");
+    expect(el.textContent).not.toContain("Tell about today");
+  });
+
+  test("a trip starting tomorrow gets the plan hero, not a generic 'start a trip' one", () => {
+    const el = render({
+      ...FULL_BASE,
+      addDayTrip: null,
+      planTrip: { id: "jp", title: "Japan" },
+      facts: { ...FULL_BASE.facts, planStartsInDays: 1 },
+    });
+    const hero = el.querySelector("a[data-hero]")!;
+    expect(hero.textContent).toContain("Get ready for Japan");
+    expect(hero.getAttribute("href")).toBe("/alex/studio/plan/jp");
+  });
+
+  test("a trip starting today (not yet declared current) also gets the plan hero", () => {
+    const el = render({
+      ...FULL_BASE,
+      addDayTrip: null,
+      planTrip: { id: "jp", title: "Japan" },
+      facts: { ...FULL_BASE.facts, planStartsInDays: 0 },
+    });
+    expect(el.querySelector("a[data-hero]")!.textContent).toContain("Get ready for Japan");
+  });
+
+  test("a trip further out than tomorrow does not trigger the plan hero", () => {
+    const el = render({
+      ...FULL_BASE,
+      addDayTrip: null,
+      planTrip: { id: "jp", title: "Japan" },
+      facts: { ...FULL_BASE.facts, planStartsInDays: 2 },
+    });
+    expect(el.querySelector("a[data-hero]")!.textContent).toContain("Start a trip");
+  });
+
+  test("between trips with speak on: a small 'tell about a day anyway' link", () => {
+    const el = render({ ...FULL_BASE, addDayTrip: null }, true);
+    const alt = el.querySelector("a[data-hero-alt]")!;
+    expect(alt.textContent).toBe("Tell about a day anyway");
+    expect(alt.getAttribute("href")).toBe("/alex/studio/day/new?mode=speak&from=hub");
+  });
+
+  test("between trips with speak off: no alt link at all", () => {
+    const el = render({ ...FULL_BASE, addDayTrip: null });
+    expect(el.querySelector("a[data-hero-alt]")).toBeNull();
+  });
+});
+
+/**
+ * B2304 — during a trip only, at most three one-tap rows replace the full
+ * "Waiting for your words" card list and the phone bar: photos waiting for
+ * words on this trip, sharing a day, and a postcard when printing is on.
+ */
+describe("B2304 — during a trip, at most three rows", () => {
+  test("no full waiting-days card list renders during a trip", () => {
+    const el = render({
+      ...FULL_BASE,
+      waitingDays: {
+        cards: [{ date: "2026-09-22", photoIds: ["a.jpg"], place: null, trip: { id: "alps-2024", title: "Four days round the Alps" }, newTrip: null }],
+        undatedIds: [],
+      },
+    });
+    expect(el.querySelector("[data-waiting-days]")).toBeNull();
+    expect(el.querySelector("[data-during-trip-rows]")).not.toBeNull();
+  });
+
+  test("photos waiting for this trip become one row naming the count", () => {
+    const el = render({
+      ...FULL_BASE,
+      waitingDays: {
+        cards: [
+          { date: "2026-09-22", photoIds: ["a.jpg"], place: null, trip: { id: "alps-2024", title: "Four days round the Alps" }, newTrip: null },
+          { date: "2026-09-23", photoIds: ["b.jpg"], place: null, trip: { id: "alps-2024", title: "Four days round the Alps" }, newTrip: null },
+          // A different trip's waiting day does not count here.
+          { date: "2026-09-24", photoIds: ["c.jpg"], place: null, trip: { id: "other", title: "Other trip" }, newTrip: null },
+        ],
+        undatedIds: [],
+      },
+    });
+    const rows = el.querySelectorAll("[data-during-trip-rows] a");
+    // Waiting + Share a day + A postcard (FULL_BASE has postcards on).
+    expect(rows).toHaveLength(3);
+    expect(rows[0].textContent).toContain("Photos waiting for words");
+    expect(rows[0].textContent).toContain("2 days");
+  });
+
+  test("all three rows can show at once, and no more than three ever do", () => {
+    const el = render({
+      ...FULL_BASE,
+      facts: { ...FULL_BASE.facts, drafts: 2 },
+      waitingDays: {
+        cards: [{ date: "2026-09-22", photoIds: ["a.jpg"], place: null, trip: { id: "alps-2024", title: "Four days round the Alps" }, newTrip: null }],
+        undatedIds: [],
+      },
+    });
+    const rows = Array.from(el.querySelectorAll("[data-during-trip-rows] a"));
+    expect(rows.length).toBe(3);
+    expect(rows.map((r) => r.textContent?.split("\n")[0])).toEqual([
+      expect.stringContaining("Photos waiting for words"),
+      expect.stringContaining("Share a day"),
+      expect.stringContaining("A postcard"),
+    ]);
+    expect(el.querySelector("[data-during-trip-rows] [data-fact]")?.textContent).toBe("2 drafts");
+  });
+
+  test("printing off: no postcard row", () => {
+    const el = render({ ...FULL_BASE, cannotRun: { ...FULL_BASE.cannotRun, postcard: true } });
+    const rows = Array.from(el.querySelectorAll("[data-during-trip-rows] a"));
+    expect(rows.some((r) => r.textContent?.includes("A postcard"))).toBe(false);
+  });
+
+  test("nothing waiting for this trip: no waiting row, just share (and postcard)", () => {
+    const el = render(FULL_BASE);
+    const rows = Array.from(el.querySelectorAll("[data-during-trip-rows] a"));
+    expect(rows.some((r) => r.textContent?.includes("Photos waiting"))).toBe(false);
+  });
+});
+
+/** B2304 — no floating pill on the hub any more; the ☰ stays site nav. */
+describe("B2304 — no floating pill on the hub", () => {
+  test("the hero's own link appears once, not doubled in a bottom bar", () => {
+    const el = render(FULL_BASE);
+    expect(el.querySelectorAll('a[href="/alex/studio/day/new?from=hub"]').length).toBe(1);
+    expect(el.textContent).not.toContain("Back to the studio");
+  });
+
+  test("the empty state carries no bottom bar either", () => {
+    const el = render(EMPTY_BASE);
+    expect(el.textContent).not.toContain("Back to the studio");
+  });
+});
+
+/**
+ * B2304 — the filter field directly above the grid narrows it by title and
+ * description, reading the exact rows `buildHubGroups` builds for the grid
+ * itself so the two cannot drift apart.
+ */
+describe("B2304 — the filter above the grid", () => {
+  const t = (key: Parameters<typeof translate>[1], vars?: Record<string, string>) => translate(dictionaryFor("en"), key, vars);
+  const tn = (key: Parameters<typeof plural>[1], count: number, vars?: Record<string, string>) => plural(dictionaryFor("en"), key, count, vars);
+
+  test("filterHubGroups narrows to rows matching title or description, derived from buildHubGroups itself", () => {
+    const groups = buildHubGroups({ ...FULL_BASE, planTrip: { id: "jp", title: "Japan" } }, "alex", t, tn, "en");
+    const expected = groups
+      .map((g) => ({ ...g, rows: g.rows.filter((r) => `${r.title} ${r.description ?? r.reason ?? ""}`.toLowerCase().includes("photo")) }))
+      .filter((g) => g.rows.length > 0);
+    expect(filterHubGroups(groups, "photo")).toEqual(expected);
+  });
+
+  test("an empty query changes nothing", () => {
+    const groups = buildHubGroups(FULL_BASE, "alex", t, tn, "en");
+    expect(filterHubGroups(groups, "")).toBe(groups);
+  });
+
+  test("typing in the field narrows the rendered grid to the same rows", () => {
+    const t2 = (key: Parameters<typeof translate>[1], vars?: Record<string, string>) => translate(dictionaryFor("en"), key, vars);
+    const tn2 = (key: Parameters<typeof plural>[1], count: number, vars?: Record<string, string>) => plural(dictionaryFor("en"), key, count, vars);
+    const groups = buildHubGroups(FULL_BASE, "alex", t2, tn2, "en");
+    const expected = filterHubGroups(groups, "photo").flatMap((g) => g.rows.map((r) => r.title));
+
+    const el = render(FULL_BASE);
+    const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
+    act(() => typeInto(input, "photo"));
+    const titles = Array.from(el.querySelectorAll("section[data-group]:not(#journal) a[data-row]")).map(
+      (a) => a.querySelector("[data-desc]")?.previousElementSibling?.querySelector("span")?.textContent ?? a.textContent,
+    );
+    expect(expected.length).toBeGreaterThan(0);
+    for (const title of expected) expect(titles.some((t3) => t3?.includes(title))).toBe(true);
+    expect(el.querySelectorAll("section[data-group]:not(#journal) a[data-row]").length).toBe(expected.length);
+  });
+
+  test("Journal stays visible even when nothing in the grid matches", () => {
+    const el = render(FULL_BASE);
+    const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
+    act(() => typeInto(input, "xyzzy-nothing-matches-this"));
+    expect(el.querySelectorAll("section[data-group]:not(#journal)").length).toBe(0);
+    expect(el.querySelector("#journal")).not.toBeNull();
+  });
+
+  test("clearing the field restores the full grid", () => {
+    const el = render(FULL_BASE);
+    const input = el.querySelector<HTMLInputElement>("[data-hub-filter]")!;
+    act(() => typeInto(input, "photo"));
+    act(() => typeInto(input, ""));
+    expect(el.querySelectorAll("section[data-group]:not(#journal)").length).toBe(5);
   });
 });
