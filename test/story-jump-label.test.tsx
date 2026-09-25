@@ -108,6 +108,7 @@ function render(ref: string, override: Partial<Trip> = {}) {
           initialDate={props.initialDate}
           openAtDate={props.openAtDate}
           stats={props.stats}
+          places={[]}
         />,
       )}
     </LocaleProvider>,

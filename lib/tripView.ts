@@ -1,6 +1,6 @@
 import "server-only";
 import { basemapFor, basemapForRoute, localBasemaps, type Basemap } from "./basemap";
-import { getAllEntries, getDays, getDefaultDay, getTripStats, type ReadOptions } from "./entries";
+import { getAllEntries, getDays, getDefaultDay, getPlaces, getTripStats, type Place, type ReadOptions } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
 import { geodataAvailable, reverseGeocode } from "./ingest/geo";
 import { getTrip } from "./trips";
@@ -33,6 +33,14 @@ export type StoryProps = {
   /** A specific day to open at, from the /day/<slug> route. */
   openAtDate?: string;
   stats: HeroStats;
+  /**
+   * The trip's stops, in order — the same shape `getPlaces` builds for the
+   * map page, and now for the slideshow's day strip and start-here buttons
+   * too (B2306). Built here rather than at each call site for the same
+   * reason `basemap` is: all four routes that render a story go through this
+   * function, so a fifth question added here reaches them all at once.
+   */
+  places: Place[];
   /**
    * The basemap for the hero's small map, clipped here rather than in the
    * browser — the same reason the trip map does it (lib/basemap.ts). Built in
@@ -211,6 +219,9 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
   return {
     trip,
     index,
+    // Same call, same options, as the map page's own `places` — not a second
+    // way of grouping stops that could drift from it (B2306).
+    places: getPlaces(tripId, read),
     // Framed on the same points MiniMap frames on, so the clip covers what is
     // actually drawn. `frameRoute` is pure, so the two agree — and an empty
     // index draws no hero and therefore no map, so it gets no basemap either

@@ -177,6 +177,7 @@ function render(
                 initialDate={props.initialDate}
                 openAtDate={props.openAtDate}
                 stats={props.stats}
+                places={[]}
               />
             </TripProvider>
           </CurrencyProvider>

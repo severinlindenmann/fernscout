@@ -28,6 +28,7 @@ import {
   Plus,
   Maximize2,
   Minimize2,
+  RotateCcw,
 } from "lucide-react";
 import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
 import { isPlottable } from "@/lib/mapFrame";
@@ -38,8 +39,20 @@ import { buildNarratedCut, type NarratedCutSlide } from "@/lib/narratedCut";
 import DualTime from "./DualTime";
 import { useWakeLock } from "./useWakeLock";
 import { useI18n } from "./LocaleProvider";
+import { useTrip } from "./TripProvider";
 import type { PlaceView } from "./WorldMap";
 import type { GalleryItem } from "@/lib/types";
+
+/** The trip's headline counts, for the end screen — computed once, the same
+ * way for every caller (`lib/entries.ts`'s `getTripStats`), and handed in
+ * rather than re-derived here so the show's own count never drifts from the
+ * map page's stats row it is quoting. */
+export type SlideShowStats = {
+  tripDays: number;
+  places: number;
+  countries: number;
+  totalMedia: number;
+};
 
 // Base dwell, in seconds — the "1x" the +/- speed control scales from.
 // Deliberately unhurried by default — this is meant to be watched, not skimmed.
@@ -77,6 +90,30 @@ type FullStep =
     };
 
 /**
+ * Where the "every photo" cut lands for a given calendar day — the day strip
+ * and `startDate` both jump through this. The exact match is the day's first
+ * photo; a day with no gallery at all (video-only, or not yet photographed)
+ * has no step of its own, so this lands on the next day that does rather
+ * than doing nothing. Past the last photographed day it clamps to the last
+ * step, never past the end.
+ */
+export function fullCutIndexForDate(steps: readonly FullStep[], date: string): number {
+  const exact = steps.findIndex((s) => s.kind === "media" && s.date === date);
+  if (exact >= 0) return exact;
+  const next = steps.findIndex((s) => s.kind === "media" && s.date > date);
+  if (next >= 0) return next;
+  return Math.max(steps.length - 1, 0);
+}
+
+/** The calendar date a full-cut step belongs to — a travel step carries none
+ * of its own, so it borrows the date its destination's first entry was
+ * written on. Used only to work out which day-strip thumbnail is current. */
+function dateOfFullStep(step: FullStep | undefined): string | undefined {
+  if (!step) return undefined;
+  return step.kind === "media" ? step.date : step.place.entries[0]?.date;
+}
+
+/**
  * Fullscreen presentation mode: letterboxed to 16:9, big type, chrome that
  * hides itself, and two ways to tell the trip.
  *
@@ -93,12 +130,20 @@ export default function SlideShow({
   places,
   onClose,
   startPlaceKey,
+  startDate,
+  stats,
 }: {
   places: PlaceView[];
   onClose: () => void;
   startPlaceKey?: string;
+  /** Opens the show on this day instead of the beginning — the trip page and
+   * day pages' own slideshow buttons (B2306). Resolved in both cuts. */
+  startDate?: string;
+  /** The trip's real counts, for the end screen — see `SlideShowStats`. */
+  stats: SlideShowStats;
 }) {
   const { t, formatShortDate, formatLongDate, locale } = useI18n();
+  const href = useTrip()?.href ?? ((p: string) => p);
 
   const narratedSlides = useMemo<NarratedCutSlide[]>(
     () => buildNarratedCut(places.flatMap((p) => p.entries)),
@@ -133,12 +178,21 @@ export default function SlideShow({
   const [cut, setCut] = useState<Cut>(narratedSlides.length > 0 ? "narrated" : "full");
 
   const fullStartIndex = useMemo(() => {
-    if (!startPlaceKey) return 0;
-    const i = fullSteps.findIndex((s) => s.place.key === startPlaceKey);
-    return i >= 0 ? i : 0;
-  }, [fullSteps, startPlaceKey]);
+    if (startPlaceKey) {
+      const i = fullSteps.findIndex((s) => s.place.key === startPlaceKey);
+      if (i >= 0) return i;
+    }
+    if (startDate) return fullCutIndexForDate(fullSteps, startDate);
+    return 0;
+  }, [fullSteps, startPlaceKey, startDate]);
 
-  const [index, setIndex] = useState(cut === "full" ? fullStartIndex : 0);
+  const narratedStartIndex = useMemo(() => {
+    if (!startDate) return 0;
+    const i = narratedSlides.findIndex((s) => s.date === startDate);
+    return i >= 0 ? i : 0;
+  }, [narratedSlides, startDate]);
+
+  const [index, setIndex] = useState(cut === "full" ? fullStartIndex : narratedStartIndex);
   const [playing, setPlaying] = useState(true);
   // Lazy initializer, not an effect — this component is ssr:false, so
   // there's no hydration mismatch to dodge, and reading it up front means
@@ -169,15 +223,18 @@ export default function SlideShow({
   const switchCut = useCallback(
     (next: Cut) => {
       setCut(next);
-      setIndex(next === "full" ? fullStartIndex : 0);
+      setIndex(next === "full" ? fullStartIndex : narratedStartIndex);
       setPlaying(true);
     },
-    [fullStartIndex],
+    [fullStartIndex, narratedStartIndex],
   );
 
   const total = cut === "narrated" ? narratedSlides.length : fullSteps.length;
   const narratedStep = cut === "narrated" ? narratedSlides[index] : undefined;
   const fullStep = cut === "full" ? fullSteps[index] : undefined;
+  // One slide index past the last real one is the end card — not a stop on
+  // the last photo, an actual screen of its own (B2306).
+  const atEndCard = index >= total;
 
   const dwellScale = dwellSeconds / DEFAULT_DWELL_S;
   const duration =
@@ -185,37 +242,43 @@ export default function SlideShow({
       ? dwellSeconds * 1000
       : (fullStep?.kind === "travel" ? FULL_TRAVEL_MS : FULL_MEDIA_MS) * dwellScale;
 
-  const atEnd = index >= total - 1;
   // Derived rather than stored, so reaching the end doesn't need a setState
-  // inside the timer effect.
-  const isPlaying = playing && !atEnd && total > 0;
+  // inside the timer effect. Nothing auto-advances once the end card is up —
+  // there's nothing after it.
+  const isPlaying = playing && !atEndCard && total > 0;
 
   useWakeLock(total > 0);
 
   const go = useCallback(
     (delta: number) => {
-      setIndex((i) => Math.min(Math.max(i + delta, 0), Math.max(total - 1, 0)));
+      setIndex((i) => Math.min(Math.max(i + delta, 0), Math.max(total, 0)));
     },
     [total],
   );
 
-  // Auto-advance; stops at the end rather than looping.
+  // Auto-advance; lands on the end card rather than looping or freezing on
+  // the last photo.
   useEffect(() => {
     if (!isPlaying) return;
-    timerRef.current = setTimeout(() => setIndex((i) => Math.min(i + 1, total - 1)), duration);
+    timerRef.current = setTimeout(() => setIndex((i) => Math.min(i + 1, total)), duration);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [index, isPlaying, duration, total]);
 
   const toggle = useCallback(() => {
-    if (atEnd) {
+    if (atEndCard) {
       setIndex(0);
       setPlaying(true);
       return;
     }
     setPlaying((p) => !p);
-  }, [atEnd]);
+  }, [atEndCard]);
+
+  const watchAgain = useCallback(() => {
+    setIndex(0);
+    setPlaying(true);
+  }, []);
 
   // Controls fade out during playback and reappear on any activity — a show
   // left running on a TV shouldn't sit under a permanent row of buttons.
@@ -387,6 +450,32 @@ export default function SlideShow({
     [endSurfaceGesture],
   );
 
+  // The strip along the bottom, one thumbnail per calendar day — `narratedCut`
+  // already groups the trip that way, so this is that same list rather than a
+  // second grouping of its own. The active thumbnail follows whichever day the
+  // current step actually belongs to, in either cut.
+  const currentDate = atEndCard
+    ? narratedSlides.at(-1)?.date
+    : cut === "narrated"
+      ? narratedStep?.date
+      : dateOfFullStep(fullStep);
+  const currentDayIndex = currentDate ? narratedSlides.findIndex((s) => s.date === currentDate) : -1;
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  const activeThumbRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    activeThumbRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [currentDayIndex]);
+  const jumpToDay = useCallback(
+    (dayIndex: number) => {
+      const day = narratedSlides[dayIndex];
+      if (!day) return;
+      setPlaying(false);
+      setIndex(cut === "narrated" ? dayIndex : fullCutIndexForDate(fullSteps, day.date));
+      bumpChrome();
+    },
+    [cut, narratedSlides, fullSteps, bumpChrome],
+  );
+
   if (total === 0) return null;
 
   // The one sentence per day, in every locale the journal reads in, is
@@ -430,7 +519,9 @@ export default function SlideShow({
         .fs-safe-right { right: max(0.75rem, env(safe-area-inset-right, 0px)); }
       `}</style>
       <div ref={containerRef} className="relative overflow-hidden bg-overlay-strong fs-present-frame">
-        {cut === "full" && fullStep ? (
+        {atEndCard ? (
+          <EndScreen stats={stats} tripHref={href("/")} onWatchAgain={watchAgain} />
+        ) : cut === "full" && fullStep ? (
           <>
             {/* Map layer — always mounted so the camera keeps its position. */}
             <div
@@ -486,7 +577,7 @@ export default function SlideShow({
 
             {/* Caption — place, when, and one line of what. */}
             {fullPlace && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong via-overlay-strong/70 to-transparent px-[4%] pb-[calc(14%+5.5rem+env(safe-area-inset-bottom,0px))] pt-[10%]">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong via-overlay-strong/70 to-transparent px-[4%] pb-[calc(14%+9rem+env(safe-area-inset-bottom,0px))] pt-[10%]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`cap-${index}`}
@@ -532,33 +623,56 @@ export default function SlideShow({
 
         {/* Story-style tap/hold/swipe layer, full-frame and BELOW the chrome
             in DOM order (and so in stacking) — a tap that lands on a real
-            button is a click on that button, never a gesture on this. */}
-        <div
-          className="absolute inset-0"
-          style={{ touchAction: "none" }}
-          onPointerDown={onSurfacePointerDown}
-          onPointerUp={onSurfacePointerUp}
-          onPointerCancel={onSurfacePointerCancel}
-          aria-hidden
-        />
+            button is a click on that button, never a gesture on this. Absent
+            on the end card: it renders *before* this layer in DOM order like
+            every other slide, so without this guard its own two buttons sat
+            under this transparent sheet and nothing could ever reach them. */}
+        {!atEndCard && (
+          <div
+            className="absolute inset-0"
+            style={{ touchAction: "none" }}
+            onPointerDown={onSurfacePointerDown}
+            onPointerUp={onSurfacePointerUp}
+            onPointerCancel={onSurfacePointerCancel}
+            aria-hidden
+          />
+        )}
 
-        {/* Progress */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2">
-          {Array.from({ length: total }).map((_, i) => (
-            <div key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-overlay-ink/25">
-              {i < index && <div className="h-full w-full bg-surface-raised/80" />}
-              {i === index && (
-                <motion.div
-                  key={`p-${index}-${isPlaying}`}
-                  initial={{ width: "0%" }}
-                  animate={{ width: isPlaying ? "100%" : "35%" }}
-                  transition={{ duration: isPlaying ? duration / 1000 : 0.3, ease: "linear" }}
-                  className="h-full bg-surface-raised"
-                />
-              )}
+        {/* Progress — one bar per slide in Highlights, where a handful of days
+            reads fine. "Every photo" can run past 80 steps, where that many
+            slivers is unreadable, so it gets a single line for the current
+            step instead; the day strip below is what shows position there. */}
+        {!atEndCard && cut === "narrated" && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2">
+            {Array.from({ length: total }).map((_, i) => (
+              <div key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-overlay-ink/25">
+                {i < index && <div className="h-full w-full bg-surface-raised/80" />}
+                {i === index && (
+                  <motion.div
+                    key={`p-${index}-${isPlaying}`}
+                    initial={{ width: "0%" }}
+                    animate={{ width: isPlaying ? "100%" : "35%" }}
+                    transition={{ duration: isPlaying ? duration / 1000 : 0.3, ease: "linear" }}
+                    className="h-full bg-surface-raised"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {!atEndCard && cut === "full" && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 p-2">
+            <div className="h-0.5 w-full overflow-hidden rounded-full bg-overlay-ink/25">
+              <motion.div
+                key={`p-${index}-${isPlaying}`}
+                initial={{ width: "0%" }}
+                animate={{ width: isPlaying ? "100%" : "35%" }}
+                transition={{ duration: isPlaying ? duration / 1000 : 0.3, ease: "linear" }}
+                className="h-full bg-surface-raised"
+              />
             </div>
-          ))}
-        </div>
+          </div>
+        )}
 
         {/* Chrome: the settings chip (cut + speed), fullscreen and close, and
             Prev/Play/Next — fades out during playback, always there while
@@ -613,6 +727,46 @@ export default function SlideShow({
               </div>
 
               <div className="fs-safe-bottom pointer-events-auto absolute inset-x-0 flex flex-col items-center gap-3 px-5">
+                {/* One thumbnail per day — a tap jumps straight there, in
+                    either cut (B2306). Kept off the tap-zone layer below it
+                    by living inside this pointer-events-auto chrome. */}
+                {narratedSlides.length > 1 && (
+                  <div
+                    ref={stripRef}
+                    role="tablist"
+                    aria-label={t("show.days")}
+                    className="flex max-w-full items-center gap-1.5 self-stretch overflow-x-auto px-1 py-0.5"
+                  >
+                    {narratedSlides.map((day, i) => (
+                      <button
+                        key={day.key}
+                        ref={i === currentDayIndex ? activeThumbRef : undefined}
+                        role="tab"
+                        aria-selected={i === currentDayIndex}
+                        aria-label={t("show.dayNumber", { n: String(i + 1) })}
+                        onClick={() => jumpToDay(i)}
+                        className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+                          i === currentDayIndex ? "border-yellow-400" : "border-transparent"
+                        }`}
+                      >
+                        {day.photo ? (
+                          <Image
+                            src={day.photo.src}
+                            loader={mediaLoader}
+                            alt=""
+                            fill
+                            sizes="44px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-overlay-ink/20 text-xs font-semibold text-overlay-ink">
+                            {i + 1}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Ctrl
                     label={t("show.prev")}
@@ -633,7 +787,7 @@ export default function SlideShow({
                       setPlaying(false);
                       go(1);
                     }}
-                    disabled={index === total - 1}
+                    disabled={index >= total}
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Ctrl>
@@ -706,6 +860,70 @@ export default function SlideShow({
   );
 }
 
+/**
+ * The screen after the last slide — a real stop rather than a freeze-frame on
+ * the final photo. Counts are the trip's own, computed once by
+ * `getTripStats` and carried down by both callers, never re-derived here, so
+ * this can never disagree with the map page's own stats row about the same
+ * trip.
+ */
+function EndScreen({
+  stats,
+  tripHref,
+  onWatchAgain,
+}: {
+  stats: SlideShowStats;
+  tripHref: string;
+  onWatchAgain: () => void;
+}) {
+  const { t, tn } = useI18n();
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-overlay-strong text-center"
+      style={{
+        paddingLeft: "max(1.5rem, env(safe-area-inset-left, 0px))",
+        paddingRight: "max(1.5rem, env(safe-area-inset-right, 0px))",
+        paddingTop: "max(1.5rem, env(safe-area-inset-top, 0px))",
+        paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 0px))",
+      }}
+    >
+      <div className="font-display font-semibold text-overlay-ink text-[clamp(1.5rem,4vw,2.5rem)]">
+        {t("show.endTitle")}
+      </div>
+      <dl className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-4">
+        <EndStat label={tn("map.days", stats.tripDays)} value={stats.tripDays} />
+        <EndStat label={tn("map.stops", stats.places)} value={stats.places} />
+        <EndStat label={tn("map.countries", stats.countries)} value={stats.countries} />
+        <EndStat label={t("map.media")} value={stats.totalMedia} />
+      </dl>
+      <div className="mt-2 flex flex-col items-stretch gap-3 sm:flex-row">
+        <button
+          onClick={onWatchAgain}
+          className="flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-overlay-ink/10 px-5 text-sm font-semibold text-overlay-ink transition-colors hover:bg-overlay-ink/20"
+        >
+          <RotateCcw className="h-4 w-4" />
+          {t("show.watchAgain")}
+        </button>
+        <a
+          href={tripHref}
+          className="flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+        >
+          {t("show.openTrip")}
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function EndStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <dt className="text-xs text-overlay-ink/70">{label}</dt>
+      <dd className="font-display text-xl font-semibold text-overlay-ink">{value}</dd>
+    </div>
+  );
+}
+
 /** One narrated-cut slide: the day's best photo (or a plain card when there
  * is none) with the date/place as a kicker and one sentence as the headline. */
 function NarratedSlide({
@@ -751,7 +969,7 @@ function NarratedSlide({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="absolute inset-x-0 bottom-0 px-[5%] pb-[calc(9%+5.5rem+env(safe-area-inset-bottom,0px))] pt-[16%]"
+          className="absolute inset-x-0 bottom-0 px-[5%] pb-[calc(9%+9rem+env(safe-area-inset-bottom,0px))] pt-[16%]"
         >
           <div className="font-semibold text-yellow-300 text-[clamp(0.85rem,1.6vw,1.4rem)]">
             {flagFor(slide.country, slide.countryCode)} {slide.location} · {dateLabel}

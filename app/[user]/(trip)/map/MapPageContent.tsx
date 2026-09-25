@@ -257,7 +257,7 @@ export default function MapPageContent({
         )}
       </main>
 
-      {showing && <SlideShow places={places} onClose={() => setShowing(false)} />}
+      {showing && <SlideShow places={places} onClose={() => setShowing(false)} stats={stats} />}
     </div>
   );
 }

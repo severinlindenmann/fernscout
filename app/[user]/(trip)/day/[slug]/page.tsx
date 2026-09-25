@@ -100,7 +100,7 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
   // be partly a list of typos and probes.
   await recordTripView(current, "day", entry);
 
-  const { trip, index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
+  const { trip, index, days, windowStart, initialDate, stats, basemap, locals, places } = buildStoryProps(tripId, {
     openAt: entry.date,
     showCosts: await mayViewCosts(current),
     ...read,
@@ -129,6 +129,7 @@ export default async function DayPage({ params }: PageProps<"/[user]/day/[slug]"
         stats={stats}
         basemap={basemap}
         locals={locals}
+        places={places}
         dayTrack={track}
       />
     </TripProvider>

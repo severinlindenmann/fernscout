@@ -87,6 +87,7 @@ function render(ref: string, openAt?: string) {
           initialDate={props.initialDate}
           openAtDate={props.openAtDate}
           stats={props.stats}
+          places={[]}
         />,
       )}
     </LocaleProvider>,

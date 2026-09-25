@@ -134,7 +134,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     );
   }
 
-  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats, basemap, locals, places } = buildStoryProps(trip.ref, {
     showCosts: await mayViewCosts(trip),
     ...read,
   });
@@ -163,6 +163,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
         stats={stats}
         basemap={basemap}
         locals={locals}
+        places={places}
         photobook={photobook}
         // B10 — who took this trip, visible on the page itself rather than
         // only inside the StructuredData script tag above.
