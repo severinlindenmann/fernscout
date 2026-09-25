@@ -83,6 +83,11 @@
     // living inside it, and scanning them reports every file several times
     // over — the same reason eslint.config.mjs ignores `.claude/**`.
     ".claude/worktrees/**",
+    // Open core: with the private paid/ checkout present, `@paid/*` resolves
+    // there and every stub is unreachable; without it (CI, a plain clone) the
+    // stubs are what is imported. next.config.ts already refuses a stub with
+    // no paid counterpart, so knip adds nothing here but 80 false alarms.
+    "lib/paid-stubs/**",
     // A plan's own scratch workspace: briefs, reports, captures and the
     // one-off scripts written to check a single branch. Tracked so a review
     // can read them, never imported by the application.
