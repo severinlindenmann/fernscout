@@ -1,34 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  BookImage,
-  BookMarked,
   CalendarPlus,
-  ChartNoAxesColumn,
-  Coins,
   Compass,
   Download,
   Images,
-  Inbox,
-  KeyRound,
   Mailbox,
-  MapPin,
   MapPinned,
   Mic,
-  PenLine,
-  PersonStanding,
-  Printer,
-  Receipt,
-  Scissors,
+  Search,
   Send,
-  SendHorizontal,
-  SlidersHorizontal,
   Trash2,
-  ArchiveRestore,
-  UserPlus,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import DeleteAccount from "@/components/DeleteAccount";
@@ -41,102 +25,107 @@ import { useStudioBar } from "@/components/studio/StudioBar";
 import StudioPage from "@/components/studio/StudioPage";
 import { formatStagedBytes } from "@/lib/validate/media";
 import { GROUP_HUE, type StudioGroup } from "@/lib/studio/groups";
-import type { HubAccount, ResumableImportSummary, StudioHubModel } from "@/lib/studio/hub";
+import { bringInFirstRows, buildHubGroups, filterHubGroups, journalRows, type Row } from "@/lib/studio/hubGroups";
+import type { ResumableImportSummary, StudioHubModel } from "@/lib/studio/hub";
 import type { TranslationKey } from "@/lib/i18n";
+import { daysUntil, readerTodayISO } from "@/lib/tripTime";
 import { unfinishedIcon, unfinishedTitle } from "@paid/printOrder/components/studio/UnfinishedPrint";
 import type { OrderRow, UnfinishedPrint } from "@paid/printOrder/lib/orders";
 import { addDayExpiresOn, readAddDaySnapshot, type AddDaySnapshot } from "@/lib/studio/addDayResume";
 
 type T = (key: TranslationKey, vars?: Record<string, string>) => string;
-type TN = (key: TranslationKey, count: number, vars?: Record<string, string>) => string;
 
-/** "4.0 of 10 GB" — the ceiling is whole gigabytes; used space under a
- *  gigabyte keeps its own unit ("3 MB of 10 GB"). */
-function storageFact({ usedBytes, limitBytes }: { usedBytes: number; limitBytes: number }, t: T, locale: string): string {
-  const gb = (bytes: number, digits: number) =>
-    new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: 1 }).format(bytes / 1024 ** 3);
-  const used = usedBytes >= 1024 ** 3 ? gb(usedBytes, 1) : formatStagedBytes(usedBytes, locale);
-  return t("studio.hub.fact.storage", { used, limit: gb(limitBytes, 0) });
-}
-
-type Row = {
+type HeroModel = {
   href: string;
   Icon: LucideIcon;
   title: string;
-  /** Absent only in the Journal card, which is titles only. */
-  description?: string;
-  /** Present exactly when this row cannot run right now — the fully worded
-   *  reason (spec §3), shown in place of the description, with an "off" chip. */
-  reason?: string;
-  /** B2067 — a neutral fact for the chip on the right, only when non-zero. */
-  fact?: string;
-  /** B2134 — a row of chips in place of the line (Credits & storage): the
-   *  balance, an amber "N open" for a purchase awaiting approval, storage. */
-  factLine?: { text: string; amber?: boolean }[];
+  description: string;
+  cta: string;
+  /** B2304 — the small link beside the hero that switches mode ("write
+   *  instead" / "speak instead") or offers the exception to the state's own
+   *  rule ("tell about a day anyway" between trips). Absent when there is
+   *  no second path worth naming. */
+  altLink?: { href: string; label: string };
 };
 
 /**
- * The Journal card's rows — titles only (B2066). Visitors stays in the list
- * greyed, with its reason, when this journal does not count its readers:
- * hiding a row is how somebody concludes the software cannot do the thing.
+ * The one hero, chosen by state (B2304, spec §"Only the top of the page
+ * changes"). Replaces the old always-both TellToday-card-plus-Hero-card
+ * stack: on a phone the owner is either mid-trip (write or speak about
+ * today, or told already), a day from departure (plan), or between trips
+ * (start one) — never more than one of those is true, so only one card is
+ * ever the right one to lead with.
  */
-function journalRows(username: string, t: T, tn: TN, locale: string, analyticsEnabled: boolean, account: HubAccount): Row[] {
-  const factLine = [
-    ...(account.credits !== null
-      ? [{ text: `${new Intl.NumberFormat(locale).format(account.credits)} ${tn("me.paymentUnit", account.credits)}` }]
-      : []),
-    ...(account.purchasesOpen
-      ? [{ text: tn("studio.hub.fact.purchasesOpen", account.purchasesOpen, { count: String(account.purchasesOpen) }), amber: true }]
-      : []),
-    ...(account.storage ? [{ text: storageFact(account.storage, t, locale) }] : []),
-  ];
-  return [
-    {
-      href: `/${username}/studio/account`,
-      Icon: Coins,
-      title: t("studio.hub.item.account.title"),
-      factLine: factLine.length ? factLine : undefined,
-    },
-    { href: `/${username}/studio/journal`, Icon: BookMarked, title: t("studio.hub.item.journalSettings.title") },
-    { href: `/${username}/studio/agent`, Icon: KeyRound, title: t("studio.hub.item.agent.title") },
-    {
-      href: `/${username}/studio/visitors`,
-      Icon: ChartNoAxesColumn,
-      title: t("studio.hub.item.visitors.title"),
-      reason: analyticsEnabled ? undefined : t("studio.hub.cannotRun.visitors"),
-    },
-  ];
-}
+function heroFor(model: StudioHubModel, speak: boolean, username: string, t: T): HeroModel {
+  if (model.kind === "empty") {
+    return {
+      href: `/${username}/studio/trip/new`,
+      Icon: Compass,
+      title: t("studio.hub.empty.cta"),
+      description: t("studio.hub.empty.ctaHint"),
+      cta: t("studio.hub.newTrip.cta"),
+    };
+  }
 
-/** B2160 — "2 drafts" on a Print row: how many of that kind wait unfinished
- *  behind it, on the page where Carry on and Discard already are. Nothing at
- *  zero, like every other fact chip. */
-function draftsChip(unfinished: UnfinishedPrint[], kind: UnfinishedPrint["kind"], tn: TN): string | undefined {
-  const n = unfinished.filter((u) => u.kind === kind).length;
-  return n > 0 ? tn("studio.hub.fact.drafts", n, { count: String(n) }) : undefined;
-}
+  if (model.addDayTrip?.current) {
+    const trip = model.addDayTrip;
+    if (model.toldToday) {
+      return {
+        href: `/${username}/studio/day/new?from=hub`,
+        Icon: CalendarPlus,
+        title: t("studio.hub.addDay.toldToday.title"),
+        description: t("studio.hub.addDay.toldToday.subtitle", { trip: trip.title }),
+        cta: t("studio.hub.addDay.toldToday.cta"),
+        altLink: { href: `/${username}/studio/day/edit`, label: t("studio.hub.addDay.change") },
+      };
+    }
+    if (speak) {
+      return {
+        href: `/${username}/studio/day/new?mode=speak&from=hub`,
+        Icon: Mic,
+        title: t("studio.hub.speak.title"),
+        description: t("studio.hub.speak.subtitle"),
+        cta: t("studio.hub.speak.cta"),
+        altLink: { href: `/${username}/studio/day/new?from=hub`, label: t("studio.hub.hero.writeInstead") },
+      };
+    }
+    return {
+      href: `/${username}/studio/day/new?from=hub`,
+      Icon: CalendarPlus,
+      title: t("studio.hub.addDay.title"),
+      description: t("studio.hub.addDay.subtitle", { trip: trip.title }),
+      cta: t("studio.hub.addDay.cta"),
+    };
+  }
 
-/** Photographs and Your route — the Bring in rows an empty journal also
- *  gets, since either can make its first trip. */
-function bringInFirstRows(username: string, t: T): Row[] {
-  return [
-    {
-      href: `/${username}/studio/photos`,
-      Icon: Images,
-      title: t("studio.hub.item.photos.title"),
-      description: t("studio.hub.item.photos.description"),
-    },
-    {
-      href: `/${username}/studio/location?from=hub`,
-      Icon: MapPin,
-      title: t("studio.hub.item.location.title"),
-      description: t("studio.hub.item.location.description"),
-    },
-  ];
+  // A trip starting tomorrow (or today, not yet declared current) gets the
+  // plan hero instead of the generic "start a trip" one — nothing to start,
+  // it already exists; what is missing is a plan.
+  if (model.planTrip && model.facts.planStartsInDays !== null && model.facts.planStartsInDays <= 1) {
+    return {
+      href: `/${username}/studio/plan/${model.planTrip.id}`,
+      Icon: MapPinned,
+      title: t("studio.hub.plan.hero.title", { trip: model.planTrip.title }),
+      description: t("studio.hub.plan.hero.subtitle"),
+      cta: t("studio.hub.plan.hero.cta"),
+    };
+  }
+
+  // Between trips — no current trip, and nothing imminent enough to plan
+  // for yet. An ended trip is still reachable, honestly labelled, from the
+  // Write group below (unchanged).
+  return {
+    href: `/${username}/studio/trip/new`,
+    Icon: Compass,
+    title: t("studio.hub.betweenTrips.title"),
+    description: t("studio.hub.item.newTrip.description"),
+    cta: t("studio.hub.newTrip.cta"),
+    altLink: speak ? { href: `/${username}/studio/day/new?mode=speak&from=hub`, label: t("studio.hub.hero.tellAnyway") } : undefined,
+  };
 }
 
 /**
- * `/[user]/studio` — the Desk (B2066, after B1829's hub).
+ * `/[user]/studio` — the Desk (B2066, after B1829's hub; calmed by B2304).
  *
  * One hero for the thing most likely next, then the six groups as cards in a
  * fixed order, each row one distinct icon, a title and one line saying what it
@@ -152,101 +141,37 @@ export default function StudioHub({
   username: string;
   model: StudioHubModel;
   /** B2194 — the owner chose to tell days by voice, and transcription is on:
-   *  one big "Tell about today" above everything else. */
+   *  the hero becomes the mic, during a trip, until today is told. */
   speak?: boolean;
 }) {
   // The iPhone connects itself for Photos → Share the first time the studio
   // opens; the status lives on /me — B2206.
   useShareInboxAutoConnect(username);
   const { t, tn, locale } = useI18n();
+  const [query, setQuery] = useState("");
 
-  // The hero, and the same target for the phone bar's primary — B1951: a
-  // current trip writes a day, an ended one with nothing after it starts the
-  // next trip instead of backdating the one that just finished.
-  const hero =
-    model.kind === "empty"
-      ? {
-          href: `/${username}/studio/trip/new`,
-          Icon: Compass,
-          title: t("studio.hub.empty.cta"),
-          description: t("studio.hub.empty.ctaHint"),
-          cta: t("studio.hub.newTrip.cta"),
-        }
-      : model.addDayTrip?.current
-        ? {
-            href: `/${username}/studio/day/new?from=hub`,
-            Icon: CalendarPlus,
-            title: t("studio.hub.addDay.title"),
-            description: t("studio.hub.addDay.subtitle", { trip: model.addDayTrip.title }),
-            cta: t("studio.hub.addDay.cta"),
-          }
-        : model.addDayTrip
-          ? {
-              href: `/${username}/studio/trip/new`,
-              Icon: Compass,
-              title: t("studio.hub.item.newTrip.title"),
-              description: t("studio.hub.item.newTrip.description"),
-              cta: t("studio.hub.newTrip.cta"),
-            }
-          : {
-              // Every trip still upcoming: a generic "Add a day" naming no trip.
-              href: `/${username}/studio/day/new?from=hub`,
-              Icon: CalendarPlus,
-              title: t("studio.hub.addDay.title"),
-              description: t("studio.hub.addDay.subtitleNoCurrent"),
-              cta: t("studio.hub.addDay.cta"),
-            };
+  // B2304 — no floating pill on the hub any more: it repeated the hero and
+  // two of the group grid's own rows, one more "door" on a page about
+  // having fewer of them. `replace: true` keeps the provider's own default
+  // back-to-studio link off the hub too — the hub *is* the studio, so that
+  // link would point at itself (B2001, unchanged). Deeper studio pages keep
+  // their own bar.
+  useStudioBar(null, { replace: true });
 
-  // `replace` — the hub *is* the studio, so its bottom bar never carries a
-  // link back to itself (B2001) — and `revealAfterScroll={160}`, kept here
-  // as the one caller of that option. `null` in the empty state.
-  useStudioBar(
-    model.kind === "full" ? (
-      <>
-        <Link
-          href={hero.href}
-          className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-full bg-action-strong px-3
-                     text-sm font-semibold text-on-action transition-colors hover:bg-action-strong-hover
-                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-        >
-          <hero.Icon className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.2} />
-          <span className="truncate">{hero.cta}</span>
-        </Link>
-        {/* Below 430px three labelled pills do not fit a 390px row without
-            truncating every label (B1996), so the two secondary actions keep
-            their icon and give their name to assistive tech instead. */}
-        <Link
-          href={`/${username}/studio/photos`}
-          aria-label={t("studio.hub.item.photos.title")}
-          className="flex min-h-11 min-w-11 flex-none items-center justify-center gap-2 rounded-full border
-                     border-line-strong px-3 text-sm font-semibold text-ink-body transition-colors
-                     hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-offset-2
-                     focus-visible:outline-blue-500 min-[430px]:flex-1"
-        >
-          <Images className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.2} />
-          <span className="hidden truncate min-[430px]:inline">{t("studio.hub.item.photos.title")}</span>
-        </Link>
-        {!model.cannotRun.postcard && (
-          <Link
-            href={`/${username}/studio/postcard`}
-            aria-label={t("studio.hub.item.postcard.title")}
-            className="flex min-h-11 min-w-11 flex-none items-center justify-center gap-2 rounded-full border
-                       border-line-strong px-3 text-sm font-semibold text-ink-body transition-colors
-                       hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-offset-2
-                       focus-visible:outline-blue-500 min-[430px]:flex-1"
-          >
-            <Printer className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.2} />
-            <span className="hidden truncate min-[430px]:inline">{t("studio.hub.item.postcard.title")}</span>
-          </Link>
-        )}
-      </>
-    ) : null,
-    { replace: true, revealAfterScroll: 160 },
-  );
+  const hero = heroFor(model, speak, username, t);
 
   const halfDone = (
     <HalfDone username={username} runs={model.resumableImports} postcard={model.postcardSuggestion} unfinished={model.print.unfinished} />
   );
+
+  // Hooks run unconditionally, before the empty-state's own early return —
+  // `buildHubGroups` only accepts the "full" model, so the empty branch is
+  // handed an empty array it never renders.
+  const allGroups = useMemo(
+    () => (model.kind === "full" ? buildHubGroups(model, username, t, tn, locale) : []),
+    [model, username, t, tn, locale],
+  );
+  const groups = useMemo(() => filterHubGroups(allGroups, query), [allGroups, query]);
 
   if (model.kind === "empty")
     return (
@@ -261,180 +186,56 @@ export default function StudioHub({
       </StudioPage>
     );
 
-  const { facts } = model;
-  const ended = model.addDayTrip && !model.addDayTrip.current ? model.addDayTrip : null;
-  const groups: { group: Exclude<StudioGroup, "journal">; rows: Row[] }[] = [
-    {
-      group: "write",
-      rows: [
-        {
-          href: `/${username}/studio/day/edit`,
-          Icon: PenLine,
-          title: t("studio.hub.item.changeDay.title"),
-          description: t("studio.hub.item.changeDay.description"),
-          reason: model.cannotRun.changeDay ? t("studio.hub.cannotRun.changeDay") : undefined,
-        },
-        {
-          href: `/${username}/studio/day/publish`,
-          Icon: SendHorizontal,
-          title: t("studio.hub.item.publishDay.title"),
-          description: t("studio.hub.item.publishDay.description"),
-          // A neutral count, never aged or ranked: publishing is never nagged.
-          fact: facts.drafts > 0 ? tn("studio.hub.fact.drafts", facts.drafts, { count: String(facts.drafts) }) : undefined,
-        },
-        // B2259 — only while something is in it.
-        ...(facts.deleted
-          ? [
-              {
-                href: `/${username}/studio/day/deleted`,
-                Icon: ArchiveRestore,
-                title: t("studio.hub.item.deleted.title"),
-                description: t("studio.hub.item.deleted.description"),
-                fact: tn("studio.hub.fact.deleted", facts.deleted, { count: String(facts.deleted) }),
-              },
-            ]
-          : []),
-        {
-          href: `/${username}/studio/day/reshape?from=hub`,
-          Icon: Scissors,
-          title: t("studio.hub.item.reshapeDay.title"),
-          description: t("studio.hub.item.reshapeDay.description"),
-          reason: model.cannotRun.reshapeDay ? t("studio.hub.cannotRun.reshapeDay") : undefined,
-        },
-        // The hero leads with a new trip once none is current (B1951) —
-        // adding a day to the one that just ended stays reachable here,
-        // honestly labelled as ended.
-        ...(ended
-          ? [
-              {
-                href: `/${username}/studio/day/new?trip=${encodeURIComponent(ended.id)}&from=hub`,
-                Icon: CalendarPlus,
-                title: t("studio.hub.item.addDayEnded.title", { trip: ended.title }),
-                description: t("studio.hub.item.addDayEnded.description", { trip: ended.title }),
-              },
-            ]
-          : []),
-      ],
-    },
-    {
-      group: "plan",
-      rows: [
-        // Not twice: when the hero already is the new trip, the row goes.
-        ...(ended
-          ? []
-          : [
-              {
-                href: `/${username}/studio/trip/new`,
-                Icon: Compass,
-                title: t("studio.hub.item.newTrip.title"),
-                description: t("studio.hub.item.newTrip.description"),
-              },
-            ]),
-        // Hidden outright, not greyed — nothing upcoming is nothing to plan.
-        ...(model.planTrip
-          ? [
-              {
-                href: `/${username}/studio/plan/${model.planTrip.id}`,
-                Icon: MapPinned,
-                title: t("studio.hub.item.plan.title", { trip: model.planTrip.title }),
-                description: t("studio.hub.item.plan.description"),
-                fact: facts.planStartsInDays
-                  ? tn("studio.hub.fact.startsIn", facts.planStartsInDays, { count: String(facts.planStartsInDays) })
-                  : undefined,
-              },
-            ]
-          : []),
-        {
-          href: `/${username}/studio/trip`,
-          Icon: SlidersHorizontal,
-          title: t("studio.hub.item.tripEdit.title"),
-          description: t("studio.hub.item.tripEdit.description"),
-        },
-      ],
-    },
-    {
-      group: "people",
-      rows: [
-        // B2133 — one row for the one readers page: inviting, answering who
-        // asks and who reads along all happen on /studio/readers.
-        {
-          href: `/${username}/studio/readers`,
-          Icon: UserPlus,
-          title: t("studio.hub.item.readers.title"),
-          description: t("studio.hub.item.readers.description"),
-          fact: facts.readersAsking
-            ? tn("studio.hub.fact.asking", facts.readersAsking, { count: String(facts.readersAsking) })
-            : undefined,
-        },
-        {
-          href: `/${username}/studio/people?from=hub`,
-          Icon: Users,
-          title: t("studio.hub.item.people.title"),
-          description: t("studio.hub.item.people.description"),
-        },
-        {
-          href: `/${username}/studio/figures`,
-          Icon: PersonStanding,
-          title: t("studio.hub.item.figures.title"),
-          description: t("studio.hub.item.figures.description"),
-        },
-      ],
-    },
-    {
-      group: "bringIn",
-      rows: [
-        ...bringInFirstRows(username, t),
-        {
-          href: `/${username}/studio/statement?from=hub`,
-          Icon: Receipt,
-          title: t("studio.hub.item.statement.title"),
-          description: t("studio.hub.item.statement.description"),
-        },
-        {
-          href: `/${username}/studio/inbox`,
-          Icon: Inbox,
-          title: t("studio.hub.item.inbox.title"),
-          description: facts.inboxCount ? t("studio.hub.item.inbox.hint") : t("studio.hub.item.inbox.empty"),
-          fact: facts.inboxCount
-            ? tn("studio.hub.item.inbox.description", facts.inboxCount, {
-                count: String(facts.inboxCount),
-                size: formatStagedBytes(facts.inboxBytes, locale),
-              })
-            : undefined,
-        },
-      ],
-    },
-    {
-      group: "print",
-      rows: [
-        {
-          href: `/${username}/studio/postcard`,
-          Icon: Send,
-          title: t("studio.hub.item.postcard.title"),
-          description: t("studio.hub.item.postcard.description"),
-          reason: model.cannotRun.postcard ? t("studio.hub.cannotRun.postcard") : undefined,
-          fact: draftsChip(model.print.unfinished, "postcard", tn),
-        },
-        {
-          href: `/${username}/studio/photobook`,
-          Icon: BookImage,
-          title: t("studio.hub.item.photobook.title"),
-          description: t("studio.hub.item.photobook.description"),
-          reason: model.cannotRun.photobook ? t("studio.hub.cannotRun.photobook") : undefined,
-          fact: draftsChip(model.print.unfinished, "photobook", tn),
-        },
-      ],
-    },
-  ];
+  const duringTrip = Boolean(model.addDayTrip?.current);
+  const waitingThisTrip = duringTrip
+    ? (model.waitingDays?.cards.find((c) => c.trip?.id === model.addDayTrip!.id) ?? null)
+    : null;
+  const waitingThisTripCount = duringTrip ? (model.waitingDays?.cards.filter((c) => c.trip?.id === model.addDayTrip!.id).length ?? 0) : 0;
 
   return (
     <StudioPage username={username} back={false} width="wide" title={t("studio.hub.title")}>
-      {speak && <TellToday username={username} />}
       <Hero {...hero} />
-      <WaitingDays username={username} model={model.waitingDays} canWrite />
-      {/* B2197 — one notice for each future trip not yet armed or declined. */}
-      <ScheduleRouteNotices username={username} trips={model.routeRecordingTrips} />
+      {hero.altLink && (
+        <Link
+          href={hero.altLink.href}
+          data-hero-alt
+          className="mt-2 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-ink-strong underline underline-offset-2"
+        >
+          {hero.altLink.label}
+        </Link>
+      )}
+      {duringTrip ? (
+        // B2304 — during a trip, at most three one-tap rows replace the
+        // full "Waiting for your words" card list and the plan notice:
+        // the owner's own complaint was everything showing at once.
+        <DuringTripRows
+          username={username}
+          waitingCount={waitingThisTripCount}
+          waitingFirstDate={waitingThisTrip?.date ?? null}
+          drafts={model.facts.drafts}
+          showPostcard={!model.cannotRun.postcard}
+        />
+      ) : (
+        <>
+          <WaitingDays username={username} model={model.waitingDays} canWrite />
+          {/* B2197 — one notice for each future trip not yet armed or declined. */}
+          <ScheduleRouteNotices username={username} trips={model.routeRecordingTrips} />
+        </>
+      )}
       {halfDone}
+      <label className="relative mt-3 block">
+        <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-secondary" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("studio.hub.filter.placeholder")}
+          aria-label={t("studio.hub.filter.placeholder")}
+          data-hub-filter
+          className="min-h-11 w-full rounded-full border border-line-faint bg-surface-raised py-2 pl-9 pr-4 text-sm text-ink-strong
+                     placeholder:text-ink-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        />
+      </label>
       <div className="mt-3 grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {groups.map(({ group, rows }) => (
           <GroupCard
@@ -450,23 +251,75 @@ export default function StudioHub({
   );
 }
 
-/** B2194 — the speak-mode home: one big button into the spoken questions. */
-function TellToday({ username }: { username: string }) {
-  const { t } = useI18n();
+/** B2304 — the during-trip hero's at-most-three rows: photos waiting for
+ *  words on this trip, sharing a day, and a postcard when printing is on.
+ *  A row is left out rather than shown disabled — each is only ever a real
+ *  next step, never a door onto something switched off. */
+function DuringTripRows({
+  username,
+  waitingCount,
+  waitingFirstDate,
+  drafts,
+  showPostcard,
+}: {
+  username: string;
+  waitingCount: number;
+  waitingFirstDate: string | null;
+  drafts: number;
+  showPostcard: boolean;
+}) {
+  const { t, tn } = useI18n();
+  const rows: { key: string; href: string; Icon: LucideIcon; title: string; detail: string; fact?: string }[] = [
+    ...(waitingCount > 0 && waitingFirstDate
+      ? [
+          {
+            key: "waiting",
+            href: `/${username}/studio/day/new?photos=${waitingFirstDate}&from=hub`,
+            Icon: Images,
+            title: t("studio.hub.duringTrip.waiting.title"),
+            detail: tn("studio.hub.duringTrip.waiting.detail", waitingCount, { count: String(waitingCount) }),
+          },
+        ]
+      : []),
+    {
+      key: "share",
+      href: `/${username}/studio/day/publish`,
+      Icon: Send,
+      title: t("studio.hub.item.publishDay.title"),
+      detail: t("studio.hub.item.publishDay.description"),
+      fact: drafts > 0 ? tn("studio.hub.fact.drafts", drafts, { count: String(drafts) }) : undefined,
+    },
+    ...(showPostcard
+      ? [
+          {
+            key: "postcard",
+            href: `/${username}/studio/postcard`,
+            Icon: Mailbox,
+            title: t("studio.hub.item.postcard.title"),
+            detail: t("studio.hub.item.postcard.description"),
+          },
+        ]
+      : []),
+  ];
   return (
-    <Link
-      href={`/${username}/studio/day/new?mode=speak&from=hub`}
-      data-tell-today
-      className="fs-ask-dark mt-4 flex items-center gap-4 rounded-[20px] p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-    >
-      <span aria-hidden="true" className="grid size-16 flex-none place-items-center rounded-full bg-coral-600 text-on-deep">
-        <Mic size={30} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block font-display text-[23px] font-semibold leading-tight">{t("studio.hub.speak.title")}</span>
-        <span className="mt-1 block text-base">{t("studio.hub.speak.subtitle")}</span>
-      </span>
-    </Link>
+    <ul data-during-trip-rows className="mt-3 divide-y divide-line-faint rounded-2xl border border-line-faint bg-surface-raised px-2.5">
+      {rows.map((row) => (
+        <li key={row.key}>
+          <Link
+            href={row.href}
+            className="flex min-h-11 items-center gap-3 rounded-[10px] px-1.5 py-2 transition-colors hover:bg-surface-neutral
+                       focus-visible:bg-surface-neutral focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            <row.Icon className="h-5 w-5 flex-none text-ink-body" aria-hidden strokeWidth={2} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-semibold leading-tight text-ink-strong">{row.title}</span>
+              <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">{row.detail}</span>
+            </span>
+            {row.fact && <Chip fact>{row.fact}</Chip>}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -659,11 +512,18 @@ function JournalCard({ username, rows }: { username: string; rows: Row[] }) {
 type CarryRow = { key: string; href: string; Icon: LucideIcon; title: string; detail: string; chip: string };
 
 /**
- * Half done — B2067. One strip under the hero for everything started and not
- * finished: the add-day draft (client-side, in `sessionStorage`, so read once
- * after mount — server and client agree on the first paint), each resumable
- * photographs import, and the postcard worth sending. Absent when there is
- * nothing, never an empty box.
+ * Half done — B2067, slimmed to one line by B2304. Everything started and
+ * not finished: the add-day draft (client-side, in `sessionStorage`, so read
+ * once after mount — server and client agree on the first paint), each
+ * resumable photographs import, and the postcard worth sending. Absent when
+ * there is nothing, never an empty box.
+ *
+ * Only the first item shows, plus "+N more" — the owner's own complaint was
+ * everything on the page at once, and a half-done list can otherwise grow to
+ * several rows of its own. The one exception: a photographs import that
+ * expires within 3 days is promoted to that first slot regardless of when it
+ * was started, since it is the one item here with a real deadline. "+N more"
+ * expands the rest inline; nothing is ever hidden for good.
  */
 function HalfDone({
   username,
@@ -679,6 +539,7 @@ function HalfDone({
 }) {
   const { t, tn, locale, formatLongDate, formatShortDate } = useI18n();
   const [snapshot, setSnapshot] = useState<AddDaySnapshot | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- see the doc comment above.
@@ -737,6 +598,21 @@ function HalfDone({
   ];
 
   if (rows.length === 0) return null;
+
+  // An import expiring within 3 days always shows — promoted to the front
+  // if it is not already the row that would have led.
+  // `daysUntil` clamps a past date to 0, so an already-expired run must be
+  // excluded explicitly — otherwise it would read as maximally "urgent"
+  // rather than simply gone.
+  const today = readerTodayISO();
+  const urgentRunIds = new Set(
+    runs.filter((r) => r.expiresAt.slice(0, 10) >= today && daysUntil(r.expiresAt.slice(0, 10)) <= 3).map((r) => r.runId),
+  );
+  const urgentIndex = rows.findIndex((r) => urgentRunIds.has(r.key));
+  const ordered = urgentIndex > 0 ? [rows[urgentIndex], ...rows.filter((_, i) => i !== urgentIndex)] : rows;
+  const shown = expanded ? ordered : ordered.slice(0, 1);
+  const more = ordered.length - shown.length;
+
   return (
     <section
       data-half-done
@@ -747,7 +623,7 @@ function HalfDone({
         {t("studio.hub.halfDone")}
       </h2>
       <ul>
-        {rows.map((row) => (
+        {shown.map((row) => (
           <li key={row.key}>
             <Link
               href={row.href}
@@ -764,6 +640,15 @@ function HalfDone({
           </li>
         ))}
       </ul>
+      {more > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-0.5 inline-flex min-h-11 items-center px-1.5 text-sm font-semibold text-ink-strong underline underline-offset-2"
+        >
+          {tn("studio.hub.halfDone.more", more, { count: String(more) })}
+        </button>
+      )}
     </section>
   );
 }

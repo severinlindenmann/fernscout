@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/LocaleProvider";
 import DoneScreen from "@/components/studio/DoneScreen";
+import NotifyStep from "@/components/studio/readers/NotifyStep";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import type { TranslationKey } from "@/lib/i18n";
@@ -50,9 +51,12 @@ export default function InviteSection({
   const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
-  const [grantedEmail, setGrantedEmail] = useState<string | null>(null);
+  /** B2292 — the person just added, whose step 2 (how they hear) is showing. */
+  const [added, setAdded] = useState<{ id: string; name: string } | null>(null);
+  const [done, setDone] = useState(false);
 
   const openTrips = preview.filter((p) => p.opens);
   const closedTrips = preview.filter((p) => !p.opens);
@@ -68,19 +72,23 @@ export default function InviteSection({
     setWriteError(null);
     const failed = `${t("studio.invite.writeFailed.banner")} ${t("studio.invite.writeFailed.message")}`;
     try {
-      const res = await fetch(`/api/helper/${encodeURIComponent(username)}/reader/grant`, {
+      // B2292 — added and let in, nothing sent: step 2 below asks how they
+      // hear about it. (B2291 rebuilds this form as "Add a person".)
+      const res = await fetch(`/api/web/${encodeURIComponent(username)}/readers`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, name }),
+        body: JSON.stringify({ name, email, phone, role: "reader" }),
       });
-      const json = (await res.json().catch(() => null)) as { ok?: boolean; email?: string } | null;
-      if (!res.ok || !json?.ok) {
+      const json = (await res.json().catch(() => null)) as { ok?: boolean; contact?: { id: string } } | null;
+      if (!res.ok || !json?.ok || !json.contact) {
         setWriteError(failed);
         return;
       }
-      setGrantedEmail(json.email ?? email);
+      setAdded({ id: json.contact.id, name: name.trim() });
+      setDone(false);
       setName("");
       setEmail("");
+      setPhone("");
       // The lists below are this page's server props: re-read them so the
       // new reader appears under "Reading now".
       router.refresh();
@@ -94,15 +102,17 @@ export default function InviteSection({
   return (
     <section id="invite" className="mt-6 scroll-mt-6">
       <h2 className="font-display text-lg font-semibold text-ink-strong">{t("studio.readers.invite.heading")}</h2>
-      {grantedEmail ? (
+      {added && !done ? (
+        <NotifyStep key={added.id} username={username} contactId={added.id} onLater={() => setDone(true)} />
+      ) : added ? (
         <>
           <DoneScreen
             username={username}
-            done={`${t("studio.invite.done.banner", { email: grantedEmail })} ${t("studio.invite.done.accessExists")}`}
+            done={`${t("studio.invite.done.banner", { email: added.name })} ${t("studio.invite.done.accessExists")}`}
           />
           <button
             type="button"
-            onClick={() => setGrantedEmail(null)}
+            onClick={() => setAdded(null)}
             className="mt-3 text-sm font-semibold text-ink-strong underline underline-offset-2"
           >
             {t("studio.invite.done.inviteAnother")}
@@ -125,6 +135,17 @@ export default function InviteSection({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
+              className={FIELD}
+            />
+          </label>
+          <label className={`${EYEBROW} mt-3`}>
+            {t("notifyStep.mobileLabel")}
+            <input
+              type="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+41 76 000 00 00"
               className={FIELD}
             />
           </label>
@@ -194,7 +215,7 @@ export default function InviteSection({
               a mail. */}
           <StepPrimary
             busy={busy}
-            disabled={!name.trim() || !email.trim()}
+            disabled={!name.trim() || (!email.trim() && !phone.trim())}
             onClick={grant}
             label={name.trim() ? t("studio.invite.preview.button", { name: name.trim() }) : t("studio.readers.invite.button")}
             tone="bg-yellow-400 text-yellow-950 hover:bg-yellow-300"

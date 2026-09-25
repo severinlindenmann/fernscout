@@ -517,6 +517,8 @@ const SPENT_GROUPS: Record<string, string> = {
   travellers_from_photo: "ai",
   day_mail: "messages",
   day_whatsapp: "messages",
+  day_sms: "messages",
+  invite: "messages",
   digest: "messages",
   postcard: "postcard",
   photobook: "photobook",

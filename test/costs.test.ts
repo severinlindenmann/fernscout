@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { getAllCosts, getBudget, getCostSummary, getPreparationCosts } from "@/lib/costs";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 
 beforeEach(() => {
   process.env.CONTENT_DIR = path.join(process.cwd(), "test", "fixtures", "content");
@@ -139,5 +142,64 @@ describe("a trip that has not begun", () => {
     const beta = getCostSummary("u/beta-2026");
     expect(beta.budget).toBeUndefined(); // declares none
     expect(beta.byDay).toEqual([{ date: "2026-08-15", amount: 20, cumulative: 20, unrecorded: false }]);
+  });
+});
+
+/**
+ * B2308 — `byCountry` used to filter `amount > 0`, so a country visited but
+ * never costed vanished from it entirely. The trip hero's "days per country"
+ * card is about days, not money, and needs every country the reader was
+ * actually in; only the money-subject consumer (the costs page) filters
+ * `amount > 0` itself now.
+ */
+describe("byCountry keeps a country with nothing spent in it", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-costs-bycountry-"));
+    process.env.CONTENT_DIR = dir;
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: {} }),
+    );
+    fs.mkdirSync(path.join(dir, "owner"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "owner", "config.json"),
+      JSON.stringify({
+        title: "U",
+        tagline: "t",
+        owner: { name: "A B", nickname: "A" },
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+      }),
+    );
+    writeTripFixture("owner", { id: "trip", start: "2026-01-01", end: "2026-01-05" });
+    writeDayFixture(dir, "owner", "trip", {
+      slug: "spent",
+      date: "2026-01-01",
+      country: "Portugal",
+      countryCode: "PT",
+      costs: [{ label: "Bus", amount: 10 }],
+    });
+    writeDayFixture(dir, "owner", "trip", {
+      slug: "free",
+      date: "2026-01-02",
+      country: "Spain",
+      countryCode: "ES",
+    });
+  });
+
+  afterEach(() => {
+    delete process.env.CONTENT_DIR;
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  test("both countries are in the list, the uncosted one at zero", () => {
+    const summary = getCostSummary("owner/trip");
+    expect(summary.byCountry).toEqual([
+      { country: "Portugal", countryCode: "PT", amount: 10, nights: 1, perDay: 10 },
+      { country: "Spain", countryCode: "ES", amount: 0, nights: 1, perDay: 0 },
+    ]);
   });
 });

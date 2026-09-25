@@ -207,15 +207,9 @@ describe("the helper routes", () => {
   // being a dead end that sends somebody to `/agent`. Read-only: it parses a
   // vCard and answers with what it found, and writes nothing. Same cookie,
   // same owner check as the fifty-nine before it.
-  // Sixty-one: `reader/grant` (B1833, D11) — the one route in the studio
-  // that hands somebody else access. An owner names an address and it can
-  // read the journal the moment this returns; the mail that follows tells
-  // that person rather than asking them. It belongs in this census more than
-  // any of the sixty before it, and it is the reason `test/reader-grant-route.test.ts`
-  // exists as well: this file proves the gate is *written*, that one proves
-  // it *refuses*, checked by breaking the gate and watching the refusals
-  // fail. Same cookie, same owner check as the sixty before it, and it mints
-  // no token — a link still grants nothing.
+  // `reader/grant` (B1833, D11) is gone (B2295, one door for readers,
+  // B2291/B2292): Add a person's own flow at `/<user>/studio/readers`
+  // replaced it, and nothing else called it.
   // Sixty-two: `inbox/[id]/move` (B1990) — files a waiting item onto a day,
   // or takes it back off one, the owner-cookie door
   // `moveInboxFileToDay`/`moveInboxFileFromDay` never had before the studio
@@ -247,8 +241,11 @@ describe("the helper routes", () => {
   // day's, respecting that day's own timezone). Same cookie, the owner's
   // alone — like `gps` above, there is deliberately no `/api/v2` twin onto
   // the raw line, the owner's own 2026-09-24 decision.
-  test("there are sixty-six of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(66);
+  // Sixty-eight: `search` is gone (B2310) — the owner's word was "just
+  // normal type search", and the agent fallback it powered went with the
+  // button that asked for it.
+  test("there are sixty-four of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(64);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

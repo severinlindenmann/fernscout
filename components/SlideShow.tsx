@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { mediaLoader } from "./mediaLoader";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   X,
   Play,
   Pause,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Plane,
   TrainFront,
   TrainFrontTunnel,
@@ -27,18 +28,33 @@ import {
   Plus,
   Maximize2,
   Minimize2,
+  RotateCcw,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { project, MAP_VIEWBOX } from "@/lib/mapProjection";
 import { isPlottable } from "@/lib/mapFrame";
 import { useWorldLand } from "./useWorldLand";
 import { TRANSPORT_STYLE } from "@/lib/transport";
 import { flagFor } from "@/lib/flags";
-import { buildNarratedCut, type NarratedCutSlide } from "@/lib/narratedCut";
+import { buildNarratedCut, slideNeedsTravelInterlude, type NarratedCutSlide } from "@/lib/narratedCut";
 import DualTime from "./DualTime";
 import { useWakeLock } from "./useWakeLock";
 import { useI18n } from "./LocaleProvider";
+import { useTrip } from "./TripProvider";
 import type { PlaceView } from "./WorldMap";
 import type { GalleryItem } from "@/lib/types";
+
+/** The trip's headline counts, for the end screen — computed once, the same
+ * way for every caller (`lib/entries.ts`'s `getTripStats`), and handed in
+ * rather than re-derived here so the show's own count never drifts from the
+ * map page's stats row it is quoting. */
+export type SlideShowStats = {
+  tripDays: number;
+  places: number;
+  countries: number;
+  totalMedia: number;
+};
 
 // Base dwell, in seconds — the "1x" the +/- speed control scales from.
 // Deliberately unhurried by default — this is meant to be watched, not skimmed.
@@ -48,11 +64,43 @@ const MAX_DWELL_S = 15;
 const FULL_TRAVEL_MS = 5200;
 const FULL_MEDIA_MS = 6500;
 
+// How long a Highlights travel interlude shows before the next day's slide.
+const INTERLUDE_MS = 2000;
+
 // Controls fade out this long after the last pointer/key activity, so a show
 // left running on a TV isn't sitting under a permanent overlay of buttons.
 const CHROME_IDLE_MS = 3500;
 
+// Story-style tap zones on the slide surface: hold past this long pauses
+// instead of counting as a tap; a swipe down past this many px closes.
+const TAP_HOLD_MS = 350;
+const SWIPE_CLOSE_DY = 80;
+
+// Remembers the chosen dwell across visits, per device — B2305.
+const DWELL_STORAGE_KEY = "fernscout.slideshow.dwell";
+
 type Cut = "narrated" | "full";
+
+/**
+ * Whether the presentation frame itself is portrait or widescreen —
+ * `.fs-present-frame`'s own `orientation` breakpoint, tracked in JS because
+ * both the interlude corner map and the landscape-photo treatment need to
+ * branch on it, not just switch CSS. Starts `false` (widescreen) rather than
+ * guessing from `window` during render, since this component is `ssr:false`
+ * and the very first paint corrects itself via the effect below before
+ * anything the guess would affect has painted.
+ */
+function useIsPortraitFrame(): boolean {
+  const [portrait, setPortrait] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(orientation: portrait)");
+    const update = () => setPortrait(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return portrait;
+}
 
 type FullStep =
   | { kind: "travel"; place: PlaceView; fromPlace?: PlaceView; placeIndex: number }
@@ -66,6 +114,30 @@ type FullStep =
       timezone?: string;
       placeIndex: number;
     };
+
+/**
+ * Where the "every photo" cut lands for a given calendar day — the day strip
+ * and `startDate` both jump through this. The exact match is the day's first
+ * photo; a day with no gallery at all (video-only, or not yet photographed)
+ * has no step of its own, so this lands on the next day that does rather
+ * than doing nothing. Past the last photographed day it clamps to the last
+ * step, never past the end.
+ */
+export function fullCutIndexForDate(steps: readonly FullStep[], date: string): number {
+  const exact = steps.findIndex((s) => s.kind === "media" && s.date === date);
+  if (exact >= 0) return exact;
+  const next = steps.findIndex((s) => s.kind === "media" && s.date > date);
+  if (next >= 0) return next;
+  return Math.max(steps.length - 1, 0);
+}
+
+/** The calendar date a full-cut step belongs to — a travel step carries none
+ * of its own, so it borrows the date its destination's first entry was
+ * written on. Used only to work out which day-strip thumbnail is current. */
+function dateOfFullStep(step: FullStep | undefined): string | undefined {
+  if (!step) return undefined;
+  return step.kind === "media" ? step.date : step.place.entries[0]?.date;
+}
 
 /**
  * Fullscreen presentation mode: letterboxed to 16:9, big type, chrome that
@@ -84,17 +156,42 @@ export default function SlideShow({
   places,
   onClose,
   startPlaceKey,
+  startDate,
+  stats,
 }: {
   places: PlaceView[];
   onClose: () => void;
   startPlaceKey?: string;
+  /** Opens the show on this day instead of the beginning — the trip page and
+   * day pages' own slideshow buttons (B2306). Resolved in both cuts. */
+  startDate?: string;
+  /** The trip's real counts, for the end screen — see `SlideShowStats`. */
+  stats: SlideShowStats;
 }) {
   const { t, formatShortDate, formatLongDate, locale } = useI18n();
+  const href = useTrip()?.href ?? ((p: string) => p);
+  const reducedMotion = useReducedMotion();
+  const isPortraitFrame = useIsPortraitFrame();
 
   const narratedSlides = useMemo<NarratedCutSlide[]>(
     () => buildNarratedCut(places.flatMap((p) => p.entries)),
     [places],
   );
+
+  // Which `places` index each narrated slide (i.e. each calendar day) belongs
+  // to — by date rather than by matching `location` strings, since a trip
+  // that revisits a city gets two distinct places with the same name. This
+  // is what both the travel interludes and the widescreen corner map key
+  // off to find their leg/place on the real map.
+  const narratedPlaceIndexes = useMemo(() => {
+    const byDate = new Map<string, number>();
+    places.forEach((place, i) => {
+      place.entries.forEach((e) => {
+        if (!byDate.has(e.date)) byDate.set(e.date, i);
+      });
+    });
+    return narratedSlides.map((s) => byDate.get(s.date));
+  }, [places, narratedSlides]);
 
   const fullSteps = useMemo<FullStep[]>(() => {
     const out: FullStep[] = [];
@@ -124,29 +221,76 @@ export default function SlideShow({
   const [cut, setCut] = useState<Cut>(narratedSlides.length > 0 ? "narrated" : "full");
 
   const fullStartIndex = useMemo(() => {
-    if (!startPlaceKey) return 0;
-    const i = fullSteps.findIndex((s) => s.place.key === startPlaceKey);
-    return i >= 0 ? i : 0;
-  }, [fullSteps, startPlaceKey]);
+    if (startPlaceKey) {
+      const i = fullSteps.findIndex((s) => s.place.key === startPlaceKey);
+      if (i >= 0) return i;
+    }
+    if (startDate) return fullCutIndexForDate(fullSteps, startDate);
+    return 0;
+  }, [fullSteps, startPlaceKey, startDate]);
 
-  const [index, setIndex] = useState(cut === "full" ? fullStartIndex : 0);
+  const narratedStartIndex = useMemo(() => {
+    if (!startDate) return 0;
+    const i = narratedSlides.findIndex((s) => s.date === startDate);
+    return i >= 0 ? i : 0;
+  }, [narratedSlides, startDate]);
+
+  const [index, setIndex] = useState(cut === "full" ? fullStartIndex : narratedStartIndex);
   const [playing, setPlaying] = useState(true);
-  const [dwellSeconds, setDwellSeconds] = useState(DEFAULT_DWELL_S);
+  // Lazy initializer, not an effect — this component is ssr:false, so
+  // there's no hydration mismatch to dodge, and reading it up front means
+  // the very first render already uses the device's remembered speed
+  // instead of flashing the default first. Every localStorage touch is
+  // wrapped: private browsing and blocked site data both throw rather than
+  // return null.
+  const [dwellSeconds, setDwellSeconds] = useState<number>(() => {
+    try {
+      const raw = window.localStorage.getItem(DWELL_STORAGE_KEY);
+      const n = raw ? Number(raw) : NaN;
+      return Number.isFinite(n) && n >= MIN_DWELL_S && n <= MAX_DWELL_S ? n : DEFAULT_DWELL_S;
+    } catch {
+      return DEFAULT_DWELL_S;
+    }
+  });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // A Highlights travel interlude pending between the current slide and the
+  // next — see the autoplay effect below for how it's driven. `null` means
+  // no interlude is showing.
+  const [interlude, setInterlude] = useState<{ toIndex: number; toPlaceIndex: number } | null>(null);
+  // Every "Every photo" video starts muted (iOS autoplay requires it). The
+  // stored index rides along with the flag so a step change resets it to
+  // muted by simple derivation — no effect or ref needed, since a stale
+  // stored index (from a video the person unmuted) is just ignored.
+  const [mutedState, setMutedState] = useState({ index, muted: true });
+  const videoMuted = mutedState.index === index ? mutedState.muted : true;
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DWELL_STORAGE_KEY, String(dwellSeconds));
+    } catch {
+      // ignore — nothing to remember it with.
+    }
+  }, [dwellSeconds]);
 
   const switchCut = useCallback(
     (next: Cut) => {
+      setInterlude(null);
       setCut(next);
-      setIndex(next === "full" ? fullStartIndex : 0);
+      setIndex(next === "full" ? fullStartIndex : narratedStartIndex);
       setPlaying(true);
     },
-    [fullStartIndex],
+    [fullStartIndex, narratedStartIndex],
   );
 
   const total = cut === "narrated" ? narratedSlides.length : fullSteps.length;
   const narratedStep = cut === "narrated" ? narratedSlides[index] : undefined;
   const fullStep = cut === "full" ? fullSteps[index] : undefined;
+  // One slide index past the last real one is the end card — not a stop on
+  // the last photo, an actual screen of its own (B2306).
+  const atEndCard = index >= total;
 
   const dwellScale = dwellSeconds / DEFAULT_DWELL_S;
   const duration =
@@ -154,37 +298,114 @@ export default function SlideShow({
       ? dwellSeconds * 1000
       : (fullStep?.kind === "travel" ? FULL_TRAVEL_MS : FULL_MEDIA_MS) * dwellScale;
 
-  const atEnd = index >= total - 1;
   // Derived rather than stored, so reaching the end doesn't need a setState
-  // inside the timer effect.
-  const isPlaying = playing && !atEnd && total > 0;
+  // inside the timer effect. Nothing auto-advances once the end card is up —
+  // there's nothing after it.
+  const isPlaying = playing && !atEndCard && total > 0;
 
   useWakeLock(total > 0);
 
+  // Arrow keys, taps and the day strip all jump straight to a slide — never
+  // through a pending travel interlude, which is an autoplay-only thing.
   const go = useCallback(
     (delta: number) => {
-      setIndex((i) => Math.min(Math.max(i + delta, 0), Math.max(total - 1, 0)));
+      setInterlude(null);
+      setIndex((i) => Math.min(Math.max(i + delta, 0), Math.max(total, 0)));
     },
     [total],
   );
 
-  // Auto-advance; stops at the end rather than looping.
+  const isVideoStep = cut === "full" && fullStep?.kind === "media" && fullStep.item.type === "video";
+
+  // Auto-advance; lands on the end card rather than looping or freezing on
+  // the last photo. A video step is driven by its own `ended` effect below
+  // instead — it does nothing here.
   useEffect(() => {
-    if (!isPlaying) return;
-    timerRef.current = setTimeout(() => setIndex((i) => Math.min(i + 1, total - 1)), duration);
+    if (!isPlaying || isVideoStep) return;
+    const advanceTo = Math.min(index + 1, total);
+    timerRef.current = setTimeout(() => {
+      // A travel interlude between two Highlights slides at different
+      // places — only on autoplay (manual navigation always skips it via
+      // `go`/`jumpToDay`/`switchCut` above, which clear it), and never into
+      // the end card. Modelled as a transient state ahead of the real
+      // advance, rather than as an extra step in the sequence, so `index`,
+      // the progress bar, the day strip and the end-card maths never have to
+      // know interludes exist.
+      if (cut === "narrated" && !reducedMotion && advanceTo < total) {
+        const toPlaceIndex = narratedPlaceIndexes[advanceTo];
+        if (slideNeedsTravelInterlude(narratedPlaceIndexes, advanceTo) && toPlaceIndex !== undefined) {
+          setInterlude({ toIndex: advanceTo, toPlaceIndex });
+          return;
+        }
+      }
+      setIndex(advanceTo);
+    }, duration);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [index, isPlaying, duration, total]);
+  }, [index, isPlaying, duration, total, cut, reducedMotion, narratedPlaceIndexes, isVideoStep]);
+
+  // Once a pending interlude has had its ~2s on screen, commit the advance
+  // it was standing in for — a new setTimeout, not a continuation of the one
+  // above, so the interlude's own duration is independent of `dwellSeconds`.
+  useEffect(() => {
+    if (!interlude) return;
+    const id = setTimeout(() => {
+      setIndex(interlude.toIndex);
+      setInterlude(null);
+    }, INTERLUDE_MS);
+    return () => clearTimeout(id);
+  }, [interlude]);
+
+  // "Every photo" video steps advance on the video's own `ended` event
+  // rather than the fixed timer above — a clip that runs long shouldn't get
+  // cut off, and one that's short shouldn't leave dead air. A fallback timer
+  // covers a video that errors or whose duration never resolves, so autoplay
+  // can never stall on a broken file.
+  useEffect(() => {
+    if (!isPlaying || !isVideoStep) return;
+    const advance = () => setIndex((i) => Math.min(i + 1, total));
+    let fallback: ReturnType<typeof setTimeout> | null = null;
+    const armFallback = () => {
+      if (!fallback) fallback = setTimeout(advance, FULL_MEDIA_MS * dwellScale);
+    };
+    const video = videoRef.current;
+    if (!video) {
+      armFallback();
+      return () => {
+        if (fallback) clearTimeout(fallback);
+      };
+    }
+    const onEnded = () => advance();
+    const onError = () => advance();
+    const onMeta = () => {
+      if (!Number.isFinite(video.duration)) armFallback();
+    };
+    video.addEventListener("ended", onEnded);
+    video.addEventListener("error", onError);
+    video.addEventListener("loadedmetadata", onMeta);
+    if (video.readyState >= 1 && !Number.isFinite(video.duration)) armFallback();
+    return () => {
+      video.removeEventListener("ended", onEnded);
+      video.removeEventListener("error", onError);
+      video.removeEventListener("loadedmetadata", onMeta);
+      if (fallback) clearTimeout(fallback);
+    };
+  }, [isPlaying, isVideoStep, total, dwellScale]);
 
   const toggle = useCallback(() => {
-    if (atEnd) {
+    if (atEndCard) {
       setIndex(0);
       setPlaying(true);
       return;
     }
     setPlaying((p) => !p);
-  }, [atEnd]);
+  }, [atEndCard]);
+
+  const watchAgain = useCallback(() => {
+    setIndex(0);
+    setPlaying(true);
+  }, []);
 
   // Controls fade out during playback and reappear on any activity — a show
   // left running on a TV shouldn't sit under a permanent row of buttons.
@@ -223,6 +444,19 @@ export default function SlideShow({
     }
   }, []);
 
+  // iPhone WebKit has no element fullscreen at all (B2305) — the button did
+  // nothing there. A lazy initializer rather than an effect: this component
+  // is ssr:false, so there's no server-rendered guess to avoid fighting, and
+  // the capability check needs no DOM node — the method lives on the
+  // element prototype whether or not anything has requested it yet.
+  const [fullscreenSupported] = useState(
+    () => document.fullscreenEnabled === true && typeof HTMLElement.prototype.requestFullscreen === "function",
+  );
+
+  // A small settings sheet replaces the old top cut-switch and bottom speed
+  // pill with one 44px-safe chip (B2305) — opening it pauses the show.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   // Keyboard + scroll lock while the overlay is up.
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -230,6 +464,10 @@ export default function SlideShow({
     const onKey = (e: KeyboardEvent) => {
       bumpChrome();
       if (e.key === "Escape") {
+        if (settingsOpen) {
+          setSettingsOpen(false);
+          return;
+        }
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
         onClose();
         return;
@@ -248,6 +486,9 @@ export default function SlideShow({
         e.preventDefault();
         toggle();
       }
+      if ((e.key === "f" || e.key === "F") && fullscreenSupported) {
+        toggleFullscreen();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -255,7 +496,113 @@ export default function SlideShow({
       window.removeEventListener("keydown", onKey);
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     };
-  }, [onClose, go, toggle, bumpChrome]);
+  }, [onClose, go, toggle, bumpChrome, settingsOpen, fullscreenSupported, toggleFullscreen]);
+
+  // Mirrors `isPlaying` for the hold timer below, which fires after a delay
+  // and needs the live value rather than whatever it closed over at press time.
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // Story-style gestures on the slide surface itself (B2305): a tap in the
+  // left third steps back, the right two thirds step forward and keep
+  // playing (unlike the buttons/keys, which pause — this is meant to feel
+  // like flicking through stories, not like scrubbing), a press held past
+  // TAP_HOLD_MS pauses for as long as it's held, and a mostly-vertical
+  // downward swipe closes the show. State lives in a ref, not useState — it
+  // changes many times a gesture and none of it should ever cause a render.
+  const tapRef = useRef<{
+    x: number;
+    y: number;
+    holdTimer: ReturnType<typeof setTimeout> | null;
+    held: boolean;
+    pausedByHold: boolean;
+  } | null>(null);
+
+  const onSurfacePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Wrapped — an id without a live pointer session (Safari has done this
+    // for a synthetic press) throws NotFoundError, and losing capture is far
+    // cheaper than losing the rest of this handler: the hold timer below is
+    // what actually matters, and it still needs to run either way.
+    try {
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    } catch {
+      // ignore — the gesture still tracks fine without capture.
+    }
+    const holdTimer = setTimeout(() => {
+      const st = tapRef.current;
+      if (!st) return;
+      st.held = true;
+      if (isPlayingRef.current) {
+        st.pausedByHold = true;
+        setPlaying(false);
+      }
+    }, TAP_HOLD_MS);
+    tapRef.current = { x: e.clientX, y: e.clientY, holdTimer, held: false, pausedByHold: false };
+  }, []);
+
+  const endSurfaceGesture = useCallback(
+    (e: React.PointerEvent, evaluate: boolean) => {
+      const st = tapRef.current;
+      tapRef.current = null;
+      if (!st) return;
+      if (st.holdTimer) clearTimeout(st.holdTimer);
+      if (st.held) {
+        // A hold never also counts as a tap — release just resumes.
+        if (st.pausedByHold) setPlaying(true);
+        return;
+      }
+      if (!evaluate) return;
+      bumpChrome();
+      const dx = e.clientX - st.x;
+      const dy = e.clientY - st.y;
+      if (Math.abs(dy) > SWIPE_CLOSE_DY && Math.abs(dy) > Math.abs(dx)) {
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        onClose();
+        return;
+      }
+      const rect = containerRef.current?.getBoundingClientRect();
+      const relX = rect && rect.width > 0 ? (st.x - rect.left) / rect.width : 0.5;
+      // Tap-to-advance keeps playing (stories behaviour) — unlike Prev/Next
+      // and the arrow keys, this never calls setPlaying(false).
+      go(relX < 1 / 3 ? -1 : 1);
+    },
+    [bumpChrome, go, onClose],
+  );
+  const onSurfacePointerUp = useCallback((e: React.PointerEvent) => endSurfaceGesture(e, true), [endSurfaceGesture]);
+  const onSurfacePointerCancel = useCallback(
+    (e: React.PointerEvent) => endSurfaceGesture(e, false),
+    [endSurfaceGesture],
+  );
+
+  // The strip along the bottom, one thumbnail per calendar day — `narratedCut`
+  // already groups the trip that way, so this is that same list rather than a
+  // second grouping of its own. The active thumbnail follows whichever day the
+  // current step actually belongs to, in either cut.
+  const currentDate = atEndCard
+    ? narratedSlides.at(-1)?.date
+    : cut === "narrated"
+      ? narratedStep?.date
+      : dateOfFullStep(fullStep);
+  const currentDayIndex = currentDate ? narratedSlides.findIndex((s) => s.date === currentDate) : -1;
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  const activeThumbRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    activeThumbRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [currentDayIndex]);
+  const jumpToDay = useCallback(
+    (dayIndex: number) => {
+      const day = narratedSlides[dayIndex];
+      if (!day) return;
+      setInterlude(null);
+      setPlaying(false);
+      setIndex(cut === "narrated" ? dayIndex : fullCutIndexForDate(fullSteps, day.date));
+      bumpChrome();
+    },
+    [cut, narratedSlides, fullSteps, bumpChrome],
+  );
 
   if (total === 0) return null;
 
@@ -283,14 +630,26 @@ export default function SlideShow({
       <style>{`
         .fs-present-frame {
           width: min(100vw, calc(100vh * 16 / 9));
+          width: min(100vw, calc(100dvh * 16 / 9));
           height: min(100vh, calc(100vw * 9 / 16));
+          height: min(100dvh, calc(100vw * 9 / 16));
         }
         @media (orientation: portrait) {
           .fs-present-frame { width: 100vw; height: 100vh; }
+          .fs-present-frame { height: 100dvh; }
         }
+        /* Safe-area offsets for the chrome — a sensible minimum margin even
+           where env() resolves to 0 (most non-iOS browsers), the real inset
+           on a notched/Dynamic-Island phone otherwise (B2305). */
+        .fs-safe-top { top: max(3.75rem, env(safe-area-inset-top, 0px)); }
+        .fs-safe-bottom { bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)); }
+        .fs-safe-left { left: max(0.75rem, env(safe-area-inset-left, 0px)); }
+        .fs-safe-right { right: max(0.75rem, env(safe-area-inset-right, 0px)); }
       `}</style>
       <div ref={containerRef} className="relative overflow-hidden bg-overlay-strong fs-present-frame">
-        {cut === "full" && fullStep ? (
+        {atEndCard ? (
+          <EndScreen stats={stats} tripHref={href("/")} onWatchAgain={watchAgain} />
+        ) : cut === "full" && fullStep ? (
           <>
             {/* Map layer — always mounted so the camera keeps its position. */}
             <div
@@ -316,29 +675,22 @@ export default function SlideShow({
                 >
                   {fullStep.item.type === "video" ? (
                     <video
+                      ref={videoRef}
                       src={fullStep.item.src}
                       className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
                       autoPlay
-                      muted
+                      muted={videoMuted}
                       playsInline
                     />
                   ) : (
-                    <motion.div
-                      initial={{ scale: 1 }}
-                      animate={{ scale: 1.06 }}
-                      transition={{ duration: FULL_MEDIA_MS / 1000, ease: "linear" }}
-                      className="relative h-full w-full"
-                    >
-                      <Image
-                        src={fullStep.item.src}
-                        loader={mediaLoader}
-                        alt={fullStep.item.alt ?? fullStep.item.caption ?? fullPlace?.location ?? ""}
-                        fill
-                        sizes="100vw"
-                        className="object-contain"
-                        priority
-                      />
-                    </motion.div>
+                    <PresentedPhoto
+                      item={fullStep.item}
+                      alt={fullStep.item.alt ?? fullStep.item.caption ?? fullPlace?.location ?? ""}
+                      priority
+                      isPortraitFrame={isPortraitFrame}
+                      fit="contain"
+                      zoomS={reducedMotion ? undefined : FULL_MEDIA_MS / 1000}
+                    />
                   )}
                 </motion.div>
               )}
@@ -346,7 +698,7 @@ export default function SlideShow({
 
             {/* Caption — place, when, and one line of what. */}
             {fullPlace && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong via-overlay-strong/70 to-transparent px-[4%] pb-[14%] pt-[10%]">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong via-overlay-strong/70 to-transparent px-[4%] pb-[calc(14%+9rem+env(safe-area-inset-bottom,0px))] pt-[10%]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`cap-${index}`}
@@ -379,6 +731,12 @@ export default function SlideShow({
               </div>
             )}
           </>
+        ) : cut === "narrated" && interlude ? (
+          // The travel interlude itself — the same map the full tour uses,
+          // aimed at the destination place with the leg into it flying.
+          <div className="absolute inset-0">
+            <SlideMap places={places} activeIndex={interlude.toPlaceIndex} travelling />
+          </div>
         ) : (
           narratedStep && (
             <NarratedSlide
@@ -386,30 +744,75 @@ export default function SlideShow({
               index={index}
               headline={narratedHeadline}
               dateLabel={formatLongDate(narratedStep.date)}
+              isPortraitFrame={isPortraitFrame}
+              reducedMotion={!!reducedMotion}
+              cornerMap={
+                !isPortraitFrame && narratedPlaceIndexes[index] !== undefined
+                  ? { places, activeIndex: narratedPlaceIndexes[index]! }
+                  : undefined
+              }
             />
           )
         )}
 
-        {/* Progress */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2">
-          {Array.from({ length: total }).map((_, i) => (
-            <div key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-overlay-ink/25">
-              {i < index && <div className="h-full w-full bg-surface-raised/80" />}
-              {i === index && (
-                <motion.div
-                  key={`p-${index}-${isPlaying}`}
-                  initial={{ width: "0%" }}
-                  animate={{ width: isPlaying ? "100%" : "35%" }}
-                  transition={{ duration: isPlaying ? duration / 1000 : 0.3, ease: "linear" }}
-                  className="h-full bg-surface-raised"
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        {/* Story-style tap/hold/swipe layer, full-frame and BELOW the chrome
+            in DOM order (and so in stacking) — a tap that lands on a real
+            button is a click on that button, never a gesture on this. Absent
+            on the end card: it renders *before* this layer in DOM order like
+            every other slide, so without this guard its own two buttons sat
+            under this transparent sheet and nothing could ever reach them. */}
+        {!atEndCard && (
+          <div
+            className="absolute inset-0"
+            style={{ touchAction: "none" }}
+            onPointerDown={onSurfacePointerDown}
+            onPointerUp={onSurfacePointerUp}
+            onPointerCancel={onSurfacePointerCancel}
+            aria-hidden
+          />
+        )}
 
-        {/* Chrome: cut switch, controls, speed and fullscreen — fades out
-            during playback, always there while paused or idle. */}
+        {/* Progress — one bar per slide in Highlights, where a handful of days
+            reads fine. "Every photo" can run past 80 steps, where that many
+            slivers is unreadable, so it gets a single line for the current
+            step instead; the day strip below is what shows position there. */}
+        {!atEndCard && cut === "narrated" && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2">
+            {Array.from({ length: total }).map((_, i) => (
+              <div key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-overlay-ink/25">
+                {i < index && <div className="h-full w-full bg-surface-raised/80" />}
+                {i === index && (
+                  <motion.div
+                    key={`p-${index}-${isPlaying}`}
+                    initial={{ width: "0%" }}
+                    animate={{ width: isPlaying ? "100%" : "35%" }}
+                    transition={{ duration: isPlaying ? duration / 1000 : 0.3, ease: "linear" }}
+                    className="h-full bg-surface-raised"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {!atEndCard && cut === "full" && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 p-2">
+            <div className="h-0.5 w-full overflow-hidden rounded-full bg-overlay-ink/25">
+              <motion.div
+                key={`p-${index}-${isPlaying}`}
+                initial={{ width: "0%" }}
+                animate={{ width: isPlaying ? "100%" : "35%" }}
+                transition={{ duration: isPlaying ? duration / 1000 : 0.3, ease: "linear" }}
+                className="h-full bg-surface-raised"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Chrome: the settings chip (cut + speed), fullscreen and close, and
+            Prev/Play/Next — fades out during playback, always there while
+            paused or idle. Every box here is kept inside the safe area and
+            at least 44x44 (B2305) — the tap layer above is what took over
+            the cut-switch and speed pill this replaced. */}
         <AnimatePresence>
           {showChrome && (
             <motion.div
@@ -419,47 +822,95 @@ export default function SlideShow({
               transition={{ duration: 0.3 }}
               className="pointer-events-none absolute inset-0"
             >
-              {narratedSlides.length > 0 && fullSteps.length > 0 && (
-                <div className="pointer-events-auto absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-0.5 rounded-full bg-black/40 p-1 backdrop-blur">
-                  <CutTab
-                    active={cut === "narrated"}
-                    onClick={() => switchCut("narrated")}
-                    label={t("show.cutNarrated")}
-                    Icon={Sparkles}
-                  />
-                  <CutTab
-                    active={cut === "full"}
-                    onClick={() => switchCut("full")}
-                    label={t("show.cutFull")}
-                    Icon={Film}
-                  />
-                </div>
-              )}
+              <button
+                onClick={() => {
+                  setPlaying(false);
+                  setSettingsOpen(true);
+                }}
+                aria-label={t("show.settings")}
+                title={t("show.settings")}
+                className="fs-safe-top fs-safe-left pointer-events-auto absolute flex h-11 items-center gap-1.5 rounded-full bg-black/40 px-3.5 text-sm font-semibold text-overlay-ink backdrop-blur transition-colors hover:bg-black/55"
+              >
+                {cut === "narrated" ? t("show.cutNarrated") : t("show.cutFull")}
+                <ChevronDown className="h-4 w-4" />
+              </button>
 
-              <div className="pointer-events-auto absolute right-3 top-3 flex items-center gap-2">
-                <button
-                  onClick={toggleFullscreen}
-                  aria-label={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
-                  title={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
-                  className="rounded-full bg-overlay-ink/10 p-2.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="h-5 w-5" />
-                  ) : (
-                    <Maximize2 className="h-5 w-5" />
-                  )}
-                </button>
+              <div className="fs-safe-top fs-safe-right pointer-events-auto absolute flex items-center gap-2">
+                {isVideoStep && (
+                  <button
+                    onClick={() => setMutedState({ index, muted: !videoMuted })}
+                    aria-label={videoMuted ? t("show.soundOn") : t("show.soundOff")}
+                    title={videoMuted ? t("show.soundOn") : t("show.soundOff")}
+                    className="rounded-full bg-overlay-ink/10 p-3 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
+                  >
+                    {videoMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+                  </button>
+                )}
+                {fullscreenSupported && (
+                  <button
+                    onClick={toggleFullscreen}
+                    aria-label={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
+                    title={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
+                    className="rounded-full bg-overlay-ink/10 p-3 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
+                  >
+                    {isFullscreen ? (
+                      <Minimize2 className="h-5 w-5" />
+                    ) : (
+                      <Maximize2 className="h-5 w-5" />
+                    )}
+                  </button>
+                )}
                 <button
                   onClick={onClose}
                   aria-label={t("show.close")}
                   title={t("show.close")}
-                  className="rounded-full bg-overlay-ink/10 p-2.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
+                  className="rounded-full bg-overlay-ink/10 p-3 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="pointer-events-auto absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 p-5">
+              <div className="fs-safe-bottom pointer-events-auto absolute inset-x-0 flex flex-col items-center gap-3 px-5">
+                {/* One thumbnail per day — a tap jumps straight there, in
+                    either cut (B2306). Kept off the tap-zone layer below it
+                    by living inside this pointer-events-auto chrome. */}
+                {narratedSlides.length > 1 && (
+                  <div
+                    ref={stripRef}
+                    role="tablist"
+                    aria-label={t("show.days")}
+                    className="flex max-w-full items-center gap-1.5 self-stretch overflow-x-auto px-1 py-0.5"
+                  >
+                    {narratedSlides.map((day, i) => (
+                      <button
+                        key={day.key}
+                        ref={i === currentDayIndex ? activeThumbRef : undefined}
+                        role="tab"
+                        aria-selected={i === currentDayIndex}
+                        aria-label={t("show.dayNumber", { n: String(i + 1) })}
+                        onClick={() => jumpToDay(i)}
+                        className={`relative h-11 w-11 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+                          i === currentDayIndex ? "border-yellow-400" : "border-transparent"
+                        }`}
+                      >
+                        {day.photo ? (
+                          <Image
+                            src={day.photo.src}
+                            loader={mediaLoader}
+                            alt=""
+                            fill
+                            sizes="44px"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-overlay-ink/20 text-xs font-semibold text-overlay-ink">
+                            {i + 1}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <Ctrl
                     label={t("show.prev")}
@@ -480,40 +931,229 @@ export default function SlideShow({
                       setPlaying(false);
                       go(1);
                     }}
-                    disabled={index === total - 1}
+                    disabled={index >= total}
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Ctrl>
                 </div>
-                <div className="flex items-center gap-1 rounded-full bg-overlay-ink/10 px-1.5 py-1.5">
-                  <button
-                    onClick={() => setDwellSeconds((s) => Math.max(MIN_DWELL_S, s - 1))}
-                    disabled={dwellSeconds <= MIN_DWELL_S}
-                    aria-label={t("show.slower")}
-                    title={t("show.slower")}
-                    className="rounded-full p-1.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
-                  <span className="w-12 text-center text-xs tabular-nums text-overlay-ink/80">
-                    {t("show.perSlide", { seconds: String(dwellSeconds) })}
-                  </span>
-                  <button
-                    onClick={() => setDwellSeconds((s) => Math.min(MAX_DWELL_S, s + 1))}
-                    disabled={dwellSeconds >= MAX_DWELL_S}
-                    aria-label={t("show.faster")}
-                    title={t("show.faster")}
-                    className="rounded-full p-1.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
               </div>
+
+              {settingsOpen && (
+                <div className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-black/50 p-6">
+                  <div className="w-full max-w-xs rounded-2xl bg-overlay-strong p-4 text-overlay-ink shadow-2xl">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold">{t("show.settings")}</div>
+                      <button
+                        onClick={() => setSettingsOpen(false)}
+                        aria-label={t("show.settingsClose")}
+                        title={t("show.settingsClose")}
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-overlay-ink/90 transition-colors hover:bg-overlay-ink/10"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {narratedSlides.length > 0 && fullSteps.length > 0 && (
+                      <div className="mt-3 flex items-center gap-0.5 rounded-full bg-overlay-ink/10 p-1">
+                        <CutTab
+                          active={cut === "narrated"}
+                          onClick={() => switchCut("narrated")}
+                          label={t("show.cutNarrated")}
+                          Icon={Sparkles}
+                        />
+                        <CutTab
+                          active={cut === "full"}
+                          onClick={() => switchCut("full")}
+                          label={t("show.cutFull")}
+                          Icon={Film}
+                        />
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-center gap-1 rounded-full bg-overlay-ink/10 px-1.5 py-1.5">
+                      <button
+                        onClick={() => setDwellSeconds((s) => Math.max(MIN_DWELL_S, s - 1))}
+                        disabled={dwellSeconds <= MIN_DWELL_S}
+                        aria-label={t("show.slower")}
+                        title={t("show.slower")}
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-16 text-center text-sm tabular-nums text-overlay-ink/80">
+                        {t("show.perSlide", { seconds: String(dwellSeconds) })}
+                      </span>
+                      <button
+                        onClick={() => setDwellSeconds((s) => Math.min(MAX_DWELL_S, s + 1))}
+                        disabled={dwellSeconds >= MAX_DWELL_S}
+                        aria-label={t("show.faster")}
+                        title={t("show.faster")}
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </motion.div>
+  );
+}
+
+/**
+ * The screen after the last slide — a real stop rather than a freeze-frame on
+ * the final photo. Counts are the trip's own, computed once by
+ * `getTripStats` and carried down by both callers, never re-derived here, so
+ * this can never disagree with the map page's own stats row about the same
+ * trip.
+ */
+function EndScreen({
+  stats,
+  tripHref,
+  onWatchAgain,
+}: {
+  stats: SlideShowStats;
+  tripHref: string;
+  onWatchAgain: () => void;
+}) {
+  const { t, tn } = useI18n();
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-6 bg-overlay-strong text-center"
+      style={{
+        paddingLeft: "max(1.5rem, env(safe-area-inset-left, 0px))",
+        paddingRight: "max(1.5rem, env(safe-area-inset-right, 0px))",
+        paddingTop: "max(1.5rem, env(safe-area-inset-top, 0px))",
+        paddingBottom: "max(1.5rem, env(safe-area-inset-bottom, 0px))",
+      }}
+    >
+      <div className="font-display font-semibold text-overlay-ink text-[clamp(1.5rem,4vw,2.5rem)]">
+        {t("show.endTitle")}
+      </div>
+      <dl className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-4">
+        <EndStat label={tn("map.days", stats.tripDays)} value={stats.tripDays} />
+        <EndStat label={tn("map.stops", stats.places)} value={stats.places} />
+        <EndStat label={tn("map.countries", stats.countries)} value={stats.countries} />
+        <EndStat label={t("map.media")} value={stats.totalMedia} />
+      </dl>
+      <div className="mt-2 flex flex-col items-stretch gap-3 sm:flex-row">
+        <button
+          onClick={onWatchAgain}
+          className="flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-overlay-ink/10 px-5 text-sm font-semibold text-overlay-ink transition-colors hover:bg-overlay-ink/20"
+        >
+          <RotateCcw className="h-4 w-4" />
+          {t("show.watchAgain")}
+        </button>
+        <a
+          href={tripHref}
+          className="flex min-h-11 items-center justify-center gap-1.5 rounded-full bg-yellow-400 px-5 text-sm font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+        >
+          {t("show.openTrip")}
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function EndStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <dt className="text-xs text-overlay-ink/70">{label}</dt>
+      <dd className="font-display text-xl font-semibold text-overlay-ink">{value}</dd>
+    </div>
+  );
+}
+
+/**
+ * One photo, shown to fit the frame it's actually in — B2307.
+ *
+ * A landscape photo on a portrait frame used to either crop away most of it
+ * (narrated's `object-cover`) or float it in black bars (full's
+ * `object-contain`). Now it's shown whole, with a blurred, darkened copy of
+ * itself filling the rest of the frame — the same trick photo apps use for
+ * exactly this mismatch. Every other combination (a portrait photo on a
+ * portrait frame, or anything at all on a widescreen frame) keeps each cut's
+ * usual look via `fit`.
+ *
+ * Orientation comes from the gallery item's own `width`/`height` when ingest
+ * recorded them (almost always); only when neither is known does this fall
+ * back to measuring the loaded image, which can show the plain treatment for
+ * one frame before the blurred fill kicks in.
+ */
+function PresentedPhoto({
+  item,
+  alt,
+  priority,
+  isPortraitFrame,
+  fit,
+  zoomS,
+}: {
+  item: GalleryItem;
+  alt: string;
+  priority?: boolean;
+  isPortraitFrame: boolean;
+  fit: "cover" | "contain";
+  /** Seconds the slow zoom takes, or undefined to skip it (B2307: reduced motion, or a still that shouldn't move). */
+  zoomS?: number;
+}) {
+  const [measured, setMeasured] = useState<{ w: number; h: number } | null>(null);
+  const known = item.width != null && item.height != null ? item.width > item.height : undefined;
+  const landscape = known ?? (measured ? measured.w > measured.h : false);
+  const blurredFill = isPortraitFrame && landscape;
+
+  const onLoad = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement>) => {
+      if (known !== undefined) return;
+      const img = e.currentTarget;
+      if (img.naturalWidth && img.naturalHeight) setMeasured({ w: img.naturalWidth, h: img.naturalHeight });
+    },
+    [known],
+  );
+
+  const foreground = (
+    <Image
+      src={item.src}
+      loader={mediaLoader}
+      alt={alt}
+      fill
+      sizes="100vw"
+      className={blurredFill ? "object-contain" : fit === "cover" ? "object-cover" : "object-contain"}
+      priority={priority}
+      onLoad={onLoad}
+    />
+  );
+  const sized = zoomS ? (
+    <motion.div
+      initial={{ scale: 1 }}
+      animate={{ scale: 1.06 }}
+      transition={{ duration: zoomS, ease: "linear" }}
+      className="relative h-full w-full"
+    >
+      {foreground}
+    </motion.div>
+  ) : (
+    <div className="relative h-full w-full">{foreground}</div>
+  );
+
+  if (!blurredFill) return sized;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <Image
+        src={item.src}
+        loader={mediaLoader}
+        alt=""
+        fill
+        sizes="100vw"
+        aria-hidden
+        className="scale-110 object-cover opacity-60 blur-2xl"
+      />
+      <div className="absolute inset-0">{sized}</div>
+    </div>
   );
 }
 
@@ -524,36 +1164,49 @@ function NarratedSlide({
   index,
   headline,
   dateLabel,
+  isPortraitFrame,
+  reducedMotion,
+  cornerMap,
 }: {
   slide: NarratedCutSlide;
   index: number;
   headline: string;
   dateLabel: string;
+  isPortraitFrame: boolean;
+  reducedMotion: boolean;
+  /** The widescreen-only route map in the corner — undefined hides it
+   * (a portrait frame, or a day that couldn't be matched to a place). */
+  cornerMap?: { places: PlaceView[]; activeIndex: number };
 }) {
   return (
     <div className="absolute inset-0">
       {slide.photo ? (
-        <motion.div
-          key={`photo-${index}`}
-          initial={{ scale: 1 }}
-          animate={{ scale: 1.06 }}
-          transition={{ duration: 8, ease: "linear" }}
-          className="absolute inset-0"
-        >
-          <Image
-            src={slide.photo.src}
-            loader={mediaLoader}
+        <div key={`photo-${index}`} className="absolute inset-0">
+          <PresentedPhoto
+            item={slide.photo}
             alt={slide.photo.alt ?? slide.photo.caption ?? slide.location}
-            fill
-            sizes="100vw"
-            className="object-cover"
             priority={index === 0}
+            isPortraitFrame={isPortraitFrame}
+            fit="cover"
+            zoomS={reducedMotion ? undefined : 8}
           />
-        </motion.div>
+        </div>
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-overlay-strong via-overlay-strong to-sky-500/40 grain" />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-overlay-strong/95 via-overlay-strong/25 to-overlay-strong/10" />
+
+      {cornerMap && (
+        <div
+          className="pointer-events-none absolute z-10 h-24 w-36 overflow-hidden rounded-xl shadow-lg ring-1 ring-overlay-ink/20 sm:h-28 sm:w-44"
+          style={{
+            right: "max(0.75rem, env(safe-area-inset-right, 0px))",
+            bottom: "calc(9rem + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          <SlideMap places={cornerMap.places} activeIndex={cornerMap.activeIndex} travelling={false} />
+        </div>
+      )}
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -562,7 +1215,7 @@ function NarratedSlide({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="absolute inset-x-0 bottom-0 px-[5%] pb-[9%] pt-[16%]"
+          className="absolute inset-x-0 bottom-0 px-[5%] pb-[calc(9%+9rem+env(safe-area-inset-bottom,0px))] pt-[16%]"
         >
           <div className="font-semibold text-yellow-300 text-[clamp(0.85rem,1.6vw,1.4rem)]">
             {flagFor(slide.country, slide.countryCode)} {slide.location} · {dateLabel}
@@ -593,7 +1246,7 @@ function CutTab({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+      className={`flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors ${
         active ? "bg-yellow-400 text-yellow-950" : "text-overlay-ink/80 hover:bg-overlay-ink/10"
       }`}
     >

@@ -5,6 +5,7 @@ import { useTrip } from "@/components/TripProvider";
 
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
+import { Clapperboard } from "lucide-react";
 import DayReactions from "./DayReactions";
 import DualTime from "./DualTime";
 import EditDay from "./EditDay";
@@ -69,6 +70,7 @@ export default function StoryPager({
   onStepChange,
   onLegDone,
   hero,
+  hasPlaces = false,
 }: {
   index: DaySummary[];
   /** The full day at that position, once it has arrived. */
@@ -80,6 +82,13 @@ export default function StoryPager({
   onStepChange: (index: number) => void;
   onLegDone: () => void;
   hero?: React.ReactNode;
+  /** Whether the trip has anything to show a slideshow of — `stats.places >
+   * 0`, the same cheap count the map page's own button is gated on. Shows
+   * each day card's own link to `/map?show=<date>` — B2306. Deliberately not
+   * the trip's stops themselves: this page must not carry what the show
+   * needs (every entry's gallery and headline) just to draw a link to the
+   * page that does. */
+  hasPlaces?: boolean;
 }) {
   const step = steps[stepIndex];
 
@@ -149,6 +158,7 @@ export default function StoryPager({
                 day={dayAt(step.dayIndex)!}
                 summary={index[step.dayIndex]}
                 dayIndex={step.dayIndex}
+                hasPlaces={hasPlaces}
               />
             ) : (
               <DayPlaceholder
@@ -216,6 +226,7 @@ export function DayCard({
   dayIndex,
   canPublish,
   tripTest,
+  hasPlaces = false,
 }: {
   day: Day;
   summary: DaySummary;
@@ -229,6 +240,10 @@ export function DayCard({
    *  context answers instead; the helper room's preview pane has no
    *  provider to read, so it passes the trip's own flag through. */
   tripTest?: boolean;
+  /** Whether the trip has anything to show a slideshow of — see
+   * `StoryPager`'s own doc. Only `StoryPager` passes it; the docs bench and
+   * any other direct caller leave it out and simply get no link. */
+  hasPlaces?: boolean;
 }) {
   // Trip-relative: URLs carry a username now, so a bare "/costs" would send a
   // reader to somebody else's site — or to nothing at all.
@@ -382,8 +397,22 @@ export function DayCard({
         ))}
 
         {/* Keyed on the lead slug, which is also what #day-… links use. */}
-        <div className="mt-10 border-t border-line-quiet pt-4">
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-line-quiet pt-4">
           <DayReactions daySlug={lead.slug} />
+          {/* Same button, same trip-has-nothing-to-show condition, as the
+              map page's own Clapperboard — B2306. A plain link to the map
+              page, opened on this day, rather than a button that pulls the
+              show's own data (every entry's gallery and headline) onto this
+              page just to open it in place. */}
+          {hasPlaces && trip && (
+            <Link
+              href={trip.href(`/map?show=${day.date}`)}
+              className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
+            >
+              <Clapperboard className="h-4 w-4" />
+              {t("show.start")}
+            </Link>
+          )}
         </div>
       </div>
     </article>

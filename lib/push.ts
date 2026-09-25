@@ -1,6 +1,7 @@
 import "server-only";
 import { isOpenToLink, isTestContent } from "./access";
 import { getDatabaseOrNull } from "./db";
+import { subjectLookup } from "./contacts/crypto";
 import { contactsWithReadGrant } from "./grants";
 import { pushRepo } from "./repos";
 import type { StoredSubscription } from "./repos/types";
@@ -78,12 +79,14 @@ export async function findActiveContactId(
 ): Promise<string | null> {
   const handle = await getDatabaseOrNull();
   if (!handle) return null;
-  const key = email.trim().toLowerCase();
+  // An address or a proved mobile number (B2294).
+  const lookup = subjectLookup(email);
+  if (!lookup) return null;
   const row = await handle.db
     .selectFrom("contacts")
     .select(["id"])
     .where("owner_id", "=", username)
-    .where("email_key", "=", key)
+    .where(lookup[0], "=", lookup[1])
     .where("status", "=", "active")
     .executeTakeFirst();
   return row?.id ?? null;

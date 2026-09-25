@@ -9,6 +9,7 @@ import { balanceOf } from "./credits";
 import { contentRoot } from "./contentRoot";
 import { formatCredits } from "./creditsFormat";
 import { getDatabase, TABLE_NAMES } from "./db";
+import type { Database } from "./db/schema";
 import type { TranslationKey } from "./i18n";
 import { translateIn } from "./locales";
 import { sendTransactional } from "./mail";
@@ -21,7 +22,7 @@ import { AS_AUTHOR, forgetEntries, getAllEntries } from "./entries";
 import { tripTrashDir } from "./dayTrash";
 import { getTrip, getTrips, parseTripRef, tripDir, tripRef } from "./trips";
 import { clearUserCache, getUser, userDir } from "./users";
-import { sql } from "kysely";
+import { sql, type Kysely } from "kysely";
 
 /**
  * Deleting a journal, or one trip out of it.
@@ -827,6 +828,60 @@ async function bestEffort(label: string, username: string, fn: () => void | Prom
 }
 
 /**
+ * The two tables `deleteJournal` keeps rather than sweeps — B2316.
+ *
+ * Both record real money changing hands (a Stripe purchase of credits, a
+ * postcard or photobook sent to a print provider) rather than this
+ * instance's own bookkeeping, and Swiss law (OR 958f) asks an operator to
+ * keep that for ten years. `credits` and `credit_ledger` are not on this
+ * list; see the comment where `deleteJournal` skips these two.
+ */
+const KEPT_MONEY_TABLES = ["payments", "print_orders"] as const;
+
+/**
+ * What is left, personal, on the rows `KEPT_MONEY_TABLES` keeps — stripped
+ * so what remains is exactly "amount, currency, date, provider reference,
+ * what was bought" and nothing that names the person.
+ *
+ * `owner_id` itself is rewritten rather than kept — not because it is
+ * personal (a username plausibly is, but it is already public and this row
+ * is operator-only) but because it is a **live key**: `credits.balance` and
+ * every credit route look a journal up by this exact string, and a name this
+ * deletion frees (`isDeletedUsername`/`forgetTombstone`, `docs/gps.md`'s
+ * sibling story for journals) can be claimed by an unrelated person later.
+ * Without this, that new owner's very first balance check or admin listing
+ * would silently pick up a stranger's kept payment history by matching on
+ * `owner_id = <the username they just chose>`. The tombstone value below can
+ * never collide with a real username (`SAFE_NAME` in `lib/tombstones.ts`
+ * allows no colons), so it is inert to every lookup that is not reading the
+ * ten-year record on purpose.
+ *
+ * `payments.approve_token_hash` is cleared for the same reason: it is a live
+ * bearer credential that, followed after this rename, would `grant()`
+ * credits onto whatever `credits` row now answers to this username — a
+ * different journal's balance, not the one that was deleted. `print_orders`'
+ * `payload` (a postcard's recipient name, address and message, or a
+ * photobook's page choices) and `contact_id` are the only other personal
+ * data on either table and are cleared or nulled here; `contact_id` would
+ * end up `null` anyway once `contacts` is swept (`ON DELETE SET NULL`), and
+ * is set explicitly so this function does not depend on running before or
+ * after that step.
+ */
+async function stripMoneyTables(db: Kysely<Database>, username: string): Promise<void> {
+  const tombstoneOwner = `deleted:${username}:${nowIso()}`;
+  await db
+    .updateTable("payments")
+    .set({ owner_id: tombstoneOwner, approve_token_hash: null })
+    .where("owner_id", "=", username)
+    .execute();
+  await db
+    .updateTable("print_orders")
+    .set({ owner_id: tombstoneOwner, contact_id: null, payload: "{}" })
+    .where("owner_id", "=", username)
+    .execute();
+}
+
+/**
  * A journal: the folder, and every row in the database that names it.
  *
  * **Iterated over `TABLE_NAMES` rather than written out table by table.** Two
@@ -890,8 +945,24 @@ async function deleteJournal(username: string, requestedBy: string): Promise<voi
       // un-consumes. Only removed once the rest of this `try` has finished
       // without throwing.
       if (table === "deletion_requests") continue;
+      // B2316 — Swiss bookkeeping (OR 958f) requires a business's payment
+      // records kept for ten years, and this instance's own `payments` and
+      // `print_orders` rows are exactly that: real money that changed hands,
+      // through Stripe or a print provider, for a journal that no longer
+      // exists to hold them itself. Swept below by `stripMoneyTables`
+      // instead of deleted here. `credits` and `credit_ledger` are not
+      // treated the same way and stay in this loop: `credits.balance` is the
+      // journal's current spendable number, not a record of a transaction,
+      // and `credit_ledger` records the *virtual* currency's own movement
+      // (a mail sent, a grant, a refund of credits) rather than money —
+      // neither is a "Geschäftsvorfall" the law asks an operator to keep,
+      // and both must actually disappear so a later journal that takes this
+      // username back starts at a balance of zero rather than inheriting one
+      // (see `balanceOf`, which reads `credits.balance` alone).
+      if ((KEPT_MONEY_TABLES as readonly string[]).includes(table)) continue;
       await sql`delete from ${sql.table(table)} where owner_id = ${username}`.execute(db);
     }
+    await stripMoneyTables(db, username);
     for (const trip of getTrips(username)) forgetEntries(tripRef(username, trip.id));
     fs.rmSync(dir, { recursive: true, force: true });
     await sql`delete from ${sql.table("deletion_requests")} where owner_id = ${username}`.execute(db);

@@ -4,6 +4,7 @@ import { whatsappSummary } from "@/lib/api/dayWhatsapp";
 import { isEnabled } from "@/lib/capabilities";
 import { sendDayLetter } from "@/lib/digest/dayLetter";
 import { sendDayWhatsapp } from "@paid/whatsapp/lib/digest/dayWhatsapp";
+import { sendDaySms, smsSummary } from "@/lib/digest/daySms";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
 import { refused, wrote } from "@/lib/helper/thread";
@@ -46,7 +47,7 @@ export async function POST(
   const body = (jsonBody.value) as Record<string, unknown> | null;
   const tripId = typeof body?.trip === "string" ? body.trip.trim() : "";
   const slug = typeof body?.slug === "string" ? body.slug.trim() : "";
-  const channel = body?.channel === "whatsapp" ? "whatsapp" : "mail";
+  const channel = body?.channel === "whatsapp" || body?.channel === "sms" ? body.channel : "mail";
 
   const ref = tripRef(user, tripId);
   const trip = getTrip(ref);
@@ -96,6 +97,21 @@ export async function POST(
       );
     }
     const summary = whatsappSummary(outcome);
+    wrote(user, "tell_readers", { trip: tripId, slug, channel, ...summary });
+    return Response.json({ ok: true, slug, channel, ...summary });
+  }
+
+  if (channel === "sms") {
+    // B2292 — the same shape as WhatsApp above, one credit per paying reader.
+    const outcome = await sendDaySms(user, ref, slug);
+    if (!outcome.ok) {
+      refused(user, "tell_readers", outcome.reason);
+      return Response.json(
+        { error: outcome.reason },
+        { status: outcome.reason === "no_credits" ? 402 : 400 },
+      );
+    }
+    const summary = smsSummary(outcome);
     wrote(user, "tell_readers", { trip: tripId, slug, channel, ...summary });
     return Response.json({ ok: true, slug, channel, ...summary });
   }

@@ -9,8 +9,8 @@
  * - `notInvited`: filed by an import (B2296) — `createdVia: "owner-import"`,
  *   never confirmed. Nobody has asked this address anything yet; that is the
  *   whole difference from `waitingOnThem` below, which already has.
- * - `waitingOnYou`: asked and confirmed their address — the owner's answer is
- *   what is missing (Approve).
+ * - `waitingOnYou`: asked and confirmed their address, or proved their mobile
+ *   number by SMS (B2294) — the owner's answer is what is missing (Approve).
  * - `waitingOnThem`: invited and never confirmed — they owe the next step.
  * - `readingNow`: active.
  * - `revoked`: blocked (Revoke writes this); Approve is the way back (B213).
@@ -22,6 +22,7 @@ type Row = {
   status: "pending" | "active" | "blocked";
   confirmedAt: string | null;
   createdVia: string | null;
+  phoneProvenAt?: string | null;
 };
 
 export type ReaderState = "notInvited" | "waitingOnYou" | "waitingOnThem" | "readingNow" | "revoked";
@@ -29,7 +30,7 @@ export type ReaderState = "notInvited" | "waitingOnYou" | "waitingOnThem" | "rea
 export function readerState(row: Row): ReaderState {
   if (row.status === "active") return "readingNow";
   if (row.status === "blocked") return "revoked";
-  if (row.confirmedAt) return "waitingOnYou";
+  if (row.confirmedAt || row.phoneProvenAt) return "waitingOnYou";
   return row.createdVia === "owner-import" ? "notInvited" : "waitingOnThem";
 }
 

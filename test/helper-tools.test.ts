@@ -10,10 +10,9 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
 import { WEB_CALLER } from "./support/callers";
 
 /**
- * B906 — the catalogue and the model behind `find_day` are mocked the same
- * way `test/helper-search.test.ts` mocks them for the search box's own
- * fallback: what is under test is not whether a model matches a sentence
- * well, but what the tool does with its answer, including a bad one.
+ * B906 — the catalogue and the model behind `find_day` are mocked here:
+ * what is under test is not whether a model matches a sentence well, but
+ * what the tool does with its answer, including a bad one.
  */
 const catalogue = vi.hoisted(() => ({
   rows: [] as { id: string; kind: "day" | "trip" | "page" | "doc"; title: string; where: string; url: string }[],
@@ -303,11 +302,10 @@ describe("finding a day by what was in it, not by its date", () => {
   });
 
   /**
-   * The same discipline `app/api/helper/[user]/search/route.ts` enforces with
-   * its own `byId.get(hit.id)` filter: an id the catalogue never carried —
-   * another journal's day, or a trip this reader is not on — is dropped
-   * rather than resolved. A model that invented a row would otherwise be
-   * inventing a page.
+   * B904's own `byId.get(hit.id)` filter: an id the catalogue never
+   * carried — another journal's day, or a trip this reader is not on — is
+   * dropped rather than resolved. A model that invented a row would
+   * otherwise be inventing a page.
    */
   test("an id the catalogue never sent it is dropped, not resolved", async () => {
     catalogue.rows = [

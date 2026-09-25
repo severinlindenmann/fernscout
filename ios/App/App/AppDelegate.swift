@@ -63,17 +63,45 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+    // B2115 — forwarding required by @capacitor/push-notifications' own
+    // docs: these two `UIApplicationDelegate` callbacks are a different pair
+    // from `UNUserNotificationCenterDelegate` below (already ours, for
+    // B2196/B2197's local notices) and do not compete with it. The plugin
+    // listens for these two notification names and turns them into its own
+    // `registration` / `registrationError` JS events — nothing here reads
+    // the token itself.
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+    }
+
 }
 
 // MARK: - UNUserNotificationCenterDelegate
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
-    /// A tap on any of B2196/B2197's notices — stop, open-ended or
+    /// A tap on any of B2196/B2197's local notices — stop, open-ended or
     /// before-trip — loads that trip's studio page directly into the
     /// bridge's own `WKWebView`, the same page the notice names in
     /// `userInfo["url"]`. Works whether the app was foreground,
     /// background or not running at all: `didFinishLaunching` always runs
     /// first and always sets `window`.
+    ///
+    /// B2115 — a tap on a *remote* push (an invite, a published day,
+    /// anything `lib/push.ts`'s APNs sender sent) lands here too, unchanged.
+    /// There is exactly one `UNUserNotificationCenter.current().delegate` in
+    /// the process and this file owns it; the push plugin never installs its
+    /// own. A remote notification's payload carries `userInfo["url"]` the
+    /// same shape the local notices do (`lib/push.ts`'s payload, mirrored by
+    /// the APNs sender), so the same path — read it, resolve it against the
+    /// bridge's own `appStartServerURL`, load it only on an exact host,
+    /// scheme and port match — is already the right one for both. No
+    /// `response.notification.request.trigger` branch needed: the
+    /// same-origin check is the whole of what either kind of notice is
+    /// allowed to do.
     ///
     /// Security review (2026-09-24), finding 5 — `userInfo["url"]` for the
     /// before-trip notice came from `scheduleBeforeTrip`'s JS caller, so a

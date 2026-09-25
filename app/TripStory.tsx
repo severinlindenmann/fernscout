@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronUp, ChevronDown, LayoutDashboard } from "lucide-react";
+import Link from "next/link";
+import { ChevronUp, ChevronDown, LayoutDashboard, Plus } from "lucide-react";
 import GamePath from "@/components/GamePath";
 import OwnerTools from "@/components/OwnerTools";
 import LatestDayButton from "@/components/LatestDayButton";
@@ -395,7 +396,24 @@ export default function TripStory({
     return (
       <div className="min-h-screen">
         <PageHeader />
-        <p className="p-6 text-ink-secondary">{t("story.empty")}</p>
+        {trip?.canPublish ? (
+          // The owner's own empty trip: point at the one thing to do next,
+          // the studio's add-day flow with this trip already chosen.
+          <div className="mx-auto max-w-xl px-4 py-16 text-center sm:px-6">
+            {/* The trip's name: on a phone the header shows only the journal. */}
+            <h1 className="text-2xl font-semibold text-ink-strong">{localizedTrip(trip.trip).title}</h1>
+            <p className="mt-3 text-ink-secondary">{t("story.emptyOwner.body")}</p>
+            <Link
+              href={`/${encodeURIComponent(trip.trip.username)}/studio/day/new?trip=${encodeURIComponent(trip.trip.id)}`}
+              className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-action-strong px-5 py-2 font-semibold text-on-action"
+            >
+              <Plus className="h-4 w-4" />
+              {t("story.emptyOwner.cta")}
+            </Link>
+          </div>
+        ) : (
+          <p className="p-6 text-ink-secondary">{t("story.empty")}</p>
+        )}
       </div>
     );
   }
@@ -523,6 +541,7 @@ export default function TripStory({
             loadFailed={loadFailed}
             steps={steps}
             stepIndex={stepIndex}
+            hasPlaces={stats.places > 0}
             onStepChange={(next) => {
               directionRef.current = next > stepIndex ? 1 : -1;
               setStepIndex(next);

@@ -4,6 +4,7 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
 import { grantIsLive } from "./grants";
 import type { Trip } from "./types";
 import { getUser } from "./users";
+import { subjectLookup } from "./contacts/crypto";
 
 /**
  * Two different questions, and this file answers them from two different
@@ -20,14 +21,20 @@ import { getUser } from "./users";
  * exactly the kind of door D3 closes. **Never use it for an access
  * decision.**
  *
- * **`peopleOf` is the access list, and the only one.** The owner, plus
- * whoever holds a *granted* `trip_people` place — from redeeming a buddy
- * link, or being added directly, at `/<user>/studio/readers`, and the owner
- * then approving them. This is what `isPersonOn`/`isPersonOnWith` (read),
- * `tripWriteVerdict` (write), `lib/digest/dayLetter.ts` and
- * `paid/whatsapp/lib/digest/dayWhatsapp.ts` (day-update mail), and
- * `lib/studio/publishDay.ts` (who a private day reaches) all read from. A
+ * **`peopleOf` is the access list, by address.** The owner, plus whoever
+ * holds a *granted* `trip_people` place, keyed on `email_key` — the shape
+ * `lib/digest/dayLetter.ts`, `paid/whatsapp/lib/digest/dayWhatsapp.ts` and
+ * `lib/digest/daySms.ts` (day-update mail/WhatsApp/SMS) and
+ * `lib/studio/publishDay.ts` (who a private day reaches) all need, since
+ * every one of them is already working from a list of contacts by email. A
  * bare `people:` entry is never in it.
+ *
+ * **`isPersonOn`/`isPersonOnWith` (read) and `tripWriteVerdict` (write) ask
+ * the same grant, by subject.** A subject is an address *or* a proved mobile
+ * number (`subjectLookup`, B2294) — these three go straight to
+ * `redeemedTripsFor` rather than through `peopleOf`, so a buddy who proved a
+ * phone reads and writes their trip exactly as one who proved an address
+ * does. `peopleOf`'s own `email_key` join would silently refuse them.
  *
  * A migration (`scripts/migrate-trip-people.mts`) turned every `people:`
  * entry with an email into a granted buddy — contact, journal read grant and
@@ -54,10 +61,11 @@ export function peopleNamedIn(trip: Trip): string[] {
 
 /**
  * Every address that actually holds this trip, lower-cased: the owner, plus
- * whoever holds a granted `trip_people` place. Never a bare name in
- * `trip.people` — see the file banner (D3, B2297). This is the sole access
- * list: reading a closed trip, writing to it, receiving its day-update mail
- * and being tagged a "buddy" of it all read from here.
+ * whoever holds a granted `trip_people` place, by `email_key`. Never a bare
+ * name in `trip.people` — see the file banner (D3, B2297). Day-update mail
+ * and being tagged a "buddy" both read from here; reading and writing ask
+ * `isPersonOn`/`tripWriteVerdict` instead, which are subject- (phone-)aware
+ * — see the file banner (B2294).
  */
 export async function peopleOf(trip: Trip): Promise<string[]> {
   const rawOwner = getUser(trip.username)?.owner.email;
@@ -72,7 +80,13 @@ export async function peopleOf(trip: Trip): Promise<string[]> {
 export async function isPersonOn(trip: Trip, email: string | undefined | null): Promise<boolean> {
   if (!email) return false;
   const address = email.trim().toLowerCase();
-  return (await peopleOf(trip)).includes(address);
+  const rawOwner = getUser(trip.username)?.owner.email;
+  if (rawOwner && rawOwner.trim().toLowerCase() === address) return true;
+  // By the subject rather than by a plain email join, so a buddy who proved
+  // a mobile number instead (B2294) is on the trip the same way a redeemed
+  // address is. A bare `people:` entry is never in this — see the file
+  // banner (D3, B2297).
+  return (await redeemedTripsFor(trip.username, address)).has(trip.id);
 }
 
 /**
@@ -185,13 +199,16 @@ export async function redeemedTripsFor(
   if (!email) return new Set();
   const handle = await getDatabaseOrNull();
   if (!handle) return new Set();
+  // An address or a proved mobile number (B2294) — `subjectLookup` decides.
+  const lookup = subjectLookup(email);
+  if (!lookup) return new Set();
   const now = new Date();
   const rows = await handle.db
     .selectFrom("trip_people")
     .innerJoin("contacts", "contacts.id", "trip_people.contact_id")
     .select(["trip_people.trip_id as trip_id", "trip_people.expires_at as expires_at"])
     .where("trip_people.owner_id", "=", username)
-    .where("contacts.email_key", "=", email.trim().toLowerCase())
+    .where(`contacts.${lookup[0]}`, "=", lookup[1])
     .where("trip_people.granted_at", "is not", null)
     .where("trip_people.revoked_at", "is", null)
     .where("contacts.status", "=", "active")
@@ -283,10 +300,12 @@ export async function tripWriteVerdict(
   if (scope === "write:content") return "allowed"; // the journal's owner
   if (scope !== tripWriteScope(trip.id)) return "out_of_scope";
   if (!email) return "revoked";
-  // Grant-only (D3, B2297): `peopleOf` is the one access list, and a bare
-  // name in `people:` was never in it.
-  const address = email.trim().toLowerCase();
-  return (await peopleOf(trip)).includes(address) ? "allowed" : "revoked";
+  // Grant-only (D3, B2297) and subject-aware (B2294): `isPersonOn` asks
+  // exactly this question — a granted place, by address or by a proved
+  // mobile number — and a bare name in `people:` was never enough for
+  // either. Not `peopleOf`, which is keyed on `email_key` alone and would
+  // wrongly revoke a buddy who proved a phone instead.
+  return (await isPersonOn(trip, email)) ? "allowed" : "revoked";
 }
 
 /**
@@ -448,16 +467,22 @@ export async function pendingTripRequestsFor(username: string): Promise<Map<stri
  * blocked and press approve — which is the same deliberate act that hands back
  * the journal, not a side door into it.
  */
-export async function approveTripPlaces(username: string, contactId: string): Promise<string[]> {
+export async function approveTripPlaces(
+  username: string,
+  contactId: string,
+  /** B2292 — open this one trip's place and leave every other row alone. */
+  onlyTrip?: string,
+): Promise<string[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const now = new Date();
-  const candidates = await handle.db
+  let query = handle.db
     .selectFrom("trip_people")
     .select(["id", "trip_id", "granted_at", "revoked_at", "expires_at"])
     .where("owner_id", "=", username)
-    .where("contact_id", "=", contactId)
-    .execute();
+    .where("contact_id", "=", contactId);
+  if (onlyTrip !== undefined) query = query.where("trip_id", "=", onlyTrip);
+  const candidates = await query.execute();
 
   // Revoked, never granted (a request), or granted and since lapsed. All three
   // are somebody who is not on the trip right now, which is the only question

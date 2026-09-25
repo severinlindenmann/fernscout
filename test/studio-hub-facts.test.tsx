@@ -55,6 +55,7 @@ const FULL: Extract<StudioHubModel, { kind: "full" }> = {
   account: { credits: null, purchasesOpen: 0, storage: null },
   print: { unfinished: [], recentOrders: [] },
   addDayTrip: { id: "alps", title: "Alps", current: true },
+  toldToday: false,
   planTrip: { id: "jp", title: "Japan" },
   cannotRun: { postcard: false, photobook: false, changeDay: false, reshapeDay: false },
   resumableImports: [],
@@ -127,6 +128,13 @@ describe("the Half done strip", () => {
     const s = strip(el)!;
     expect(s).not.toBeNull();
     expect(s.textContent).toContain("Half done");
+    // B2304 — one slim line by default: only the add-day draft (the first
+    // item built), the rest behind "+2 more".
+    expect(s.querySelectorAll("a").length).toBe(1);
+    expect(s.textContent).toContain("A day you started, not finished");
+    const more = Array.from(s.querySelectorAll<HTMLButtonElement>("button")).find((b) => b.textContent === "+2 more")!;
+    expect(more).toBeTruthy();
+    act(() => more.click());
     expect(s.querySelectorAll("a").length).toBe(3);
     expect(s.textContent).toContain("A day you started, not finished");
     expect(s.textContent).toContain("4 photographs");
@@ -164,12 +172,15 @@ describe("B2134 — hub facts and layout", () => {
     expect(el.querySelector('a[href="/alex/studio/account"] [data-fact]')?.textContent).toBe("3 MB of 10 GB");
   });
 
-  test("the bar's primary wears the hero's icon", async () => {
+  // B2304 removed the floating phone-bar pill entirely — the hero's own
+  // link is the only one wearing its icon now.
+  test("no bottom bar repeats the hero's link", async () => {
     const el = await render({ ...FULL, addDayTrip: { id: "jp", title: "Japan", current: false } });
     const hero = el.querySelector("a[data-hero]")!;
-    const bar = Array.from(el.querySelectorAll("a")).find((a) => a !== hero && a.getAttribute("href") === hero.getAttribute("href") && !a.hasAttribute("data-row"))!;
-    const iconOf = (a: Element) => Array.from(a.querySelector("svg")!.classList).find((c) => c.startsWith("lucide-") && c !== "lucide-icon");
-    expect(iconOf(bar)).toBe(iconOf(hero));
+    const dupes = Array.from(el.querySelectorAll("a")).filter(
+      (a) => a !== hero && a.getAttribute("href") === hero.getAttribute("href"),
+    );
+    expect(dupes).toHaveLength(0);
   });
 
   test("Plan has no plan-readers row, and the trip row is called Trips", async () => {

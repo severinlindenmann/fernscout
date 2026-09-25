@@ -54,6 +54,9 @@ export function mayMailContact(
   contact: Pick<ContactRecord, "email" | "confirmedAt">,
   options: { allowUnconfirmed?: boolean } = {},
 ): boolean {
+  // A contact with a mobile number and no address (B2294) stores `""`: there
+  // is nowhere to mail, whatever the reason for the letter.
+  if (!contact.email.includes("@")) return false;
   if (options.allowUnconfirmed) return true;
   if (contact.confirmedAt) return true;
   console.warn(
@@ -257,6 +260,42 @@ export async function sendInviteMail(
 }
 
 /**
+ * The welcome link, by email — B2292. The owner pressed "Email" in step 2 of
+ * Add a person (or "Resend by email" on the card), naming the address
+ * themselves: the same exception `sendInviteMail` is to B334, since a person
+ * the owner added may not have proved anything yet.
+ *
+ * Not best effort: the caller reports what happened on the button the owner
+ * pressed, so a throw is its to catch, and `null` means mail is off.
+ */
+export async function sendWelcomeMail(
+  username: string,
+  user: UserConfig,
+  contact: ContactRecord,
+  message: { locale: Locale; url: string; text: string; subject: string },
+): Promise<SendResult | null> {
+  if (!mayMailContact(contact, { allowUnconfirmed: true })) return null;
+  const token = manageTokenFor(username, contact.id);
+  return sendMail(
+    renderMail(
+      contact.email,
+      message.subject,
+      {
+        preheader: message.text,
+        title: message.subject,
+        blocks: [
+          { kind: "paragraph", text: message.text },
+          { kind: "button", text: translateIn(message.locale, "welcomeLink.mailButton"), href: message.url },
+        ],
+        footer: footerFor(message.locale, user),
+        unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
+      },
+      username,
+    ),
+  );
+}
+
+/**
  * "We have your details, the owner will let you in." Carries the manage link
  * — the first mail that can, because the address has just been proved.
  *
@@ -449,65 +488,6 @@ export async function notifyOwnerOfRequest(
  * anyone to retry from. A failure here must log and return `null`, never
  * surface as a 500 to a reader who did everything right.
  */
-/**
- * "You can read it." D11's own mail (spec §8, §7.5) — a notification, never
- * a question. Sent the moment `grantContactAccess` returns, so the button in
- * it opens straight onto trips this address can already read.
- *
- * Structurally this is `sendApprovedMail` with its tense changed: the same
- * standing sign-in link (`issueStandingLink`/`signInUrl`), the same manage
- * link in the footer — which is the "way to decline everything" D11 requires
- * (`deleteContactSelf`, reachable from that page, removes the row and every
- * grant with it; `unsubscribeContact` alone only stops mail, which is why the
- * button here is worded as declining *access*, not merely mail). What
- * differs is the copy: nothing here asks the reader to confirm anything —
- * there is nothing left for them to confirm — and it says plainly that
- * access already exists.
- */
-export async function sendGrantedMail(
-  username: string,
-  user: UserConfig,
-  contact: ContactRecord,
-): Promise<SendResult | null> {
-  if (!mayMailContact(contact)) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
-  try {
-    const token = manageTokenFor(username, contact.id);
-    const openUrl = signInUrl(
-      baseUrl(),
-      username,
-      await issueStandingLink(username, contact.email),
-      locale,
-    );
-    return await sendMail(
-      renderMail(
-        contact.email,
-        translateIn(locale, "contact.mailGrantedSubject", { title: user.title }),
-        {
-          preheader: translateIn(locale, "contact.mailGrantedBody", { title: user.title }),
-          title: translateIn(locale, "contact.mailGrantedTitle", { title: user.title }),
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "contact.mailGrantedBody", { title: user.title }) },
-            { kind: "button", text: translateIn(locale, "contact.mailGrantedButton", { title: user.title }), href: openUrl },
-            {
-              kind: "item",
-              title: translateIn(locale, "contact.mailGrantedDeclineButton"),
-              meta: translateIn(locale, "contact.mailGrantedDeclineCaption"),
-              href: manageUrl(baseUrl(), username, token),
-            },
-          ],
-          footer: footerFor(locale, user),
-          unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
-        },
-        username,
-      ),
-    );
-  } catch (err) {
-    console.error(`[contacts] grant mail to ${contact.email} failed:`, err);
-    return null;
-  }
-}
-
 export async function sendApprovedMail(
   username: string,
   user: UserConfig,

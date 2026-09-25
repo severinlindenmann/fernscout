@@ -3,6 +3,7 @@ import type { Tool } from "../types";
 import { isEnabled } from "../../../capabilities";
 import { mailWouldReach } from "../../../digest/dayLetter";
 import { whatsappWouldCost, whatsappWouldReach } from "@paid/whatsapp/lib/digest/dayWhatsapp";
+import { smsWouldCost, smsWouldReach } from "../../../digest/daySms";
 import { DAY_ARGS } from "../args";
 import { resolveDay, tripIdFor } from "../resolve";
 
@@ -59,18 +60,19 @@ export const READERS_TOOLS: readonly Tool[] = [
     kind: "write",
     renders: "confirm",
     describe:
-      "Propose announcing a published day — by mail (free) or WhatsApp (spends credits). Refused for a day still in draft: publish it first. Ask which channel if they did not say; default to mail.",
+      "Propose announcing a published day — by mail (free), WhatsApp or SMS (spend credits). Refused for a day still in draft: publish it first. Ask which channel if they did not say; default to mail.",
     properties: {
       ...DAY_ARGS,
       channel: {
         type: "string",
-        description: "mail or whatsapp. Leave out only when they truly did not say.",
+        description: "mail, whatsapp or sms. Leave out only when they truly did not say.",
       },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/tell-readers`,
     propose: async (username, args, say) => {
       const found = resolveDay(username, args);
-      const channel: "mail" | "whatsapp" = args.channel === "whatsapp" ? "whatsapp" : "mail";
+      const channel: "mail" | "whatsapp" | "sms" =
+        args.channel === "whatsapp" || (args.channel === "sms" && isEnabled("sms")) ? args.channel : "mail";
 
       if (found?.entry.draft) {
         return {
@@ -85,17 +87,22 @@ export const READERS_TOOLS: readonly Tool[] = [
       const reach = found
         ? channel === "whatsapp"
           ? await whatsappWouldReach(username, found.trip.ref, found.entry.slug)
-          : await mailWouldReach(username, found.trip.ref, found.entry.slug)
+          : channel === "sms"
+            ? await smsWouldReach(username, found.trip.ref, found.entry.slug)
+            : await mailWouldReach(username, found.trip.ref, found.entry.slug)
         : 0;
-      const cost =
-        found && channel === "whatsapp"
+      const cost = !found
+        ? 0
+        : channel === "whatsapp"
           ? await whatsappWouldCost(username, found.trip.ref, found.entry.slug)
-          : 0;
+          : channel === "sms"
+            ? await smsWouldCost(username, found.trip.ref, found.entry.slug)
+            : 0;
 
       const sentence = !found
         ? say("agent.tool.publishNoDay")
-        : channel === "whatsapp"
-          ? say("agent.tool.tellReadersWhatsapp", {
+        : channel !== "mail"
+          ? say(channel === "sms" ? "agent.tool.tellReadersSms" : "agent.tool.tellReadersWhatsapp", {
               date: found.entry.date,
               title: found.entry.title,
               count: String(reach),
@@ -120,6 +127,8 @@ export const READERS_TOOLS: readonly Tool[] = [
             options: [
               { value: "mail", label: say("agent.tool.channelMail") },
               { value: "whatsapp", label: say("agent.tool.channelWhatsapp") },
+              // B2292 — only where this server can text at all.
+              ...(isEnabled("sms") ? [{ value: "sms", label: say("agent.tool.channelSms") }] : []),
             ],
           },
         ],

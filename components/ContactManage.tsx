@@ -38,6 +38,8 @@ export type ManageContact = {
   wantsEmailDigest: boolean;
   wantsPostcard: boolean;
   wantsWhatsapp: boolean;
+  /** B2292. Absent where the page does not offer SMS. */
+  wantsSms?: boolean;
   address: ManageAddress;
 };
 
@@ -66,6 +68,7 @@ export default function ContactManage({
   className = PAGE_CLASS,
   defaultCountryCode,
   addressLookupEnabled = false,
+  smsEnabled = false,
   isOwner = false,
 }: {
   username: string;
@@ -88,6 +91,8 @@ export default function ContactManage({
   defaultCountryCode?: string;
   /** B399: `isEnabled("addressLookup", username)`, from the page. */
   addressLookupEnabled?: boolean;
+  /** B2292: `isEnabled("sms")` — offer new days by SMS as its own tick. */
+  smsEnabled?: boolean;
   /**
    * Whether the person filling this in owns the journal — B619.
    *
@@ -137,6 +142,7 @@ export default function ContactManage({
   const [wantsDigest, setWantsDigest] = useState(contact.wantsEmailDigest);
   const [wantsPostcard, setWantsPostcard] = useState(contact.wantsPostcard);
   const [wantsWhatsapp, setWantsWhatsapp] = useState(contact.wantsWhatsapp);
+  const [wantsSms, setWantsSms] = useState(contact.wantsSms ?? false);
   const [note, setNote] = useState<TranslationKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [deleted, setDeleted] = useState(false);
@@ -204,6 +210,7 @@ export default function ContactManage({
               wantsEmailDigest: wantsDigest,
               wantsPostcard,
               wantsWhatsapp,
+              ...(smsEnabled ? { wantsSms } : {}),
             },
             "contact.saved",
           );
@@ -377,6 +384,17 @@ export default function ContactManage({
             />
             <span>{t("contact.wantsWhatsapp")}</span>
           </label>
+          {smsEnabled && (
+            <label className="flex items-start gap-3 text-lg text-ink-strong">
+              <input
+                type="checkbox"
+                className="mt-1.5 size-5"
+                checked={wantsSms}
+                onChange={(e) => setWantsSms(e.target.checked)}
+              />
+              <span>{t("contact.wantsSms")}</span>
+            </label>
+          )}
         </div>
 
         {note && (

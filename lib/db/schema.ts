@@ -178,6 +178,25 @@ type ContactsTable = {
    * failure leaves it null and a later re-confirmation retries it rather than
    * the notice being lost for good. See `012-contact-notified`. */
   notified_at: string | null;
+  /** B2294. The mobile number as typed, AES-256-GCM (`phoneAad`), or null.
+   * See `038-contact-phone`. */
+  phone_cipher: string | null;
+  /** HMAC of the number's E.164 digits (`phoneKey`), for lookup — unique per
+   * journal. Null when there is no number or it cannot be read as E.164. */
+  phone_key: string | null;
+  /** When an SMS code proved the number. Null until then. */
+  phone_proven_at: string | null;
+  /** B2292. 0/1 — new days by SMS, its own consent. See `040-welcome-links`. */
+  wants_sms: Generated<number>;
+  /** sha-256 of the `/w/<code>` welcome code, unique across the instance. */
+  welcome_code_hash: string | null;
+  /** The same code, AES-256-GCM (`welcomeAad`), so the owner can show it again. */
+  welcome_code_cipher: string | null;
+  /** `email` | `whatsapp` | `sms` | `self` — the last channel the owner chose. */
+  invited_via: string | null;
+  invited_at: string | null;
+  /** When the welcome link was first opened. */
+  welcome_opened_at: string | null;
 };
 
 /**
@@ -289,12 +308,18 @@ type PushSubscriptionsTable = {
   owner_id: string;
   /** Null until W12 ties a browser to a known reader. */
   contact_id: string | null;
+  /** A push service URL for `kind: "web"`, an APNs device token for
+   * `kind: "apns"` — see `StoredSubscription` in lib/repos/types.ts. */
   endpoint: string;
+  /** Empty strings for `kind: "apns"`, which has no encryption keypair. */
   p256dh: string;
   auth: string;
   user_agent: string | null;
   created_at: string;
   last_seen_at: string | null;
+  /** `"web"` | `"apns"` — added in 039-push-kind, defaulted to `"web"` for
+   * every row that predates it. */
+  kind: Generated<string>;
 };
 
 type ReactionsTable = {

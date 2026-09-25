@@ -29,6 +29,19 @@ export type ReactionRepo = {
   ): Promise<VoteResult>;
 };
 
+/**
+ * `web` is a browser's Push API subscription — `endpoint` is the push
+ * service's own URL and `keys` are real. `apns` (B2115) is an iPhone shell
+ * registered directly with Apple: there is no push service URL and no
+ * encryption keypair, so `endpoint` holds the device token APNs handed back
+ * and `keys` is a pair of empty strings — kept rather than made optional so
+ * every reader of this type still gets one shape, and the database's
+ * `p256dh`/`auth` columns (`NOT NULL` since 001-initial) need no migration
+ * of their own. `lib/push/apns.ts` is the only thing that reads `endpoint`
+ * as a device token.
+ */
+type SubscriptionKind = "web" | "apns";
+
 export type StoredSubscription = {
   endpoint: string;
   keys: { p256dh: string; auth: string };
@@ -45,6 +58,11 @@ export type StoredSubscription = {
    * anonymous subscriber, and always null without a database — contacts
    * require one. See `lib/push.ts#subscribersFor`. */
   contactId?: string | null;
+  /** Which transport this row sends through — see `SubscriptionKind`.
+   * Defaults to `"web"` for every row written before B2115, both in the
+   * database (migration backfills the column) and in the file store (never
+   * written, so a reader who finds it absent means `"web"`). */
+  kind?: SubscriptionKind;
 };
 
 export type PushRepo = {

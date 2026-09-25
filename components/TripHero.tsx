@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
-import { ArrowDown, BookOpen, PlayCircle, Sparkles } from "lucide-react";
+import { ArrowDown, BookOpen, Clapperboard, PlayCircle, Sparkles } from "lucide-react";
 import LatestDayButton from "./LatestDayButton";
 import TripMap from "./TripMap";
 import { isPlottable } from "@/lib/mapFrame";
@@ -327,6 +328,22 @@ export default function TripHero({
                   <ArrowDown className="h-4 w-4" aria-hidden />
                   {t("hero.startReading")}
                 </button>
+                {/* Same button, same condition (`hasPlaces`), as the map
+                    page's own Clapperboard — B2306. A plain link to the map
+                    page rather than a button that opens the show in place:
+                    the story page must not carry what the show needs
+                    (`places`, the whole trip's galleries and headlines) just
+                    because this link sits on it. `?show=1` is read by
+                    `MapPageContent`, which already has `places` in hand. */}
+                {hasPlaces && (
+                  <Link
+                    href={active.href("/map?show=1")}
+                    className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
+                  >
+                    <Clapperboard className="h-4 w-4" />
+                    {t("show.start")}
+                  </Link>
+                )}
                 {/* The journey is finished — this is where somebody looking at
                     that fact is offered the book of it. B569. */}
                 {photobook && stats.totalMedia > 0 && (
@@ -460,24 +477,34 @@ export default function TripHero({
         </section>
       )}
 
-      {/* Time per country */}
+      {/* Time per country — days, not money: spend per country already has
+          its own card on the costs page. B2308. */}
       {stats.byCountry && stats.byCountry.length > 0 && (
         <section className="rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
           <h2 className="mb-3 font-display text-base font-semibold text-ink-strong">
             {t("hero.timePerCountry")}
           </h2>
-          <BarList
-            rows={stats.byCountry.map((c) => ({
-              key: c.country,
-              label: `${flagFor(c.country, c.countryCode)} ${c.country}`,
-              value: c.nights,
-              sub: money(c.amount),
-            }))}
-            format={(n) =>
-              `${n} ${n === 1 ? t("stay.night") : t("stay.nights")}`
-            }
-            accent={CATEGORY_STYLE.accommodation.color}
-          />
+          {stats.byCountry.length === 1 ? (
+            // One country drawn as a bar at 100% of one says nothing — a
+            // single line instead of an empty-looking track.
+            <p className="text-sm font-medium text-ink-strong">
+              {`${flagFor(stats.byCountry[0].country, stats.byCountry[0].countryCode)} ${stats.byCountry[0].country} · ${stats.byCountry[0].nights} ${
+                stats.byCountry[0].nights === 1 ? t("stay.day") : t("stay.days")
+              }`}
+            </p>
+          ) : (
+            <BarList
+              rows={[...stats.byCountry]
+                .sort((a, b) => b.nights - a.nights)
+                .map((c) => ({
+                  key: c.country,
+                  label: `${flagFor(c.country, c.countryCode)} ${c.country}`,
+                  value: c.nights,
+                }))}
+              format={(n) => `${n} ${n === 1 ? t("stay.day") : t("stay.days")}`}
+              accent={CATEGORY_STYLE.accommodation.color}
+            />
+          )}
         </section>
       )}
     </div>
