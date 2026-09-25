@@ -18,6 +18,11 @@ type StudioBarContextValue = {
   setBar: (state: BarState) => void;
   clearBar: () => void;
   setPage: (page: PageState | null) => void;
+  /** B2331 — `useOutbox`'s own reachability probe (`/api/health`, not just
+   *  `navigator.onLine`), shared here so every "needs a signal" feature can
+   *  grey out on the same signal the pill already shows rather than each
+   *  keeping its own, weaker one. See `useOnline`. */
+  online: boolean;
 };
 
 /** The desktop row lines up with the page's own column (StudioPage's WIDTH). */
@@ -96,8 +101,11 @@ export default function StudioBarProvider({
   const [bar, setBar] = useState<BarState | null>(null);
   const [page, setPage] = useState<PageState | null>(null);
   const clearBar = useCallback(() => setBar(null), []);
-  const value = useMemo(() => ({ setBar, clearBar, setPage }), [clearBar]);
   const outbox = useOutbox(username);
+  const value = useMemo(
+    () => ({ setBar, clearBar, setPage, online: outbox.online }),
+    [clearBar, outbox.online],
+  );
 
   // D6, B2330 — ask the worker to keep whichever of the two named trips it
   // does not already hold, the moment the studio is open and there is a
@@ -180,7 +188,13 @@ export default function StudioBarProvider({
       <div className="max-md:flex max-md:min-h-[100dvh] max-md:flex-col">
       <div className="max-md:flex-1">{children}</div>
       <div className="relative">
-        <OutboxPill online={outbox.online} pending={outbox.pending} syncing={outbox.syncing} />
+        <OutboxPill
+          username={username}
+          online={outbox.online}
+          pending={outbox.pending}
+          conflicts={outbox.conflicts}
+          syncing={outbox.syncing}
+        />
         <ActionBar
           revealAfterScroll={bar?.revealAfterScroll ?? 0}
           desktop={page && !(bar?.mode === "replace" && !bar.desktop) ? ROW_WIDTH[page.width] : null}
@@ -207,8 +221,35 @@ export default function StudioBarProvider({
  * Floats above the bar rather than inside its row (see the provider's own
  * doc comment) so it never has to fight the row for width.
  */
-function OutboxPill({ online, pending, syncing }: { online: boolean; pending: number; syncing: boolean }) {
-  const { t } = useI18n();
+function OutboxPill({
+  username,
+  online,
+  pending,
+  conflicts,
+  syncing,
+}: {
+  username: string;
+  online: boolean;
+  pending: number;
+  conflicts: number;
+  syncing: boolean;
+}) {
+  const { t, tn } = useI18n();
+  // B2331, D3 — a conflict needs the owner's own decision before anything
+  // else this pill could say matters; it takes priority over "waiting" or
+  // "offline" and, unlike those, is a real link (`pointer-events-none`
+  // dropped) to where that decision is actually made.
+  if (conflicts > 0) {
+    return (
+      <Link
+        href={`/${username}/studio/day/conflicts`}
+        className="absolute -top-3 left-4 z-20 -translate-y-full rounded-full border border-coral-400
+                   bg-coral-100 px-3 py-1 text-xs font-semibold text-coral-600 shadow-sm hover:bg-coral-300/40"
+      >
+        {tn("studio.outbox.conflicts", conflicts, { n: String(conflicts) })}
+      </Link>
+    );
+  }
   if (online && pending === 0 && !syncing) return null;
   const label = !online
     ? pending > 0
@@ -281,6 +322,18 @@ function GroupSheet({ username }: { username: string }) {
       </nav>
     </details>
   );
+}
+
+/**
+ * B2331 — the shared reachability signal every "needs a signal" feature
+ * reads instead of keeping its own. `null` outside the provider (a test
+ * that mounts a component on its own with no `StudioBarProvider`), which
+ * `useOnline` treats as "no shared answer" and falls back to
+ * `navigator.onLine`.
+ */
+export function useStudioOnline(): boolean | null {
+  const ctx = useContext(StudioBarContext);
+  return ctx ? ctx.online : null;
 }
 
 /**

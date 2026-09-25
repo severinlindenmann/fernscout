@@ -20,7 +20,11 @@
  *     in-memory store and a scripted `fetch` instead of a browser.
  */
 
-type IntentState = "pending" | "conflict";
+/** B2331 — `"transcribed"` is a `voice.note`'s own resting state once the
+ *  transcribe route has answered: not removed (D4 — never inserted
+ *  silently) and not `"conflict"` (nobody refused it), so it needed a state
+ *  of its own rather than overloading either. */
+type IntentState = "pending" | "conflict" | "transcribed";
 
 /** One not-yet-confirmed studio write. `id` is chosen on the phone (not the
  *  server) so the same intent survives being retried without becoming two. */
@@ -49,6 +53,13 @@ export interface OutboxIntent {
    *  a save built on a stale read is refused (409, a `conflict`) rather than
    *  silently applied over whatever moved underneath while this was queued. */
   headers?: Record<string, string>;
+  /** B2331 — the last thing the server told this intent when it could not
+   *  simply be applied. For a `day.edit` left `"conflict"`, the 409's own
+   *  body (`{ error, details: <the day as the server holds it now> }`); for
+   *  a `voice.note` left `"transcribed"`, the transcript text itself.
+   *  Unknown shape here on purpose — read only by the screen for the one
+   *  kind that produced it (`pendingConflicts`, `pendingVoiceTranscripts`). */
+  details?: unknown;
   /** B2330 — set once the iPhone shell has handed this `media.upload`'s
    *  bytes to its own native background upload (same credential and route
    *  as the share extension, B2175) so it keeps going with the app
@@ -129,6 +140,11 @@ export interface RunOutcome {
   /** True when a network error or 5xx stopped the pass with intents still
    *  in `pending` state waiting for the next run. */
   stoppedForRetry: boolean;
+  /** B2331 — how many `voice.note` intents this pass turned into a
+   *  transcript waiting for the owner's own confirmation. Optional and
+   *  absent whenever it would be zero, so every existing assertion on this
+   *  shape (`toEqual`, no such key) is unaffected. */
+  transcribed?: number;
 }
 
 /** The IndexedDB glue's own shape, so `runOutbox` (and its tests) never talk
@@ -137,7 +153,11 @@ export interface OutboxStore {
   list(user: string): Promise<OutboxIntent[]>;
   add(intent: OutboxIntent): Promise<void>;
   remove(id: string): Promise<void>;
-  setState(id: string, state: IntentState): Promise<void>;
+  /** B2331 — `details` is optional and additive: every existing caller
+   *  (`"conflict"`, no third argument) is unchanged. Carries the 409 body
+   *  for a `day.edit` conflict, or the transcript text for a `voice.note`
+   *  moved to `"transcribed"` — see `OutboxIntent.details`. */
+  setState(id: string, state: IntentState, details?: unknown): Promise<void>;
   /** Drops every intent for one owner — signing out, the same boundary
    *  `purgePersonal` clears the worker's cache at. */
   clear(user: string): Promise<void>;
@@ -161,6 +181,25 @@ function withRemappedMedia(body: unknown, placeholderId: string, realId: string)
   const ids = (body as { mediaInboxIds?: unknown }).mediaInboxIds;
   if (!Array.isArray(ids) || !ids.includes(placeholderId)) return body;
   return { ...body, mediaInboxIds: ids.map((id) => (id === placeholderId ? realId : id)) };
+}
+
+/** B2331 — a queued `voice.note`'s own `Blob`, base64-encoded for the
+ *  transcribe route's JSON body. `RecordButton`'s own live `send()` does the
+ *  same encoding with `FileReader`, which has no equivalent outside a
+ *  window; `Blob.arrayBuffer()` plus `btoa` runs the same wherever
+ *  `runOutbox` does (a browser tab, and a plain Node `Blob` in this file's
+ *  own unit tests). */
+async function blobToBase64(blob: Blob): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  // ponytail: chunked to stay under `String.fromCharCode`'s own argument
+  // ceiling on a long recording; a streaming base64 encoder if a voice note
+  // ever needs to be longer than fits comfortably in memory once at all.
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
 }
 
 /**
@@ -194,6 +233,14 @@ export async function runOutbox(
       // the same multipart the inbox route already accepts from a live
       // upload, so the queued photograph is never re-encoded on its way in.
       const isUpload = intent.kind === "media.upload" && intent.blob;
+      // B2331 — a voice note (`SpeakFlow`'s own recording, queued while the
+      // server could not be reached) also carries its audio as `intent.blob`
+      // rather than in `body`, but the transcribe route
+      // (`app/api/helper/[user]/transcribe/route.ts`) takes JSON with the
+      // audio as base64, never multipart the way the inbox route does — so
+      // this folds it into the plain JSON body instead of sending its own
+      // form, the one difference from `media.upload`'s own branch below.
+      const isVoiceNote = intent.kind === "voice.note" && intent.blob;
       if (isUpload && intent.nativeUpload) {
         // Already handed to the native uploader on an earlier pass.
         // `drainNativeUploads` runs before this and removes the intent the
@@ -215,6 +262,10 @@ export async function runOutbox(
         const filename = (intent.body as { filename?: string } | null)?.filename ?? "photo";
         form.append("files", intent.blob as Blob, filename);
         requestBody = form;
+      } else if (isVoiceNote) {
+        headers = { "content-type": "application/json", ...intent.headers };
+        const audio = await blobToBase64(intent.blob as Blob);
+        requestBody = JSON.stringify({ ...(intent.body as Record<string, unknown> | null), audio });
       } else {
         headers = { "content-type": "application/json", ...intent.headers };
         requestBody = intent.method === "DELETE" && intent.body === undefined ? undefined : JSON.stringify(intent.body);
@@ -229,6 +280,23 @@ export async function runOutbox(
 
     const { action } = decideReplay(status, body, intent);
     if (action === "done") {
+      // B2331, D4 — a transcribed voice note is not simply dropped like
+      // every other successful replay: the owner has to see and confirm it
+      // before it becomes part of the day's words, so it is kept
+      // (`"transcribed"`, the response's own text attached) rather than
+      // removed. A recording that came back with nothing to say (silence,
+      // an empty answer) has nothing for the owner to confirm either way.
+      if (intent.kind === "voice.note") {
+        const said = String((body as { text?: unknown } | null)?.text ?? "").trim();
+        if (said) {
+          await store.setState(intent.id, "transcribed", said);
+          outcome.transcribed = (outcome.transcribed ?? 0) + 1;
+        } else {
+          await store.remove(intent.id);
+        }
+        outcome.done += 1;
+        continue;
+      }
       await store.remove(intent.id);
       outcome.done += 1;
       // The inbox route hands back the real id it stored the file under;
@@ -256,7 +324,12 @@ export async function runOutbox(
         }
       }
     } else if (action === "conflict") {
-      await store.setState(intent.id, "conflict");
+      // B2331, D3 — the response body (for `day.edit`, the 409's own
+      // `{ error, details: <the day as the server holds it now> }`) is kept
+      // on the intent, not just the bare state, so the owner's own two-
+      // versions screen (`pendingConflicts`) can show what the server holds
+      // without a second read.
+      await store.setState(intent.id, "conflict", body);
       outcome.conflicts += 1;
     } else if (action === "pause") {
       outcome.paused = true;
@@ -330,12 +403,14 @@ export function openOutboxStore(): OutboxStore {
       });
       db.close();
     },
-    async setState(id, state) {
+    async setState(id, state, details) {
       const db = await openDB();
       const tx = db.transaction(STORE_NAME, "readwrite");
       const store = tx.objectStore(STORE_NAME);
       const existing = await promisify(store.get(id));
-      if (existing) store.put({ ...(existing as OutboxIntent), state });
+      if (existing) {
+        store.put({ ...(existing as OutboxIntent), state, ...(details !== undefined ? { details } : {}) });
+      }
       await new Promise<void>((resolve) => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => resolve();
@@ -414,4 +489,102 @@ export async function pendingDayDates(store: OutboxStore, user: string): Promise
     .map((r) => (r.body as { date?: unknown } | null)?.date)
     .filter((d): d is string => typeof d === "string");
   return new Set(dates);
+}
+
+/** B2331, D4 — one `voice.note` that has come back transcribed but has not
+ *  yet been shown to the owner: `date` is the day it was recorded for
+ *  (`SpeakFlow`'s own queueing), `text` is exactly what the transcribe route
+ *  answered. */
+export interface PendingTranscript {
+  id: string;
+  date: string;
+  text: string;
+}
+
+/** Every voice note waiting on the owner's own "check it" — never inserted
+ *  into a day on its own (D4). Read by `EditDay.tsx` and filtered to
+ *  whichever day is open. */
+export async function pendingVoiceTranscripts(store: OutboxStore, user: string): Promise<PendingTranscript[]> {
+  const rows = await store.list(user);
+  return rows
+    .filter((r) => r.kind === "voice.note" && r.state === "transcribed")
+    .map((r) => ({
+      id: r.id,
+      date: String((r.body as { date?: unknown } | null)?.date ?? ""),
+      text: String(r.details ?? ""),
+    }))
+    .filter((r) => r.date !== "" && r.text !== "");
+}
+
+/** B2331, D3 — a `day.edit` queued while offline whose replay came back 409
+ *  `stale_document`: two versions now exist and neither is applied until the
+ *  owner picks. `serverDoc` is the day exactly as `applyDayPatch` answered
+ *  it (the 409's own `details`, a full `dayDoc`); `phonePatch` is exactly
+ *  what this intent would have sent. */
+export interface DayEditConflict {
+  id: string;
+  url: string;
+  createdAt: string;
+  headers?: Record<string, string>;
+  phonePatch: Record<string, unknown>;
+  serverDoc: Record<string, unknown> | null;
+}
+
+/** Every `day.edit` left as a conflict for one owner, across every day —
+ *  read by the pill's own "N needs a decision" and by `EditDay.tsx`, scoped
+ *  there to whichever day is open. */
+export async function pendingConflicts(store: OutboxStore, user: string): Promise<DayEditConflict[]> {
+  const rows = await store.list(user);
+  return rows
+    .filter((r) => r.kind === "day.edit" && r.state === "conflict")
+    .map((r) => ({
+      id: r.id,
+      url: r.url,
+      createdAt: r.createdAt,
+      headers: r.headers,
+      phonePatch: (r.body ?? {}) as Record<string, unknown>,
+      serverDoc: ((r.details as { details?: unknown } | null)?.details ?? null) as Record<string, unknown> | null,
+    }));
+}
+
+/**
+ * D3 — "Keep this phone's words": re-read the day's current version and
+ * resend this intent's own patch against it, so the resend is measured
+ * against what the server holds *now* rather than the stale read this queue
+ * started from. The owner's own tap is what turns "would conflict" into
+ * "replace it anyway" — `runOutbox` itself never does this on its own.
+ *
+ * Removed only once the server actually accepts it; a failure (offline
+ * again, or a second conflict) leaves the intent exactly where it was, for
+ * another attempt rather than a silently lost decision.
+ */
+export async function keepPhoneVersion(
+  store: OutboxStore,
+  conflict: DayEditConflict,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  try {
+    const head = await fetchImpl(conflict.url, { method: "GET" });
+    const headBody = head.ok ? ((await head.json().catch(() => null)) as { etag?: string } | null) : null;
+    const res = await fetchImpl(conflict.url, {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        ...(headBody?.etag ? { "if-match": headBody.etag } : {}),
+      },
+      body: JSON.stringify(conflict.phonePatch),
+    });
+    if (!res.ok) return false;
+    await store.remove(conflict.id);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** D3 — "Keep the server's": the phone's own words are dropped, nothing
+ *  further is sent, and the day stays exactly as the server already holds
+ *  it. */
+export async function keepServerVersion(store: OutboxStore, conflict: DayEditConflict): Promise<void> {
+  await store.remove(conflict.id);
 }

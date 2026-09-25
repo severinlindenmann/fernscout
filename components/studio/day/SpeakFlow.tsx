@@ -8,9 +8,11 @@ import { useI18n } from "@/components/LocaleProvider";
 import StepPrimary from "@/components/studio/StepPrimary";
 import StepBody from "@/components/studio/StepBody";
 import StepIndicator from "@/components/extract/StepIndicator";
+import { useOnline } from "@/components/studio/useOnline";
 import { MINUTES_PER_CREDIT, creditsForSeconds } from "@/lib/helper/speech";
 import { useStep } from "@/lib/studio/useStep";
 import { assembleSpokenDay, SPEAK_QUESTIONS, type SpeakQuestion, type TellBy } from "@/lib/studio/speak";
+import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
 
 const LINK = "min-h-11 text-left text-sm font-semibold text-ink-body underline underline-offset-2";
 const noSubscribe = () => () => {};
@@ -61,12 +63,17 @@ export function TellByChoice({ onChoose }: { onChoose: (choice: TellBy) => void 
  */
 export default function SpeakFlow({
   username,
+  date,
   speech,
   photoFact,
   onDone,
   onType,
 }: {
   username: string;
+  /** B2331 — the day this recording is for, so a note taken while offline
+   *  can be queued against a date the owner will recognise once it comes
+   *  back transcribed, rather than needing the day itself to exist yet. */
+  date: string;
   /** `credits` is `null` when the host does not know the balance (helper's
    *  own gate is off) — B2234, the same "unknown means unchecked" `null`
    *  `RecordButton`'s own `credits` prop takes. */
@@ -79,6 +86,13 @@ export default function SpeakFlow({
 }) {
   const { t, tn, locale } = useI18n();
   const [answers, setAnswers] = useState<Partial<Record<SpeakQuestion, string>>>({});
+  // B2331, D4 — the server's own reachability (shared with the pill), not
+  // just `navigator.onLine`: a recording made with the wifi up and this
+  // server unreachable is exactly the case that has to queue rather than
+  // fail. `queuedNotice` says once per answer that this one is waiting
+  // rather than transcribed yet — cleared the moment a new question loads.
+  const online = useOnline();
+  const [queuedNotice, setQueuedNotice] = useState(false);
   const { step, index, total, go, reset } = useStep(SPEAK_QUESTIONS, {
     flowId: `addDay:speak:${username}`,
     param: "q",
@@ -121,9 +135,41 @@ export default function SpeakFlow({
   const insufficientCredits = speech.credits != null && speech.credits < creditsForSeconds(0);
 
   function next(a: Partial<Record<SpeakQuestion, string>>) {
+    setQueuedNotice(false);
     if (!last) return go(SPEAK_QUESTIONS[index + 1]);
     reset();
     onDone(assembleSpokenDay(a));
+  }
+
+  /**
+   * B2331, D4 — a recording made with no server reachable: still records
+   * (`RecordButton` itself never changes), but the audio waits in the
+   * outbox as its own `Blob` rather than going nowhere. Nothing is written
+   * into `answers` here — there is no transcript yet, and D4 refuses to
+   * insert one silently once there is: the owner moves on (skip, type, or
+   * the next question) and sees this one on the day itself, later, to
+   * confirm.
+   */
+  function queueVoiceNote(blob: Blob, heldSeconds: number, language: string, recordedLocale: string) {
+    if (!hasOutbox()) return;
+    void openOutboxStore().add(
+      newIntent({
+        user: username,
+        kind: "voice.note",
+        method: "POST",
+        url: `/api/helper/${encodeURIComponent(username)}/transcribe`,
+        body: {
+          date,
+          mediaType: blob.type,
+          seconds: heldSeconds,
+          language,
+          locale: recordedLocale,
+          idempotency_key: `${username}/${date}/${Date.now()}`,
+        },
+        blob,
+      }),
+    );
+    setQueuedNotice(true);
   }
   function skip() {
     const rest = { ...answers };
@@ -161,8 +207,14 @@ export default function SpeakFlow({
           hero
           hold={false}
           onText={(said) => setAnswers((prev) => ({ ...prev, [step]: prev[step] ? `${prev[step]} ${said}` : said }))}
+          onOffline={online ? undefined : queueVoiceNote}
         />
-        {!insufficientCredits && (
+        {queuedNotice && (
+          <p role="status" className="mt-1 text-center text-sm text-cream-50">
+            {t("studio.day.speak.queued")}
+          </p>
+        )}
+        {!insufficientCredits && !queuedNotice && (
           <p className="mt-1 text-center text-sm text-cream-50">
             {money == null
               ? t("studio.day.speak.priceNoMoney", { price })

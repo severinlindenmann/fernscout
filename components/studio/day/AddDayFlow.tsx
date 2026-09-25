@@ -484,7 +484,15 @@ export default function AddDayFlow({
   const placeEmpty = placeLabel === "";
   useEffect(() => {
     const key = `${tripId}\u0000${date}`;
-    if (!routeRecordingAvailable || !tripId || !date || !placeEmpty || placeSuggestionDismissed || placeAskedFor.current === key) return;
+    // B2331 — `online` (the shared, server-reachability signal, not just
+    // the network interface) gates this too: without it, a lookup tried
+    // while this server could not be reached fell into the `.catch()`
+    // below, was marked "asked, nothing to offer" for `key`, and never ran
+    // again for the rest of this mount — the owner's actual location that
+    // day, filled in the moment the server is reachable everywhere else
+    // (weather already works this way, server-side, at day creation), was
+    // silently skipped for a place suggestion that only ever asked once.
+    if (!online || !routeRecordingAvailable || !tripId || !date || !placeEmpty || placeSuggestionDismissed || placeAskedFor.current === key) return;
     placeAskedFor.current = key;
     let cancelled = false;
     fetch(`/api/helper/${encodeURIComponent(username)}/day/place?trip=${encodeURIComponent(tripId)}&date=${encodeURIComponent(date)}`)
@@ -493,13 +501,16 @@ export default function AddDayFlow({
         if (!cancelled) setPlaceSuggestion(json?.ok ? (json.place ?? null) : null);
       })
       .catch(() => {
-        if (!cancelled) setPlaceSuggestion(null);
+        // A network failure (offline, or this server unreachable), not "no
+        // fixes that day" — retried once `online` flips back rather than
+        // left answered-with-nothing for good.
+        placeAskedFor.current = null;
       });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeRecordingAvailable, tripId, date, placeEmpty]);
+  }, [routeRecordingAvailable, tripId, date, placeEmpty, online]);
 
   function acceptPlaceSuggestion() {
     if (!placeSuggestion) return;
@@ -735,6 +746,7 @@ export default function AddDayFlow({
     return (
       <SpeakFlow
         username={username}
+        date={date}
         speech={speech}
         photoFact={fact ? { count: chosenPhotos.filter((i) => i.location === fact).length, place: fact } : null}
         onDone={toComposer}

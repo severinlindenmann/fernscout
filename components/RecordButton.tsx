@@ -81,6 +81,7 @@ export default function RecordButton({
   onSettled,
   credits,
   priceChf,
+  onOffline,
 }: {
   username: string;
   /** Whether this journal has already agreed to its owner's voice being sent
@@ -207,6 +208,22 @@ export default function RecordButton({
    *  or omitted (every existing caller — none currently mounts the plain
    *  price-line form on a live page) shows the credit price alone. */
   priceChf?: string | null;
+  /**
+   * B2331, D4 — given by a host that has somewhere to queue a recording it
+   * cannot send right now (`SpeakFlow`, the outbox), and only while that
+   * host believes the server is unreachable. When set, a finished recording
+   * (the same size/length checks `send()` always applied) goes here instead
+   * of straight to the transcribe route — this component still records,
+   * meters and releases the microphone exactly as it always does; it simply
+   * never makes the network call itself. `language`/`locale` are the same
+   * two values `send()` would have sent, so the host can build the same
+   * request once there is a connection to make it with.
+   *
+   * Left `undefined` (every caller but `SpeakFlow`, and `SpeakFlow` itself
+   * whenever it believes the server is reachable) and every existing caller
+   * is unchanged.
+   */
+  onOffline?: (blob: Blob, heldSeconds: number, language: string, locale: string) => void;
 }) {
   const { t, locale } = useI18n();
   // B2234 — say so before the tap. `creditsForSeconds(0)` is the same floor
@@ -462,6 +479,12 @@ export default function RecordButton({
       const blob = new Blob(chunks.current, { type: media.mimeType });
       chunks.current = [];
       if (blob.size > 0 && held >= 0.5) {
+        if (onOffline) {
+          onOffline(blob, held, language, locale);
+          setSeconds(0);
+          onSettled?.();
+          return;
+        }
         void send(blob, held);
         return;
       }
@@ -519,7 +542,7 @@ export default function RecordButton({
       wantStop.current = false;
       media.stop();
     }
-  }, [busy, recording, send, stopMeter, t]);
+  }, [busy, recording, send, stopMeter, t, onOffline, onSettled, language, locale]);
 
   function stop() {
     if (recorder.current?.state === "recording") {
