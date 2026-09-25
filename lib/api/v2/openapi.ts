@@ -1956,8 +1956,9 @@ function buildPaths(): Record<string, PathItem> {
           "which answers 403 rather than leaving you waiting for a code that never comes. A new " +
           "request invalidates the previous code. `phone` instead of `email` (B2294) is a guest's " +
           'mobile number, any country: `for: "read"` only, no `channel`, delivered by SMS and only ' +
-          "to a number a contact of that journal holds — every other number gets the same 202 and no " +
-          "text. At most 3 texts per number an hour.",
+          "to a sign-in number of a contact the owner added or let in (one the owner typed, or proved by " +
+          "an earlier code) — every other number gets the same 202 and no text. At most 3 texts per " +
+          "number an hour.",
       ),
       responses: {
         ...jsonResponse(202, codesRequestResponse, "accepted — always, whatever the address"),
