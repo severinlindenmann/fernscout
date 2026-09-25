@@ -6,7 +6,7 @@ import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
 import { buddyTripOf, maskEmail, maskMobile, ownerShortName, resolveWelcomeCode } from "@/lib/contacts/welcome";
-import { guideWords, requestLocale, translateIn } from "@/lib/locales";
+import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
@@ -114,7 +114,7 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         }}
         details={details}
         caps={caps}
-        dictionary={guideWords(locale)}
+        dictionary={dictionaryFor(locale, "guide")}
       />
       <WelcomeOpened code={code} />
     </main>

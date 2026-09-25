@@ -21,29 +21,31 @@ export default async function DocsLayout({ children }: LayoutProps<"/docs">) {
   const locale = await requestLocale();
   const site = serverSite();
 
+  // One provider over the whole of `/docs`, with its own strings: the API
+  // reference reaches the helper's whole vocabulary on the server, and
+  // without this every page under the root layout would carry it
+  // (`lib/localeScopes.json`). Same language as the root layout's — both ask
+  // `requestLocale`.
   return (
-    <div className="min-h-full">
-      <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 backdrop-blur sm:px-6">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
-          {/* One step up, not one page back — B1728. On a guide that is the
-              hub; on the hub it is the site. */}
-          <DocsUpLink
-            hubHref="/docs"
-            hubLabel={translateIn(locale, "docs.title")}
-            siteLabel={site.name}
-            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
-                       transition-colors hover:text-ink-strong
-                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-          />
-          {/* `LocaleProvider` because the switcher is a client component that
-              reads its dictionary from context, and nothing above `/docs`
-              provides one — the journal layout is a sibling, not a parent. */}
-          <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+    <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "docs")}>
+      <div className="min-h-full">
+        <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 backdrop-blur sm:px-6">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
+            {/* One step up, not one page back — B1728. On a guide that is the
+                hub; on the hub it is the site. */}
+            <DocsUpLink
+              hubHref="/docs"
+              hubLabel={translateIn(locale, "docs.title")}
+              siteLabel={site.name}
+              className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
+                         transition-colors hover:text-ink-strong
+                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+            />
             <LocaleSwitcher locales={installedLocales()} subtle />
-          </LocaleProvider>
-        </div>
-      </header>
-      {children}
-    </div>
+          </div>
+        </header>
+        {children}
+      </div>
+    </LocaleProvider>
   );
 }

@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
-import { LOCALE_COOKIE } from "@/lib/requestKeys";
 import { notFound } from "next/navigation";
 import SiteProvider from "@/components/SiteProvider";
 import CurrencyProvider from "@/components/CurrencyProvider";
@@ -18,7 +16,7 @@ import { isOwner as resolveIsOwner } from "@/lib/contacts/session";
 import { listableTrips } from "@/lib/tripGate";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { currencyOptions } from "@/lib/rates";
-import { dictionaryFor, readerLocale } from "@/lib/locales";
+import { dictionaryFor, journalLocale } from "@/lib/locales";
 import { getDefaultUsername, getUser } from "@/lib/users";
 
 /**
@@ -131,9 +129,11 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
   // journal's default language regardless of the phone it was opened from,
   // and a slow connection would go on serving that first, wrong-language
   // response back from the service worker's cache forever after (B625).
-  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
-  const acceptLanguage = (await headers()).get("accept-language");
-  const locale = readerLocale(chosen, user.locales, user.defaultLocale, acceptLanguage);
+  //
+  // `journalLocale` is that expression, shared with the providers nested
+  // under this one (the studio's, `/me`'s), which must land on the same
+  // language to ship their own strings in it.
+  const locale = await journalLocale(user);
 
   // Trimmed to what the switcher needs: a trip's `intro` has no business in
   // the client bundle, and getTrips() touches node:fs.
@@ -159,7 +159,7 @@ export default async function UserLayout({ children, params }: LayoutProps<"/[us
           ever saw English. */}
       <LocaleProvider
         locale={locale}
-        dictionary={dictionaryFor(locale)}
+        dictionary={dictionaryFor(locale, "journal")}
         writtenLocale={user.defaultLocale}
       >
         <HtmlLang locale={locale} />

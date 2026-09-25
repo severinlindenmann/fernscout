@@ -1,3 +1,4 @@
+import JournalLocaleProvider from "@/components/JournalLocaleProvider";
 import StudioBarProvider from "@/components/studio/StudioBar";
 import { offlineKeepTrips } from "@/lib/studio/day";
 
@@ -10,6 +11,9 @@ import { offlineKeepTrips } from "@/lib/studio/day";
  * why the four pages that already had one (`useStudioBar`'s callers) still
  * control it fully.
  *
+ * Under the studio's own strings: the journal layout ships a reader's, and
+ * the studio's flows are most of the dictionary (`lib/localeScopes.json`).
+ *
  * B2330, D6 — `offlineKeepTrips` names the current trip and the soonest
  * upcoming one, read here once per navigation into the studio rather than
  * through a new route: the provider is already the one client component
@@ -19,8 +23,10 @@ import { offlineKeepTrips } from "@/lib/studio/day";
 export default async function StudioLayout({ children, params }: LayoutProps<"/[user]/studio">) {
   const { user } = await params;
   return (
-    <StudioBarProvider username={user} autoKeepTrips={offlineKeepTrips(user)}>
-      {children}
-    </StudioBarProvider>
+    <JournalLocaleProvider username={user} scope="studio">
+      <StudioBarProvider username={user} autoKeepTrips={offlineKeepTrips(user)}>
+        {children}
+      </StudioBarProvider>
+    </JournalLocaleProvider>
   );
 }

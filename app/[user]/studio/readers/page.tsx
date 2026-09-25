@@ -187,7 +187,7 @@ export default async function ContactsAdminPage({
     <StudioPage {...shell} width="board">
       <ReadersAdmin
         locales={localesFor(username)}
-        dictionary={dictionaryFor(locale)}
+        dictionary={dictionaryFor(locale, "readersAdmin")}
         username={username}
         locale={locale}
         contacts={contacts}

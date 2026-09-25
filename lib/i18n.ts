@@ -4745,8 +4745,14 @@ export function translate(
       // reader — "nav.gallery" in place of a sentence — is certainly wrong
       // for everybody who sees it, so it is loud in the log rather than only
       // visible on the page (B279).
+      //
+      // In a browser the likelier cause is now the scope: a provider ships
+      // only the keys its files mention (lib/localeScopes.json), so a key
+      // that site/locales/ has but that reached this page some way the scan
+      // does not follow lands here — test/locale-scopes.test.ts is where to look.
       console.error(
-        `[i18n] "${key}" has no string in any dictionary — rendering the key.`,
+        `[i18n] "${key}" has no string in any dictionary — rendering the key. ` +
+          "If site/locales/ has it, this page's locale scope does not: run `npm run i18n:keys`.",
       );
       raw = key;
     } else {
@@ -4928,9 +4934,27 @@ export function telHintKey(
   postcardsEnabled: boolean,
   whatsappEnabled: boolean,
 ): TranslationKey {
-  const prefix = scope === "admin" ? "contact.adminTelHint" : "contact.telHint";
-  if (postcardsEnabled && whatsappEnabled) return prefix;
-  if (postcardsEnabled) return `${prefix}PostcardsOnly` as TranslationKey;
-  if (whatsappEnabled) return `${prefix}WhatsappOnly` as TranslationKey;
-  return `${prefix}None` as TranslationKey;
+  // Written out rather than assembled from a prefix: a key built at runtime
+  // is one `scripts/locale-scopes-lib.mjs` cannot see, and a page that
+  // renders this hint would ship without the string for it.
+  const keys = TEL_HINT_KEYS[scope];
+  if (postcardsEnabled && whatsappEnabled) return keys.both;
+  if (postcardsEnabled) return keys.postcardsOnly;
+  if (whatsappEnabled) return keys.whatsappOnly;
+  return keys.none;
 }
+
+const TEL_HINT_KEYS = {
+  reader: {
+    both: "contact.telHint",
+    postcardsOnly: "contact.telHintPostcardsOnly",
+    whatsappOnly: "contact.telHintWhatsappOnly",
+    none: "contact.telHintNone",
+  },
+  admin: {
+    both: "contact.adminTelHint",
+    postcardsOnly: "contact.adminTelHintPostcardsOnly",
+    whatsappOnly: "contact.adminTelHintWhatsappOnly",
+    none: "contact.adminTelHintNone",
+  },
+} as const satisfies Record<"reader" | "admin", Record<string, TranslationKey>>;
