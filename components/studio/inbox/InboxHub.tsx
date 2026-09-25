@@ -688,7 +688,7 @@ function Group({
     <section className="mt-6">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">{heading}</h2>
       <ul className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-        {rows.map((row) => {
+        {rows.map((row, i) => {
           const key = keyOf(row);
           return (
             <Fragment key={key}>
@@ -703,6 +703,7 @@ function Group({
                 thumbSrc={thumbSrc}
                 hasThumbFailed={failedThumbs.has(key)}
                 onThumbError={() => onThumbError(key)}
+                arriveIndex={i}
               />
               {key === anchorKey && sheet && <li className="hidden md:col-span-2 md:block">{sheet}</li>}
             </Fragment>

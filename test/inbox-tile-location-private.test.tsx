@@ -39,6 +39,7 @@ function render(row: InboxRow) {
             thumbSrc={() => ""}
             hasThumbFailed={false}
             onThumbError={() => {}}
+            arriveIndex={0}
           />
         </ul>
       </LocaleProvider>,

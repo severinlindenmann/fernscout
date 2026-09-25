@@ -37,6 +37,8 @@ export default function StepPrimary({
   disabled,
   busy,
   busyLabel,
+  done,
+  shake,
   tone = "bg-action-strong text-on-action",
 }: {
   label: string;
@@ -44,6 +46,11 @@ export default function StepPrimary({
   disabled?: boolean;
   busy?: boolean;
   busyLabel?: string;
+  /** B2325 — see `BusyButton`'s own doc comment. Set by the caller only
+   *  after a 2xx, never on tap. */
+  done?: boolean;
+  /** B2325 — see `BusyButton`'s own doc comment. */
+  shake?: unknown;
   /** Colour classes only — DecideList's "do it" step keeps its own yellow
    *  commit colour while sharing this one element definition. */
   tone?: string;
@@ -53,6 +60,8 @@ export default function StepPrimary({
       type="button"
       busy={busy}
       busyLabel={busyLabel}
+      done={done}
+      shake={shake}
       disabled={disabled}
       onClick={() => {
         void haptic("light");
