@@ -29,6 +29,9 @@ afterEach(() => {
   });
 });
 
+// jsdom has no matchMedia; an ordinary Safari tab is not display-mode: standalone.
+window.matchMedia = ((query: string) => ({ matches: false, media: query })) as unknown as typeof window.matchMedia;
+
 function setIphoneSafariUa() {
   Object.defineProperty(navigator, "userAgent", {
     value:
