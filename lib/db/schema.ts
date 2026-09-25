@@ -747,6 +747,30 @@ type SignupInvitesTable = {
 };
 
 /**
+ * Visitors waiting for the iPhone app — B2341.
+ *
+ * Sign-ups are closed on the instance (alpha, invite-only), and the app has
+ * no store link yet. This is the request queue that stands in for one: a
+ * visitor leaves an address, the operator sees it in `/admin`, and a
+ * confirmation mail goes out through the same `mail` capability every other
+ * public form here uses. `(owner_id, email)` mirrors `signup_invites` —
+ * instance state, not a journal's — and `email` alone is the primary key so
+ * a second submission from the same address is a no-op rather than a second
+ * row nothing distinguishes from the first.
+ */
+type AppWaitlistTable = {
+  /** Always `NO_JOURNAL` — this is the instance's own list. */
+  owner_id: string;
+  email: string;
+  /** The language the confirmation mail went out in, or null when nothing
+   *  was asked and the page's own locale was used. Never validated against
+   *  `MAINTAINED_LOCALES` here — a locale this build drops later must not
+   *  make an old row unreadable. */
+  locale: string | null;
+  created_at: string;
+};
+
+/**
  * The arrangement of one photobook, for one journal and one trip — B1981.
  *
  * The composer used to keep this in `localStorage` alone, on the reasoning
@@ -805,6 +829,7 @@ export type Database = {
   owner_tel: OwnerTelTable;
   signup_invites: SignupInvitesTable;
   photobook_drafts: PhotobookDraftsTable;
+  app_waitlist: AppWaitlistTable;
 };
 
 /** Every table this schema owns, in dependency order. Used by tests and by
@@ -838,4 +863,5 @@ export const TABLE_NAMES = [
   "owner_tel",
   "signup_invites",
   "photobook_drafts",
+  "app_waitlist",
 ] as const satisfies readonly (keyof Database)[];

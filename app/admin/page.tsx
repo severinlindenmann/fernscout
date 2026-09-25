@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AckButton, SnoozeButton, UnhideButton } from "./Acks";
+import AppWaitlist from "./AppWaitlist";
 import Invites from "./Invites";
 import AdminGrant from "@paid/credits/routes/admin/AdminGrant";
 import AdminRefund from "@paid/credits/routes/admin/AdminRefund";
@@ -14,6 +15,7 @@ import { BarChart, Breakdown, CountBars, Meter, Sparkline, type Week } from "./C
 import { activityFeed, type FeedEntry } from "@/lib/adminActivity";
 import { applyAcks, listAcks, sweepAcks, type Ack } from "@/lib/adminAcks";
 import { inviteOnly, listInvites } from "@/lib/inviteList";
+import { listAppWaitlist } from "@/lib/appWaitlist";
 import { isInstanceAdmin } from "@/lib/adminGate";
 import { readBackupHistory, readBackupRuns, type BackupNight, type NightOutcome } from "@/lib/backupStatus";
 import { isEnabled } from "@/lib/capabilities";
@@ -159,6 +161,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     helper,
     arrivals,
     invites,
+    appWaitlist,
   ] = await Promise.all([
     dashboard(from),
     dailyCosts(ago(chartDays), chartDays),
@@ -175,6 +178,7 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
     sessionStats(from),
     signupDates(),
     listInvites(),
+    listAppWaitlist(),
   ]);
 
   const metered = creditsEnabled();
@@ -410,6 +414,9 @@ export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
           </div>
           <div className={CARD}>
             <Funnel steps={steps} signups={signups} />
+          </div>
+          <div className={CARD}>
+            <AppWaitlist entries={appWaitlist} />
           </div>
           <div className={`${CARD} lg:col-span-2`}>
             <HelperSummary stats={helper} days={days} />

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Landing from "@/components/Landing";
 import Pricing from "@paid/credits/components/Pricing";
+import { iosAppStoreUrl, iosAppWaitlistAvailable } from "@/lib/appWaitlist";
 import { isEnabled } from "@/lib/capabilities";
 import { CODE_TTL_MINUTES } from "@/lib/auth";
 import { publicJournals } from "@/lib/home";
@@ -66,6 +67,15 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 const helperEnabled = isEnabled("helper");
 
+/**
+ * B2341. `storeUrl` wins outright when set — the waitlist half is never
+ * even asked. Both undefined/false is a fresh clone's answer, and is what
+ * renders nothing at all; see `AppWaitlistDoor`.
+ */
+const iosAppOn = isEnabled("iosApp");
+const appStoreUrl = iosAppOn ? iosAppStoreUrl() : undefined;
+const appWaitlistAvailable = iosAppOn && !appStoreUrl && iosAppWaitlistAvailable();
+
 export default async function Root() {
   const site = serverSite();
   // The notice is the operator's own words in the reader's language — see
@@ -129,6 +139,8 @@ export default async function Root() {
         // whether the link is there, so there is nothing to flash in after
         // the first paint.
         whatsappNumber={whatsappNumberForUrl()}
+        appStoreUrl={appStoreUrl}
+        appWaitlistAvailable={appWaitlistAvailable}
         // What the pitch under the hero may claim — B1711. Same gate as
         // everything else on this page: the server decides, so a card for a
         // capability this instance does not have is absent from the document
