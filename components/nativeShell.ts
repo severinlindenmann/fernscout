@@ -251,6 +251,19 @@ export type ArmConfirmCopy = {
   confirmCancelLabel: string;
 };
 
+/**
+ * Where iOS's location permission stands for the recorder. Route recording
+ * works like a location timeline only with `"always"`; `canAskAlways` says
+ * whether a system prompt can still get there, or only the Settings app can.
+ * `precise: false` means Precise Location is off, and fixes come back
+ * kilometres wide.
+ */
+export type LocationPermission = {
+  status: "always" | "whenInUse" | "denied" | "restricted" | "notDetermined";
+  precise: boolean;
+  canAskAlways: boolean;
+};
+
 type LocationRecorderPlugin = {
   /** No `base` here — B2196 security review (2026-09-24), finding 1.
    *  `LocationRecorderPlugin.nativeBase()` derives it from Capacitor's own
@@ -281,6 +294,10 @@ type LocationRecorderPlugin = {
    *  Settings link (B2198), a native call because a plain `app-settings:`
    *  anchor is not reliable inside a WKWebView. */
   openSettings(): Promise<void>;
+  locationPermission(): Promise<LocationPermission>;
+  /** iOS's two prompts in a row — "Allow While Using App", then "Change to
+   *  Always Allow" — resolving with what the owner actually chose. */
+  requestLocationPermission(): Promise<LocationPermission>;
   /** B2197's before-trip notices — replaces every pending one with exactly
    *  this set. `at` is an ISO date, computed by `lib/gps/notify.ts`'s
    *  `beforeTripNoticeTime`; native never computes a fire time itself. */
@@ -326,6 +343,14 @@ export function armedOrDeclinedTrips(): Promise<{ armed: string[]; declined: str
 
 export function openAppSettings(): Promise<void> {
   return LocationRecorder.openSettings();
+}
+
+export function locationPermission(): Promise<LocationPermission> {
+  return LocationRecorder.locationPermission();
+}
+
+export function requestLocationPermission(): Promise<LocationPermission> {
+  return LocationRecorder.requestLocationPermission();
 }
 
 export function scheduleBeforeTripNotices(trips: NativeNotice[]): Promise<void> {
