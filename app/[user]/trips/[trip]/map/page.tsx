@@ -4,11 +4,13 @@ import { readFor, mayReadTrip } from "@/lib/tripGate";
 import { notFound, redirect } from "next/navigation";
 import MapPageContent from "@/app/[user]/(trip)/map/MapPageContent";
 import { basemapForRoute } from "@/lib/basemap";
-import { getDays, getPlaces, getTripStats } from "@/lib/entries";
+import { getDays, getPlaces, getTripStats, type ReadOptions } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { readerTrack } from "@/lib/gps/track";
 import { getTrip, tripRef } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
+import RouteBoundary from "@/components/RouteBoundary";
+import type { Trip } from "@/lib/types";
 
 export async function generateMetadata({
   params,
@@ -55,6 +57,23 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
   // the solid markers and the stats block below now ask the same question,
   // rather than the bare, always-published-only calls they used to be.
   const { read, canPublish } = await readFor(trip);
+  return (
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish}>
+      {/* The 404 and the redirect are above this line; see
+          components/RouteSkeleton.tsx. */}
+      <RouteBoundary shape="map">
+        <TripMapBody trip={trip} read={read} />
+      </RouteBoundary>
+    </TripProvider>
+  );
+}
+
+/**
+ * The map, below the page's boundary: every stop, the recorded route and
+ * the basemap framed around them. Handed only the audience the page above
+ * resolved for this reader.
+ */
+async function TripMapBody({ trip, read }: { trip: Trip; read: ReadOptions }) {
   const plan = getPlan(trip.ref, read);
   const stats = getTripStats(trip.ref, read);
   const places = getPlaces(trip.ref, read);
@@ -67,25 +86,24 @@ export default async function TripMapPage({ params }: PageProps<"/[user]/trips/[
   // megabytes of the baked bundle. `frameRoute` is pure, so the two agree.
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish}>
-      <MapPageContent
-        places={places}
-        plan={plan.stops}
-        // B665, and behind `mayReadTrip` above like everything else here.
-        track={
-          readerTrack(user, trip.id, new Set(days.map((d) => d.date)))?.segments.map(
-            (s) => s.points,
-          ) ?? []
-        }
-        reachedCount={plan.reachedCount}
-        basemap={basemap}
-        stats={{
-          tripDays: stats.tripDays,
-          places: stats.places,
-          countries: stats.countries,
-          totalMedia: stats.totalMedia,
-        }}
-      />
-    </TripProvider>
+    <MapPageContent
+      places={places}
+      plan={plan.stops}
+      // B665, and behind `mayReadTrip` in the page above like everything
+      // else here.
+      track={
+        readerTrack(trip.username, trip.id, new Set(days.map((d) => d.date)))?.segments.map(
+          (s) => s.points,
+        ) ?? []
+      }
+      reachedCount={plan.reachedCount}
+      basemap={basemap}
+      stats={{
+        tripDays: stats.tripDays,
+        places: stats.places,
+        countries: stats.countries,
+        totalMedia: stats.totalMedia,
+      }}
+    />
   );
 }

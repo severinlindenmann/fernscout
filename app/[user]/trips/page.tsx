@@ -13,6 +13,7 @@ import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import worldCountries from "@/lib/worldCountries.json";
 import TripsIndexContent, { type EmptyJournal } from "./TripsIndexContent";
+import RouteBoundary from "@/components/RouteBoundary";
 
 /**
  * Two languages on purpose.
@@ -39,6 +40,21 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function TripsPage({ params }: PageProps<"/[user]/trips">) {
   const { user } = await params;
+  // This page has no answer but the list — no 404 and no redirect of its own
+  // (an unknown journal is the layout's) — so all of it can sit below the
+  // boundary. See components/RouteSkeleton.tsx.
+  return (
+    <RouteBoundary shape="list">
+      <TripsIndexBody user={user} />
+    </RouteBoundary>
+  );
+}
+
+/**
+ * Every trip this reader may see, with the lifetime map over all of them — the
+ * heaviest page a journal has, since it reads every trip rather than one.
+ */
+async function TripsIndexBody({ user }: { user: string }) {
   // Filtered by who is asking, not just fetched. The trip switcher in the user
   // layout has always run `listableTrips`; this page — the one actually called
   // "Trips" — did not, and listed every restricted trip's title, tagline,

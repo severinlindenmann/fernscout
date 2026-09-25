@@ -13,7 +13,9 @@ import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import { isOver } from "@/lib/tripTime";
 import TripProvider from "@/components/TripProvider";
+import RouteBoundary from "@/components/RouteBoundary";
 import type { TranslationKey } from "@/lib/i18n";
+import type { Trip } from "@/lib/types";
 
 /**
  * Two languages on purpose.
@@ -95,7 +97,6 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   const { user } = await params;
   // No current trip is a normal state, not a missing page. See lib/currentTrip.ts.
   const trip = currentTripOrRedirect(user);
-  const tripId = trip.ref;
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
@@ -109,14 +110,33 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   // somebody is going next. Somebody on the trip is not that reader — they are
   // on the bus, and where it goes next is not a secret from them.
   const drafts = await draftsVisibleTo(trip);
-  const plan = getPlan(tripId, { includeDrafts: drafts.visible });
+  return (
+    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
+      {/* The redirect for a journal with no trip is above this line; see
+          components/RouteSkeleton.tsx. */}
+      <RouteBoundary shape="map">
+        <MapBody trip={trip} includeDrafts={drafts.visible} />
+      </RouteBoundary>
+    </TripProvider>
+  );
+}
+
+/**
+ * The map, below the page's boundary — see `TripMapBody` in
+ * app/[user]/trips/[trip]/map/page.tsx, which this mirrors for the bare URL.
+ * `includeDrafts` is the page's answer for this reader, not a question this
+ * asks again.
+ */
+async function MapBody({ trip, includeDrafts }: { trip: Trip; includeDrafts: boolean }) {
+  const tripId = trip.ref;
+  const plan = getPlan(tripId, { includeDrafts });
   // B336: the solid "where we've been" markers asked this question one line
   // below `getPlan` and got a different answer, because this call carried no
   // options at all — always published-only, regardless of who was looking.
   // The dashed planned route already followed `drafts.visible`; the stats
   // block below has to agree with both, or its counts contradict the markers
   // on the same map.
-  const read = { includeDrafts: drafts.visible };
+  const read = { includeDrafts };
   const stats = getTripStats(tripId, read);
   const places = getPlaces(tripId, read);
   // Whether there is a day written at all, as distinct from whether any of
@@ -133,31 +153,30 @@ export default async function MapPage({ params }: PageProps<"/[user]/map">) {
   const basemap = basemapForRoute(places.length > 0 ? places : plan.stops);
   // The ground actually covered, where the owner has derived it (B665). Read
   // here rather than in the component: it is a file in the trip folder, behind
-  // the same gate as everything else on this page, and `mayReadTrip` above is
-  // what stands between it and a reader. Since B2202, derivation covers every
-  // trip date regardless of publish state — `readerTrack` is what actually
-  // keeps a draft day's or too-recent fix's segment off this page, filtered to
-  // the exact dates `days` above already resolved for this reader.
+  // the same gate as everything else on this page, and `mayReadTrip` in the
+  // page above is what stands between it and a reader. Since B2202, derivation
+  // covers every trip date regardless of publish state — `readerTrack` is what
+  // actually keeps a draft day's or too-recent fix's segment off this page,
+  // filtered to the exact dates `days` above already resolved for this reader.
   const track =
-    readerTrack(user, trip.id, new Set(days.map((d) => d.date)))?.segments.map((s) => s.points) ??
-    [];
+    readerTrack(trip.username, trip.id, new Set(days.map((d) => d.date)))?.segments.map(
+      (s) => s.points,
+    ) ?? [];
   return (
-    <TripProvider trip={trip} isCurrent canPublish={drafts.canPublish}>
-      <MapPageContent
-        places={places}
-        plan={plan.stops}
-        track={track}
-        reachedCount={plan.reachedCount}
-        basemap={basemap}
-        over={over}
-        hasDays={days.length > 0}
-        stats={{
-          tripDays: stats.tripDays,
-          places: stats.places,
-          countries: stats.countries,
-          totalMedia: stats.totalMedia,
-        }}
-      />
-    </TripProvider>
+    <MapPageContent
+      places={places}
+      plan={plan.stops}
+      track={track}
+      reachedCount={plan.reachedCount}
+      basemap={basemap}
+      over={over}
+      hasDays={days.length > 0}
+      stats={{
+        tripDays: stats.tripDays,
+        places: stats.places,
+        countries: stats.countries,
+        totalMedia: stats.totalMedia,
+      }}
+    />
   );
 }
