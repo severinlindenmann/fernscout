@@ -4582,5 +4582,6 @@
   "join.error.name": "Dis-nous d’abord ton nom.",
   "join.error.expired": "Ce lien ne fonctionne plus. Demande un nouveau lien à la personne qui te l’a envoyé.",
   "join.alreadyTitle": "Tu es déjà entré·e",
-  "join.alreadyBody": "Rien à demander — tu peux déjà lire « {title} »."
+  "join.alreadyBody": "Rien à demander — tu peux déjà lire « {title} ».",
+  "fallback.writtenIn.en": "Écrit en anglais — ce jour n’a pas de version française."
 }
