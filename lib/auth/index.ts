@@ -677,6 +677,26 @@ export async function verifyCode(
    * the identity flow passes one — see `openIdentitySession`. */
   userAgent?: string | null,
 ): Promise<VerifyResult> {
+  const address = normaliseEmail(email);
+  const spent = await spendCode(owner, address, code, kind, scope);
+  if (!spent.ok) return spent;
+  return openSession(owner, address, kind, spent.scope, userAgent?.slice(0, 300) ?? null);
+}
+
+/**
+ * Check and consume a code **without opening a session** — everything
+ * `verifyCode` does up to that point (single use, expiry, five wrong guesses,
+ * B230's scope binding), for a proof that is not a sign-in: B2294's signed-in
+ * contact proving a new mobile number (`confirmPhoneProof`), whose code is
+ * issued under a subject no sign-in door ever redeems.
+ */
+export async function spendCode(
+  owner: string,
+  email: string,
+  code: string,
+  kind: SessionKind,
+  scope?: string,
+): Promise<{ ok: true; scope: string | undefined } | Extract<VerifyResult, { ok: false }>> {
   const { db } = await getDatabase();
   const address = normaliseEmail(email);
 
@@ -746,7 +766,7 @@ export async function verifyCode(
     .where("id", "=", row.id)
     .execute();
 
-  return openSession(owner, address, kind, granted, userAgent?.slice(0, 300) ?? null);
+  return { ok: true, scope: granted };
 }
 
 /**

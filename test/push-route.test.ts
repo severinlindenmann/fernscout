@@ -50,11 +50,24 @@ function writeUser(username: string, pushEnabled: boolean) {
   clearUserCache();
 }
 
-function get(username: string | null) {
-  const url = username
-    ? `https://example.test/api/push/subscribe?user=${encodeURIComponent(username)}`
-    : "https://example.test/api/push/subscribe";
-  return GET(new Request(url));
+function get(username: string | null, kind?: "apns") {
+  const params = new URLSearchParams();
+  if (username) params.set("user", username);
+  if (kind) params.set("kind", kind);
+  const qs = params.toString();
+  return GET(new Request(`https://example.test/api/push/subscribe${qs ? `?${qs}` : ""}`));
+}
+
+function writeServerConfigApplePush(featuresEnabled: boolean) {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "R", url: "https://example.test" },
+      users: { reserved: [] },
+      features: { applePush: { enabled: featuresEnabled, backend: "dry-run" } },
+    }),
+  );
+  clearConfigCache();
 }
 
 beforeEach(() => {
@@ -131,5 +144,37 @@ describe("GET /api/push/subscribe", () => {
     writeUser("ana", true);
     const res = await get("ana");
     expect(await res.json()).toEqual({ publicKey: "pub-key", enabled: true });
+  });
+});
+
+/**
+ * B2115 — the shell's own capability, `applePush`, is a separate switch
+ * from `push` and needs no VAPID key at all (the shell registers with Apple
+ * directly). `PushOptIn` reads exactly this shape to render the same
+ * "unavailable" honesty inside the app that it renders on the web when
+ * `push` is off — the acceptance this ticket is named for.
+ */
+describe("GET /api/push/subscribe?kind=apns", () => {
+  test("applePush off: disabled, honestly, even with push itself on", async () => {
+    writeServerConfig(true); // push: on
+    writeUser("ana", true);
+    const res = await get("ana", "apns");
+    expect(await res.json()).toEqual({ publicKey: null, enabled: false });
+  });
+
+  test("applePush on: enabled, and never carries a VAPID key", async () => {
+    process.env.VAPID_PUBLIC_KEY = "pub-key";
+    process.env.VAPID_PRIVATE_KEY = "priv";
+    process.env.VAPID_SUBJECT = "mailto:x@example.test";
+    writeServerConfigApplePush(true);
+    writeUser("ana", true);
+    const res = await get("ana", "apns");
+    expect(await res.json()).toEqual({ publicKey: null, enabled: true });
+  });
+
+  test("unknown user: disabled, no key", async () => {
+    writeServerConfigApplePush(true);
+    const res = await get("nobody", "apns");
+    expect(await res.json()).toEqual({ publicKey: null, enabled: false });
   });
 });

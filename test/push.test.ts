@@ -9,6 +9,7 @@ import { closeDatabase, getDatabase } from "@/lib/db";
 import {
   findActiveContactId,
   isGoneSubscription,
+  listSubscriptions,
   saveSubscription,
   subscribersFor,
 } from "@/lib/push";
@@ -367,6 +368,41 @@ describe("subscribersFor — no database", () => {
     const trip = fakeTrip({ visibility: "guest" });
     await saveSubscription(fakeSub());
     expect(await subscribersFor(trip)).toEqual([]);
+  });
+});
+
+/**
+ * B2115 — the iPhone shell's rows carry `kind: "apns"` through the database
+ * repo the same as `contactId` and every other field does. A row that
+ * predates the migration, or one a caller writes with no `kind` at all
+ * (every caller before B2115), must still read back as `"web"` — that is
+ * what `scripts/notify.mts`'s dispatch and `lib/repos/pushFile.ts` both
+ * already assume.
+ */
+describe("push subscription kind — database round-trip", () => {
+  test("an apns subscription round-trips with its kind", async () => {
+    const sub = fakeSub({ kind: "apns", endpoint: "abc123" });
+    await saveSubscription(sub);
+    const [row] = await listSubscriptions("ana");
+    expect(row.kind).toBe("apns");
+    expect(row.endpoint).toBe("abc123");
+  });
+
+  test("a subscription saved with no kind reads back as web", async () => {
+    const sub = fakeSub();
+    delete sub.kind;
+    await saveSubscription(sub);
+    const [row] = await listSubscriptions("ana");
+    expect(row.kind).toBe("web");
+  });
+
+  test("resaving the same endpoint updates its kind rather than duplicating the row", async () => {
+    const sub = fakeSub({ endpoint: "same-endpoint", kind: "web" });
+    await saveSubscription(sub);
+    await saveSubscription({ ...sub, kind: "apns" });
+    const rows = await listSubscriptions("ana");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].kind).toBe("apns");
   });
 });
 

@@ -62,6 +62,9 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
     flows: ["guest-established-push-notification"],
     interfaces: ["ui"],
   },
+  applePush: {
+    todo: "B2115 — the iPhone shell's own transport; this framework's personas drive a browser, not the Capacitor shell, so there is no flow to name yet",
+  },
   mail: { todo: "no flow yet — exercised incidentally by every flow that signs in, no dedicated flow" },
   sms: {
     flows: ["owner-new-signup-by-sms"],

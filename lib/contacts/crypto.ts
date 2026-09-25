@@ -1,5 +1,6 @@
 import "server-only";
 import crypto from "node:crypto";
+import { subjectPhone } from "../phone";
 
 /**
  * A contact's private details, encrypted at rest (C14): the postal address —
@@ -124,6 +125,42 @@ export function inviteAad(owner: string, inviteId: string): string {
   return `invite:${owner}:${inviteId}`;
 }
 
+/**
+ * The lookup key for a contact's mobile number — B2294, the `email_key` of the
+ * phone column.
+ *
+ * An HMAC under the contacts key rather than a plain hash: there are only so
+ * many phone numbers, and a bare sha-256 of one is reversed by trying them
+ * all. Takes E.164 digits (`toE164`'s shape), so `+41 76…` and `0041 76…`
+ * are one key.
+ */
+export function phoneKey(digits: string): string {
+  return crypto.createHmac("sha256", contactsKey()).update(`phone:${digits}`).digest("base64url");
+}
+
+/** What a contact's mobile-number ciphertext is bound to — B2294. Its own
+ * prefix for the reason `inviteAad` gives: a blob must not be able to move
+ * between the address column and the phone column and still decrypt. */
+export function phoneAad(owner: string, contactId: string): string {
+  return `phone:${owner}:${contactId}`;
+}
+
+/**
+ * Which column a session's subject is looked up by — B2294.
+ *
+ * A subject is an address, or a proved mobile number as `+<digits>`
+ * (`phoneSubject`). This is the one place that tells them apart, so every
+ * gate that finds "the contact behind this session" — `journalReader`, the
+ * trip places in `lib/tripPeople.ts`, the home view — treats a proved phone
+ * exactly as it treats a proved address. Null when a phone cannot be looked
+ * up at all (no contacts key, so no phone was ever stored).
+ */
+export function subjectLookup(subject: string): ["email_key" | "phone_key", string] | null {
+  const digits = subjectPhone(subject);
+  if (!digits) return ["email_key", subject.trim().toLowerCase()];
+  return hasContactsKey() ? ["phone_key", phoneKey(digits)] : null;
+}
+
 function b64(buffer: Buffer): string {
   return buffer.toString("base64url");
 }
@@ -230,7 +267,7 @@ export function decryptAddress(stored: string | null, aad: string): PostalAddres
 export function decryptString(
   stored: string | null,
   aad: string,
-  what: "address" | "invite token",
+  what: "address" | "invite token" | "phone",
 ): string | null {
   if (!stored) return null;
   const parts = stored.split(".");

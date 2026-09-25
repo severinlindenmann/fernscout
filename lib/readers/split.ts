@@ -6,22 +6,27 @@
  * person two ways again. Pure, and free of server imports, because the page's
  * client half re-splits the list after every action with this same function.
  *
- * - `waitingOnYou`: asked and confirmed their address — the owner's answer is
- *   what is missing (Approve).
+ * - `waitingOnYou`: asked and confirmed their address, or proved their mobile
+ *   number by SMS (B2294) — the owner's answer is what is missing (Approve).
  * - `waitingOnThem`: on the list but never confirmed — they owe the next step.
  * - `readingNow`: active.
  * - `revoked`: blocked (Revoke writes this); Approve is the way back (B213).
  *
  * The owner's own row is left out of all four: it is not a reader.
  */
-type Row = { email: string; status: "pending" | "active" | "blocked"; confirmedAt: string | null };
+type Row = {
+  email: string;
+  status: "pending" | "active" | "blocked";
+  confirmedAt: string | null;
+  phoneProvenAt?: string | null;
+};
 
 export type ReaderState = "waitingOnYou" | "waitingOnThem" | "readingNow" | "revoked";
 
 export function readerState(row: Row): ReaderState {
   if (row.status === "active") return "readingNow";
   if (row.status === "blocked") return "revoked";
-  return row.confirmedAt ? "waitingOnYou" : "waitingOnThem";
+  return row.confirmedAt || row.phoneProvenAt ? "waitingOnYou" : "waitingOnThem";
 }
 
 export function splitReaders<T extends Row>(rows: T[], ownEmail: string | null): Record<ReaderState, T[]> {
