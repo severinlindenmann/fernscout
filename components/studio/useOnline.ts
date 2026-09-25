@@ -1,30 +1,39 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useStudioOnline } from "@/components/studio/StudioBar";
 
 /**
- * `navigator.onLine` — the network interface, not a probe of this server.
- * `useOutbox`'s own `/api/health` probe is the authoritative signal for the
- * write path (a queued write is never lost either way this reads wrong),
- * but wiring the same probe into every small "needs a signal" feature
- * (`PolishText` here; a plan search, a figure from a photo and Publish are
- * this wave's named remainders) would give each one its own `fetch` on
- * mount, competing with whatever that component's own tests already mock
- * `fetch` for. `navigator.onLine` is the cheap, good-enough signal for a tap
- * that already had its own failure handling before this ticket — greying it
- * out saves the tap, not the correctness the outbox owns.
+ * B2331 — wired to `useOutbox`'s own `/api/health` probe (via
+ * `StudioBarProvider`'s context, `useStudioOnline`) rather than only
+ * `navigator.onLine`: the pill and every greyed "needs a signal" feature
+ * (`PolishText`, `PublishDayFlow`, `NewTripFlow`, `AddDayFlow`,
+ * `FigureCreator`, the planner's `Composer`) now agree — the wifi being up
+ * with this server's own `next start` dead greys the same features the pill
+ * already calls "offline", instead of a feature staying lit for a server
+ * nobody can reach.
+ *
+ * `useStudioOnline()` answers `null` only outside `StudioBarProvider` (a
+ * component mounted on its own, with no studio page around it — mostly a
+ * test), where this falls back to the plain `navigator.onLine` listener it
+ * always had, so nothing outside the studio breaks and no test needs a
+ * provider it was never given.
  */
 export function useOnline(): boolean {
-  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
+  const shared = useStudioOnline();
+  const [interfaceOnline, setInterfaceOnline] = useState(() =>
+    typeof navigator === "undefined" ? true : navigator.onLine,
+  );
   useEffect(() => {
-    const onOnline = () => setOnline(true);
-    const onOffline = () => setOnline(false);
+    if (shared !== null) return;
+    const onOnline = () => setInterfaceOnline(true);
+    const onOffline = () => setInterfaceOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
     return () => {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
-  return online;
+  }, [shared]);
+  return shared ?? interfaceOnline;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { PhotoPicker } from "@/components/PhotoPicker";
@@ -8,7 +8,16 @@ import PreviewNotice from "@/components/studio/PreviewNotice";
 import DecideList from "@/components/studio/DecideList";
 import DeclineScreen from "@/components/studio/day/DeclineScreen";
 import StepPrimary from "@/components/studio/StepPrimary";
-import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
+import {
+  hasOutbox,
+  newIntent,
+  openOutboxStore,
+  pendingConflicts,
+  pendingVoiceTranscripts,
+  type DayEditConflict,
+  type PendingTranscript,
+} from "@/lib/outbox";
+import ConflictCard from "@/components/studio/day/ConflictCard";
 import { useI18n } from "./LocaleProvider";
 import type { Day, Entry } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
@@ -228,6 +237,38 @@ export default function EditDay({
    *  screen naming what changed underneath", never applied silently). */
   const [staleConflict, setStaleConflict] = useState<{ slug: string; changed: string[] } | null>(null);
 
+  /** B2331, D4 — a voice note recorded offline (`SpeakFlow`'s own queueing,
+   *  while composing this same date) that has since come back transcribed.
+   *  Never inserted on its own — this is only ever what the banner below
+   *  offers, and only for `day.date`; a re-read on mount, and again whenever
+   *  a confirm or discard changes the outbox. */
+  const [voiceTranscripts, setVoiceTranscripts] = useState<PendingTranscript[]>([]);
+  useEffect(() => {
+    if (!hasOutbox()) return;
+    let cancelled = false;
+    const refresh = () =>
+      pendingVoiceTranscripts(openOutboxStore(), username).then((rows) => {
+        if (!cancelled) setVoiceTranscripts(rows.filter((r) => r.date === day.date));
+      });
+    void refresh();
+    return () => {
+      cancelled = true;
+    };
+  }, [username, day.date]);
+
+  function confirmVoiceTranscript(note: PendingTranscript) {
+    set(0, { content: drafts[0].content ? `${drafts[0].content}\n\n${note.text}` : note.text });
+    void openOutboxStore()
+      .remove(note.id)
+      .then(() => setVoiceTranscripts((prev) => prev.filter((r) => r.id !== note.id)));
+  }
+
+  function discardVoiceTranscript(note: PendingTranscript) {
+    void openOutboxStore()
+      .remove(note.id)
+      .then(() => setVoiceTranscripts((prev) => prev.filter((r) => r.id !== note.id)));
+  }
+
   /** E3/E3✗ — `confirmBeforeSave`'s own state. `declineQueue` is which entry
    *  indices emptied their last photograph and have not yet said why;
    *  `mediaReasons` is what they answered. `previewOpen` is the diff step
@@ -340,6 +381,28 @@ export default function EditDay({
    *  document write, the take-down and the trip's own visibility moved. */
   const dayApiUrl = (slug: string) =>
     `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/days/${encodeURIComponent(slug)}`;
+
+  /** B2331, D3 — a `day.edit` this same day queued while offline and left as
+   *  a conflict once its replay came back stale: reachable from here too,
+   *  not only the pill, since this is exactly where the person would look
+   *  for it. Matched by URL against this panel's own `dayApiUrl` for each
+   *  entry rather than a slug alone — the same address the queued PATCH was
+   *  actually sent to. */
+  const [dayConflicts, setDayConflicts] = useState<DayEditConflict[]>([]);
+  const refreshDayConflicts = useCallback(() => {
+    if (!hasOutbox()) return;
+    const ownUrls = new Set(day.entries.map((entry) => dayApiUrl(entry.slug)));
+    void pendingConflicts(openOutboxStore(), username).then((rows) =>
+      setDayConflicts(rows.filter((r) => ownUrls.has(r.url))),
+    );
+    // `dayApiUrl` is a fresh closure every render (a plain string template of
+    // `username`/`tripId`, both already deps here); including it would only
+    // re-run this for no reason every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, day.entries]);
+  useEffect(() => {
+    refreshDayConflicts();
+  }, [refreshDayConflicts]);
 
   // D12 — read once, when the panel opens, so a later save can prove it
   // still holds the version it started from. See the `versions` doc comment
@@ -752,6 +815,37 @@ export default function EditDay({
           <p className="mt-0.5 text-xs leading-5 text-ink-secondary">{t("edit.body")}</p>
         </>
       )}
+      {dayConflicts.map((conflict) => (
+        <ConflictCard key={conflict.id} conflict={conflict} onResolved={refreshDayConflicts} />
+      ))}
+      {voiceTranscripts.map((note) => (
+        <section
+          key={note.id}
+          role="status"
+          className="mt-3 rounded-xl border border-line-strong bg-surface-subtle p-3"
+        >
+          <p className="font-display text-sm font-semibold text-ink-strong">
+            {t("studio.day.voiceNote.banner.heading")}
+          </p>
+          <p className="mt-1 text-sm text-ink-body">{note.text}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => confirmVoiceTranscript(note)}
+              className="min-h-11 rounded-full bg-yellow-400 px-4 text-xs font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+            >
+              {t("studio.day.voiceNote.banner.confirm")}
+            </button>
+            <button
+              type="button"
+              onClick={() => discardVoiceTranscript(note)}
+              className="min-h-11 rounded-full border border-line-strong px-4 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle"
+            >
+              {t("studio.day.voiceNote.banner.discard")}
+            </button>
+          </div>
+        </section>
+      ))}
       {drafts.map((draft, at) => (
         <div
           key={day.entries[at].slug}
