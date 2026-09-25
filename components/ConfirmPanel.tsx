@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
+import { haptic } from "@/components/nativeShell";
 import Why from "@/components/Why";
 
 /**
@@ -106,7 +107,12 @@ export default function ConfirmPanel({
         <BusyButton
           busy={busy}
           type="button"
-          onClick={onConfirm}
+          onClick={() => {
+            // Only the destructive tone — B2324's table. A plain "commit"
+            // confirm (publish, save) stays untouched.
+            if (tone === "destructive") void haptic("medium");
+            onConfirm();
+          }}
           className={`min-h-11 rounded-full px-5 text-base font-semibold transition-colors disabled:opacity-50 ${TONE[tone]}`}
         >
           {busy && busyLabel ? busyLabel : confirmLabel}
