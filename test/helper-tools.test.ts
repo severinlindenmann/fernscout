@@ -620,46 +620,29 @@ describe("who may read a trip is read before it is chosen", () => {
 });
 
 /**
- * Letting the person they named actually read it — B931.
- *
- * The tool is the half of that ticket that makes the honest answer sayable.
- * What is assertable here is its shape: it is the *guest* link and only that,
- * it proposes rather than issues, and the sentence a person reads before and
- * after the press says they can now **ask** rather than that they are in.
+ * Letting the person they named actually read it — B931; B2295 (one door for
+ * readers, B2291) replaced the tool that used to propose a guest link with
+ * one that only hands over `/<user>/studio/readers`, the one place a person
+ * is let in.
  */
-describe("inviting somebody to read", () => {
-  const invite = TOOLS.find((tool) => tool.name === "invite_guest");
+describe("pointing at the one door", () => {
+  const invite = TOOLS.find((tool) => tool.name === "invite_to_read");
 
-  test("it is a write tool, so it issues nothing by itself", () => {
-    expect(invite?.kind).toBe("write");
+  test("it is a link tool, so it writes nothing and issues nothing", () => {
+    expect(invite?.kind).toBe("link");
     expect(invite).not.toHaveProperty("run");
-    expect(invite && invite.kind === "write" && invite.endpoint("alex")).toBe(
-      "/api/helper/alex/invite",
-    );
+    expect(invite).not.toHaveProperty("propose");
   });
 
-  test("there is no buddy link here, and no way to ask for one", () => {
-    // A buddy link is write access to a trip and belongs on the contacts
-    // page. No `kind`, no `trip`: nothing a model could get wrong.
-    expect(Object.keys(invite?.properties ?? {})).toEqual(["name"]);
-    expect(TOOLS.map((tool) => tool.name).filter((name) => name.includes("buddy"))).toEqual([]);
-    expect(invite?.describe).not.toMatch(/buddy/i);
-  });
-
-  test("the model is told it grants nothing", () => {
-    expect(invite?.describe).toMatch(/ask to read/i);
-    expect(invite?.describe).toMatch(/grants nothing/i);
-  });
-
-  test("it proposes a link and touches no disk", async () => {
+  test("it hands over Studio › Readers and touches no disk", async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-invite-"));
     const before = process.env.CONTENT_DIR;
     process.env.CONTENT_DIR = dir;
     try {
-      const ran = await runTool("alex", "invite_guest", { name: "meine Tochter" }, say, "2026-09-07", [], "", WEB_CALLER);
-      expect(ran.proposal?.tool).toBe("invite_guest");
-      expect(ran.proposal?.fields).toEqual([{ name: "name", value: "meine Tochter" }]);
-      expect(ran.result).toMatchObject({ proposed: true, wrote: false });
+      const ran = await runTool("alex", "invite_to_read", {}, say, "2026-09-07", [], "", WEB_CALLER);
+      expect(ran.proposal).toBeUndefined();
+      const block = ran.blocks.find((b) => b.shape === "link");
+      expect(block && block.shape === "link" && block.href).toBe("/alex/studio/readers");
       expect(fs.readdirSync(dir)).toEqual([]);
     } finally {
       if (before === undefined) delete process.env.CONTENT_DIR;
@@ -668,27 +651,15 @@ describe("inviting somebody to read", () => {
     }
   });
 
-  /**
-   * The sentence after the press, in all three languages: **they can ask.**
-   * "They have access" is the same false claim B931 is about, moved one step
-   * later, so the words are checked rather than left to a translator's ear.
-   */
-  for (const locale of MAINTAINED_LOCALES) {
-    test(`${locale}: what is said after the press is that they can ask, never that they are in`, () => {
+  test("every maintained locale has the two strings it says", () => {
+    for (const locale of MAINTAINED_LOCALES) {
       const dictionary = JSON.parse(
         fs.readFileSync(path.join(process.cwd(), "site", "locales", `${locale}.json`), "utf8"),
       ) as Record<string, string>;
-      const done = dictionary["agent.tool.inviteGuestDone"];
-      const asks = {
-        en: /ask to be let in/i,
-        de: /um Zugang bitten/i,
-        hu: /kérheti/i,
-      }[locale];
-      const approve = { en: /approve/i, de: /bestätigst/i, hu: /jóvá nem hagyod/i }[locale];
-      expect(done).toMatch(asks);
-      expect(done).toMatch(approve);
-    });
-  }
+      expect(dictionary["agent.tool.inviteToRead"]).toBeTruthy();
+      expect(dictionary["agent.tool.inviteToReadLabel"]).toBeTruthy();
+    }
+  });
 });
 
 describe("every string a tool says exists in every maintained locale", () => {

@@ -1,7 +1,6 @@
 import "server-only";
 import type { Tool } from "../types";
 import { isEnabled } from "../../../capabilities";
-import { listInvites } from "../../../contacts/invites";
 import { mailWouldReach } from "../../../digest/dayLetter";
 import { whatsappWouldCost, whatsappWouldReach } from "@paid/whatsapp/lib/digest/dayWhatsapp";
 import { DAY_ARGS } from "../args";
@@ -19,138 +18,25 @@ import { resolveDay, tripIdFor } from "../resolve";
 export const READERS_TOOLS: readonly Tool[] = [
   {
     /**
-     * Letting somebody read it — B931, and the half of that ticket that makes
-     * the other half sayable.
-     *
-     * *"nur meine Tochter soll das lesen können"* had no answer here at all.
-     * There was no invite tool, so the only thing the conversation could do
-     * with a named person was set a visibility — and `private` means the
-     * people who were on the trip, which is precisely the value that shuts
-     * out somebody who stayed at home. The model said her daughter could read
-     * it. Her daughter could not.
-     *
-     * **A guest link and a buddy link are different things and do not share a
-     * tool.** Only the guest one is here: a guest link belongs in a family
-     * group chat, a buddy link is write access to a trip and belongs on the
-     * contacts page. `components/InviteToRead.tsx` draws the same line on the
-     * day page for the same reason, and there is no `kind` argument for a
-     * model to get wrong.
-     *
-     * **It grants nothing**, and the sentences say so rather than softening
-     * it: whoever opens the link proves their own address and lands in the
-     * owner's queue. `approveContact` is still the only thing in this
-     * codebase that writes a grant, and the answer after the press is "they
-     * can now ask", never "they now have access".
+     * Letting somebody read it — B931 built `invite_guest` here; B2295 (one
+     * door for readers, B2291) took it, `invites` and `revoke_invite` back
+     * out. The owner decided `/<user>/studio/readers` is the only place a
+     * person is let in or an invite link is made, seen again or revoked — no
+     * agent, on the web or on WhatsApp, does any of that any more. This is
+     * what is left: a link to the one page, so "invite my daughter" still
+     * gets an answer rather than a dead end.
      */
-    name: "invite_guest",
-    kind: "write",
-    renders: "form",
+    name: "invite_to_read",
+    kind: "link",
+    renders: "link",
     describe:
-      "Propose a link that lets somebody ask to read this journal — for a named person who should read it. Nothing is made until they press; even then it grants nothing: whoever opens it proves their address and waits to be approved.",
-    properties: {
-      name: {
-        type: "string",
-        description:
-          "Who the link is for, as they said it. It only says whose link it is; it lets nobody in.",
-      },
-    },
-    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/invite`,
-    propose: async (_username, args, say) => ({
-      sentence: say("agent.tool.inviteGuest"),
-      accept: say("agent.tool.inviteGuestAccept"),
-      done: say("agent.tool.inviteGuestDone"),
-      fields: [{ name: "name", value: args.name ?? "" }],
-    }),
-  },
-  {
-    /**
-     * Which links are out there — B1051, `invite_guest`'s missing other half.
-     *
-     * A link the owner cannot see again is a link they cannot revoke either:
-     * "did I already send my mother one of these" had no answer but reissuing
-     * one and hoping the first quietly expires. **Never the token** — AGENTS.md
-     * is explicit that a link is shown once, at issue, and `listInvites` (as
-     * opposed to `listInvitesWithLinks`, which the owner's own contacts page
-     * uses) already answers with hashes turned into facts and nothing a model
-     * could repeat into a message. This reads that function and nothing else.
-     */
-    name: "invites",
-    kind: "read",
-    renders: "choose",
-    describe:
-      "Every invite link this journal has issued: what kind, who it was for, when, and whether it has been used or revoked. Never the link itself — that exists once, at the moment it was made.",
+      "Where to add or invite a reader or a buddy. Hands over the page only — nothing here lets anybody in.",
     properties: {},
-    run: async (username) => {
-      if (!isEnabled("contacts", username)) return { contactsOff: true, invites: [] };
-      const invites = await listInvites(username);
-      return {
-        contactsOff: false,
-        invites: invites.map((invite) => ({
-          id: invite.id,
-          kind: invite.kind,
-          name: invite.name,
-          createdAt: invite.createdAt,
-          revoked: invite.revokedAt !== null,
-          used: invite.uses > 0,
-        })),
-      };
-    },
-    block: (data, say) => {
-      const result = data as {
-        contactsOff: boolean;
-        invites: { id: string; kind: string; name: string | null; createdAt: string; revoked: boolean; used: boolean }[];
-      };
-      if (result.contactsOff || result.invites.length === 0) return null;
-      return {
-        shape: "choose",
-        text: say("agent.block.invites"),
-        options: result.invites.map((invite) => ({
-          value: invite.id,
-          label: invite.name ? `${invite.kind} — ${invite.name}` : invite.kind,
-          detail: invite.revoked
-            ? say("agent.block.invitesRevoked")
-            : invite.used
-              ? say("agent.block.invitesUsed")
-              : say("agent.block.invitesWaiting"),
-        })),
-      };
-    },
-  },
-  {
-    /**
-     * Taking one back — B1051, and the link this whole thing hinges on:
-     * revoking is one row, `revokeInvite`'s own doc comment says so, and it
-     * "removes nothing anybody wrote" — everybody already approved through it
-     * stays exactly where they are. The sentence says that rather than
-     * softening it into silence, for the same reason `invite_guest` says a
-     * link grants nothing: the words have to carry what the mechanism
-     * actually does.
-     */
-    name: "revoke_invite",
-    kind: "write",
-    renders: "confirm",
-    describe:
-      "Propose taking back one invite link so it can never be used again. Everybody already approved through it keeps their access — this only stops a new redemption. Needs the link's id, as `invites` lists it.",
-    properties: {
-      invite: {
-        type: "string",
-        description: "Which invite to revoke, by the id `invites` gave it.",
-      },
-    },
-    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/invite/revoke`,
-    propose: async (username, args, say) => {
-      const invites = isEnabled("contacts", username) ? await listInvites(username) : [];
-      const invite = invites.find((one) => one.id === (args.invite ?? "").trim());
-      return {
-        ...(invite ? {} : { refuse: "agent.tool.noInvite" }),
-        sentence: invite
-          ? say("agent.tool.revokeInvite", { kind: invite.kind })
-          : say("agent.tool.noInvite"),
-        accept: say("agent.tool.revokeInviteAccept"),
-        done: say("agent.tool.revokeInviteDone"),
-        fields: [{ name: "invite", value: invite?.id ?? "", fixed: true }],
-      };
-    },
+    link: (username, _args, say) => ({
+      text: say("agent.tool.inviteToRead"),
+      href: `/${encodeURIComponent(username)}/studio/readers`,
+      label: say("agent.tool.inviteToReadLabel"),
+    }),
   },
   {
     /**
