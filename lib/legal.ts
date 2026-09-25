@@ -1,6 +1,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
+import matter from "gray-matter";
 import { contentRoot } from "./contentRoot";
 import { siteRoot } from "./siteRoot";
 
@@ -57,17 +58,76 @@ export function hasLegal(): boolean {
  * wrote only `de.md` should get their German imprint served to an English
  * reader, not a 404. Null when there is nothing at all.
  */
-export function readLegal(locale: string): { markdown: string; locale: string } | null {
+export type Legal = {
+  markdown: string;
+  locale: string;
+  /** `updated:` from the front matter, as `YYYY-MM-DD`. Never the file's
+   * mtime: a deploy rewrites that, and the page would claim a review that
+   * never happened. Absent when the operator wrote none. */
+  updated?: string;
+  /** `summary:` from the front matter — the "In short" list. B2313. */
+  summary?: string[];
+};
+
+export function readLegal(locale: string): Legal | null {
   // The locale reaches here from a cookie, so it is checked rather than
   // trusted — this is the argument to a `path.join`.
   const asked = /^[a-z]{2}$/.test(locale) ? locale : "en";
   for (const code of [asked, "en", ...legalLocales()]) {
+    let raw: string;
     try {
-      const file = path.join(legalDir(), `${code}.md`);
-      return { markdown: fs.readFileSync(file, "utf-8"), locale: code };
+      raw = fs.readFileSync(path.join(legalDir(), `${code}.md`), "utf-8");
     } catch {
-      // Next candidate.
+      continue; // Next candidate.
     }
+    const { data, content } = matter(raw);
+    // YAML reads a bare 2026-09-25 as a Date; a quoted one stays a string.
+    const updated =
+      data.updated instanceof Date ? data.updated.toISOString().slice(0, 10) : data.updated;
+    const summary = Array.isArray(data.summary)
+      ? data.summary.filter((line: unknown): line is string => typeof line === "string")
+      : [];
+    return {
+      markdown: content,
+      locale: code,
+      ...(typeof updated === "string" && /^\d{4}-\d{2}-\d{2}$/.test(updated) ? { updated } : {}),
+      ...(summary.length ? { summary } : {}),
+    };
   }
   return null;
+}
+
+/**
+ * The page's `##` sections, for its contents list and their anchors — B2313.
+ *
+ * `## Your data {#privacy}` fixes the anchor, so a link that has to outlive
+ * edits and translations (the App Store's privacy-policy URL is
+ * `/legal#privacy`) says which section it means in every language. Without
+ * one the anchor is a slug of the heading. Returns the markdown with the
+ * `{#…}` markers taken out, since markdown itself has no such syntax.
+ */
+export function legalSections(markdown: string): {
+  markdown: string;
+  /** `line` is 1-based, as the markdown parser reports a heading's position. */
+  sections: { id: string; title: string; line: number }[];
+} {
+  const sections: { id: string; title: string; line: number }[] = [];
+  const body = markdown.replace(
+    /^## +(.+?)(?: *\{#([a-z0-9-]+)\})? *$/gm,
+    (_, title: string, id: string | undefined, offset: number) => {
+      const line = markdown.slice(0, offset).split("\n").length;
+      sections.push({ id: id ?? slug(title), title, line });
+      return `## ${title}`;
+    },
+  );
+  return { markdown: body, sections };
+}
+
+function slug(text: string): string {
+  return text
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
