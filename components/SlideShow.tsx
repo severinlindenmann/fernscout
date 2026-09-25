@@ -10,6 +10,7 @@ import {
   Pause,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Plane,
   TrainFront,
   TrainFrontTunnel,
@@ -51,6 +52,14 @@ const FULL_MEDIA_MS = 6500;
 // Controls fade out this long after the last pointer/key activity, so a show
 // left running on a TV isn't sitting under a permanent overlay of buttons.
 const CHROME_IDLE_MS = 3500;
+
+// Story-style tap zones on the slide surface: hold past this long pauses
+// instead of counting as a tap; a swipe down past this many px closes.
+const TAP_HOLD_MS = 350;
+const SWIPE_CLOSE_DY = 80;
+
+// Remembers the chosen dwell across visits, per device — B2305.
+const DWELL_STORAGE_KEY = "fernscout.slideshow.dwell";
 
 type Cut = "narrated" | "full";
 
@@ -131,9 +140,31 @@ export default function SlideShow({
 
   const [index, setIndex] = useState(cut === "full" ? fullStartIndex : 0);
   const [playing, setPlaying] = useState(true);
-  const [dwellSeconds, setDwellSeconds] = useState(DEFAULT_DWELL_S);
+  // Lazy initializer, not an effect — this component is ssr:false, so
+  // there's no hydration mismatch to dodge, and reading it up front means
+  // the very first render already uses the device's remembered speed
+  // instead of flashing the default first. Every localStorage touch is
+  // wrapped: private browsing and blocked site data both throw rather than
+  // return null.
+  const [dwellSeconds, setDwellSeconds] = useState<number>(() => {
+    try {
+      const raw = window.localStorage.getItem(DWELL_STORAGE_KEY);
+      const n = raw ? Number(raw) : NaN;
+      return Number.isFinite(n) && n >= MIN_DWELL_S && n <= MAX_DWELL_S ? n : DEFAULT_DWELL_S;
+    } catch {
+      return DEFAULT_DWELL_S;
+    }
+  });
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DWELL_STORAGE_KEY, String(dwellSeconds));
+    } catch {
+      // ignore — nothing to remember it with.
+    }
+  }, [dwellSeconds]);
 
   const switchCut = useCallback(
     (next: Cut) => {
@@ -223,6 +254,19 @@ export default function SlideShow({
     }
   }, []);
 
+  // iPhone WebKit has no element fullscreen at all (B2305) — the button did
+  // nothing there. A lazy initializer rather than an effect: this component
+  // is ssr:false, so there's no server-rendered guess to avoid fighting, and
+  // the capability check needs no DOM node — the method lives on the
+  // element prototype whether or not anything has requested it yet.
+  const [fullscreenSupported] = useState(
+    () => document.fullscreenEnabled === true && typeof HTMLElement.prototype.requestFullscreen === "function",
+  );
+
+  // A small settings sheet replaces the old top cut-switch and bottom speed
+  // pill with one 44px-safe chip (B2305) — opening it pauses the show.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   // Keyboard + scroll lock while the overlay is up.
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -230,6 +274,10 @@ export default function SlideShow({
     const onKey = (e: KeyboardEvent) => {
       bumpChrome();
       if (e.key === "Escape") {
+        if (settingsOpen) {
+          setSettingsOpen(false);
+          return;
+        }
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
         onClose();
         return;
@@ -248,6 +296,9 @@ export default function SlideShow({
         e.preventDefault();
         toggle();
       }
+      if ((e.key === "f" || e.key === "F") && fullscreenSupported) {
+        toggleFullscreen();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => {
@@ -255,7 +306,86 @@ export default function SlideShow({
       window.removeEventListener("keydown", onKey);
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     };
-  }, [onClose, go, toggle, bumpChrome]);
+  }, [onClose, go, toggle, bumpChrome, settingsOpen, fullscreenSupported, toggleFullscreen]);
+
+  // Mirrors `isPlaying` for the hold timer below, which fires after a delay
+  // and needs the live value rather than whatever it closed over at press time.
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  // Story-style gestures on the slide surface itself (B2305): a tap in the
+  // left third steps back, the right two thirds step forward and keep
+  // playing (unlike the buttons/keys, which pause — this is meant to feel
+  // like flicking through stories, not like scrubbing), a press held past
+  // TAP_HOLD_MS pauses for as long as it's held, and a mostly-vertical
+  // downward swipe closes the show. State lives in a ref, not useState — it
+  // changes many times a gesture and none of it should ever cause a render.
+  const tapRef = useRef<{
+    x: number;
+    y: number;
+    holdTimer: ReturnType<typeof setTimeout> | null;
+    held: boolean;
+    pausedByHold: boolean;
+  } | null>(null);
+
+  const onSurfacePointerDown = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    // Wrapped — an id without a live pointer session (Safari has done this
+    // for a synthetic press) throws NotFoundError, and losing capture is far
+    // cheaper than losing the rest of this handler: the hold timer below is
+    // what actually matters, and it still needs to run either way.
+    try {
+      (e.target as Element).setPointerCapture?.(e.pointerId);
+    } catch {
+      // ignore — the gesture still tracks fine without capture.
+    }
+    const holdTimer = setTimeout(() => {
+      const st = tapRef.current;
+      if (!st) return;
+      st.held = true;
+      if (isPlayingRef.current) {
+        st.pausedByHold = true;
+        setPlaying(false);
+      }
+    }, TAP_HOLD_MS);
+    tapRef.current = { x: e.clientX, y: e.clientY, holdTimer, held: false, pausedByHold: false };
+  }, []);
+
+  const endSurfaceGesture = useCallback(
+    (e: React.PointerEvent, evaluate: boolean) => {
+      const st = tapRef.current;
+      tapRef.current = null;
+      if (!st) return;
+      if (st.holdTimer) clearTimeout(st.holdTimer);
+      if (st.held) {
+        // A hold never also counts as a tap — release just resumes.
+        if (st.pausedByHold) setPlaying(true);
+        return;
+      }
+      if (!evaluate) return;
+      bumpChrome();
+      const dx = e.clientX - st.x;
+      const dy = e.clientY - st.y;
+      if (Math.abs(dy) > SWIPE_CLOSE_DY && Math.abs(dy) > Math.abs(dx)) {
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        onClose();
+        return;
+      }
+      const rect = containerRef.current?.getBoundingClientRect();
+      const relX = rect && rect.width > 0 ? (st.x - rect.left) / rect.width : 0.5;
+      // Tap-to-advance keeps playing (stories behaviour) — unlike Prev/Next
+      // and the arrow keys, this never calls setPlaying(false).
+      go(relX < 1 / 3 ? -1 : 1);
+    },
+    [bumpChrome, go, onClose],
+  );
+  const onSurfacePointerUp = useCallback((e: React.PointerEvent) => endSurfaceGesture(e, true), [endSurfaceGesture]);
+  const onSurfacePointerCancel = useCallback(
+    (e: React.PointerEvent) => endSurfaceGesture(e, false),
+    [endSurfaceGesture],
+  );
 
   if (total === 0) return null;
 
@@ -283,11 +413,21 @@ export default function SlideShow({
       <style>{`
         .fs-present-frame {
           width: min(100vw, calc(100vh * 16 / 9));
+          width: min(100vw, calc(100dvh * 16 / 9));
           height: min(100vh, calc(100vw * 9 / 16));
+          height: min(100dvh, calc(100vw * 9 / 16));
         }
         @media (orientation: portrait) {
           .fs-present-frame { width: 100vw; height: 100vh; }
+          .fs-present-frame { height: 100dvh; }
         }
+        /* Safe-area offsets for the chrome — a sensible minimum margin even
+           where env() resolves to 0 (most non-iOS browsers), the real inset
+           on a notched/Dynamic-Island phone otherwise (B2305). */
+        .fs-safe-top { top: max(3.75rem, env(safe-area-inset-top, 0px)); }
+        .fs-safe-bottom { bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)); }
+        .fs-safe-left { left: max(0.75rem, env(safe-area-inset-left, 0px)); }
+        .fs-safe-right { right: max(0.75rem, env(safe-area-inset-right, 0px)); }
       `}</style>
       <div ref={containerRef} className="relative overflow-hidden bg-overlay-strong fs-present-frame">
         {cut === "full" && fullStep ? (
@@ -346,7 +486,7 @@ export default function SlideShow({
 
             {/* Caption — place, when, and one line of what. */}
             {fullPlace && (
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong via-overlay-strong/70 to-transparent px-[4%] pb-[14%] pt-[10%]">
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong via-overlay-strong/70 to-transparent px-[4%] pb-[calc(14%+5.5rem+env(safe-area-inset-bottom,0px))] pt-[10%]">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={`cap-${index}`}
@@ -390,6 +530,18 @@ export default function SlideShow({
           )
         )}
 
+        {/* Story-style tap/hold/swipe layer, full-frame and BELOW the chrome
+            in DOM order (and so in stacking) — a tap that lands on a real
+            button is a click on that button, never a gesture on this. */}
+        <div
+          className="absolute inset-0"
+          style={{ touchAction: "none" }}
+          onPointerDown={onSurfacePointerDown}
+          onPointerUp={onSurfacePointerUp}
+          onPointerCancel={onSurfacePointerCancel}
+          aria-hidden
+        />
+
         {/* Progress */}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex gap-1 p-2">
           {Array.from({ length: total }).map((_, i) => (
@@ -408,8 +560,11 @@ export default function SlideShow({
           ))}
         </div>
 
-        {/* Chrome: cut switch, controls, speed and fullscreen — fades out
-            during playback, always there while paused or idle. */}
+        {/* Chrome: the settings chip (cut + speed), fullscreen and close, and
+            Prev/Play/Next — fades out during playback, always there while
+            paused or idle. Every box here is kept inside the safe area and
+            at least 44x44 (B2305) — the tap layer above is what took over
+            the cut-switch and speed pill this replaced. */}
         <AnimatePresence>
           {showChrome && (
             <motion.div
@@ -419,47 +574,45 @@ export default function SlideShow({
               transition={{ duration: 0.3 }}
               className="pointer-events-none absolute inset-0"
             >
-              {narratedSlides.length > 0 && fullSteps.length > 0 && (
-                <div className="pointer-events-auto absolute left-1/2 top-4 flex -translate-x-1/2 items-center gap-0.5 rounded-full bg-black/40 p-1 backdrop-blur">
-                  <CutTab
-                    active={cut === "narrated"}
-                    onClick={() => switchCut("narrated")}
-                    label={t("show.cutNarrated")}
-                    Icon={Sparkles}
-                  />
-                  <CutTab
-                    active={cut === "full"}
-                    onClick={() => switchCut("full")}
-                    label={t("show.cutFull")}
-                    Icon={Film}
-                  />
-                </div>
-              )}
+              <button
+                onClick={() => {
+                  setPlaying(false);
+                  setSettingsOpen(true);
+                }}
+                aria-label={t("show.settings")}
+                title={t("show.settings")}
+                className="fs-safe-top fs-safe-left pointer-events-auto absolute flex h-11 items-center gap-1.5 rounded-full bg-black/40 px-3.5 text-sm font-semibold text-overlay-ink backdrop-blur transition-colors hover:bg-black/55"
+              >
+                {cut === "narrated" ? t("show.cutNarrated") : t("show.cutFull")}
+                <ChevronDown className="h-4 w-4" />
+              </button>
 
-              <div className="pointer-events-auto absolute right-3 top-3 flex items-center gap-2">
-                <button
-                  onClick={toggleFullscreen}
-                  aria-label={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
-                  title={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
-                  className="rounded-full bg-overlay-ink/10 p-2.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
-                >
-                  {isFullscreen ? (
-                    <Minimize2 className="h-5 w-5" />
-                  ) : (
-                    <Maximize2 className="h-5 w-5" />
-                  )}
-                </button>
+              <div className="fs-safe-top fs-safe-right pointer-events-auto absolute flex items-center gap-2">
+                {fullscreenSupported && (
+                  <button
+                    onClick={toggleFullscreen}
+                    aria-label={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
+                    title={isFullscreen ? t("show.exitFullscreen") : t("show.fullscreen")}
+                    className="rounded-full bg-overlay-ink/10 p-3 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
+                  >
+                    {isFullscreen ? (
+                      <Minimize2 className="h-5 w-5" />
+                    ) : (
+                      <Maximize2 className="h-5 w-5" />
+                    )}
+                  </button>
+                )}
                 <button
                   onClick={onClose}
                   aria-label={t("show.close")}
                   title={t("show.close")}
-                  className="rounded-full bg-overlay-ink/10 p-2.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
+                  className="rounded-full bg-overlay-ink/10 p-3 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="pointer-events-auto absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 p-5">
+              <div className="fs-safe-bottom pointer-events-auto absolute inset-x-0 flex flex-col items-center gap-3 px-5">
                 <div className="flex items-center gap-2">
                   <Ctrl
                     label={t("show.prev")}
@@ -485,30 +638,66 @@ export default function SlideShow({
                     <ChevronRight className="h-5 w-5" />
                   </Ctrl>
                 </div>
-                <div className="flex items-center gap-1 rounded-full bg-overlay-ink/10 px-1.5 py-1.5">
-                  <button
-                    onClick={() => setDwellSeconds((s) => Math.max(MIN_DWELL_S, s - 1))}
-                    disabled={dwellSeconds <= MIN_DWELL_S}
-                    aria-label={t("show.slower")}
-                    title={t("show.slower")}
-                    className="rounded-full p-1.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
-                  <span className="w-12 text-center text-xs tabular-nums text-overlay-ink/80">
-                    {t("show.perSlide", { seconds: String(dwellSeconds) })}
-                  </span>
-                  <button
-                    onClick={() => setDwellSeconds((s) => Math.min(MAX_DWELL_S, s + 1))}
-                    disabled={dwellSeconds >= MAX_DWELL_S}
-                    aria-label={t("show.faster")}
-                    title={t("show.faster")}
-                    className="rounded-full p-1.5 text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
               </div>
+
+              {settingsOpen && (
+                <div className="pointer-events-auto absolute inset-0 flex items-center justify-center bg-black/50 p-6">
+                  <div className="w-full max-w-xs rounded-2xl bg-overlay-strong p-4 text-overlay-ink shadow-2xl">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold">{t("show.settings")}</div>
+                      <button
+                        onClick={() => setSettingsOpen(false)}
+                        aria-label={t("show.settingsClose")}
+                        title={t("show.settingsClose")}
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-overlay-ink/90 transition-colors hover:bg-overlay-ink/10"
+                      >
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    {narratedSlides.length > 0 && fullSteps.length > 0 && (
+                      <div className="mt-3 flex items-center gap-0.5 rounded-full bg-overlay-ink/10 p-1">
+                        <CutTab
+                          active={cut === "narrated"}
+                          onClick={() => switchCut("narrated")}
+                          label={t("show.cutNarrated")}
+                          Icon={Sparkles}
+                        />
+                        <CutTab
+                          active={cut === "full"}
+                          onClick={() => switchCut("full")}
+                          label={t("show.cutFull")}
+                          Icon={Film}
+                        />
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-center gap-1 rounded-full bg-overlay-ink/10 px-1.5 py-1.5">
+                      <button
+                        onClick={() => setDwellSeconds((s) => Math.max(MIN_DWELL_S, s - 1))}
+                        disabled={dwellSeconds <= MIN_DWELL_S}
+                        aria-label={t("show.slower")}
+                        title={t("show.slower")}
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-16 text-center text-sm tabular-nums text-overlay-ink/80">
+                        {t("show.perSlide", { seconds: String(dwellSeconds) })}
+                      </span>
+                      <button
+                        onClick={() => setDwellSeconds((s) => Math.min(MAX_DWELL_S, s + 1))}
+                        disabled={dwellSeconds >= MAX_DWELL_S}
+                        aria-label={t("show.faster")}
+                        title={t("show.faster")}
+                        className="flex h-11 w-11 items-center justify-center rounded-full text-overlay-ink/90 transition-colors hover:bg-overlay-ink/20 disabled:opacity-30"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -562,7 +751,7 @@ function NarratedSlide({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="absolute inset-x-0 bottom-0 px-[5%] pb-[9%] pt-[16%]"
+          className="absolute inset-x-0 bottom-0 px-[5%] pb-[calc(9%+5.5rem+env(safe-area-inset-bottom,0px))] pt-[16%]"
         >
           <div className="font-semibold text-yellow-300 text-[clamp(0.85rem,1.6vw,1.4rem)]">
             {flagFor(slide.country, slide.countryCode)} {slide.location} · {dateLabel}
@@ -593,7 +782,7 @@ function CutTab({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+      className={`flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-semibold transition-colors ${
         active ? "bg-yellow-400 text-yellow-950" : "text-overlay-ink/80 hover:bg-overlay-ink/10"
       }`}
     >
