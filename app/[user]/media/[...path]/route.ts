@@ -1,14 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { contentTypeFor, mediaEtag, resolveMediaFile, resizedCopy, tripMediaDir } from "@/lib/media";
+import { contentTypeFor, mediaDerivative, mediaEtag, resolveMedia, tripMediaDir } from "@/lib/media";
 import { afterResponse } from "@/lib/afterResponse";
 import { imageFactsFor, phashFor } from "@/lib/sidecar";
 import { parseWidth } from "@/lib/mediaSizes";
 import { parseRange } from "@/lib/mediaRange";
 import { draftsVisibleTo, mayReadTrip, readerLevelFor } from "@/lib/tripGate";
 import { getTrip } from "@/lib/trips";
-import { AS_AUTHOR, getAllEntries, getEntryByFolder } from "@/lib/entries";
+import { AS_AUTHOR, entryForFolder, getAllEntries } from "@/lib/entries";
+import type { Entry } from "@/lib/types";
 import {
   loosestVisibility,
   maySeePhoto,
@@ -51,15 +52,15 @@ import {
  * `!(await isOwner(username))`, which made "is it a draft" and "may you see
  * it" one answer and the second of them the wrong one.
  *
- * **The folder's name is asked of `getEntryByFolder`, not `getEntryBySlug`**
+ * **The folder's name is asked of `entryForFolder`, not `getEntryBySlug`**
  * — B1884. A v1 folder is named for the day's slug and a v2 upload's folder
  * for the day's whole id, and matching only the first meant the lookup came
  * back empty for every v2 upload: a draft day's photographs were served as
  * though the day were published, because "no such day" and "no draft" were
  * the same answer here.
  */
-function isDraftDay(ref: string, folder: string | undefined): boolean {
-  return getEntryByFolder(ref, folder, AS_AUTHOR)?.draft === true;
+function isDraftDay(entries: readonly Entry[], folder: string | undefined): boolean {
+  return entryForFolder(entries, folder)?.draft === true;
 }
 
 /**
@@ -136,7 +137,7 @@ function pathKey(src: string): string {
 }
 
 function labelOf(
-  ref: string,
+  entries: readonly Entry[],
   segments: string[],
   cover: string | undefined,
 ): PhotoVisibility | undefined {
@@ -144,7 +145,7 @@ function labelOf(
   let matched = false;
   let demand: PhotoVisibility | undefined;
 
-  for (const entry of getAllEntries(ref, AS_AUTHOR)) {
+  for (const entry of entries) {
     for (const item of entry.gallery) {
       const hit = pathKey(item.src) === wanted || (item.poster && pathKey(item.poster) === wanted);
       if (!hit) continue;
@@ -190,15 +191,19 @@ function validatorCovers(header: string | null, etag: string): boolean {
   return sent.split(",").some((one) => one.trim().replace(/^W\//, "") === etag);
 }
 
+/** A cached copy up to this size is read in one go; a larger one streams. */
+const WHOLE_READ_BYTES = 256 * 1024;
+
 /** The requested slice, read on its own rather than by reading the file and
- * throwing most of it away. */
-function readSlice(file: string, start: number, end: number): Buffer {
+ * throwing most of it away — and off the request's thread, since a slice is
+ * up to four megabytes of a clip somebody is scrubbing through. */
+async function readSlice(file: string, start: number, end: number): Promise<Buffer> {
   const buffer = Buffer.alloc(end - start + 1);
-  const handle = fs.openSync(file, "r");
+  const handle = await fs.promises.open(file, "r");
   try {
-    fs.readSync(handle, buffer, 0, buffer.byteLength, start);
+    await handle.read(buffer, 0, buffer.byteLength, start);
   } finally {
-    fs.closeSync(handle);
+    await handle.close();
   }
   return buffer;
 }
@@ -230,8 +235,17 @@ export async function GET(
    * The result was a buddy who could open the draft day, read every word, and
    * get a 404 for each of its photographs: the failure the ticket set out to
    * remove, on the one surface that still had it.
+   *
+   * **The trip's entries are read once, here, for this gate and the label
+   * gate below.** Each used to read them for itself — a directory listing and
+   * a stat per entry file, twice over, for every thumbnail in every grid. One
+   * read is also the more correct shape: the two answers now describe the
+   * same state of the folder, where before an edit landing between them
+   * could be seen by one gate and not the other. Nothing is remembered past
+   * this request, so a publish or an unpublish is seen by the very next one.
    */
-  const draft = isDraftDay(trip.ref, segments[1]);
+  const entries = getAllEntries(trip.ref, AS_AUTHOR);
+  const draft = isDraftDay(entries, segments[1]);
   if (draft && !(await draftsVisibleTo(trip)).visible) {
     return new Response("Not found", { status: 404 });
   }
@@ -251,13 +265,16 @@ export async function GET(
    * 404, like every other refusal on this route: a 403 would confirm that
    * something is there.
    */
-  const label = labelOf(trip.ref, segments, trip.cover);
+  const label = labelOf(entries, segments, trip.cover);
   if (label && !maySeePhoto(label, await readerLevelFor(trip))) {
     return new Response("Not found", { status: 404 });
   }
 
-  const file = resolveMediaFile(user, segments);
-  if (!file) return new Response("Not found", { status: 404 });
+  // The stat `resolveMedia` takes is the one every later question about this
+  // file is answered from — the `ETag`, the resize's cache key, the length.
+  const found = resolveMedia(user, segments);
+  if (!found) return new Response("Not found", { status: 404 });
+  const { file, stat } = found;
 
   /**
    * And it has to be media — B1863.
@@ -363,14 +380,13 @@ export async function GET(
    * was *asked* keeps one URL to one validator. The bytes behind two URLs
    * being identical costs a cache nothing — entries are per-URL either way.
    */
-  const etag = mediaEtag(file, width);
+  const etag = mediaEtag(file, width, stat);
   if (etag && validatorCovers(request.headers.get("if-none-match"), etag)) {
     return new Response(null, {
       status: 304,
       headers: {
         ETag: etag,
         "Cache-Control": cacheControl,
-        Vary: "Accept",
         /**
          * The two headers a `304` does not strictly need, sent anyway.
          *
@@ -390,12 +406,12 @@ export async function GET(
     });
   }
 
-  const sized = width ? await resizedCopy(file, width) : null;
+  const sized = width ? await mediaDerivative(file, width, stat) : null;
 
   // Size without reading: a range request wants one window of a clip, and
   // reading 200 MB in order to hand back four of them is the cost B669 came
   // to remove. The whole file is still read for an ordinary 200 below.
-  const size = sized ? sized.byteLength : fs.statSync(file).size;
+  const size = sized ? sized.size : stat.size;
   const type = sized ? "image/webp" : contentTypeFor(file);
 
   const headers: Record<string, string> = {
@@ -426,13 +442,17 @@ export async function GET(
     /**
      * B394: WebP is served here whatever `Accept` says — deliberately, since
      * it is near-universal and honouring the header would mean keeping a
-     * JPEG derivative around too. `Vary: Accept` is the other half: without
-     * it a shared cache cannot tell that the bytes depend on the header, so a
-     * client that only takes JPEG could be handed a cached WebP response.
-     * Declaring it now is what keeps content negotiation possible later
-     * without a cache full of mislabelled entries to invalidate first.
+     * JPEG derivative around too.
+     *
+     * **And so no `Vary: Accept`, which this route used to send.** `Vary`
+     * says the bytes depend on a request header, and these do not: every
+     * client gets the same WebP at a given `?w=` whatever it accepts. What
+     * the false claim did cost was real — a shared cache keeps one entry per
+     * distinct `Accept` string, and browsers, versions and the service worker
+     * each send a different one, so a CDN held the same thumbnail several
+     * times over and missed on most first asks. If this route ever does
+     * negotiate a format, the header comes back in the same change.
      */
-    Vary: "Accept",
     /**
      * And the validator every one of the above is measured against — B1730.
      *
@@ -483,9 +503,37 @@ export async function GET(
    *
    * Below the gates on purpose: a range is a question about a file this
    * reader has already been allowed to have. A resized copy is exempt — it is
-   * a small buffer this route just made, and there is nothing to seek in it.
+   * a small WebP this route made, and there is nothing to seek in it.
    */
-  if (sized) return new Response(new Uint8Array(sized), { headers });
+  if (sized) {
+    /**
+     * A copy already on disk is read from the handle `mediaDerivative`
+     * opened, off the request's thread — it used to be `readFileSync`'d, which
+     * blocked every other request on this process for each thumbnail in
+     * every grid. One just made is in memory already and is sent as it is.
+     *
+     * A thumbnail is one read of a known length; a stream costs a second
+     * read to find the end and a conversion to a web stream, which measured
+     * slower for the few tens of kilobytes a grid tile is. Past
+     * `WHOLE_READ_BYTES` — a 2000px copy of a busy photograph can approach a
+     * megabyte — it is streamed, so a burst of those is never all in memory
+     * at once.
+     */
+    if ("bytes" in sized) return new Response(new Uint8Array(sized.bytes), { headers });
+    const { handle } = sized;
+    if (sized.size <= WHOLE_READ_BYTES) {
+      try {
+        const buffer = new Uint8Array(sized.size);
+        const { bytesRead } = await handle.read(buffer, 0, sized.size, 0);
+        return new Response(buffer.subarray(0, bytesRead), {
+          headers: { ...headers, "Content-Length": String(bytesRead) },
+        });
+      } finally {
+        await handle.close().catch(() => {});
+      }
+    }
+    return new Response(Readable.toWeb(handle.createReadStream()) as ReadableStream<Uint8Array>, { headers });
+  }
 
   headers["Accept-Ranges"] = "bytes";
   const range = parseRange(request.headers.get("range"), size);
@@ -496,7 +544,7 @@ export async function GET(
     });
   }
   if (range) {
-    const slice = readSlice(file, range.start, range.end);
+    const slice = await readSlice(file, range.start, range.end);
     return new Response(new Uint8Array(slice), {
       status: 206,
       headers: {
@@ -519,9 +567,9 @@ export async function GET(
    * range-request — was one allocation of the whole file. `Content-Length` is
    * already known from the stat above, so nothing is lost by not holding it.
    *
-   * Only this branch. The `206` is a bounded slice the client asked for and
-   * the resized copy is a small WebP this route just made; neither is worth
-   * a stream.
+   * The `206` is a bounded slice the client asked for and not worth a
+   * stream; the resized copy above streams too once it is large enough to
+   * be worth one.
    */
   const body = Readable.toWeb(fs.createReadStream(file)) as ReadableStream<Uint8Array>;
   return new Response(body, { headers });
