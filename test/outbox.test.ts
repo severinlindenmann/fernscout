@@ -32,6 +32,10 @@ function memoryStore(seed: OutboxIntent[]): OutboxStore & { rows: OutboxIntent[]
     async clear(user) {
       for (let i = rows.length - 1; i >= 0; i--) if (rows[i].user === user) rows.splice(i, 1);
     },
+    async markNativeUpload(id, on) {
+      const row = rows.find((r) => r.id === id);
+      if (row) row.nativeUpload = on;
+    },
     async remapMediaId(user, placeholderId, realId) {
       for (const row of rows) {
         if (row.user !== user || !row.body || typeof row.body !== "object") continue;
@@ -248,6 +252,65 @@ describe("a day queued with its photographs (B2330)", () => {
     expect(outcome.done).toBe(0);
     // Both still pending, in their original order — the day never jumped ahead.
     expect(store.rows.map((r) => r.id)).toEqual(["up1", "day1"]);
+  });
+});
+
+/** B2330 — the iPhone shell's `nativeUpload` handoff, `runOutbox`'s fourth
+ *  argument. `useOutbox.ts` wires this to `components/nativeShell.ts`'s
+ *  `nativeMediaHandoff`; here it is a fake so the resolution logic — skip
+ *  `fetch` once handed off, wait rather than resend, fall back when the
+ *  shell declines — is exercised with no IndexedDB and no Capacitor bridge. */
+describe("the iPhone shell's native upload handoff (B2330)", () => {
+  it("a handed-off upload is marked, never sent over fetch, and stops the pass for whatever is queued behind it", async () => {
+    const photo = uploadIntent({ id: "up1", createdAt: "2026-01-01T00:00:00.000Z" });
+    const day = dayIntent({
+      id: "day1",
+      createdAt: "2026-01-01T00:00:01.000Z",
+      body: { trip: "japan-2026", date: "2026-04-02", mediaInboxIds: ["pending-1"] },
+    });
+    const store = memoryStore([photo, day]);
+    const fetchImpl = async (): Promise<Response> => {
+      throw new Error("fetch must not be called once native took it");
+    };
+    const nativeUpload = async () => true;
+    const outcome = await runOutbox(store, "severin", fetchImpl, nativeUpload);
+    expect(outcome).toEqual({ done: 0, conflicts: 0, paused: false, stoppedForRetry: true });
+    expect(store.rows.map((r) => r.id)).toEqual(["up1", "day1"]);
+    expect(store.rows[0].nativeUpload).toBe(true);
+    expect(store.rows[0].state).toBe("pending");
+  });
+
+  it("an already handed-off upload is left alone on the next pass, still waiting for the drain", async () => {
+    const photo = uploadIntent({ id: "up1", nativeUpload: true });
+    const store = memoryStore([photo]);
+    let handoffCalls = 0;
+    const nativeUpload = async () => {
+      handoffCalls += 1;
+      return true;
+    };
+    const outcome = await runOutbox(store, "severin", () => Promise.reject(new Error("no fetch")), nativeUpload);
+    expect(outcome.stoppedForRetry).toBe(true);
+    expect(handoffCalls).toBe(0); // not handed off a second time
+    expect(store.rows).toHaveLength(1);
+  });
+
+  it("no shell, or no credential connected — nativeUpload resolves false and the ordinary fetch path is unchanged", async () => {
+    const photo = uploadIntent({ id: "up1" });
+    const store = memoryStore([photo]);
+    const fetchImpl = async (): Promise<Response> => ({ status: 201, json: async () => ({ ok: true, items: [{ id: "real-1" }] }) }) as Response;
+    const nativeUpload = async () => false;
+    const outcome = await runOutbox(store, "severin", fetchImpl, nativeUpload);
+    expect(outcome).toEqual({ done: 1, conflicts: 0, paused: false, stoppedForRetry: false });
+    expect(store.rows).toHaveLength(0);
+  });
+
+  it("with no nativeUpload argument at all (the web), behaviour is exactly the pre-B2330 fetch path", async () => {
+    const photo = uploadIntent({ id: "up1" });
+    const store = memoryStore([photo]);
+    const fetchImpl = async (): Promise<Response> => ({ status: 201, json: async () => ({ ok: true, items: [{ id: "real-1" }] }) }) as Response;
+    const outcome = await runOutbox(store, "severin", fetchImpl);
+    expect(outcome.done).toBe(1);
+    expect(store.rows).toHaveLength(0);
   });
 });
 
