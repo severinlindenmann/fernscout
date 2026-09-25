@@ -1,4 +1,7 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+
+// B2291 — the page re-reads itself with router.refresh(); nothing here navigates.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 import { renderToStaticMarkup } from "react-dom/server";
 import ContactsAdmin from "@/components/studio/readers/ReadersAdmin";
 import type { AdminContact } from "@/components/studio/readers/shared";
@@ -65,37 +68,31 @@ describe("what the owner is told about notifications", () => {
     expect(html).not.toContain("on 1 devices");
   });
 
-  /** The useful half of the answer: an owner asking "why doesn't she get
-   * anything on her phone" is told that nothing is subscribed. */
-  test("nobody subscribed says so rather than going quiet", () => {
-    // B2092: a sentence now, not a label over "on no device yet".
-    expect(render(contact({ pushDevices: 0 }))).toContain(dictionaryFor("en")["contact.adminPushNone"]);
+  /** B2291: a card is one line now; nothing subscribed is simply not said,
+   * like a channel nobody asked for. */
+  test("nobody subscribed says nothing about devices", () => {
+    expect(render(contact({ pushDevices: 0 }))).not.toContain("device");
   });
 
   test("a journal with push off says nothing about notifications at all", () => {
     const html = render(contact({ pushDevices: null }));
-    expect(html).not.toContain("Notifications on a phone");
+    expect(html).not.toContain("device");
   });
 });
 
 /**
- * The channels a reader asked for, and the sentence they used to be.
- *
- * Three whole sentences joined by a dot made the most scannable fact on the
- * card — how this person hears from the journal — the least scannable thing on
- * it. The consent sentences still exist; they belong to the tick boxes, where
- * each one is being agreed to rather than skimmed.
+ * The channels a reader asked for, named in a word each (B453), not in the
+ * tick box's consent sentence.
  */
 describe("the channels a reader is on", () => {
   test("are named in two words, not in the tick box's sentence", () => {
     const html = render(contact({ wantsEmailDigest: true, wantsWhatsapp: true }));
-    expect(html).toContain(">Email<");
-    expect(html).toContain(">WhatsApp<");
+    expect(html).toContain("hears by Email, WhatsApp");
     expect(html).not.toContain("Wants an email when there are new days to read");
   });
 
   test("a channel nobody asked for is absent, not greyed out", () => {
     const html = render(contact({ wantsEmailDigest: true, wantsPostcard: false }));
-    expect(html).not.toContain(">Postcard<");
+    expect(html).not.toContain("Postcard");
   });
 });

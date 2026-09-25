@@ -3,20 +3,15 @@
 import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
-import { Mail, MessageCircle, Stamp } from "lucide-react";
-import { countryName, resolveCountry } from "@/lib/countries";
 import { LOCALE_LABEL } from "@/lib/i18n";
 import type { Locale } from "@/lib/types";
-import { isMessageable } from "@/lib/phone";
 import { GuestForm } from "./GuestForm";
+import NotifyStep from "./NotifyStep";
 import type { AdminContact, Count, Translate } from "./shared";
 
 /**
  * The props `GuestForm` needs beyond the contact it is editing — B1094.
- *
- * Bundled so a row can be handed everything the form needs in one prop
- * rather than threading eight of them individually through `ContactGroup`
- * and `ContactRow`, which otherwise carry them only to pass them on.
+ * Bundled so a card can be handed everything the form needs in one prop.
  */
 export type GuestFormEnv = {
   fallbackLocale: Locale;
@@ -33,315 +28,300 @@ export type GuestFormEnv = {
   onClose: () => void;
 };
 
-/**
- * One channel this reader is on — B453.
- *
- * A chip rather than a line of the list, and two words rather than the
- * sentence. The sentences live in the tick boxes, where each one is a consent
- * being given and reads as one; here they were three of them joined with a
- * dot, which turned the most scannable fact about a person — how they hear
- * from this journal — into the least scannable thing on the card.
- *
- * Only what somebody actually asked for is shown. A row of greyed-out chips
- * for the channels they declined would say the same thing in colour alone,
- * which is not something everyone can read.
- */
-function Channel({ icon: Icon, label }: { icon: typeof Mail; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-1 text-sm text-ink-strong">
-      <Icon className="h-3.5 w-3.5 text-ink-secondary" aria-hidden />
-      {label}
-    </span>
-  );
-}
+/** Which group a card sits in decides what it offers — B2291. */
+export type CardKind = "asking" | "invited" | "notInvited" | "reading" | "revoked";
 
-/** What one card needs from the page, bundled once rather than threaded
- * prop by prop through the group and the card (B2133). */
+/** What one card needs from the page, bundled once (B2133). */
 export type CardEnv = {
   t: Translate;
   tn: Count;
   busy: boolean;
   locale: Locale;
-  locales: string[];
-  defaultCountryCode?: string;
-  /** Fire-and-forget, for Remove. */
+  username: string;
+  /** Remove — fire-and-forget through `/api/contacts/admin`. */
   act: (body: Record<string, unknown>) => void;
-  /** Approve, Revoke and Resend — each only after its ConfirmPanel. */
-  confirmed: (contact: AdminContact, action: "approve" | "revoke" | "resend") => void;
+  /** Let in, Decline and Take access away — each only after its ConfirmPanel. */
+  confirmed: (contact: AdminContact, action: "letin" | "revoke") => void;
+  /** After NotifyStep sent or was put off: re-read the lists. */
+  refresh: () => void;
   onEdit: (contact: AdminContact) => void;
   via: (contact: AdminContact) => string | null;
-  canResend: (contact: AdminContact) => boolean;
-  /** The status line the last Approve / Revoke / Resend on a contact left —
-   * kept by the page, because the card moves to another group and would
-   * lose it (B244). */
+  /** The status line the last Let in / Take away on a contact left — kept by
+   * the page, because the card moves to another group and would lose it. */
   notes: Record<string, { text: string; failed?: boolean }>;
   highlightId?: string;
   editingId: string | null;
   guestFormEnv?: GuestFormEnv;
 };
 
-/** Reusable for any stored ISO instant: "24 September 2026", in the page's
- * language, fixed to UTC so the server and the browser agree (B2133 — the
- * card printed raw ISO dates). */
+/** "24 September 2026", in the page's language, fixed to UTC so the server
+ * and the browser agree (B2133). */
 function longDate(iso: string, locale: Locale): string {
-  return new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : locale, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  return new Date(iso).toLocaleDateString(locale === "en" ? "en-GB" : locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
-const LINK = "text-sm font-semibold text-ink-strong underline underline-offset-2 disabled:opacity-50";
-const PILL =
-  "min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle disabled:opacity-50";
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? (parts.at(-1)?.[0] ?? "") : "")).toUpperCase() || "?";
+}
 
-/** One person: who they are, how they came in, what they get, and what the
- * owner can do about it — every consequential action asks first (B2133). */
-function ReaderCard({ contact, env }: { contact: AdminContact; env: CardEnv }) {
-  const { t, tn, busy, locale, locales, defaultCountryCode } = env;
-  // Owner-facing copy, not the guest form's first-person "Send me…" — this
-  // list is read by the owner, about somebody else.
-  const channels = [
-    contact.wantsEmailDigest
-      ? { icon: Mail, label: t("contact.adminChannelEmail") }
-      : null,
-    contact.wantsPostcard
-      ? { icon: Stamp, label: t("contact.adminChannelPostcard") }
-      : null,
-    contact.wantsWhatsapp
-      ? { icon: MessageCircle, label: t("contact.adminChannelWhatsapp") }
-      : null,
-  ].filter((channel) => channel !== null);
+const GHOST =
+  "min-h-11 rounded-xl border border-line-strong bg-surface-raised px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle disabled:opacity-50";
+const PRIMARY =
+  "min-h-11 rounded-xl bg-yellow-400 px-4 text-sm font-semibold text-navy-900 hover:bg-yellow-300 disabled:opacity-50";
+const MENU_ITEM =
+  "block min-h-11 w-full px-4 py-2 text-left text-sm font-semibold text-ink-strong hover:bg-surface-subtle";
 
-  const postal = contact.postalAddress;
+type Asking = "letin" | "decline" | "revoke" | "delete" | "notify" | "menu" | null;
 
-  // B1301 — an already-`active` contact whose later buddy link named a trip
-  // the earlier approval never covered. `relationship.buddyOf` only lists a
-  // *live* place, so this is the one thing that still needs a decision from
-  // a row that otherwise reads as fully settled.
-  const pendingTrips = contact.status === "active" ? (contact.pendingTrips ?? []) : [];
-
-  // B630 — what this person actually is to the journal, said in words rather
-  // than left for the owner to work out from a status and a "via" line. More
-  // than one can be true at once, and each is said rather than one winning.
-  const tags: string[] = [];
-  if (contact.relationship.owner) tags.push(t("contact.relationOwner"));
-  if (contact.relationship.buddyOf.length === 1) {
-    tags.push(
-      t("contact.relationBuddyOne", {
-        trip: contact.relationship.buddyOf[0].title,
-      }),
-    );
-  } else if (contact.relationship.buddyOf.length > 1) {
-    const count = contact.relationship.buddyOf.length;
-    tags.push(tn("contact.relationBuddyCount", count, { count: String(count) }));
-  }
-  if (contact.relationship.guest) tags.push(t("contact.relationGuest"));
-
-  const [asking, setAsking] = useState<"approve" | "revoke" | "resend" | "delete" | null>(null);
-  const displayName = contact.name ?? contact.email;
-  const via = env.via(contact);
-  const canResend = env.canResend(contact);
-  const canApprove = (contact.status !== "active" && contact.confirmedAt !== null) || pendingTrips.length > 0;
+/** One person: who they are, what they may do, and what the owner can do
+ * about it — every consequential action asks first (B2133, B2291). */
+function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardKind; env: CardEnv }) {
+  const { t, busy, locale } = env;
+  const [asking, setAsking] = useState<Asking>(null);
+  const [copied, setCopied] = useState<"ok" | "failed" | null>(null);
+  const hasEmail = contact.email.includes("@");
+  const displayName = contact.name ?? (hasEmail ? contact.email : (contact.phone ?? ""));
+  const first = displayName.split(/\s+/)[0] ?? displayName;
   const note = env.notes[contact.id];
   const editing = contact.id === env.editingId;
   const highlighted = contact.id === env.highlightId;
 
+  // The role, said as a pill (B2291): a buddy writes to one trip, a reader
+  // reads. Only a live place counts; an asked-for one is said in the line.
+  const buddyOf = contact.relationship.buddyOf;
+  const role =
+    buddyOf.length === 1
+      ? t("readers.role.buddyOf", { trip: buddyOf[0].title })
+      : buddyOf.length > 1
+        ? env.tn("contact.relationBuddyCount", buddyOf.length, { count: String(buddyOf.length) })
+        : kind === "asking"
+          ? contact.pendingTrips?.length
+            ? t("readers.role.wantsTrip", { trip: contact.pendingTrips.join(", ") })
+            : t("readers.role.wantsToRead")
+          : t("readers.role.reader");
+
+  const reach = [
+    hasEmail ? t("readers.reach.email") : null,
+    contact.phone ? t("readers.reach.mobile") : null,
+    contact.postalAddress?.line1 ? t("readers.reach.postal") : null,
+    // Their own language — what every message to them is written in (B469).
+    contact.locale ? (LOCALE_LABEL[contact.locale] ?? contact.locale) : null,
+  ].filter((part) => part !== null);
+  const hears = [
+    contact.wantsEmailDigest ? t("contact.adminChannelEmail") : null,
+    contact.wantsWhatsapp ? t("contact.adminChannelWhatsapp") : null,
+    contact.wantsPostcard ? t("contact.adminChannelPostcard") : null,
+    // B453 — a fact about their phones, not a consent; absent where this
+    // journal has push off (`null`) and where nothing is subscribed.
+    contact.pushDevices
+      ? t("readers.line.push", {
+          devices: env.tn("contact.adminPushDevices", contact.pushDevices, { count: String(contact.pushDevices) }),
+        })
+      : null,
+  ].filter((part) => part !== null);
+
+  const via = env.via(contact);
+  const line: string[] = [];
+  if (kind === "asking") {
+    if (via) line.push(via);
+    line.push(hasEmail && contact.confirmedAt ? t("readers.line.emailConfirmed") : t("readers.line.mobileConfirmed"));
+  } else if (kind === "invited") {
+    line.push(
+      contact.invitedVia && contact.invitedAt
+        ? contact.invitedVia === "self"
+          ? t("readers.line.sharedYourself", { date: longDate(contact.invitedAt, locale) })
+          : t("readers.line.sentVia", {
+              channel: t(`notifyStep.${contact.invitedVia as "email" | "whatsapp" | "sms"}`),
+              date: longDate(contact.invitedAt, locale),
+            })
+        : contact.status === "active"
+          ? t("readers.line.notToldYet")
+          : t("readers.line.neverProved"),
+    );
+  } else if (kind === "notInvited") {
+    line.push(via ?? t("contact.adminViaImport"));
+  } else {
+    // How they came in, first (B321) — a buddy link is write access to a trip.
+    if (via) line.push(via);
+    if (reach.length) line.push(reach.join(" · "));
+    if (hears.length) line.push(t("readers.line.hears", { channels: hears.join(", ") }));
+    line.push(
+      contact.lastSeenAt
+        ? t("readers.line.lastSeen", { date: longDate(contact.lastSeenAt, locale) })
+        : contact.welcomeOpenedAt
+          ? t("readers.line.openedOn", { date: longDate(contact.welcomeOpenedAt, locale) })
+          : t("readers.line.notOpened"),
+    );
+  }
+
+  async function copyWelcome() {
+    try {
+      const response = await fetch(
+        `/api/web/${encodeURIComponent(env.username)}/readers/notify?contactId=${encodeURIComponent(contact.id)}`,
+      );
+      const body = (await response.json()) as { url?: string | null };
+      if (!response.ok || !body.url) throw new Error("no url");
+      await navigator.clipboard.writeText(body.url);
+      setCopied("ok");
+    } catch {
+      setCopied("failed");
+    }
+  }
+
+  // An owner-added person still owes a proof; a row a link filed is a
+  // request that never finished — nothing to send it again with.
+  const canNotify = kind === "notInvited" || (kind === "invited" && contact.status === "active");
+  const close = () => setAsking(null);
+
   return (
     <li
       id={`contact-${contact.id}`}
-      className={`rounded-2xl border bg-surface-raised p-4 ${
-        highlighted ? "border-yellow-400 ring-2 ring-yellow-400" : "border-line-quiet"
-      }`}
+      className={`rounded-2xl border p-4 ${
+        kind === "asking" ? "bg-yellow-50" : "bg-surface-raised"
+      } ${highlighted ? "border-yellow-400 ring-2 ring-yellow-400" : "border-line-quiet"}`}
     >
-      <p className="font-display text-lg font-semibold text-ink-strong">{displayName}</p>
-      <p className="text-sm text-ink-secondary">{contact.email}</p>
-      {/* How they came in, as the sentence the owner would say (B321). */}
-      {via && <p className="mt-2 text-sm text-ink-body">{via}.</p>}
-      {/* What they get: their relationship, then the channels they hear on
-          (B630, B453). */}
-      {(tags.length > 0 || channels.length > 0) && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {tags.map((label) => (
-            <span
-              key={label}
-              className="inline-flex items-center rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-1 text-sm text-ink-strong"
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <span
+            aria-hidden
+            className="grid size-10 shrink-0 place-items-center rounded-full bg-navy-900 text-sm font-bold text-on-deep"
+          >
+            {initials(displayName)}
+          </span>
+          <div className="min-w-0">
+            <p className="font-semibold text-ink-strong">
+              <span className="mr-2 break-words">{displayName}</span>
+              <span className="inline-block rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-0.5 text-xs font-semibold text-ink-strong">
+                {role}
+              </span>
+            </p>
+            <p className="mt-0.5 text-sm text-ink-secondary">{line.join(" · ")}</p>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {kind === "asking" && (
+            <>
+              <BusyButton busy={busy} type="button" className={GHOST} aria-expanded={asking === "decline"} onClick={() => setAsking("decline")}>
+                {t("readers.decline")}
+              </BusyButton>
+              <BusyButton busy={busy} type="button" className={PRIMARY} aria-expanded={asking === "letin"} onClick={() => setAsking("letin")}>
+                {t("readers.letIn", { name: first })}
+              </BusyButton>
+            </>
+          )}
+          {kind === "invited" && contact.status === "active" && (
+            <button type="button" className={GHOST} onClick={copyWelcome}>
+              {copied === "ok" ? t("notifyStep.copied") : t("readers.copyWelcome")}
+            </button>
+          )}
+          {canNotify && (
+            <button type="button" className={kind === "notInvited" ? PRIMARY : GHOST} aria-expanded={asking === "notify"} onClick={() => setAsking(asking === "notify" ? null : "notify")}>
+              {kind === "notInvited" ? t("readers.invite", { name: first }) : t("readers.sendAgain")}
+            </button>
+          )}
+          {kind === "revoked" && (
+            <BusyButton busy={busy} type="button" className={GHOST} aria-expanded={asking === "letin"} onClick={() => setAsking("letin")}>
+              {t("readers.letBackIn")}
+            </BusyButton>
+          )}
+          {(kind === "reading" || kind === "invited" || kind === "notInvited" || kind === "revoked") && (
+            <button
+              type="button"
+              className={GHOST}
+              aria-haspopup="true"
+              aria-expanded={asking === "menu"}
+              aria-label={t("readers.more", { name: displayName })}
+              onClick={() => setAsking(asking === "menu" ? null : "menu")}
             >
-              {label}
-            </span>
-          ))}
-          {channels.map((channel) => (
-            <Channel icon={channel.icon} label={channel.label} key={channel.label} />
-          ))}
+              •••
+            </button>
+          )}
+        </div>
+      </div>
+
+      {asking === "menu" && (
+        <div className="mt-3 overflow-hidden rounded-xl border border-line-quiet bg-surface-raised sm:ml-auto sm:w-64">
+          <button type="button" className={MENU_ITEM} onClick={() => { close(); env.onEdit(contact); }}>
+            {t("readers.menu.edit")}
+          </button>
+          {contact.status === "active" && (
+            <button type="button" className={MENU_ITEM} onClick={() => setAsking("revoke")}>
+              {t("readers.menu.takeAway")}
+            </button>
+          )}
+          <button type="button" className={MENU_ITEM} onClick={() => setAsking("delete")}>
+            {t("readers.menu.remove")}
+          </button>
         </div>
       )}
-      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm text-ink-strong">
-        <dt className="text-ink-secondary">{t("contact.language")}</dt>
-        <dd>{contact.locale ? (LOCALE_LABEL[contact.locale] ?? contact.locale) : "—"}</dd>
-        <dt className="text-ink-secondary">{t("contact.adminLastSeen")}</dt>
-        <dd>{contact.lastSeenAt ? longDate(contact.lastSeenAt, locale) : t("contact.adminNever")}</dd>
-        {/* The fourth channel, and the only one that is state rather than
-            consent — B453. Absent, not zero, where this journal has push off:
-            `null` means the channel was never offered here. Zero is said as
-            a sentence below the list (B2092), not as a label over "none". */}
-        {contact.pushDevices !== null && contact.pushDevices > 0 && (
-          <>
-            <dt className="text-ink-muted">{t("contact.adminPush")}</dt>
-            <dd>
-              {tn("contact.adminPushDevices", contact.pushDevices, {
-                count: String(contact.pushDevices),
-              })}
-            </dd>
-          </>
-        )}
-        {postal && (
-          <>
-            {/* B383 — this row is the owner's own address book, not a
-                postcard destination: the tick above is the postcard
-                consent, this is the address on file whether or not one was
-                ever asked for. Reuses `contact.address` rather than the
-                postcard-specific label. */}
-            <dt>{t("contact.address")}</dt>
-            <dd>
-              {[
-                postal.name,
-                postal.line1,
-                postal.line2,
-                `${postal.postcode} ${postal.city}`.trim(),
-                // B398 stores an ISO2 code once a row is saved through the
-                // picker; named back out in the admin's own locale the same
-                // way CountryField does. A legacy row resolveCountry can't
-                // place (or an ISO2 Intl.DisplayNames won't name) shows
-                // exactly the string on disk — never a blank.
-                (() => {
-                  const iso2 = resolveCountry(postal.country, locales);
-                  return iso2 ? countryName(iso2, locale) : postal.country;
-                })(),
-              ]
-                .filter((line) => line !== "")
-                .join(", ")}
-            </dd>
-          </>
-        )}
-        {postal?.tel && (
-          <>
-            <dt>{t("contact.tel")}</dt>
-            <dd>
-              {postal.tel}
-              {/* B389 — a number `toE164` cannot parse (no `+`, no configured
-                  default country) is silently skipped by the WhatsApp send
-                  loop; say so here rather than let it read like every other
-                  number on the page. */}
-              {!isMessageable(postal.tel, defaultCountryCode) && (
-                <>
-                  {" "}
-                  <span className="ml-2 text-ink-secondary">{t("contact.telNotMessageable")}</span>
-                </>
-              )}
-            </dd>
-          </>
-        )}
-      </dl>
-      {/* A direct grant (D11) confirmed nothing: the owner let them in. */}
-      <p className="mt-2 text-sm text-ink-secondary">
-        {contact.confirmedAt
-          ? t(contact.createdVia === "owner-grant" ? "contact.adminLetInOn" : "contact.adminConfirmedOn", {
-              date: longDate(contact.confirmedAt, locale),
-            })
-          : t("contact.adminNotConfirmed")}
-        {contact.pushDevices === 0 && ` ${t("contact.adminPushNone")}`}
-      </p>
-      {canResend && <p className="mt-2 text-sm text-ink-secondary">{t("contact.adminInvitePending")}</p>}
-      {pendingTrips.length > 0 && (
-        // B1301 — an active reader still asking to write to a trip.
-        <p className="mt-2 text-sm text-ink-secondary">
-          {pendingTrips.length === 1
-            ? t("contact.adminPendingTripOne", { trip: pendingTrips[0] })
-            : t("contact.adminPendingTripCount", { trips: pendingTrips.join(", ") })}
-        </p>
+      {copied === "failed" && (
+        <p role="alert" className="mt-2 text-sm text-coral-600">{t("readers.copyFailed")}</p>
       )}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        {canApprove && (
-          <BusyButton busy={busy} type="button" onClick={() => setAsking("approve")} aria-expanded={asking === "approve"} className={PILL}>
-            {t("contact.adminApprove")}
-          </BusyButton>
-        )}
-        {canResend && (
-          <BusyButton busy={busy} type="button" onClick={() => setAsking("resend")} aria-expanded={asking === "resend"} className={PILL}>
-            {t("contact.adminResendInvite")}
-          </BusyButton>
-        )}
-        <BusyButton busy={busy} type="button" onClick={() => env.onEdit(contact)} className={LINK}>
-          {t("contact.adminEdit")}
-        </BusyButton>
-        {contact.status === "active" && (
-          <BusyButton busy={busy} type="button" onClick={() => setAsking("revoke")} aria-expanded={asking === "revoke"} className={LINK}>
-            {t("contact.adminRevoke")}
-          </BusyButton>
-        )}
-        <BusyButton busy={busy} type="button" onClick={() => setAsking("delete")} aria-expanded={asking === "delete"} className={LINK}>
-          {t("contact.adminDelete")}
-        </BusyButton>
-      </div>
+
       {/* Nothing is posted until the confirming button is pressed (B2133;
           B2053 for Remove). Each names the person and says the consequence. */}
-      {asking === "approve" && (
+      {asking === "letin" && (
         <div className="mt-3">
           <ConfirmPanel
-            label={t("contact.adminApprove")}
-            question={t("contact.adminApproveQuestion", { name: displayName })}
-            confirmLabel={t("contact.adminApproveConfirm", { name: displayName })}
+            label={kind === "revoked" ? t("readers.letBackIn") : t("readers.letIn", { name: first })}
+            question={t("readers.letInQuestion", { name: displayName })}
+            confirmLabel={t("readers.letIn", { name: first })}
             busy={busy}
             onConfirm={() => {
-              setAsking(null);
-              env.confirmed(contact, "approve");
+              close();
+              env.confirmed(contact, "letin");
             }}
-            onCancel={() => setAsking(null)}
+            onCancel={close}
           />
         </div>
       )}
-      {asking === "resend" && (
+      {(asking === "decline" || asking === "revoke") && (
         <div className="mt-3">
           <ConfirmPanel
-            label={t("contact.adminResendInvite")}
-            question={t("contact.adminResendQuestion", { email: contact.email })}
-            confirmLabel={t("contact.adminResendConfirm")}
-            busy={busy}
-            onConfirm={() => {
-              setAsking(null);
-              env.confirmed(contact, "resend");
-            }}
-            onCancel={() => setAsking(null)}
-          />
-        </div>
-      )}
-      {asking === "revoke" && (
-        <div className="mt-3">
-          <ConfirmPanel
-            label={t("contact.adminRevoke")}
-            question={t("contact.adminRevokeQuestion", { name: displayName })}
-            confirmLabel={t("contact.adminRevokeConfirm", { name: displayName })}
+            label={asking === "decline" ? t("readers.decline") : t("readers.menu.takeAway")}
+            question={t(asking === "decline" ? "readers.declineQuestion" : "contact.adminRevokeQuestion", { name: displayName })}
+            confirmLabel={t(asking === "decline" ? "readers.declineConfirm" : "readers.takeAwayConfirm", { name: first })}
             tone="destructive"
             busy={busy}
             onConfirm={() => {
-              setAsking(null);
+              close();
               env.confirmed(contact, "revoke");
             }}
-            onCancel={() => setAsking(null)}
+            onCancel={close}
           />
         </div>
       )}
       {asking === "delete" && (
         <div className="mt-3">
           <ConfirmPanel
-            label={t("contact.adminDelete")}
+            label={t("readers.menu.remove")}
             question={t("contact.adminDeleteQuestion", { name: displayName })}
             confirmLabel={t("contact.adminDeleteConfirm", { name: displayName })}
             tone="destructive"
             busy={busy}
             onConfirm={() => {
-              setAsking(null);
+              close();
               env.act({ action: "delete", id: contact.id });
             }}
-            onCancel={() => setAsking(null)}
+            onCancel={close}
           />
         </div>
+      )}
+      {asking === "notify" && (
+        <NotifyStep
+          username={env.username}
+          contactId={contact.id}
+          onLater={() => {
+            close();
+            env.refresh();
+          }}
+        />
       )}
       {note &&
         (note.failed ? (
@@ -353,58 +333,49 @@ function ReaderCard({ contact, env }: { contact: AdminContact; env: CardEnv }) {
             {note.text}
           </p>
         ))}
-      {/* B1094 — the edit form for this exact row, in place, rather than off
-          the top of the page. `key`ed on the contact id so switching from one
-          row's edit button to another's remounts rather than patching stale
-          field values from whoever was being edited before. */}
+      {/* B1094 — the edit form for this exact row, in place. */}
       {editing && env.guestFormEnv && (
-        <GuestForm
-          key={contact.id}
-          contact={contact}
-          fallbackLocale={env.guestFormEnv.fallbackLocale}
-          locales={env.guestFormEnv.locales}
-          username={env.guestFormEnv.username}
-          t={env.guestFormEnv.t}
-          busy={env.guestFormEnv.busy}
-          act={env.guestFormEnv.act}
-          onClose={env.guestFormEnv.onClose}
-          postcardsEnabled={env.guestFormEnv.postcardsEnabled}
-          pushEnabled={env.guestFormEnv.pushEnabled}
-          whatsappEnabled={env.guestFormEnv.whatsappEnabled}
-          defaultCountryCode={env.guestFormEnv.defaultCountryCode}
-          addressLookupEnabled={env.guestFormEnv.addressLookupEnabled}
-        />
+        <GuestForm key={contact.id} contact={contact} {...env.guestFormEnv} />
       )}
     </li>
   );
 }
 
-/** One section of the page: a heading and its cards, or one quiet line. */
+/** One section of the page: a heading with its count, and its cards. An empty
+ * group says nothing at all unless it is asked to (`empty`). */
 export function ReaderGroup({
   title,
   rows,
+  kind,
   env,
-  children,
+  empty,
 }: {
   title: string;
   rows: AdminContact[];
+  kind: CardKind;
   env: CardEnv;
-  children?: React.ReactNode;
+  empty?: string;
 }) {
+  if (rows.length === 0 && !empty) return null;
   return (
     <section className="mt-10">
-      <h2 className="font-display text-lg font-semibold text-ink-strong">{title}</h2>
+      <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-ink-strong">
+        {title}
+        {rows.length > 0 && (
+          <span className="rounded-full bg-surface-subtle px-2 py-0.5 text-sm font-semibold text-ink-secondary">
+            {rows.length}
+          </span>
+        )}
+      </h2>
       {rows.length === 0 ? (
-        <p className="mt-3 rounded-2xl bg-surface-subtle px-4 py-3 text-sm text-ink-secondary">{env.t("contact.adminNone")}</p>
+        <p className="mt-3 rounded-2xl bg-surface-subtle px-4 py-3 text-sm text-ink-secondary">{empty}</p>
       ) : (
         <ul className="mt-3 space-y-3">
           {rows.map((contact) => (
-            <ReaderCard contact={contact} env={env} key={contact.id} />
+            <ReaderCard contact={contact} kind={kind} env={env} key={contact.id} />
           ))}
         </ul>
       )}
-      {children}
     </section>
   );
 }
-

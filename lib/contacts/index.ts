@@ -94,6 +94,8 @@ export type ContactRecord = {
   invitedAt: string | null;
   /** B2292. When their welcome link (`/w/<code>`) was first opened. */
   welcomeOpenedAt: string | null;
+  /** B2293. When they finished the welcome guide — it runs once. */
+  onboardedAt: string | null;
   createdVia: string | null;
   createdAt: string;
   confirmedAt: string | null;
@@ -167,6 +169,7 @@ type ContactRow = {
   invited_via: string | null;
   invited_at: string | null;
   welcome_opened_at: string | null;
+  onboarded_at: string | null;
 };
 
 function toRecord(owner: string, row: ContactRow): ContactRecord {
@@ -191,6 +194,7 @@ function toRecord(owner: string, row: ContactRow): ContactRecord {
     invitedVia: row.invited_via,
     invitedAt: row.invited_at,
     welcomeOpenedAt: row.welcome_opened_at,
+    onboardedAt: row.onboarded_at,
     createdVia: row.created_via,
     createdAt: row.created_at,
     confirmedAt: row.confirmed_at,
