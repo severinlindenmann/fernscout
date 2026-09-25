@@ -124,7 +124,7 @@ export default function VisibilityPopover({
         <div
           aria-hidden
           onClick={onClose}
-          className="fixed inset-0 z-[60] bg-overlay-strong/25 motion-safe:animate-[fadeIn_.15s_ease]"
+          className="fixed inset-0 z-[60] bg-overlay-strong/25 fs-fade-in"
         />
       )}
       <div
@@ -135,10 +135,10 @@ export default function VisibilityPopover({
         style={wide && at ? { top: at.top, left: at.left, width: CARD } : undefined}
         className={
           wide
-            ? "fixed z-[61] rounded-2xl border border-line-quiet bg-surface-raised p-3.5 text-left shadow-[0_12px_32px_-8px_rgba(30,41,59,0.28),0_2px_6px_rgba(30,41,59,0.08)]"
+            ? "fs-pop fixed z-[61] origin-top rounded-2xl border border-line-quiet bg-surface-raised p-3.5 text-left shadow-[0_12px_32px_-8px_rgba(30,41,59,0.28),0_2px_6px_rgba(30,41,59,0.08)]"
             : // The sheet: full width, its own rounded top, and capped so a long
               // card scrolls inside itself rather than running off the screen.
-              "fixed inset-x-0 bottom-0 z-[61] max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-line-quiet bg-surface-raised p-4 pb-6 text-left shadow-[0_-8px_32px_-8px_rgba(30,41,59,0.3)]"
+              "fs-sheet-up fixed inset-x-0 bottom-0 z-[61] max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-line-quiet bg-surface-raised p-4 pb-6 text-left shadow-[0_-8px_32px_-8px_rgba(30,41,59,0.3)]"
         }
       >
         {!wide && (

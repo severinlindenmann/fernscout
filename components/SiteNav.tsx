@@ -211,7 +211,8 @@ function TabBar({ entries }: { entries: NavEntry[] }) {
  */
 function ListNav({ entries, onNavigate }: { entries: NavEntry[]; onNavigate?: () => void }) {
   return (
-    <nav className="flex flex-col gap-1">
+    // `fs-menu-rows`: the rows arrive a beat apart as the panel opens.
+    <nav className="fs-menu-rows flex flex-col gap-1">
       {entries.map(({ href: target, label, Icon, active }) => (
         <Link
           key={target}

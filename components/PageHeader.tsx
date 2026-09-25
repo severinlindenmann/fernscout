@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { FileText, Menu, NotebookPen, X } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import UpLink from "./UpLink";
 import UpTrail from "./UpTrail";
 import { useUpCrumbs } from "./useUpCrumbs";
@@ -266,124 +267,138 @@ export default function PageHeader({
                        transition-colors hover:bg-surface-selected/60
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           >
-            {menuOpen ? (
-              <X className="h-5 w-5" aria-hidden strokeWidth={2.2} />
-            ) : (
-              <Menu className="h-5 w-5" aria-hidden strokeWidth={2.2} />
-            )}
+            {/* Keyed so each swap remounts and turns in (`.fs-icon-turn`). */}
+            <span key={menuOpen ? "close" : "open"} className="fs-icon-turn">
+              {menuOpen ? (
+                <X className="h-5 w-5" aria-hidden strokeWidth={2.2} />
+              ) : (
+                <Menu className="h-5 w-5" aria-hidden strokeWidth={2.2} />
+              )}
+            </span>
           </button>
         </div>
 
-        {menuOpen && (
-          // In the flow, not over it — the same call `ConfirmPanel` makes and
-          // for the same reason: nothing here is urgent enough to dim the
-          // page for, so `aria-modal` stays false and Escape plus a tap
-          // outside are the whole of how it closes (handled above).
-          <div
-            id="mobile-menu-panel"
-            ref={panelRef}
-            role="dialog"
-            aria-modal="false"
-            aria-label={t("nav.menu")}
-            tabIndex={-1}
-            className="relative mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-line-quiet bg-surface-base p-3 shadow-lg"
-          >
-            {/* `children` is not repeated here: the one caller that passes any
-                (`TripStory`'s day counter) already marks it `xl:block`, so it
-                never draws below the width this panel exists for — mounting
-                a second, permanently invisible copy would be for nothing. */}
-            {/* Docs sits with the chips, not with the destinations — B843.
-                Reise, Galerie, Karte and the rest are places inside this
-                journal; `/docs` is the software's own documentation and
-                leaves it entirely, so listing it among them said it was one
-                of them. The chips row is already where the things that are
-                not destinations live. Icon-only, with the label as its
-                accessible name, because it is joining a set rather than
-                arriving as a new kind of control. */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-line-quiet pb-3">
-              <TripSwitcher />
-              <CurrencySwitcher />
-              <LocaleSwitcher />
-              <ThemeSwitcher />
-              <Link
-                href="/docs"
-                onClick={() => setMenuOpen(false)}
-                className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised
-                           px-3 text-sm font-semibold text-ink-body transition-colors
-                           hover:border-line-prominent focus-visible:outline-2 focus-visible:outline-offset-2
-                           focus-visible:outline-blue-500"
-              >
-                <FileText
-                  className="h-4 w-4 shrink-0"
-                  aria-hidden
-                  strokeWidth={2.2}
-                />
-                {t("nav.docs")}
-              </Link>
-            </div>
-              {/*
-                The studio and Docs, as rows in the same list as the destinations
-                below them — B824. B797 put these above the list as a
-                differently-shaped navy pill and a quiet link under a rule;
-                seeing that in place read as a banner stuck on the menu
-                rather than as part of it, so they take the destinations'
-                own row shape instead (`min-h-12`, icon + word, `rounded-xl`)
-                and sit first, above Reise. They keep exactly one thing that
-                marks them out: a hairline under Docs, since they are still
-                not ordinary destinations — this row leads from every header
-                (B797) and Docs needs no capability to reach (B802).
-
-                **Points at the studio, not `/agent` — B1905.** It used to be
-                the way into the room; the room is on a retirement path
-                (`docs/plans/2026-09-17-the-studio.md`) and this row is the
-                header's one prominent "go write" call, so it follows the
-                capability rather than the old destination.
-
-                `helper` still gates the row, and it is owner-only now too:
-                unlike `/agent`, which always opened *this reader's own*
-                journal regardless of whose page they were on, `/<user>/studio`
-                is gated on this journal specifically (`requireStudioOwner`),
-                so a guest reading somebody else's trip has nothing at the far
-                end of it. Docs stays ungated for the same reason as the
-                `sm`-and-up header below. Neither row ever carries
-                `aria-current` — they are never the active destination, so
-                `yellow-400` stays true to "you are here".
-              */}
-              {site.isOwner && (
-                <nav className="border-b border-line-quiet pb-2">
-                  <Link
-                    href={`${site.base}/studio`}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex min-h-12 items-center gap-3 rounded-xl bg-action-strong px-3 text-base
-                               font-semibold text-on-action transition-colors hover:bg-action-strong-hover
-                               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                  >
-                    <NotebookPen
-                      className="h-5 w-5 shrink-0"
-                      aria-hidden
-                      strokeWidth={2.2}
-                    />
-                    {t("nav.studio")}
-                  </Link>
-                </nav>
-              )}
-            <div className="mt-3">
-              <div className="mt-1">
-                <SiteNav variant="list" onNavigate={() => setMenuOpen(false)} />
+        <AnimatePresence>
+          {menuOpen && (
+            // In the flow, not over it — the same call `ConfirmPanel` makes and
+            // for the same reason: nothing here is urgent enough to dim the
+            // page for, so `aria-modal` stays false and Escape plus a tap
+            // outside are the whole of how it closes (handled above).
+            //
+            // It drops in from the button and lifts away when closed — opacity,
+            // a few pixels and a hair of scale, never its height, which would
+            // re-flow the page under it on every frame. `MotionConfig` in
+            // LocaleProvider leaves only the fade under reduced motion.
+            <motion.div
+              id="mobile-menu-panel"
+              ref={panelRef}
+              role="dialog"
+              aria-modal="false"
+              aria-label={t("nav.menu")}
+              tabIndex={-1}
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.98, transition: { duration: 0.14, ease: "easeIn" } }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              className="relative mt-3 max-h-[70vh] origin-top-right overflow-y-auto rounded-2xl border border-line-quiet bg-surface-base p-3 shadow-lg"
+            >
+              {/* `children` is not repeated here: the one caller that passes any
+                  (`TripStory`'s day counter) already marks it `xl:block`, so it
+                  never draws below the width this panel exists for — mounting
+                  a second, permanently invisible copy would be for nothing. */}
+              {/* Docs sits with the chips, not with the destinations — B843.
+                  Reise, Galerie, Karte and the rest are places inside this
+                  journal; `/docs` is the software's own documentation and
+                  leaves it entirely, so listing it among them said it was one
+                  of them. The chips row is already where the things that are
+                  not destinations live. Icon-only, with the label as its
+                  accessible name, because it is joining a set rather than
+                  arriving as a new kind of control. */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-line-quiet pb-3">
+                <TripSwitcher />
+                <CurrencySwitcher />
+                <LocaleSwitcher />
+                <ThemeSwitcher />
+                <Link
+                  href="/docs"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised
+                             px-3 text-sm font-semibold text-ink-body transition-colors
+                             hover:border-line-prominent focus-visible:outline-2 focus-visible:outline-offset-2
+                             focus-visible:outline-blue-500"
+                >
+                  <FileText
+                    className="h-4 w-4 shrink-0"
+                    aria-hidden
+                    strokeWidth={2.2}
+                  />
+                  {t("nav.docs")}
+                </Link>
               </div>
-            </div>
-            {panelOverflowsBelow && (
-              // A hairline inset shadow reads as a shelf edge rather than a
-              // wash of the panel's own background over the last row, which
-              // is what a plain gradient did to a highlighted or dark row.
-              <div
-                aria-hidden
-                className="pointer-events-none sticky bottom-0 -mx-3 -mb-3 -mt-2.5 h-2.5
-                           shadow-[inset_0_-9px_8px_-8px_rgba(28,43,63,0.35)]"
-              />
-            )}
-          </div>
-        )}
+                {/*
+                  The studio and Docs, as rows in the same list as the destinations
+                  below them — B824. B797 put these above the list as a
+                  differently-shaped navy pill and a quiet link under a rule;
+                  seeing that in place read as a banner stuck on the menu
+                  rather than as part of it, so they take the destinations'
+                  own row shape instead (`min-h-12`, icon + word, `rounded-xl`)
+                  and sit first, above Reise. They keep exactly one thing that
+                  marks them out: a hairline under Docs, since they are still
+                  not ordinary destinations — this row leads from every header
+                  (B797) and Docs needs no capability to reach (B802).
+
+                  **Points at the studio, not `/agent` — B1905.** It used to be
+                  the way into the room; the room is on a retirement path
+                  (`docs/plans/2026-09-17-the-studio.md`) and this row is the
+                  header's one prominent "go write" call, so it follows the
+                  capability rather than the old destination.
+
+                  `helper` still gates the row, and it is owner-only now too:
+                  unlike `/agent`, which always opened *this reader's own*
+                  journal regardless of whose page they were on, `/<user>/studio`
+                  is gated on this journal specifically (`requireStudioOwner`),
+                  so a guest reading somebody else's trip has nothing at the far
+                  end of it. Docs stays ungated for the same reason as the
+                  `sm`-and-up header below. Neither row ever carries
+                  `aria-current` — they are never the active destination, so
+                  `yellow-400` stays true to "you are here".
+                */}
+                {site.isOwner && (
+                  <nav className="border-b border-line-quiet pb-2">
+                    <Link
+                      href={`${site.base}/studio`}
+                      onClick={() => setMenuOpen(false)}
+                      className="flex min-h-12 items-center gap-3 rounded-xl bg-action-strong px-3 text-base
+                                 font-semibold text-on-action transition-colors hover:bg-action-strong-hover
+                                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                    >
+                      <NotebookPen
+                        className="h-5 w-5 shrink-0"
+                        aria-hidden
+                        strokeWidth={2.2}
+                      />
+                      {t("nav.studio")}
+                    </Link>
+                  </nav>
+                )}
+              <div className="mt-3">
+                <div className="mt-1">
+                  <SiteNav variant="list" onNavigate={() => setMenuOpen(false)} />
+                </div>
+              </div>
+              {panelOverflowsBelow && (
+                // A hairline inset shadow reads as a shelf edge rather than a
+                // wash of the panel's own background over the last row, which
+                // is what a plain gradient did to a highlighted or dark row.
+                <div
+                  aria-hidden
+                  className="pointer-events-none sticky bottom-0 -mx-3 -mb-3 -mt-2.5 h-2.5
+                             shadow-[inset_0_-9px_8px_-8px_rgba(28,43,63,0.35)]"
+                />
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
       {/*
         `sm` and up: the arrangement this header has always had.

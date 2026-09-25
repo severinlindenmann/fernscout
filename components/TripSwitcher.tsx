@@ -143,7 +143,7 @@ export default function TripSwitcher() {
              no way to scroll it back. The width cap is for the narrowest
              phones, where 15rem plus the header's padding still would not
              fit. */
-          className="absolute left-0 right-auto z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-lg sm:left-auto sm:right-0"
+          className="fs-pop absolute left-0 right-auto z-40 mt-2 w-60 origin-top-left sm:origin-top-right max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-lg sm:left-auto sm:right-0"
         >
           {GROUPS.map(({ status, key }) => {
             const all = trips.filter((tr) => tr.status === status);
