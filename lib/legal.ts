@@ -88,7 +88,9 @@ export function readLegal(locale: string): Legal | null {
       ? data.summary.filter((line: unknown): line is string => typeof line === "string")
       : [];
     return {
-      markdown: content,
+      // An author's `<!-- … -->` note is for whoever edits the file; the
+      // renderer has no raw HTML, so left in, it would be printed as text.
+      markdown: content.replace(/<!--[\s\S]*?-->\s*/g, ""),
       locale: code,
       ...(typeof updated === "string" && /^\d{4}-\d{2}-\d{2}$/.test(updated) ? { updated } : {}),
       ...(summary.length ? { summary } : {}),

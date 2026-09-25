@@ -98,7 +98,7 @@ describe("the instance's legal page", () => {
       updated: "2026-09-25",
       summary: ["One person"],
     });
-    write("en", "---\nupdated: last week\n---\nplain");
+    write("en", "---\nupdated: last week\n---\n<!-- note\n for editors -->\nplain");
     expect(readLegal("en")).toEqual({ markdown: "plain", locale: "en" });
   });
 
