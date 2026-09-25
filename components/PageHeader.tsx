@@ -292,34 +292,19 @@ export default function PageHeader({
                 (`TripStory`'s day counter) already marks it `xl:block`, so it
                 never draws below the width this panel exists for — mounting
                 a second, permanently invisible copy would be for nothing. */}
-            {/* Docs sits with the chips, not with the destinations — B843.
-                Reise, Galerie, Karte and the rest are places inside this
-                journal; `/docs` is the software's own documentation and
-                leaves it entirely, so listing it among them said it was one
-                of them. The chips row is already where the things that are
-                not destinations live. Icon-only, with the label as its
-                accessible name, because it is joining a set rather than
-                arriving as a new kind of control. */}
-            <div className="flex flex-wrap items-center gap-2 border-b border-line-quiet pb-3">
-              <TripSwitcher />
-              <CurrencySwitcher />
-              <LocaleSwitcher />
-              <ThemeSwitcher />
-              <Link
-                href="/docs"
-                onClick={() => setMenuOpen(false)}
-                className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised
-                           px-3 text-sm font-semibold text-ink-body transition-colors
-                           hover:border-line-prominent focus-visible:outline-2 focus-visible:outline-offset-2
-                           focus-visible:outline-blue-500"
-              >
-                <FileText
-                  className="h-4 w-4 shrink-0"
-                  aria-hidden
-                  strokeWidth={2.2}
-                />
-                {t("nav.docs")}
-              </Link>
+            {/* The trip switcher takes a row of its own, above the small
+                chips, so it can carry the trip's title instead of a word.
+                Docs is not in this panel: it leaves the journal entirely,
+                and it sat here as the chip row's odd one out (B843). It
+                stays reachable from the `sm`-and-up header and the landing
+                page. */}
+            <div className="space-y-2 border-b border-line-quiet pb-3">
+              <TripSwitcher wide />
+              <div className="flex flex-wrap items-center gap-2">
+                <CurrencySwitcher />
+                <LocaleSwitcher />
+                <ThemeSwitcher />
+              </div>
             </div>
               {/*
                 The studio and Docs, as rows in the same list as the destinations

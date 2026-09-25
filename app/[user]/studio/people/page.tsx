@@ -7,7 +7,7 @@ import { TRAVELLERS_FROM_PHOTO_CREDITS } from "@/lib/helper/model";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { getCurrentTrip, getTrips } from "@/lib/trips";
 import { listContacts, normaliseEmail } from "@/lib/contacts";
-import { peopleOf } from "@/lib/tripPeople";
+import { peopleNamedIn } from "@/lib/tripPeople";
 import { getUser } from "@/lib/users";
 import type { KnownPerson } from "@/components/studio/people/PeopleYouHave";
 
@@ -48,7 +48,10 @@ export default async function StudioPeoplePage({
   if (isEnabled("contacts", user)) {
     const ownerEmail = getUser(user)?.owner.email;
     const own = ownerEmail ? normaliseEmail(ownerEmail) : null;
-    const members = await Promise.all(allTrips.map(async (trip) => ({ title: trip.title, people: await peopleOf(trip) })));
+    // Byline only (D3, B2297) — this flow is crediting who a trip names, not
+    // deciding who may read or write it, so it wants the file's own list,
+    // not the access one.
+    const members = allTrips.map((trip) => ({ title: trip.title, people: peopleNamedIn(trip) }));
     people = (await listContacts(user)).flatMap((c) => {
       const on = members.filter((m) => m.people.includes(c.email)).map((m) => m.title);
       if (c.email === own || (c.createdVia !== "owner-import" && on.length === 0)) return [];

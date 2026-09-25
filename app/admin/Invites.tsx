@@ -53,7 +53,7 @@ export default function Invites({
   }
 
   return (
-    <section className="mt-8">
+    <section>
       <h2 className="font-display text-lg font-semibold text-ink-strong">Who may sign up</h2>
       <p className="mt-1 text-sm text-ink-body">
         {inviteOnly ? (

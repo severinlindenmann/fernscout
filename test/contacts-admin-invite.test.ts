@@ -19,13 +19,20 @@ import { writeTripFixture } from "./fixtures/content";
  * only replaces what got mailed, not what proof requires.
  */
 
-/** The cookie jar `isOwner` reads via the mocked `next/headers` — every admin
- * route test here authenticates with an agent bearer token instead, so
- * nothing is ever read back. `set` still has to exist: a pre-approved
- * `/api/contacts/confirm` writes the reader's guest session cookie there
- * (B350), whether or not this suite looks at it afterwards. */
+/** The cookie jar `isOwner` reads via the mocked `next/headers`. `set` still
+ * has to exist: a pre-approved `/api/contacts/confirm` writes the reader's
+ * guest session cookie there (B350). Every admin route call here signs the
+ * owner in over this same jar — `/api/contacts/admin` refuses any
+ * `Authorization` header outright since the security review (F5, B2295), so
+ * a bearer token is no longer a door onto it at all. */
+const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: () => undefined, set: () => {} }),
+  cookies: async () => ({
+    get: (name: string) => (jar.cookies[name] === undefined ? undefined : { value: jar.cookies[name] }),
+    set: (name: string, value: string) => {
+      jar.cookies[name] = value;
+    },
+  }),
 }));
 
 const OWNER = "ana";
@@ -38,12 +45,14 @@ function headers(extra: Record<string, string> = {}): Record<string, string> {
   return { "content-type": "application/json", "x-forwarded-for": `10.6.0.${calls % 250}`, ...extra };
 }
 
-async function ownerToken(): Promise<string> {
+/** Ana's own guest-cookie session — the only door onto `/api/contacts/admin`
+ *  since the security review (F5, B2295). */
+async function signInOwner(): Promise<void> {
   const { issueCode, verifyCode } = await import("@/lib/auth");
-  const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
-  const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
-  if (!result.ok) throw new Error("no owner token");
-  return result.token;
+  const { code } = await issueCode(OWNER, OWNER_EMAIL, "guest");
+  const result = await verifyCode(OWNER, OWNER_EMAIL, code, "guest");
+  if (!result.ok) throw new Error("no owner cookie");
+  jar.cookies.fs_session = result.token;
 }
 
 type AdminBody = {
@@ -55,15 +64,13 @@ type AdminBody = {
 };
 
 /** `POST /api/contacts/admin`, as the owner's own page calls it. */
-async function admin(
-  body: Record<string, unknown>,
-  token: string,
-): Promise<{ status: number; body: AdminBody }> {
+async function admin(body: Record<string, unknown>): Promise<{ status: number; body: AdminBody }> {
+  await signInOwner();
   const { POST } = await import("@/app/api/contacts/admin/route");
   const response = await POST(
     new Request("https://example.test/api/contacts/admin", {
       method: "POST",
-      headers: headers({ authorization: `Bearer ${token}` }),
+      headers: headers(),
       body: JSON.stringify({ user: OWNER, ...body }),
     }),
   );
@@ -208,12 +215,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     const FAMILY = "family@example.test";
 
     test("create mails a link, and the row is pre-approved the moment it is opened", async () => {
-      const token = await ownerToken();
-
-      const created = await admin(
-        { action: "create", name: "Family", email: FAMILY, locale: "en" },
-        token,
-      );
+      const created = await admin({ action: "create", name: "Family", email: FAMILY, locale: "en" });
       expect(created.status).toBe(200);
       expect(created.body.ok).toBe(true);
       expect(created.body.contact?.status).toBe("pending");
@@ -242,6 +244,9 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(invite?.url).toBeTruthy();
       const inviteToken = invite!.url!.split("/").pop()!;
 
+      // The owner's own cookie, from signing into `admin()` above, must not
+      // leak into the recipient's redemption.
+      jar.cookies = {};
       const redeemed = await redeem({ token: inviteToken, name: "Family", email: FAMILY });
       expect(redeemed.body.status).toBe("code");
 
@@ -259,11 +264,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     });
 
     test("create refuses an address already on the list, same as before", async () => {
-      const token = await ownerToken();
-      const dup = await admin(
-        { action: "create", name: "Again", email: FAMILY, locale: "en" },
-        token,
-      );
+      const dup = await admin({ action: "create", name: "Again", email: FAMILY, locale: "en" });
       expect(dup.status).toBe(409);
       expect(dup.body.error).toBe("contact_exists");
     });
@@ -273,11 +274,10 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     const LOST_IT = "lost-it@example.test";
 
     test("mails the same link again for a row that has not confirmed yet", async () => {
-      const token = await ownerToken();
-      await admin({ action: "create", name: "Lost It", email: LOST_IT, locale: "en" }, token);
+      await admin({ action: "create", name: "Lost It", email: LOST_IT, locale: "en" });
       const contact = await contactRow(LOST_IT);
 
-      const resent = await admin({ action: "resend", id: contact!.id }, token);
+      const resent = await admin({ action: "resend", id: contact!.id });
       expect(resent.status).toBe(200);
       expect(resent.body.ok).toBe(true);
       expect(resent.body.sent).toBe(true);
@@ -289,13 +289,12 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
 
     test("refuses once the address has confirmed — nothing left to resend", async () => {
       const email = "already-confirmed@example.test";
-      const token = await ownerToken();
-      await admin({ action: "create", name: "Confirmed", email, locale: "en" }, token);
+      await admin({ action: "create", name: "Confirmed", email, locale: "en" });
       const code = await freshCode(email);
       await confirm(email, code);
       const contact = await contactRow(email);
 
-      const resent = await admin({ action: "resend", id: contact!.id }, token);
+      const resent = await admin({ action: "resend", id: contact!.id });
       expect(resent.status).toBe(409);
       expect(resent.body.error).toBe("already_confirmed");
     });
@@ -305,8 +304,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     // number of calls in an hour it is refused rather than mailed again.
     test("is refused past a small number of calls in a window", async () => {
       const email = "hammered@example.test";
-      const token = await ownerToken();
-      await admin({ action: "create", name: "Hammered", email, locale: "en" }, token);
+      await admin({ action: "create", name: "Hammered", email, locale: "en" });
       const contact = await contactRow(email);
 
       const before = fs.readdirSync(path.join(dir, "mail", OWNER)).filter((f) =>
@@ -316,11 +314,11 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       // The first call above ("create") already sent one mail; three more
       // resends is the configured limit.
       for (let i = 0; i < 3; i++) {
-        const ok = await admin({ action: "resend", id: contact!.id }, token);
+        const ok = await admin({ action: "resend", id: contact!.id });
         expect(ok.status).toBe(200);
       }
 
-      const refused = await admin({ action: "resend", id: contact!.id }, token);
+      const refused = await admin({ action: "resend", id: contact!.id });
       expect(refused.status).toBe(429);
       expect(refused.body.error).toBe("too_many_requests");
 
@@ -333,7 +331,6 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
 
     test("refuses a row with no invite behind it — a legacy `owner` row", async () => {
       const { requestContact } = await import("@/lib/contacts");
-      const token = await ownerToken();
       const { contactId } = await requestContact(OWNER, {
         name: "Legacy",
         email: "legacy-owner@example.test",
@@ -344,7 +341,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
         createdVia: "owner",
       });
 
-      const resent = await admin({ action: "resend", id: contactId! }, token);
+      const resent = await admin({ action: "resend", id: contactId! });
       expect(resent.status).toBe(409);
       expect(resent.body.error).toBe("no_invite");
     });
@@ -360,7 +357,6 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     test("names a trip the contact had asked to join, by title", async () => {
       const { requestContact } = await import("@/lib/contacts");
       const { claimTripPlace } = await import("@/lib/tripPeople");
-      const token = await ownerToken();
 
       const { contactId } = await requestContact(OWNER, {
         name: "Buddy",
@@ -375,7 +371,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       await confirm("buddy@example.test", code);
       await claimTripPlace(OWNER, "welcome-trip", contactId!, null);
 
-      const approved = await admin({ action: "approve", id: contactId! }, token);
+      const approved = await admin({ action: "approve", id: contactId! });
       expect(approved.status).toBe(200);
       expect(approved.body.ok).toBe(true);
       expect(approved.body.tripsOpened).toEqual(["Welcome Trip"]);
@@ -383,7 +379,6 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
 
     test("names no trip when the approval only opens the journal itself", async () => {
       const { requestContact } = await import("@/lib/contacts");
-      const token = await ownerToken();
 
       const { contactId } = await requestContact(OWNER, {
         name: "Reader",
@@ -397,7 +392,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       const code = await freshCode("reader-only@example.test");
       await confirm("reader-only@example.test", code);
 
-      const approved = await admin({ action: "approve", id: contactId! }, token);
+      const approved = await admin({ action: "approve", id: contactId! });
       expect(approved.status).toBe(200);
       expect(approved.body.tripsOpened).toEqual([]);
     });

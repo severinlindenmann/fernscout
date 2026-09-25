@@ -495,6 +495,9 @@ describe("nothing personal is tracked", () => {
 describe("contact details stay out of the prose, not only out of the code", () => {
   const proseFiles = PROSE_DIRS.flatMap((d) => {
     try {
+      // A worktree links `.claude/skills` to the private harness it is nested
+      // in (npm run worktree:bootstrap); that is not this repository's prose.
+      if (fs.lstatSync(path.join(ROOT, d)).isSymbolicLink()) return [];
       return walk(path.join(ROOT, d));
     } catch {
       return [];

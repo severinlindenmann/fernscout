@@ -14,10 +14,12 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
  * B976 gave two routes a `refused()` call and left the other seven silent: a
  * press that failed on its content left no row, so the operator's acceptance
  * rate could not tell "nobody pressed" from "somebody pressed and it was
- * refused". This drives three of the seven into a refusal each and checks the
+ * refused". This drives two of the seven into a refusal each and checks the
  * row lands with the route's own error code — and, the other half of the
  * rule, that a refusal from the ownership gate itself leaves nothing, because
- * that failure is not about what was pressed.
+ * that failure is not about what was pressed. A third case (`invite_guest`)
+ * covered this same shape before B2295 (one door for readers, B2291) removed
+ * the route.
  */
 
 const OWNER_EMAIL = "alex@example.test";
@@ -34,7 +36,6 @@ vi.mock("next/headers", () => ({
 
 const { POST: unpublishDay } = await import("@/app/api/helper/[user]/day/unpublish/route");
 const { POST: attachFiles } = await import("@/app/api/helper/[user]/day/attach/route");
-const { POST: inviteGuest } = await import("@/app/api/helper/[user]/invite/route");
 
 let dir: string;
 const params = { params: Promise.resolve({ user: "alex" }) };
@@ -142,15 +143,6 @@ describe("a press refused on its content leaves a row", () => {
     expect(pressed[0]).toMatchObject({ ok: 0, error: "expected_files", proposed: "attach_files" });
   });
 
-  test("invite_guest, on a journal that never turned contacts on", async () => {
-    const res = await post(inviteGuest, "https://t.test/api/helper/alex/invite", {});
-    expect(res.status).toBe(409);
-    expect((await res.json()).error).toBe("contacts_disabled");
-
-    const pressed = await rows();
-    expect(pressed).toHaveLength(1);
-    expect(pressed[0]).toMatchObject({ ok: 0, error: "contacts_disabled", proposed: "invite_guest" });
-  });
 });
 
 describe("a refusal from the ownership gate is not a press", () => {

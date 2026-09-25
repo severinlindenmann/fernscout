@@ -221,6 +221,12 @@ export default function ReadersAdmin({
       {split.waitingOnThem.length > 0 && (
         <ReaderGroup title={t("contact.adminWaitingOnThem")} rows={split.waitingOnThem} env={env} />
       )}
+      {/* B2296 — filed by an import, never invited. Its own group rather than
+          folded into "waiting for them": that name means an invite already
+          went out, and none did for these. */}
+      {split.notInvited.length > 0 && (
+        <ReaderGroup title={t("contact.adminNotInvited")} rows={split.notInvited} env={env} />
+      )}
       <ReaderGroup title={t("contact.adminReadingNow")} rows={split.readingNow} env={env}>
         {/* A contact typed in by hand, with an address for postcards — a
             secondary action, so a link rather than a second primary. */}

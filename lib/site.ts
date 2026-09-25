@@ -28,6 +28,8 @@ export function serverSite() {
     defaultUser: config.site.defaultUser,
     repository: config.site.repository,
     credit: config.site.credit,
+    /** What the operator says about where `host` stands — see `ConnectionInfo`. */
+    hosting: config.site.hosting,
   };
 }
 
