@@ -32,9 +32,19 @@ export default function EntryContent({
         prose-a:underline-offset-2 hover:prose-a:decoration-coral-600
         prose-blockquote:border-yellow-400"
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ table: ScrollingTable, ...components }}>
         {markdown}
       </ReactMarkdown>
+    </div>
+  );
+}
+
+/** A wide table scrolls inside its own box, so the page never scrolls
+ *  sideways on a phone — B2311. */
+function ScrollingTable({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="overflow-x-auto">
+      <table>{children}</table>
     </div>
   );
 }

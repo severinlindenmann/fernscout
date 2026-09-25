@@ -1044,6 +1044,12 @@ select:disabled {
 .prose table {
   font-size: 1em;
 }
+/* Four columns and more do not fit a phone at that size; they keep a
+   readable width and scroll inside their own box instead (EntryContent's
+   ScrollingTable) rather than squeezing every cell to three words a line. */
+.prose table:has(th:nth-child(4)) {
+  min-width: 40rem;
+}
 
 /*
  * The making screen assembling a book — B1983.
