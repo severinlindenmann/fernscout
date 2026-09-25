@@ -52,6 +52,11 @@ export default function CostsPageContent({
     color: CATEGORY_STYLE[c.category].color,
   }));
 
+  // This card is money, so a country with nothing spent in it has nothing to
+  // show here (B2308) — `summary.byCountry` itself keeps every visited
+  // country, for the trip hero's day count.
+  const countriesWithSpend = summary.byCountry.filter((c) => c.amount > 0);
+
   return (
     <div className="min-h-screen">
       <PageHeader />
@@ -107,11 +112,13 @@ export default function CostsPageContent({
           <StackedShareBar slices={slices} format={(n) => money(n)} />
         </Section>
 
-        {/* Per country */}
-        {summary.byCountry.length > 0 && (
+        {/* Per country — this card is about money, so a country nothing was
+            spent in stays off it; `lib/costs.ts`'s `byCountry` itself keeps
+            every visited country for the trip hero's day count (B2308). */}
+        {countriesWithSpend.length > 0 && (
           <Section title={t("cost.byCountry")} note={t("cost.byCountryNote")}>
             <BarList
-              rows={summary.byCountry.map((c) => ({
+              rows={countriesWithSpend.map((c) => ({
                 key: c.country,
                 label: `${flagFor(c.country, c.countryCode)} ${c.country}`,
                 value: c.amount,

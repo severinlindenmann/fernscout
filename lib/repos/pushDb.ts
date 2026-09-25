@@ -25,7 +25,7 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
     async list(username): Promise<StoredSubscription[]> {
       const rows = await db
         .selectFrom("push_subscriptions")
-        .select(["endpoint", "p256dh", "auth", "user_agent", "created_at", "contact_id"])
+        .select(["endpoint", "p256dh", "auth", "user_agent", "created_at", "contact_id", "kind"])
         .where("owner_id", "=", username)
         .orderBy("created_at")
         .execute();
@@ -38,12 +38,14 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
         agent: row.user_agent ?? undefined,
         username,
         contactId: row.contact_id,
+        kind: row.kind === "apns" ? "apns" : "web",
       }));
     },
 
     async save(sub) {
       const now = nowIso();
       const contactId = sub.contactId ?? null;
+      const kind = sub.kind ?? "web";
       await db
         .insertInto("push_subscriptions")
         .values({
@@ -56,6 +58,7 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
           user_agent: sub.agent ?? null,
           created_at: toTimestamp(sub.created),
           last_seen_at: now,
+          kind,
         })
         .onConflict((oc) =>
           oc.columns(["owner_id", "endpoint"]).doUpdateSet({
@@ -65,6 +68,7 @@ export function dbPushRepo(handle: DatabaseHandle): PushRepo {
             ...(sub.agent === undefined ? {} : { user_agent: sub.agent }),
             contact_id: contactId,
             last_seen_at: now,
+            kind,
           }),
         )
         .execute();

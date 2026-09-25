@@ -10,20 +10,14 @@ import { dictionaryFor } from "@/lib/locales";
 import type { Day, DaySummary, Trip } from "@/lib/types";
 
 /**
- * B844 — the ask box was on a page the person it was built for never opened.
- *
- * A returning owner did all six of her tasks from the day, the trip and the
- * story, and reported that there was no request box. She was right: B685's
- * router, B817's refusals and B783's read row all landed on `/agent`, three
- * clicks from every page she used, while the box on the page she *was* on was
- * Search — which answers a different question and answered "fix a typo in
- * tuesday" with six day cards.
- *
- * So the two things worth asserting are the two that could silently regress:
- * an owner gets the box on the day page, and a reader never does. The second
- * matters more than the first — the box writes, and it sits inside the same
- * `canPublish` branch as the "Correct or take down this day" link for exactly
- * that reason.
+ * B844 put an ask box on the day page; B1007 through B1905 kept moving where
+ * it pointed. **B2309 removed it outright**, on the owner's own word: a grid
+ * that ends in "ask your agent" is a grid that does not trust its own tiles,
+ * and nothing on the page called the `GET …/ask` probe that gated it once
+ * the row it gated was gone. This file now asserts the opposite of what it
+ * used to: no row, no probe, on the day page or the draft banner above it —
+ * plus what actually replaced the correction door B980 sat next to: Edit is
+ * offered on a draft the same as on a published day.
  */
 
 const TRIP = {
@@ -122,48 +116,14 @@ async function dayPage(canPublish: boolean, draft = false) {
   return container;
 }
 
-/**
- * The words changed in B994. The old ones — *"Ask for anything else, in your
- * own words"* — are the sentence you write for a blank text box: they ask
- * somebody to compose, when what is on the other end is an agent that could
- * be told "this day, please".
- */
-describe("the ask box, where the owner actually is", () => {
-  test("an owner on a day page is offered it", async () => {
+describe("the day page, since the ask row went — B2309", () => {
+  test("an owner gets no row into the studio hub, and nothing asks the helper for one", async () => {
     const host = await dayPage(true);
-    expect(host.textContent).toContain("See everything else you can do");
-    expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(true);
+    expect(host.textContent).not.toContain("See everything else you can do");
+    expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(false);
   });
 
-  /**
-   * B979 — it leads somewhere whole rather than opening a lesser copy in
-   * place. B984 made that somewhere `/agent`, with the day riding as an
-   * `about` parameter so the conversation on the other end knew where it had
-   * been pressed (B994).
-   *
-   * **B1905 repointed it at the studio**, and the day no longer rides along.
-   * That is a real loss and it is deliberate: `/agent` was one conversation
-   * that could be told which day you were on, and the studio is a list of
-   * twelve flows, each of which asks for its own subject. The general row
-   * means "everything else", and everything else is no longer day-scoped.
-   *
-   * The publish row below is the one that still carries the day, because it
-   * still goes to the room — publishing has no studio flow.
-   */
-  test("it leads to the studio, which is where everything else now lives", async () => {
-    const host = await dayPage(true);
-    const link = [...host.querySelectorAll("a")].find((anchor) =>
-      anchor.textContent?.includes("See everything else you can do"),
-    ) as HTMLAnchorElement;
-    expect(link.getAttribute("href")).toBe("/alex/studio");
-  });
-
-  /**
-   * B1007 — the draft row. The banner above a draft day has always *said* to
-   * ask the agent to publish it, with nothing to press; this is the thing to
-   * press, and it is drawn only while the day is not on the site.
-   */
-  test("a draft day offers the publish row, into the studio's publish page with this day chosen", async () => {
+  test("a draft day still offers the publish row, into the studio's publish page with this day chosen", async () => {
     const host = await dayPage(true, true);
     const link = [...host.querySelectorAll("a")].find((anchor) =>
       anchor.textContent?.includes("Share this day"),
@@ -173,17 +133,25 @@ describe("the ask box, where the owner actually is", () => {
     expect(host.innerHTML).not.toContain('href="/agent');
   });
 
-  test("a day already on the site does not", async () => {
+  test("a day already on the site does not offer the publish row", async () => {
     const host = await dayPage(true);
     expect(host.textContent).not.toContain("Share this day");
   });
 
+  /** B2309 — Edit used to be published-only ("Correct or take down"); it is
+   *  now offered, and in place, on a draft as well. */
+  test("Edit is offered on a draft day too, and says just that", async () => {
+    const host = await dayPage(true, true);
+    expect(host.textContent).toContain("Edit");
+    expect(host.textContent).not.toContain("Correct or take down");
+  });
+
   test("a reader is offered nothing, and the journal is not even asked about", async () => {
     const host = await dayPage(false);
-    expect(host.textContent).not.toContain("Talk to your agent about this day");
-    // The correction link is the neighbouring owner-only control; if it were
+    expect(host.textContent).not.toContain("See everything else you can do");
+    // The correction tile is the neighbouring owner-only control; if it were
     // showing, the gate under test would be the wrong one.
-    expect(host.textContent).not.toContain("Correct or take down");
+    expect(host.textContent).not.toContain("Edit");
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(false);
   });
 });

@@ -24,7 +24,14 @@ async function readSubscriptions(): Promise<Subs> {
 export function filePushRepo(): PushRepo {
   return {
     async list(username) {
-      return Object.values(await readSubscriptions()).filter((s) => s.username === username);
+      // `kind` defaults to `"web"` the same way the database repo's does
+      // (039-push-kind's column default) — every row written before B2115,
+      // and every caller that still saves with no `kind` at all, is one.
+      // The two backends must agree on what a subscription means; see this
+      // file's own test in test/db-repos.test.ts.
+      return Object.values(await readSubscriptions())
+        .filter((s) => s.username === username)
+        .map((s) => ({ ...s, kind: s.kind ?? "web" }));
     },
 
     async save(sub) {

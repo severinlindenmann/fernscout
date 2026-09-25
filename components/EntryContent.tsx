@@ -1,4 +1,4 @@
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 /**
@@ -11,29 +11,40 @@ import remarkGfm from "remark-gfm";
  * Same trick as the landing page. The underline is always drawn, never only on
  * hover — colour alone must not be the thing that says "this is a link".
  *
- * Inline `code`'s colour is set in `app/globals.css` (`.prose code`), not as
- * a `prose-code:` utility here — B1796. The typography plugin's own default
- * inline-code colour is a fixed near-black with no dark-mode counterpart
- * wired up (no `dark:prose-invert` anywhere in this app; every other colour
- * above already reads from the theme-aware `ink-*` tokens instead), so it
- * went unreadable wherever a documentation page's surface flips dark. A
- * `prose-code:` utility looked like the fix but is not one: Tailwind's own
- * generated selector for it has no lower boundary at `pre`, so it also wins
- * against typography's `pre code { color: inherit }` and breaks the fenced
- * code block's own (correct, theme-independent) light-on-dark chip instead
- * — see the CSS rule's own comment for the `:not(pre code)` that scopes it.
+ * Every other colour, inline code and tables included, is set once in
+ * `app/globals.css` by pointing the typography plugin's `--tw-prose-*`
+ * variables at the theme tokens (B1796, B2311). Its defaults are light-mode
+ * only, and the per-element utilities that used to live here kept missing an
+ * element — table cells went unreadable on the dark page.
  */
-export default function EntryContent({ markdown }: { markdown: string }) {
+export default function EntryContent({
+  markdown,
+  components,
+}: {
+  markdown: string;
+  /** Element overrides — the legal page gives its `h2`s their anchors. */
+  components?: Components;
+}) {
   return (
     <div
       className="prose max-w-none prose-p:leading-relaxed prose-headings:font-display
-        prose-headings:font-semibold prose-headings:text-ink-strong prose-p:text-ink-body
-        prose-a:text-ink-strong prose-a:decoration-blue-500 prose-a:decoration-2
+        prose-headings:font-semibold prose-a:decoration-blue-500 prose-a:decoration-2
         prose-a:underline-offset-2 hover:prose-a:decoration-coral-600
-        prose-strong:text-ink-strong prose-blockquote:border-yellow-400
-        prose-blockquote:text-ink-secondary prose-li:text-ink-body prose-hr:border-line-quiet"
+        prose-blockquote:border-yellow-400"
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ table: ScrollingTable, ...components }}>
+        {markdown}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
+/** A wide table scrolls inside its own box, so the page never scrolls
+ *  sideways on a phone — B2311. */
+function ScrollingTable({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="overflow-x-auto">
+      <table>{children}</table>
     </div>
   );
 }

@@ -1011,18 +1011,44 @@ select:disabled {
   stroke: var(--color-blue-500);
 }
 
-/* Inline `code` in `.prose` (`components/EntryContent.tsx`, every
-   documentation page) — B1796. The typography plugin's own default is a
-   fixed near-black with no dark-mode counterpart, so it read fine on cream
-   and was invisible wherever a page's surface flips dark. `:not(pre code)`
-   is load-bearing, not decoration: a fenced code block is its own always-dark
-   chip by design (readable on cream *and* dark surfaces on purpose, the
-   opposite problem from inline code), and a plain `.prose code` rule here —
-   or a `prose-code:` utility on the component, which is what this used to be
-   — beats typography's own `pre code { color: inherit }` on specificity and
-   makes the block invisible in light mode instead. */
-.prose code:not(pre code) {
-  color: var(--ink-strong);
+/* Every colour the typography plugin draws `.prose` with, pointed at the
+   theme tokens — B2311, after B1796. The plugin's defaults are a fixed
+   light-mode grey scale with no dark counterpart (no `dark:prose-invert`
+   anywhere here), and mapping them one element at a time in
+   `components/EntryContent.tsx` kept missing one: inline code first (B1796),
+   then table cells at 1.64:1 on the dark page, glaring near-white table
+   rules, and list numbers at 3.49:1. Setting the variables themselves covers
+   every element the plugin will ever draw. `pre-code` and `pre-bg` are left
+   alone on purpose: a fenced code block is an always-dark chip in both
+   themes, and `pre code { color: inherit }` keeps it that way. */
+.prose {
+  --tw-prose-body: var(--ink-body);
+  --tw-prose-headings: var(--ink-strong);
+  --tw-prose-lead: var(--ink-secondary);
+  --tw-prose-links: var(--ink-strong);
+  --tw-prose-bold: var(--ink-strong);
+  --tw-prose-counters: var(--ink-secondary);
+  --tw-prose-bullets: var(--line-strong);
+  --tw-prose-hr: var(--line-quiet);
+  --tw-prose-quotes: var(--ink-secondary);
+  --tw-prose-quote-borders: var(--line-strong);
+  --tw-prose-captions: var(--ink-secondary);
+  --tw-prose-kbd: var(--ink-strong);
+  --tw-prose-code: var(--ink-strong);
+  --tw-prose-th-borders: var(--line-strong);
+  --tw-prose-td-borders: var(--line-quiet);
+}
+
+/* Table text at the body's size: the plugin's 0.875em leaves a three-column
+   table on a phone wrapping a short phrase onto four lines. */
+.prose table {
+  font-size: 1em;
+}
+/* Four columns and more do not fit a phone at that size; they keep a
+   readable width and scroll inside their own box instead (EntryContent's
+   ScrollingTable) rather than squeezing every cell to three words a line. */
+.prose table:has(th:nth-child(4)) {
+  min-width: 40rem;
 }
 
 /*

@@ -74,4 +74,41 @@ describe("the owner's block under a day", () => {
       expect(read(file), file).toContain("OWNER_TOOL");
     }
   });
+
+  /**
+   * B2309 — the owner's own call: the block is the few things there are to
+   * do, not a lobby in front of a bigger room. No yellow row into the
+   * studio hub, and no probe that only existed to decide whether to draw it.
+   */
+  test("drops the yellow row into the studio hub, and the probe that gated it", () => {
+    const tools = read("components/OwnerTools.tsx");
+    expect(tools, "no tone=\"yellow\" row").not.toContain('tone="yellow"');
+    expect(tools, "no ask probe").not.toContain("fetch(`/api/helper");
+    expect(tools, "askHereOpen went with it").not.toContain("askHereOpen");
+    expect(tools, "askHereHint went with it").not.toContain("askHereHint");
+  });
+
+  /** The trip page: invite and the studio door, as two peers in the grid —
+   *  no underlined text link. */
+  test("the trip page offers exactly invite and the studio door, as tiles", () => {
+    const tools = read("components/OwnerTools.tsx");
+    expect(tools).toContain("owner.editTripInStudio");
+    // The old underlined-link styling is gone; the tile is `OWNER_TOOL`.
+    const editTripLine = tools.slice(
+      tools.indexOf("owner.editTripInStudio") - 400,
+      tools.indexOf("owner.editTripInStudio"),
+    );
+    expect(editTripLine, "the studio door is a grid tile, not an underlined link").toContain(
+      "OWNER_TOOL",
+    );
+    expect(editTripLine).not.toContain("underline");
+  });
+
+  /** The day page: no invite, and Edit/Delete are tiles in the same grid as
+   *  Inform — not an underlined line under a rule. */
+  test("the day page drops invite and draws edit and delete as tiles", () => {
+    const tools = read("components/OwnerTools.tsx");
+    expect(tools).toContain("{deletable && <DeleteDay username={username} day={deletable} tile />}");
+    expect(tools, "InviteToRead only renders on the trip overview").toContain("{!day && <InviteToRead");
+  });
 });

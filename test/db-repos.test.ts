@@ -177,7 +177,9 @@ describe.each(backends)("push subscriptions on the $name", (backend) => {
   test("saving then listing round-trips the subscription", async () => {
     const repo = backend.push();
     await repo.save(sub);
-    expect(await repo.list("ana")).toEqual([{ ...sub, contactId: null }]);
+    // `kind` defaults to "web" on read — the file store and the database
+    // must agree on this the same as everything else here (B2115).
+    expect(await repo.list("ana")).toEqual([{ ...sub, contactId: null, kind: "web" }]);
   });
 
   test("re-subscribing the same browser updates rather than duplicating", async () => {

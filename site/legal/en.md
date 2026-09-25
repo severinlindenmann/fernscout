@@ -1,9 +1,25 @@
+---
+updated: 2026-09-25
+summary:
+  - A hobby project run by one person in [Country], not a company.
+  - Everything lives on one server in Helsinki, Finland, with a second encrypted backup in Germany.
+  - No tracking, no advertising, no third-party scripts. Cookies only to keep you signed in and remember your choices.
+  - Outside services are used only for the feature that needs them, and only when somebody uses it.
+  - The AI helper sees only what you choose to give it, and only after you said yes.
+  - You can export or delete a journal at any time, and ask what is stored about you.
+---
+
 <!-- This file is the repository's TEMPLATE, shipped to every clone. This
      instance's real imprint lives outside the checkout — see lib/legal.ts
      and docs/running-locally.md for where to put a real legal/<locale>.md
-     that overrides this one without ever being committed. -->
+     that overrides this one without ever being committed.
 
-## Who runs this
+     `updated:` is the date somebody last read this page against what the
+     software does. Change it when you do that, not when you fix a typo.
+     A `{#id}` after a heading fixes that section's link; keep them the same
+     in every language — /legal#privacy is the App Store's privacy URL. -->
+
+## Who runs this {#operator}
 
 Fernscout™ is run as a **hobby project** by [Operator name], [Country].
 It is not a company, there is no support desk, and there is no service level
@@ -13,6 +29,13 @@ agreement behind it.
 
 Contact: <[contact email]>
 
+**Who is responsible for what.** [Operator name] is responsible for running
+this site: accounts and sign-in, the server and its logs, payments, and the
+services listed below. What goes into a journal — its words, photographs and
+the people on it — is decided by that journal's owner, who also decides who may
+read it. For that content this site works on the owner's behalf: it stores it,
+shows it to the people the owner allowed, and sends it where the owner asked.
+
 The source code is public and can be read in full at
 [github.com/severinlindenmann/fernscout](https://github.com/severinlindenmann/fernscout).
 It is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0):
@@ -20,14 +43,249 @@ free to run, modify, self-host and redistribute, for as long as you like,
 with no restriction on competing with it. The Fernscout name and logo are
 not part of that licence — see the project's `TRADEMARK.md`.
 
-## What is not promised
+## What is stored, and why {#privacy}
+
+The legal bases named here are the GDPR's, for readers in the EU. Swiss law
+asks for the same information without them.
+
+| What | Why | Basis | How long |
+| --- | --- | --- | --- |
+| **Journal content** — text, photographs, dates, costs, the people on a trip | It is the journal | Contract with the owner | Until the owner deletes it |
+| **Email addresses** — of owners, of people on a trip, of invited readers | An address is the credential here: there are no passwords, sign-in sends a code | Contract | As long as the account or invitation exists |
+| **Sessions and tokens** — with the name of the browser that signed in, never its IP address | So a browser stays signed in, and an agent can write | Contract | A reader's session a year, an agent's token seven days; revocable at any time |
+| **Readers and contacts** — names, email addresses, phone numbers, postal addresses, and the owner's own notes on them | So an owner can send a day, a postcard or an invitation to the people they chose | The owner's legitimate interest | Until the owner removes them. Phone numbers and postal addresses are stored encrypted and are never shown to an agent |
+| **Reactions** — which emoji was left on a day, under a random code your browser keeps | So a reader can react once and take it back | Legitimate interest | As long as the journal |
+| **Conversations with the helper**, and messages, photographs, documents and voice-note transcripts sent by WhatsApp or text message | So an owner can carry on where they left off | Contract | Until the owner deletes them or the journal |
+| **Location history** | So a trip's map shows the roads really travelled | Consent, per trip | Until the owner deletes it, by month or all at once |
+| **Page-open counts**, for journals whose author switched them on | So an author can tell whether their readers read | Legitimate interest | About ninety days |
+| **Request log** — the page asked for, the time, the browser's name; no IP address | To run and defend the server | Legitimate interest | 14 days |
+| **Copies of mail this site sent** | To see why a sign-in code did not arrive | Legitimate interest | Two days, never backed up |
+| **Payments, credits and print orders** | Bookkeeping | Contract, and the law (Swiss bookkeeping rules) | Ten years; see [Deleting](#deleting) |
+| **Encrypted backups** of all of the above | So a broken disk does not end a journal | Legitimate interest | 14 days on the server, 7 days in the second copy |
+
+**Only the owner of a journal talks to the helper** — on the web because
+signing in requires it, and over WhatsApp because only a phone number the owner has already proven is ever bound to a journal. A
+message from any other number gets one fixed reply declining to help and a
+link to sign in, and never reaches the model. **We read helper conversations
+to see what to improve, and an owner can turn that off** on their own page, at
+any time. Turning it off deletes nothing; it means nobody but them reads what
+is there or what comes next.
+
+**Location history** is only there for a journal whose owner put it there: a
+file they imported (a Google or GPX export), or positions the iPhone app
+recorded during a trip they switched recording on for. It goes only to this
+journal's own server. Readers never see it: a trip's map shows a line drawn
+from it only for days they may already read, nothing from the last 24 hours,
+never the first or last 500 metres of a stretch, and nothing near places the
+owner marked private. The owner alone can be offered the name of the town a
+day was spent in, worked out on this server without asking anybody.
+
+**Only send what you have the right to share.** A photograph with somebody
+else in it, or a document with somebody else's name on it, was never asked for
+their consent, and neither this page nor the software can give it on their
+behalf.
+
+Giving an email address is needed to sign in. Everything else is optional,
+and each feature says what it needs when you use it.
+
+## On your device {#device}
+
+There is no cookie banner, because nothing stored on your device is there to
+follow you: each item below is either needed for what you asked the site to
+do, or remembers a choice you made.
+
+| Name | Kind | What it does | How long |
+| --- | --- | --- | --- |
+| `fs_session` | Cookie | Keeps you signed in to a journal | A year |
+| `fs_identity` | Cookie | Remembers that you proved your email address, so you need not prove it again on every journal | A year |
+| `fs.locale` | Cookie | The language you picked | A year |
+| `fs.journal` | Cookie | Which journal a welcome link was for | A year |
+| Theme, currency, speech language, dismissed notices | Browser storage | Choices you made on this device | Until you clear them |
+| A reaction code | Browser storage | A random code, so the emoji you left can be taken back | Until you clear it |
+| A push token | Browser storage | So this device can stop notifications it asked for | Until you clear it |
+| Offline copies | Browser cache | Pages you read, and whole trips you saved to read offline | Until you clear them or remove the trip |
+
+**There is no third-party analytics.** No Google Analytics, no Plausible, no
+Matomo, no pixels, no advertising network, no third-party fonts or scripts.
+Nothing on these pages is loaded from anybody else's server.
+
+**The visitor count does not identify you.** A journal's author may switch on
+a count for their own journal. It uses no cookie and no script. To tell two
+readers apart on the same day, the server makes a short code out of your
+internet address and your browser's name, mixed with a secret that is
+generated at random, kept only in memory, and thrown away every day. Your IP
+address itself is never written down, and the same person visiting tomorrow
+is counted as somebody new. The page you came from is deliberately not
+recorded, because it would show where a private link had been passed around.
+
+## Where the data goes {#recipients}
+
+Everything is on one virtual server rented from **Hetzner Online GmbH**, in
+its data centre in **Helsinki, Finland**. Encrypted backups are kept on that
+server and in **Hetzner Object Storage in Falkenstein, Germany**. There is no
+CDN and no third-party database.
+
+The services below are used only for what the row says, and only when
+somebody uses that feature. Nothing is passed to any of them for analysis,
+advertising or profiling.
+
+| Service | Where | Used when | What it receives |
+| --- | --- | --- | --- |
+| **Proton AG** | Switzerland | Sign-in codes, invitations, notifications by email | The recipient's address and the message |
+| **Twilio Inc.** | United States | Somebody chose to get a code or a notification by text message, or texted the journal | The phone number and the text of the message |
+| **Meta Platforms Ireland** (WhatsApp) | Ireland, and the United States | A reader asked to hear about new days by WhatsApp, or an owner's own proven number messages the journal | The phone number and the message, photograph, document or voice note |
+| **Apple** (push notifications) | United States | A device running the iPhone app asked to be notified | A device token, and the notification's title and link |
+| Your browser's push service (Google, Mozilla or Apple) | Depends on the browser | A browser asked to be notified | An encrypted message it cannot read, and a device address |
+| **Anthropic PBC** | United States | The owner used the helper, after saying yes to it — see [AI and voice](#ai) | What the owner gave it for that one request |
+| **Deepgram Inc.** | United States | The owner spoke to the helper, or sent a voice note | The recording, and its language |
+| **Stripe** | Ireland, and the United States | Somebody bought credits | The amount, the email address for the receipt, and the journal's name as a reference. Card or TWINT details are typed on Stripe's own page, never on this one |
+| **Stannp Ltd** | United Kingdom | Somebody sent a printed postcard | The postcard's picture and message, and the recipient's name and postal address |
+| **Gelato ASA** | Norway | Somebody ordered a printed photobook | The book, and the recipient's name, postal address and email address |
+| **Amazon Web Services** (open elevation data) | United States | A photobook with a relief map was made | Which map tiles are needed, which shows roughly where the trip went — nothing about a person |
+| **Komoot GmbH** (Photon place search) | Germany | Somebody typed an address or a place to look up, or shared a location | The words typed, or the coordinates. The request comes from this server, not your browser |
+| **Open-Meteo** | Germany | A journal asked what the weather was on a day | The coordinates and date of that day. From this server |
+| **European Central Bank** | Germany | A trip needed an exchange rate | Nothing: the request is for a whole published document |
+
+**Transfers outside Switzerland and the EU.** Finland, Germany, Ireland and
+Norway are covered by the EU's data protection rules, and the United Kingdom
+by an adequacy decision. For the services in the United States, the transfer
+rests on each provider's standard data processing terms, accepted when the
+account was set up rather than negotiated: for Meta and Anthropic the
+**Swiss–US Data Privacy Framework**; for Meta also its **Business Data
+Processing Terms** and **Business Data Transfer Addendum**; for Anthropic its
+**commercial terms**, which carry a data processing agreement. Deepgram's data
+processing terms are not click-through in the same way, and whether one is in
+place for this instance is stated honestly: it is not, pending a request
+already sent to Deepgram's own privacy contact.
+
+**Meta plays two roles.** For the message content you send, Meta acts on this
+journal's instructions and states that those messages are not used to target
+advertising. Separately, and on its own account, Meta keeps WhatsApp account
+data for platform safety and fraud detection; that is Meta's relationship with
+you as a WhatsApp user, described in
+[WhatsApp's own privacy policy](https://www.whatsapp.com/legal/privacy-policy).
+
+**What Stripe does with payment data** is covered by
+[Stripe's privacy policy](https://stripe.com/privacy).
+
+**A link out is not a service on that list.** Under a trip's map, and in some
+emails, there is "Open in Google Maps". It is an ordinary link carrying the
+coordinates of one place. Until somebody clicks it, nothing goes to Google.
+Click it and you are on Google's site, where
+[Google's privacy policy](https://policies.google.com/privacy) applies and this
+operator has neither control nor sight.
+
+## AI and voice {#ai}
+
+The helper can write up a day, caption photographs, read a bank statement
+into a trip's costs, turn a photograph of travellers into drawn figures, and
+understand a spoken sentence. **Each of those is asked for separately**, in
+the app, before anything is sent: your words, your photographs, your voice,
+your bank statements. The question names the company it would go to. You can
+take a yes back at any time on the same page, and nothing is sent after that.
+
+| You said yes to | Sent to | What is sent |
+| --- | --- | --- |
+| Your words | Anthropic | What you typed or said, and the facts your own day already carries: its date, place, country, and how many photographs are on it and between which times |
+| Your photographs | Anthropic | The photographs you asked it to caption, or to turn into figures — which may show people |
+| Your bank statements | Anthropic | The header row and five sample rows, so it can tell which column is which. Never the whole file |
+| Your voice | Deepgram | The recording, and the language it is in |
+
+**Nothing reaches either company unless the owner uses the helper.** Reading a
+journal never does. A reader cannot cause a request, and nor can a stranger
+who messages the journal's WhatsApp number. **No location history, no contacts
+and no addresses are ever sent** to either.
+
+**The voice recording is never stored.** It goes to the transcription service
+in one request and is dropped when the request ends; no copy is written to
+this server, to a backup or to an export. The text is kept, because the text is
+what was asked for. Both services are used only for the one request, and
+neither is asked to keep anything or to train on it.
+
+## The iPhone app {#iphone}
+
+The app shows this same site, so everything above applies to it. What it adds:
+
+- **Photographs.** The app reads only the photographs you pick, and uploads
+  them with their originals to your own journal.
+- **Location, only for a trip you switched recording on for.** iOS asks for
+  "Always" access, and a message on the phone names the server and journal
+  before recording starts. Positions go only to your own journal. Recording
+  stops by itself the day after the trip ends, unless you chose to keep it
+  running, and you can stop it at any time on the trip's page.
+- **Notifications**, only if you allow them, delivered through Apple.
+- **Sharing into Fernscout** from another app uses a sign-in kept in the
+  phone's Keychain, valid for seven days.
+
+**Everything works if you say no.** Without location, a trip's map has no
+recorded route; without notifications, you get none. There is no tracking, no
+advertising identifier and no third-party analytics in the app.
+
+## Deleting {#deleting}
+
+**An owner can delete a trip, or a whole journal.** Asking sends a
+confirmation email; nothing is removed until the link in it is followed. Then
+the content, the photographs, the readers and every row that belonged to the
+journal are deleted. A short note stays behind so the address can say the
+journal is gone rather than that it never existed. Copies in the backups
+expire within 14 days.
+
+**Payment records are kept.** Swiss bookkeeping rules require them for ten
+years: what was bought, for how much, when, and the payment provider's
+reference. Names, email and postal addresses are removed from them when the
+journal is deleted. Stripe keeps its own record of the payment.
+
+**An owner can download everything** as a zip of the journal's files and
+photographs from their own page, at any time.
+
+**A reader** can ask the owner of a journal to remove them, or write to the
+address at the top of this page.
+
+## Your rights {#rights}
+
+You may ask what is stored about you, and have it corrected, deleted or handed
+to you in a format you can take elsewhere. You may object to anything done on
+the basis of legitimate interest, and withdraw a consent at any time without
+affecting what was done before. No decision about you is made automatically.
+Write to the address at the top of this page. There is one person reading it,
+so please be patient; you will get an answer within thirty days.
+
+You can also complain to the **Swiss Federal Data Protection and Information
+Commissioner** ([edoeb.admin.ch](https://www.edoeb.admin.ch)) or, in the EU,
+to the data protection authority where you live.
+
+## Weather and exchange rates {#sources}
+
+**The weather is looked up by this server, not by your browser.** It is asked
+once, when a day is written, and stored in that day's own file, so reading a
+page that shows the weather sends nothing to anybody.
+
+Weather data by [Open-Meteo.com](https://open-meteo.com/), used under the
+[Creative Commons Attribution 4.0 licence](https://creativecommons.org/licenses/by/4.0/).
+The changes made: temperatures are shown in whole degrees and rainfall to one
+decimal place, and Open-Meteo's weather code is drawn as one of seven pictures
+rather than printed. Open-Meteo is itself a front end onto the national
+weather services — MeteoSwiss, the DWD, ECMWF, NOAA, Météo-France, the JMA and
+others, each under its own open licence, listed on
+[their licence page](https://open-meteo.com/en/licence). A reading a traveller
+recorded themselves names whoever took it and is credited to nobody else.
+
+Exchange rates from the [European Central Bank](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html),
+whose reference rates may be reproduced with the source acknowledged. This
+server fetches the whole published table; the ECB is not told which trip,
+currency or date is of interest. The change made: the ECB quotes every
+currency against the euro, so a rate here has been cross-divided into the
+journal's own currency and rounded to six figures. A costs page that used a
+looked-up rate names the ECB and the date beneath the totals. A rate somebody
+typed in themselves carries no citation.
+
+## What is not promised {#not-promised}
 
 This site is offered as it is, without warranty of any kind.
 
 **No responsibility is accepted for lost data.** Journals are backed up, but a
 backup can fail and a restore can be incomplete. If a trip matters to you,
-keep your own copy — every journal exports as the markdown and photographs it
-already is, and asking your agent for an export is the way to get one.
+keep your own copy — the owner's page has the download.
 
 **No responsibility is accepted for a data breach.** The software is written
 with security taken seriously — credentials are hashed, tokens expire, private
@@ -35,273 +293,8 @@ trips are refused rather than merely hidden, and the code is reviewed for it —
 but no system is proof against every attack. Do not put anything on this site
 whose disclosure you could not live with.
 
+**No liability is accepted for the content of other people's sites**, or for
+what happens to you on them, including any site a link here leads to.
+
 By using this site you accept that any liability, to the extent the law
 permits it, is excluded.
-
-## Where the data is
-
-Everything is on a single virtual server rented from **Hetzner Online GmbH**,
-in a **German data centre**. Nothing is replicated to another country, and
-there is no cloud storage account, no CDN and no third-party database behind
-it. Backups stay on European infrastructure.
-
-**Paying for credits is the one exception, and only if you do it.** When you
-buy credits, the payment is handled by **Stripe** — you enter your card or
-TWINT details on Stripe's own page, not on this one, and Stripe processes them
-on its own systems, which are outside this server and may be outside Europe.
-The amount, and the email address the receipt goes to, are shared with Stripe
-for that payment; nothing else about your journal is. If you never buy credits,
-Stripe is never involved. What Stripe does with payment data is covered by
-[Stripe's privacy policy](https://stripe.com/privacy).
-
-## Tracking, and what little there is of it
-
-There is **no third-party analytics** on this site. No Google Analytics, no
-Plausible, no Matomo, no pixels, no advertising network, no third-party fonts
-or scripts. Nothing on these pages is loaded from anybody else's server, and
-nothing on these pages reports your visit to anybody but this one.
-
-A journal's author may switch on a **visitor count** for their own journal. It
-is off unless they have. When it is on, this server records that a page was
-opened — which journal, which trip, which day, and the time — so that somebody
-writing a travel diary can tell whether the people they sent it to have read
-it.
-
-**You are not identified, and you cannot be followed.** There is no cookie for
-this, no script in your browser, and no device fingerprint. To tell two readers
-apart on the same day, the server makes a short code out of your internet
-address and your browser's name, mixed with a secret that is generated at
-random, kept only in memory, and thrown away every day. Your IP address itself
-is never written down. Once the day's secret is gone the codes cannot be traced
-back to anybody, and they cannot be matched against the next day's — so the
-same person visiting tomorrow is counted as somebody new, and there is
-deliberately no way to build a picture of one reader over time.
-
-What is **not** recorded: your IP address, your browser, your operating system,
-your country or city, and the page you came from. Some of those are ordinary in
-web analytics; the last one is left out on purpose, because it would record
-where a private link had been passed around.
-
-These rows are deleted after about ninety days.
-
-Cookies are only ever set for signing in — a session, or an identity that
-proves your email address to the site. There is still no cookie banner: nothing
-described above is stored on your device or read from it, so there is nothing to
-consent to.
-
-The web server also keeps ordinary access logs (IP address, time, page
-requested) for a short period, which is what a server needs in order to be
-operated and defended at all.
-
-## What is stored, and why
-
-- **Journal content** — the text, photographs and dates their authors write.
-- **Email addresses** — of a journal's owner, of the people on a trip, and of
-  readers who were invited. An address is the credential here: there are no
-  passwords, so sign-in works by sending a code to an address.
-- **Sessions and agent tokens** — so a browser stays signed in and an agent
-  can write for seven days. Visible to their owner, and revocable at any time.
-- **Push subscriptions**, if you asked a journal to notify your device.
-- **Phone numbers and postal addresses**, only for readers who gave one in
-  order to receive a WhatsApp message or a printed postcard. Postal addresses
-  are stored encrypted and are never shown to an agent.
-- **Copies of the mail this site sends**, kept with the journal that sent it.
-- **Conversations with the helper** — what an owner typed or said to it, what
-  it answered, and what it did about it: which tools it ran, what it offered,
-  and whether the offer was accepted. They are kept so that an owner can open
-  an old conversation and carry on where they left off, which is what makes
-  them worth keeping at all. **Only the owner of a journal talks to the
-  helper** — on the web because signing in requires it, and over WhatsApp
-  because only a phone number the owner has already proven is ever bound to a
-  journal. A message from any other number gets one fixed reply declining to
-  help and a link to sign in, and never reaches the model; so a conversation
-  still holds one person's words. **We read them to see what to improve, and
-  an owner can turn that off** on their own page, at any time. Turning it off
-  does not delete anything — it means nobody but them reads what is there or
-  what comes next.
-- **Messages, photographs, documents and voice notes sent by WhatsApp** — an
-  owner's own words and media, once their number is bound. A photograph or
-  document sits in the journal's inbox, unpublished, until a day claims it or
-  it is discarded. A voice note is turned into text by the transcription
-  service named below and the text is kept with the conversation; the
-  recording itself is never written to this server — see "The voice recording
-  is never stored" below, which is true of a WhatsApp voice note as much as
-  one spoken to the helper on the web. **Only send what you have the right to
-  share** — a photograph with somebody else in it, or a document with somebody
-  else's name on it, was never asked for their consent, and neither this page
-  nor the software can give it on their behalf.
-- **Location history**, only for a journal whose owner put one there: a
-  file they imported (a Google or GPX export), or positions the iPhone app
-  recorded during a trip they switched recording on for — asked for each trip,
-  confirmed on the phone, stopped by itself a day after the trip ends unless
-  they chose to keep it running. It goes only to this journal's own server,
-  never to anybody else. Readers never see it: a trip's map shows a line drawn
-  from it only for days they may already read, nothing from the last 24
-  hours, and never the first or last 500 metres of a stretch, and places the
-  owner marked private are cut out. The owner alone can be offered the name of
-  the town a day was spent in, and can delete the history, by month or all of
-  it, on the studio's location page. The app works fully without location
-  access.
-- **Page-open counts**, for journals whose author switched the visitor count
-  on: which page, when, and the day-code described above. Nothing that names
-  a reader, and deleted after about ninety days.
-
-You can ask the owner of a journal to remove you from it, and an owner can
-delete a whole journal — that deletion is real, and it takes the content and
-the rows with it.
-
-## External services
-
-Everything below is **off unless a journal switched it on**, and is only ever
-used for what it says. Nothing is passed to any of them for analysis,
-advertising or profiling.
-
-| Service | When it is used | What it receives |
-| --- | --- | --- |
-| **Meta Platforms Ireland** (WhatsApp Cloud API) | A reader asked to hear about new days by WhatsApp | Their phone number, and the message |
-| **Meta Platforms Ireland** (WhatsApp Cloud API) | An owner's own proven number messages the journal's WhatsApp number | Their phone number; the text, photograph, document or voice recording they sent; and, separately from message content, whatever WhatsApp Business Platform account data Meta holds for its own platform-safety and fraud-detection purposes |
-| **Stannp Ltd** (United Kingdom) | Somebody ordered a printed postcard | The photograph, the message and the recipient's postal address |
-| **Gelato ASA** (Norway) | Somebody ordered a printed photobook | The book's PDF and the delivery address |
-| **Proton AG** (Switzerland) | Sign-in codes, invitations, notifications | The recipient's address and the message |
-| **Anthropic PBC** (United States) | Somebody used the writing helper over WhatsApp — to have a day written up, to have photographs captioned, or to have one typed or spoken sentence understood | What they typed or said; the facts their own day already carries (its date, place, country, and how many photographs are on it and between which times); and, for captions, the photographs themselves |
-| **Deepgram Inc.** (United States) | Somebody spoke to the helper instead of typing — on the web, or by sending a voice note over WhatsApp | The recording of their voice, and the language it is in |
-| **Open-Meteo** (Germany) | A journal asked what the weather was on a day it recorded | The coordinates and the date of that day — nothing about you |
-| **European Central Bank** (Germany) | A trip needed the exchange rate for a currency it spent in | Nothing at all — the request is for a published document and carries no question |
-
-That is the whole list. There is nobody else.
-
-**A link out is not a service on that list, and the Google Maps link is worth
-saying so about.** Under a trip's map there is "Open in Google Maps". It is an
-ordinary link: it carries the coordinates of the selected place and nothing
-else, and it opens Google Maps in a new tab. Until somebody clicks it, nothing
-goes to Google — no tile, no script, no request. It is not an embedded map, and
-Google is not told this page exists.
-
-Click it and you are on Google's site rather than this one. There,
-[Google's privacy policy](https://policies.google.com/privacy) and Google's
-terms apply, Google sees your IP address and whatever else visiting its site
-involves, and this operator has neither control over that nor sight of it — it
-is not told that anybody clicked. **No liability is accepted for the content of
-other people's sites, or for what happens to you on them.** That holds for this
-link as for every other link leading away from here.
-
-**Meta plays two different roles, and they are worth separating.** For the
-message content above — the text, photograph, document or voice recording you
-send — Meta Platforms Ireland acts as a **processor**, on this journal's
-instructions, and states that Cloud API messages are not used to target
-advertising. Separately, and on its own account, Meta acts as **its own
-controller** for platform safety, integrity and fraud detection across the
-WhatsApp Business Platform; that is Meta's relationship with you as a WhatsApp
-user, not this journal's, and [WhatsApp's own privacy policy](https://www.whatsapp.com/legal/privacy-policy)
-describes it. Using the Cloud API at all means accepting Meta's
-**WhatsApp Business Terms of Service**, its **Business Data Processing Terms**
-and the **Business Data Transfer Addendum** — named here rather than claimed
-as "reviewed", because they are standard click-through terms accepted when a
-WhatsApp Business number is set up, not a negotiated contract this operator
-signed. The transfer to the United States that both Meta and Anthropic involve
-is covered by the **Swiss–US Data Privacy Framework**. Using the writing
-helper's API at all likewise means accepting **Anthropic's commercial terms**,
-which carry its own data processing agreement by reference; that acceptance is
-named here on the same terms — a standard agreement accepted when the account
-was set up, not one negotiated or independently reviewed for this journal.
-Deepgram's data processing terms are not click-through in the same way, and
-whether one is in place for this instance is stated honestly: it is not,
-pending a request already sent to Deepgram's own privacy contact.
-
-**Those rows carry a condition the others do not, and it is worth stating
-plainly: nothing reaches Anthropic or Deepgram unless somebody uses the writing
-helper over WhatsApp.** Reading a journal never does. Writing
-one through your own agent never does. An author who types their own days
-never causes a single request to either company, and a reader cannot cause one
-at all — nor can a stranger who messages the journal's WhatsApp number: that
-message gets one fixed reply and never reaches the model (see "Only the owner
-of a journal talks to the helper", above).
-
-What is sent is what the person put in front of the helper, and the few facts
-their own day already carries — the ones already on their screen while they use
-it. **No location history, no contacts, no email addresses and no postal
-addresses are sent to either, ever.** A journal's position history, where it
-keeps one, is held in a folder no reader and no agent can reach — the only
-thing ever read from it is the town name offered to the owner themselves when
-they write a new day — and it is not among the facts the helper is given.
-
-**The voice recording is never stored.** However it arrives — spoken to the
-helper on the web, or sent as a voice note over WhatsApp — it goes to the
-transcription provider in one request and is dropped when the request ends —
-no copy is written to this server, to a backup or to a journal's own export. What is kept
-is the text, because the text is what the person asked for. An instance that
-has not configured a transcription provider does not send the audio anywhere at
-all — nothing leaves the machine, and no company hears it.
-
-Both are used only for the one request that was asked for. Neither is sent
-anything for analysis, advertising or profiling, and neither is asked to hold
-anything after it has answered.
-
-The weather row is different from every row above it and the difference is
-worth stating plainly: **that request is made by this server, not by your
-browser.** It is sent once, when a day is written, and what comes back is
-stored in that day's own file — so reading a page that shows the weather
-sends nothing to anybody. Open-Meteo never sees your address, and no request
-carries anything that identifies a person. The coordinates are the ones the
-journal's author put on their own day.
-
-Weather data by [Open-Meteo.com](https://open-meteo.com/), used under the
-[Creative Commons Attribution 4.0 licence](https://creativecommons.org/licenses/by/4.0/).
-That licence asks for three things and this is all of them: credit, a link to
-the licence, and a note of any changes made. **The changes are that readings
-are rounded** — temperatures to whole degrees and rainfall to one decimal
-place, as shown on a day — and that Open-Meteo's numeric weather code is drawn
-as one of seven pictures rather than printed. The unrounded values stay in the
-day's own file.
-
-Open-Meteo is itself a front end onto the national weather services —
-MeteoSwiss, the DWD, ECMWF, NOAA, Météo-France, the JMA and others, each under
-its own open licence, all listed on
-[their licence page](https://open-meteo.com/en/licence). So a day's weather
-here traces back to a public meteorological office, not to a company that
-sells forecasts.
-
-**A reading a traveller recorded themselves is none of the above.** Some days
-carry a temperature somebody wrote down where they were standing, rather than
-one this server looked up. Those name whoever took them and are credited to
-nobody else — there is no Open-Meteo link on such a day, because there is no
-Open-Meteo data on it.
-
-**Money is the same shape as the weather, and the last row receives even
-less.** A trip records what was spent in the currency it was spent in, and to
-show that in anybody else's currency it needs a rate. Those come from the
-European Central Bank's published euro reference rates: the daily table that
-converts a total into the currency you picked at the top of a costs page, and
-— for the rate a trip is permanently costed at — the ECB's 90-day history,
-read once for the day a currency first appears on that trip and then frozen
-into the trip's own file. **Both requests are made by this server, and both
-ask for a whole public document.** The ECB is not told which trip, which
-currency or which date is of interest, and your browser never talks to it at
-all.
-
-Exchange rates from the [European Central Bank](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html),
-whose reference rates may be reproduced with the source acknowledged, which is
-what this paragraph and the citation on the costs page are. **The change made
-is that the ECB quotes every currency against the euro and a journal does
-not** — so a rate here has been cross-divided into the journal's own base
-currency, and rounded to six figures. A costs page that used a looked-up rate
-names the ECB and the date it used, beneath the totals.
-
-**A rate somebody typed in themselves is none of the above** and carries no
-citation, because there is nothing to cite but the person who wrote it — the
-rate a card statement actually charged, say, which no reference rate knows.
-Where a currency has no rate at all, the spend is shown as it was paid and
-left out of the totals rather than converted at a number nobody can stand
-behind.
-
-The mail this site sends goes through **Proton Mail in Switzerland** —
-encrypted at rest and under Swiss privacy law, rather than through a provider
-that reads mail to sell against it. Once a message leaves for an address that
-is not itself on Proton it is ordinary email, which is worth knowing before
-anybody puts something sensitive in a reply.
-
-## Your rights
-
-Under the GDPR and the Swiss FADP you may ask what is stored about you, ask
-for it to be corrected, and ask for it to be deleted. Write to the address at
-the top of this page. There is one person reading it, so please be patient.
