@@ -1345,6 +1345,10 @@ select:disabled {
         transform: scale(0.965);
       }
     }
+  }
+}
+
+/*
  * B2326 — the reader's push. Overview to a day slides the day in from the
  * right over the overview, which drifts 28% left under a 14% shade; back is
  * the same run reversed. `moveTo` in app/TripStory.tsx starts the view
