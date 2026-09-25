@@ -9,7 +9,7 @@ import { contactsWithReadGrant } from "@/lib/grants";
 import { deviceCountByContact } from "@/lib/push";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
 import { pickLocale } from "@/lib/contacts/locale";
-import { joinCodeFor, joinUrl } from "@/lib/contacts/welcome";
+import { withJoinUrls } from "@/lib/contacts/welcome";
 import { relationshipsFor } from "@/lib/contacts/relationships";
 import { isOwner } from "@/lib/contacts/session";
 
@@ -175,15 +175,8 @@ export default async function ContactsAdminPage({
     welcomeOpenedAt: contact.welcomeOpenedAt,
   }));
 
-  // B2293 — each live link's short `/j/` address, minted on first read for a
-  // link made before there were any.
-  const invites = await Promise.all(
-    model.invitations.map(async (invite) => {
-      const live = !invite.revokedAt && !(invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now());
-      const code = live ? await joinCodeFor(username, invite.id) : null;
-      return { ...invite, joinUrl: code ? joinUrl(code) : null };
-    }),
-  );
+  // B2293 — each live link's short `/j/` address.
+  const invites = await withJoinUrls(username, model.invitations);
 
   return (
     // StudioPage carries the header, the crumb back to the studio and the

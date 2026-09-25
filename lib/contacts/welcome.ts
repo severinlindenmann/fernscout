@@ -184,6 +184,25 @@ export async function joinCodeFor(owner: string, inviteId: string): Promise<stri
   return kept(await read());
 }
 
+/**
+ * Each of the owner's links with its short `/j/` address and whether it still
+ * works — B2291's "Links you've shared". Mints a code on first read for a
+ * link made before there were any; a stopped or expired link gets none.
+ */
+export async function withJoinUrls<T extends { id: string; revokedAt: string | null; expiresAt: string | null }>(
+  owner: string,
+  invites: T[],
+): Promise<(T & { live: boolean; joinUrl: string | null })[]> {
+  const now = Date.now();
+  return Promise.all(
+    invites.map(async (invite) => {
+      const live = !invite.revokedAt && !(invite.expiresAt && new Date(invite.expiresAt).getTime() < now);
+      const code = live ? await joinCodeFor(owner, invite.id) : null;
+      return { ...invite, live, joinUrl: code ? joinUrl(code) : null };
+    }),
+  );
+}
+
 export type JoinInvite = {
   owner: string;
   id: string;
@@ -253,7 +272,7 @@ type ChannelBlock =
   | "link_lost";
 
 /** The trip a buddy was added to — the newest place they hold or asked for. */
-async function buddyTripTitle(owner: string, contactId: string): Promise<string | null> {
+export async function buddyTripOf(owner: string, contactId: string): Promise<{ id: string; title: string } | null> {
   const { db } = await getDatabase();
   const row = await db
     .selectFrom("trip_people")
@@ -263,8 +282,12 @@ async function buddyTripTitle(owner: string, contactId: string): Promise<string 
     .where("revoked_at", "is", null)
     .orderBy("requested_at", "desc")
     .executeTakeFirst();
-  if (!row) return null;
-  return getTrip(tripRef(owner, row.trip_id))?.title ?? null;
+  const trip = row ? getTrip(tripRef(owner, row.trip_id)) : null;
+  return trip ? { id: trip.id, title: trip.title } : null;
+}
+
+async function buddyTripTitle(owner: string, contactId: string): Promise<string | null> {
+  return (await buddyTripOf(owner, contactId))?.title ?? null;
 }
 
 function firstName(name: string | null): string {
@@ -368,13 +391,13 @@ export type InviteOptions = {
   opened: boolean;
 };
 
-function maskEmail(email: string): string | null {
+export function maskEmail(email: string): string | null {
   if (!email.includes("@")) return null;
   const [local, domain] = email.split("@");
   return `${local.slice(0, 2)}•••@${domain}`;
 }
 
-function maskMobile(phone: string | null): string | null {
+export function maskMobile(phone: string | null): string | null {
   const digits = phone?.replace(/\D/g, "") ?? "";
   if (digits.length < 4) return null;
   return `+${digits.slice(0, 2)} ${"•".repeat(Math.max(1, digits.length - 4))} ${digits.slice(-2)}`;

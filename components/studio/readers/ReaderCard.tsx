@@ -4,6 +4,7 @@ import { useState } from "react";
 import BusyButton from "@/components/BusyButton";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { LOCALE_LABEL } from "@/lib/i18n";
+import { isMessageable } from "@/lib/phone";
 import type { Locale } from "@/lib/types";
 import { GuestForm } from "./GuestForm";
 import NotifyStep from "./NotifyStep";
@@ -38,6 +39,8 @@ export type CardEnv = {
   busy: boolean;
   locale: Locale;
   username: string;
+  /** B385/B389 — the operator's default dialling code, for reading a national number. */
+  defaultCountryCode?: string;
   /** Remove — fire-and-forget through `/api/contacts/admin`. */
   act: (body: Record<string, unknown>) => void;
   /** Let in, Decline and Take access away — each only after its ConfirmPanel. */
@@ -108,7 +111,12 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
 
   const reach = [
     hasEmail ? t("readers.reach.email") : null,
-    contact.phone ? t("readers.reach.mobile") : null,
+    // The number itself — and, when no message could reach it, why (B389).
+    contact.phone
+      ? isMessageable(contact.phone, env.defaultCountryCode)
+        ? contact.phone
+        : `${contact.phone} (${t("contact.telNotMessageable")})`
+      : null,
     contact.postalAddress?.line1 ? t("readers.reach.postal") : null,
     // Their own language — what every message to them is written in (B469).
     contact.locale ? (LOCALE_LABEL[contact.locale] ?? contact.locale) : null,

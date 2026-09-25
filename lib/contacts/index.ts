@@ -1551,6 +1551,31 @@ async function saveContact(
   return { ok: true, outcome: existing ? "updated" : "created", contact };
 }
 
+/**
+ * An email address a code just proved for an existing contact that had none
+ * — B2293, the welcome guide's "Is this right?" screen (the email twin of
+ * `setProvenPhone`). Refuses (false) when another contact of this journal
+ * already holds the address, and never replaces an address a contact already
+ * has: changing one is `updateContactByOwner`'s, which takes access with it.
+ * The caller has redeemed the code (`confirmEmailProof`).
+ */
+export async function setProvenEmail(owner: string, contactId: string, raw: string): Promise<boolean> {
+  const email = normaliseEmail(raw);
+  if (!isEmail(email)) return false;
+  const holder = await getContactByEmail(owner, email);
+  if (holder && holder.id !== contactId) return false;
+  const { db } = await getDatabase();
+  const now = nowIso();
+  const result = await db
+    .updateTable("contacts")
+    .set({ email, email_key: email, updated_at: now })
+    .where("owner_id", "=", owner)
+    .where("id", "=", contactId)
+    .where("email", "=", "")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1 || holder?.id === contactId;
+}
+
 /** The `email_key` of a contact with no address: unique, and never equal to
  * a case-folded address, which always has an `@`. */
 function noEmailKey(id: string): string {

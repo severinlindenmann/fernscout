@@ -100,6 +100,9 @@ export type AdminInvite = {
   /** B2293 — the short `/j/<code>` for the same link, shown and copied in
    * place of `url`. Null where it cannot be shown again (no contacts key). */
   joinUrl?: string | null;
+  /** Still works: not stopped, not expired — decided on the server, where
+   * the clock is (B2291). */
+  live?: boolean;
 };
 
 /**

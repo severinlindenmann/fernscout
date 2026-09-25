@@ -1,5 +1,5 @@
 import "server-only";
-import { CODE_TTL_MINUTES, issueCode, revokeCodes, spendCode, verifyCode } from "../auth";
+import { CODE_TTL_MINUTES, isEmail, issueCode, revokeCodes, spendCode, verifyCode } from "../auth";
 import { isEnabled } from "../capabilities";
 import { whatsappCountryCode } from "../contactNumber";
 import { translateIn } from "../locales";
@@ -13,6 +13,8 @@ import {
   getContact,
   getContactByEmail,
   markContactPhoneProven,
+  normaliseEmail,
+  setProvenEmail,
   setProvenPhone,
   type ContactRecord,
 } from "./index";
@@ -231,6 +233,62 @@ export async function confirmPhoneProof(
   if (!spent.ok) return false;
   await setProvenPhone(owner, contact.id, phone.trim());
   return true;
+}
+
+/**
+ * The subject an email-proof code is issued under — bound to one contact and
+ * never a sign-in subject, for the reason `proofSubject` gives.
+ */
+function emailProofSubject(contactId: string, email: string): string {
+  return `proof:${contactId}:${email}`;
+}
+
+/**
+ * B2293: a **signed-in** contact with no email address adds one by proving it
+ * — the welcome guide's "Is this right?" screen, the email twin of
+ * `sendPhoneProof`. **`contactId` MUST come from `journalReader(username)`**,
+ * never from the request. Mails the typed address a code bound to that
+ * contact; `confirmEmailProof` redeems it.
+ */
+export async function sendEmailProof(
+  owner: string,
+  contactId: string,
+  raw: string,
+  options: { locale?: Locale | null },
+): Promise<{ ok: true; to: string } | { ok: false; reason: "no_contact" | "invalid_email" | "unavailable" | "rate_limited" | "send_failed" }> {
+  const user = getUser(owner);
+  const contact = user ? await getContact(owner, contactId) : null;
+  if (!user || !contact || contact.status === "blocked") return { ok: false, reason: "no_contact" };
+  const email = normaliseEmail(raw);
+  if (!isEmail(email)) return { ok: false, reason: "invalid_email" };
+  if (!isEnabled("mail")) return { ok: false, reason: "unavailable" };
+  if (!emailCodeAllowed(email)) return { ok: false, reason: "rate_limited" };
+  const subject = emailProofSubject(contact.id, email);
+  const { code } = await issueCode(owner, subject, "guest");
+  try {
+    await sendCodeMail(owner, user, email, pickLocale(options.locale ?? contact.locale, user.defaultLocale), code, null);
+  } catch (err) {
+    console.error(`[contacts] email proof for ${owner} could not be sent:`, err);
+    await revokeCodes(owner, subject, "guest").catch(() => {});
+    return { ok: false, reason: "send_failed" };
+  }
+  return { ok: true, to: maskEmail(email) };
+}
+
+/**
+ * Redeem `sendEmailProof`'s code and make the address this contact's. False on
+ * any failure alike — including an address another contact holds.
+ * **`contactId` MUST come from `journalReader(username)`.** Opens no session.
+ */
+export async function confirmEmailProof(owner: string, contactId: string, raw: string, code: string): Promise<boolean> {
+  const email = normaliseEmail(raw);
+  const contact = await getContact(owner, contactId);
+  if (!contact || contact.status === "blocked" || !isEmail(email)) return false;
+  const holder = await getContactByEmail(owner, email);
+  if (holder && holder.id !== contact.id) return false;
+  const spent = await spendCode(owner, emailProofSubject(contact.id, email), code, "guest");
+  if (!spent.ok) return false;
+  return setProvenEmail(owner, contact.id, email);
 }
 
 /**

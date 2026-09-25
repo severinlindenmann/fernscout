@@ -32,9 +32,7 @@ export default function LinksList({
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
 
-  const live = invites.filter(
-    (invite) => !invite.revokedAt && !(invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now()),
-  );
+  const live = invites.filter((invite) => invite.live);
   if (live.length === 0) return null;
 
   const until = (iso: string) =>

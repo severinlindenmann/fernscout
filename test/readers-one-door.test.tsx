@@ -81,6 +81,7 @@ const link: AdminInvite = {
   uses: 4,
   url: "http://localhost:3000/alex/invite/guest/fs_inv_x",
   joinUrl: "http://localhost:3000/j/abcdefghjk",
+  live: true,
 };
 
 function render(contacts: AdminContact[], invites: AdminInvite[] = [], reply: Record<string, unknown> = { ok: true }) {
@@ -269,7 +270,7 @@ describe("links you've shared", () => {
   });
 
   test("a stopped or expired link is not listed", () => {
-    render([], [{ ...link, revokedAt: "2026-09-21T00:00:00Z" }, { ...link, id: "inv-2", expiresAt: "2020-01-01T00:00:00Z" }]);
+    render([], [{ ...link, revokedAt: "2026-09-21T00:00:00Z", live: false }, { ...link, id: "inv-2", expiresAt: "2020-01-01T00:00:00Z", live: false }]);
     expect(container!.textContent).not.toContain("Family chat");
   });
 });

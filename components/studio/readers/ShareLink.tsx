@@ -1,19 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { Translate } from "./shared";
+
+const noop = () => () => {};
 
 /**
  * A link the owner hands on themselves: the URL as selectable text, Copy, and
- * the system share sheet where the device has one (`navigator.share`, looked
- * for after mount so the server render and the first client render agree).
+ * the system share sheet where the device has one (`navigator.share`, read through
+ * `useSyncExternalStore` so the server render and hydration agree).
  */
 export default function ShareLink({ url, t, big = false }: { url: string; t: Translate; big?: boolean }) {
   const [copied, setCopied] = useState<boolean | null>(null);
-  const [canShare, setCanShare] = useState(false);
-  useEffect(() => {
-    setCanShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
-  }, []);
+  const canShare = useSyncExternalStore(
+    noop,
+    () => typeof navigator.share === "function",
+    () => false,
+  );
 
   async function copy() {
     try {
