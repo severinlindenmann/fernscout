@@ -21,6 +21,7 @@ import {
   type HomeJournal,
 } from "@/components/HomeJournals";
 import IdentitySignIn from "@/components/IdentitySignIn";
+import ServerChoice from "@/components/ServerChoice";
 import { useI18n } from "@/components/LocaleProvider";
 
 export type { PublicJournal };
@@ -305,6 +306,8 @@ export default function Landing({
             }
           />
           {colophon}
+          {/* Inside the iPhone app only: which server it is talking to. */}
+          <ServerChoice signedIn />
         </main>
       </div>
     );
@@ -384,6 +387,9 @@ export default function Landing({
         {publicList}
         <DocsLink />
         {colophon}
+        {/* Inside the iPhone app only, and only once we know nobody is
+            signed in: point the app at the reader's own server. */}
+        {phase === "out" && <ServerChoice signedIn={false} />}
       </main>
     </div>
   );

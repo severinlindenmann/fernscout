@@ -377,3 +377,59 @@ export function nativeAppVersion(): NativeAppVersion | undefined {
   if (typeof app?.version !== "string" || app.version === "") return undefined;
   return { version: app.version, build: typeof app.build === "string" ? app.build : "" };
 }
+
+/**
+ * Bring your own server — which Fernscout this app opens.
+ * `ios/App/App/ServerChoicePlugin.swift` keeps the address and restarts the
+ * bridge on it. `choose` checks the address answers as a Fernscout and asks
+ * the owner on a native dialog before anything changes; `{host}` in
+ * `confirmBody` is filled in natively from the address it will really use.
+ * An app built before the plugin existed rejects `status`, and the section
+ * that asks it is simply absent.
+ */
+export type ServerChoiceStatus = { server?: string; host?: string; custom: boolean; defaultServer?: string };
+export type ServerChoiceConfirm = {
+  confirmTitle: string;
+  confirmBody: string;
+  confirmLabel: string;
+  cancelLabel: string;
+};
+/** What the app says at launch if the chosen server stops answering, kept
+ *  natively with the choice because no page can load then. `{host}` is
+ *  filled in natively: the chosen server in the body, the build's own in
+ *  `resetLabel`. */
+export type ServerChoiceUnreachable = {
+  unreachableTitle: string;
+  unreachableBody: string;
+  retryLabel: string;
+  resetLabel: string;
+};
+type ServerChoicePlugin = {
+  status(): Promise<ServerChoiceStatus>;
+  choose(options: { url: string } & ServerChoiceConfirm & ServerChoiceUnreachable): Promise<{ changed: boolean }>;
+  reset(options: ServerChoiceConfirm): Promise<{ changed: boolean }>;
+};
+const ServerChoice = registerPlugin<ServerChoicePlugin>("ServerChoice");
+
+export function serverChoiceStatus(): Promise<ServerChoiceStatus> {
+  return ServerChoice.status();
+}
+
+export function chooseServer(
+  url: string,
+  confirm: ServerChoiceConfirm & ServerChoiceUnreachable,
+): Promise<{ changed: boolean }> {
+  return ServerChoice.choose({ url, ...confirm });
+}
+
+export function resetServer(confirm: ServerChoiceConfirm): Promise<{ changed: boolean }> {
+  return ServerChoice.reset(confirm);
+}
+
+/** Why `choose` refused, from the plugin's reject code — anything it does
+ *  not name is reported as unreachable rather than as a success. */
+export type ServerChoiceError = "invalid" | "notFernscout" | "unreachable" | "recording";
+export function serverChoiceError(error: unknown): ServerChoiceError {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "invalid" || code === "notFernscout" || code === "recording" ? code : "unreachable";
+}
