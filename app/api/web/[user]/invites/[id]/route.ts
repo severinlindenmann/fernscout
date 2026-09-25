@@ -11,6 +11,7 @@
 // people who have not used the link yet.
 import { inviteDeleteResponse } from "@/lib/contacts/invitesResponse";
 import { contactsReady } from "@/lib/api/v2/social";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 
@@ -29,6 +30,9 @@ export async function DELETE(
 ) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
+  }
+  if (foreignOrigin(request)) {
+    return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
   }
   const { user, id } = await params;
   if (!getUser(user)) return Response.json({ error: "unknown_user" }, { status: 404 });

@@ -14,6 +14,7 @@
 // `ID_RE`) — a person clicking a button has no client-chosen id to offer.
 import { invitesListResponse, invitePutResponse } from "@/lib/contacts/invitesResponse";
 import { contactsReady } from "@/lib/api/v2/social";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 
@@ -48,6 +49,9 @@ export async function GET(request: Request, { params }: RouteContext<"/api/web/[
 export async function POST(request: Request, { params }: RouteContext<"/api/web/[user]/invites">) {
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
+  }
+  if (foreignOrigin(request)) {
+    return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
   }
   const { user } = await params;
   const denied = await guard(user);
