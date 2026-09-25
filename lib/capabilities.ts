@@ -166,6 +166,12 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   // index already shipped in the repo (lib/ingest/geo.ts) and the journal's
   // own `gps/` folder on disk — no key, no database row, no third party.
   routeRecording: { env: [], db: false },
+  // B2341. No hard requirement of its own: a configured storeUrl needs
+  // neither mail nor a database, and the waitlist half degrades to "renders
+  // nothing" rather than a boot failure when mail or the database is
+  // missing — see iosAppNote() below, which is where /api/health explains
+  // which of the two states this instance is actually in.
+  iosApp: { env: [], db: false },
 };
 
 /** Transport and provider choices carry their own credential requirements.
@@ -403,6 +409,34 @@ function signupNote(name: FeatureName, feature: Record<string, unknown>): string
     : "features.signup.inviteOnly is false — anybody with an email address can make a journal on this instance";
 }
 
+/**
+ * Which of the two doors the landing page actually offers — B2341.
+ *
+ * `enabled: true` alone does not say whether a visitor sees a link to the
+ * App Store or a waitlist form, or nothing at all: that depends on
+ * `features.iosApp.storeUrl` and, when it is unset, on `mail` and the
+ * database both being available. A note rather than `enabled: false` in the
+ * last case, for the same reason `dryRunNote` is one — the capability
+ * genuinely is on, an operator turned it on, and the honest thing to say is
+ * why the button is not there rather than pretending the switch is off.
+ */
+function iosAppNote(name: FeatureName, feature: Record<string, unknown>): string | undefined {
+  if (name !== "iosApp") return undefined;
+  const storeUrl = optionOf(feature, "storeUrl");
+  if (storeUrl) {
+    return `features.iosApp.storeUrl is set to ${storeUrl} — the landing page links straight to the App Store and shows no waitlist form`;
+  }
+  const mailOk = resolveOne("mail").enabled;
+  if (!mailOk || !hasDatabase()) {
+    return (
+      "features.iosApp.storeUrl is not set, and the waitlist cannot work " +
+      `(${!mailOk ? "mail is not enabled" : "DATABASE_URL is not set"}) — ` +
+      "the landing page shows no app button at all"
+    );
+  }
+  return "features.iosApp.storeUrl is not set — visitors are offered a waitlist instead";
+}
+
 function optionOf(feature: Record<string, unknown>, key: string): string | undefined {
   const v = feature[key];
   return typeof v === "string" ? v : undefined;
@@ -584,7 +618,10 @@ function fulfilmentAcceptProblem(): string | undefined {
   return undefined;
 }
 
-function hasDatabase(): boolean {
+/** Exported for lib/appWaitlist.ts, which needs the same env-presence
+ *  answer this file's own `resolveOne` uses — checking a *real* connection
+ *  would mean opening one just to decide whether a button renders. */
+export function hasDatabase(): boolean {
   return typeof process.env.DATABASE_URL === "string" && process.env.DATABASE_URL !== "";
 }
 
@@ -677,6 +714,7 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
     addressLookupNote(name) ??
     paymentProviderNote(name) ??
     signupNote(name, feature) ??
+    iosAppNote(name, feature) ??
     (name === "auth" ? reviewLoginNote() : undefined);
   return note ? { name, enabled: true, note } : { name, enabled: true };
 }

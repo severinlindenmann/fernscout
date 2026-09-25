@@ -322,6 +322,32 @@ whole trip). `DELETE` also checks `foreignOrigin`, the same second layer
 `.../gps`'s own real purge uses. Every response carries
 `Cache-Control: private, no-store`.
 
+## How the iPhone recorder tracks — timeline-style
+
+`ios/App/App/Recorder.swift` records the way a location timeline does,
+not like navigation left running. Three low-power services run for as long
+as a trip is armed, keep running after the app is swiped away, and relaunch
+it when they fire: **significant location changes** (~500 m moves),
+**visits** (arrived somewhere / left it) and a **150 m fence** around where
+the phone last settled. GPS itself (`startUpdatingLocation`) runs only
+between "left a place" and "stopped somewhere" — a visit arrival or iOS's
+own automatic pause turns it off and drops the fence; leaving the fence, a
+visit departure or a significant change turns it back on. A visit's arrival
+and departure are buffered as ordinary fixes; `store.ts` de-duplicates.
+
+`showsBackgroundLocationIndicator` is `false`, so there is no blue
+status-bar pill. That holds only with **"Always"**: under "While Using",
+iOS shows the pill regardless and none of the three services run, which is
+why the studio section never arms without first walking the owner to
+"Always". It asks "While Using" first, then — once granted, still in the
+foreground — requests the upgrade, which iOS shows at once as "Change to
+Always Allow". iOS offers that prompt only once per install
+(`recorder-always-asked` remembers it), after which the section gives the
+exact Settings path instead. `locationPermission()` reports
+`{ status, precise, canAskAlways }` and the section shows it under the
+switch at all times, Precise Location included, since without it every fix
+is kilometres wide.
+
 ## What this does not do
 
 No live tracking (B666 is the endpoint an app like OwnTracks or Overland would
