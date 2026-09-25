@@ -144,7 +144,16 @@ export default function InboxTile({
         <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-muted">
           {hasPicture ? (
             // eslint-disable-next-line @next/next/no-img-element -- a private, no-store owner-only derivative; Next's own optimiser cannot read it (mediaLoader's own doc comment explains why for the published-media case, and this route is cookie-gated the same way).
-            <img src={thumbSrc(row, 200)} alt="" className="h-full w-full object-cover" onError={onThumbError} />
+            <img
+              src={thumbSrc(row, 200)}
+              alt=""
+              width={64}
+              height={64}
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+              onError={onThumbError}
+            />
           ) : (
             <span className="flex h-full w-full items-center justify-center text-ink-secondary">
               {row.type === "photo" || row.type === "video" ? (

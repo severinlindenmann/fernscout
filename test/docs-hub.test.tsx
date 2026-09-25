@@ -33,7 +33,7 @@ describe("the documentation hub", () => {
     expect(src).not.toContain("scroll-mt");
   });
 
-  test("it renders the six pages from the shared list", () => {
+  test("it renders its pages from the shared list", () => {
     expect(src).toContain("DOCS_PAGES");
   });
 
@@ -43,10 +43,19 @@ describe("the documentation hub", () => {
     expect(src).not.toContain("DocsNav");
   });
 
-  test("it names both groups and says which one is English", () => {
-    expect(src).toContain("docs.guidesGroup");
-    expect(src).toContain("docs.technicalGroup");
-    expect(src).toContain("docs.technicalGroupNote");
+  test("it links no retired reader guide and no workbench", () => {
+    expect(src).not.toContain("/docs/guide/");
+    // The benches moved to Contributing: the hub's reader has no use for one.
+    expect(src).not.toContain("/docs/branding");
+  });
+
+  test("the door to a journal, and the ways to write one, are there only when writing is", () => {
+    // Closed by default: without `auth` nobody can write, so neither may be
+    // drawn — and WhatsApp only where the instance actually reads it.
+    expect(src).toMatch(/const writing = isEnabled\("auth"\)/);
+    expect(src).toMatch(/\{writing && \(\s*<DoorCard/);
+    expect(src).toMatch(/\{writing && \(\s*<section/);
+    expect(src).toMatch(/isEnabled\("whatsappInbound"\) && \(\s*<Way/);
   });
 
   test("no English section heading is hardcoded on it any more", () => {
@@ -55,22 +64,19 @@ describe("the documentation hub", () => {
     }
   });
 
-  test("every heading it shows comes from the dictionary, in every language", async () => {
+  test("every string it shows comes from the dictionary, in every language", async () => {
     const { dictionaryFor } = await import("@/lib/locales");
+    const keys = [...raw.matchAll(/"(docs\.[a-zA-Z.]+)"/g)].map((m) => m[1]);
+    expect(keys.length).toBeGreaterThan(15);
     for (const locale of ["en", "de", "hu"]) {
       const dict = dictionaryFor(locale);
-      for (const key of [
-        "docs.title",
-        "docs.lede",
-        "docs.guidesGroup",
-        "docs.guidesGroupNote",
-        "docs.technicalGroup",
-        "docs.technicalGroupNote",
-      ]) {
+      for (const key of keys) {
         expect(dict[key], `${locale} ${key}`).toBeTruthy();
       }
-      // The German hub must not carry the old English headings.
-      expect(dict["docs.guidesGroup"]).not.toMatch(/^How to /);
     }
+    // The technical doors say, in the reader's own language, that what is
+    // behind them is English.
+    expect(dictionaryFor("de")["docs.hosting.eyebrow"]).toContain("Englisch");
+    expect(dictionaryFor("hu")["docs.api.eyebrow"]).toContain("angolul");
   });
 });

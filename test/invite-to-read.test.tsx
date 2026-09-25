@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test, vi } from "vitest";
-import { renderToStaticMarkup } from "react-dom/server";
+import { prerender } from "react-dom/static";
 import CurrencyProvider from "@/components/CurrencyProvider";
 import LocaleProvider from "@/components/LocaleProvider";
 import { DayCard } from "@/components/StoryPager";
@@ -16,6 +16,14 @@ vi.mock("next/link", () => ({
     </a>
   ),
 }));
+
+// The app router's `next/dynamic`, which is what the page actually runs: a lazy
+// component a server render waits for. The package's default entry is the
+// pages-router one, which renders its `loading` on the server and stops.
+vi.mock("next/dynamic", async () => {
+  const mod = (await import("next/dist/shared/lib/app-dynamic")) as unknown as { default: unknown };
+  return { default: mod.default };
+});
 
 /**
  * B799 — the offer to show a day to somebody, on the day itself.
@@ -66,7 +74,7 @@ describe("the share control on a day", () => {
  * checking `OwnerTools`' own marker (`owner.onlyYou`, its `aria-label` and
  * its heading) is present for one and absent for the other.
  */
-function renderDayCard(canPublish: boolean): string {
+async function renderDayCard(canPublish: boolean): Promise<string> {
   const day: Day = {
     date: "2026-05-04",
     entries: [
@@ -104,7 +112,10 @@ function renderDayCard(canPublish: boolean): string {
     visibility: "public",
   } as unknown as Trip;
 
-  return renderToStaticMarkup(
+  // `prerender`, not `renderToStaticMarkup`: `OwnerTools` is its own chunk
+  // now (owner-only, see `StoryPager`), and only a render that waits for it
+  // shows what an owner is actually given.
+  const { prelude } = await prerender(
     <LocaleProvider locale="en" dictionary={dictionaryFor("en")}>
       <CurrencyProvider options={{ base: "CHF", currencies: ["CHF"], rates: { CHF: 1 } }}>
         <TripProvider trip={trip} isCurrent canPublish={canPublish}>
@@ -113,16 +124,17 @@ function renderDayCard(canPublish: boolean): string {
       </CurrencyProvider>
     </LocaleProvider>,
   );
+  return new Response(prelude).text();
 }
 
 describe("the day card's owner-only block", () => {
-  test("renders for the owner", () => {
-    const html = renderDayCard(true);
+  test("renders for the owner", async () => {
+    const html = await renderDayCard(true);
     expect(html).toContain("Only you can see this");
   });
 
-  test("is absent for a reader who cannot publish", () => {
-    const html = renderDayCard(false);
+  test("is absent for a reader who cannot publish", async () => {
+    const html = await renderDayCard(false);
     expect(html).not.toContain("Only you can see this");
   });
 });

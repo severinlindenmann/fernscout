@@ -520,43 +520,23 @@ export default function MePageContent({
         )}
 
         {/*
-          The guide that fits who this reader actually is — B445.
+          A stranger with no journal of their own gets a door to one here —
+          B1386, B2170. Only a stranger, and only while signup is open: a CTA
+          pointing at a door that does not open is worse than no CTA. The owner
+          and a buddy already have a journal.
 
-          `/<user>/me` is where somebody lands when they are not sure what they
-          have here, so the link is aimed rather than generic: an owner is sent
-          the owner's guide, somebody who was on a trip the buddy one, and
-          everybody else the reader's. A menu of three would make a confused
-          person choose before they know which one they are. The owner gets
-          none of it since B2163: they are not new here, and the header's
-          docs link is one tap away.
-        */}
-        {/*
-          A stranger with no journal of their own gets a different door here
-          — B1386. This page's only offer used to be the guide link below,
-          which explains a journal that reader has no way to reach; when
-          signup is open, this is one. Owner and buddy keep the plain guide
-          link unconditionally — they already have a journal — and so does a
-          signed-out reader when signup is off, since a CTA pointing at a
-          door that does not open is worse than the link it replaced.
+          There used to be a guide link here for everybody else (B445), aimed
+          at the owner's, buddy's or reader's guide. Those guides are retired
+          (`lib/docs.ts`, above `DOCS_PAGES`): what this reader can read is the
+          panel above, and what a buddy can write is the panel beside the
+          instructions that do it, which is where the guide's words now live.
 
-          **`/welcome` — B2170.** The reader this branch is for owns nothing
-          yet, so there is no `/<user>/studio` a link could name. B1905 sent
-          them to `/?start=1`, which only signed in; `/welcome` is where a
-          journal is made from nothing (`SignupWizard`), ending in the
-          studio of the journal it just made.
+          **`/welcome`.** The reader this branch is for owns nothing yet, so
+          there is no `/<user>/studio` a link could name; `/welcome` is where
+          a journal is made from nothing (`SignupWizard`), ending in the studio
+          of the journal it just made.
         */}
-        {viewer.owner ? null : writableTrips.length > 0 || !signupEnabled ? (
-          <p className="mt-8">
-            <Link
-              href={`/docs/guide/${writableTrips.length > 0 ? "buddy" : "guest"}`}
-              className="text-base text-ink-body underline decoration-line-quiet underline-offset-4
-                         transition-colors hover:decoration-line-prominent
-                         focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-            >
-              {t("guides.readMore")}
-            </Link>
-          </p>
-        ) : (
+        {!viewer.owner && writableTrips.length === 0 && signupEnabled && (
           <p className="mt-8">
             <Link
               href="/welcome"
@@ -615,8 +595,8 @@ export default function MePageContent({
 
           Buddy only since B2017 — the owner's own copy of this section moved
           whole to `/studio/agent`, the same move the rest of the owner block
-          made. `writableTrips.length > 0` is the same expression the guide
-          link below already uses to tell a buddy apart from everyone else.
+          made. `writableTrips.length > 0` is the same expression the buddy
+          panel above uses to tell a buddy apart from everyone else.
           `consentRows` stays `[]` for a buddy (B1390's owner-only grants),
           so what renders here is only the `sessions` row.
         */}

@@ -13,20 +13,48 @@ import tzLookup from "tz-lookup";
  * "server-only" import.
  */
 
+/**
+ * One `Intl.DateTimeFormat` per zone, made once.
+ *
+ * Constructing one resolves the zone and the locale's data, and costs far more
+ * than formatting with it: `zonedTimeToUtc` made two per call, ~140 µs a call
+ * measured, and the feed calls it for every day it lists. A formatter holds no
+ * per-call state, so reusing it answers identically. Bounded by the IANA zone
+ * list — a zone `Intl` refuses throws in the constructor, as before, and is
+ * never stored.
+ */
+const offsetFormatters = new Map<string, Intl.DateTimeFormat>();
+const clockFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function formatterFor(
+  store: Map<string, Intl.DateTimeFormat>,
+  zone: string,
+  make: () => Intl.DateTimeFormat,
+): Intl.DateTimeFormat {
+  let formatter = store.get(zone);
+  if (!formatter) {
+    formatter = make();
+    store.set(zone, formatter);
+  }
+  return formatter;
+}
+
 /** How far `zone`'s wall clock is ahead of UTC, in minutes, at the instant
  * `at` — read off `Intl` rather than a table, so DST is never a special case. */
 function offsetMinutesAt(zone: string, at: Date): number {
   const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: zone,
-      hourCycle: "h23",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    })
+    formatterFor(offsetFormatters, zone, () =>
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: zone,
+        hourCycle: "h23",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }),
+    )
       .formatToParts(at)
       .map((p) => [p.type, p.value]),
   );
@@ -67,12 +95,14 @@ export function zonedTimeToUtc(date: string, time: string, zone: string): Date {
  * what the dual clock shows for the reader's own equivalent. */
 export function formatTimeInZone(date: string, time: string, zone: string, targetZone: string): string {
   const instant = zonedTimeToUtc(date, time, zone);
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: targetZone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(instant);
+  return formatterFor(clockFormatters, targetZone, () =>
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: targetZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }),
+  ).format(instant);
 }
 
 /**

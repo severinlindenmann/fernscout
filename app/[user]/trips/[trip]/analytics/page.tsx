@@ -7,18 +7,8 @@ import { getCostSummary } from "@/lib/costs";
 import { getDays } from "@/lib/entries";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
-import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
-import { getUsernames } from "@/lib/users";
+import { getTrip, tripRef } from "@/lib/trips";
 import { summariseWeather, weatherDays } from "@/lib/weatherStats";
-
-export function generateStaticParams() {
-  return getUsernames().flatMap((user) => {
-    const current = getCurrentTrip(user)?.id;
-    return getTrips(user)
-      .filter((t) => t.id !== current && t.status !== "upcoming")
-      .map((t) => ({ user, trip: t.id }));
-  });
-}
 
 export async function generateMetadata({
   params,

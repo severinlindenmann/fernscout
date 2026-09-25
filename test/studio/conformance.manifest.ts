@@ -381,11 +381,10 @@ export const manifest: ManifestItem[] = [
     // B1826: `/docs/extract` itself is gone (its inbound links — ExtractHub,
     // deleted by B1825, and NonPhotoImport's own guide line — are gone with
     // it), and every old `/extract/*` bookmark 301s onward rather than
-    // stranding a step that needs it. `/docs/guide/buddy` and
-    // `/docs/guide/creator` are the one place this claim does *not* fully
-    // hold — see `lib/docs.ts`'s own doc comment on `GUIDES` for the live
-    // page that still depends on them and why B1826 could not delete them —
-    // so this proof is scoped to what B1826 actually finished.
+    // stranding a step that needs it. The reader guides B1826 could not yet
+    // delete (`/docs/guide/*`) went later, once `/<user>/me` carried their
+    // guidance in place; they redirect to the hub. This proof is scoped to
+    // what B1826 itself finished.
     claim: "No step needs information from elsewhere in the app; no link to /docs/extract survives.",
     proof: {
       kind: "absent",

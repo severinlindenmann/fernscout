@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import WhatStep from "@/components/studio/WhatStep";
 import StepPrimary from "@/components/studio/StepPrimary";
+import { mediaLoader } from "@/components/mediaLoader";
 import SubmitError from "@/components/studio/SubmitError";
 import DoneScreen from "@/components/studio/DoneScreen";
 import PreviewNotice from "@/components/studio/PreviewNotice";
@@ -480,8 +481,19 @@ export default function ReshapeDayFlow({
               <div className="mt-3 flex flex-wrap gap-2">
                 {dayA.media.map((item, i) => (
                   <span key={item.src} className={`relative ${i < photoCutIndex ? "" : "opacity-40"}`}>
+                    {/* A 64px square, so a sized copy rather than the stored
+                        2000px photograph — through the media route's own
+                        resize, the same one the grids use. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.src} alt="" className="h-16 w-16 rounded object-cover" />
+                    <img
+                      src={mediaLoader({ src: item.src, width: 128 })}
+                      alt=""
+                      width={64}
+                      height={64}
+                      loading="lazy"
+                      decoding="async"
+                      className="h-16 w-16 rounded object-cover"
+                    />
                   </span>
                 ))}
               </div>

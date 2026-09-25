@@ -453,13 +453,12 @@ describe("the landing page", () => {
  *
  * The landing page linked `/docs`, `/docs/api` and `/docs/guide/guest`, so a
  * visitor met the documentation at three different depths depending on which
- * one they happened to press.
+ * one they happened to press. The guest guide link outlived the other two
+ * until the reader guides were retired; the sign-in card it sat under
+ * explains itself.
  */
-test("the landing page has one door to the docs, plus the aimed guide link", () => {
+test("the landing page has one door to the docs", () => {
   const html = renderLanding();
   const hrefs = [...html.matchAll(/href="(\/docs[^"]*)"/g)].map((m) => m[1]);
-  // The guest guide stays because it is *aimed*: it is addressed to one person
-  // at the moment they are confused, where a docs link is addressed to nobody
-  // in particular.
-  expect(new Set(hrefs)).toEqual(new Set(["/docs", "/docs/guide/guest"]));
+  expect(new Set(hrefs)).toEqual(new Set(["/docs"]));
 });

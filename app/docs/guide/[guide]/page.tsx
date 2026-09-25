@@ -6,11 +6,12 @@ import { GUIDES, docsNavEntries, isGuide, readGuide } from "@/lib/docs";
 import { requestLocale, translateIn } from "@/lib/locales";
 
 /**
- * One of the three reader guides — B445.
+ * A translated reader guide — B445. Today there is one, `gps` (B2343); the
+ * guest, creator and buddy guides were retired (`lib/docs.ts`).
  *
- * A dynamic segment rather than three near-identical files: the pages differ
- * in one markdown file each, and three copies of this frame is three places to
- * forget when the menu or the language fallback changes.
+ * A dynamic segment rather than one file per guide: the pages differ in one
+ * markdown file each, and a copy of this frame per guide is a place to forget
+ * when the menu or the language fallback changes.
  *
  * `/docs/api` is a static sibling and stays reachable — Next resolves a static
  * segment before a dynamic one — but these live under `/docs/guide/` anyway,
