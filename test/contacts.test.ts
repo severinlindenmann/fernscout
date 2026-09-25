@@ -1538,14 +1538,15 @@ describe("choosing a language", () => {
   test("honours the quality values a browser sends", () => {
     expect(fromAcceptLanguage("hu,en;q=0.9")).toBe("hu");
     expect(fromAcceptLanguage("en;q=0.4,de;q=0.9")).toBe("de");
-    expect(fromAcceptLanguage("fr-FR,fr;q=0.9")).toBeNull();
+    expect(fromAcceptLanguage("fr-FR,fr;q=0.9")).toBe("fr");
+    expect(fromAcceptLanguage("es-ES,es;q=0.9")).toBeNull();
     expect(fromAcceptLanguage(null)).toBeNull();
   });
 
   test("takes the first candidate this site actually speaks", () => {
     expect(pickLocale("de-CH", "en")).toBe("de");
     expect(pickLocale(null, undefined, "hu")).toBe("hu");
-    expect(pickLocale("fr", "jp")).toBe("en");
+    expect(pickLocale("es", "jp")).toBe("en");
   });
 });
 

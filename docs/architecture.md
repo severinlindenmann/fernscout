@@ -108,7 +108,7 @@ five-month trip into one tree was measured at ~2 MB of HTML.
 
 ## Languages
 
-**English, German and Hungarian**, switchable from the header. The choice is
+**English, German, Hungarian, French and Italian**, switchable from the header. The choice is
 remembered in the `fs.locale` **cookie**, so the server renders the right
 language on the first request rather than after hydration. Appending `?lang=de`
 to any URL sets it — that is the shareable form. Entry text is translated when

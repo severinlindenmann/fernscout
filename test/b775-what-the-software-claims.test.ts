@@ -245,7 +245,7 @@ describe("B777 — creating a journal and correcting one refuse the same languag
   test("a language this instance does not maintain is refused, as at creation", () => {
     // "fr" is the live finding: accepted with a plain 200, leaving a journal
     // whose config claimed French and whose chrome was English.
-    const outside = ["fr", "es", "de-DE"].filter(
+    const outside = ["fr", "es", "pt", "de-DE"].filter(
       (code) => !(MAINTAINED_LOCALES as readonly string[]).includes(code),
     );
     for (const code of outside) {
@@ -267,7 +267,7 @@ describe("B777 — creating a journal and correcting one refuse the same languag
   });
 
   test("nothing was written when a language was refused", () => {
-    setJournalProfile("alex", { locales: ["en", "fr"] });
+    setJournalProfile("alex", { locales: ["en", "es"] });
     const onDisk = JSON.parse(
       fs.readFileSync(path.join(dir, "alex", "config.json"), "utf8"),
     ) as { locales: string[] };

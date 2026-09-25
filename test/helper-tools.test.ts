@@ -667,7 +667,7 @@ describe("inviting somebody to read", () => {
   });
 
   /**
-   * The sentence after the press, in all three languages: **they can ask.**
+   * The sentence after the press, in every maintained language: **they can ask.**
    * "They have access" is the same false claim B931 is about, moved one step
    * later, so the words are checked rather than left to a translator's ear.
    */
@@ -681,8 +681,16 @@ describe("inviting somebody to read", () => {
         en: /ask to be let in/i,
         de: /um Zugang bitten/i,
         hu: /kérheti/i,
+        fr: /demander à entrer/i,
+        it: /chiedere di entrare/i,
       }[locale];
-      const approve = { en: /approve/i, de: /bestätigst/i, hu: /jóvá nem hagyod/i }[locale];
+      const approve = {
+        en: /approve/i,
+        de: /bestätigst/i,
+        hu: /jóvá nem hagyod/i,
+        fr: /acceptée/i,
+        it: /approvi/i,
+      }[locale];
       expect(done).toMatch(asks);
       expect(done).toMatch(approve);
     });

@@ -1535,6 +1535,8 @@
   "studio.photos.whoCame.you": "You",
   "fallback.writtenIn.de": "Written in German — no English version of this day.",
   "fallback.writtenIn.hu": "Written in Hungarian — no English version of this day.",
+  "fallback.writtenIn.fr": "Written in French — no English version of this day.",
+  "fallback.writtenIn.it": "Written in Italian — no English version of this day.",
   "gallery.all": "All",
   "gallery.description": "Every photo and video from the trip, newest first — filterable by place.",
   "gallery.loadMore": "Load more",

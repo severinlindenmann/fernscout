@@ -2781,6 +2781,8 @@
   "contact.mailImportedButton": "Válaszd ki, mit szeretnél",
   "contact.mailImportedDeclineCaption": "Eltávolít ebből a naplóból, mindazzal együtt, amit rólad tárol. Utána semmit nem kapsz.",
   "fallback.writtenIn.hu": "Magyarul íródott — ennek a napnak nincs angol változata.",
+  "fallback.writtenIn.fr": "Franciául íródott — ehhez a naphoz nincs magyar változat.",
+  "fallback.writtenIn.it": "Olaszul íródott — ehhez a naphoz nincs magyar változat.",
   "studio.hub.title": "Mit szeretnél csinálni?",
   "studio.hub.addDay.title": "Nap hozzáadása",
   "studio.hub.addDay.subtitle": "{trip} · az az út, amelyiken most vagy. Fényképek, néhány mondat, és piszkozatként vár.",

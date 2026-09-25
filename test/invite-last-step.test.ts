@@ -215,8 +215,8 @@ describe("both of them are told about it", () => {
    * a whole string, so wording may be improved without this failing — but the
    * claim itself ("a mail signs you in") cannot be dropped silently.
    */
-  const READER_SAYS = { en: "signs you in", de: "anmeldet", hu: "beléptet" };
-  const OWNER_SAYS = { en: "signs them in", de: "anmeldet", hu: "belépteti" };
+  const READER_SAYS = { en: "signs you in", de: "anmeldet", hu: "beléptet", fr: "te connecte", it: "ti fa accedere" };
+  const OWNER_SAYS = { en: "signs them in", de: "anmeldet", hu: "belépteti", fr: "la connecte", it: "la fa accedere" };
 
   test.each(MAINTAINED_LOCALES)("%s", async (locale) => {
     const { translateIn } = await import("@/lib/locales");

@@ -14,7 +14,9 @@
       "translations": {
         "de": "Beta – Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
         "en": "Beta – Fernscout is still on its way: a few things may not work as intended yet.",
-        "hu": "Béta – a Fernscout még úton van: néhány funkció talán még nem úgy működik, ahogy kellene."
+        "hu": "Béta – a Fernscout még úton van: néhány funkció talán még nem úgy működik, ahogy kellene.",
+        "fr": "Bêta – Fernscout est encore en route : certaines fonctions ne se comportent peut-être pas encore comme prévu.",
+        "it": "Beta – Fernscout è ancora in viaggio: alcune funzioni potrebbero non comportarsi ancora come previsto."
       }
     },
     "credit": {
