@@ -1415,75 +1415,6 @@ select:disabled {
   }
 }
 /*
- * B2325 — a studio save's own arrival, and a list's. Motion study drafts 5–6
- * (https://claude.ai/artifact/QHpBEgpa2GK5jXT8JJn18h): `BusyButton` used to
- * show its spinner while a save ran, then just stop — nothing said "saved"
- * at the place the finger was. A hub card or inbox row appeared all at once
- * on load, which read as a jump rather than an arrival.
- *
- * `.fs-check` — the path `BusyButton` draws for its `done` state. Its own
- * `stroke-dasharray`/`stroke-dashoffset` are unconditional (a `pathLength="1"`
- * path with no motion still needs to render fully drawn); only the animation
- * that reveals it is gated on motion preference, below.
- *
- * `.fs-shake` — the same button on a failed submit. `SubmitError` renders
- * with no hooks on purpose (a server page renders it too), so the caller
- * fires this itself once the error it is about to show changes.
- *
- * `.fs-arrive` — one hub card or inbox row, staggered by its own `--i` (its
- * index, set inline by the caller), capped at 8 so a long list is not still
- * animating once the eye has moved on. Applied once, at mount, the same
- * "a new element animates once; a re-render of the same element does not"
- * rule B2094's `StepBody` uses — nothing here removes or re-adds the class.
- */
-.fs-check {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 0;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .fs-check {
-    animation: fs-check-draw 380ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
-  }
-  .fs-shake {
-    animation: fs-shake 300ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
-  }
-  .fs-arrive {
-    animation: fs-arrive 300ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
-    animation-delay: calc(min(var(--i), 8) * 35ms);
-  }
-}
-@keyframes fs-check-draw {
-  from {
-    stroke-dashoffset: 1;
-  }
-}
-@keyframes fs-shake {
-  25% {
-    transform: translateX(-4px);
-  }
-  75% {
-    transform: translateX(4px);
-  }
-}
-@keyframes fs-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-}
-
-/* Reduced motion: no slide, a 200ms crossfade of the whole page. */
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*) {
-    animation: none;
-  }
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
-    animation-duration: 200ms;
-  }
-}
-
-/*
  * Calm arrivals — photographs, menus, and a page that is on its way.
  *
  * Five small movements, each one the answer to "did anything happen?" rather
@@ -1679,5 +1610,74 @@ select:disabled {
 @media (prefers-reduced-motion: no-preference) {
   .fs-icon-turn {
     animation: fs-icon-turn 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+}
+
+/*
+ * B2325 — a studio save's own arrival, and a list's. Motion study drafts 5–6
+ * (https://claude.ai/artifact/QHpBEgpa2GK5jXT8JJn18h): `BusyButton` used to
+ * show its spinner while a save ran, then just stop — nothing said "saved"
+ * at the place the finger was. A hub card or inbox row appeared all at once
+ * on load, which read as a jump rather than an arrival.
+ *
+ * `.fs-check` — the path `BusyButton` draws for its `done` state. Its own
+ * `stroke-dasharray`/`stroke-dashoffset` are unconditional (a `pathLength="1"`
+ * path with no motion still needs to render fully drawn); only the animation
+ * that reveals it is gated on motion preference, below.
+ *
+ * `.fs-shake` — the same button on a failed submit. `SubmitError` renders
+ * with no hooks on purpose (a server page renders it too), so the caller
+ * fires this itself once the error it is about to show changes.
+ *
+ * `.fs-arrive` — one hub card or inbox row, staggered by its own `--i` (its
+ * index, set inline by the caller), capped at 8 so a long list is not still
+ * animating once the eye has moved on. Applied once, at mount, the same
+ * "a new element animates once; a re-render of the same element does not"
+ * rule B2094's `StepBody` uses — nothing here removes or re-adds the class.
+ */
+.fs-check {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fs-check {
+    animation: fs-check-draw 380ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+  .fs-shake {
+    animation: fs-shake 300ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+  .fs-arrive {
+    animation: fs-arrive 300ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    animation-delay: calc(min(var(--i), 8) * 35ms);
+  }
+}
+@keyframes fs-check-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes fs-shake {
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+@keyframes fs-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Reduced motion: no slide, a 200ms crossfade of the whole page. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation: none;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 200ms;
   }
 }
