@@ -123,17 +123,21 @@ describe("a reader who follows every instruction reaches the journal", () => {
   test("link, code, queue, approval — and the approval mail is the way in", async () => {
     const token = await ownerToken();
 
-    // The owner's link, handed over.
-    const invites = await import("@/app/api/v2/[user]/invites/[id]/route");
+    // The owner's link, handed over — `invitePutResponse` directly, the way
+    // `/api/web/[user]/invites` (Studio › Readers' own door) makes one now.
+    // B2295 (one door for readers, B2291) removed the agent bearer route
+    // this used to go through.
+    const invites = await import("@/lib/contacts/invitesResponse");
     const inviteId = crypto.randomUUID();
     const made = (await (
-      await invites.PUT(
-        new Request(`https://example.test/api/v2/ana/invites/${inviteId}`, {
+      await invites.invitePutResponse(
+        OWNER,
+        inviteId,
+        new Request(`https://example.test/api/web/ana/invites`, {
           method: "PUT",
-          headers: headers({ authorization: `Bearer ${token}` }),
+          headers: headers(),
           body: JSON.stringify({ kind: "guest" }),
         }),
-        { params: Promise.resolve({ user: OWNER, id: inviteId }) },
       )
     ).json()) as { url?: string };
     const link = made.url?.split("/").pop();
@@ -224,9 +228,10 @@ describe("both of them are told about it", () => {
     expect(translateIn(locale, "invite.waitingBody", { title: "T" })).toContain(
       READER_SAYS[locale],
     );
-    // The owner, wherever the link is handed over: the conversation's answer
-    // after `invite_guest`, and the panel on their own pages.
-    expect(translateIn(locale, "agent.tool.inviteGuestDone")).toContain(OWNER_SAYS[locale]);
+    // The owner, wherever the link is handed over: the panel on their own
+    // pages. `agent.tool.inviteGuestDone` used to say the same thing from the
+    // conversation — B2295 (one door for readers, B2291) removed the tool it
+    // belonged to.
     expect(translateIn(locale, "me.inviteGuestBody")).toContain(OWNER_SAYS[locale]);
   });
 });

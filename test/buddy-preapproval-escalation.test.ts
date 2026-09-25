@@ -61,19 +61,26 @@ async function ownerToken(): Promise<string> {
   return result.token;
 }
 
+/**
+ * Makes an invite link the way `/api/web/[user]/invites` does now —
+ * `invitePutResponse` directly, since B2295 (one door for readers, B2291)
+ * removed the agent bearer route this used to go through. `_token` is
+ * unused and kept only so call sites did not all need editing too.
+ */
 async function createLink(
-  token: string,
+  _token: string,
   body: Record<string, unknown>,
 ): Promise<{ token: string; id: string }> {
-  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const { invitePutResponse } = await import("@/lib/contacts/invitesResponse");
   const id = crypto.randomUUID();
-  const response = await PUT(
-    new Request(`https://example.test/api/v2/ana/invites/${id}`, {
+  const response = await invitePutResponse(
+    OWNER,
+    id,
+    new Request(`https://example.test/api/web/ana/invites`, {
       method: "PUT",
-      headers: { ...headers(), authorization: `Bearer ${token}` },
+      headers: headers(),
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: OWNER, id }) },
   );
   const parsed = (await response.json()) as { id?: string; url?: string };
   const url = parsed.url!;
