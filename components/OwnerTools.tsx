@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import AgentRow from "./AgentRow";
 import DeleteDay, { type DeletableDay } from "./DeleteDay";
 import DayNotify from "./DayNotify";
@@ -28,9 +27,6 @@ import { OWNER_TOOL } from "./ownerToolClass";
  * - **The controls are peers.** Telling readers, showing somebody, correcting
  *   or taking down: one weight, one shape, one grid — `OWNER_TOOL`. Two per
  *   row at 390px rather than a column of full-width buttons.
- * - **The ask box is the general form**, under a rule, rather than a fifth
- *   line in a fourth style. The tiles are its shortcuts, so it reads as the
- *   place to go when none of them fits.
  *
  * Both call sites render *this*, which is the actual remedy for what caused
  * the mess: there is now one place for a fifth control to land.
@@ -39,16 +35,27 @@ import { OWNER_TOOL } from "./ownerToolClass";
  * right and the drawing was not: the general form was the only thing in the
  * block with no surface to press, and on a draft day — where the grid is often
  * a single tile — the rule separated one tile from one underlined line, which
- * is to say it separated nothing. It is an `AgentRow` now, in full width under
- * the same rule, and on an unpublished day a second one sits above the tiles
- * in coral. Three sizes of thing, each with its own job: what is waiting to be
- * decided, the shortcuts, and the way in for everything else.
+ * is to say it separated nothing. It was an `AgentRow`, in full width under
+ * its own rule, and on an unpublished day a second one still sits above the
+ * tiles in coral for the one decision that is actually waiting: publish.
+ *
+ * **B2309 dropped the yellow row and the studio hub it pointed at.** The
+ * owner's own read: a grid that ends in "ask your agent" is a grid that did
+ * not trust its own tiles. The helper probe that only existed to gate that
+ * row's rendering went with it — nothing else called it. The block is the
+ * few things an owner actually came to do, named, not a lobby in front of a
+ * bigger room:
+ *
+ * - Trip page — invite, and the trip's own door into the studio, as peers.
+ * - Day page — tell the readers, edit in place, delete. No invite here; a
+ *   day is not who reads the journal, the trip is. Edit and Delete are now
+ *   tiles too, and Edit shows on a draft the same as a published day.
  *
  * The gate is the caller's — `trip?.canPublish`, which is exactly `isOwner`
  * (`lib/tripGate.ts`). Each control asks the server its own remaining
  * question and draws nothing when the answer is no, so a journal with contacts
- * switched off or a helper turned off shows fewer tiles rather than tiles that
- * explain themselves after being pressed.
+ * switched off shows fewer tiles rather than tiles that explain themselves
+ * after being pressed.
  */
 export default function OwnerTools({
   username,
@@ -78,35 +85,6 @@ export default function OwnerTools({
   deletable?: DeletableDay;
 }) {
   const { t } = useI18n();
-
-  /**
-   * The helper's own remaining question, asked once for both rows — B1007.
-   *
-   * It used to live inside `HelperAskHere`, which was the only thing that
-   * needed it. There are two rows now and the answer is the same for both, so
-   * it is one call here rather than two identical ones a component apart.
-   *
-   * A 404 from `GET /api/helper/<user>/ask` is "not your journal, or the
-   * helper is off", and the honest answer to that is to draw nothing rather
-   * than a row into a room that 404s. The call site is already inside an
-   * owner-only branch (`canPublish`), so this is the second half of the gate
-   * and not the first.
-   */
-  const [helper, setHelper] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/helper/${encodeURIComponent(username)}/ask`)
-      .then((response) => {
-        if (!cancelled && response.ok) setHelper(true);
-      })
-      .catch(() => {
-        // A journal that cannot answer shows nothing. The page is a travel
-        // journal first, and this is an accelerator over controls that work.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [username]);
 
   // B2169 — the studio's publish page (B2140), with this day chosen. It was
   // the room at `/agent?about=` (B979/B984) while publishing had no flow of
@@ -146,18 +124,33 @@ export default function OwnerTools({
         {day && (
           <DayNotify username={username} tripId={day.tripId} slug={day.slug} />
         )}
-        <InviteToRead username={username} />
-        {/* B816 — the way back into a day that is already on the site. Only on
-            a published one: a draft has its own banner above and is in the
-            resume list. It opens the wizard on the day's lead update, which is
-            the one the page is named for.
 
-            **Both branches say "Correct or take down" again, as of B980 round
-            3.** B1013 split the label because `EditDay` could edit and could
-            not unpublish; round 3 gave it its own `.../unpublish` door and its
-            own `ConfirmPanel`, so the promise the tile makes is true on both
-            branches once more — see `EditDay`'s own doc comment. */}
-        {day?.published &&
+        {/* The trip page's own two — invite, and the door into the studio for
+            everything else about the trip (title, dates, who may read it, its
+            own address, deletion — B2018). Peers, side by side, as the owner
+            asked for them — B2309. */}
+        {!day && <InviteToRead username={username} />}
+        {!day && tripId && (
+          <Link
+            href={`/${encodeURIComponent(username)}/studio/trip?trip=${encodeURIComponent(tripId)}`}
+            prefetch={false}
+            className={OWNER_TOOL}
+          >
+            {t("owner.editTripInStudio")}
+          </Link>
+        )}
+
+        {/* B816 — the way back into a day that is already on the site, now
+            drawn on a draft too — B2309: there is no reason to correct a
+            mistake only after it is published. It opens the wizard on the
+            day's lead update, which is the one the page is named for.
+
+            **Both branches say "Edit" — B2309 dropped "or take down": the
+            block's own Delete tile below says that now, so the label no
+            longer has to.** `EditDay` still offers its own take-down door in
+            place for a published day (see its own doc comment); nothing that
+            was reachable stopped being reachable. */}
+        {day &&
           (onCorrect ? (
             <button type="button" onClick={onCorrect} className={OWNER_TOOL}>
               {t("agent.correctDay")}
@@ -176,56 +169,12 @@ export default function OwnerTools({
               {t("agent.correctDay")}
             </Link>
           ))}
+
+        {/* B2259, drawn as a tile since B2309 — a peer of Edit rather than a
+            text link under a rule, so the grid stops narrowing to "one real
+            control and an afterthought" the further down it goes. */}
+        {deletable && <DeleteDay username={username} day={deletable} tile />}
       </div>
-
-      {/* The rule is the point: above it are the things with their own button,
-          below it is the same intent said in words. B844's box, moved by
-          B877, drawn as a row rather than an underlined line by B1007, and
-          repointed at the studio hub by B1905.
-
-          **This one now goes to `/<user>/studio`, not `/agent`.** It was
-          "everything else, ask your agent" when the only door past the
-          tiles above was a chat; the studio is a list of twelve flows now,
-          so "everything else" is a page rather than a room. The copy lost
-          its day-conditional wording along with the destination: the hub is
-          not day-scoped the way the room's `?about=` used to be, and a
-          title that still said "about this day" would be a promise this
-          link no longer keeps. `/agent` itself is gone since B2173. */}
-      {helper && (
-        <div className="mt-3 border-t border-line-quiet pt-3">
-          <AgentRow
-            href={`/${encodeURIComponent(username)}/studio`}
-            tone="yellow"
-            title={t("agent.askHereOpen")}
-            hint={t("agent.askHereHint")}
-          />
-        </div>
-      )}
-
-      {/* The door to everything else about this trip — title, dates, who may
-          read it, its own address, and deletion — B2018. The trip page's own
-          delete link moved there with the rest (B1412, superseded by
-          B2018): the owner's own read of a trip is also the page they open
-          to *read* it, and the one irreversible act no longer sits at the
-          bottom of it every time. A text link, last and quiet, the same
-          weight the old delete link had in this slot. */}
-      {deletable && (
-        <div className="mt-3 border-t border-line-quiet pt-1">
-          <DeleteDay username={username} day={deletable} />
-        </div>
-      )}
-
-      {!day && tripId && (
-        <div className="mt-3 border-t border-line-quiet pt-3">
-          <Link
-            href={`/${encodeURIComponent(username)}/studio/trip?trip=${encodeURIComponent(tripId)}`}
-            prefetch={false}
-            className="text-xs font-semibold text-ink-body underline underline-offset-2 hover:opacity-75"
-          >
-            {t("owner.editTripInStudio")}
-          </Link>
-        </div>
-      )}
     </section>
   );
 }

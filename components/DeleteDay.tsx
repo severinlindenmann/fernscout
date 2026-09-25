@@ -4,6 +4,7 @@ import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
+import { OWNER_TOOL } from "@/components/ownerToolClass";
 
 export type DeletableDay = { tripId: string; slug: string; title: string; published: boolean };
 
@@ -75,15 +76,29 @@ export function DeleteDayConfirm({
 
 /** "Delete…" and its question, for one day — "Change a day" and the day's
  *  own page. `onDone` is the caller's done screen; without one, the line
- *  that says where the day went takes the button's place. */
-export default function DeleteDay({ username, day, onDone }: { username: string; day: DeletableDay; onDone?: () => void }) {
+ *  that says where the day went takes the button's place.
+ *
+ *  `tile` — B2309. The day page's own owner block draws every control as a
+ *  peer in its grid (`OWNER_TOOL`); "Change a day" still wants the quiet,
+ *  last-and-underlined version this always was. Same behaviour, two looks. */
+export default function DeleteDay({
+  username,
+  day,
+  onDone,
+  tile,
+}: {
+  username: string;
+  day: DeletableDay;
+  onDone?: () => void;
+  tile?: boolean;
+}) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
 
   if (done) {
     return (
-      <p role="status" className="mt-3 text-sm text-ink-body">
+      <p role="status" className={`${tile ? "col-span-full " : ""}mt-3 text-sm text-ink-body`}>
         {t("studio.delete.done", { title: day.title })}{" "}
         <a href={`/${encodeURIComponent(username)}/studio/day/deleted`} className="font-semibold underline underline-offset-2">
           {t("studio.deleted.title")}
@@ -93,7 +108,7 @@ export default function DeleteDay({ username, day, onDone }: { username: string;
   }
   if (open) {
     return (
-      <div className="mt-3">
+      <div className={tile ? "col-span-full mt-3" : "mt-3"}>
         <DeleteDayConfirm
           username={username}
           day={day}
@@ -108,7 +123,11 @@ export default function DeleteDay({ username, day, onDone }: { username: string;
       type="button"
       data-delete-day
       onClick={() => setOpen(true)}
-      className="mt-3 min-h-11 text-sm font-semibold text-coral-600 underline underline-offset-2 hover:opacity-75"
+      className={
+        tile
+          ? `${OWNER_TOOL} text-coral-600`
+          : "mt-3 min-h-11 text-sm font-semibold text-coral-600 underline underline-offset-2 hover:opacity-75"
+      }
     >
       {t("studio.delete.button")}
     </button>
