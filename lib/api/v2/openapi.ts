@@ -1830,7 +1830,6 @@ function buildPaths(): Record<string, PathItem> {
           ref("signup_disabled", 404),
           ref("auth_disabled", 404),
           ref("mail_disabled", 503, "nothing issued; any code already held is still live"),
-          ref("whatsapp_disabled", 503),
           ref("sms_disabled", 503, "`phone` asked for, and this server sends no SMS"),
           ref("sms_unreachable", 400, "`phone` in a country this server's SMS number cannot reach"),
           ref("mail_failed", 503),

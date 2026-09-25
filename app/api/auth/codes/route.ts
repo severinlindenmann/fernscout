@@ -14,19 +14,16 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { sendMail, sendTransactional } from "@/lib/mail";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { sendSignupCode } from "@/lib/signupCode";
-import { sendWhatsappCode } from "@paid/whatsapp/lib/whatsapp/index";
 import { phoneSubject, toE164 } from "@/lib/phone";
 import { whatsappCountryCode } from "@/lib/contactNumber";
 import { smsUnreachable } from "@/lib/sms";
 import { getContactByEmail } from "@/lib/contacts";
 import { sendGuestCode } from "@/lib/contacts/guestCode";
 import { afterResponse } from "@/lib/afterResponse";
-import { authTemplateFor } from "@paid/whatsapp/lib/whatsapp/settings";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
 import { serverSite } from "@/lib/site";
 import { getUser } from "@/lib/users";
-import { getOwnerTel } from "@/lib/ownerTel";
 import { getTrip, tripRef } from "@/lib/trips";
 import { isPersonOn } from "@/lib/tripPeople";
 import { ERROR_CODES } from "@/lib/api/errorCodes";
@@ -96,27 +93,20 @@ export async function POST(request: Request) {
     return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
   }
 
-  const channel = req.channel ?? "mail";
+  // B2335 — `channel` accepts only `"mail"` now (see codesRequest): WhatsApp
+  // as a way to ask for a code is gone, so a request naming any other
+  // channel already failed to parse, above, with a message naming the one
+  // accepted value.
   /**
    * **Before anything is issued** (§0 property 8). `issueCode` supersedes
    * every live code for the address, so taking the success path with no way
    * to deliver would kill the code the person is still holding.
    */
-  if (channel === "mail" && !isEnabled("mail")) {
+  if (!isEnabled("mail")) {
     return fail(
       "mail_disabled",
       "This server cannot send mail, so there is no way to deliver a code. Nothing has been " +
         "issued and any code you already hold is still live.",
-      undefined,
-      503,
-    );
-  }
-  if (channel === "whatsapp" && !isEnabled("whatsapp")) {
-    return fail(
-      "whatsapp_disabled",
-      "This server cannot send WhatsApp messages, so there is no way to deliver a code this " +
-        'way. Ask for the code by mail instead (leave "channel" out). Nothing has been issued ' +
-        "and any code you already hold is still live.",
       undefined,
       503,
     );
@@ -137,9 +127,9 @@ export async function POST(request: Request) {
   const accepted = () =>
     ok({ status: "accepted" as const, next: NEXT[req.for] }, { status: 202 });
 
-  if (req.for === "identity") return handleIdentity(request, withEmail, channel, accepted);
-  if (req.for === "signup") return handleSignup(request, withEmail, channel, accepted);
-  return handleJournal(request, withEmail, channel, accepted);
+  if (req.for === "identity") return handleIdentity(request, withEmail, accepted);
+  if (req.for === "signup") return handleSignup(request, withEmail, accepted);
+  return handleJournal(request, withEmail, accepted);
 }
 
 type EmailCodesRequest = CodesRequest & { email: string };
@@ -228,12 +218,8 @@ const NEXT: Record<CredentialFor, string> = {
 async function handleIdentity(
   request: Request,
   req: EmailCodesRequest,
-  channel: "mail" | "whatsapp",
   accepted: () => Response,
 ) {
-  // No owner to deliver a WhatsApp template to — an identity belongs to no
-  // journal, so the same silent answer an unknown address gets by mail.
-  if (channel === "whatsapp") return accepted();
   if (!emailCodeAllowed(req.email)) return accepted();
 
   const { code, linkToken } = await issueCode(NO_JOURNAL, req.email, "identity");
@@ -289,7 +275,6 @@ async function handleIdentity(
 async function handleSignup(
   request: Request,
   req: EmailCodesRequest,
-  channel: "mail" | "whatsapp",
   accepted: () => Response,
 ) {
   /**
@@ -303,7 +288,6 @@ async function handleSignup(
   if (!(await signupAllowed(req.email))) {
     return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
   }
-  if (channel === "whatsapp") return accepted();
   if (!emailCodeAllowed(req.email)) return accepted();
 
   const locale = pickLocale(
@@ -330,7 +314,6 @@ async function handleSignup(
 async function handleJournal(
   request: Request,
   req: EmailCodesRequest,
-  channel: "mail" | "whatsapp",
   accepted: () => Response,
 ) {
   const username = req.user!;
@@ -364,28 +347,7 @@ async function handleJournal(
 
   const destination = req.for === "read" ? safeDestination(username, req.destination) : null;
 
-  /**
-   * WhatsApp delivery only ever reaches a number this journal has proven —
-   * the owner's own, from signup. Any other address gets the same silent 202
-   * an unknown address gets by mail.
-   */
-  let whatsappTel: string | null = null;
-  if (channel === "whatsapp") {
-    const ownersAddress =
-      typeof user.owner.email === "string" &&
-      user.owner.email.trim().toLowerCase() === req.email.trim().toLowerCase();
-    const ownerTel = await getOwnerTel(username);
-    const tel = ownerTel?.tel && ownerTel.provenAt ? toE164(ownerTel.tel) : null;
-    if (!ownersAddress || !tel) return accepted();
-    const day = 24 * 60 * 60 * 1000;
-    const perNumber = rateLimitFor("whatsapp-code-number", tel, { max: 10, windowMs: day });
-    if (!perNumber.ok) return accepted();
-    const perInstance = rateLimitFor("whatsapp-code-instance", "*", { max: 100, windowMs: day });
-    if (!perInstance.ok) return accepted();
-    whatsappTel = tel;
-  }
-
-  if (channel === "mail" && !emailCodeAllowed(req.email)) return accepted();
+  if (!emailCodeAllowed(req.email)) return accepted();
 
   const { code, linkToken } = await issueCode(username, req.email, req.for === "write" ? "agent" : "guest", {
     destination,
@@ -422,45 +384,31 @@ async function handleJournal(
   ];
 
   try {
-    if (whatsappTel) {
-      const template = authTemplateFor(locale);
-      const sent = await sendWhatsappCode({
-        to: whatsappTel,
-        template: template.name,
-        language: template.language,
-        body: [code],
-        buttonPath: code,
+    await sendTransactional(
+      renderMail(
+        req.email,
+        req.for === "write" ? t("mail.agentSubject", vars) : t("mail.signinSubject", vars),
+        {
+          preheader: t("mail.identityCode", vars),
+          title: req.for === "write" ? t("mail.agentTitle") : t("mail.signinSubject", vars),
+          blocks: [
+            ...(req.for === "write" ? agentBlocks : guestBlocks),
+            { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
+            { kind: "paragraph", text: t("mail.signinIgnore") },
+          ],
+          footer: t("mail.identityFooter", vars),
+        },
         username,
-        category: "authentication",
-      });
-      if (!sent) throw new Error("the whatsapp capability went away mid-request");
-    } else {
-      await sendTransactional(
-        renderMail(
-          req.email,
-          req.for === "write" ? t("mail.agentSubject", vars) : t("mail.signinSubject", vars),
-          {
-            preheader: t("mail.identityCode", vars),
-            title: req.for === "write" ? t("mail.agentTitle") : t("mail.signinSubject", vars),
-            blocks: [
-              ...(req.for === "write" ? agentBlocks : guestBlocks),
-              { kind: "paragraph", text: t("mail.codeAsked", { when: requestedAt(locale) }) },
-              { kind: "paragraph", text: t("mail.signinIgnore") },
-            ],
-            footer: t("mail.identityFooter", vars),
-          },
-          username,
-        ),
-        "a one-time sign-in code the recipient just asked for",
-      );
-    }
+      ),
+      "a one-time sign-in code the recipient just asked for",
+    );
   } catch (err) {
-    console.error(`[auth] ${req.for} code for ${username} could not be sent (${channel}):`, err);
+    console.error(`[auth] ${req.for} code for ${username} could not be sent:`, err);
     await revokeCodes(username, req.email, req.for === "write" ? "agent" : "guest").catch(() => {});
     const res = fail(
-      channel === "whatsapp" ? "whatsapp_failed" : "mail_failed",
+      "mail_failed",
       "The code could not be sent, so no code is live for this address. Try again in a minute; " +
-        `if it keeps failing, this server's ${channel === "whatsapp" ? "WhatsApp channel" : "mail"} is broken.`,
+        "if it keeps failing, this server's mail is broken.",
       undefined,
       503,
     );

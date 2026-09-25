@@ -13,7 +13,6 @@ import { ownerShortName, serverSite } from "@/lib/site";
 import { resolveViewer } from "@/lib/viewer";
 import { getUser } from "@/lib/users";
 import { whatsappCountryCode } from "@/lib/contactNumber";
-import { whatsappSignInOffered } from "@paid/whatsapp/lib/whatsapp/settings";
 
 // Reads a session on every request; there is nothing here to prerender.
 export const dynamic = "force-dynamic";
@@ -126,7 +125,6 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
 
   return (
     <MePageContent
-      whatsappSignIn={await whatsappSignInOffered(user)}
       viewer={viewer}
       username={user}
       siteUrl={serverSite().url}

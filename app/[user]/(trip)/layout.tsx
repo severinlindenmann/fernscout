@@ -5,7 +5,6 @@ import { isEnabled } from "@/lib/capabilities";
 import { awaitingApproval, guestBlockedByPrivateTrip, mayReadTrip, signedInAs } from "@/lib/tripGate";
 import { getCurrentTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
-import { whatsappSignInOffered } from "@paid/whatsapp/lib/whatsapp/settings";
 
 /**
  * The gate, scoped to the pages that actually show the current trip.
@@ -35,7 +34,6 @@ export default async function TripPagesLayout({
         signedInAs={await signedInAs(username)}
         canSignIn={isEnabled("auth", username)}
         codeMinutes={CODE_TTL_MINUTES}
-        whatsappSignIn={await whatsappSignInOffered(username)}
         guestBlockedByPrivate={await guestBlockedByPrivateTrip(current)}
         waiting={await awaitingApproval(username)}
       />
