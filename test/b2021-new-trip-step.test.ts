@@ -114,7 +114,6 @@ test("a private trip with every 'rest' default accepted is complete under tripCr
     costs: "not entered during setup",
     translations: "not entered during setup",
     plan: "not entered during setup",
-    buddies: "not entered during setup",
   });
   expect(doc?.figures).toEqual({ mode: "journal" });
   expect(doc?.teaser).toBe(true);

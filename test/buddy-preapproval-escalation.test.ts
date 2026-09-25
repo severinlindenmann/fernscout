@@ -35,8 +35,15 @@ import { writeTripFixture } from "./fixtures/content";
  * against.
  */
 
+/** The cookie jar `isOwner` reads via the mocked `next/headers` — the only
+ * door onto `/api/contacts/admin`'s `approve` since the security review
+ * (F5, B2295): it refuses any `Authorization` header outright. */
+const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: () => undefined, set: () => {} }),
+  cookies: async () => ({
+    get: (name: string) => (jar.cookies[name] === undefined ? undefined : { value: jar.cookies[name] }),
+    set: () => {},
+  }),
 }));
 
 const OWNER = "ana";
@@ -61,19 +68,36 @@ async function ownerToken(): Promise<string> {
   return result.token;
 }
 
+/** Ana's own guest-cookie session — the only door onto `/api/contacts/admin`
+ *  since the security review (F5, B2295). */
+async function signInOwner(): Promise<void> {
+  const { issueCode, verifyCode } = await import("@/lib/auth");
+  const { code } = await issueCode(OWNER, OWNER_EMAIL, "guest");
+  const result = await verifyCode(OWNER, OWNER_EMAIL, code, "guest");
+  if (!result.ok) throw new Error("no owner cookie");
+  jar.cookies.fs_session = result.token;
+}
+
+/**
+ * Makes an invite link the way `/api/web/[user]/invites` does now —
+ * `invitePutResponse` directly, since B2295 (one door for readers, B2291)
+ * removed the agent bearer route this used to go through. `_token` is
+ * unused and kept only so call sites did not all need editing too.
+ */
 async function createLink(
-  token: string,
+  _token: string,
   body: Record<string, unknown>,
 ): Promise<{ token: string; id: string }> {
-  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const { invitePutResponse } = await import("@/lib/contacts/invitesResponse");
   const id = crypto.randomUUID();
-  const response = await PUT(
-    new Request(`https://example.test/api/v2/ana/invites/${id}`, {
+  const response = await invitePutResponse(
+    OWNER,
+    id,
+    new Request(`https://example.test/api/web/ana/invites`, {
       method: "PUT",
-      headers: { ...headers(), authorization: `Bearer ${token}` },
+      headers: headers(),
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: OWNER, id }) },
   );
   const parsed = (await response.json()) as { id?: string; url?: string };
   const url = parsed.url!;
@@ -241,11 +265,12 @@ test("an already-active guest's later buddy link stays a request, not a grant", 
 
   // And the owner's own approve click still opens it — the mechanism that was
   // never broken, only reached without permission.
+  await signInOwner();
   const { POST: adminPost } = await import("@/app/api/contacts/admin/route");
   const approveResponse = await adminPost(
     new Request("https://example.test/api/contacts/admin", {
       method: "POST",
-      headers: { ...headers(), authorization: `Bearer ${token}` },
+      headers: headers(),
       body: JSON.stringify({ user: OWNER, action: "approve", id: contact!.id }),
     }),
   );

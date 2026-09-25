@@ -258,6 +258,50 @@ describe("the service worker's fetch routing", () => {
   });
 });
 
+/**
+ * B2221 — a fresh install (no visit yet, so the runtime cache is empty) must
+ * still be able to answer the offline page's own hydration, not just its
+ * HTML. `assetsOf` is the same scan `keepTrip` (B2158) already runs over a
+ * kept page's markup.
+ */
+describe("install precaches the offline page's own scripts — B2221", () => {
+  test("fetches and stores every /_next/static asset the offline page's own HTML references", async () => {
+    const offlineHtml =
+      '<html><head><link href="/_next/static/css/app.css"></head><body><script src="/_next/static/chunks/offline.js"></script></body></html>';
+    const store = fakeCaches([{ url: "https://journal.test/offline", body: offlineHtml, type: "text/html" }]);
+    const handlers: Handlers = {};
+    const scope = {
+      self: null as unknown,
+      caches: store,
+      fetch: async () => new Response("asset", { headers: { "content-type": "application/javascript" } }),
+      setTimeout,
+      clearTimeout,
+      Response,
+      URL,
+      Promise,
+    };
+    scope.self = {
+      addEventListener: (name: string, fn: (event: unknown) => void) => {
+        handlers[name] = fn;
+      },
+      location: { origin: "https://journal.test" },
+      skipWaiting: () => {},
+      clients: { claim: () => {} },
+      registration: {},
+    };
+    vm.createContext(scope);
+    vm.runInContext(fs.readFileSync(path.join(process.cwd(), "public", "sw.js"), "utf8"), scope);
+
+    const pending: Promise<unknown>[] = [];
+    handlers.install({ waitUntil: (p: Promise<unknown>) => pending.push(p) });
+    await Promise.all(pending);
+
+    expect(store.written).toEqual(
+      expect.arrayContaining(["/_next/static/css/app.css", "/_next/static/chunks/offline.js"]),
+    );
+  });
+});
+
 
 /**
  * What a navigation is answered with when the network is gone.
@@ -835,5 +879,112 @@ describe("a trip kept for reading with no signal", () => {
     await Promise.all(pending);
     expect([...caches.named.keys()]).not.toContain("kept-public-alex-alps");
     expect(said).toEqual([expect.objectContaining({ state: "gone" })]);
+  });
+});
+
+/**
+ * The studio hub and "Add a day" kept for the signed-in owner — B2329/B2210.
+ *
+ * Both pages are `force-dynamic` and answer `private, no-store` like every
+ * owner-only route, which `putRuntime`'s `mayCache` already refuses for the
+ * shared runtime cache (B1042) — correctly so. This is their own personal
+ * arrangement, the same `personal-<id>` cache the signed-in home payload
+ * already lives in.
+ */
+describe("the studio kept for the signed-in owner — B2329", () => {
+  const STUDIO = "https://journal.test/alex/studio";
+  const ADD_DAY = "https://journal.test/alex/studio/day/new";
+
+  function studioPage(body: string) {
+    return new Response(body, {
+      status: 200,
+      headers: { "content-type": "text/html; charset=utf-8", "cache-control": "private, no-store" },
+    });
+  }
+
+  async function visit(handlers: Handlers, url: string) {
+    let response: Response | undefined;
+    const pending: Promise<unknown>[] = [];
+    await new Promise<void>((resolve) => {
+      handlers.fetch({
+        request: { url, method: "GET", mode: "navigate", headers: { get: () => null } },
+        respondWith: (value: Promise<Response>) => {
+          void Promise.resolve(value).then((r) => {
+            response = r;
+            resolve();
+          });
+        },
+        waitUntil: (p: Promise<unknown>) => pending.push(p),
+      });
+    });
+    await Promise.all(pending);
+    return response;
+  }
+
+  const network = () => async (request: { url: string } | string) => {
+    const url = typeof request === "string" ? request : request.url;
+    if (url === HOME) return homePayload("aaaa1111");
+    if (url === STUDIO) return studioPage("<html>studio hub</html>");
+    if (url === ADD_DAY) return studioPage("<html>add a day</html>");
+    return new Response("");
+  };
+
+  test("kept in the personal cache once an identity is known, never in the shared runtime cache", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(network());
+    await run(handlers, HOME); // establishes the identity pointer, as a real page's chrome would
+    await visit(handlers, STUDIO);
+    await visit(handlers, ADD_DAY);
+
+    const personal = caches.named.get("personal-aaaa1111");
+    expect(personal).toBeDefined();
+    // The home payload `run(handlers, HOME)` warmed lives here too — same
+    // cache, same owner, exactly the point of the arrangement.
+    expect([...personal!.keys()].sort()).toEqual([ADD_DAY, HOME, STUDIO].sort());
+    expect(caches.written).toEqual([]);
+  });
+
+  test("with no identity known yet, nothing is stored under any name", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(network());
+    await visit(handlers, STUDIO);
+    // Opening the pointer cache to check it (`keptIdentity`) is harmless and
+    // happens on every request; no actual `personal-<id>` cache is created.
+    expect([...caches.named.keys()].filter((k) => k.startsWith("personal-") && k !== "personal-pointer")).toEqual([]);
+    expect(caches.written).toEqual([]);
+  });
+
+  test("offline, the studio hub and Add a day open from the personal cache", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(network());
+    await run(handlers, HOME);
+    await visit(handlers, STUDIO);
+    await visit(handlers, ADD_DAY);
+
+    const offline = loadWorkerWithCaches(async () => {
+      throw new Error("offline");
+    });
+    offline.caches.named.set("personal-aaaa1111", caches.named.get("personal-aaaa1111")!);
+    // The pointer is what `keptIdentity()` reads to know which `personal-<id>`
+    // cache is this device's own — without it, offline, the answer is "public".
+    offline.caches.named.set("personal-pointer", caches.named.get("personal-pointer")!);
+
+    const hub = await visit(offline.handlers, STUDIO);
+    expect(await hub?.text()).toBe("<html>studio hub</html>");
+    const addDay = await visit(offline.handlers, ADD_DAY);
+    expect(await addDay?.text()).toBe("<html>add a day</html>");
+  });
+
+  /** Same boundary as the home payload's own personal cache — B412. */
+  test("signing out clears it, the same as the home payload", async () => {
+    const { handlers, caches } = loadWorkerWithCaches(network());
+    await run(handlers, HOME);
+    await visit(handlers, STUDIO);
+    expect([...caches.named.get("personal-aaaa1111")!.keys()]).toContain(STUDIO);
+
+    const pending: Promise<unknown>[] = [];
+    handlers.message({
+      data: { type: "fernscout-signed-out" },
+      waitUntil: (p: Promise<unknown>) => pending.push(p),
+    });
+    await Promise.all(pending);
+    expect([...caches.named.keys()].filter((k) => k.startsWith("personal-"))).toEqual([]);
   });
 });

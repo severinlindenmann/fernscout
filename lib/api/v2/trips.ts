@@ -1,19 +1,14 @@
 // Domain assembly for a v2 trip document — B1612 (phase 2 step 3, parcel B).
 //
 // What a `trip.json` on disk does not carry and every GET/PUT/PATCH echo
-// must: the derived `status`, the effective `cover`, whether a track exists,
-// and the "who got mailed" notifications a PUT/PATCH that adds people
-// produces. Kept out of the route files so GET, PUT and PATCH — which all
+// must: the derived `status`, the effective `cover`, and whether a track
+// exists. Kept out of the route files so GET, PUT and PATCH — which all
 // have to build the same echo — share one function rather than three copies
 // that can drift.
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { calendarStatus } from "../../tripTime";
-import { getUser } from "../../users";
-import { getContactByEmail } from "../../contacts";
-import { sendMail } from "../../mail";
-import { rateLimitFor } from "../../rateLimit";
 import { contentRoot } from "../../contentRoot";
 import { readDayFile, listDaySlugs } from "./store";
 import { dayEchoInput } from "./days";
@@ -116,63 +111,9 @@ export function buildTripDoc(
   return daysMode === "full" ? tripDoc.parse(doc) : doc;
 }
 
-export type TripNotification = { email: string; kind: "trip-added" | "journal-invite" };
-
-/**
- * Mail every newly-added, non-owner person on this trip — a "you are on
- * trip X" note to an address this journal already has a contact record for,
- * an onboarding invite to one it does not. `before` is the emails already on
- * the trip prior to this write (empty on create); anybody in `people` not in
- * `before` is new.
- *
- * Best-effort: a mail that fails to send does not fail the write, and is
- * simply absent from the returned list — this reports what went out, never
- * what was granted (AGENTS.md: report a link as an invitation to ask, never
- * as access).
- */
-export async function notifyNewPeople(
-  user: string,
-  tripTitle: string,
-  people: readonly { name: string; email: string }[],
-  before: readonly string[],
-): Promise<TripNotification[]> {
-  const journal = getUser(user);
-  if (!journal) return [];
-  const ownerEmail = journal.owner.email?.trim().toLowerCase();
-  const already = new Set(before.map((e) => e.trim().toLowerCase()));
-
-  const notifications: TripNotification[] = [];
-  for (const person of people) {
-    const email = person.email.trim().toLowerCase();
-    if (email === ownerEmail) continue;
-    if (already.has(email)) continue;
-
-    // B1689: `people:` is written by whoever holds write access to the
-    // trip, and the address is chosen anew on every write — toggling one
-    // on and off `people:` would otherwise resend mail to it as fast as
-    // writes allow. Keyed on the outgoing address, like `contact-resend`,
-    // so the limit tracks the mailbox being spammed regardless of which
-    // write token drives it.
-    if (!rateLimitFor("trip-people-notify", email, { max: 3, windowMs: 60 * 60 * 1000 }).ok) continue;
-
-    const known = await getContactByEmail(user, email).catch(() => null);
-    const kind: "trip-added" | "journal-invite" = known ? "trip-added" : "journal-invite";
-    const subject = known
-      ? `You're on ${journal.title}'s trip "${tripTitle}"`
-      : `${journal.title} added you to a trip`;
-    const text = known
-      ? `${person.name}, you've been added to the trip "${tripTitle}" in ${journal.title}.`
-      : `${person.name}, ${journal.title} has added you to their trip "${tripTitle}". Sign in ` +
-        `to read it and write to it: this address is how you'll be recognised.`;
-
-    const sent = await sendMail({
-      to: email,
-      subject,
-      text,
-      html: `<p>${text}</p>`,
-      username: user,
-    }).catch(() => null);
-    if (sent) notifications.push({ email, kind });
-  }
-  return notifications;
-}
+// `notifyNewPeople`/`TripNotification` used to mail every newly-named,
+// non-owner person on a trip — B2297 removed it. `people:` is the byline
+// only now: it grants nothing, so a name added or removed there is not an
+// event worth mailing anyone about, and it never was the owner's decision to
+// let that person write in the first place (B2295, one door for readers,
+// B2291) — a buddy granted from Studio › Readers is.

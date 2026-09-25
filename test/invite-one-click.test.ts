@@ -60,25 +60,22 @@ function mailsTo(email: string): string[] {
     .map((f) => plainTextOf(fs.readFileSync(path.join(mailDir, f), "utf8")));
 }
 
-async function ownerToken(): Promise<string> {
-  const { issueCode, verifyCode } = await import("@/lib/auth");
-  const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
-  const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
-  if (!result.ok) throw new Error("no owner token");
-  return result.token;
-}
-
-/** A guest link, as the owner's own page or an agent makes one. */
+/**
+ * A guest link, as the owner's own Studio › Readers page makes one now
+ * (`invitePutResponse` directly — B2295, one door for readers, B2291,
+ * removed the agent bearer route this used to go through).
+ */
 async function guestLink(): Promise<string> {
-  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const { invitePutResponse } = await import("@/lib/contacts/invitesResponse");
   const id = crypto.randomUUID();
-  const response = await PUT(
-    new Request(`https://example.test/api/v2/ana/invites/${id}`, {
+  const response = await invitePutResponse(
+    OWNER,
+    id,
+    new Request(`https://example.test/api/web/ana/invites`, {
       method: "PUT",
-      headers: headers({ authorization: `Bearer ${await ownerToken()}` }),
+      headers: headers(),
       body: JSON.stringify({ kind: "guest" }),
     }),
-    { params: Promise.resolve({ user: OWNER, id }) },
   );
   const body = (await response.json()) as { url?: string };
   const url = body.url;

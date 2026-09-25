@@ -306,81 +306,66 @@ export default function PageHeader({
                   (`TripStory`'s day counter) already marks it `xl:block`, so it
                   never draws below the width this panel exists for — mounting
                   a second, permanently invisible copy would be for nothing. */}
-              {/* Docs sits with the chips, not with the destinations — B843.
-                  Reise, Galerie, Karte and the rest are places inside this
-                  journal; `/docs` is the software's own documentation and
-                  leaves it entirely, so listing it among them said it was one
-                  of them. The chips row is already where the things that are
-                  not destinations live. Icon-only, with the label as its
-                  accessible name, because it is joining a set rather than
-                  arriving as a new kind of control. */}
-              <div className="flex flex-wrap items-center gap-2 border-b border-line-quiet pb-3">
-                <TripSwitcher />
-                <CurrencySwitcher />
-                <LocaleSwitcher />
-                <ThemeSwitcher />
-                <Link
-                  href="/docs"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised
-                             px-3 text-sm font-semibold text-ink-body transition-colors
-                             hover:border-line-prominent focus-visible:outline-2 focus-visible:outline-offset-2
-                             focus-visible:outline-blue-500"
-                >
-                  <FileText
-                    className="h-4 w-4 shrink-0"
-                    aria-hidden
-                    strokeWidth={2.2}
-                  />
-                  {t("nav.docs")}
-                </Link>
+              {/* The trip switcher takes a row of its own, above the small
+                  chips, so it can carry the trip's title instead of a word.
+                  Docs is not in this panel: it leaves the journal entirely,
+                  and it sat here as the chip row's odd one out (B843). It
+                  stays reachable from the `sm`-and-up header and the landing
+                  page. */}
+              <div className="space-y-2 border-b border-line-quiet pb-3">
+                <TripSwitcher wide />
+                <div className="flex flex-wrap items-center gap-2">
+                  <CurrencySwitcher />
+                  <LocaleSwitcher />
+                  <ThemeSwitcher />
+                </div>
               </div>
-                {/*
-                  The studio and Docs, as rows in the same list as the destinations
-                  below them — B824. B797 put these above the list as a
-                  differently-shaped navy pill and a quiet link under a rule;
-                  seeing that in place read as a banner stuck on the menu
-                  rather than as part of it, so they take the destinations'
-                  own row shape instead (`min-h-12`, icon + word, `rounded-xl`)
-                  and sit first, above Reise. They keep exactly one thing that
-                  marks them out: a hairline under Docs, since they are still
-                  not ordinary destinations — this row leads from every header
-                  (B797) and Docs needs no capability to reach (B802).
+              {/*
+                The studio and Docs, as rows in the same list as the destinations
+                below them — B824. B797 put these above the list as a
+                differently-shaped navy pill and a quiet link under a rule;
+                seeing that in place read as a banner stuck on the menu
+                rather than as part of it, so they take the destinations'
+                own row shape instead (`min-h-12`, icon + word, `rounded-xl`)
+                and sit first, above Reise. They keep exactly one thing that
+                marks them out: a hairline under Docs, since they are still
+                not ordinary destinations — this row leads from every header
+                (B797) and Docs needs no capability to reach (B802).
 
-                  **Points at the studio, not `/agent` — B1905.** It used to be
-                  the way into the room; the room is on a retirement path
-                  (`docs/plans/2026-09-17-the-studio.md`) and this row is the
-                  header's one prominent "go write" call, so it follows the
-                  capability rather than the old destination.
+                **Points at the studio, not `/agent` — B1905.** It used to be
+                the way into the room; the room is on a retirement path
+                (`docs/plans/2026-09-17-the-studio.md`) and this row is the
+                header's one prominent "go write" call, so it follows the
+                capability rather than the old destination.
 
-                  `helper` still gates the row, and it is owner-only now too:
-                  unlike `/agent`, which always opened *this reader's own*
-                  journal regardless of whose page they were on, `/<user>/studio`
-                  is gated on this journal specifically (`requireStudioOwner`),
-                  so a guest reading somebody else's trip has nothing at the far
-                  end of it. Docs stays ungated for the same reason as the
-                  `sm`-and-up header below. Neither row ever carries
-                  `aria-current` — they are never the active destination, so
-                  `yellow-400` stays true to "you are here".
-                */}
-                {site.isOwner && (
-                  <nav className="border-b border-line-quiet pb-2">
-                    <Link
-                      href={`${site.base}/studio`}
-                      onClick={() => setMenuOpen(false)}
-                      className="flex min-h-12 items-center gap-3 rounded-xl bg-action-strong px-3 text-base
-                                 font-semibold text-on-action transition-colors hover:bg-action-strong-hover
-                                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                    >
-                      <NotebookPen
-                        className="h-5 w-5 shrink-0"
-                        aria-hidden
-                        strokeWidth={2.2}
-                      />
-                      {t("nav.studio")}
-                    </Link>
-                  </nav>
-                )}
+                `helper` still gates the row, and it is owner-only now too:
+                unlike `/agent`, which always opened *this reader's own*
+                journal regardless of whose page they were on, `/<user>/studio`
+                is gated on this journal specifically (`requireStudioOwner`),
+                so a guest reading somebody else's trip has nothing at the far
+                end of it. Docs stays ungated for the same reason as the
+                `sm`-and-up header below. Neither row ever carries
+                `aria-current` — they are never the active destination, so
+                `yellow-400` stays true to "you are here".
+              */}
+              {site.isOwner && (
+                <nav className="border-b border-line-quiet pb-2">
+                  <Link
+                    href={`${site.base}/studio`}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex min-h-12 items-center gap-3 rounded-xl bg-action-strong px-3 text-base
+                               font-semibold text-on-action transition-colors hover:bg-action-strong-hover
+                               focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                  >
+                    <NotebookPen
+                      className="h-5 w-5 shrink-0"
+                      aria-hidden
+                      strokeWidth={2.2}
+                    />
+                    {t("nav.studio")}
+                  </Link>
+                </nav>
+              )}
               <div className="mt-3">
                 <div className="mt-1">
                   <SiteNav variant="list" onNavigate={() => setMenuOpen(false)} />

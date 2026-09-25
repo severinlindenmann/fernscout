@@ -59,7 +59,14 @@ function pageSuffix(pathname: string): string {
   return "";
 }
 
-export default function TripSwitcher() {
+export default function TripSwitcher({
+  wide = false,
+}: {
+  /** The phone menu's own row: the full panel width, carrying the trip's
+   * title rather than the `trips.chip` word — there is room for it once the
+   * switcher no longer shares a line with the other chips. */
+  wide?: boolean;
+} = {}) {
   const { t, localizedTrip } = useI18n();
   const pathname = usePathname();
   const active = useTrip();
@@ -95,14 +102,16 @@ export default function TripSwitcher() {
   const label = active ? localizedTrip(active.trip).title : t("trips.allTrips");
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className={wide ? "relative w-full" : "relative"}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("trips.switch")}
-        className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-3 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent sm:w-[14rem] sm:justify-between"
+        className={`flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-3 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent ${
+          wide ? "w-full justify-between" : "sm:w-[14rem] sm:justify-between"
+        }`}
       >
         {/* What it does, not which trip is open — B886.
 
@@ -122,8 +131,14 @@ export default function TripSwitcher() {
             control does rather than a word shared with something else. */}
         <span className="flex min-w-0 items-center gap-1">
           <Luggage className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
-          <span className="truncate sm:hidden">{t("trips.chip")}</span>
-          <span className="hidden truncate sm:inline">{label}</span>
+          {wide ? (
+            <span className="truncate">{label}</span>
+          ) : (
+            <>
+              <span className="truncate sm:hidden">{t("trips.chip")}</span>
+              <span className="hidden truncate sm:inline">{label}</span>
+            </>
+          )}
         </span>
         {/* A fixed width (B286) rather than a cap: the button's width used to
             follow the active trip's own title, so two trips with different
@@ -143,7 +158,9 @@ export default function TripSwitcher() {
              no way to scroll it back. The width cap is for the narrowest
              phones, where 15rem plus the header's padding still would not
              fit. */
-          className="fs-pop absolute left-0 right-auto z-40 mt-2 w-60 origin-top-left sm:origin-top-right max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-lg sm:left-auto sm:right-0"
+          className={`fs-pop absolute left-0 right-auto z-40 mt-2 origin-top-left sm:origin-top-right overflow-hidden rounded-2xl border border-line-quiet bg-surface-raised shadow-lg ${
+            wide ? "w-full" : "w-60 max-w-[calc(100vw-2rem)] sm:left-auto sm:right-0"
+          }`}
         >
           {GROUPS.map(({ status, key }) => {
             const all = trips.filter((tr) => tr.status === status);

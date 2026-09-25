@@ -8,16 +8,21 @@ import { afterAll, beforeAll, describe, expect, test } from "vitest";
  *
  * It did not. Reads asked the database on every request, so a revocation was
  * immediate; writes asked `scopeAllows`, a string baked into the `sessions`
- * row when the token was minted and never looked at again. Somebody removed
- * from a trip — blocked, deleted, or deleted out of `people:` by hand — kept
- * writing days into it for the remaining seven days of their token, while the
- * owner had been shown a confirmation and the reader had already stopped
- * being able to read.
+ * row when the token was minted and never looked at again. Somebody blocked
+ * or deleted kept writing days into their trip for the remaining seven days
+ * of their token, while the owner had been shown a confirmation and the
+ * reader had already stopped being able to read.
  *
  * So these assertions are end to end on purpose: a real token through the real
  * route, before and after. A unit test on the gate would have passed against
  * the broken version too, because the gate was not what was wrong — nobody was
  * calling anything.
+ *
+ * B2297 (one door for readers, B2291/B2295) later closed the other door this
+ * file used to also cover: a bare `people:` entry, with no owner "yes"
+ * anywhere behind it. That case is `test/trip-write-verdict.test.ts`'s now —
+ * it never opens the trip to begin with, so there is no revocation to prove
+ * here, only that removing the name changes nothing (below).
  */
 
 const OWNER = "ana";
@@ -240,21 +245,24 @@ afterAll(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-describe("a name removed from people: by hand", () => {
+describe("a name in people:, with no granted place behind it", () => {
   /**
-   * The case that decided the design. There is no request, no row and no code
-   * path when somebody edits `trip.md` in an editor, so there is nothing for a
-   * revocation to hang a `sessions` sweep off — the check has to happen at use.
+   * B2297 (one door for readers, B2291/B2295) changed the case that decided
+   * this file's original design. Editing `trip.md` by hand used to be a
+   * second, unapproved door onto write access — no request, no row, no owner
+   * "yes" anywhere in it — which is exactly why this file exists at all: to
+   * prove revocation is checked at use rather than only at token-mint time.
+   * That door is closed now: a bare `people:` entry never opens the trip to
+   * begin with, so there is nothing for removing it to revoke.
    */
-  test("stops the token that was issued while it was there", async () => {
+  test("never had a working write token to take away", async () => {
     const token = await tripToken(ROBIN, "named-2026");
 
-    const before = await writeDay(token, "named-2026", "While on the trip");
-    expect(before.status).toBe(201);
+    const before = await writeDay(token, "named-2026", "While still just named");
+    expect(before.status).toBe(403);
+    expect(before.body.error).toBe("access_revoked");
 
-    // The owner opens the file and deletes the block. No cache to clear:
-    // `loadTrips` fingerprints trip.md by mtime and size, precisely so a
-    // visibility change does not wait for a restart.
+    // Removing the name changes nothing, because it never granted anything.
     await writeTrip("named-2026", []);
 
     const after = await writeDay(token, "named-2026", "After being removed");

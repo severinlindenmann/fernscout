@@ -113,28 +113,28 @@ type InviteBody = {
 };
 
 /**
- * `PUT /api/v2/{user}/invites/{id}`, as an agent holding the owner's own
- * token would call it — reshaped into the pre-v2 `{invite: {id, kind, scope,
- * trip, url, expiresAt}}` shape this file's assertions were written against.
- * v2's own response is the flat document (`id`, `kind`, `trip`, `email`,
- * `name`, `locale`, `expiresAt`, …) plus `url`, and has no `scope` — the
- * journal, or a `<user>/<trip>` ref, computed here the same way v1's own
- * `view()` did.
+ * `invitePutResponse` directly, the way `/api/web/[user]/invites` (Studio ›
+ * Readers' own door) makes a link now — B2295 (one door for readers, B2291)
+ * removed the agent bearer route this used to go through — reshaped into
+ * the pre-v2 `{invite: {id, kind, scope, trip, url, expiresAt}}` shape this
+ * file's assertions were written against. `_token` is unused and kept only
+ * so call sites did not all need editing too.
  */
 async function issueOn(
   username: string,
-  token: string,
+  _token: string,
   body: Record<string, unknown>,
 ): Promise<{ status: number; body: InviteBody }> {
-  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const { invitePutResponse } = await import("@/lib/contacts/invitesResponse");
   const id = crypto.randomUUID();
-  const response = await PUT(
-    new Request(`https://example.test/api/v2/${username}/invites/${id}`, {
+  const response = await invitePutResponse(
+    username,
+    id,
+    new Request(`https://example.test/api/web/${username}/invites`, {
       method: "PUT",
-      headers: headers({ authorization: `Bearer ${token}` }),
+      headers: headers(),
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: username, id }) },
   );
   const status = response.status;
   const raw = (await response.json()) as {
@@ -321,13 +321,14 @@ describe("issuing a link", () => {
     expect(JSON.stringify(row)).not.toContain(secret);
 
     // And never again from the listing: only the hash was stored, so a link
-    // that is lost is reissued rather than looked up.
-    const { GET } = await import("@/app/api/v2/[user]/invites/route");
-    const listed = await GET(
-      new Request("https://example.test/api/v2/ana/invites", {
-        headers: headers({ authorization: `Bearer ${token}` }),
-      }),
-      { params: Promise.resolve({ user: OWNER }) },
+    // that is lost is reissued rather than looked up. `invitesListResponse`
+    // directly — B2295 (one door for readers, B2291) removed the agent
+    // bearer route this used to go through; Studio › Readers' own listing
+    // still calls exactly this function.
+    const { invitesListResponse } = await import("@/lib/contacts/invitesResponse");
+    const listed = await invitesListResponse(
+      OWNER,
+      new Request("https://example.test/api/web/ana/invites"),
     );
     const body = (await listed.json()) as { invites: { url?: string }[] };
     expect(JSON.stringify(body)).not.toContain(secret);
@@ -522,14 +523,15 @@ describe("redeeming a guest link", { shuffle: false }, () => {
 
   test("revoking it stops the next person and moves nobody already let in", async () => {
     as(null);
-    const token = await ownerToken();
-    const { DELETE } = await import("@/app/api/v2/[user]/invites/[id]/route");
-    const gone = await DELETE(
-      new Request(`https://example.test/api/v2/ana/invites/${inviteId}`, {
-        method: "DELETE",
-        headers: headers({ authorization: `Bearer ${token}` }),
-      }),
-      { params: Promise.resolve({ user: OWNER, id: inviteId }) },
+    // `inviteDeleteResponse` directly, the way `/api/web/[user]/invites/[id]`
+    // (Studio › Readers' own door) revokes a link now — B2295 (one door for
+    // readers, B2291) removed the agent bearer route this used to go
+    // through.
+    const { inviteDeleteResponse } = await import("@/lib/contacts/invitesResponse");
+    const gone = await inviteDeleteResponse(
+      OWNER,
+      inviteId,
+      new Request(`https://example.test/api/web/ana/invites/${inviteId}`, { method: "DELETE" }),
     );
     expect(gone.status).toBe(200);
 
@@ -1079,49 +1081,10 @@ describe("an invite token is not a credential", () => {
     );
     expect(refused.status).toBe(401);
     expect((await refused.json()).error).toBe("invalid_token");
-
-    // And it cannot issue links either, which is the endpoint it was minted by.
-    const { GET: listing } = await import("@/app/api/v2/[user]/invites/route");
-    const alsoRefused = await listing(
-      new Request("https://example.test/api/v2/ana/invites", {
-        headers: headers({ authorization: `Bearer ${secret}` }),
-      }),
-      { params: Promise.resolve({ user: OWNER }) },
-    );
-    expect(alsoRefused.status).toBe(401);
-    expect((await alsoRefused.json()).error).toBe("invalid_token");
-  });
-
-  test("a buddy token pasted at the guestbook reads as a dead link", async () => {
-    as(null);
-    const token = await ownerToken();
-    const created = await createLink(token, { kind: "buddy", trip: "bus-2026" });
-    const url = created.body.invite!.url!;
-    const secret = url.slice(url.lastIndexOf("/") + 1);
-
-    // `/api/contacts/request` is the guestbook's endpoint. It records nothing
-    // about a trip, so accepting a buddy token there would quietly turn "come
-    // along on the bus" into "add me to the mailing list" — approved, and
-    // still unable to write, with nothing to say why.
-    const { POST } = await import("@/app/api/contacts/request/route");
-    const response = await POST(
-      new Request("https://example.test/api/contacts/request", {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({
-          user: OWNER,
-          name: "Wrong Form",
-          email: "wrongform@example.test",
-          invite: secret,
-          wantsEmailDigest: false,
-          wantsPostcard: false,
-        }),
-      }),
-    );
-    // The same 202 every other refusal on that route gives, so it stays no
-    // kind of oracle — and nothing written.
-    expect(response.status).toBe(202);
-    expect(await contactFor("wrongform@example.test")).toBeNull();
+    // It used to also be checked against `GET /api/v2/{user}/invites`, the
+    // endpoint it was minted by — B2295 (one door for readers, B2291)
+    // removed that agent bearer route entirely, so there is no second door
+    // here to try it against any more.
   });
 
   test("and a token of the wrong kind does not open the other door", async () => {
@@ -1144,26 +1107,15 @@ describe("an invite token is not a credential", () => {
 });
 
 describe("the documents that describe them", () => {
-  // v1's own /api/v1/{user}/invites is gone (B1595): the last structural
-  // reason it survived — a browser needing a cookie door onto a bearer-only
-  // v2 — is closed by `POST /api/web/{user}/invites` instead. The v2 guide
-  // at /skill/invite-someone.md is unaffected by this ticket, already
-  // written against the v2 door (PUT .../invites/{id}, not POST).
-  test("the v2 guide names both kinds and says which one grants write access", async () => {
-    const { skillDoc } = await import("@/lib/api/skillDocs");
-    const guide = skillDoc("invite-someone");
-    expect(guide).toContain("/invite/guest/");
-    expect(guide).toContain("/invite/buddy/");
-    expect(guide).toContain("PUT /api/v2/");
-    expect(guide.toLowerCase()).toContain("group chat");
-  });
+  // The v2 guide (`/skill/invite-someone.md`) and its schema tests used to
+  // live here. B2295 (one door for readers, B2291) removed the route, the
+  // schema and the guide together — an agent no longer issues or reads an
+  // invite at all, so there is nothing left to document.
 
   // Superseded by B1595, then retired outright by B1734: v1's hand-written
-  // openapi document (and /openapi.json, which served it) is gone. The two
-  // v1 invites entries this test used to watch have no replacement to watch
-  // there — the v2 door (`test/openapi-v2-contract.test.ts`'s job) already
-  // covers `/api/v2/{user}/invites/{id}` — so what is left to assert is only
-  // that the retired address says so rather than lying with a 404.
+  // openapi document (and /openapi.json, which served it) is gone. What is
+  // left to assert is only that the retired address says so rather than
+  // lying with a 404.
   test("/openapi.json is retired and names its replacement", async () => {
     const { GET } = await import("@/app/openapi.json/route");
     const res = GET();
@@ -1172,108 +1124,8 @@ describe("the documents that describe them", () => {
     expect(body.error).toBe("gone");
     expect(body.replacedBy).toContain("/api/v2/openapi.json");
   });
-
-  /**
-   * B333, carried into v2: an email field or a kind an agent cannot see
-   * documented is invisible the same way whichever era of the API it is.
-   * The v2 field table is generated straight from the served
-   * /api/v2/openapi.json, so pin the generated schema and the guide's own
-   * table to each other rather than to a worked JSON example — v2's PUT
-   * response has no `sent` boolean (see app/api/v2/[user]/invites/[id]/
-   * route.ts): a failed mail surfaces as `note`, not a flag.
-   */
-  test("the v2 schema names email, and the guide's table carries it", async () => {
-    const { openApiDocumentV2 } = await import("@/lib/api/v2/openapi");
-    const doc = openApiDocumentV2() as unknown as {
-      paths: Record<string, Record<string, { requestBody?: { content?: { "application/json"?: { schema?: { properties?: Record<string, unknown> } } } } }>>;
-    };
-    const schema = doc.paths["/api/v2/{user}/invites/{id}"].put.requestBody!.content!["application/json"]!.schema!;
-    expect(schema.properties).toHaveProperty("email");
-
-    const { skillDoc } = await import("@/lib/api/skillDocs");
-    const guide = skillDoc("invite-someone");
-    expect(guide).toContain("`email`");
-  });
 });
 
-/**
- * B153 — the journal an agent actually makes.
- *
- * Everything above builds its journal with `writeJournal`, a fixture that
- * writes `contacts: { enabled: true }` into config.json by hand. So the whole
- * of B33 was verified against a journal no agent can create: `createJournal`
- * wrote `reactions`, `costs` and `auth` and stopped, and nothing in the
- * codebase could change a `features` block afterwards. Every journal made
- * through the API answered `404 contacts_disabled` to the very next call.
- *
- * This is the same two links, issued on a journal created the way the guide
- * tells an agent to create one.
- */
-describe("a journal created through the API can share itself", () => {
-  const NEW_USER = "freshly";
-  const NEW_EMAIL = "freshly@example.test";
-
-  // `issueOn` is the file's own top-level helper — no need for a second copy
-  // here now that it already takes a username.
-
-  test("both link kinds, with nobody touching the server", async () => {
-    const { createJournal } = await import("@/lib/journals");
-    const created = createJournal({
-      username: NEW_USER,
-      title: "Freshly Made",
-      ownerEmail: NEW_EMAIL,
-      ownerName: "Fresh Owner",
-      ownerNickname: "Fresh",
-    });
-    expect(created.ok).toBe(true);
-
-    // A trip for the buddy link to name, written the way create_trip does.
-    const { createTrip } = await import("@/lib/tripWrite");
-    expect(
-      createTrip(NEW_USER, {
-        id: "first-2026",
-        title: "First",
-        start: "2026-05-01",
-        end: "2026-05-10",
-      }).ok,
-    ).toBe(true);
-
-    const { issueCode, verifyCode } = await import("@/lib/auth");
-    const { code } = await issueCode(NEW_USER, NEW_EMAIL, "agent");
-    const verified = await verifyCode(NEW_USER, NEW_EMAIL, code, "agent");
-    if (!verified.ok) throw new Error("no token for the new journal's owner");
-
-    // This is the call that answered 404 for every journal an agent had ever
-    // made — the one the guide tells it to make immediately after creating one.
-    const guest = await issueOn(NEW_USER, verified.token, { kind: "guest" });
-    expect(guest.status).toBe(201);
-    expect(guest.body.invite?.url).toContain(`/${NEW_USER}/invite/guest/`);
-
-    const buddy = await issueOn(NEW_USER, verified.token, {
-      kind: "buddy",
-      trip: "first-2026",
-    });
-    expect(buddy.status).toBe(201);
-    expect(buddy.body.invite?.url).toContain(`/${NEW_USER}/invite/buddy/`);
-    expect(buddy.body.invite?.trip).toBe("first-2026");
-  });
-});
-
-/**
- * B315 — the digest tick, on the same side of B273's split.
- *
- * The form asked "send me a real postcard" and never "tell me when there is a
- * new day", and the route answered the unasked question *no*:
- * `wantsEmailDigest: known?.wantsEmailDigest ?? false`, where a brand-new
- * reader has no `known`. So somebody who followed an invite, proved their
- * address and was approved got nothing, ever, unless they later found the
- * manage link at the bottom of a mail and ticked a box nobody had shown them.
- *
- * These assert what is **stored**, not what renders — the markup half is
- * `test/invite-redeem-address.test.tsx`. The pairing that matters is the last
- * two: a brand-new reader's answer is honoured, and a returning reader's is
- * untouchable even by a request built by hand.
- */
 describe("redeeming a guest link, and the digest tick", { shuffle: false }, () => {
   let link = "";
 

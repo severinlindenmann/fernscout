@@ -18,12 +18,14 @@ import { writeTripFixture } from "./fixtures/content";
  * just the copy — is what's under test.
  */
 
-/** Every cookie the mocked `next/headers` hands back — unused here (every
- * owner call authenticates with a bearer token) but `isOwner` still calls
- * `cookies()` before it looks at the header, and that throws outside a real
- * request scope without this. */
+/** The cookie jar `isOwner` reads via the mocked `next/headers` — the only
+ * door onto `/api/contacts/admin`'s `approve` since the security review
+ * (F5, B2295): it refuses any `Authorization` header outright. */
+const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: () => undefined }),
+  cookies: async () => ({
+    get: (name: string) => (jar.cookies[name] === undefined ? undefined : { value: jar.cookies[name] }),
+  }),
 }));
 
 const OWNER = "ana";
@@ -69,24 +71,34 @@ function subjectOf(eml: string): string {
   return eml.match(/^Subject: (.*)$/m)?.[1] ?? "";
 }
 
-async function ownerToken(): Promise<string> {
+/** Ana's own guest-cookie session — the only door onto `/api/contacts/admin`
+ *  since the security review (F5, B2295). */
+async function signInOwner(): Promise<void> {
   const { issueCode, verifyCode } = await import("@/lib/auth");
-  const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
-  const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
-  if (!result.ok) throw new Error("no owner token");
-  return result.token;
+  const { code } = await issueCode(OWNER, OWNER_EMAIL, "guest");
+  const result = await verifyCode(OWNER, OWNER_EMAIL, code, "guest");
+  if (!result.ok) throw new Error("no owner cookie");
+  jar.cookies.fs_session = result.token;
 }
 
-async function createLink(token: string, body: Record<string, unknown>): Promise<string> {
-  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+/**
+ * Makes an invite link the way `/api/web/[user]/invites` (the Readers page's
+ * own door) does now — `invitePutResponse` directly, since B2295 (one door
+ * for readers, B2291) removed the agent bearer route this used to go
+ * through. Nothing here checks ownership any more; that boundary is
+ * `helper-routes-bearer-refused.test.ts` and its siblings' business.
+ */
+async function createLink(body: Record<string, unknown>): Promise<string> {
+  const { invitePutResponse } = await import("@/lib/contacts/invitesResponse");
   const id = crypto.randomUUID();
-  const response = await PUT(
-    new Request(`https://example.test/api/v2/ana/invites/${id}`, {
+  const response = await invitePutResponse(
+    OWNER,
+    id,
+    new Request(`https://example.test/api/web/ana/invites`, {
       method: "PUT",
-      headers: headers({ authorization: `Bearer ${token}` }),
+      headers: headers(),
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: OWNER, id }) },
   );
   const parsed = (await response.json()) as { url?: string };
   const url = parsed.url!;
@@ -121,15 +133,16 @@ async function confirm(email: string): Promise<void> {
   if (!body.ok) throw new Error(`confirm failed for ${email}: ${JSON.stringify(body)}`);
 }
 
-async function approve(token: string, email: string): Promise<void> {
+async function approve(email: string): Promise<void> {
   const { getContactByEmail } = await import("@/lib/contacts");
   const { POST } = await import("@/app/api/contacts/admin/route");
   const contact = await getContactByEmail(OWNER, email);
   if (!contact) throw new Error(`no contact for ${email}`);
+  await signInOwner();
   const response = await POST(
     new Request("https://example.test/api/contacts/admin", {
       method: "POST",
-      headers: headers({ authorization: `Bearer ${token}` }),
+      headers: headers(),
       body: JSON.stringify({ user: OWNER, action: "approve", id: contact.id }),
     }),
   );
@@ -140,10 +153,13 @@ async function approve(token: string, email: string): Promise<void> {
 /** Redeem, confirm and approve, the way an owner and a new contact actually
  * would — through the routes, so the invite's kind and trip really do reach
  * the mail functions the way they do in production. */
-async function onboard(kind: "guest" | "buddy", inviteToken: string, email: string, ownerBearer: string) {
+async function onboard(kind: "guest" | "buddy", inviteToken: string, email: string) {
+  // A previous onboard's `approve` may have left the owner's own cookie in
+  // the jar — it must not leak into this redemption.
+  jar.cookies = {};
   await redeem(kind, inviteToken, email);
   await confirm(email);
-  await approve(ownerBearer, email);
+  await approve(email);
 }
 
 beforeAll(async () => {
@@ -217,10 +233,9 @@ afterAll(async () => {
 
 describe("the approval mail (B347) and the owner's queue notification (B349)", () => {
   test("a buddy contact is told which trip they can write to, and where their agent's instructions are", async () => {
-    const token = await ownerToken();
-    const invite = await createLink(token, { kind: "buddy", trip: TRIP_ID });
+    const invite = await createLink({ kind: "buddy", trip: TRIP_ID });
     const email = "buddy-approved@example.test";
-    await onboard("buddy", invite, email, token);
+    await onboard("buddy", invite, email);
 
     const approved = mailFilesFor(email).find((m) => m.includes("You're in"));
     expect(approved).toContain(TRIP_TITLE);
@@ -243,10 +258,9 @@ describe("the approval mail (B347) and the owner's queue notification (B349)", (
   });
 
   test("a guest contact's mail reads exactly as it does today", async () => {
-    const token = await ownerToken();
-    const invite = await createLink(token, { kind: "guest" });
+    const invite = await createLink({ kind: "guest" });
     const email = "guest-approved@example.test";
-    await onboard("guest", invite, email, token);
+    await onboard("guest", invite, email);
 
     const approved = mailFilesFor(email).find((m) => m.includes("You're in"));
     expect(approved).toContain("Follow along whenever you like");
@@ -269,10 +283,9 @@ describe("the agent-code mail (B348)", () => {
   test("names the trip and does not call the journal theirs, for somebody on a trip", async () => {
     process.env.AUTH_DEV_CODE = "424242";
     try {
-      const token = await ownerToken();
-      const invite = await createLink(token, { kind: "buddy", trip: TRIP_ID });
+      const invite = await createLink({ kind: "buddy", trip: TRIP_ID });
       const email = "buddy-agent@example.test";
-      await onboard("buddy", invite, email, token);
+      await onboard("buddy", invite, email);
 
       const { POST } = await import("@/app/api/auth/codes/route");
       const response = await POST(

@@ -61,8 +61,9 @@ function fullTrip(): Record<string, unknown> {
     dates: { from: "2026-09-01", to: "2026-09-05" },
     visibility: "public",
     // The owner plus Mara: v2's `people` is the whole party (unlike v1's own
-    // `people:`, which listed only the non-owner buddies) — two names means
-    // this is not solo, so `buddies` needs no decline below.
+    // `people:`, which listed only the non-owner buddies). Byline only since
+    // B2297 — Mara's actual write access, tested below, comes from a real
+    // granted `trip_people` place, not from being named here.
     people: [
       { name: "A B", email: OWNER_EMAIL },
       { name: "Mara", email: COMPANION_EMAIL },
@@ -174,6 +175,7 @@ beforeEach(async () => {
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.SESSION_SECRET = "unpublish-route-secret-b905-b905-b905";
+  process.env.CONTACTS_ENCRYPTION_KEY = "b9".repeat(32);
   fs.writeFileSync(
     path.join(dir, "config.json"),
     JSON.stringify({ site: { name: "T", url: "https://t.test" }, features: { auth: { enabled: true } } }),
@@ -200,6 +202,7 @@ afterEach(async () => {
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.SESSION_SECRET;
+  delete process.env.CONTACTS_ENCRYPTION_KEY;
   clearConfigCache();
   clearUserCache();
   fs.rmSync(dir, { recursive: true, force: true });
@@ -281,6 +284,29 @@ describe("what it refuses", () => {
    */
   test("a trip-scoped token, which may write days but not take them down", async () => {
     const slug = await aPublishedDay();
+
+    // B2297: a name in `people:` (Mara, above) is the byline only and grants
+    // nothing — the companion's write access has to be a real, granted
+    // `trip_people` place, the same as Studio › Readers would create.
+    const { requestContact, confirmContact, approveContact } = await import("@/lib/contacts");
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    const { issueCode: issue } = await import("@/lib/auth");
+    const requested = await requestContact(OWNER, {
+      name: "Mara",
+      email: COMPANION_EMAIL,
+      locale: "en",
+      address: null,
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      createdVia: "open",
+    });
+    if (requested.outcome === "ignored" || !requested.contactId) throw new Error("contact refused");
+    const { code } = await issue(OWNER, COMPANION_EMAIL, "guest");
+    await confirmContact(OWNER, COMPANION_EMAIL, code);
+    await approveContact(OWNER, requested.contactId);
+    await claimTripPlace(OWNER, TRIP_ID, requested.contactId, null);
+    await approveTripPlaces(OWNER, requested.contactId);
+
     const companion = await tokenFor(COMPANION_EMAIL, TRIP_ID);
     const down = await unpublish(slug, companion);
     expect(down.status).toBe(403);
