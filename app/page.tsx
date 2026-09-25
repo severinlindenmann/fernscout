@@ -7,7 +7,6 @@ import { publicJournals } from "@/lib/home";
 import { hasLegal } from "@/lib/legal";
 import { installedLocales, requestLocale, translateIn } from "@/lib/locales";
 import { bannerFor, serverSite } from "@/lib/site";
-import { whatsappNumberForUrl } from "@/lib/contactNumber";
 
 /**
  * The bare domain is the landing page.
@@ -124,11 +123,6 @@ export default async function Root() {
         // note on CODE_TTL_MINUTES.
         codeMinutes={CODE_TTL_MINUTES}
         helperEnabled={helperEnabled}
-        // This instance's own wa.me number, or absent — B1310. Server-side,
-        // like every other gate on this page: no client fetch decides
-        // whether the link is there, so there is nothing to flash in after
-        // the first paint.
-        whatsappNumber={whatsappNumberForUrl()}
         // What the pitch under the hero may claim — B1711. Same gate as
         // everything else on this page: the server decides, so a card for a
         // capability this instance does not have is absent from the document

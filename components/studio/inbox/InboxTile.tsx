@@ -272,9 +272,11 @@ export default function InboxTile({
             {tn("studio.inbox.phones", row.contact.phones, { count: String(row.contact.phones) })}
           </p>
           {row.contact.email && <p className="text-xs text-ink-body">{row.contact.email}</p>}
-          <p className="mt-1 text-[11px] text-ink-secondary">
-            {t("studio.inbox.contactSource")} · {dateLabel}
-          </p>
+          {/* B2338 dropped the "Shared over WhatsApp" label
+              (`studio.inbox.contactSource`) — it always said WhatsApp,
+              regardless of the actual source, and WhatsApp is no longer a
+              way to write a trip. The date stays. */}
+          <p className="mt-1 text-[11px] text-ink-secondary">{dateLabel}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Link
               href={`/${encodeURIComponent(username)}/studio/people?step=bring&name=${encodeURIComponent(row.contact.name ?? "")}`}

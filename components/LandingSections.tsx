@@ -8,7 +8,6 @@ import {
   FolderOpen,
   Image as ImageIcon,
   Mail,
-  MessageCircle,
   Mic,
 } from "lucide-react";
 import ChatVignette from "@/components/ChatVignette";
@@ -77,67 +76,10 @@ export const PRIMARY_BUTTON =
   "text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 " +
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
 
-/**
- * A quiet "or" between two ways in — B1314, the owner's chosen design for
- * both WhatsApp doors. A hairline on each side rather than a bare word, so
- * it reads as a divider between two actions and not as a stray label.
- *
- * B1325: `compact` drops the hairlines from `sm` up, for the one caller
- * (`LandingHero`) whose two doors sit in a row on desktop — a hairline there
- * has nothing to span. `AgentDoor`'s stacked divider stays as it was.
- */
-function OrDivider({ compact = false }: { compact?: boolean } = {}) {
-  const { t } = useI18n();
-  const hairline = `h-px flex-1 bg-surface-selected ${compact ? "sm:hidden" : ""}`;
-  return (
-    <div role="separator" className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-ink-faint">
-      <span className={hairline} />
-      {t("common.or")}
-      <span className={hairline} />
-    </div>
-  );
-}
-
-/**
- * The WhatsApp door itself — B1314. Transparent background, a green border
- * and text, and a small round green glyph, per the drafts the owner picked
- * from (`.claude/runs/2026-09-09-whatsapp-agent/door-drafts.html`, variants
- * "Landing B" and "Agent A"). `MessageCircle` rather than a new icon: it is
- * already the WhatsApp idiom `ContactsAdmin` and `DayNotify` use, and lucide
- * is already a dependency. Shared between `LandingHero` and `AgentDoor`
- * rather than drawn twice, since a colour or a radius edited in one and not
- * the other is exactly how these two drifted apart the first time (B1310
- * shipped both as a plain underlined line).
- */
-function WhatsAppButton({
-  number,
-  label,
-  className = "",
-}: {
-  number: string;
-  label: string;
-  className?: string;
-}) {
-  const { t } = useI18n();
-  return (
-    <a
-      href={`https://wa.me/${number}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
-      target="_blank"
-      rel="noreferrer"
-      className={
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-green-700 bg-transparent px-5 " +
-        "text-base font-semibold text-green-700 transition-colors hover:bg-green-100 " +
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 " +
-        className
-      }
-    >
-      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-700 text-on-deep" aria-hidden>
-        <MessageCircle className="h-3 w-3" strokeWidth={2.5} />
-      </span>
-      {label}
-    </a>
-  );
-}
+// B2338 retired the WhatsApp door this file used to draw here (B1314), and
+// `OrDivider` along with it — the button, its `wa.me` lookup and its
+// `agent.open.whatsappGreeting` / `landing.whatsappCta` copy are gone too.
+// See `LandingHero`'s own note.
 
 /**
  * A section title sitting on a rule — B733's "visible structure". Used
@@ -416,24 +358,12 @@ export function LandingHero({
               {t("landing.helperCta")}
             </Link>
           )}
-          {/* A second door beside the first — B1310, redrawn to the owner's
-              chosen design in B1314: an "oder"-divider, then the green
-              WhatsApp button, rather than a plain underlined line competing
-              for attention with nothing to set it apart. The WhatsApp door
-              itself is independent of `helperEnabled` — the channel is
-              answered by whatever agent the owner has put behind it, not by
-              this instance's own `/agent` wizard — but the divider is not:
-              it separates this door from the helper button above, and with
-              `helperEnabled` off there is no first door to separate it from
-              (B1712). Every self-hosted instance runs with the helper off,
-              so without this gate the divider read as "or" with nothing
-              before it. */}
-          {whatsappNumber && (
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-              {helperEnabled && <OrDivider compact />}
-              <WhatsAppButton number={whatsappNumber} label={t("landing.whatsappCta")} className="w-full sm:w-auto" />
-            </div>
-          )}
+          {/* B2338 — the WhatsApp door itself (the button and its wa.me
+              lookup) is retired: WhatsApp is no longer a way to write a
+              trip, and the point of this page is to send a stranger to the
+              app instead. The headline/lede variant above and `ChatVignette`
+              below are untouched — a later ticket's job, per B2338's own
+              scope note. */}
         </div>
       )}
       {/* Shown with the WhatsApp headline and only then: it illustrates that
