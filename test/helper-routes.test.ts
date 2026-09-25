@@ -249,8 +249,11 @@ describe("the helper routes", () => {
   // day's, respecting that day's own timezone). Same cookie, the owner's
   // alone — like `gps` above, there is deliberately no `/api/v2` twin onto
   // the raw line, the owner's own 2026-09-24 decision.
-  test("there are sixty-nine of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(69);
+  // Sixty-eight: `search` is gone (B2310) — the owner's word was "just
+  // normal type search", and the agent fallback it powered went with the
+  // button that asked for it.
+  test("there are sixty-eight of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(68);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

@@ -769,14 +769,12 @@ export const DAYS_TOOLS: readonly Tool[] = [
      * rather than a date and used to land on the screen that creates a day.
      *
      * No second search: `searchCatalogueFor` and `findInJournal` are B904's
-     * own, the same two calls `app/api/helper/[user]/search/route.ts` makes
-     * for the search box's own fallback. The catalogue is already this
-     * reader's own (`buildDocsForReader`, `visible()`, `readFor`) — nothing
-     * here reinterprets who may see what. And the same discipline that route
-     * applies: **ids in, ids out.** A hit for an id the catalogue never
-     * carried (another journal's day, a private trip this reader is not on)
-     * is dropped rather than returned, the same `byId.get` filter, so a model
-     * cannot repeat a name it was never shown.
+     * own. The catalogue is already this reader's own (`buildDocsForReader`,
+     * `visible()`, `readFor`) — nothing here reinterprets who may see what.
+     * And the same discipline: **ids in, ids out.** A hit for an id the
+     * catalogue never carried (another journal's day, a private trip this
+     * reader is not on) is dropped rather than returned, the same `byId.get`
+     * filter, so a model cannot repeat a name it was never shown.
      *
      * Nothing found is not a soft failure to paper over with a guess: `why`
      * tells the model to say so, in words, rather than to fall through to

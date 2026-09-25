@@ -160,10 +160,10 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
    * B1039 — a dictated day's notes are longer than "one sentence", and this
    * box used to cut them to 500 characters with nothing said: half a day's
    * write-up went to the model, and the person had no way to know less
-   * arrived than they typed. `search`'s own box caps at 300 for the "one
-   * sentence" case (`app/api/helper/[user]/search/route.ts`); this one is
-   * where a whole day's notes legitimately land, so the ceiling is wide
-   * enough for that and a refusal past it rather than a silent cut —
+   * arrived than they typed. This is where a whole day's notes legitimately
+   * land (search's own "one sentence" case has no such cap), so the ceiling
+   * for this route is wide enough for that and a refusal past it rather
+   * than a silent cut —
    * AGENTS.md's "an empty field beats a plausible fiction" applies exactly
    * as much to a shortened one.
    */

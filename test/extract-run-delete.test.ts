@@ -23,8 +23,7 @@ vi.mock("@/lib/helper/server", async (importOriginal) => {
 });
 
 // `notYourJournal`'s stranger branch reads `resolveAccess`, which reads
-// cookies outside any request scope here — the same mock
-// `test/helper-search.test.ts` uses for the same reason.
+// cookies outside any request scope here.
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
   headers: async () => new Headers(),
