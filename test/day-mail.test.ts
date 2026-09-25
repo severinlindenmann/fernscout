@@ -632,6 +632,15 @@ describe("the two triggers, and what only the owner may pull", () => {
     writeTrip("shared", { visibility: "public", people: [{ name: "Buddy", email: "buddy@example.test" }] });
     writeEntry("shared", { date: "2026-09-08", slug: "buddy-day", draft: true });
 
+    // B2297: the name in `people:` above is the byline only — the buddy's
+    // own write access (which this test still needs, to prove /publish
+    // refuses them for a *different* reason) has to be a real granted
+    // `trip_people` place.
+    const buddyContactId = await addReader("buddy@example.test", "en");
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    await claimTripPlace(OWNER, "shared", buddyContactId, null);
+    await approveTripPlaces(OWNER, buddyContactId);
+
     const token = await scopedToken("buddy@example.test", "shared");
 
     const published = await publish(token, "shared", "buddy-day", { send_mail: true });

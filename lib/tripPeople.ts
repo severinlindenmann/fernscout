@@ -6,29 +6,29 @@ import type { Trip } from "./types";
 import { getUser } from "./users";
 
 /**
- * Two different questions this file used to answer with one list, and — since
- * B2297 (one door for readers, B2291/B2295) — answers with two.
+ * Two different questions, and — since B2297 (one door for readers,
+ * B2291/B2295) — this file keeps them apart rather than answering both from
+ * one list.
  *
- * **Who is credited, and who may currently read this trip as its own
- * traveller** (`peopleNamedIn`, `isPersonOn`, `isPersonOnWith`) is unchanged:
- * the owner, then `people:`, plus anyone holding a granted `trip_people`
- * place. Naming somebody in the file is the owner's own editorial statement
- * — "this is who was there" — and it still lets that person read a trip
- * that would otherwise be closed to them, the same as it always has.
- *
- * **Who may write to a trip** (`peopleOf`, `tripWriteVerdict`) no longer
- * includes a bare name in `people:`. That used to be a second, unapproved
- * door onto the trip — typing a name into `trip.md` (or an agent doing it on
- * the owner's behalf) took effect immediately, with no owner "yes" anywhere
- * in it, and mailed the address a note nobody asked to send
- * (`notifyNewPeople`, since removed). Write access now comes only from a
- * **granted** `trip_people` row: somebody who redeemed a buddy link (or was
- * added directly) at `/<user>/studio/readers` and whom the owner then
- * approved. `peopleOf` is also what the digest/mailing paths
+ * **Who is credited, who may read this trip as its own traveller, and who is
+ * told about a new day on it** (`peopleNamedIn`, `peopleOf`, `isPersonOn`,
+ * `isPersonOnWith`) is unchanged: the owner, then `people:`, plus anyone
+ * holding a granted `trip_people` place. Naming somebody in the file is the
+ * owner's own editorial statement — "this is who was there" — and it still
+ * lets that person read a trip that would otherwise be closed to them, and
+ * still puts them on the digest/mailing paths' own "who is on this trip"
  * (`lib/digest/dayLetter.ts`, `paid/whatsapp/lib/digest/dayWhatsapp.ts`,
- * `lib/studio/publishDay.ts`) read for "who is on this trip" — so a name
- * typed into `people:` no longer gets mailed a day update it never asked
- * for either, which is the same property under a different name.
+ * `lib/studio/publishDay.ts`), exactly as it always has.
+ *
+ * **Who may *write* to a trip** (`writeGrantedOn`, used only by
+ * `tripWriteVerdict`) is narrower and new: a bare name in `people:` no
+ * longer qualifies. That used to be a second, unapproved door onto the trip
+ * — typing a name into `trip.md` (or an agent doing it on the owner's
+ * behalf) took effect immediately, with no owner "yes" anywhere in it, and
+ * mailed the address a note nobody asked to send (`notifyNewPeople`, since
+ * removed). Write access now comes only from a **granted** `trip_people`
+ * row: somebody who redeemed a buddy link (or was added directly) at
+ * `/<user>/studio/readers` and whom the owner then approved.
  *
  * A migration (`scripts/migrate-trip-people.mts`) turned every `people:`
  * entry that could write before this change into a granted buddy, so nobody
@@ -39,10 +39,9 @@ import { getUser } from "./users";
 /**
  * The list as `trip.md` states it: the owner, then `people:`.
  *
- * **Not the write-access check.** This is the record on disk, read for
- * credit and for a named traveller's own reading rights — use `isPersonOn`
- * to decide either of those, and `peopleOf`/`tripWriteVerdict` for who may
- * write (grant-only since B2297). It is exported for the callers that
+ * **Not the write-access check** (`tripWriteVerdict`, grant-only since
+ * B2297) — this is the record on disk, which is still the whole answer for
+ * reading and credit; see the file banner. Exported for the two callers that
  * genuinely want the file's own version: the merge below, and anything
  * reporting what the frontmatter says.
  */
@@ -57,19 +56,26 @@ export function peopleNamedIn(trip: Trip): string[] {
   return owner ? [...new Set([owner, ...listed])] : listed;
 }
 
+/** Every address on this trip for reading, credit and mail — the file plus
+ *  the redeemed places. Not the write-access check; see the file banner. */
+export async function peopleOf(trip: Trip): Promise<string[]> {
+  const named = peopleNamedIn(trip);
+  const redeemed = await redeemedPeopleOf(trip.username, trip.id);
+  return [...new Set([...named, ...redeemed])];
+}
+
 /** Every address that may **write** to this trip, lower-cased: the owner,
  *  plus whoever holds a granted `trip_people` place. Never a bare name in
- *  `trip.people` — see the file banner (B2297). Also what the digest/mailing
- *  paths read for "who is on this trip", so the same rule applies there. */
-export async function peopleOf(trip: Trip): Promise<string[]> {
+ *  `trip.people` — see the file banner (B2297). Used only by
+ *  `tripWriteVerdict`, below. */
+async function writeGrantedOn(trip: Trip): Promise<string[]> {
   const rawOwner = getUser(trip.username)?.owner.email;
   const owner = rawOwner?.trim().toLowerCase();
   const redeemed = await redeemedPeopleOf(trip.username, trip.id);
   return owner ? [...new Set([owner, ...redeemed])] : [...new Set(redeemed)];
 }
 
-/** Whether this address took this trip (or owns the journal it is in) —
- *  reading rights and byline credit, not write access; see the file banner. */
+/** Whether this address took this trip (or owns the journal it is in). */
 export async function isPersonOn(trip: Trip, email: string | undefined | null): Promise<boolean> {
   if (!email) return false;
   const address = email.trim().toLowerCase();
@@ -287,9 +293,10 @@ export async function tripWriteVerdict(
   if (!email) return "revoked";
   // Grant-only (B2297): a trip-scoped token's whole point is somebody who is
   // not the owner, and a bare name in `people:` is a byline, not a grant —
-  // `isPersonOn` would let it through here, `peopleOf` will not.
+  // `isPersonOn`/`peopleOf` would let it through here, `writeGrantedOn` will
+  // not.
   const address = email.trim().toLowerCase();
-  return (await peopleOf(trip)).includes(address) ? "allowed" : "revoked";
+  return (await writeGrantedOn(trip)).includes(address) ? "allowed" : "revoked";
 }
 
 /**

@@ -71,10 +71,32 @@ describe("the two waiting groups split by whose turn it is", () => {
     expect(card).toContain(dict["contact.adminApprove"]);
   });
 
-  test("an unconfirmed row is waiting for them, with no Approve", () => {
+  // B2296: `createdVia: "owner-import"` and never confirmed is `notInvited`
+  // now, its own group — "Owes Otto" was never sent anything to owe a step
+  // on, unlike a row invited (any other `createdVia`) and still unconfirmed.
+  test("an imported, unconfirmed row is not invited yet, with no Approve", () => {
     const html = render();
-    expect(headingOver(html, "Owes Otto")).toBe(dict["contact.adminWaitingOnThem"]);
+    expect(headingOver(html, "Owes Otto")).toBe(dict["contact.adminNotInvited"]);
     const start = html.indexOf("Owes Otto");
+    const card = html.slice(start, html.indexOf("</li>", start));
+    expect(card).not.toContain(dict["contact.adminApprove"]);
+  });
+
+  test("an invited, unconfirmed row is waiting for them, with no Approve", () => {
+    const html = renderToStaticMarkup(
+      <ContactsAdmin
+        username="alex"
+        locale="en"
+        locales={["en"]}
+        dictionary={dictionaryFor("en")}
+        contacts={[contact({ id: "asked", name: "Asked Alma", createdVia: "asked" })]}
+        invites={[]}
+        hasGuestTrip={true}
+        pushEnabled
+      />,
+    );
+    expect(headingOver(html, "Asked Alma")).toBe(dict["contact.adminWaitingOnThem"]);
+    const start = html.indexOf("Asked Alma");
     const card = html.slice(start, html.indexOf("</li>", start));
     expect(card).not.toContain(dict["contact.adminApprove"]);
   });
