@@ -130,8 +130,6 @@ export type TranslationKey =
   | "agent.answerNone"
   | "agent.answerSkipWeather"
   | "agent.answerUnknown"
-  | "agent.askHereHint"
-  | "agent.askHereOpen"
   | "agent.askNotSearch"
   | "agent.askRefusePublishAll"
   | "agent.askRefuseRemove"
