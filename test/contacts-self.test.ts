@@ -5,23 +5,17 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from "vit
 import { writeTripFixture } from "./fixtures/content";
 
 /**
- * `POST /api/contacts/self` — B1395.
+ * `POST /api/contacts/self` — B1395, revisited for D3 (B2297).
  *
- * A person the owner typed into a trip's `people:` block has write access
- * and, unlike somebody who redeemed a buddy link, no contacts row — nothing
- * on `/<user>/me` could offer them an address field at all. This is the door
- * that writes their own row, in their own words:
- *
- * - gated on **trip write access** (`isPersonOnWith`, via `resolveViewer`),
- *   never on being a contacts "guest" — that is precisely the fact this
- *   person does not yet have;
- * - the address comes off the **session**, always — a stranger cannot use
- *   this to write a row for somebody else's inbox;
- * - the row is **confirmed immediately**, no second six-digit code, because
- *   the session already proved the address;
- * - **grants nothing** — `approveContact` is never called;
- * - saved a second time, it updates the same row rather than making a
- *   second one.
+ * Before D3, a person the owner typed into a trip's `people:` block had
+ * write access and no contacts row, so this door let them write their own.
+ * Since D3, `people:` grants nothing (`lib/tripPeople.ts`'s file banner):
+ * `isPersonOnWith`/`through === "traveller"` means the owner or somebody
+ * holding a granted `trip_people` place, and a granted place always already
+ * has a contacts row (`claimTripPlace` requires a `contact_id`). So the one
+ * scenario this route existed for — a real traveller with no row to offer a
+ * manage token for — can no longer happen; a bare `people:` name is refused
+ * like any other stranger. Its only remaining job is refusing correctly.
  */
 
 const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
@@ -152,7 +146,7 @@ beforeEach(() => {
   jar.cookies = {};
 });
 
-describe("a person on a trip's people: writing their own row", () => {
+describe("a bare people: name is not a traveller (D3, B2297)", () => {
   test("is refused with no session at all", async () => {
     const result = await self({ name: "Robin", address: ADDRESS });
     expect(result.status).toBe(401);
@@ -164,47 +158,43 @@ describe("a person on a trip's people: writing their own row", () => {
     expect(result.status).toBe(403);
   });
 
-  test("creates a confirmed, ungranted row for somebody named in people:", async () => {
+  test("is refused for somebody only named in people:, never granted", async () => {
     await signIn(ROBIN);
-    const result = await self({
+    const result = await self({ name: "Robin", address: ADDRESS });
+    expect(result.status).toBe(403);
+
+    const { getContactByEmail } = await import("@/lib/contacts");
+    expect(await getContactByEmail(OWNER, ROBIN)).toBeNull();
+  });
+
+  test("succeeds once that same address holds a granted trip place", async () => {
+    const { requestContact, confirmContactByOwner, approveContact } = await import(
+      "@/lib/contacts"
+    );
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    const requested = await requestContact(OWNER, {
       name: "Robin",
-      address: ADDRESS,
-      wantsPostcard: true,
+      email: ROBIN,
+      locale: "en",
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      wantsWhatsapp: false,
+      createdVia: "owner-grant",
     });
+    if (requested.contactId) {
+      await confirmContactByOwner(OWNER, requested.contactId);
+      await approveContact(OWNER, requested.contactId);
+      await claimTripPlace(OWNER, "asia-2025", requested.contactId, null);
+      await approveTripPlaces(OWNER, requested.contactId);
+    }
+
+    await signIn(ROBIN);
+    const result = await self({ name: "Robin", address: ADDRESS, wantsPostcard: true });
     expect(result.status).toBe(200);
 
     const { getContactByEmail } = await import("@/lib/contacts");
     const contact = await getContactByEmail(OWNER, ROBIN);
-    expect(contact?.name).toBe("Robin");
-    expect(contact?.createdVia).toBe("self:traveller");
-    // The session already proved the address.
-    expect(contact?.confirmedAt).not.toBeNull();
-    expect(contact?.wantsPostcard).toBe(true);
     expect(contact?.postalAddress?.line1).toBe("1 Road");
-
-    const { hasReadGrant } = await import("@/lib/grants");
-    expect(await hasReadGrant(OWNER, contact!.id)).toBe(false);
-  });
-
-  test("saved again, corrects the same row rather than making a second one", async () => {
-    await signIn(ROBIN);
-    await self({ name: "Robin", address: ADDRESS });
-    await self({ name: "Robin", address: { ...ADDRESS, city: "Geneva" } });
-
-    const { listContacts } = await import("@/lib/contacts");
-    const rows = (await listContacts(OWNER)).filter((c) => c.email === ROBIN);
-    expect(rows).toHaveLength(1);
-    expect(rows[0].postalAddress?.city).toBe("Geneva");
-  });
-
-  test("the owner cannot overwrite what Robin wrote about themselves", async () => {
-    await signIn(ROBIN);
-    await self({ name: "Robin", address: ADDRESS });
-
-    const { getContactByEmail, updateContactByOwner } = await import("@/lib/contacts");
-    const contact = await getContactByEmail(OWNER, ROBIN);
-    await expect(
-      updateContactByOwner(OWNER, contact!.id, { name: "Renamed by owner" }),
-    ).rejects.toThrow();
+    expect(contact?.wantsPostcard).toBe(true);
   });
 });

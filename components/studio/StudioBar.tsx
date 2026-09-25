@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ChevronUp } from "lucide-react";
 import ActionBar from "@/components/studio/ActionBar";
 import GroupMark from "@/components/studio/GroupMark";
+import { useOutbox } from "@/components/studio/useOutbox";
 import { useI18n } from "@/components/LocaleProvider";
 import { STUDIO_GROUPS, type StudioGroup } from "@/lib/studio/groups";
 
@@ -67,13 +68,88 @@ const StudioBarContext = createContext<StudioBarContextValue | null>(null);
  *
  * B2141: beside "← Studio" a chevron opens `GroupSheet`, the six groups as
  * links to their hub sections. The back link itself stays one plain tap.
+ *
+ * B2329: a small status pill sits above the bar — offline, or how many
+ * queued writes are still waiting, or that they are being sent right now.
+ * It floats above the bar (`OutboxPill`) rather than sharing the row with
+ * the back link and a page's own actions, so it never competes for the
+ * limited width that row already has at 390px, and it is absent entirely —
+ * no reserved space — the moment there is nothing to say (online, empty
+ * queue): most studio sessions never see it.
  */
-export default function StudioBarProvider({ username, children }: { username: string; children: ReactNode }) {
+export default function StudioBarProvider({
+  username,
+  autoKeepTrips,
+  children,
+}: {
+  username: string;
+  /** D6, B2330 — the current trip and the soonest upcoming one
+   *  (`offlineKeepTrips`, `lib/studio/day.ts`), kept on this phone by
+   *  themselves once the studio is open and online, so the owner never has
+   *  to find "Keep on this phone" for either. Absent fields are simply
+   *  skipped — a journal with no trip yet, or nothing upcoming, keeps
+   *  nothing new. */
+  autoKeepTrips?: { current?: string; nextPlanned?: string };
+  children: ReactNode;
+}) {
   const { t } = useI18n();
   const [bar, setBar] = useState<BarState | null>(null);
   const [page, setPage] = useState<PageState | null>(null);
   const clearBar = useCallback(() => setBar(null), []);
   const value = useMemo(() => ({ setBar, clearBar, setPage }), [clearBar]);
+  const outbox = useOutbox(username);
+
+  // D6, B2330 — ask the worker to keep whichever of the two named trips it
+  // does not already hold, the moment the studio is open and there is a
+  // connection to fetch them with. The same `fernscout-keep` message
+  // `KeepTrip.tsx`'s own "Keep on this phone" switch posts, so a trip kept
+  // this way is indistinguishable from one the owner kept by hand — and the
+  // same "is it already kept" read (`caches.keys()`, matched by the
+  // `-<user>-<trip>` suffix, identity ignored) `KeepTrip.tsx`'s own
+  // `keptBytes` uses, so this never re-fetches a trip already on the phone.
+  useEffect(() => {
+    if (!outbox.online) return;
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator) || typeof caches === "undefined") return;
+    const ids = [autoKeepTrips?.current, autoKeepTrips?.nextPlanned].filter((id): id is string => !!id);
+    if (ids.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const keys = await caches.keys().catch(() => [] as string[]);
+      for (const trip of ids) {
+        if (cancelled) return;
+        const suffix = `-${username}-${trip}`;
+        if (keys.some((k) => k.startsWith("kept-") && k.endsWith(suffix))) continue;
+        navigator.serviceWorker.controller?.postMessage({ type: "fernscout-keep", user: username, trip });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [outbox.online, autoKeepTrips?.current, autoKeepTrips?.nextPlanned, username]);
+
+  // B2329 — the worker only knows which `personal-<id>` cache is this
+  // owner's own once something has fetched `/api/v2/me/home` (the same
+  // request `Landing.tsx` makes on `/`); a studio session reached by a
+  // bookmark or an installed PWA's own shortcut never visits `/`. This reads
+  // the worker's own pointer cache first (`caches`, not `indexedDB` — a plain
+  // browser API, not gated by `hasOutbox()`) and only fires the request when
+  // no identity is known yet, so a test environment with no `CacheStorage`
+  // (jsdom) and a browser that already knows the identity both do nothing.
+  useEffect(() => {
+    if (typeof caches === "undefined") return;
+    let cancelled = false;
+    caches
+      .open("personal-pointer")
+      .then((c) => c.match("https://fernscout.invalid/personal-id"))
+      .then((known) => {
+        if (cancelled || known) return undefined;
+        return fetch("/api/v2/me/home", { headers: { accept: "application/json" } });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // A step's primary (B2002) shares the row with this link below 430px —
   // the same width the hub's own three-pill row gives up a label at
@@ -103,22 +179,52 @@ export default function StudioBarProvider({ username, children }: { username: st
     <StudioBarContext.Provider value={value}>
       <div className="max-md:flex max-md:min-h-[100dvh] max-md:flex-col">
       <div className="max-md:flex-1">{children}</div>
-      <ActionBar
-        revealAfterScroll={bar?.revealAfterScroll ?? 0}
-        desktop={page && !(bar?.mode === "replace" && !bar.desktop) ? ROW_WIDTH[page.width] : null}
-      >
-        {bar?.mode === "replace" ? (
-          bar.actions
-        ) : (
-          <>
-            {backLink}
-            {page && <GroupSheet username={username} />}
-            {bar?.desktop ? bar.actions : bar?.actions && <div className="contents md:hidden">{bar.actions}</div>}
-          </>
-        )}
-      </ActionBar>
+      <div className="relative">
+        <OutboxPill online={outbox.online} pending={outbox.pending} syncing={outbox.syncing} />
+        <ActionBar
+          revealAfterScroll={bar?.revealAfterScroll ?? 0}
+          desktop={page && !(bar?.mode === "replace" && !bar.desktop) ? ROW_WIDTH[page.width] : null}
+        >
+          {bar?.mode === "replace" ? (
+            bar.actions
+          ) : (
+            <>
+              {backLink}
+              {page && <GroupSheet username={username} />}
+              {bar?.desktop ? bar.actions : bar?.actions && <div className="contents md:hidden">{bar.actions}</div>}
+            </>
+          )}
+        </ActionBar>
+      </div>
       </div>
     </StudioBarContext.Provider>
+  );
+}
+
+/**
+ * Offline / waiting / syncing — B2329. Absent when there is nothing to say:
+ * online with an empty queue is the common case and gets no pill at all.
+ * Floats above the bar rather than inside its row (see the provider's own
+ * doc comment) so it never has to fight the row for width.
+ */
+function OutboxPill({ online, pending, syncing }: { online: boolean; pending: number; syncing: boolean }) {
+  const { t } = useI18n();
+  if (online && pending === 0 && !syncing) return null;
+  const label = !online
+    ? pending > 0
+      ? t("studio.outbox.offlineWaiting", { n: String(pending) })
+      : t("studio.outbox.offline")
+    : syncing
+      ? t("studio.outbox.syncing")
+      : t("studio.outbox.waiting", { n: String(pending) });
+  return (
+    <p
+      role="status"
+      className="pointer-events-none absolute -top-3 left-4 z-20 -translate-y-full rounded-full border border-line-quiet
+                 bg-surface-raised px-3 py-1 text-xs font-semibold text-ink-body shadow-sm"
+    >
+      {label}
+    </p>
   );
 }
 

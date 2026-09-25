@@ -245,10 +245,9 @@ export function instanceDocumentation(): string {
     "## Letting other people in",
     "",
     ...wrap(
-      "A journal has no public sign-up form. Only the journal's owner may issue " +
-        "an invite link, never a token scoped to one trip — a guest link leads " +
-        "to reading the journal, a buddy link leads to writing to one trip, and " +
-        `neither grants anything by itself. See ${site.url}/skill/invite-someone.md.`,
+      "There is no agent bearer door onto an invite any more. Letting somebody read a " +
+        "journal, or write to one trip as a buddy, happens only from the owner's own browser, " +
+        "at /<user>/studio/readers.",
       78,
     ),
     "",
@@ -365,7 +364,6 @@ export function userDocumentation(username: string): string | null {
     `- [Trips](${base()}/api/v2/${username}/trips): every trip you may write to`,
     `- Days: PUT/GET/PATCH/DELETE ${base()}/api/v2/${username}/trips/<trip-id>/days/<slug> — see ${base()}/skill/add-a-day.md`,
     `- [Media](${base()}/api/v2/${username}/media): one door for photographs, video, documents and imports — see ${base()}/skill/ingest-photos.md`,
-    `- [Invites](${base()}/api/v2/${username}/invites): guest and buddy links — owner only, see ${base()}/skill/invite-someone.md`,
     `- [Figures](${base()}/api/v2/${username}/figures/presets): the vocabulary a traveller is drawn in`,
     `- Deleting: DELETE [a trip](${base()}/api/v2/${username}/trips/<trip-id>) or [the journal](${base()}/api/v2/${username}) — owner only, and neither deletes anything: the owner is mailed a link with a button on it`,
     `- [Search index](${root}/search-index.json): every public entry, for finding things`,

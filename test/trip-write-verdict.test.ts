@@ -71,7 +71,10 @@ describe("a trip-scoped token", () => {
     expect(db.calls).toBe(0);
   });
 
-  test("is allowed while the name is in people:", async () => {
+  // B2297 (one door for readers, B2291/B2295): `people:` is the byline
+  // only now, so being named there — with no granted `trip_people` row —
+  // answers exactly like not being named at all.
+  test("is revoked even while the name is in people:, with no grant behind it", async () => {
     const { tripWriteVerdict } = await import("@/lib/tripPeople");
     expect(
       await tripWriteVerdict(
@@ -79,7 +82,7 @@ describe("a trip-scoped token", () => {
         "robin@example.test",
         trip("bus-2026", ["robin@example.test"]),
       ),
-    ).toBe("allowed");
+    ).toBe("revoked");
   });
 
   test("is revoked once the name is gone, even though the scope still names the trip", async () => {

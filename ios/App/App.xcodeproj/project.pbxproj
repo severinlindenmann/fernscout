@@ -16,6 +16,7 @@
 		B2196A000000000000000002 /* GpsCredential.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2196A000000000000000001 /* GpsCredential.swift */; };
 		B2196A000000000000000004 /* Recorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2196A000000000000000003 /* Recorder.swift */; };
 		B2196A000000000000000006 /* LocationRecorderPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2196A000000000000000005 /* LocationRecorderPlugin.swift */; };
+		B2400A000000000000000002 /* ServerChoicePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2400A000000000000000001 /* ServerChoicePlugin.swift */; };
 		B2196A000000000000000011 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B2196A000000000000000007 /* InfoPlist.strings */; };
 		B2175A000000000000000015 /* ShareInbox.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B2175A000000000000000002 /* ShareInbox.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
@@ -42,6 +43,7 @@
 		B2196A000000000000000001 /* GpsCredential.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GpsCredential.swift; sourceTree = "<group>"; };
 		B2196A000000000000000003 /* Recorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recorder.swift; sourceTree = "<group>"; };
 		B2196A000000000000000005 /* LocationRecorderPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationRecorderPlugin.swift; sourceTree = "<group>"; };
+		B2400A000000000000000001 /* ServerChoicePlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServerChoicePlugin.swift; sourceTree = "<group>"; };
 		B2196A000000000000000008 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B2196A000000000000000009 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B2196A000000000000000010 /* hu */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/InfoPlist.strings; sourceTree = "<group>"; };
@@ -107,6 +109,7 @@
 				B2196A000000000000000001 /* GpsCredential.swift */,
 				B2196A000000000000000003 /* Recorder.swift */,
 				B2196A000000000000000005 /* LocationRecorderPlugin.swift */,
+				B2400A000000000000000001 /* ServerChoicePlugin.swift */,
 				B2175A00000000000000000F /* App.entitlements */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
@@ -272,6 +275,7 @@
 				B2196A000000000000000002 /* GpsCredential.swift in Sources */,
 				B2196A000000000000000004 /* Recorder.swift in Sources */,
 				B2196A000000000000000006 /* LocationRecorderPlugin.swift in Sources */,
+				B2400A000000000000000002 /* ServerChoicePlugin.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

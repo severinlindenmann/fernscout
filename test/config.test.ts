@@ -219,6 +219,27 @@ describe("owner", () => {
   });
 });
 
+describe("site.hosting", () => {
+  const site = (hosting: unknown) => ({ name: "N", url: "https://x.test", hosting });
+
+  test("absent means no place is ever named", () => {
+    expect(parseServerConfig({ site: site(undefined) }).site.hosting).toBeUndefined();
+  });
+
+  test("the operator's words, trimmed, with the host lower-cased", () => {
+    expect(
+      parseServerConfig({
+        site: site({ host: " Fernscout.test ", where: " in Europe ", translations: { hu: "Európában", de: " " } }),
+      }).site.hosting,
+    ).toEqual({ host: "fernscout.test", where: "in Europe", translations: { hu: "Európában" } });
+  });
+
+  test("a block without a host or a place is a problem", () => {
+    expect(() => parseServerConfig({ site: site({ host: "x.test" }) })).toThrow(/site\.hosting/);
+    expect(() => parseServerConfig({ site: site({ host: "", where: "in Europe" }) })).toThrow(/site\.hosting/);
+  });
+});
+
 describe("site.banner", () => {
   const site = (banner: unknown) => ({ name: "N", url: "https://x.test", banner });
 

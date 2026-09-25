@@ -251,6 +251,19 @@ export type ArmConfirmCopy = {
   confirmCancelLabel: string;
 };
 
+/**
+ * Where iOS's location permission stands for the recorder. Route recording
+ * works like a location timeline only with `"always"`; `canAskAlways` says
+ * whether a system prompt can still get there, or only the Settings app can.
+ * `precise: false` means Precise Location is off, and fixes come back
+ * kilometres wide.
+ */
+export type LocationPermission = {
+  status: "always" | "whenInUse" | "denied" | "restricted" | "notDetermined";
+  precise: boolean;
+  canAskAlways: boolean;
+};
+
 type LocationRecorderPlugin = {
   /** No `base` here — B2196 security review (2026-09-24), finding 1.
    *  `LocationRecorderPlugin.nativeBase()` derives it from Capacitor's own
@@ -281,6 +294,10 @@ type LocationRecorderPlugin = {
    *  Settings link (B2198), a native call because a plain `app-settings:`
    *  anchor is not reliable inside a WKWebView. */
   openSettings(): Promise<void>;
+  locationPermission(): Promise<LocationPermission>;
+  /** iOS's two prompts in a row — "Allow While Using App", then "Change to
+   *  Always Allow" — resolving with what the owner actually chose. */
+  requestLocationPermission(): Promise<LocationPermission>;
   /** B2197's before-trip notices — replaces every pending one with exactly
    *  this set. `at` is an ISO date, computed by `lib/gps/notify.ts`'s
    *  `beforeTripNoticeTime`; native never computes a fire time itself. */
@@ -328,6 +345,14 @@ export function openAppSettings(): Promise<void> {
   return LocationRecorder.openSettings();
 }
 
+export function locationPermission(): Promise<LocationPermission> {
+  return LocationRecorder.locationPermission();
+}
+
+export function requestLocationPermission(): Promise<LocationPermission> {
+  return LocationRecorder.requestLocationPermission();
+}
+
 export function scheduleBeforeTripNotices(trips: NativeNotice[]): Promise<void> {
   return LocationRecorder.scheduleBeforeTrip({ trips });
 }
@@ -361,4 +386,75 @@ export async function refreshGpsToken(username: string): Promise<{ token: string
   const minted = await mintGpsToken(username);
   await LocationRecorder.setToken(minted);
   return minted;
+}
+
+/**
+ * The iPhone app's own version, as its `Info.plist` states it — or nothing
+ * outside the shell. `ViewController.swift` writes `window.FernscoutApp`
+ * before any page script runs; the Capacitor bridge itself carries no
+ * version, and a plugin round trip is more than one pair of strings needs.
+ */
+export type NativeAppVersion = { version: string; build: string };
+
+export function nativeAppVersion(): NativeAppVersion | undefined {
+  if (!isNativeShell()) return undefined;
+  const app = (window as unknown as { FernscoutApp?: Partial<NativeAppVersion> }).FernscoutApp;
+  if (typeof app?.version !== "string" || app.version === "") return undefined;
+  return { version: app.version, build: typeof app.build === "string" ? app.build : "" };
+}
+
+/**
+ * Bring your own server — which Fernscout this app opens.
+ * `ios/App/App/ServerChoicePlugin.swift` keeps the address and restarts the
+ * bridge on it. `choose` checks the address answers as a Fernscout and asks
+ * the owner on a native dialog before anything changes; `{host}` in
+ * `confirmBody` is filled in natively from the address it will really use.
+ * An app built before the plugin existed rejects `status`, and the section
+ * that asks it is simply absent.
+ */
+export type ServerChoiceStatus = { server?: string; host?: string; custom: boolean; defaultServer?: string };
+export type ServerChoiceConfirm = {
+  confirmTitle: string;
+  confirmBody: string;
+  confirmLabel: string;
+  cancelLabel: string;
+};
+/** What the app says at launch if the chosen server stops answering, kept
+ *  natively with the choice because no page can load then. `{host}` is
+ *  filled in natively: the chosen server in the body, the build's own in
+ *  `resetLabel`. */
+export type ServerChoiceUnreachable = {
+  unreachableTitle: string;
+  unreachableBody: string;
+  retryLabel: string;
+  resetLabel: string;
+};
+type ServerChoicePlugin = {
+  status(): Promise<ServerChoiceStatus>;
+  choose(options: { url: string } & ServerChoiceConfirm & ServerChoiceUnreachable): Promise<{ changed: boolean }>;
+  reset(options: ServerChoiceConfirm): Promise<{ changed: boolean }>;
+};
+const ServerChoice = registerPlugin<ServerChoicePlugin>("ServerChoice");
+
+export function serverChoiceStatus(): Promise<ServerChoiceStatus> {
+  return ServerChoice.status();
+}
+
+export function chooseServer(
+  url: string,
+  confirm: ServerChoiceConfirm & ServerChoiceUnreachable,
+): Promise<{ changed: boolean }> {
+  return ServerChoice.choose({ url, ...confirm });
+}
+
+export function resetServer(confirm: ServerChoiceConfirm): Promise<{ changed: boolean }> {
+  return ServerChoice.reset(confirm);
+}
+
+/** Why `choose` refused, from the plugin's reject code — anything it does
+ *  not name is reported as unreachable rather than as a success. */
+export type ServerChoiceError = "invalid" | "notFernscout" | "unreachable" | "recording";
+export function serverChoiceError(error: unknown): ServerChoiceError {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "invalid" || code === "notFernscout" || code === "recording" ? code : "unreachable";
 }

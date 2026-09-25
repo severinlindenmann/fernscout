@@ -336,12 +336,18 @@ describe("every error code a route answers with is published", () => {
    * routes still said it.
    *
    * `app/api/web` is on this list for the same reason, B1622: it is the v2
-   * migration's own cookie-only prefix (decisions.md §6).
+   * migration's own cookie-only prefix (decisions.md §6). `app/api/contacts`
+   * joins it for the identical reason, B2295 (one door for readers, B2291):
+   * removing the v2 contacts/invites routes left `contact_exists`,
+   * `not_confirmed`, `self_authored` and `unknown_contact` spoken only by
+   * `app/api/contacts/admin/route.ts` — the owner's own cookie-only admin
+   * page, untouched by that ticket and still very much live.
    */
   for (const file of [
     ...routeFiles("app/api/helper"),
     ...routeFiles("app/[user]"),
     ...routeFiles("app/api/web"),
+    ...routeFiles("app/api/contacts"),
   ]) {
     const source = routeSource(file) ?? "";
     for (const match of source.matchAll(/"([a-z_]+)"/g)) spoken.add(match[1]);

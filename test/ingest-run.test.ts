@@ -524,7 +524,7 @@ describe("refusals", () => {
   });
 });
 
-describe.runIf(videoToolsAvailable())("video", () => {
+describe.runIf(await videoToolsAvailable())("video", () => {
   function clip(
     name: string,
     seconds: number,

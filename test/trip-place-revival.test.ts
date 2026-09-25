@@ -42,26 +42,6 @@ let dir: string;
 
 /** One IP per call: `lib/rateLimit.ts` is a module-level map shared by the
  * whole file, and `/api/contacts/redeem` allows five per address. */
-let calls = 0;
-function headers(): Record<string, string> {
-  calls += 1;
-  return { "content-type": "application/json", "x-forwarded-for": `10.0.0.${calls % 250}` };
-}
-
-/** The public door somebody with a link knocks on. */
-async function redeem(
-  body: Record<string, unknown>,
-): Promise<{ status: number; body: { status?: string; error?: string } }> {
-  const { POST } = await import("@/app/api/contacts/redeem/route");
-  const response = await POST(
-    new Request("https://example.test/api/contacts/redeem", {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({ user: OWNER, ...body }),
-    }),
-  );
-  return { status: response.status, body: (await response.json()) as { status?: string } };
-}
 
 function writeTrip(id: string) {
   writeTripFixture(OWNER, {
@@ -345,58 +325,4 @@ describe("a place the owner revoked", () => {
     expect(await isPersonOn(trip, email)).toBe(true);
   });
 
-  /**
-   * The other half of the decision, and the reason B161 hesitated: the owner
-   * pressing approve is one act, and the revoked holder re-redeeming their
-   * link is a different one. Only the first may put them back.
-   */
-  test("is not something the revoked person can redeem their own way back into", async () => {
-    const { isPersonOn } = await import("@/lib/tripPeople");
-    const { createInvite } = await import("@/lib/contacts/invites");
-    const { getContactByEmail, revokeContact, approveContact, confirmContact } = await import(
-      "@/lib/contacts"
-    );
-    const { issueCode } = await import("@/lib/auth");
-    const { getTrip, tripRef } = await import("@/lib/trips");
-    const trip = getTrip(tripRef(OWNER, "bus-2026"))!;
-    const email = "buddy@example.test";
-
-    // The whole of B33's route in: a buddy link, redeemed, confirmed, approved.
-    const invite = await createInvite(OWNER, { kind: "buddy", tripId: "bus-2026", name: "Bee" });
-    expect((await redeem({ token: invite.token, kind: "buddy", email, name: "Bee" })).body).toEqual({
-      status: "code",
-    });
-    const { code } = await issueCode(OWNER, email, "guest");
-    expect((await confirmContact(OWNER, email, code)).ok).toBe(true);
-    const contactId = (await getContactByEmail(OWNER, email))!.id;
-    await approveContact(OWNER, contactId);
-    expect(await isPersonOn(trip, email)).toBe(true);
-
-    await revokeContact(OWNER, contactId);
-    expect(await isPersonOn(trip, email)).toBe(false);
-
-    // They follow the same live link again. It answers exactly as it answers
-    // anybody — the link is not an oracle for having been shown the door — and
-    // writes nothing: `requestContact` refuses a blocked contact before
-    // `claimTripPlace` is reached.
-    const again = await redeem({ token: invite.token, kind: "buddy", email, name: "Bee" });
-    expect(again.status).toBe(202);
-    expect(again.body).toEqual({ status: "code" });
-
-    expect((await getContactByEmail(OWNER, email))!.status).toBe("blocked");
-    expect(await isPersonOn(trip, email)).toBe(false);
-    const stillRevoked = await placeRows(contactId, "bus-2026");
-    expect(stillRevoked).toHaveLength(1);
-    expect(stillRevoked[0].revoked_at).not.toBe(null);
-
-    // And a *second* link is no better once the owner has let them back in:
-    // `claimTripPlace` returns on the row that is already there, so a
-    // redemption can never write the clean slate a revival would then open.
-    await approveContact(OWNER, contactId);
-    const fresh = await createInvite(OWNER, { kind: "buddy", tripId: "bus-2026", name: "Bee" });
-    await redeem({ token: fresh.token, kind: "buddy", email, name: "Bee" });
-    const rows = await placeRows(contactId, "bus-2026");
-    expect(rows).toHaveLength(1);
-    expect(rows[0].id).toBe(stillRevoked[0].id);
-  });
 });

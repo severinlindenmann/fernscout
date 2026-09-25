@@ -98,12 +98,13 @@ if (flags.help || flags.h) {
 }
 
 if (flags.tools) {
-  const heif = heifDecoderName();
+  const heif = await heifDecoderName();
+  const video = await videoToolsAvailable();
   console.log("Ingest tooling:\n");
   console.log(`  ${geodataAvailable() ? "ready      " : "missing    "} offline place index`);
   console.log(`             ${geodataAvailable() ? "reverse geocoding works offline" : "run: npm run build:geodata"}`);
-  console.log(`  ${videoToolsAvailable() ? "ready      " : "missing    "} ffmpeg + ffprobe`);
-  console.log(`             ${videoToolsAvailable() ? "video clips will be transcoded" : "video clips will be skipped"}`);
+  console.log(`  ${video ? "ready      " : "missing    "} ffmpeg + ffprobe`);
+  console.log(`             ${video ? "video clips will be transcoded" : "video clips will be skipped"}`);
   console.log(`  ${heif ? "ready      " : "missing    "} HEIC decoder`);
   console.log(
     `             ${heif ? `${heif} handles what sharp's libvips cannot` : "install libheif or ffmpeg 7+, or export JPEG"}`,

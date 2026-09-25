@@ -60,6 +60,7 @@ asks for the same information without them.
 | **Page-open counts**, for journals whose author switched them on | So an author can tell whether their readers read | Legitimate interest | About ninety days |
 | **Request log** — the page asked for, the time, the browser's name; no IP address | To run and defend the server | Legitimate interest | 14 days |
 | **Copies of mail this site sent** | To see why a sign-in code did not arrive | Legitimate interest | Two days, never backed up |
+| **iPhone app waitlist** — an email address, and the language you asked for | So we can tell you once the app is on the App Store | Consent | Until the app is released, or you ask us to remove it |
 | **Payments, credits and print orders** | Bookkeeping | Contract, and the law (Swiss bookkeeping rules) | Ten years; see [Deleting](#deleting) |
 | **Encrypted backups** of all of the above | So a broken disk does not end a journal | Legitimate interest | 14 days on the server, 7 days in the second copy |
 

@@ -318,7 +318,10 @@ describe("the welcome link grants nothing", () => {
     jar.cookies = {};
     const { default: WelcomePage } = await import("@/app/w/[code]/page");
     const page = JSON.stringify(await WelcomePage({ params: Promise.resolve({ code }) } as never));
-    expect(page).toContain("Hello Tom");
+    // B2293: the guide greets by first name — and hands over nothing else
+    // about the person before the code.
+    expect(page).toContain('"firstName":"Tom"');
+    expect(page).toContain('"details":null');
     expect(jar.cookies).toEqual({});
     const { isJournalGuest } = await import("@/lib/contacts/session");
     expect(await isJournalGuest(OWNER)).toBe(false);
@@ -456,7 +459,7 @@ describe("security review of B2292", () => {
     const { default: WelcomePage } = await import("@/app/w/[code]/page");
     const render = async () => JSON.stringify(await WelcomePage({ params: Promise.resolve({ code }) } as never));
     const page = await render();
-    expect(page).toContain("Ana invited you");
+    expect(page).toContain('"ownerName":"Ana"');
     expect(page).not.toContain("Ana Meyer");
     const { ownerShortName } = await import("@/lib/contacts/welcome");
     expect(ownerShortName({ owner: { name: "Ana Meyer" } })).toBe("Ana");

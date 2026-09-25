@@ -173,6 +173,7 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
   const { t, formatLongDate } = useI18n();
   const router = useRouter();
   const [saved, setSaved] = useState(false);
+  const [queued, setQueued] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const viewUrl = `/${encodeURIComponent(username)}/trips/${encodeURIComponent(editable.tripId)}/day/${encodeURIComponent(editable.day.lead.slug)}`;
   const title = editable.day.lead.title || formatLongDate(editable.day.date, { year: true });
@@ -232,9 +233,14 @@ function ChosenDay({ username, editable, picker }: { username: string; editable:
         confirmBeforeSave
         inStudioBar
         saved={saved}
-        onSaved={() => {
+        queued={queued}
+        onSaved={(info) => {
           setSaved(true);
-          router.refresh();
+          setQueued(!!info?.queued);
+          // A queued save has nothing new on the server yet — refreshing
+          // would only re-read the same document this save was refused a
+          // connection to write, and offline that fetch itself would fail.
+          if (!info?.queued) router.refresh();
         }}
         onClose={() => {
           router.push(`/${encodeURIComponent(username)}/studio/day/edit`);

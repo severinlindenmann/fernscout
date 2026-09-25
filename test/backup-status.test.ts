@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { DEFAULT_MAX_AGE_HOURS, readBackupStatus, secondarySuccessStampPath } from "@/lib/backupStatus";
+import {
+  DEFAULT_MAX_AGE_HOURS,
+  backupHistoryPath,
+  readBackupHistory,
+  readBackupStatus,
+  secondarySuccessStampPath,
+} from "@/lib/backupStatus";
 
 /**
  * "Are the backups working?", answered from off the machine.
@@ -206,5 +212,34 @@ describe("/api/health", () => {
       if (withToken === undefined) delete process.env.HEALTH_TOKEN;
       else process.env.HEALTH_TOKEN = withToken;
     }
+  });
+});
+
+describe("readBackupHistory", () => {
+  const now = new Date("2026-09-25T09:00:00.000Z");
+
+  test("no file is null, never a fortnight of empty nights", () => {
+    expect(readBackupHistory(14, now)).toBeNull();
+  });
+
+  test("one entry per night, oldest first, ok winning over a later failure", () => {
+    fs.writeFileSync(
+      backupHistoryPath(dir),
+      [
+        "2026-09-23T03:00:00Z primary failed",
+        "2026-09-24T03:00:00Z primary failed",
+        "2026-09-24T04:00:00Z primary ok",
+        "2026-09-24T04:05:00Z secondary failed",
+        "not a line",
+        "2026-09-25T03:00:00Z primary ok",
+        "2026-09-25T03:10:00Z secondary ok",
+      ].join("\n"),
+    );
+    const nights = readBackupHistory(3, now);
+    expect(nights).toEqual([
+      { date: "2026-09-23", primary: "failed", secondary: "none" },
+      { date: "2026-09-24", primary: "ok", secondary: "failed" },
+      { date: "2026-09-25", primary: "ok", secondary: "ok" },
+    ]);
   });
 });
