@@ -66,7 +66,7 @@ export default function ConflictCard({
           </p>
           {rows.map((f) => (
             <p key={f.key} className="mt-1 text-sm text-ink-body">
-              <span className="font-semibold">{t(f.label as never)}: </span>
+              <span className="font-semibold">{t(f.label)}: </span>
               {String(conflict.phonePatch[f.key])}
             </p>
           ))}
@@ -82,7 +82,7 @@ export default function ConflictCard({
           </p>
           {rows.map((f) => (
             <p key={f.key} className="mt-1 text-sm text-ink-body">
-              <span className="font-semibold">{t(f.label as never)}: </span>
+              <span className="font-semibold">{t(f.label)}: </span>
               {String(conflict.serverDoc?.[f.key] ?? "")}
             </p>
           ))}
