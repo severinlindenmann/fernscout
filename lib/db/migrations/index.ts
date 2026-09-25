@@ -40,6 +40,7 @@ import * as contactPhone from "./038-contact-phone";
 import * as pushKind from "./039-push-kind";
 import * as welcomeLinks from "./040-welcome-links";
 import * as adminAckSnooze from "./041-admin-ack-snooze";
+import * as onboardingJoinCodes from "./042-onboarding-join-codes";
 
 /**
  * Every migration, listed by hand.
@@ -95,6 +96,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "039-push-kind": pushKind,
   "040-welcome-links": welcomeLinks,
   "041-admin-ack-snooze": adminAckSnooze,
+  "042-onboarding-join-codes": onboardingJoinCodes,
 };
 
 /**
