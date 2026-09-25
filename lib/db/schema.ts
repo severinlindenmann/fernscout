@@ -297,12 +297,18 @@ type PushSubscriptionsTable = {
   owner_id: string;
   /** Null until W12 ties a browser to a known reader. */
   contact_id: string | null;
+  /** A push service URL for `kind: "web"`, an APNs device token for
+   * `kind: "apns"` — see `StoredSubscription` in lib/repos/types.ts. */
   endpoint: string;
+  /** Empty strings for `kind: "apns"`, which has no encryption keypair. */
   p256dh: string;
   auth: string;
   user_agent: string | null;
   created_at: string;
   last_seen_at: string | null;
+  /** `"web"` | `"apns"` — added in 039-push-kind, defaulted to `"web"` for
+   * every row that predates it. */
+  kind: Generated<string>;
 };
 
 type ReactionsTable = {

@@ -100,3 +100,72 @@ export async function subscribeToPush(
     return "failed";
   }
 }
+
+/**
+ * The iPhone shell's own subscribe — B2115. Same shape as `subscribeToPush`
+ * above (ask, then tell the server), but through
+ * `@capacitor/push-notifications` instead of `PushManager`: there is no
+ * encryption keypair, no push-service endpoint, only a device token Apple
+ * hands back once registration succeeds. **Must be called from inside a
+ * tap**, for the same reason `subscribeToPush` must: `requestPermissions()`
+ * is what shows iOS's own permission dialog, once ever per install.
+ *
+ * The token is kept in `localStorage` so `unsubscribeNativePush` can tell
+ * the server which row to drop later — the shell has no equivalent of
+ * `pushManager.getSubscription()` to ask again.
+ */
+const NATIVE_TOKEN_KEY = (username: string) => `fs.push.apns.token.${username}`;
+
+export async function subscribeToNativePush(username: string): Promise<SubscribeResult> {
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    const permission = await PushNotifications.requestPermissions();
+    if (permission.receive === "denied") return "denied";
+    if (permission.receive !== "granted") return "dismissed";
+
+    const token = await new Promise<string>((resolve, reject) => {
+      let settled = false;
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        fn();
+      };
+      const asError = (err: unknown): Error => (err instanceof Error ? err : new Error(String(err)));
+      PushNotifications.addListener("registration", (t: { value: string }) => {
+        finish(() => resolve(t.value));
+      }).catch((err: unknown) => finish(() => reject(asError(err))));
+      PushNotifications.addListener("registrationError", (err: { error: string }) => {
+        finish(() => reject(new Error(err.error || "apns registration failed")));
+      }).catch((err: unknown) => finish(() => reject(asError(err))));
+      PushNotifications.register().catch((err: unknown) => finish(() => reject(asError(err))));
+    });
+
+    const res = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user: username, kind: "apns", token }),
+    });
+    if (!res.ok) {
+      console.warn("[fernscout] the server refused the apns subscription", res.status);
+      return "failed";
+    }
+    window.localStorage.setItem(NATIVE_TOKEN_KEY(username), token);
+    return "subscribed";
+  } catch (err) {
+    console.warn("[fernscout] subscribing to native push failed", err);
+    return "failed";
+  }
+}
+
+/** The stored token, if `subscribeToNativePush` ever ran on this device for
+ * this journal — nothing to remove server-side otherwise. */
+export async function unsubscribeNativePush(username: string): Promise<void> {
+  const token = window.localStorage.getItem(NATIVE_TOKEN_KEY(username));
+  if (!token) return;
+  await fetch("/api/push/subscribe", {
+    method: "DELETE",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ user: username, endpoint: token }),
+  }).catch(() => undefined);
+  window.localStorage.removeItem(NATIVE_TOKEN_KEY(username));
+}

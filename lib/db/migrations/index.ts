@@ -37,6 +37,7 @@ import * as signupInvites from "./035-signup-invites";
 import * as usageCacheTokens from "./036-usage-cache-tokens";
 import * as photobookDrafts from "./037-photobook-drafts";
 import * as contactPhone from "./038-contact-phone";
+import * as pushKind from "./039-push-kind";
 
 /**
  * Every migration, listed by hand.
@@ -89,6 +90,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "036-usage-cache-tokens": usageCacheTokens,
   "037-photobook-drafts": photobookDrafts,
   "038-contact-phone": contactPhone,
+  "039-push-kind": pushKind,
 };
 
 /**

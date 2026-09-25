@@ -5,13 +5,22 @@ import BusyButton from "@/components/BusyButton";
 import { Bell, BellOff, BellRing } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 import { useTrip } from "./TripProvider";
-import { subscribeToPush } from "./pushSubscribe";
+import { isNativeShell, useNativeShell } from "./nativeShell";
+import { subscribeToNativePush, subscribeToPush, unsubscribeNativePush } from "./pushSubscribe";
 
 /** iOS only allows Web Push from a PWA that's been added to the Home Screen —
  * there is no push at all in a normal Safari tab, however the page asks.
  * Exported for `PushInstallOnboarding`, which needs the same detection to
- * decide whether to show the install explainer at all — never on desktop. */
+ * decide whether to show the install explainer at all — never on desktop.
+ *
+ * Inside the iPhone shell (B2115) this is always `false`, install hint
+ * included: the shell is already the app, there is nothing to add to a Home
+ * Screen, and `@capacitor/push-notifications` needs none of Web Push's
+ * `PushManager` dance — the "add this page" sheet would be a lie here, not
+ * a shortcut. Checked first, before the `navigator.userAgent` sniff, so an
+ * iPhone running the shell never reaches it. */
 export function needsHomeScreenInstall() {
+  if (isNativeShell()) return false;
   const ua = navigator.userAgent;
   const isIOS =
     /iPad|iPhone|iPod/.test(ua) ||
@@ -97,6 +106,7 @@ export default function PushOptIn({
   // guessing one.
   const trip = useTrip();
   const username = journal ?? trip?.trip.username ?? null;
+  const native = useNativeShell();
   const [state, setState] = useState<State>("checking");
   const [publicKey, setPublicKey] = useState<string | null>(null);
 
@@ -106,6 +116,42 @@ export default function PushOptIn({
     const decide = async () => {
       if (!username) {
         if (!cancelled) setState("unsupported");
+        return;
+      }
+
+      // Inside the iPhone shell (B2115) there is no `PushManager` at all —
+      // notifications go through `@capacitor/push-notifications` instead,
+      // gated by its own capability (`applePush`, not `push`) so one being
+      // on server-side says nothing about the other. `needsHomeScreenInstall`
+      // already answers `false` here; this branch never reaches the Web
+      // Push code below it.
+      if (isNativeShell()) {
+        const res = await fetch(
+          `/api/push/subscribe?user=${encodeURIComponent(username)}&kind=apns`,
+        )
+          .then((r) => r.json())
+          .catch(() => null);
+        if (cancelled) return;
+        if (!res?.enabled) {
+          setState("unsupported");
+          return;
+        }
+        const { PushNotifications } = await import("@capacitor/push-notifications");
+        const { receive } = await PushNotifications.checkPermissions();
+        if (cancelled) return;
+        if (receive === "denied") {
+          setState("blocked");
+          return;
+        }
+        if (receive === "granted") {
+          // Already answered, at some earlier launch — re-register silently
+          // to keep the server's token fresh. iOS shows the system dialog
+          // at most once ever per install, so this never prompts.
+          subscribeToNativePush(username).catch(() => undefined);
+          setState("on");
+          return;
+        }
+        setState("off");
         return;
       }
 
@@ -193,8 +239,26 @@ export default function PushOptIn({
   }, [username]);
 
   const enable = useCallback(async () => {
-    if (!publicKey || !username) return;
+    if (!username) return;
     setState("working");
+    // The one place `PushNotifications.requestPermissions()` — and, on the
+    // web, `Notification.requestPermission()` — may be called: inside a tap,
+    // never on mount or from an effect. Same rule, same reason, on both
+    // sides of `isNativeShell()`.
+    if (isNativeShell()) {
+      const result = await subscribeToNativePush(username);
+      setState(
+        result === "subscribed"
+          ? "on"
+          : result === "denied"
+            ? "blocked"
+            : result === "dismissed"
+              ? "off"
+              : "failed",
+      );
+      return;
+    }
+    if (!publicKey) return;
     // Through the shared module, which is also what `PushPrompt` presses —
     // B440. Two copies of the VAPID dance is how one of them ends up passing
     // the key in the wrong encoding, or forgetting that the permission request
@@ -216,6 +280,11 @@ export default function PushOptIn({
   const disable = useCallback(async () => {
     if (!username) return;
     setState("working");
+    if (isNativeShell()) {
+      await unsubscribeNativePush(username).catch(() => undefined);
+      setState("off");
+      return;
+    }
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
@@ -260,6 +329,12 @@ export default function PushOptIn({
   // again cannot work until they do — B446. The heading stays for these: they
   // are the answer to "why can I not turn this on", which is a question the
   // heading is what makes somebody ask.
+  //
+  // `needs-install` and `unavailable` never happen inside the shell
+  // (`needsHomeScreenInstall` answers false there, and a plugin failure is
+  // `failed`, not `unavailable`) — only `blocked`'s copy needs a shell
+  // version, since "your browser settings" is not where an iPhone's own
+  // notification permission lives.
   if (
     state === "needs-install" ||
     state === "blocked" ||
@@ -271,7 +346,9 @@ export default function PushOptIn({
           state === "needs-install"
             ? "push.iosInstall"
             : state === "blocked"
-              ? "push.blocked"
+              ? native
+                ? "push.blockedNative"
+                : "push.blocked"
               : "push.unavailable",
         )}
       </p>,

@@ -19,6 +19,13 @@ export const FEATURE_NAMES = [
   "reactions",
   "costs",
   "push",
+  // B2115. The iPhone shell's own transport: a `PushManager` subscription
+  // needs a browser, which the shell's WKWebView is not, so a device
+  // registered with Apple directly is a separate capability rather than a
+  // second shape `push` quietly grew. Same operator-only posture as `push`
+  // — see OPERATOR_ONLY_FEATURES below — for the same reason: a reader
+  // subscribes a device, a journal has nothing to opt into.
+  "applePush",
   "mail",
   "whatsapp",
   // B1057. Deliberately separate from `whatsapp` above, which means
@@ -147,6 +154,8 @@ export const OPERATOR_ONLY_FEATURES = [
   // write any of them.
   "reactions",
   "push",
+  // B2115. Same reasoning as `push` immediately above.
+  "applePush",
   "auth",
   "signup",
   "contacts",
@@ -500,6 +509,10 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   reactions: { enabled: true },
   costs: { enabled: true },
   push: { enabled: false },
+  // B2115. `dry-run` writes the payload under <dataDir>/apns/, so this
+  // develops and tests with no Apple developer account — see
+  // lib/push/apns.ts.
+  applePush: { enabled: false, backend: "dry-run" },
   mail: { enabled: false, transport: "file" },
   // Announcements only, and off by default like every optional capability.
   // `dry-run` writes the payload it would have sent, so the whole feature

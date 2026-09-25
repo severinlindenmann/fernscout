@@ -39,6 +39,10 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
   reactions: { env: [], db: false },
   costs: { env: [], db: false },
   push: { env: ["VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT"], db: false },
+  // B2115. Backend-specific, like whatsapp/sms/transcription above:
+  // `dry-run` needs nothing, which is what keeps the iPhone shell's push
+  // developable with no Apple developer account. See APNS_BACKEND_ENV.
+  applePush: { env: [], db: false },
   mail: { env: [], db: false }, // transport-specific; see mailRequirements()
   // Backend-specific, the same way mail is: `dry-run` needs nothing, which
   // is what keeps this developable with no Meta account at all.
@@ -229,6 +233,18 @@ const SPEECH_BACKEND_ENV: Record<string, readonly string[]> = {
   deepgram: ["DEEPGRAM_API_KEY"],
 };
 
+/**
+ * What each APNs backend needs — B2115. `apns` needs the provider key triple
+ * (`APNS_TOPIC`/`APNS_ENVIRONMENT` have defaults — see lib/push/apns.ts —
+ * so they are not requirements) plus `push`'s own database-free posture:
+ * subscriptions themselves live wherever `push`'s already do, and this
+ * capability only decides whether a *send* reaches Apple for real.
+ */
+const APNS_BACKEND_ENV: Record<string, readonly string[]> = {
+  "dry-run": [],
+  apns: ["APNS_KEY_ID", "APNS_TEAM_ID", "APNS_KEY"],
+};
+
 const PROVIDER_ENV: Record<string, readonly string[]> = {
   "dry-run": [],
   stannp: ["STANNP_API_KEY"],
@@ -334,6 +350,20 @@ function paymentProviderNote(name: FeatureName): string | undefined {
  * actually in use here is what lets an operator catch a wrong guess without
  * reading `lib/addressLookup.ts`.
  */
+/**
+ * B2115. Same shape as `dryRunNote`, one capability over: `enabled: true`
+ * alone does not say whether a send actually reaches Apple, and
+ * `/api/health` is where an operator finds out rather than discovering it
+ * the first time an invite never buzzes a phone.
+ */
+function applePushNote(name: FeatureName, feature: Record<string, unknown>): string | undefined {
+  if (name !== "applePush") return undefined;
+  const backend = optionOf(feature, "backend") ?? "dry-run";
+  return backend === "dry-run"
+    ? 'features.applePush.backend is "dry-run" — the payload is written under <dataDir>/apns/ and nothing reaches a phone'
+    : "features.applePush.backend is \"apns\" — notifications are sent to Apple for real";
+}
+
 function addressLookupNote(name: FeatureName): string | undefined {
   if (name !== "addressLookup") return undefined;
   return `reverse lookups are sent to ${addressLookupEndpoints().reverseUrl}`;
@@ -471,6 +501,17 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
       return {
         env: [],
         problem: `features.transcription.backend "${backend}" is unknown (expected one of: ${Object.keys(SPEECH_BACKEND_ENV).join(", ")})`,
+      };
+    }
+    return { env };
+  }
+  if (name === "applePush") {
+    const backend = optionOf(feature, "backend") ?? "dry-run";
+    const env = APNS_BACKEND_ENV[backend];
+    if (!env) {
+      return {
+        env: [],
+        problem: `features.applePush.backend "${backend}" is unknown (expected one of: ${Object.keys(APNS_BACKEND_ENV).join(", ")})`,
       };
     }
     return { env };
@@ -632,6 +673,7 @@ function resolveOne(name: FeatureName, username?: string): CapabilityState {
   }
   const note =
     dryRunNote(name, feature) ??
+    applePushNote(name, feature) ??
     addressLookupNote(name) ??
     paymentProviderNote(name) ??
     signupNote(name, feature) ??
