@@ -64,9 +64,14 @@ const plexMono = IBM_Plex_Mono({
   preload: false,
 });
 
-// B1044 — weight 500 is the rare one: nothing in the shipped UI currently
-// pairs font-mono with font-medium, so preloading it on every page bought
-// nothing. Kept declared rather than dropped, in case that changes.
+// B1044 — weight 500 is the rare one, so it is not preloaded. It is used,
+// though, and not through its own variable: both instances emit their faces
+// under the one family name "IBM Plex Mono", so the 500 faces join the 400
+// ones in a single family, and every `font-mono` paired with `font-medium`,
+// `font-semibold` or `font-bold` (studio kickers, admin pills, the docs'
+// endpoint names) is drawn from this file — the nearest real weight the family
+// has. Dropping it would not fail anything; it would quietly swap those labels
+// for a synthesised bold of the 400.
 const plexMonoMedium = IBM_Plex_Mono({
   variable: "--font-plex-mono-medium",
   subsets: ["latin"],
