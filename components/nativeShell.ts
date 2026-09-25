@@ -323,3 +323,18 @@ export async function refreshGpsToken(username: string): Promise<{ token: string
   await LocationRecorder.setToken(minted);
   return minted;
 }
+
+/**
+ * The iPhone app's own version, as its `Info.plist` states it — or nothing
+ * outside the shell. `ViewController.swift` writes `window.FernscoutApp`
+ * before any page script runs; the Capacitor bridge itself carries no
+ * version, and a plugin round trip is more than one pair of strings needs.
+ */
+export type NativeAppVersion = { version: string; build: string };
+
+export function nativeAppVersion(): NativeAppVersion | undefined {
+  if (!isNativeShell()) return undefined;
+  const app = (window as unknown as { FernscoutApp?: Partial<NativeAppVersion> }).FernscoutApp;
+  if (typeof app?.version !== "string" || app.version === "") return undefined;
+  return { version: app.version, build: typeof app.build === "string" ? app.build : "" };
+}
