@@ -57,6 +57,9 @@ export type AdminContact = {
   /** B2291 — the mobile number as typed, when there is one. Optional so a
    * fixture built before the rebuild still satisfies the type. */
   phone?: string | null;
+  /** B2294 — when an SMS code proved that number: a request whose number is
+   * proved is the owner's to answer, like a confirmed address. */
+  phoneProvenAt?: string | null;
   /** B2292 — the last channel the owner told them on, and when. */
   invitedVia?: string | null;
   invitedAt?: string | null;

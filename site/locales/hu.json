@@ -654,7 +654,7 @@
   "contact.adminViaImport": "Egy névjegyből vetted fel",
   "contact.adminViaInvite": "Egy meghívólink, amely már nem szerepel a listán",
   "contact.adminViaOpen": "A nyílt jelentkezési űrlap, mielőtt megszűnt",
-  "contact.adminViaOwner": "Ő vezeti ezt a naplót",
+  "contact.adminViaOwner": "Te adtad hozzá",
   "contact.adminViaSelf": "Ez te vagy",
   "contact.adminViaTraveller": "Maga iratkozott fel, az egyik utad útitársaként",
   "contact.adminWaitingOnThem": "Rájuk vár",

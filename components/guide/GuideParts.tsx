@@ -44,7 +44,7 @@ export function Screen({
 
 export function Heading({ id, children, big = false }: { id: string; children: ReactNode; big?: boolean }) {
   return (
-    <h1 id={id} tabIndex={-1} className={`font-display font-semibold leading-tight text-ink-strong outline-none ${big ? "text-3xl" : "text-2xl"}`}>
+    <h1 id={id} tabIndex={-1} className={`quiet-inner-focus font-display font-semibold leading-tight text-ink-strong ${big ? "text-3xl" : "text-2xl"}`}>
       {children}
     </h1>
   );

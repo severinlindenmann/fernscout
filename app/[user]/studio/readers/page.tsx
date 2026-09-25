@@ -8,6 +8,7 @@ import { isEnabled } from "@/lib/capabilities";
 import { contactsWithReadGrant } from "@/lib/grants";
 import { deviceCountByContact } from "@/lib/push";
 import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
+import { contactKey } from "@/lib/contacts";
 import { pickLocale } from "@/lib/contacts/locale";
 import { withJoinUrls } from "@/lib/contacts/welcome";
 import { relationshipsFor } from "@/lib/contacts/relationships";
@@ -163,13 +164,14 @@ export default async function ContactsAdminPage({
     confirmedAt: contact.confirmedAt,
     lastSeenAt: contact.lastSeenAt,
     relationship: relationshipsFor(
-      contact.email,
+      contactKey(contact),
       ownEmail,
       tripMemberships,
       contact.status === "active" && liveGrants.has(contact.id),
     ),
     pendingTrips: (pendingTripIds.get(contact.id) ?? []).map(tripTitle),
     phone: contact.phone,
+    phoneProvenAt: contact.phoneProvenAt,
     invitedVia: contact.invitedVia,
     invitedAt: contact.invitedAt,
     welcomeOpenedAt: contact.welcomeOpenedAt,

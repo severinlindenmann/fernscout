@@ -151,6 +151,12 @@ describe("the page: two doors, then the groups", () => {
     expect(details?.textContent).toContain("Gus Gone");
   });
 
+  test("a request that proved a mobile number is the owner's to answer, not an unopened invite", () => {
+    render([{ ...otto, id: "c-moe", name: "Moe Mobile", email: "", phone: "+41 78 123 45 67", confirmedAt: null, phoneProvenAt: "2026-09-25T06:00:00Z", createdVia: "invite:inv-1" }]);
+    expect(groupOf("Moe Mobile")).toBe(dict["contact.adminPending"]);
+    expect(container!.textContent).toContain(dict["readers.line.mobileConfirmed"]);
+  });
+
   test("role pills: Reader, or Buddy of the trip", () => {
     render([ida, bea]);
     expect(container!.textContent).toContain("Ida Reader" + dict["readers.role.reader"]);

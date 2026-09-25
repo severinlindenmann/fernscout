@@ -1608,6 +1608,16 @@ function noEmailKey(id: string): string {
 }
 
 /**
+ * The key a contact is stored under — its address, or for a phone-only
+ * contact the placeholder above. What `peopleOf` answers with, so a caller
+ * matching a contact against a trip's people must match on this, not on
+ * `email` (B2291: a buddy added by mobile only read as a reader).
+ */
+export function contactKey(contact: { id: string; email: string }): string {
+  return contact.email ? normaliseEmail(contact.email) : noEmailKey(contact.id);
+}
+
+/**
  * An SMS code just proved this number — stamp it on the contact it belongs
  * to (B2294). Leaves an earlier stamp alone, like `confirmed_at`.
  */
