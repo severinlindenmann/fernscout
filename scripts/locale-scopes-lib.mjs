@@ -88,6 +88,12 @@ export const SCOPES = {
   legal: { files: ["app/legal/page.tsx"] },
   // `/<user>/c/<token>` in the contact's own language rather than the reader's.
   contactPage: { files: ["app/[user]/c/[token]/page.tsx"] },
+  // The welcome guide and the join flow — B2293: the first page a stranger
+  // holding a link loads, on a phone, so a few dozen strings.
+  guide: {
+    files: ["app/w/[code]/WelcomeGuide.tsx", "app/j/[code]/JoinFlow.tsx"],
+    at: ["app/w/[code]/page.tsx", "app/j/[code]/page.tsx"],
+  },
   // Components that translate from a `dictionary`/`dictionaries` prop.
   contactManage: { files: ["components/ContactManage.tsx"], at: ["app/[user]/me/page.tsx"] },
   readersAdmin: { files: ["components/studio/readers/ReadersAdmin.tsx"], at: ["app/[user]/studio/readers/page.tsx"] },

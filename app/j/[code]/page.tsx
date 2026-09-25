@@ -5,7 +5,7 @@ import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
 import { isJournalGuest, isOwner, journalReader } from "@/lib/contacts/session";
 import { maskEmail, ownerShortName, resolveJoinCode } from "@/lib/contacts/welcome";
-import { guideWords, requestLocale, translateIn } from "@/lib/locales";
+import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
 import { subjectPhone } from "@/lib/phone";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -80,7 +80,7 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
           whatsapp: isEnabled("whatsapp") && !hasSwitchedOff("whatsapp", owner),
           postcards: isEnabled("postcards", owner),
         }}
-        dictionary={guideWords(locale)}
+        dictionary={dictionaryFor(locale, "guide")}
         locale={locale}
       />
     </main>

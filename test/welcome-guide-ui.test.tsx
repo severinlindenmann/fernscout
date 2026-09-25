@@ -4,7 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import WelcomeGuide, { type GuideProps } from "@/app/w/[code]/WelcomeGuide";
 import JoinFlow from "@/app/j/[code]/JoinFlow";
-import { guideWords } from "@/lib/locales";
+import { dictionaryFor } from "@/lib/locales";
 
 /**
  * B2293 — the guide's screens as a person steps through them: which screens
@@ -15,7 +15,7 @@ import { guideWords } from "@/lib/locales";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
-const dict = guideWords("en");
+const dict = dictionaryFor("en", "guide");
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 afterEach(() => {
