@@ -2700,7 +2700,6 @@
   "story.dayFailed": "This day couldn’t be loaded. Check your connection, then go back a day and forward again.",
   "story.dayLoading": "Fetching this day…",
   "story.empty": "No entries yet.",
-  "story.emptyOwner.title": "No days yet",
   "story.emptyOwner.body": "This trip has no days yet. Start one in your studio — photographs, a few words, and it waits as a draft until you publish it.",
   "story.emptyOwner.cta": "Add your first day",
   "story.tripEnd": "That's the whole trip.",

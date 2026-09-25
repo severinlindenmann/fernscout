@@ -400,7 +400,8 @@ export default function TripStory({
           // The owner's own empty trip: point at the one thing to do next,
           // the studio's add-day flow with this trip already chosen.
           <div className="mx-auto max-w-xl px-4 py-16 text-center sm:px-6">
-            <h2 className="text-2xl font-semibold text-ink-strong">{t("story.emptyOwner.title")}</h2>
+            {/* The trip's name: on a phone the header shows only the journal. */}
+            <h1 className="text-2xl font-semibold text-ink-strong">{localizedTrip(trip.trip).title}</h1>
             <p className="mt-3 text-ink-secondary">{t("story.emptyOwner.body")}</p>
             <Link
               href={`/${encodeURIComponent(trip.trip.username)}/studio/day/new?trip=${encodeURIComponent(trip.trip.id)}`}

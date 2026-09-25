@@ -2581,7 +2581,6 @@ export type TranslationKey =
   | "story.empty"
   | "story.emptyOwner.body"
   | "story.emptyOwner.cta"
-  | "story.emptyOwner.title"
   | "story.tripEnd"
   | "studio.date.dayOfTrip"
   | "studio.date.invalid"
