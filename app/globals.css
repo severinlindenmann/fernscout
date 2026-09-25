@@ -1253,3 +1253,80 @@ select:disabled {
     font-size: max(16px, 1em) !important;
   }
 }
+
+/*
+ * B2326 — the reader's push. Overview to a day slides the day in from the
+ * right over the overview, which drifts 28% left under a 14% shade; back is
+ * the same run reversed. `moveTo` in app/TripStory.tsx starts the view
+ * transition and says which way on <html data-page-nav>. Only the story
+ * column moves; the header and sidebar crossfade with the root as usual.
+ * A browser without view transitions never gets here and keeps the cut.
+ */
+.fs-story-page {
+  view-transition-name: story-page;
+}
+::view-transition-image-pair(story-page) {
+  overflow: clip;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-page-nav]::view-transition-group(story-page),
+  :root[data-page-nav]::view-transition-old(story-page),
+  :root[data-page-nav]::view-transition-new(story-page) {
+    animation-duration: 380ms;
+    animation-timing-function: var(--ease-ios, cubic-bezier(0.32, 0.72, 0, 1));
+    mix-blend-mode: normal;
+  }
+  :root[data-page-nav="forward"]::view-transition-old(story-page) {
+    animation-name: fs-push-under;
+  }
+  :root[data-page-nav="forward"]::view-transition-new(story-page) {
+    animation-name: fs-push-in;
+  }
+  /* Back has its own keyframes rather than `animation-direction: reverse`,
+     which would flip the curve too and make the pop start slowly. */
+  :root[data-page-nav="back"]::view-transition-old(story-page) {
+    animation-name: fs-pop-out;
+    z-index: 1;
+  }
+  :root[data-page-nav="back"]::view-transition-new(story-page) {
+    animation-name: fs-pop-under;
+  }
+  /* The header and sidebar change as they always did, at once: the scroll
+     jump back to the top would otherwise ghost them in a crossfade. */
+  :root[data-page-nav]::view-transition-old(root),
+  :root[data-page-nav]::view-transition-new(root) {
+    animation: none;
+  }
+}
+@keyframes fs-push-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes fs-push-under {
+  to {
+    transform: translateX(-28%);
+    filter: brightness(0.86);
+  }
+}
+@keyframes fs-pop-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes fs-pop-under {
+  from {
+    transform: translateX(-28%);
+    filter: brightness(0.86);
+  }
+}
+/* Reduced motion: no slide, a 200ms crossfade of the whole page. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation: none;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 200ms;
+  }
+}
