@@ -17,7 +17,6 @@ import {
   derivePlan,
   exemptSingleLocaleTranslations,
   reconcileVisibility,
-  retractAnsweredDeclines,
   retractDeclines,
   stripEchoedFields,
   stripInjectedTranslations,
@@ -38,7 +37,7 @@ import { serverSite } from "@/lib/site";
 import { readTripFile, tripFileUnknownKeys, writeTripFile, writeDayFile } from "@/lib/api/v2/store";
 import { toStoredMedia } from "@/lib/api/v2/days";
 import { daylessTripMediaSrcs } from "@/lib/api/v2/media";
-import { buildTripDoc, notifyNewPeople, tripDays } from "@/lib/api/v2/trips";
+import { buildTripDoc, tripDays } from "@/lib/api/v2/trips";
 import type { TripFile } from "@/lib/api/v2/documents";
 import { DELETION_TTL_MINUTES, humanBytes, requestDeletion } from "@/lib/deletions";
 import { tripTombstone } from "@/lib/tombstones";
@@ -280,7 +279,6 @@ export async function PUT(request: Request, { params }: RouteCtx) {
     return ok(preview, { etag: etagFor(preview) });
   }
 
-  const before = stored?.people.map((p) => p.email) ?? [];
   writeTripFile(user, trip, toWrite);
 
   // Days supplied inline at CREATE (the trip's own `days` declinable,
@@ -296,10 +294,7 @@ export async function PUT(request: Request, { params }: RouteCtx) {
     }
   }
 
-  const notifications = await notifyNewPeople(user, toWrite.title, toWrite.people, before);
-
   const echo = buildTripDoc(user, trip, toWrite, "full");
-  const withNotifications = notifications.length > 0 ? { ...(echo as Record<string, unknown>), notifications } : echo;
   // A create tells the agent where the next step is written down — B311's
   // chain, journal → trip → day → photos. v1's own create routes carried this
   // and v2's did not, so an agent that had just made its first trip was left
@@ -307,9 +302,9 @@ export async function PUT(request: Request, { params }: RouteCtx) {
   // for anybody not standing in this checkout. Only on a create: a correction
   // is not somebody's first time. B1621.
   const echoBody = stored
-    ? withNotifications
+    ? echo
     : {
-        ...withNotifications,
+        ...(echo as Record<string, unknown>),
         next:
           `PUT /api/v2/${user}/trips/${trip}/days/<slug> to write the first day — ` +
           `${serverSite().url}${skillDocPath("add-a-day")} is what it takes.`,
@@ -458,15 +453,12 @@ export async function applyTripPatch(
   // look like a silent omission instead of a deliberate swap.
   applyNullClears(merged);
 
-  // B1616 — two dead ends this merge alone cannot avoid. `buddies` has no
-  // real field of its own for T6 above to key on, so a solo trip's
-  // `declined.buddies` survives a patch that grows `people` past one unless
-  // something else notices; and a stored `listed`/`teaser` survives a patch
-  // that moves `visibility` across the public/closed line, because merge-
-  // patch has no way to un-send a key by omitting it. Both belong here,
-  // after the merge (this is the first point the route holds old-and-new
-  // together) and before `tripCreate` revalidates the result.
-  retractAnsweredDeclines(merged, patch);
+  // B1616 — a dead end this merge alone cannot avoid: a stored
+  // `listed`/`teaser` survives a patch that moves `visibility` across the
+  // public/closed line, because merge-patch has no way to un-send a key by
+  // omitting it. Belongs here, after the merge (this is the first point the
+  // route holds old-and-new together) and before `tripCreate` revalidates
+  // the result.
   reconcileVisibility(merged, patch);
 
   /**
@@ -579,13 +571,10 @@ export async function applyTripPatch(
     return ok(preview, { etag: etagFor(preview) });
   }
 
-  const before = stored.people.map((p) => p.email);
   writeTripFile(user, trip, toWrite);
-  const notifications = await notifyNewPeople(user, toWrite.title, toWrite.people, before);
 
   const echo = buildTripDoc(user, trip, toWrite, "full");
-  const withNotifications = notifications.length > 0 ? { ...(echo as Record<string, unknown>), notifications } : echo;
-  return ok(withNotifications, { etag: etagFor(echo) });
+  return ok(echo, { etag: etagFor(echo) });
 }
 
 /**

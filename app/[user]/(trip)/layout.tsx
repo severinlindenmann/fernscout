@@ -31,9 +31,9 @@ export default async function TripPagesLayout({
       <TripGate
         username={username}
         journalTitle={getUser(username)?.title ?? username}
+        ownerName={getUser(username)?.owner?.nickname?.trim() || getUser(username)?.title || username}
         signedInAs={await signedInAs(username)}
         canSignIn={isEnabled("auth", username)}
-        canAsk={isEnabled("contacts", username)}
         codeMinutes={CODE_TTL_MINUTES}
         whatsappSignIn={await whatsappSignInOffered(username)}
         guestBlockedByPrivate={await guestBlockedByPrivateTrip(current)}

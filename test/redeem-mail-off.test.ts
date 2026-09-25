@@ -18,10 +18,6 @@ import { writeTripFixture } from "./fixtures/content";
  * `issueCode` consumes every live code for an address before writing a new one
  * — a working code taken away to make it.
  *
- * `/api/contacts/request` is deliberately untouched and is asserted here to be
- * untouched: its uniform 202 is what stops it being an oracle for "is this
- * link still live" (B159), and a refusal there would put the oracle back in
- * the status line.
  */
 
 /** No session: this is somebody following a link who has never been here. */
@@ -261,34 +257,7 @@ describe("with mail on again", () => {
   });
 });
 
-/**
- * B205 says this route is not its business and says why: its 202 is uniform by
- * construction (B159), so a refusal here would re-time the endpoint and give
- * back the oracle that was taken away. Asserted rather than left as a note,
- * because "we did not touch it" is not something a diff can say a year later.
- */
-describe("/api/contacts/request, which this task does not touch", () => {
-  async function ask(body: Record<string, unknown>) {
-    const { POST } = await import("@/app/api/contacts/request/route");
-    const response = await POST(
-      new Request("https://example.test/api/contacts/request", {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ user: OWNER, ...body }),
-      }),
-    );
-    return { status: response.status, body: (await response.json()) as { status?: string } };
-  }
-
-  test("answers the same 202 for a live token and a dead one, with mail off", async () => {
-    const { createInvite } = await import("@/lib/contacts/invites");
-    const { token } = await createInvite(OWNER, { kind: "personal", name: "Oma" });
-
-    const live = await ask({ invite: token, name: "Oma", email: "queue-live@example.test" });
-    const dead = await ask({ invite: "not-a-token", name: "Oma", email: "queue-dead@example.test" });
-
-    expect(live.status).toBe(202);
-    expect(live.body).toEqual({ status: "accepted" });
-    expect(dead).toEqual(live);
-  });
-});
+// `describe("/api/contacts/request, which this task does not touch", …)`
+// used to live here — B2295 (one door for readers, B2291) removed that route
+// along with the guestbook it served, so there is nothing left to assert
+// "untouched".

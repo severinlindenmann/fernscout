@@ -73,11 +73,12 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
     const contact = (await listContacts(user)).find(
       (c) => c.email === normaliseEmail(viewer.email!),
     );
-    // A person named in a trip's own `people:` block has write access and,
-    // unlike somebody who redeemed a buddy link, no contacts row to have
-    // earned it — `isPersonOnWith` is satisfied by the file alone. B1395:
-    // without this they had nowhere on the page to give or correct an
-    // address at all. See `app/api/contacts/self/route.ts`.
+    // Before D3 (B2297), a person named in a trip's own `people:` block had
+    // write access and no contacts row to have earned it — B1395 gave them
+    // this form anyway. Since D3, `through === "traveller"` means a granted
+    // `trip_people` place, which always already has a row, so this arm no
+    // longer has a real case to cover; see `app/api/contacts/self/route.ts`
+    // for the fuller account and why it is kept rather than removed.
     const isTraveller = viewer.trips.some((trip) => trip.through === "traveller");
     if (contact || isTraveller) {
       // The reader's own UI language, not the one on the contact record —

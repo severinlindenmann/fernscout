@@ -491,6 +491,15 @@ export type CostConfig = {
    * 24-hour-window rule and are never priced.
    */
   whatsappPerMessageRappen: Record<string, number>;
+  /**
+   * The operator's alert line for metered spend, in rappen per day. `0` (and
+   * absent) means no line: nothing is drawn on `/admin`'s chart and the
+   * nightly check in `scripts/spend-alert.mts` mails nobody. When set, a day
+   * whose metered spend went over it mails the instance operator once, the
+   * next night — a measured figure against the operator's own number, never
+   * a forecast.
+   */
+  alertDailyRappen: number;
 };
 
 type FeatureConfig = {
@@ -1072,6 +1081,7 @@ function parseCosts(raw: unknown, problems: string[]): CostConfig {
     transcriptionPerThousandMinutesRappen: 0,
     fixedMonthly: [],
     whatsappPerMessageRappen: {},
+    alertDailyRappen: 0,
   };
   if (raw === undefined || raw === null) return empty;
   if (typeof raw !== "object" || Array.isArray(raw)) {
@@ -1148,6 +1158,7 @@ function parseCosts(raw: unknown, problems: string[]): CostConfig {
     ),
     fixedMonthly,
     whatsappPerMessageRappen,
+    alertDailyRappen: rappen(src.alertDailyRappen, "costs.alertDailyRappen", problems),
   };
 }
 

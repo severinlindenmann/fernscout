@@ -671,6 +671,9 @@ type AdminAcksTable = {
   /** "fixed" when the entry stopped appearing, "unhidden" when the operator
    *  brought it back. Empty while the row is still holding. */
   ended_why: Generated<string>;
+  /** When a snooze stops holding. Null for a plain acknowledgement,
+   *  which holds until the entry gets worse or goes away. */
+  until: string | null;
 };
 
 /**

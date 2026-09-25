@@ -70,7 +70,6 @@ function fullTrip(id: string, overrides: Record<string, unknown> = {}): Record<s
       figures: "no walking figures drawn for this trip",
       tagline: "no one-line subtitle written for this trip",
       intro: "no opening prose written for this trip yet",
-      buddies: "travelling solo, nobody else was on this trip",
     },
     ...overrides,
   };
@@ -220,13 +219,15 @@ describe("PUT /api/v2/{user}/trips/{trip} — the 422 incomplete body", () => {
 
     const missing = (body.details as { missing?: { field: string; to_decline: string }[] })?.missing ?? [];
     const fields = missing.map((m) => m.field).sort();
-    // Every declinable section this trip left open, PLUS the buddies question
-    // (solo trip, buddies neither supplied nor declined). NOT translations —
+    // Every declinable section this trip left open. NOT translations —
     // OWNER's journal has one locale, so that question is exempt (B1667).
+    // NOT buddies either any more — B2297 (one door for readers,
+    // B2291/B2295) removed that required-or-declined question entirely:
+    // `people:` is the byline only, and whether somebody may write to a
+    // trip is never asked at trip-creation time.
     expect(fields).toEqual(
       [
         "accent",
-        "buddies",
         "costs",
         "days",
         "figures",
@@ -238,24 +239,10 @@ describe("PUT /api/v2/{user}/trips/{trip} — the 422 incomplete body", () => {
     );
 
     // The invariant this ticket exists to catch: every row's `to_decline`
-    // names ITS OWN field — the buddies row used to say `field: "people"`
-    // while telling a caller to send `declined.buddies`.
+    // names ITS OWN field.
     for (const row of missing) {
       expect(row.to_decline, JSON.stringify(row)).toBe(`declined.${row.field}: <reason>`);
     }
-
-    // B1649 — `buddies` names no property of a trip at all (a buddy is
-    // added through POST .../invites), so its row must point AT that door
-    // rather than leave `to_provide` looking the same as every field a
-    // caller really can answer inline.
-    const buddiesRow = missing.find((m) => m.field === "buddies") as
-      | { to_provide?: { method?: string; path?: string; body?: Record<string, unknown> } }
-      | undefined;
-    expect(buddiesRow?.to_provide).toEqual({
-      method: "POST",
-      path: "/api/v2/{user}/invites",
-      body: { kind: "buddy", trip: "<this trip's id>", name: "<full name>", email: "<email>" },
-    });
   });
 });
 
@@ -902,7 +889,6 @@ describe("PATCH /api/v2/{user}/trips/{trip} — null clears a scalar back to abs
           days: "no days written for this trip at create time",
           translations: "single-language journal, nothing to translate",
           figures: "no walking figures drawn for this trip",
-          buddies: "travelling solo, nobody else was on this trip",
         },
       }),
       token,

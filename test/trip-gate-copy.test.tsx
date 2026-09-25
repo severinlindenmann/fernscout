@@ -37,7 +37,6 @@ function render(
   over: {
     signedInAs?: string | null;
     canSignIn?: boolean;
-    canAsk?: boolean;
     locale?: string;
     guestBlockedByPrivate?: boolean;
     waiting?: boolean;
@@ -49,9 +48,9 @@ function render(
       <TripGate
         username="alex"
         journalTitle="Alex's journal"
+        ownerName="Alex"
         signedInAs={over.signedInAs ?? null}
         canSignIn={over.canSignIn ?? true}
-        canAsk={over.canAsk ?? true}
         codeMinutes={CODE_TTL_MINUTES}
         guestBlockedByPrivate={over.guestBlockedByPrivate ?? false}
         waiting={over.waiting ?? false}
@@ -121,16 +120,13 @@ describe("a reader who is signed in and still refused", () => {
     expect(html).toContain("/alex");
   });
 
-  /** B601. The sentence told them to go and find the owner; this is the
-   * something to press. */
-  test("can ask to be let in from the page they are standing on", () => {
-    expect(html).toContain("ask-name");
-  });
-
-  /** A capability that is off is absent rather than broken: without contacts
-   * there is no queue for the request to land in, so there is no button. */
-  test("is not offered the button when this journal keeps no contacts", () => {
-    expect(render({ signedInAs: "oma@example.test", canAsk: false })).not.toContain("ask-name");
+  /** B2295 — there used to be a form here ("ask to be let in"). The owner
+   * decided `/<user>/studio/readers` is the only place a person is let in, so
+   * this is now a sentence naming them, and nothing to press. */
+  test("is told the trip is private and to ask the owner for an invite, with no form", () => {
+    expect(html).toMatch(/ask Alex for an invite/i);
+    expect(html).not.toContain("ask-name");
+    expect(html).not.toContain("<form");
   });
 });
 
