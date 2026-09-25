@@ -1038,6 +1038,19 @@ can change `backup.state` or fire an alert, on purpose (B651, B655) — a copy
 destination is only worth adding once it cannot itself become the thing
 that pages somebody every night.
 
+`/admin` (Instance) draws the last fourteen nights of both destinations as a
+row of squares, from `$DATA_DIR/.backup-history` — one line per outcome,
+`<ISO> <primary|secondary> <ok|failed>`, appended by `scripts/backup.sh` and
+`scripts/alert.sh` and trimmed to its newest 400 lines. It is a record for
+the page, not a source of truth: `/api/health` still reads the stamps. A night
+with no line reads "nothing recorded", which is also what every night before
+the file existed reads.
+
+The same nightly run checks yesterday's metered spend against
+`costs.alertDailyRappen` in the server config (`npm run spend:alert`,
+`lib/spendAlert.ts`) and mails the operator once if the day went over it.
+Absent or `0` means no line and no mail; `-- --dry-run` prints what it would do.
+
 A failure also *arrives*: `OnFailure=` runs `scripts/alert.sh`, which writes
 `$DATA_DIR/.backup-last-failure` and mails the operator through the app's own
 transport. Rehearse it without breaking anything:

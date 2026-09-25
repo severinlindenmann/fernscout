@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { SERIES } from "./Charts";
 import { formatChf } from "@/lib/creditsFormat";
 import { OPERATION_LABEL } from "@/lib/operations";
@@ -14,10 +14,16 @@ import type { DailySpend } from "@/lib/instanceCosts";
  * leads to an action. Every usage row has carried the operation since B746;
  * this is that column, finally drawn.
  *
- * **The whole ninety days are sent once and the switch is client-side.** The
- * alternative is a round trip per press, and the data is a few hundred numbers
- * — smaller than the markup around it. It also means the switch cannot be a
- * moment where the page goes blank.
+ * **The period is the page's.** The 7 · 30 · 90 switch moved to the page's
+ * own header, where it sets every figure at once; the chart still receives
+ * the whole ninety days and draws the last `span` of them, so the colours
+ * below stay ranked over the same series whichever period is showing.
+ *
+ * **The alert line** is the operator's own `costs.alertDailyRappen`, drawn
+ * dashed across the bars when it is set. A day above it is one the nightly
+ * check mails about (`lib/spendAlert.ts`). When the line is above every bar,
+ * the scale stretches to show it rather than leaving it off the chart — a
+ * line you cannot see is a line you forget you set.
  *
  * **The colours are assigned over the ninety days, not over the visible range.**
  * Ranking within the visible period would repaint every bar when you press 7,
@@ -31,15 +37,21 @@ import type { DailySpend } from "@/lib/instanceCosts";
  * into a rounding error. The page states the floor beside the chart instead.
  */
 
-const WINDOWS = [7, 30, 90] as const;
-
 /** Beyond this many, the rest is one band. Five is what the ramp holds before
  *  two hues start looking alike at the width of a phone column. */
 const NAMED = 5;
 
-export default function SpendChart({ days }: { days: DailySpend[] }) {
-  const [span, setSpan] = useState<number>(30);
-
+export default function SpendChart({
+  days,
+  span = 30,
+  alertRappen = 0,
+}: {
+  days: DailySpend[];
+  /** How many of the most recent days to draw. */
+  span?: number;
+  /** The operator's alert line per day, or 0 for none. */
+  alertRappen?: number;
+}) {
   /** Which operations get their own hue, ranked over everything we hold. */
   const ranked = useMemo(() => {
     const total = new Map<string, number>();
@@ -55,31 +67,18 @@ export default function SpendChart({ days }: { days: DailySpend[] }) {
   }, [days]);
 
   const shown = days.slice(Math.max(days.length - span, 0));
-  const max = Math.max(...shown.map((day) => day.rappen), 1);
+  const peak = Math.max(...shown.map((day) => day.rappen), 1);
+  const max = alertRappen > 0 ? Math.max(peak, Math.round(alertRappen * 1.1)) : peak;
   const total = shown.reduce((sum, day) => sum + day.rappen, 0);
   const rest = ranked.length < new Set(days.flatMap((d) => d.parts.map((p) => p.operation))).size;
 
   return (
-    <section className="mt-8">
+    <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-lg font-semibold text-ink-strong">Metered spend, by day</h2>
-        <div role="group" aria-label="How many days" className="flex gap-1">
-          {WINDOWS.map((count) => (
-            <button
-              key={count}
-              type="button"
-              aria-pressed={span === count}
-              onClick={() => setSpan(count)}
-              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                span === count
-                  ? "border-action-strong bg-action-strong text-on-action"
-                  : "border-line-quiet bg-surface-raised text-ink-body hover:bg-surface-subtle"
-              }`}
-            >
-              {count}d
-            </button>
-          ))}
-        </div>
+        <span className="font-mono text-sm text-ink-body">
+          {total === 0 ? "" : `peak ${formatChf(peak)}`}
+        </span>
       </div>
 
       {total === 0 ? (
@@ -89,7 +88,18 @@ export default function SpendChart({ days }: { days: DailySpend[] }) {
         </p>
       ) : (
         <>
-          <div className="mt-3 flex h-28 items-end gap-px" role="img" aria-label="Spend per day">
+          <div className="relative mt-3 flex h-40 items-end gap-px" role="img" aria-label="Spend per day">
+            {alertRappen > 0 ? (
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-dashed border-coral-600"
+                style={{ bottom: `${(alertRappen / max) * 100}%` }}
+              >
+                <span className="absolute -top-5 right-0 bg-surface-raised px-1 font-mono text-[11px] text-coral-600">
+                  alert {formatChf(alertRappen)}/day
+                </span>
+              </div>
+            ) : null}
             {shown.map((day) => (
               <div
                 key={day.date}
