@@ -43,12 +43,14 @@ export function section(markdown: string, heading: string): string {
 }
 
 /**
- * The three reader guides — B445.
+ * The reader guides — B445, plus `gps` (B2343).
  *
  * Prose for people rather than for agents: what a guest can do, what an owner
- * decides, what somebody on a trip may write. Markdown files under
- * `docs/guides/<locale>/`, read at request time like everything else on this
- * page, so correcting a sentence is an edit rather than a release.
+ * decides, what somebody on a trip may write, and — since B2343 — exactly
+ * what this software does with a traveller's own location history. Markdown
+ * files under `docs/guides/<locale>/`, read at request time like everything
+ * else on this page, so correcting a sentence is an edit rather than a
+ * release.
  *
  * **Translated, unlike the rest of `/docs`.** The other pages here are for
  * somebody deciding whether to self-host or send a patch, and English is a
@@ -68,7 +70,7 @@ export function section(markdown: string, heading: string): string {
  * that no longer exists. Reported rather than worked around; only `extract`
  * was actually retired.
  */
-export const GUIDES = ["guest", "creator", "buddy"] as const;
+export const GUIDES = ["guest", "creator", "buddy", "gps"] as const;
 export type Guide = (typeof GUIDES)[number];
 
 export function isGuide(value: string): value is Guide {
@@ -139,6 +141,7 @@ export const DOCS_PAGES: readonly DocsPage[] = [
   { id: "guest", href: "/docs/guide/guest", labelKey: "guides.guest.title", group: "guides" },
   { id: "creator", href: "/docs/guide/creator", labelKey: "guides.creator.title", group: "guides" },
   { id: "buddy", href: "/docs/guide/buddy", labelKey: "guides.buddy.title", group: "guides" },
+  { id: "gps", href: "/docs/guide/gps", labelKey: "guides.gps.title", group: "guides" },
   { id: "hosting", href: "/docs/hosting", labelKey: "docs.hosting.title", group: "technical" },
   {
     id: "contributing",

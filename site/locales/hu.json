@@ -1346,6 +1346,8 @@
   "guides.creator.lede": "A saját útinaplód: hogyan írj bele ügynökön keresztül, ki mit lát, és hogyan engedj be másokat.",
   "guides.creator.title": "Naplótulajdonosoknak",
   "guides.guest.lede": "Valaki megosztott veled egy útinaplót: hogyan jelentkezz be, hogyan értesülj az új napokról, és hogyan javítsd az adataidat.",
+  "guides.gps.lede": "Hová kerül a helyadatod: mi kerül rögzítésre, mi jelenik meg nyilvánosan, mi nem hagyja el a saját mappádat, és hogyan exportálhatod vagy törölheted.",
+  "guides.gps.title": "Hová kerül a GPS-ed",
   "guides.guest.title": "Olvasóknak",
   "guides.inEnglish": "Ez az útmutató még nem érhető el a te nyelveden, ezért az angol változatot olvasod.",
   "guides.lede": "Embereknek írva, nem ügynököknek: mit tehetsz itt, attól függően, ki vagy.",
