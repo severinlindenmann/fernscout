@@ -97,6 +97,9 @@ export default async function TripDayPage({
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
     ...read,
+    // The window's prose is rendered here, in this reader's language — see
+    // lib/prose.ts.
+    locale: await requestLocale(),
   });
 
   const userConfig = getUser(user);
