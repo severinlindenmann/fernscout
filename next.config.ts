@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 import fs from "node:fs";
 import path from "node:path";
 import { REQUEST_MAX_BYTES } from "./lib/validate/media";
+import { NEXT_DEVICE_SIZES, NEXT_IMAGE_SIZES } from "./lib/mediaSizes";
 
 /**
  * Open core: `@paid/*` resolves to `paid/` when that folder is present and to
@@ -371,6 +372,10 @@ const nextConfig: NextConfig = {
     // content/ through app/media/[...path]. Real trip photos and videos are
     // JPEG/MP4, but SVG stays supported so a fresh clone renders.
     dangerouslyAllowSVG: true,
+    // Every `srcset` candidate one width the media route really makes — see
+    // `NEXT_DEVICE_SIZES` in lib/mediaSizes.ts for what Next's defaults did.
+    deviceSizes: [...NEXT_DEVICE_SIZES],
+    imageSizes: [...NEXT_IMAGE_SIZES],
     contentDispositionType: "attachment",
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },

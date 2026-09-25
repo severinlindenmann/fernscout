@@ -789,9 +789,9 @@ describe("a trip kept for reading with no signal", () => {
   });
 
   /**
-   * The media route answers `Vary: Accept`, and the Cache API honours it: a
-   * copy fetched with one Accept never matches an `<img>` asking with
-   * another. So the worker fetches media the way an `<img>` would, and
+   * The media route answered `Vary: Accept` (a copy kept before that
+   * changed still carries it), and the Cache API honours `Vary`: a copy
+   * fetched with one Accept never matched an `<img>` asking with another. So the worker fetches media the way an `<img>` would, and
    * matches kept entries ignoring Vary — which the fake cannot model, so
    * this pins the half it can see: the Accept the worker sends.
    */

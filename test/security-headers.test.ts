@@ -268,11 +268,14 @@ describe("an SVG served out of somebody's content folder", () => {
   });
 
   /**
-   * B394: WebP is served whatever `Accept` says, so a shared cache needs
-   * `Vary: Accept` to know the two are not interchangeable — otherwise a
-   * client that only takes JPEG could be handed a cached WebP response.
+   * B394: WebP is served whatever `Accept` says. This test used to require
+   * `Vary: Accept` on top, and that header was the untrue half: `Vary` tells
+   * a cache the bytes depend on the header, and these do not — every client
+   * gets the same WebP. What it did do was make a shared cache keep one copy
+   * per distinct `Accept` string. If the route ever negotiates a format, the
+   * header returns with the negotiation and this test flips back.
    */
-  test("carries Vary: Accept, regardless of what was sent", async () => {
+  test("does not claim to vary on Accept, since the bytes do not", async () => {
     const withJpegOnly = await (
       await import("@/app/[user]/media/[...path]/route")
     ).GET(
@@ -281,6 +284,6 @@ describe("an SVG served out of somebody's content folder", () => {
       }),
       { params: Promise.resolve({ user: "alex", path: ["asia-2023", "day", "photo.jpg"] }) } as never,
     );
-    expect(withJpegOnly.headers.get("Vary")).toContain("Accept");
+    expect(withJpegOnly.headers.get("Vary") ?? "").not.toMatch(/accept/i);
   });
 });

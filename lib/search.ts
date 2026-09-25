@@ -384,9 +384,41 @@ export function buildSearchIndex(username: string): MiniSearch<SearchDoc> | null
  * serves to a signed-out reader, or one with no more than a stranger's
  * rights. */
 export function buildSearchIndexJson(username: string): string | null {
-  const index = buildSearchIndex(username);
-  return index ? JSON.stringify(index) : null;
+  const user = getUser(username);
+  if (!user) return null;
+
+  const docs = buildDocs(username);
+  const key = JSON.stringify(docs);
+  const hit = publicIndexCache.get(username);
+  if (hit && hit.key === key) return hit.json;
+
+  const index = new MiniSearch<SearchDoc>(SEARCH_OPTIONS);
+  index.addAll(docs);
+  const json = JSON.stringify(index);
+  publicIndexCache.set(username, { key, json });
+  return json;
 }
+
+/**
+ * The last public index served per journal, and the rows it was built from.
+ *
+ * Indexing and serialising are most of this endpoint's time — on the example
+ * journal ~20 ms of the ~27 a warm build took, against ~0.5 ms to serialise
+ * the rows themselves — and every signed-out search page asks for it. So the
+ * rows are still built on every call, from the same signature-checked caches
+ * as before (`getTrips`, `getAllEntries`), and only the index is reused, and
+ * only when the rows are **byte-for-byte** the ones it was built from.
+ *
+ * Keyed on the rows rather than on file signatures, deliberately: this index
+ * depends on more than trips and days — the journal's locales, which
+ * capabilities are on, whether a trip has costs or weather to show, whether
+ * the instance has an imprint — and a signature that forgot one of them would
+ * serve a stale index, which here means a trip made private staying
+ * searchable. The rows are the index's only input, so a change to any of
+ * those shows up in them. One entry per journal and nothing viewer-dependent:
+ * `buildSearchIndexJsonForReader` never comes through here.
+ */
+const publicIndexCache = new Map<string, { key: string; json: string }>();
 
 /**
  * Whether this trip belongs in a signed-in reader's search at all.

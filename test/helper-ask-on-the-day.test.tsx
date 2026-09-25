@@ -111,6 +111,11 @@ async function dayPage(canPublish: boolean, draft = false) {
       </LocaleProvider>,
     );
   });
+  // The owner's tools are their own chunk (see `StoryPager`); let it land and
+  // the card render with it, as the page would.
+  await act(async () => {
+    await import("@/components/OwnerTools");
+  });
   // The config fetch resolves on a microtask; the state it sets needs one more.
   await act(async () => {});
   return container;

@@ -27,6 +27,15 @@ import { getUser } from "@/lib/users";
  * Verified: at HEAD, `next build && next start` then GET
  * `/example/trips/example-trip` → 500. With this line → 307 to `/example`, and
  * an unknown trip renders the not-found page instead of an error.
+ *
+ * The pages' own `generateStaticParams` then outlived their purpose and are
+ * gone. With this line in place they prerendered nothing — the prerender
+ * manifest listed none of their URLs, and the costs and weather pages, whose
+ * lists came back empty, showed `●` in the build's route table while being
+ * served exactly like their `ƒ` siblings — and all they still did was make
+ * every `next build` read every journal's trips and days to compute lists
+ * that were thrown away. Do not bring one back without removing this line
+ * and reading the paragraph above first.
  */
 export const dynamic = "force-dynamic";
 

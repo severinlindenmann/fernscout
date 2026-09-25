@@ -8,6 +8,9 @@ import path from "node:path";
 // the URL, which is who a brand-new journal's own owner looks like here.
 vi.mock("next/headers", () => ({
   cookies: async () => ({ get: () => undefined }),
+  // The story pages read the reader's language (`requestLocale`) to render
+  // the window's prose in it; no headers is a reader with no preference.
+  headers: async () => new Headers(),
 }));
 import { clearConfigCache } from "@/lib/config";
 import { clearUserCache } from "@/lib/users";

@@ -7,6 +7,8 @@ import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import DateField from "@/components/studio/DateField";
 import DoneScreen, { type DoneNext } from "@/components/studio/DoneScreen";
+import { useOnline } from "@/components/studio/useOnline";
+import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
 import { useStep } from "@/lib/studio/useStep";
 import type { ExistingTripSummary, NewTripContact, NewTripFigure } from "@/lib/studio/newTrip";
 import type { TranslationKey } from "@/lib/i18n";
@@ -17,7 +19,7 @@ import StepBody from "@/components/studio/StepBody";
  *  keeps what was typed. The overlap notice, done and a failed write are
  *  outcomes of that screen, not steps a reload or Back should land on. */
 const STEPS = ["form"] as const;
-type Outcome = "overlap" | "done" | "writeFailed";
+type Outcome = "overlap" | "done" | "writeFailed" | "queued";
 
 const SKIP = "none";
 
@@ -355,31 +357,33 @@ export default function NewTripFlow({
   async function commit() {
     setBusy(true);
     setWriteError(null);
+    const url = `/api/helper/${encodeURIComponent(username)}/trip`;
+    const payload = {
+      title,
+      start,
+      end,
+      visibility,
+      accent: accentSkipped ? SKIP : accent || SKIP,
+      tagline: taglineSkipped ? SKIP : tagline || SKIP,
+      intro: introSkipped ? SKIP : intro || SKIP,
+      rates: ratesSkipped ? SKIP : rates || SKIP,
+      costsBudget:
+        money === "budget" && budgetTotal.trim()
+          ? { total: Number(budgetTotal), currency: budgetCurrency }
+          : SKIP,
+      ...(otherLocales.length > 0 ? { translations: translationsWire() } : {}),
+      figuresMode: figuresModeWire(),
+      company,
+      ...(company === "named" ? { namedPeople: namedContacts } : {}),
+      // "Show nothing" is the default and sends no field at all (B2185)
+      // — only the explicit opt-in reaches the wire.
+      ...(needsTeaser && teaser ? { teaser: true } : {}),
+    };
     try {
-      const res = await fetch(`/api/helper/${encodeURIComponent(username)}/trip`, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          title,
-          start,
-          end,
-          visibility,
-          accent: accentSkipped ? SKIP : accent || SKIP,
-          tagline: taglineSkipped ? SKIP : tagline || SKIP,
-          intro: introSkipped ? SKIP : intro || SKIP,
-          rates: ratesSkipped ? SKIP : rates || SKIP,
-          costsBudget:
-            money === "budget" && budgetTotal.trim()
-              ? { total: Number(budgetTotal), currency: budgetCurrency }
-              : SKIP,
-          ...(otherLocales.length > 0 ? { translations: translationsWire() } : {}),
-          figuresMode: figuresModeWire(),
-          company,
-          ...(company === "named" ? { namedPeople: namedContacts } : {}),
-          // "Show nothing" is the default and sends no field at all (B2185)
-          // — only the explicit opt-in reaches the wire.
-          ...(needsTeaser && teaser ? { teaser: true } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
       const json = (await res.json().catch(() => null)) as { ok?: boolean; id?: string } | null;
       if (!res.ok || !json?.ok || !json.id) {
@@ -391,6 +395,24 @@ export default function NewTripFlow({
       setOutcome("done");
       reset();
     } catch {
+      // A network error (offline), not a rejection the server sent — B2330
+      // queues the write itself rather than losing it, same reasoning as
+      // AddDayFlow's day.new. This route has no id collision check to dedupe
+      // a retried success against (unlike day.new's 409 `date_has_day`): a
+      // response genuinely lost after the server had already written the
+      // trip would replay into a second, `-2`-suffixed trip. That is the
+      // same narrow window every intent here shares (the request never left
+      // in the first place, or its answer never arrived) — a gap in this
+      // route's own idempotency, not something the outbox can close without
+      // a server-side change out of this wave's scope.
+      if (hasOutbox()) {
+        const store = openOutboxStore();
+        await store.add(newIntent({ user: username, kind: "trip.new", method: "POST", url, body: payload }));
+        setOutcome("queued");
+        // Not `reset()` here — it does a soft `router.replace`, which fails
+        // offline the same way AddDayFlow's own queued branch explains.
+        return;
+      }
       setWriteError(t("studio.newTrip.writeFailed.message"));
       setOutcome("writeFailed");
     } finally {
@@ -971,6 +993,13 @@ export default function NewTripFlow({
             ] as [DoneNext] | [DoneNext, DoneNext]}
           />
         </>
+      )}
+
+      {outcome === "queued" && (
+        <div className="mt-4">
+          <DoneScreen username={username} done={t("studio.day.queued.done")} />
+          <p className="mt-2 text-sm text-ink-secondary">{t("studio.day.queued.detail")}</p>
+        </div>
       )}
 
       {outcome === "writeFailed" && (

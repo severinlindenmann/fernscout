@@ -8,10 +8,12 @@ import MoneyPanel, { formatMoney } from "@/components/studio/plan/MoneyPanel";
 import LinksPanel from "@/components/studio/plan/LinksPanel";
 import { findGaps, moveStop, previewNightsSchedule } from "@/lib/planner/schedule";
 import type { CostsDoc, PlanDoc, PlanStop } from "@/lib/planner/types";
+import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
 
 const UNDO_MS = 60_000;
 
 type View = "list" | "money" | "links";
+type SaveStatus = "idle" | "saving" | "saved" | "failed" | "queued";
 
 function slugFallback(location: string): string {
   return location.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "stop";
@@ -53,7 +55,7 @@ export default function PlannerFlow({
     (plan.private?.links?.length ?? 0) + Object.values(plan.private?.stops ?? {}).reduce((n, stop) => n + (stop?.links?.length ?? 0), 0);
   const [view, setView] = useState<View>("list");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "failed">("idle");
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [dirty, setDirty] = useState(false);
   const [removing, setRemoving] = useState<PlanStop | null>(null);
   const [declineReason, setDeclineReason] = useState("");
@@ -97,8 +99,9 @@ export default function PlannerFlow({
       body.plan = nextPlan;
     }
     if (nextCosts) body.costs = nextCosts;
+    const url = `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/plan`;
     try {
-      const res = await fetch(`/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(tripId)}/plan`, {
+      const res = await fetch(url, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
@@ -114,8 +117,26 @@ export default function PlannerFlow({
       setDirty(false);
       return true;
     } catch {
-      setSaveStatus("failed");
-      return false;
+      // B2330 — a network error (offline), not a rejection the server sent:
+      // queued for replay rather than lost. This route (`.../plan/route.ts`)
+      // carries no `If-Match`/version of its own — `PlannerFlow` never reads
+      // one, so a live save here has always been last-write-wins the same
+      // way a queued one now is; queuing changes nothing about that
+      // contract, only when the write reaches the server. Applied to local
+      // state at once (optimistic — the same "the response body IS the
+      // re-read" trust `save`'s own doc comment already places in this
+      // route, just without the response to read it back from yet).
+      if (!hasOutbox()) {
+        setSaveStatus("failed");
+        return false;
+      }
+      const store = openOutboxStore();
+      await store.add(newIntent({ user: username, kind: "plan.patch", method: "PATCH", url, body }));
+      if (nextPlan) setPlan(nextPlan);
+      if (nextCosts) setCosts(nextCosts);
+      setSaveStatus("queued");
+      setDirty(false);
+      return true;
     }
   }
 
@@ -245,6 +266,7 @@ export default function PlannerFlow({
         <p className="mt-4 text-sm text-ink-secondary" role="status">
           {saveStatus === "saving" && t("studio.plan.saving")}
           {saveStatus === "saved" && t("studio.plan.saved")}
+          {saveStatus === "queued" && t("studio.plan.queued")}
           {saveStatus === "failed" && t("studio.plan.failed")}
         </p>
       </>
@@ -460,6 +482,7 @@ export default function PlannerFlow({
               <span role="status" className="text-action-strong">
                 {saveStatus === "saving" && t("studio.plan.saving")}
                 {saveStatus === "saved" && t("studio.plan.saved")}
+          {saveStatus === "queued" && t("studio.plan.queued")}
               </span>
             )}
           </div>
@@ -548,7 +571,7 @@ function StopEditor({
   onUp?: () => void;
   onDown?: () => void;
   onRemove: () => void;
-  saveStatus: "idle" | "saving" | "saved" | "failed";
+  saveStatus: SaveStatus;
 }) {
   const { t, tn } = useI18n();
   const [note, setNote] = useState(stop.note ?? "");
@@ -627,6 +650,7 @@ function StopEditor({
           <span role="status" className="text-sm text-action-strong">
             {saveStatus === "saving" && t("studio.plan.saving")}
             {saveStatus === "saved" && t("studio.plan.saved")}
+          {saveStatus === "queued" && t("studio.plan.queued")}
           </span>
         )}
         <button type="button" onClick={onRemove} className="min-h-11 text-sm text-coral-600 underline">

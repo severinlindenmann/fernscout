@@ -68,23 +68,24 @@ type BasemapLabel = {
   metres?: number;
 };
 
+/** Readonly throughout: `basemapFor` hands one memoised object to every caller. */
 export type Basemap = {
-  borders: string[];
+  readonly borders: readonly string[];
   /** States, cantons, prefectures — the border crossed inside one country. */
-  admin1: string[];
+  readonly admin1: readonly string[];
   /** Mountain ranges, plateaus and foothills — high ground, not contours. */
-  relief: string[];
-  glaciers: string[];
+  readonly relief: readonly string[];
+  readonly glaciers: readonly string[];
   /** Protected land. Natural Earth ships the US Park Service only. */
-  parks: string[];
+  readonly parks: readonly string[];
   /** Main lines and motorways. Empty unless the frame is close enough to care. */
-  railroads: string[];
-  roads: string[];
-  lakes: string[];
-  rivers: string[];
-  peaks: BasemapLabel[];
-  towns: BasemapLabel[];
-  attribution: string;
+  readonly railroads: readonly string[];
+  readonly roads: readonly string[];
+  readonly lakes: readonly string[];
+  readonly rivers: readonly string[];
+  readonly peaks: readonly Readonly<BasemapLabel>[];
+  readonly towns: readonly Readonly<BasemapLabel>[];
+  readonly attribution: string;
 };
 
 /**
@@ -284,6 +285,11 @@ export function clearBasemapCache(): void {
   readProblem = null;
   worldParksCached = undefined;
   worldHydroCached = undefined;
+  // And every clip cut from them: a clip is only as current as the bundle it
+  // came from, and a test that swapped the bundle out must not be handed the
+  // previous one's borders.
+  memo.clear();
+  memoBundle = null;
 }
 
 /**
@@ -400,14 +406,95 @@ function clip(shapes: Shape[], box: ClipBox, close: boolean): string[] {
  * returned corrected, because they are positioned rather than drawn as paths
  * and would otherwise need the caller to know which of the two spaces each
  * field is in.
+ *
+ * Memoised per frame, and therefore **shared and read-only** — see `memo`.
  */
-export function basemapFor(
-  frame: Frame,
-  opts: { worldParks?: boolean; worldRivers?: boolean } = {},
-): Basemap | null {
+export function basemapFor(frame: Frame, opts: BasemapOptions = {}): Basemap | null {
   const data = bundle();
   if (!data) return null;
 
+  // The memo belongs to the bundle it was clipped from. `clearBasemapCache`
+  // empties it as well, but asking by identity too means no path that
+  // replaces `cached` — today's reset or a later one — can hand out a clip of
+  // the previous bundle.
+  if (memoBundle !== data) {
+    memo.clear();
+    memoBundle = data;
+  }
+  const key = memoKey(frame, opts);
+  const hit = memo.get(key);
+  if (hit) {
+    // Re-inserted, so the Map's insertion order is recency order and its
+    // first key is always the least recently used one.
+    memo.delete(key);
+    memo.set(key, hit);
+    return hit;
+  }
+
+  const map = clipFrame(data, frame, opts);
+  // Frozen outside production, where the walk costs nobody a wait: a caller
+  // that sorted or pushed onto a shared result would redraw every other
+  // page's map with it, and a TypeError in a test is how that should surface.
+  const kept = process.env.NODE_ENV === "production" ? map : freezeBasemap(map);
+  memo.set(key, kept);
+  if (memo.size > MEMO_LIMIT) memo.delete(memo.keys().next().value!);
+  return kept;
+}
+
+type BasemapOptions = { worldParks?: boolean; worldRivers?: boolean };
+
+/**
+ * Finished clips, by frame.
+ *
+ * `bundle()` has always kept the parsed file, but the *clip* was redone on
+ * every render: each story page, day permalink and map page cut borders,
+ * water, roads, relief, peaks and towns out of the 25 MB bundle again — once
+ * for the overview and once per stop area (`localBasemaps`). On a warm
+ * process that was ~65 ms of `buildStoryProps` for `asia-2023` and ~40 ms for
+ * `alps-2024`, for an answer that cannot change until the bundle does:
+ * `clipFrame` is a pure function of the frame, the two opt-in layers and
+ * three baked files (plus the GeoNames index `placesInBox` reads), all of
+ * which are only ever replaced by a restart or by `clearBasemapCache`.
+ *
+ * Keyed by the frame's own numbers rather than by trip, so one frame reached
+ * from two routes — `/<user>` and `/<user>/trips/<id>`, the story and the map
+ * page — is one entry, and a trip whose stops changed frames differently and
+ * simply misses. Bounded, because the keys come from content: every area of
+ * every trip of every journal on an instance is a frame. 256 holds every
+ * overview and town-scale local of a good few trips; a local is 0.4-2.5 KB
+ * (see `MAX_LOCAL_AREAS`), an overview tens of KB, and a shape wholly inside
+ * its frame is the bundle's own string rather than a copy.
+ *
+ * **Shared, so read-only.** Every caller hands the result straight to a
+ * component as a prop and nothing on the server writes to it; `Basemap` is
+ * typed readonly so the next caller cannot either, and outside production the
+ * object is frozen as well.
+ */
+const memo = new Map<string, Basemap>();
+let memoBundle: Bundle | null = null;
+const MEMO_LIMIT = 256;
+
+function memoKey(frame: Frame, opts: BasemapOptions): string {
+  const layers = `${opts.worldParks ? 1 : 0}${opts.worldRivers ? 1 : 0}`;
+  return `${frame.x}|${frame.y}|${frame.w}|${frame.h}|${frame.lngScale}|${layers}`;
+}
+
+function freezeBasemap(map: Basemap): Basemap {
+  for (const value of Object.values(map)) {
+    if (!Array.isArray(value)) continue;
+    for (const item of value) if (typeof item === "object" && item !== null) Object.freeze(item);
+    Object.freeze(value);
+  }
+  return Object.freeze(map);
+}
+
+/** How many clips `basemapFor` is holding. Test seam. */
+export function basemapMemoSize(): number {
+  return memo.size;
+}
+
+/** The clip itself: `basemapFor` without the memo. */
+function clipFrame(data: Bundle, frame: Frame, opts: BasemapOptions): Basemap {
   const spanKm = kmForUnits(frame.w);
   const ways = spanKm < WAYS_BELOW_KM;
   const detailed = spanKm < DETAIL_BELOW_KM;
@@ -526,10 +613,7 @@ export function basemapFor(
  * call site cannot separate them again. `frameRoute` is unchanged — the caller
  * is what must not ask.
  */
-export function basemapForRoute(
-  points: readonly Point[],
-  opts: { worldParks?: boolean; worldRivers?: boolean } = {},
-): Basemap | null {
+export function basemapForRoute(points: readonly Point[], opts: BasemapOptions = {}): Basemap | null {
   return points.length > 0 ? basemapFor(frameRoute(points), opts) : null;
 }
 

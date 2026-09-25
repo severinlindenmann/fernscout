@@ -1,11 +1,13 @@
+import { LOCALE_TAG_RE, defaultLocaleFor } from "@/lib/locales";
 import { storyWindow } from "@/lib/tripView";
 import { currentTripRef, getTrip, parseTripRef, tripRef } from "@/lib/trips";
 import { mayReadTrip, mayViewCosts, readFor } from "@/lib/tripGate";
 import { userExists } from "@/lib/users";
 
 /**
- * `/<username>/story.json?trip=<id>&from=<n>&to=<n>` — days `from`…`to` of a
- * trip, in full.
+ * `/<username>/story.json?trip=<id>&from=<n>&to=<n>&lang=<locale>` — days
+ * `from`…`to` of a trip, in full, each with its `prose` already rendered in
+ * `lang` (see `lib/prose.ts`).
  *
  * The story page ships a window of days and fetches its neighbours from here
  * as the reader moves, so the page's size no longer tracks the length of the
@@ -65,9 +67,18 @@ export async function GET(request: Request, { params }: RouteContext<"/[user]/st
   // a day arriving here carries only the pictures this reader may see, and a
   // route that forgot to ask would send none rather than all.
   const { read } = await readFor(trip, request);
+  // The page asks in the language it is showing, and says so in the address
+  // rather than leaving it to the cookie: the answer is cached by URL (the
+  // browser's own cache, the service worker's), and a reader who switches
+  // language must not be handed prose from the one they switched away from.
+  // Without it — an older page, a kept window — the journal's own language,
+  // which is also a function of the address alone.
+  const askedLang = url.searchParams.get("lang");
+  const locale = askedLang && LOCALE_TAG_RE.test(askedLang) ? askedLang : defaultLocaleFor(user);
   const days = storyWindow(ref, start, Math.min(to, start + MAX_DAYS), {
     showCosts: await mayViewCosts(trip),
     ...read,
+    locale,
   });
 
   return new Response(JSON.stringify({ from: start, days }), {
