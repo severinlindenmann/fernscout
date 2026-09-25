@@ -69,6 +69,11 @@ export const FEATURE_NAMES = [
   // reasoning — a shadow-only hillshade under a photobook's route map,
   // fetched from keyless tiles and off by default.
   "mapRelief",
+  // B2341. The landing page's "Get the iPhone app" door — instance-wide,
+  // like `signup`'s own gating, not a journal's to opt into. Off by default:
+  // a fresh clone shows no app button at all until an operator turns this
+  // on. See lib/capabilities.ts for the storeUrl/waitlist split.
+  "iosApp",
 ] as const;
 
 export type FeatureName = (typeof FEATURE_NAMES)[number];
@@ -162,6 +167,9 @@ export const OPERATOR_ONLY_FEATURES = [
   "addressLookup",
   "weather",
   "analytics",
+  // B2341. The landing page's own decision, not a journal's — nobody signs
+  // into a journal to see this door.
+  "iosApp",
 ] as const satisfies readonly FeatureName[];
 
 /**
@@ -657,6 +665,13 @@ const DEFAULT_FEATURES: Record<FeatureName, FeatureConfig> = {
   // `weather`: the provider (AWS's keyless Terrarium tiles) needs no key and
   // no signup.
   mapRelief: { enabled: false },
+  // B2341. Off by default like every optional capability, and off means the
+  // landing page shows no app button at all — a self-hoster's fresh clone
+  // has never had an iPhone app to point at. `storeUrl` has no default on
+  // purpose: an operator sets it only once the app is actually on the App
+  // Store, and until then the door is a waitlist instead. See
+  // lib/capabilities.ts for how the two states are told apart.
+  iosApp: { enabled: false },
 };
 
 /**

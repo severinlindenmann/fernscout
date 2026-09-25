@@ -11,6 +11,7 @@ import {
   MessageCircle,
   Mic,
 } from "lucide-react";
+import AppWaitlistDoor from "@/components/AppWaitlistDoor";
 import ChatVignette from "@/components/ChatVignette";
 import CopyLine from "@/components/CopyLine";
 import { mediaLoader } from "@/components/mediaLoader";
@@ -354,6 +355,8 @@ export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
 export function LandingHero({
   helperEnabled = false,
   whatsappNumber,
+  appStoreUrl,
+  appWaitlistAvailable = false,
 }: {
   helperEnabled?: boolean;
   /**
@@ -363,6 +366,12 @@ export function LandingHero({
    * has a number configured at all (`whatsappDisplayNumber()`).
    */
   whatsappNumber?: string;
+  /** B2341. Both resolved server-side in `app/page.tsx`, from
+   *  `lib/appWaitlist.ts` and the `iosApp` capability — see
+   *  `AppWaitlistDoor`, which decides between a store link, a waitlist
+   *  form, and rendering nothing from exactly these two values. */
+  appStoreUrl?: string;
+  appWaitlistAvailable?: boolean;
 }) {
   const { t } = useI18n();
   return (
@@ -424,6 +433,11 @@ export function LandingHero({
           )}
         </div>
       )}
+      {/* B2341. Right after the hero's existing buttons, minimal on purpose
+          — B2340 rebuilds this whole page and gives it a real place. Renders
+          a store link, a waitlist form, or nothing at all; see
+          `AppWaitlistDoor`. */}
+      <AppWaitlistDoor storeUrl={appStoreUrl} waitlistAvailable={appWaitlistAvailable} />
       {/* Shown with the WhatsApp headline and only then: it illustrates that
           sentence, and beside "hand your agent a link" it would illustrate
           nothing.
