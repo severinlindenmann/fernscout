@@ -188,3 +188,73 @@ export function readBackupStatus(now: Date = new Date()): BackupStatus {
 
   return { ...base, state: "ok" };
 }
+
+/** What one night's line in `.backup-history` said, per destination. `none`
+ *  is "no line for this night", which is not the same as a failure: the file
+ *  only starts on the first run after it was introduced, and a failure the
+ *  alert unit never saw is not in it either. */
+export type NightOutcome = "ok" | "failed" | "none";
+
+export type BackupNight = {
+  /** `YYYY-MM-DD`, UTC — the night the run started in. */
+  date: string;
+  primary: NightOutcome;
+  secondary: NightOutcome;
+};
+
+export function backupHistoryPath(dir = dataDir()): string {
+  return path.join(dir, ".backup-history");
+}
+
+/**
+ * The last `nights` nights of backups, oldest first, for `/admin`'s row of
+ * squares.
+ *
+ * Read from `.backup-history`, which `scripts/backup.sh` and `scripts/alert.sh`
+ * append one line to per outcome. **Null when the file does not exist**, so the
+ * page can say "no history recorded yet" rather than draw a fortnight of empty
+ * squares that would read as fourteen nights nothing ran. A night with an `ok`
+ * and a later `failed` for the same destination reads `ok` — the stamp logic
+ * above makes the same call: a run that got through is the fact that matters.
+ */
+/** One line of `.backup-history`, parsed. */
+export type BackupRun = { at: string; which: "primary" | "secondary"; outcome: "ok" | "failed" };
+
+/** Every readable line of `.backup-history`, oldest first; null when there is
+ *  no file. Lines that do not parse are skipped rather than fatal — the file
+ *  is appended to by two shell scripts and read by a person with `cat`. */
+export function readBackupRuns(): BackupRun[] | null {
+  let raw: string;
+  try {
+    raw = fs.readFileSync(backupHistoryPath(), "utf8");
+  } catch {
+    return null;
+  }
+  const runs: BackupRun[] = [];
+  for (const line of raw.split("\n")) {
+    const [stamp, which, outcome] = line.trim().split(/\s+/);
+    const at = new Date(stamp ?? "");
+    if (Number.isNaN(at.getTime())) continue;
+    if (which !== "primary" && which !== "secondary") continue;
+    if (outcome !== "ok" && outcome !== "failed") continue;
+    runs.push({ at: at.toISOString(), which, outcome });
+  }
+  return runs;
+}
+
+export function readBackupHistory(nights = 14, now: Date = new Date()): BackupNight[] | null {
+  const runs = readBackupRuns();
+  if (runs === null) return null;
+  const seen = new Map<string, { primary: NightOutcome; secondary: NightOutcome }>();
+  for (const run of runs) {
+    const date = run.at.slice(0, 10);
+    const night = seen.get(date) ?? { primary: "none", secondary: "none" };
+    if (night[run.which] !== "ok") night[run.which] = run.outcome;
+    seen.set(date, night);
+  }
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Array.from({ length: nights }, (_, i) => {
+    const date = new Date(today - (nights - 1 - i) * 86_400_000).toISOString().slice(0, 10);
+    return { date, ...(seen.get(date) ?? { primary: "none", secondary: "none" }) };
+  });
+}

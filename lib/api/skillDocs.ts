@@ -233,7 +233,7 @@ function addATrip(): string {
         title: "what the trip is called",
         dates: "`{from, to}`, both `YYYY-MM-DD` — required, never guessed",
         visibility: '`private`, `public` or `guest` — an explicit choice, never a guessed default',
-        people: "who was on it — `[{name, email, nickname?}]`, 1 to ten. Write access **and** the byline",
+        people: "who was on it — `[{name, email, nickname?}]`, 1 to ten. The byline only — it grants no write access and mails nobody; a buddy is added and granted from Studio › Readers, in the owner's own browser",
         teaser: "required on a closed trip only: may its existence show as a locked card nobody may open?",
         rates: '`{currencies: ["JPY"], manual?: {"JPY": 148.2}}` — manual rates are units per 1 EUR — or decline it',
         costs: "a budget and preparation spend, or decline it (see /skill/costs.md)",
@@ -256,12 +256,6 @@ function addATrip(): string {
       "neither is refused with `422 incomplete`, naming exactly which sections are missing and " +
       "what to send for each. **Never invent a value to get past this** — decline it, or go " +
       "and ask.",
-    "**Buddies are their own question.** A trip with only the owner in `people` must decline " +
-      "`buddies` (e.g. `\"travelling solo\"`); a trip with more than one person in `people` must " +
-      "not decline it. Everyone added is mailed — either \"you are on trip X\" if this journal " +
-      "already knows their address, or an onboarding invite if it does not — and the echo's " +
-      "`notifications` says which went out. **That mail is not access**: it materialises only " +
-      "once that person proves the address through their own sign-in code.",
     "**`teaser` and `listed` are conditional on `visibility`.** A closed trip (`private`/`guest`) " +
       "must answer `teaser` and must not send `listed`; a `public` trip must answer `listed` " +
       "(declinable) and must not send `teaser`. Sending the wrong one for the trip's own " +
@@ -401,6 +395,11 @@ function addADay(): string {
       "`POST " + path + "/send` sends (or resends) a published day on named `channels` " +
       "(`[\"mail\"]`, `[\"whatsapp\"]`, or both) — never idempotent, so ask again in words " +
       "before calling it twice.",
+    "## Channels — whether either can send anything at all",
+    "```http\nGET   /api/v2/{user}/channels\nPATCH /api/v2/{user}/channels\n{\"mail\": true, \"whatsapp\": false}\n```",
+    "Mute switches for the owner's own sending channels — `null` for a channel this instance " +
+      "does not offer at all, so a switch that cannot exist never reads back as a confident " +
+      "`false`. Off means `POST " + path + "/send` on that channel refuses rather than sending.",
     "## Deleting",
     "```http\nDELETE " + path + "\n```",
     "A **draft** day deletes outright — no confirmation, since it was never on the site; its " +
@@ -462,50 +461,6 @@ function ingestPhotos(): string {
       "faster route — it reads each file's own timestamp and place, groups them into days, and " +
       "writes drafts around the result. Over the network you have only the door above, which is " +
       "fine for a handful of pictures: send them and they land, one call per file.",
-  ]);
-}
-
-function inviteSomeone(): string {
-  return doc("invite-someone", [
-    "## Two links, and only one is safe to forward",
-    "Only the journal's owner may issue either — never a trip-scoped token:",
-    "```http\nPUT /api/v2/{user}/invites/{id}\nContent-Type: application/json\nAuthorization: Bearer fs_agent_…\n\n" +
-      fieldTable("/api/v2/{user}/invites/{id}", "put", {
-        id: "client-chosen, permanent — an invite has no update once created",
-        kind: '`"guest"` (journal-wide reading) or `"buddy"` (write access to one trip)',
-        trip: "required for `buddy`, refused for `guest` — a guest link is never trip-scoped",
-        email: "the owner vouching for an address — mails it and pre-approves it on arrival",
-        name: "a label for the owner's own list",
-        locale: "the language the invite mail is sent in",
-        expiresAt: "absent means 30 days — never send a link with no expiry",
-      }) +
-      "\n```",
-    "| | `guest` | `buddy` |\n| --- | --- | --- |\n" +
-      "| Landing URL | `/<user>/invite/guest/<token>` | `/<user>/invite/buddy/<token>` |\n" +
-      "| Leads to | reading the journal | **writing to one trip** |\n" +
-      "| Scope | the whole journal | one named trip |\n",
-    "**Say out loud which one you are handing over.** A guest link belongs in a family group " +
-      "chat; a buddy link grants write access once approved and does not. **Neither grants " +
-      "anything by itself** — whoever opens one proves their own address and lands in the " +
-      "owner's approval queue. Report a link as an invitation to *ask*, never as \"they now have " +
-      "access\".",
-    "`GET /api/v2/{user}/invites` lists what has been issued (no tokens); " +
-      "`GET .../invites/{id}` reads one; `DELETE .../invites/{id}` revokes it — everybody " +
-      "already approved through it stays in.",
-    "## The approval queue",
-    "```http\nGET  /api/v2/{user}/contacts               — the queue, paged\nPOST /api/v2/{user}/contacts/{id}/approve  " +
-      "— grant access. The only call in the codebase that does\nPOST /api/v2/{user}/contacts/{id}/revoke   — end it. Reversible by approving again\nPOST " +
-      "/api/v2/{user}/contacts/{id}/resend   — re-mail a pending contact's link\n```",
-    "**A contact's address never reads back.** `GET .../contacts` and `GET .../contacts/{id}` " +
-      "answer with a name, a locale, a status and `hasPostalAddress` (a bare boolean) — never " +
-      "the email or a street address, even though `POST .../contacts` and `PATCH .../contacts/{id}` " +
-      "accept `email` on the way in, because it is how the owner names who to mail. You can " +
-      "propose a contact; you can never read one's address back.",
-    "## Channels",
-    "```http\nGET   /api/v2/{user}/channels\nPATCH /api/v2/{user}/channels\n{\"mail\": true, \"whatsapp\": false}\n```",
-    "Mute switches for the owner's own sending channels — `null` for a channel this instance " +
-      "does not offer at all, so a switch that cannot exist never reads back as a confident " +
-      "`false`.",
   ]);
 }
 
@@ -615,8 +570,6 @@ export function skillDoc(slug: SkillDocSlug): string {
       return addADay();
     case "ingest-photos":
       return ingestPhotos();
-    case "invite-someone":
-      return inviteSomeone();
     case "costs":
       return costs();
     case "send-postcards":

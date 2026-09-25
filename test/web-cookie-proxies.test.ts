@@ -123,7 +123,6 @@ function writeJournal() {
       translations: "single-language test journal",
       accent: "default colour is fine",
       figures: "no walking figures for this test trip",
-      buddies: "travelling solo",
     },
   });
   writeDayFixture(dir, OWNER, TRIP, {

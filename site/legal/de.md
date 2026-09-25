@@ -61,6 +61,7 @@ Schweizer Recht verlangt dieselben Angaben ohne sie.
 | **Seitenaufrufe**, bei Journalen, deren Autor die Zählung eingeschaltet hat | Damit ein Autor sieht, ob seine Leute lesen | Berechtigtes Interesse | Etwa neunzig Tage |
 | **Anfrage-Log** — die aufgerufene Seite, die Zeit, der Name des Browsers; keine IP-Adresse | Um den Server zu betreiben und zu schützen | Berechtigtes Interesse | 14 Tage |
 | **Kopien der Mails, die diese Seite verschickt hat** | Um herauszufinden, warum ein Anmeldecode nicht ankam | Berechtigtes Interesse | Zwei Tage, nie im Backup |
+| **Warteliste für die iPhone-App** — eine E-Mail-Adresse und die gewünschte Sprache | Damit wir dich benachrichtigen können, sobald die App im App Store ist | Einwilligung | Bis die App erscheint, oder bis du uns bittest, den Eintrag zu entfernen |
 | **Zahlungen, Credits und Druckaufträge** | Buchhaltung | Vertrag und Gesetz (Schweizer Buchführungspflicht) | Zehn Jahre; siehe [Löschen](#deleting) |
 | **Verschlüsselte Backups** von allem oben | Damit eine kaputte Festplatte kein Journal beendet | Berechtigtes Interesse | 14 Tage auf dem Server, 7 Tage in der zweiten Kopie |
 

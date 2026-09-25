@@ -2,6 +2,7 @@ import "server-only";
 import { isEnabled } from "../../capabilities";
 import { listContacts } from "../../contacts";
 import { AS_AUTHOR, getAllEntries } from "../../entries";
+import { peopleOf } from "../../tripPeople";
 import { getTrip, getTrips, tripRef } from "../../trips";
 import { getUser } from "../../users";
 import type { Say } from "../intents";
@@ -196,8 +197,10 @@ export function tripIdFor(
  *
  * The people rather than the vocabulary, and a count only where the people
  * are not the owner's to name: a journal's guests are approved one at a time
- * on the contacts page and are not the trip's business, while the people on a
- * trip are written into `trip.md` by hand and are exactly who it says.
+ * on the contacts page and are not the trip's business, while a private
+ * trip's real readers are `peopleOf` — the owner, or whoever holds a granted
+ * `trip_people` place (D3, B2297; `trip.people` is a byline, not access, and
+ * naming it here would tell the owner somebody can read a day who cannot).
  */
 export async function readersOf(username: string, tripId: string, say: Say): Promise<string> {
   const trip = getTrip(tripRef(username, tripId));
@@ -211,16 +214,22 @@ export async function readersOf(username: string, tripId: string, say: Say): Pro
       ? say("agent.tool.publishReadersGuestNobody")
       : say("agent.tool.publishReadersGuest", { count: String(approved) });
   }
-  // The owner is always in `trip.people` now — v2's `createTrip` puts them
-  // there itself when nobody else was named (`lib/tripWrite.ts`), where v1
-  // left the block empty and merged the owner in only at read time
-  // (`peopleOf()`). "Who will be able to read it" is asking who besides the
-  // owner, so the owner's own row here is never one of the names.
+  // Grant-only since D3 (B2297): `trip.people` is a byline, not who may
+  // actually read a private day, and a helper tool telling the owner "Hans
+  // will be able to read this" when Hans is only named in the file — never
+  // granted a place — would be exactly the fiction AGENTS.md refuses. So
+  // this asks `peopleOf`, the real access list, and looks a name up for each
+  // address the same way `lib/studio/publishDay.ts`'s `readersOf` does: the
+  // trip's own byline first (a granted buddy is often the same person a
+  // nickname was written for), then the contact's stored name.
   const ownerEmail = getUser(username)?.owner.email?.toLowerCase();
-  const named = trip.people
-    .filter((one) => one.email.toLowerCase() !== ownerEmail)
-    .map((one) => one.name)
-    .filter((name) => name !== "");
+  const contacts = isEnabled("contacts", username) ? await listContacts(username) : [];
+  const named = (await peopleOf(trip))
+    .filter((email) => email !== ownerEmail)
+    .map((email) => {
+      const person = trip.people.find((p) => p.email.toLowerCase() === email);
+      return person?.nickname || person?.name || contacts.find((c) => c.email === email)?.name || email;
+    });
   return named.length === 0
     ? say("agent.tool.publishReadersPrivateNobody")
     : say("agent.tool.publishReadersPrivate", { people: named.join(", ") });

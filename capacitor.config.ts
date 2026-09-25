@@ -14,6 +14,11 @@ import config from "./site/config.json";
  *
  * `webDir` only feeds the bundled `index.html` the WebView shows for the
  * instant before the first page arrives.
+ *
+ * `server.url` is the build's default. The owner can point the installed
+ * app at their own Fernscout from the foot of the landing page ("Bring your
+ * own server"); `ios/App/App/ServerChoicePlugin.swift` keeps that address
+ * and `ViewController.instanceDescriptor()` puts it in place of this one.
  */
 const capacitorConfig: CapacitorConfig = {
   appId: "ch.fernscout.app",

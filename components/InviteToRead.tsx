@@ -1,133 +1,25 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import CopyLine from "./CopyLine";
+import Link from "next/link";
 import { useI18n } from "./LocaleProvider";
-import BusyButton from "@/components/BusyButton";
 import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
 
 /**
  * "Invite family to read", on the day she just published — B799.
  *
- * The journal exists so that somebody reads it, and the moment a day goes on
- * the site is the moment that matters. Until this existed, nothing on that
- * page mentioned letting anybody in: the response tells an *agent* to offer a
- * guest link and `/agent.md` instructs it to, while a person doing it in a
- * browser had to notice an icon-only nav item, open `/<user>/me`, and scroll
- * past journal settings, agent keys, storage and credits to find "Manage who
- * can read this". Three levels down, behind a wall of things nobody asked
- * about.
- *
- * **It only ever makes a guest link, and there is no control here for the
- * other one.** A guest link belongs in a family group chat and a buddy link
- * does not — that is the whole reason the two have separate URLs (see
- * `inviteLinkUrl`) — and a button on a day page that could hand somebody write
- * access to the trip by mistake would be the worst possible place to put the
- * choice. Making a buddy link is still the contacts page's own form, where the
- * two kinds are chosen deliberately, side by side, each under the sentence
- * that says what it does.
- *
- * The words are the contacts page's own (`me.inviteGuestTitle` /
- * `me.inviteGuestBody`), for the reason `INVITE_KIND_KEY` gives there: an
- * owner looking at a link wants the words they were shown when they made it.
- *
- * **It grants nothing and does not say it does.** The link leads to a form;
- * whoever fills it in proves their own address and lands in the owner's queue,
- * and `approveContact` is still the only thing in the codebase that writes a
- * grant. `me.inviteGuestBody` says exactly that — "they see nothing until you
- * say yes" — which is why it is the sentence rendered rather than a shorter
- * one written here.
- *
- * Rendered by `OwnerTools` as one cell of its grid — hence `col-span-full` on
- * the state that is a panel rather than a tile (B877) — and only where the
- * viewer is already known to be the owner
- * (`canPublish`, which is exactly `isOwner` — see `lib/tripGate.ts`), and it
- * asks the server the remaining question itself: `GET /api/web/<user>/invites`
- * is owner-only *and* refuses a journal with `contacts` switched off, so a
- * journal that cannot invite anybody shows nothing at all rather than a button
- * that explains itself after being pressed. Same shape as `DayNotify` beside
- * it, for the same reason.
+ * B2295 (one door for readers, B2291): this used to make a guest link itself
+ * — a fetch on mount to see whether the journal even offers one, then a
+ * `POST` that minted it right here. That put a second place in the product
+ * that could grant somebody access to a journal, beside
+ * `/<user>/studio/readers`, which the owner decided should be the only one.
+ * So this is a plain link now — same tile, same grid cell, no fetch, no
+ * state — to the one page that actually adds or invites a person.
  */
 export default function InviteToRead({ username }: { username: string }) {
-  const { t, locale } = useI18n();
-  const [offered, setOffered] = useState(false);
-  const [link, setLink] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/web/${username}/invites`)
-      .then((response) => {
-        if (!cancelled && response.ok) setOffered(true);
-      })
-      .catch(() => {
-        // Not the owner, contacts off, or offline. Nothing to offer, and
-        // nothing worth saying to somebody who would not have seen this
-        // control anyway.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [username]);
-
-  if (!offered) return null;
-
-  async function make() {
-    setFailed(false);
-    setBusy(true);
-    const response = await fetch(`/api/web/${username}/invites`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      // `kind: "guest"` and nothing else. No `trip`, which this route refuses
-      // on a guest link anyway — a guest is a guest of the journal and never
-      // of one trip (B41).
-      body: JSON.stringify({ kind: "guest", locale }),
-    }).catch(() => null);
-    setBusy(false);
-    const body = (await response?.json().catch(() => null)) as { url?: string } | null;
-    if (!response?.ok || !body?.url) return setFailed(true);
-    setLink(body.url);
-  }
-
-  if (link) {
-    return (
-      <div className="col-span-full rounded-2xl border border-line-quiet bg-surface-raised p-4">
-        <p className="font-display text-base font-semibold text-ink-strong">
-          {t("me.inviteGuestTitle")}
-        </p>
-        <p className="mt-1 text-sm leading-6 text-ink-body">{t("me.inviteGuestBody")}</p>
-        <code className="mt-3 block break-all rounded-xl bg-surface-subtle p-3 text-xs text-ink-strong">
-          {link}
-        </code>
-        <p className="mt-2 text-xs text-coral-600">{t("contact.adminInviteCopy")}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-4">
-          <CopyLine
-            value={link}
-            label={t("contact.adminCopyLink")}
-            copiedLabel={t("contact.adminCopiedLink")}
-          />
-          <a
-            className="text-xs text-ink-strong underline underline-offset-4"
-            href={`/${username}/studio/readers`}
-          >
-            {t("me.contacts")}
-          </a>
-        </div>
-      </div>
-    );
-  }
-
+  const { t } = useI18n();
   return (
     <div className={OWNER_TOOL_CELL}>
-      <BusyButton busy={busy} type="button" onClick={make} className={OWNER_TOOL}>
+      <Link href={`/${username}/studio/readers`} className={OWNER_TOOL}>
         {t("invite.share")}
-      </BusyButton>
-      {failed && (
-        <p role="alert" className="text-xs text-coral-600">
-          {t("contact.adminInviteFailed")}
-        </p>
-      )}
+      </Link>
     </div>
   );
 }

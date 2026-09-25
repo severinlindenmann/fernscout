@@ -75,9 +75,10 @@ export function blankFieldsOf(username: string, row: PublishRow): string[] {
 /**
  * B2192 — who, by name, can read the day once it is up, the owner left out.
  * `null` for a public or link day: "anyone" has no names. A private day is
- * the people on the trip (`peopleOf`: named in the file, or given a place);
- * a guest day adds everyone let into the journal (an active contact holding
- * a live read grant — `journalReader`'s own two conditions). A name is the
+ * the people who actually hold the trip (`peopleOf`: the owner, or a granted
+ * `trip_people` place — a bare `people:` entry is a byline, not access,
+ * since D3/B2297); a guest day adds everyone let into the journal (an active
+ * contact holding a live read grant — `journalReader`'s own two conditions). A name is the
  * trip's nickname or name for that address, else the contact's name, else
  * the address itself — this is the owner's own page.
  */

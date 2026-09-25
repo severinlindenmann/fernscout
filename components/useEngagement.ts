@@ -32,32 +32,54 @@ export function useEngagement(): boolean {
   useEffect(() => {
     if (engaged) return;
 
+    // Visible time is banked on each visibility change rather than sampled
+    // once a second. This used to be a one-second interval on every journal
+    // page for as long as the reader had not yet engaged — for somebody who
+    // reads without scrolling, the whole visit. Now nothing runs on a clock
+    // until there is something to wait for: one timeout for exactly the dwell
+    // still owed, armed once the reader has acted and only while the tab is in
+    // front.
     let dwelled = 0;
-    let last = Date.now();
-    let acted = false;
-
-    const tick = () => {
-      const now = Date.now();
-      if (document.visibilityState === "visible") dwelled += now - last;
-      last = now;
-      if (acted && dwelled >= DWELL_MS) setEngaged(true);
-    };
-
-    const onScroll = () => {
-      if (window.scrollY >= SCROLL_PX) acted = true;
-    };
+    let visibleSince: number | null = document.visibilityState === "visible" ? Date.now() : null;
+    let timer: number | undefined;
 
     // A navigation inside the journal — the story pager's day links, a trip,
     // the gallery — is the clearest "I am reading this" there is.
-    if (pathname !== startPath.current) acted = true;
+    let acted = pathname !== startPath.current;
 
-    const timer = window.setInterval(tick, 1000);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    document.addEventListener("visibilitychange", tick);
-    return () => {
-      window.clearInterval(timer);
+    const arm = () => {
+      window.clearTimeout(timer);
+      if (!acted || visibleSince === null) return;
+      const remaining = DWELL_MS - (dwelled + Date.now() - visibleSince);
+      if (remaining <= 0) setEngaged(true);
+      // Re-checked when it fires rather than trusted: a timer in a tab that
+      // has just been put in the background can fire late.
+      else timer = window.setTimeout(arm, remaining);
+    };
+
+    const onVisibility = () => {
+      const now = Date.now();
+      if (visibleSince !== null) dwelled += now - visibleSince;
+      visibleSince = document.visibilityState === "visible" ? now : null;
+      arm();
+    };
+
+    const onScroll = () => {
+      if (window.scrollY < SCROLL_PX) return;
+      acted = true;
+      // One screen is the whole question; the rest of the reading need not
+      // keep calling in.
       window.removeEventListener("scroll", onScroll);
-      document.removeEventListener("visibilitychange", tick);
+      arm();
+    };
+
+    if (!acted) window.addEventListener("scroll", onScroll, { passive: true });
+    document.addEventListener("visibilitychange", onVisibility);
+    arm();
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [engaged, pathname]);
 

@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import { connectShareInbox, disconnectShareInbox, useNativeShell } from "@/components/nativeShell";
 import { useShareInboxAutoConnect } from "@/components/studio/ShareInboxConnect";
+import { KEPT_CHANGED } from "@/components/KeepTrip";
 
 /**
  * The phone's own switches, in one place on the owner's /me — B2208.
  *
- * Shown inside the iPhone shell, and — for the two cache rows only — in the
+ * Shown inside the iPhone shell, and — for the cache row only — in the
  * home-screen web app. A desktop browser has nothing here: no extension to
- * switch, no phone to keep a trip on.
+ * switch, no phone to keep a trip on. The kept trips themselves are listed,
+ * with their own switches, by `OfflineTrips` further up the same page, for
+ * every reader rather than only the owner.
  *
  * Everything on it is local to this device. *Clear cache* empties what the
  * service worker keeps for offline reading, kept trips included, and is
@@ -30,26 +33,7 @@ function mb(bytes: number): string {
   return `${Math.round(bytes / 1e6)} MB`;
 }
 
-type Kept = { name: string; user: string; trip: string; title: string; bytes: number };
-
-async function keptTrips(): Promise<Kept[]> {
-  const out: Kept[] = [];
-  try {
-    for (const name of await caches.keys()) {
-      if (!name.startsWith("kept-") || name.endsWith("-building")) continue;
-      const cache = await caches.open(name);
-      const held = (await cache.keys()).find((k) => k.url.endsWith("/keep.json"));
-      const manifest = held ? await (await cache.match(held))?.json() : null;
-      if (!manifest) continue;
-      out.push({ name, user: manifest.user, trip: manifest.trip, title: manifest.title || manifest.trip, bytes: manifest.bytes || 0 });
-    }
-  } catch {
-    // No Cache API, or storage refused: nothing kept to list.
-  }
-  return out;
-}
-
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+export function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <li className="flex min-h-14 items-center gap-4 px-4 py-3">
       <div className="min-w-0 flex-1">
@@ -61,7 +45,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   );
 }
 
-function Switch({ on, disabled, busy, label, onChange }: { on: boolean; disabled?: boolean; busy?: boolean; label: string; onChange: () => void }) {
+export function Switch({ on, disabled, busy, label, onChange }: { on: boolean; disabled?: boolean; busy?: boolean; label: string; onChange: () => void }) {
   return (
     <button
       type="button"
@@ -109,24 +93,9 @@ export default function ThisPhone({ username }: { username: string }) {
   const { t } = useI18n();
   const native = useNativeShell();
   const standalone = useStandalone();
-  const [kept, setKept] = useState<Kept[]>([]);
   const [clear, setClear] = useState<{ state: "idle" } | { state: "busy" } | { state: "done"; freed: number }>({ state: "idle" });
 
-  useEffect(() => {
-    if (!native && !standalone) return;
-    const read = () => void keptTrips().then(setKept);
-    read();
-    // The worker says when a kept trip appears or goes.
-    const onMessage = (e: MessageEvent) => {
-      if (e.data?.type === "fernscout-kept") read();
-    };
-    navigator.serviceWorker?.addEventListener("message", onMessage);
-    return () => navigator.serviceWorker?.removeEventListener("message", onMessage);
-  }, [native, standalone]);
-
   if (!native && !standalone) return null;
-
-  const unkeep = (k: Kept) => navigator.serviceWorker?.controller?.postMessage({ type: "fernscout-unkeep", user: k.user, trip: k.trip });
 
   async function clearCache() {
     setClear({ state: "busy" });
@@ -142,7 +111,8 @@ export default function ThisPhone({ username }: { username: string }) {
     } catch {
       freed = 0;
     }
-    setKept([]);
+    // `OfflineTrips` reads its switches from the same caches; tell it.
+    window.dispatchEvent(new Event(KEPT_CHANGED));
     setClear({ state: "done", freed });
   }
 
@@ -156,13 +126,6 @@ export default function ThisPhone({ username }: { username: string }) {
             <Switch on={false} disabled label={t("me.phone.gps")} onChange={() => undefined} />
           </Row>
         )}
-        {kept.map((k) => (
-          <Row key={k.name} label={k.title} hint={`${t("me.phone.kept")} · ${mb(k.bytes)}`}>
-            <button type="button" onClick={() => unkeep(k)} className="min-h-11 text-sm font-semibold text-ink-body underline underline-offset-4 hover:text-ink-strong">
-              {t("me.phone.remove")}
-            </button>
-          </Row>
-        ))}
         <Row label={t("me.phone.clear")} hint={clear.state === "done" ? t("me.phone.cleared", { size: mb(clear.freed) }) : t("me.phone.clearBody")}>
           <button
             type="button"

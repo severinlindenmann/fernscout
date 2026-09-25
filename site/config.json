@@ -19,6 +19,15 @@
         "it": "Beta – Fernscout è ancora in viaggio: alcune funzioni potrebbero non comportarsi ancora come previsto."
       }
     },
+    "hosting": {
+      "host": "fernscout.ch",
+      "where": "in Europe",
+      "translations": {
+        "de": "in Europa",
+        "en": "in Europe",
+        "hu": "Európában"
+      }
+    },
     "credit": {
       "name": "[Operator name]",
       "url": "https://the owner's own mail domain",

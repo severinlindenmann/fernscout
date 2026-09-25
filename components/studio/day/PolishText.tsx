@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import BusyButton from "@/components/BusyButton";
 import { useI18n } from "@/components/LocaleProvider";
+import { useOnline } from "@/components/studio/useOnline";
 import { formatCredits } from "@/lib/creditsFormat";
 import { WRITE_DAY_CREDITS, WRITE_DAY_NOTES_MAX_CHARS } from "@/lib/helper/credits";
 import type { TranslationKey } from "@/lib/i18n";
@@ -76,6 +77,7 @@ export default function PolishText({
   priceChf: string | null;
 }) {
   const { t } = useI18n();
+  const online = useOnline();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<{ message: string; creditsLink?: boolean } | null>(null);
@@ -139,6 +141,20 @@ export default function PolishText({
     setOpen(false);
     setPolished(null);
     setError(null);
+  }
+
+  // B2330 — needs a live model call; visible but greyed with one line why,
+  // rather than a tap that only fails once it reaches the network.
+  if (!online) {
+    return (
+      <p className="mt-2 text-sm text-ink-secondary opacity-60">
+        {priceChf === null
+          ? t("studio.day.polish.linkNoPrice", { price: formatCredits(WRITE_DAY_CREDITS) })
+          : t("studio.day.polish.link", { price: formatCredits(WRITE_DAY_CREDITS), money: priceChf })}
+        <br />
+        {t("studio.day.polish.offline")}
+      </p>
+    );
   }
 
   return (

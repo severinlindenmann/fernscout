@@ -99,10 +99,11 @@ describe("the line that says what is waiting", () => {
     // number and anything else in it never reach a prompt.
     expect(line).not.toContain(EMAIL);
     expect(line).not.toContain("41760000000");
-    // And it points at the two tools that can act on it, so the model has
-    // somewhere to go rather than denying the card exists.
-    expect(line).toContain("invite_contact");
+    // And it points at the one tool that can act on it, plus where letting
+    // somebody read the journal actually happens — B2295 (one door for
+    // readers, B2291) removed the second tool that used to be named here.
     expect(line).toContain("trip_people");
+    expect(line).toContain("invite_to_read");
   });
 
   test("counts photographs and location pins without naming them", () => {

@@ -89,6 +89,7 @@ beforeAll(async () => {
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "db.sqlite")}`;
   process.env.SESSION_SECRET = "99".repeat(32);
+  process.env.CONTACTS_ENCRYPTION_KEY = "a5".repeat(32);
 
   fs.writeFileSync(
     path.join(dir, "config.json"),
@@ -124,6 +125,28 @@ beforeAll(async () => {
   const { migrateToLatest } = await import("@/lib/db/migrate");
   const { getDatabase } = await import("@/lib/db");
   await migrateToLatest(await getDatabase());
+
+  // B2297: BUDDY's name in `people:` above is the byline only — a real
+  // trip-scoped token needs a granted `trip_people` place, the same one
+  // Studio › Readers would create.
+  const { requestContact, confirmContact, approveContact } = await import("@/lib/contacts");
+  const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+  const { issueCode } = await import("@/lib/auth");
+  const requested = await requestContact(OWNER, {
+    name: "Buddy",
+    email: BUDDY,
+    locale: "en",
+    address: null,
+    wantsEmailDigest: false,
+    wantsPostcard: false,
+    createdVia: "open",
+  });
+  if (requested.outcome === "ignored" || !requested.contactId) throw new Error("contact refused");
+  const { code } = await issueCode(OWNER, BUDDY, "guest");
+  await confirmContact(OWNER, BUDDY, code);
+  await approveContact(OWNER, requested.contactId);
+  await claimTripPlace(OWNER, "shared-trip", requested.contactId, null);
+  await approveTripPlaces(OWNER, requested.contactId);
 });
 
 afterAll(async () => {
@@ -132,6 +155,7 @@ afterAll(async () => {
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;
   delete process.env.SESSION_SECRET;
+  delete process.env.CONTACTS_ENCRYPTION_KEY;
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -306,7 +330,6 @@ describe("GET /api/v2/{user}/status", () => {
         figures: "no walking figures drawn for this trip",
         tagline: "no one-line subtitle written for this trip",
         intro: "no opening prose written for this trip yet",
-        buddies: "travelling solo, nobody else was on this trip",
       },
     };
     const tripCreated = await putTrip(

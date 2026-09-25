@@ -90,6 +90,7 @@ function render(
           ownerName={"ownerName" in over ? over.ownerName : "Robin"}
           manage={over.manage}
           signupEnabled={over.signupEnabled ?? true}
+          build={{ version: "0.0.0-test" }}
           sessionsShared={"sessionsShared" in over ? (over.sessionsShared ?? null) : null}
         />
           </TripListProvider>
