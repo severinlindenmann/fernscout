@@ -124,10 +124,7 @@ export default function JoinFlow({
     }
     if (!knownEmail) return next();
     const joined = await call({ action: "join" });
-    if (joined) {
-      setStatus(joined.status === "in" ? "in" : "waiting");
-      next();
-    }
+    if (joined) proved(joined);
   }
   async function send() {
     const sent = await call({ action: "send" });
@@ -138,11 +135,15 @@ export default function JoinFlow({
     }
   }
   async function verify() {
-    const proved = await call({ action: "verify", code: typed });
-    if (proved) {
-      setStatus(proved.status === "in" ? "in" : "waiting");
-      next();
-    }
+    const answer = await call({ action: "verify", code: typed });
+    if (answer) proved(answer);
+  }
+  /** Somebody already on the page keeps what is stored: no address or
+   * channel screens for them, straight to where they stand. */
+  function proved(answer: Record<string, unknown>) {
+    setStatus(answer.status === "in" ? "in" : "waiting");
+    if (answer.known) setStep("done");
+    else next();
   }
   const hasAddress = Boolean(address.line1.trim() && address.city.trim() && address.country.trim());
   async function saveAddress() {

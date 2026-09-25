@@ -88,7 +88,11 @@ export async function POST(request: Request, { params }: RouteContext<"/w/[code]
 
   // Everything below is the person's own, signed in as this contact.
   const reader = await journalReader(owner);
-  if (!reader.contact || reader.contact.id !== contact.id) return answer({ error: "not_signed_in" }, 401);
+  // Blocked is refused here too, not only by `resolveWelcomeCode` above: the
+  // two reads are a moment apart and taking access away must win.
+  if (!reader.contact || reader.contact.id !== contact.id || reader.contact.status === "blocked") {
+    return answer({ error: "not_signed_in" }, 401);
+  }
   const self = reader.contact;
 
   switch (body.action) {

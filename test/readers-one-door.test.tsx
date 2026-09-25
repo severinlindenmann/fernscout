@@ -157,6 +157,14 @@ describe("the page: two doors, then the groups", () => {
     expect(container!.textContent).toContain(dict["readers.line.mobileConfirmed"]);
   });
 
+  test("somebody the owner added reads \"You added them\", not the owner's own label", () => {
+    expect(dict["contact.adminViaOwner"]).toBe("You added them");
+    render([{ ...nina, welcomeOpenedAt: "2026-09-25T07:00:00Z" }]);
+    expect(groupOf("Nina New")).toBe(dict["readers.group.reading"]);
+    expect(container!.textContent).toContain("You added them");
+    expect(container!.textContent).not.toContain("They keep this journal");
+  });
+
   test("role pills: Reader, or Buddy of the trip", () => {
     render([ida, bea]);
     expect(container!.textContent).toContain("Ida Reader" + dict["readers.role.reader"]);
