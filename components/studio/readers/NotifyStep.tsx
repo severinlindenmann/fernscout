@@ -207,8 +207,7 @@ export default function NotifyStep({
       </h3>
       {options.opened && <p className="mt-2 text-sm text-ink-body">{t("notifyStep.opened", { name })}</p>}
 
-      <fieldset className="mt-3 flex flex-col gap-2">
-        <legend className="sr-only">{t("notifyStep.heading", { name })}</legend>
+      <fieldset className="mt-3 flex flex-col gap-2" aria-labelledby="notify-step-heading">
         {options.channels.map(({ channel, cost, blocked }) => {
           const off = blocked !== null || (options.opened && channel !== "self");
           const on = choice === channel;

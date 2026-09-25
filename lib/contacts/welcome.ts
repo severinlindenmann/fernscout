@@ -233,7 +233,7 @@ export type InviteOptions = {
 function maskEmail(email: string): string | null {
   if (!email.includes("@")) return null;
   const [local, domain] = email.split("@");
-  return `${local.slice(0, 2)}${"•".repeat(Math.max(1, local.length - 2))}@${domain}`;
+  return `${local.slice(0, 2)}•••@${domain}`;
 }
 
 function maskMobile(phone: string | null): string | null {
