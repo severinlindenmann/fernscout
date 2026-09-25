@@ -38,6 +38,10 @@ export interface OutboxIntent {
   body: unknown;
   createdAt: string;
   state: IntentState;
+  /** Only for `kind: "media.upload"` (B2330) — the original file, kept as
+   *  IndexedDB's own `Blob` support rather than base64 in `body`, so a queued
+   *  photograph is still its own print master and never re-encoded. */
+  blob?: Blob;
 }
 
 export type NewIntent = Omit<OutboxIntent, "id" | "createdAt" | "state">;
@@ -121,6 +125,22 @@ export interface OutboxStore {
   /** Drops every intent for one owner — signing out, the same boundary
    *  `purgePersonal` clears the worker's cache at. */
   clear(user: string): Promise<void>;
+  /** B2330 — a `media.upload` intent has just resolved to a real inbox id;
+   *  rewrite `mediaInboxIds` on every other pending intent for this owner
+   *  that still names the placeholder, in place, so a later replay sends
+   *  the id the server actually knows. */
+  remapMediaId(user: string, placeholderId: string, realId: string): Promise<void>;
+}
+
+/** `body.mediaInboxIds` with one id swapped, or the same array reference
+ *  when the placeholder is not in it — pure, so `remapMediaId`'s own
+ *  IndexedDB glue is the only part that has to be exercised through a real
+ *  store. */
+function withRemappedMedia(body: unknown, placeholderId: string, realId: string): unknown {
+  if (!body || typeof body !== "object") return body;
+  const ids = (body as { mediaInboxIds?: unknown }).mediaInboxIds;
+  if (!Array.isArray(ids) || !ids.includes(placeholderId)) return body;
+  return { ...body, mediaInboxIds: ids.map((id) => (id === placeholderId ? realId : id)) };
 }
 
 /**
@@ -138,15 +158,27 @@ export async function runOutbox(
 ): Promise<RunOutcome> {
   const outcome: RunOutcome = { done: 0, conflicts: 0, paused: false, stoppedForRetry: false };
   const intents = (await store.list(user)).filter((i) => i.state === "pending");
-  for (const intent of intents) {
+  for (const [i, intent] of intents.entries()) {
     let status: number;
     let body: unknown = null;
     try {
-      const res = await fetchImpl(intent.url, {
-        method: intent.method,
-        headers: { "content-type": "application/json" },
-        body: intent.method === "DELETE" && intent.body === undefined ? undefined : JSON.stringify(intent.body),
-      });
+      // `media.upload` (B2330) carries the original file as a `Blob`, kept
+      // as `intent.blob` rather than in `intent.body` (JSON only) — sent as
+      // the same multipart the inbox route already accepts from a live
+      // upload, so the queued photograph is never re-encoded on its way in.
+      const isUpload = intent.kind === "media.upload" && intent.blob;
+      let requestBody: BodyInit | undefined;
+      let headers: Record<string, string> | undefined;
+      if (isUpload) {
+        const form = new FormData();
+        const filename = (intent.body as { filename?: string } | null)?.filename ?? "photo";
+        form.append("files", intent.blob as Blob, filename);
+        requestBody = form;
+      } else {
+        headers = { "content-type": "application/json" };
+        requestBody = intent.method === "DELETE" && intent.body === undefined ? undefined : JSON.stringify(intent.body);
+      }
+      const res = await fetchImpl(intent.url, { method: intent.method, headers, body: requestBody });
       status = res.status;
       body = await res.json().catch(() => null);
     } catch {
@@ -158,6 +190,30 @@ export async function runOutbox(
     if (action === "done") {
       await store.remove(intent.id);
       outcome.done += 1;
+      // The inbox route hands back the real id it stored the file under;
+      // any not-yet-sent intent that referenced this upload's phone-chosen
+      // placeholder (a day written offline, alongside its photographs) is
+      // rewritten in place so it sends the real id, not one the server has
+      // never heard of.
+      if (intent.kind === "media.upload") {
+        const placeholderId = (intent.body as { placeholderId?: string } | null)?.placeholderId;
+        const items = (body as { items?: { id?: string }[] } | null)?.items;
+        const realId = items?.[0]?.id;
+        if (placeholderId && realId) {
+          await store.remapMediaId(user, placeholderId, realId);
+          // `store.remapMediaId` only rewrites IndexedDB — `intents` above is
+          // a snapshot taken before this pass started, so a day queued after
+          // its own photographs (the ordering this whole thing exists for)
+          // would otherwise still hold the placeholder when its own turn
+          // comes later in this same pass, fail with a media the server has
+          // never heard of, and be marked a permanent "conflict" for an id
+          // that in fact resolved a moment earlier. Rewrite the copies still
+          // waiting their turn too.
+          for (let j = i + 1; j < intents.length; j++) {
+            intents[j].body = withRemappedMedia(intents[j].body, placeholderId, realId);
+          }
+        }
+      }
     } else if (action === "conflict") {
       await store.setState(intent.id, "conflict");
       outcome.conflicts += 1;
@@ -258,6 +314,22 @@ export function openOutboxStore(): OutboxStore {
       });
       db.close();
     },
+    async remapMediaId(user, placeholderId, realId) {
+      const db = await openDB();
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const index = tx.objectStore(STORE_NAME).index("user");
+      const rows = (await promisify(index.getAll(IDBKeyRange.only(user)))) as OutboxIntent[];
+      const store = tx.objectStore(STORE_NAME);
+      for (const row of rows) {
+        const rewritten = withRemappedMedia(row.body, placeholderId, realId);
+        if (rewritten !== row.body) store.put({ ...row, body: rewritten });
+      }
+      await new Promise<void>((resolve) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+      db.close();
+    },
   };
 }
 
@@ -277,4 +349,16 @@ export function newIntent(input: NewIntent): OutboxIntent {
     createdAt: new Date().toISOString(),
     state: "pending",
   };
+}
+
+/** ISO dates with a `day.new` write still waiting in the queue — B2330's
+ *  "waiting" marker on the day picker, read straight off the outbox rather
+ *  than kept as its own piece of state anywhere. */
+export async function pendingDayDates(store: OutboxStore, user: string): Promise<Set<string>> {
+  const rows = await store.list(user);
+  const dates = rows
+    .filter((r) => r.state === "pending" && r.kind === "day.new")
+    .map((r) => (r.body as { date?: unknown } | null)?.date)
+    .filter((d): d is string => typeof d === "string");
+  return new Set(dates);
 }

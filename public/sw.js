@@ -408,15 +408,23 @@ async function matchShared(request, options) {
 }
 
 /**
- * The two studio pages this wave keeps offline — B2329/B2210. Exact paths
- * only: the studio has many more subpages, but the ticket's own acceptance
- * is the hub and "Add a day", and a narrow allowlist here is a one-line
- * change to widen later, where a broad one would need to know which studio
- * pages are safe to keep and which (an order, a delete confirmation) are
- * not.
+ * The studio pages this wave keeps offline — B2329 kept the hub and "Add a
+ * day"; B2330 (wave 2) widens the same explicit allowlist to the pages
+ * those flows actually navigate between while writing offline — editing a
+ * day, the trip-wide planner and one trip's own plan, and starting a new
+ * trip. Still exact paths only, and still never an order, a delete
+ * confirmation or anything that spends money — the ticket's own line "keep
+ * it an explicit allowlist, never order/delete/payment pages".
  */
 function isStudioKeepPath(pathname) {
-  return /^\/[^/]+\/studio$/.test(pathname) || /^\/[^/]+\/studio\/day\/new$/.test(pathname);
+  return (
+    /^\/[^/]+\/studio$/.test(pathname) ||
+    /^\/[^/]+\/studio\/day\/new$/.test(pathname) ||
+    /^\/[^/]+\/studio\/day\/edit$/.test(pathname) ||
+    /^\/[^/]+\/studio\/plan$/.test(pathname) ||
+    /^\/[^/]+\/studio\/plan\/[^/]+$/.test(pathname) ||
+    /^\/[^/]+\/studio\/trip\/new$/.test(pathname)
+  );
 }
 
 /**
