@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
-import { ArrowDown, BookOpen, PlayCircle, Sparkles } from "lucide-react";
+import { ArrowDown, BookOpen, Clapperboard, PlayCircle, Sparkles } from "lucide-react";
 import LatestDayButton from "./LatestDayButton";
 import TripMap from "./TripMap";
 import { isPlottable } from "@/lib/mapFrame";
@@ -327,6 +328,22 @@ export default function TripHero({
                   <ArrowDown className="h-4 w-4" aria-hidden />
                   {t("hero.startReading")}
                 </button>
+                {/* Same button, same condition (`hasPlaces`), as the map
+                    page's own Clapperboard — B2306. A plain link to the map
+                    page rather than a button that opens the show in place:
+                    the story page must not carry what the show needs
+                    (`places`, the whole trip's galleries and headlines) just
+                    because this link sits on it. `?show=1` is read by
+                    `MapPageContent`, which already has `places` in hand. */}
+                {hasPlaces && (
+                  <Link
+                    href={active.href("/map?show=1")}
+                    className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
+                  >
+                    <Clapperboard className="h-4 w-4" />
+                    {t("show.start")}
+                  </Link>
+                )}
                 {/* The journey is finished — this is where somebody looking at
                     that fact is offered the book of it. B569. */}
                 {photobook && stats.totalMedia > 0 && (
