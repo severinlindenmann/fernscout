@@ -25,7 +25,7 @@ import {
 import { countInviteUse, preapprovedEmailFor } from "./invites";
 import { approveTripPlaces, revokeTripPlaces } from "../tripPeople";
 import { parseLocale, pickLocale } from "./locale";
-import { isMessageable, phoneSubject, toE164 } from "../phone";
+import { isMessageable, phoneSubject, subjectPhone, toE164 } from "../phone";
 import { getUser } from "../users";
 import { whatsappCountryCode } from "../contactNumber";
 
@@ -185,18 +185,31 @@ function toRecord(owner: string, row: ContactRow): ContactRecord {
  *
  * The number leaves the postal blob for columns of its own (`038-contact-
  * phone`): a ciphertext, and an HMAC of its E.164 digits that sign-in looks
- * up by. `phone_proven_at` survives only when the number is the one that was
- * proved; any other number starts unproven.
+ * up by. **The lookup key is the credential**, so who may set it is the whole
+ * security question, and this is the one place it is answered:
  *
- * **One number signs in as one person per journal.** A number another contact
- * here already holds is still stored for the card, with no lookup key, so it
- * can never sign in as either of them — and the person typing it learns
- * nothing about who else has it.
+ * - `self` — typed into a self-service or anonymous door (the join form,
+ *   the manage link, a guestbook). Stored for the card and for postcards,
+ *   **never** a way in: the key is kept only when it is the very number this
+ *   contact already signs in with (a page re-saved as it stood), and is
+ *   otherwise null. Anyone who knows a reader's address can reach the join
+ *   form, and anyone holding a forwarded digest reaches the manage page — a
+ *   link never carries access.
+ * - `owner` — the journal's owner typed it (owner-cookie doors only). Takes
+ *   the key from another contact that holds it unproven; never from one that
+ *   proved it.
+ * - `proven` — an SMS code to this number was just redeemed for this
+ *   contact. Takes the key from whoever held it, and stamps it proven.
+ *
+ * `phone_proven_at` survives only while the number is the one proved.
  */
+type PhoneTrust = "self" | "owner" | "proven";
+
 async function phoneColumns(
   owner: string,
   id: string,
   tel: string,
+  trust: PhoneTrust,
 ): Promise<Pick<ContactRow, "phone_cipher" | "phone_key" | "phone_proven_at">> {
   const typed = tel.trim();
   if (typed === "") return { phone_cipher: null, phone_key: null, phone_proven_at: null };
@@ -204,10 +217,21 @@ async function phoneColumns(
   const key = digits ? phoneKey(digits) : null;
   const holder = key ? await phoneKeyHolder(owner, key) : null;
   const mine = holder?.id === id;
+  const takes =
+    key !== null &&
+    (mine || trust === "proven" || (trust === "owner" && (!holder || !holder.phone_proven_at)));
+  if (takes && holder && !mine) {
+    const { db } = await getDatabase();
+    await db
+      .updateTable("contacts")
+      .set({ phone_key: null, phone_proven_at: null, updated_at: nowIso() })
+      .where("id", "=", holder.id)
+      .execute();
+  }
   return {
     phone_cipher: encryptString(typed, phoneAad(owner, id)),
-    phone_key: key && (!holder || mine) ? key : null,
-    phone_proven_at: mine ? holder.phone_proven_at : null,
+    phone_key: takes ? key : null,
+    phone_proven_at: trust === "proven" ? nowIso() : mine ? holder.phone_proven_at : null,
   };
 }
 
@@ -229,10 +253,15 @@ function postalCipherFor(owner: string, id: string, address: PostalAddress): str
 }
 
 /** Both halves of an address write, for the three writers below. */
-async function addressColumns(owner: string, id: string, address: PostalAddress | null) {
+async function addressColumns(
+  owner: string,
+  id: string,
+  address: PostalAddress | null,
+  trust: PhoneTrust,
+) {
   return {
     postal_cipher: address ? postalCipherFor(owner, id, address) : null,
-    ...(await phoneColumns(owner, id, address?.tel ?? "")),
+    ...(await phoneColumns(owner, id, address?.tel ?? "", trust)),
   };
 }
 
@@ -295,8 +324,12 @@ export async function requestContact(
   owner: string,
   input: ContactRequestInput,
 ): Promise<ContactRequestResult> {
-  const { db } = await getDatabase();
   const email = normaliseEmail(input.email);
+  // Keyed on an address, so only ever an address — B2294's review: a signed-in
+  // phone subject (`+41…`) passed through as the "email" would otherwise
+  // become a row whose address is a phone number.
+  if (!isEmail(email)) return { outcome: "ignored", contactId: null };
+  const { db } = await getDatabase();
   const now = nowIso();
   const name = input.name.trim().slice(0, 120);
 
@@ -353,7 +386,7 @@ export async function requestContact(
   // existing tel to carry forward there is truly nothing left to store.
   const stored = untouched
     ? null
-    : await addressColumns(owner, id, hasAnyDetail(mergedAddress) ? mergedAddress : null);
+    : await addressColumns(owner, id, hasAnyDetail(mergedAddress) ? mergedAddress : null, "self");
 
   if (existing) {
     await db
@@ -529,6 +562,11 @@ export async function confirmContactFromSession(
   owner: string,
   sessionEmail: string,
 ): Promise<ConfirmResult> {
+  // `confirmed_at` is the *email* double opt-in that `mayMailContact` trusts.
+  // A session that proved a mobile number has proved nothing about an
+  // address, so it confirms nothing here (B2294's review) — its proof is
+  // `phone_proven_at`, written where the SMS code was redeemed.
+  if (subjectPhone(sessionEmail)) return { ok: false };
   const lookup = subjectLookup(sessionEmail);
   if (!lookup) return { ok: false };
   const { db } = await getDatabase();
@@ -676,7 +714,7 @@ export async function updateContactSelf(
         ? address
         : null;
 
-  const stored = await addressColumns(owner, current.id, keepAddress);
+  const stored = await addressColumns(owner, current.id, keepAddress, "self");
   await db
     .updateTable("contacts")
     .set({
@@ -895,7 +933,9 @@ export async function approveContact(
 ): Promise<{ contact: ContactRecord; tripsOpened: string[] } | null> {
   const contact = await getContact(owner, id);
   if (!contact) return null;
-  if (!contact.confirmedAt) return null;
+  // Either channel proved counts (B2294): an address confirmed by its code, or
+  // a number proved by SMS. Neither alone is access — this click is.
+  if (!contact.confirmedAt && !contact.phoneProvenAt) return null;
 
   const { db } = await getDatabase();
   const now = nowIso();
@@ -1209,7 +1249,7 @@ export async function updateContactByOwner(
     const address = normaliseAddress(fields.address);
     // Keep the blob whenever anything is in it, not only when it is postable
     // — a phone-number-only correction must not be silently discarded.
-    Object.assign(patch, await addressColumns(owner, id, hasAnyDetail(address) ? address : null));
+    Object.assign(patch, await addressColumns(owner, id, hasAnyDetail(address) ? address : null, "owner"));
     // Wanting a postcard with nowhere to send it is not a state worth storing.
     if (!isPostable(address)) patch.wants_postcard = 0;
     // And the same for the number: an owner who clears it has ended the
@@ -1296,6 +1336,42 @@ export type AddContactResult =
  * contact stores `""`, and an `email_key` no address can ever equal.
  */
 export async function addContact(owner: string, input: AddContactInput): Promise<AddContactResult> {
+  return saveContact(owner, input, "owner");
+}
+
+/**
+ * A brand-new contact whose first channel is a number an SMS code has just
+ * proved — B2294 (c), the join link's visitor. Keyed and stamped proven,
+ * created `pending`, granted nothing. Only `proveFirstPhone`
+ * (`./guestCode.ts`) calls this, after `verifyCode` has succeeded.
+ */
+export async function addContactWithProvenPhone(
+  owner: string,
+  input: Omit<AddContactInput, "email"> & { phone: string },
+): Promise<AddContactResult> {
+  return saveContact(owner, input, "proven");
+}
+
+/**
+ * A number an SMS code has just proved for an existing contact — B2294 (b),
+ * the signed-in reader adding their mobile. Takes the number's key from
+ * whoever held it. The caller has redeemed the code (`confirmPhoneProof`).
+ */
+export async function setProvenPhone(owner: string, contactId: string, tel: string): Promise<void> {
+  const { db } = await getDatabase();
+  await db
+    .updateTable("contacts")
+    .set({ ...(await phoneColumns(owner, contactId, tel, "proven")), updated_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("id", "=", contactId)
+    .execute();
+}
+
+async function saveContact(
+  owner: string,
+  input: AddContactInput,
+  trust: "owner" | "proven",
+): Promise<AddContactResult> {
   const email = input.email?.trim() ? normaliseEmail(input.email) : null;
   const tel = input.phone?.trim() ?? "";
   if (!email && !tel) return { ok: false, error: "no_channel" };
@@ -1316,7 +1392,7 @@ export async function addContact(owner: string, input: AddContactInput): Promise
   const id = existing?.id ?? newId();
   const now = nowIso();
   const name = input.name.trim().slice(0, 120) || null;
-  const phone = tel ? await phoneColumns(owner, id, tel) : null;
+  const phone = tel ? await phoneColumns(owner, id, tel, trust) : null;
 
   if (existing) {
     await db

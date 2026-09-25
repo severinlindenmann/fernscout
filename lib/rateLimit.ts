@@ -144,6 +144,7 @@ export function trackedBuckets(): number {
  * | `deletion-confirm` | requester's IP | opening the confirmation link itself |
  * | `owner-tel-verify-number` / `-owner` / `phone-verify-instance` | phone / owner / instance | phone verification codes |
  * | `sms-code-number` / `sms-code-ip` / `sms-code-instance` | number / requester's IP / instance | `smsCodeAllowed` — a guest's SMS sign-in code (B2294) |
+ * | `sms-first-ip` / `sms-first-instance` (+ `sms-code-number`) | requester's IP / instance | `firstPhoneCodeAllowed` — a code to a number no contact holds yet |
  * | `journals-create*` | requester's IP | the welcome mail a new journal gets |
  * | `storage-<level>` | username | a storage-ceiling warning |
  * | `trip-people-notify` | outgoing address | `notifyNewPeople` — mailing someone newly added to `people:` |
@@ -287,4 +288,16 @@ export function smsCodeAllowed(digits: string, ip: string): boolean {
   if (!rateLimitFor("sms-code-number", digits, SMS_CODE_LIMITS.number).ok) return false;
   if (!rateLimitFor("sms-code-ip", ip, SMS_CODE_LIMITS.ip).ok) return false;
   return rateLimitFor("sms-code-instance", "*", SMS_CODE_LIMITS.instance).ok;
+}
+
+/**
+ * A code to a number **no contact holds yet** — the join link's first
+ * channel (B2294 (c)). Anybody holding a group link can type any number, so
+ * this is the door toll fraud would use: its own, tighter buckets, so that
+ * spending them never blocks an existing reader's sign-in texts.
+ */
+export function firstPhoneCodeAllowed(digits: string, ip: string): boolean {
+  if (!rateLimitFor("sms-code-number", digits, SMS_CODE_LIMITS.number).ok) return false;
+  if (!rateLimitFor("sms-first-ip", ip, { max: 3, windowMs: 60 * 60 * 1000 }).ok) return false;
+  return rateLimitFor("sms-first-instance", "*", { max: 50, windowMs: 24 * 60 * 60 * 1000 }).ok;
 }

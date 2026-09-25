@@ -7,10 +7,7 @@ import {
   hasAnyDetail,
   hasContactsKey,
   phoneAad,
-  phoneKey,
 } from "../../contacts/crypto";
-import { whatsappCountryCode } from "../../contactNumber";
-import { toE164 } from "../../phone";
 import type { MigrationDb } from "./types";
 
 /**
@@ -23,9 +20,11 @@ import type { MigrationDb } from "./types";
  *
  * - `phone_cipher` — the number as typed, AES-256-GCM under the contacts key,
  *   bound to its row by `phone:<owner>:<id>`. Still never in the clear.
- * - `phone_key` — an HMAC of its E.164 digits (`phoneKey`), for lookup. Null
- *   when the number cannot be read as international, or when another contact
- *   of the same journal already holds it: one number signs in as one person.
+ * - `phone_key` — an HMAC of its E.164 digits (`phoneKey`), for lookup. It
+ *   is the sign-in credential, set only when the owner typed the number or an
+ *   SMS code proved it (`phoneColumns` in `lib/contacts`). **Every number
+ *   moved here gets none**: most were typed into self-service forms, by
+ *   whoever held the link, and a number nobody vouched for must not sign in.
  * - `phone_proven_at` — when an SMS code proved it. Every number moved here is
  *   unproven, because nobody has ever proved one.
  *
@@ -61,22 +60,15 @@ export async function up(db: MigrationDb): Promise<void> {
     .where("postal_cipher", "is not", null)
     .orderBy("created_at")
     .execute();
-  const cc = whatsappCountryCode();
-  const taken = new Set<string>();
   for (const row of rows) {
     const aad = addressAad(row.owner_id, row.id);
     const address = decryptAddress(row.postal_cipher, aad);
     if (!address || address.tel.trim() === "") continue;
-    const digits = toE164(address.tel, cc);
-    const key = digits ? phoneKey(digits) : null;
-    const unique = key && !taken.has(`${row.owner_id}:${key}`) ? key : null;
-    if (unique) taken.add(`${row.owner_id}:${unique}`);
     const rest = { ...address, tel: "" };
     await db
       .updateTable("contacts")
       .set({
         phone_cipher: encryptString(address.tel, phoneAad(row.owner_id, row.id)),
-        phone_key: unique,
         postal_cipher: hasAnyDetail(rest) ? encryptAddress(rest, aad) : null,
       })
       .where("id", "=", row.id)

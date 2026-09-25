@@ -201,6 +201,8 @@ describe("a reader with a mobile number and no email", () => {
 
     const asked = await request(post({ user: OWNER, phone: "+44 7700 900123", for: "read" }));
     expect(asked.status).toBe(202);
+    const { flushAfterResponse } = await import("@/lib/afterResponse");
+    await flushAfterResponse();
     const code = lastCode("447700900123");
 
     // Not for anything but reading, and never beside an email.
@@ -357,7 +359,7 @@ describe("038-contact-phone", () => {
       const street = rows.find((r: { id: string }) => r.id === "street");
       const only = rows.find((r: { id: string }) => r.id === "telonly");
       expect(street.phone_proven_at).toBeNull();
-      expect(street.phone_key).not.toBeNull();
+      expect(street.phone_key).toBeNull();
       expect(decryptAddress(street.postal_cipher, addressAad(OWNER, "street"))).toMatchObject({ line1: "Gasse 1", tel: "" });
       expect(decryptString(street.phone_cipher, phoneAad(OWNER, "street"), "phone")).toBe("+41 76 222 33 44");
       expect(only.postal_cipher).toBeNull();
@@ -401,5 +403,164 @@ describe("038-contact-phone", () => {
     expect(legacy?.phone).toBe("+41 76 222 33 66");
     expect(legacy?.postalAddress?.tel).toBe("+41 76 222 33 66");
     expect(legacy?.hasPostalAddress).toBe(true);
+  });
+});
+
+/**
+ * B2294's security review. A number becomes a sign-in credential only when
+ * the owner typed it or an SMS code proved it — never because somebody typed
+ * it into a self-service form.
+ */
+describe("a typed number is not a credential", () => {
+  async function textsTo(digits: string) {
+    return texts().filter((t) => t.to === digits).length;
+  }
+  async function askByPhone(phone: string) {
+    const { POST: request } = await import("@/app/api/auth/codes/route");
+    const res = await request(
+      new Request("https://example.test/api/auth/codes", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.50" },
+        body: JSON.stringify({ user: OWNER, phone, for: "read" }),
+      }),
+    );
+    expect(res.status).toBe(202);
+    const { flushAfterResponse } = await import("@/lib/afterResponse");
+    await flushAfterResponse();
+  }
+
+  test("HIGH-1: the public form, given a reader's address, cannot plant a number that signs in as them", async () => {
+    const reader = await addApproved({ name: "Vera", email: "vera@example.test" });
+    const { requestContact, getContactByEmail } = await import("@/lib/contacts");
+    await requestContact(OWNER, {
+      name: "Vera",
+      email: "vera@example.test",
+      locale: "en",
+      address: { tel: "+41 79 666 00 01" },
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      createdVia: "open",
+    });
+    expect(await getContactByEmail(OWNER, "+41796660001")).toBeNull();
+    const before = await textsTo("41796660001");
+    await askByPhone("+41 79 666 00 01");
+    expect(await textsTo("41796660001")).toBe(before);
+    // Still shown on the card, as a number nobody has proved.
+    const { getContact } = await import("@/lib/contacts");
+    expect((await getContact(OWNER, reader.id))?.phone).toBe("+41 79 666 00 01");
+  });
+
+  test("MEDIUM-2: the manage link cannot set a number that signs in, and re-saving keeps an owner-typed one", async () => {
+    const reader = await addApproved({ name: "Wim", email: "wim@example.test", phone: "+41 79 666 00 02" });
+    const { getContactByEmail, manageTokenFor, updateContactSelf } = await import("@/lib/contacts");
+    const token = manageTokenFor(OWNER, reader.id);
+    // Saving the page as it stands keeps the owner's number as a credential.
+    await updateContactSelf(OWNER, token, { address: { tel: "+41 79 666 00 02" } });
+    expect((await getContactByEmail(OWNER, "+41796660002"))?.id).toBe(reader.id);
+    // A different number typed there is stored, and is not a way in.
+    await updateContactSelf(OWNER, token, { address: { tel: "+41 79 666 00 03" } });
+    expect(await getContactByEmail(OWNER, "+41796660003")).toBeNull();
+    expect(await getContactByEmail(OWNER, "+41796660002")).toBeNull();
+  });
+
+  test("MEDIUM-3: proving a number never confirms an email address, and a phone subject never becomes a row", async () => {
+    const { addContact, confirmContactFromSession, getContact, listContacts, requestContact } = await import(
+      "@/lib/contacts"
+    );
+    const added = await addContact(OWNER, {
+      name: "Xena",
+      email: "xena@example.test",
+      phone: "+41 79 666 00 04",
+      locale: "en",
+      createdVia: "owner",
+    });
+    if (!added.ok) throw new Error(added.error);
+    await signInBySms(added.contact.id, "41796660004");
+    expect((await confirmContactFromSession(OWNER, "+41796660004")).ok).toBe(false);
+    const after = await getContact(OWNER, added.contact.id);
+    expect(after?.confirmedAt).toBeNull();
+    expect(after?.phoneProvenAt).not.toBeNull();
+    const { readerState } = await import("@/lib/readers/split");
+    expect(readerState(after!)).toBe("waitingOnYou");
+
+    const result = await requestContact(OWNER, {
+      name: "Junk",
+      email: "+41796660004",
+      locale: "en",
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      createdVia: "asked",
+    });
+    expect(result.contactId).toBeNull();
+    expect((await listContacts(OWNER)).some((c) => c.email === "+41796660004")).toBe(false);
+  });
+
+  test("toll fraud: a self-made contact's number is never texted, however it got one", async () => {
+    const { requestContact } = await import("@/lib/contacts");
+    const made = await requestContact(OWNER, {
+      name: "Premium",
+      email: "premium@example.test",
+      locale: "en",
+      address: { tel: "+44 909 876 5432" },
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      createdVia: "invite:x",
+    });
+    const { sendGuestCode } = await import("@/lib/contacts/guestCode");
+    expect(await sendGuestCode(OWNER, made.contactId!, "sms", { ip: "198.51.100.60" })).toEqual({
+      ok: false,
+      reason: "no_channel",
+    });
+    expect(await textsTo("449098765432")).toBe(0);
+  });
+
+  test("LOW-7: an owner-typed number wins the key over an unproven holder", async () => {
+    const { addContact, getContactByEmail, updateContactByOwner } = await import("@/lib/contacts");
+    const planted = await addApproved({ name: "Planter", email: "planter@example.test", phone: "+41 79 666 00 05" });
+    // An owner-typed, never-proved number …
+    const real = await addContact(OWNER, { name: "Real", email: "real@example.test", locale: "en", createdVia: "owner" });
+    if (!real.ok) throw new Error(real.error);
+    await updateContactByOwner(OWNER, real.contact.id, { address: { tel: "+41 79 666 00 05" } });
+    expect((await getContactByEmail(OWNER, "+41796660005"))?.id).toBe(real.contact.id);
+    expect(planted.id).not.toBe(real.contact.id);
+  });
+});
+
+describe("proving a number in-session and as a first channel", () => {
+  test("a signed-in reader adds a number by proving it; it then signs in as them", async () => {
+    const reader = await addApproved({ name: "Yara", email: "yara@example.test" });
+    const { sendPhoneProof, confirmPhoneProof } = await import("@/lib/contacts/guestCode");
+    const sent = await sendPhoneProof(OWNER, reader.id, "+41 79 666 00 06", { ip: "198.51.100.70" });
+    expect(sent.ok).toBe(true);
+    expect(await confirmPhoneProof(OWNER, reader.id, "+41 79 666 00 06", "000000")).toBe(false);
+    expect(await confirmPhoneProof(OWNER, reader.id, "+41 79 666 00 06", lastCode("41796660006"))).toBe(true);
+    const { getContactByEmail } = await import("@/lib/contacts");
+    const found = await getContactByEmail(OWNER, "+41796660006");
+    expect(found?.id).toBe(reader.id);
+    expect(found?.phoneProvenAt).not.toBeNull();
+    expect(found?.confirmedAt).not.toBeNull(); // the email proof it already had, untouched
+  });
+
+  test("a visitor's first channel: a code to a new number creates a pending contact on proof, and grants nothing", async () => {
+    const { sendFirstPhoneCode, proveFirstPhone } = await import("@/lib/contacts/guestCode");
+    expect((await sendFirstPhoneCode(OWNER, "+41 79 666 00 07", { ip: "198.51.100.80" })).ok).toBe(true);
+    const proved = await proveFirstPhone(OWNER, "+41 79 666 00 07", lastCode("41796660007"), {
+      name: "Joiner",
+      locale: "en",
+      createdVia: "invite:j",
+    });
+    expect(proved?.contact).toMatchObject({ status: "pending", phone: "+41 79 666 00 07", email: "" });
+    expect(proved?.contact.phoneProvenAt).not.toBeNull();
+    jar.cookies = { fs_session: proved!.token };
+    const { isJournalGuest } = await import("@/lib/contacts/session");
+    expect(await isJournalGuest(OWNER)).toBe(false);
+    // Waiting on the owner, and not somebody the sign-in door texts until let in.
+    const { sendGuestCode } = await import("@/lib/contacts/guestCode");
+    expect(await sendGuestCode(OWNER, proved!.contact.id, "sms", { ip: "198.51.100.81" })).toEqual({
+      ok: false,
+      reason: "no_channel",
+    });
+    const { readerState } = await import("@/lib/readers/split");
+    expect(readerState(proved!.contact)).toBe("waitingOnYou");
   });
 });

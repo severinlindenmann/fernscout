@@ -20,6 +20,7 @@ import { whatsappCountryCode } from "@/lib/contactNumber";
 import { smsUnreachable } from "@/lib/sms";
 import { getContactByEmail } from "@/lib/contacts";
 import { sendGuestCode } from "@/lib/contacts/guestCode";
+import { afterResponse } from "@/lib/afterResponse";
 import { authTemplateFor } from "@paid/whatsapp/lib/whatsapp/settings";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
@@ -191,14 +192,18 @@ async function handlePhone(request: Request, req: CodesRequest) {
   if (!user) return accepted();
   if (!isEnabled("auth", username)) return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
 
-  const contact = await getContactByEmail(username, phoneSubject(digits));
-  if (!contact) return accepted();
-  const sent = await sendGuestCode(username, contact.id, "sms", {
-    ip: clientIp(request),
-    locale: pickLocale(req.locale ?? null, fromAcceptLanguage(request.headers.get("accept-language"))),
-    destination: safeDestination(username, req.destination),
+  // After the response, known number or not (B159's shape, as
+  // `/api/contacts/request` does it): awaiting the text only for a number a
+  // contact holds would make the response time say which numbers those are.
+  const ip = clientIp(request);
+  const locale = pickLocale(req.locale ?? null, fromAcceptLanguage(request.headers.get("accept-language")));
+  const destination = safeDestination(username, req.destination);
+  afterResponse("auth", async () => {
+    const contact = await getContactByEmail(username, phoneSubject(digits));
+    if (!contact) return;
+    const sent = await sendGuestCode(username, contact.id, "sms", { ip, locale, destination });
+    if (!sent.ok) console.warn(`[auth] sms read code for ${username} not sent: ${sent.reason}`);
   });
-  if (!sent.ok) console.warn(`[auth] sms read code for ${username} not sent: ${sent.reason}`);
   return accepted();
 }
 
