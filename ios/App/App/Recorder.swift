@@ -105,7 +105,13 @@ final class Recorder: NSObject {
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
         manager.distanceFilter = 100
         manager.allowsBackgroundLocationUpdates = manager.authorizationStatus == .authorizedAlways
-        manager.showsBackgroundLocationIndicator = true
+        // No blue status-bar pill while recording in the background: the
+        // recorder runs quietly for the whole trip, the way a location
+        // timeline does, rather than looking like an app held open. This
+        // only affects "Always" — with "While using", iOS shows the pill
+        // regardless, and `status()` already reports that as
+        // `when_in_use_only` so the studio can send the owner to Settings.
+        manager.showsBackgroundLocationIndicator = false
         manager.pausesLocationUpdatesAutomatically = manager.authorizationStatus == .authorizedAlways
         applyStopRule()
         if !armed.isEmpty {
