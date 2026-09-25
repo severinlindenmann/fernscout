@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import { ChevronUp, ChevronDown, LayoutDashboard, Plus } from "lucide-react";
 import GamePath from "@/components/GamePath";
 import OwnerTools from "@/components/OwnerTools";
@@ -13,7 +12,6 @@ import PagerNav, { type PagerNavState } from "@/components/PagerNav";
 import ReactionsProvider from "@/components/ReactionsProvider";
 import StoryPager, { buildSteps } from "@/components/StoryPager";
 import TripHero from "@/components/TripHero";
-import type { PlaceView } from "@/components/WorldMap";
 import type { Basemap } from "@/lib/basemap";
 import { useI18n } from "@/components/LocaleProvider";
 import { useTrip } from "@/components/TripProvider";
@@ -31,11 +29,6 @@ import {
 } from "@/lib/whatsNew";
 import type { Day, DaySummary, PhotobookEntry } from "@/lib/types";
 import type { HeroStats } from "@/components/TripHero";
-
-// Behind a button, same as the map page's own slideshow — nobody should pay
-// to download the presentation bundle (map projection data, motion) before
-// they've asked to see it. B2306.
-const SlideShow = dynamic(() => import("@/components/SlideShow"), { ssr: false });
 
 /** How many days either side of the one on screen are kept loaded. Mirrors
  * `STORY_WINDOW` on the server; the client asks for the same shape. */
@@ -55,7 +48,6 @@ export default function TripStory({
   stats,
   basemap = null,
   locals,
-  places,
   photobook,
   travellerNames,
   dayTrack,
@@ -77,10 +69,6 @@ export default function TripStory({
   basemap?: Basemap | null;
   /** One town-scale basemap per stop area — see `components/TripMap.tsx`. */
   locals?: Record<string, Basemap>;
-  /** The trip's stops, in order — `buildStoryProps`' own `getPlaces` call
-   * (lib/tripView.ts), same as the map page reads. Feeds the hero's
-   * slideshow button (B2306). */
-  places: PlaceView[];
   /**
    * Present only for the journal's owner, on a journal with photobook and
    * credits switched on — B569. See `TripHero`, which is the only place this
@@ -106,17 +94,6 @@ export default function TripStory({
   // unexpected case where that ever stops being true — reactions degrade to
   // inert rather than crash the story page.
   const trip = useTrip();
-
-  // The slideshow, opened from either the hero (trip page, or the day this
-  // permalink names) or a day card's own button (opens right there) —
-  // B2306. `undefined` starts at the beginning, same as no `startDate` at
-  // all.
-  const [showingSlideshow, setShowingSlideshow] = useState(false);
-  const [slideshowStart, setSlideshowStart] = useState<string | undefined>(undefined);
-  const openSlideshow = useCallback((date?: string) => {
-    setSlideshowStart(date);
-    setShowingSlideshow(true);
-  }, []);
 
   const steps = useMemo(() => buildSteps(index), [index]);
 
@@ -564,9 +541,7 @@ export default function TripStory({
             loadFailed={loadFailed}
             steps={steps}
             stepIndex={stepIndex}
-            onShowSlideshow={
-              places.length > 0 ? (dayIndex: number) => openSlideshow(index[dayIndex]?.date) : undefined
-            }
+            hasPlaces={stats.places > 0}
             onStepChange={(next) => {
               directionRef.current = next > stepIndex ? 1 : -1;
               setStepIndex(next);
@@ -614,7 +589,6 @@ export default function TripStory({
                   }
                   photobook={photobook}
                   travellerNames={travellerNames}
-                  onShowSlideshow={places.length > 0 ? () => openSlideshow(openAtDate) : undefined}
                 />
               )
             }
@@ -647,20 +621,6 @@ export default function TripStory({
         tripOver={over}
         nav={{ ...nav, onEnd: goToOverview }}
       />
-
-      {showingSlideshow && (
-        <SlideShow
-          places={places}
-          onClose={() => setShowingSlideshow(false)}
-          startDate={slideshowStart}
-          stats={{
-            tripDays: stats.tripDays,
-            places: stats.places,
-            countries: stats.countries,
-            totalMedia: stats.totalMedia,
-          }}
-        />
-      )}
     </div>
   );
 

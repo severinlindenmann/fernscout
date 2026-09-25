@@ -117,7 +117,6 @@ function renderStory(): string {
                 windowStart={props.windowStart}
                 initialDate={props.initialDate}
                 stats={props.stats}
-                places={[]}
               />
             </TripProvider>
           </CurrencyProvider>

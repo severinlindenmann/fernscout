@@ -100,7 +100,7 @@ export default async function TripDayPage({
   const entry = getEntryBySlug(trip.ref, slug, read);
   if (!entry) notFound();
 
-  const { index, days, windowStart, initialDate, stats, basemap, locals, places } = buildStoryProps(trip.ref, {
+  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
     ...read,
@@ -134,7 +134,6 @@ export default async function TripDayPage({
         stats={stats}
         basemap={basemap}
         locals={locals}
-        places={places}
         photobook={photobook}
         dayTrack={track}
       />

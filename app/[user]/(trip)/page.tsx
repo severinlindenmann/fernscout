@@ -33,7 +33,7 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   // B327: the owner, or somebody on the trip. `canPublish` travels with it
   // because the draft banner has to say which of the two is reading.
   const { read, canPublish, owner } = await readFor(current);
-  const { trip, index, days, windowStart, initialDate, stats, basemap, locals, places } = buildStoryProps(tripId, {
+  const { trip, index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
     showCosts: await mayViewCosts(current),
     ...read,
   });
@@ -54,7 +54,6 @@ export default async function Home({ params }: PageProps<"/[user]">) {
         stats={stats}
         basemap={basemap}
         locals={locals}
-        places={places}
         // B10 — who took this trip, visible on the page itself rather than
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}

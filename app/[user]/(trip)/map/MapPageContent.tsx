@@ -2,7 +2,7 @@
 
 import PageHeader from "@/components/PageHeader";
 import WorldMap, { type PlaceView } from "@/components/WorldMap";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Clapperboard } from "lucide-react";
 import { useI18n } from "@/components/LocaleProvider";
@@ -49,6 +49,12 @@ export default function MapPageContent({
   // Whether the draft stops below are this reader's own to publish — B327.
   const canPublish = useTrip()?.canPublish ?? false;
   const [showing, setShowing] = useState(false);
+  // Where the show opens — undefined starts at the beginning. Set from a
+  // `?show=` link (the trip page's and each day card's own slideshow button,
+  // B2306 — a plain link rather than a button, since neither carries the
+  // data the show needs; this page already has it) rather than from a prop,
+  // so the trip and day pages stay as cheap as they were.
+  const [startDate, setStartDate] = useState<string | undefined>(undefined);
   const remaining = plan.filter((s) => !s.reached);
   // `getPlan` only tags a stop `fromDraft` when it was asked to include
   // drafts, and since B327 that is the owner *or* somebody on the trip — so
@@ -76,6 +82,40 @@ export default function MapPageContent({
   // trip stays in the planned tense even after its dates pass.
   const pastTense = over && hasDays;
 
+  // Opens the show on load when the URL asks for it (`?show=1` or
+  // `?show=<date>` — the trip page's and a day card's own slideshow links,
+  // B2306). Read directly off the URL rather than through `useSearchParams`,
+  // since this only ever matters once, right after a client-side navigation
+  // this component already mounts for. `show=1` (or anything that isn't a
+  // real date) starts at the beginning, same as no `startDate` at all.
+  useEffect(() => {
+    if (!hasPlaces) return;
+    const show = new URLSearchParams(window.location.search).get("show");
+    if (!show) return;
+    // Reading the URL itself, once, right after mount — the same shape as
+    // `TripStory`'s own `#day-…` link handling, and disabled for the same
+    // reason: there is no React state this is derived from to list as a
+    // dependency.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStartDate(/^\d{4}-\d{2}-\d{2}$/.test(show) && !Number.isNaN(Date.parse(show)) ? show : undefined);
+    setShowing(true);
+  }, [hasPlaces]);
+
+  // Drops `?show=` once the show is dismissed, so a reload — or Back landing
+  // back on this URL — doesn't reopen it (B2306).
+  const closeSlideshow = () => {
+    setShowing(false);
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has("show")) return;
+    params.delete("show");
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+    );
+  };
+
   return (
     <div className="min-h-screen">
       <PageHeader />
@@ -95,7 +135,10 @@ export default function MapPageContent({
           </p>
           {hasPlaces && (
             <button
-              onClick={() => setShowing(true)}
+              onClick={() => {
+                setStartDate(undefined);
+                setShowing(true);
+              }}
               className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
             >
               <Clapperboard className="h-4 w-4" />
@@ -257,7 +300,9 @@ export default function MapPageContent({
         )}
       </main>
 
-      {showing && <SlideShow places={places} onClose={() => setShowing(false)} stats={stats} />}
+      {showing && (
+        <SlideShow places={places} onClose={closeSlideshow} stats={stats} startDate={startDate} />
+      )}
     </div>
   );
 }

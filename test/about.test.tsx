@@ -218,7 +218,6 @@ describe("the trip overview names travellers visibly", () => {
                   windowStart={props.windowStart}
                   initialDate={props.initialDate}
                   stats={props.stats}
-                  places={[]}
                   travellerNames={travellerNamesOf(userConfig, props.trip)}
                 />
               </TripProvider>

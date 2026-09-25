@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
 import { ArrowDown, BookOpen, Clapperboard, PlayCircle, Sparkles } from "lucide-react";
@@ -83,7 +84,6 @@ export default function TripHero({
   photobook,
   travellerNames,
   track = [],
-  onShowSlideshow,
 }: {
   stats: HeroStats;
   /** Clipped to this trip's frame on the server — see lib/basemap.ts. */
@@ -130,13 +130,6 @@ export default function TripHero({
   /** The recorded route for the one day this permalink names — B2199. See
    * `TripMap`'s own doc for what it draws and why the frame ignores it. */
   track?: [number, number][][];
-  /**
-   * Opens the slideshow, on this trip page or a day permalink alike — B2306.
-   * Absent when the page below has nothing to show it (`TripStory` only
-   * passes it once its own `places` is non-empty), the same condition the
-   * map page's own Clapperboard button is gated on.
-   */
-  onShowSlideshow?: () => void;
 }) {
   const { t, tn, formatShortDate, localizedTrip } = useI18n();
   const { money } = useMoney();
@@ -336,17 +329,20 @@ export default function TripHero({
                   {t("hero.startReading")}
                 </button>
                 {/* Same button, same condition (`hasPlaces`), as the map
-                    page's own Clapperboard — B2306. Opens on this day for a
-                    day permalink, at the start for the trip overview;
-                    `TripStory` decides which by what it passes here. */}
-                {hasPlaces && onShowSlideshow && (
-                  <button
-                    onClick={onShowSlideshow}
+                    page's own Clapperboard — B2306. A plain link to the map
+                    page rather than a button that opens the show in place:
+                    the story page must not carry what the show needs
+                    (`places`, the whole trip's galleries and headlines) just
+                    because this link sits on it. `?show=1` is read by
+                    `MapPageContent`, which already has `places` in hand. */}
+                {hasPlaces && (
+                  <Link
+                    href={active.href("/map?show=1")}
                     className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
                   >
                     <Clapperboard className="h-4 w-4" />
                     {t("show.start")}
-                  </button>
+                  </Link>
                 )}
                 {/* The journey is finished — this is where somebody looking at
                     that fact is offered the book of it. B569. */}
