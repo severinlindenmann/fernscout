@@ -8,6 +8,7 @@
 // render the key text on the page and nothing would fail.
 import fs from "node:fs";
 import path from "node:path";
+import { computeLocaleScopes, formatLocaleScopes } from "./locale-scopes-lib.mjs";
 
 const ROOT = path.join(import.meta.dirname, "..");
 
@@ -46,6 +47,25 @@ if (source.slice(start, end) === union) {
 } else {
   fs.writeFileSync(file, source.slice(0, start) + union + source.slice(end));
   console.log(`Wrote ${keys.length} keys into lib/i18n.ts`);
+}
+
+// --- Scopes ---
+//
+// Which of those keys each `LocaleProvider` ships — scripts/locale-scopes-lib.mjs
+// says how they are worked out. Regenerated here because a new key, or an old
+// one used somewhere new, changes them; test/locale-scopes.test.ts fails until
+// this file matches the source again.
+const scopesFile = path.join(ROOT, "lib", "localeScopes.json");
+const scopes = formatLocaleScopes(computeLocaleScopes(ROOT));
+const previousScopes = fs.existsSync(scopesFile) ? fs.readFileSync(scopesFile, "utf8") : null;
+if (previousScopes === scopes) {
+  console.log("Locale scopes already up to date.");
+} else {
+  fs.writeFileSync(scopesFile, scopes);
+  const summary = Object.entries(JSON.parse(scopes))
+    .map(([name, scope]) => `${name} ${scope.keys.length}`)
+    .join(", ");
+  console.log(`Wrote lib/localeScopes.json — ${summary}`);
 }
 
 // --- Coverage — B1894 ---

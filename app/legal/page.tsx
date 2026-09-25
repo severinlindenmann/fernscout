@@ -59,7 +59,7 @@ export default async function LegalPage() {
                        transition-colors hover:text-ink-strong
                        focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
           />
-          <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+          <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "legal")}>
             <LocaleSwitcher locales={installedLocales()} subtle />
           </LocaleProvider>
         </div>

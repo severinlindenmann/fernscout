@@ -111,7 +111,7 @@ export default async function RedeemPage({
       token={token}
       initialLocale={locale}
       locales={localesFor(username)}
-      dictionaries={dictionariesFor(username)}
+      dictionaries={dictionariesFor(username, "contactForm")}
       // The address on a session for *this* journal only. A session for
       // another journal on this instance is not proof here — sessions belong
       // to one journal, and inventing an instance-wide identity to save one

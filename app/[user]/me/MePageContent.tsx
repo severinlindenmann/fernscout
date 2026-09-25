@@ -221,7 +221,7 @@ export default function MePageContent({
    * arrived at an ordinary page with no explanation and every reason to think
    * they had done something wrong.
    */
-  signinNotice?: string;
+  signinNotice?: TranslationKey;
   /** Whether `/<user>/about` exists for this reader — B10. Absent rather
    * than a link to a 404 — B74's rule, the same the studio hub's own
    * `analyticsEnabled` follows for its Visitors card. */
@@ -298,7 +298,7 @@ export default function MePageContent({
             role="status"
             className="mt-5 rounded-2xl border-l-4 border-yellow-400 bg-surface-subtle py-4 pl-5 pr-4 text-lg leading-8 text-ink-strong"
           >
-            {t(signinNotice as never)}
+            {t(signinNotice)}
           </p>
         )}
 

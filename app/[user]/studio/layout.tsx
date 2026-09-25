@@ -1,3 +1,4 @@
+import JournalLocaleProvider from "@/components/JournalLocaleProvider";
 import StudioBarProvider from "@/components/studio/StudioBar";
 
 /**
@@ -8,8 +9,15 @@ import StudioBarProvider from "@/components/studio/StudioBar";
  * studio subpage now gets a bottom bar without rendering one itself, and
  * why the four pages that already had one (`useStudioBar`'s callers) still
  * control it fully.
+ *
+ * Under the studio's own strings: the journal layout ships a reader's, and
+ * the studio's flows are most of the dictionary (`lib/localeScopes.json`).
  */
 export default async function StudioLayout({ children, params }: LayoutProps<"/[user]/studio">) {
   const { user } = await params;
-  return <StudioBarProvider username={user}>{children}</StudioBarProvider>;
+  return (
+    <JournalLocaleProvider username={user} scope="studio">
+      <StudioBarProvider username={user}>{children}</StudioBarProvider>
+    </JournalLocaleProvider>
+  );
 }

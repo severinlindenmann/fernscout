@@ -92,7 +92,7 @@ export default async function MePage({ params, searchParams }: PageProps<"/[user
         // credential for `/api/contacts/manage`.
         token: contact ? manageTokenFor(user, contact.id) : "",
         locales: localesFor(user),
-        dictionary: dictionaryFor(uiLocale),
+        dictionary: dictionaryFor(uiLocale, "contactManage"),
         contact: contact
           ? {
               name: contact.name ?? "",

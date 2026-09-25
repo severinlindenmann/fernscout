@@ -74,7 +74,7 @@ export default async function InvitePage({ params }: PageProps<"/[user]/i/[token
   return (
     <ContactForm
       locales={localesFor(username)}
-      dictionaries={dictionariesFor(username)}
+      dictionaries={dictionariesFor(username, "contactForm")}
       username={username}
       journalTitle={user.title}
       initialLocale={locale}

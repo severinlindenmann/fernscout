@@ -168,7 +168,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             app/[user]/layout.tsx provides its own and wins for that subtree.
             This one covers what sits outside a journal: the landing page, the
             notices, a 404 for an address that names nobody. */}
-        <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+        <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "root")}>
           {children}
         </LocaleProvider>
       </body>

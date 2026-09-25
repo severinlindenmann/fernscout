@@ -49,7 +49,7 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
       // provider, for the same reason the body renders in this language: a
       // header in one language above a notice in another is exactly the
       // mismatch this page exists to avoid.
-      <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+      <LocaleProvider locale={locale} dictionary={dictionaryFor(locale, "contactPage")}>
         <div className="min-h-screen">
           {/* Same reasoning as `/contacts` (B271): this page is a fresh tab
               with no history behind it, and the header is the way back to
@@ -77,7 +77,7 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
   }
 
   const locale = pickLocale(contact.locale, user.defaultLocale);
-  const dictionary = dictionaryFor(locale);
+  const dictionary = dictionaryFor(locale, "contactPage");
 
   return (
     <LocaleProvider locale={locale} dictionary={dictionary}>
