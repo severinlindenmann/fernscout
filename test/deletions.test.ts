@@ -17,7 +17,7 @@ import { createJournal } from "@/lib/journals";
 import { createTrip } from "@/lib/tripWrite";
 import { writeDayFixture } from "./fixtures/content";
 import { getTrip, getTrips, tripRef } from "@/lib/trips";
-import { journalTombstone, tripTombstone } from "@/lib/tombstones";
+import { clearTombstone, journalTombstone, tripTombstone } from "@/lib/tombstones";
 import { resetRateLimitsForTests } from "@/lib/rateLimit";
 import {
   confirmDeletion,
@@ -620,6 +620,118 @@ describe("deleting a journal", () => {
     // still names this journal.
     const after = await rowsNaming(user);
     for (const name of TABLE_NAMES) expect(`${name}=${after[name]}`).toBe(`${name}=0`);
+  });
+
+  /**
+   * B2316 — Swiss bookkeeping (OR 958f) needs a payment or a print order kept
+   * for ten years even after the journal that made it is deleted, but
+   * nothing else about that row: the recipient's name, address and message,
+   * and the still-live credential that could grant credits, have no
+   * bookkeeping reason to survive the same button.
+   */
+  test("keeps a payment and a print order for bookkeeping, stripped of anything personal", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    const { db } = await getDatabase();
+    const now = new Date().toISOString();
+
+    await db
+      .insertInto("payments")
+      .values({
+        id: "pay-1",
+        owner_id: user,
+        credits: 30,
+        amount_rappen: 4500,
+        status: "paid",
+        method: "card",
+        created_at: now,
+        paid_at: now,
+        approve_token_hash: "a-live-approval-hash",
+        provider_ref: "cs_test_stripe_session",
+      })
+      .execute();
+
+    await db
+      .insertInto("print_orders")
+      .values({
+        id: "order-1",
+        owner_id: user,
+        kind: "postcard",
+        provider: "stannp",
+        provider_ref: "stannp-ref-1",
+        contact_id: null,
+        trip_id: trip,
+        status: "printed",
+        payload: JSON.stringify({ recipientName: "Jane Doe", address: "1 Main St", message: "Wish you were here" }),
+        cost_minor: 250,
+        currency: "CHF",
+        created_at: now,
+        updated_at: now,
+      })
+      .execute();
+
+    await requestDeletion({ kind: "journal", username: user });
+    await confirmDeletion(user, takeToken(user));
+
+    // Every ordinary journal row is gone.
+    expect(userExists(user)).toBe(false);
+
+    const payment = await db.selectFrom("payments").selectAll().where("id", "=", "pay-1").executeTakeFirst();
+    expect(payment).toBeTruthy();
+    // Kept: the bookkeeping facts — amount, credits bought, status, method,
+    // both dates and the Stripe reference.
+    expect(payment).toMatchObject({
+      amount_rappen: 4500,
+      credits: 30,
+      status: "paid",
+      method: "card",
+      created_at: now,
+      paid_at: now,
+      provider_ref: "cs_test_stripe_session",
+    });
+    // Stripped: the live approval credential, and the owner_id no longer
+    // names this journal (or any journal somebody could register next).
+    expect(payment?.approve_token_hash).toBeNull();
+    expect(payment?.owner_id).not.toBe(user);
+    expect(payment?.owner_id).toMatch(/^deleted:/);
+
+    const order = await db.selectFrom("print_orders").selectAll().where("id", "=", "order-1").executeTakeFirst();
+    expect(order).toBeTruthy();
+    // Kept: what was bought, through which provider, for how much, when.
+    expect(order).toMatchObject({
+      kind: "postcard",
+      provider: "stannp",
+      provider_ref: "stannp-ref-1",
+      cost_minor: 250,
+      currency: "CHF",
+      created_at: now,
+    });
+    // Stripped: the recipient's name, address and message.
+    expect(order?.payload).toBe("{}");
+    expect(order?.owner_id).not.toBe(user);
+    expect(order?.owner_id).toMatch(/^deleted:/);
+
+    // A later journal that takes this exact username back starts at zero —
+    // it does not inherit a stranger's balance or history. (Reclaiming a
+    // deleted name normally needs an operator to remove the tombstone by
+    // hand — B92 — which is exactly what this simulates.)
+    clearTombstone(user);
+    const again = createJournal({
+      username: user,
+      title: "A different journal",
+      ownerEmail: "later-owner@example.test",
+      ownerName: "Later Owner",
+      ownerNickname: "Later",
+    });
+    expect(again).toMatchObject({ ok: true });
+    const creditsRow = await db.selectFrom("credits").select("balance").where("owner_id", "=", user).executeTakeFirst();
+    expect(creditsRow).toBeUndefined();
+    const ledgerRows = await db
+      .selectFrom("credit_ledger")
+      .select("id")
+      .where("owner_id", "=", user)
+      .execute();
+    expect(ledgerRows).toHaveLength(0);
   });
 
   test("leaves a tombstone, keeps the name, and answers 410 on the old URLs", async () => {
