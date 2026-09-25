@@ -7,18 +7,8 @@ import { basemapForRoute } from "@/lib/basemap";
 import { getDays, getPlaces, getTripStats } from "@/lib/entries";
 import { getPlan } from "@/lib/plan";
 import { readerTrack } from "@/lib/gps/track";
-import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
-import { getUsernames } from "@/lib/users";
+import { getTrip, tripRef } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
-
-export function generateStaticParams() {
-  return getUsernames().flatMap((user) => {
-    const current = getCurrentTrip(user)?.id;
-    return getTrips(user)
-    .filter((t) => t.id !== current && t.status !== "upcoming")
-      .map((t) => ({ user, trip: t.id }));
-  });
-}
 
 export async function generateMetadata({
   params,

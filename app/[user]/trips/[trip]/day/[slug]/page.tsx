@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getAllEntries, getEntryBySlug } from "@/lib/entries";
-import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
+import { getEntryBySlug } from "@/lib/entries";
+import { getTrip, tripRef } from "@/lib/trips";
 import { buildStoryProps } from "@/lib/tripView";
 import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { DayStructuredData } from "@/components/StructuredData";
-import { getUser, getUsernames } from "@/lib/users";
+import { getUser } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
@@ -15,19 +15,12 @@ import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
 import { dayTrack } from "@/lib/gps/track";
 
-/** Per-day permalinks for every non-current trip. Each entry gets a real,
+/*
+ * Per-day permalinks for every non-current trip. Each entry gets a real,
  * shareable, indexable URL that renders the same scrolling story, opened at
- * that day. */
-export function generateStaticParams() {
-  return getUsernames().flatMap((user) => {
-    const current = getCurrentTrip(user)?.id;
-    return getTrips(user)
-      .filter((t) => t.id !== current && t.status !== "upcoming")
-      .flatMap((t) =>
-        getAllEntries(t.ref).map((e) => ({ user, trip: t.id, slug: e.slug })),
-      );
-  });
-}
+ * that day. Rendered per request — see the layout for why nothing under
+ * `/[user]/trips/[trip]` declares `generateStaticParams` any more.
+ */
 
 export async function generateMetadata({
   params,

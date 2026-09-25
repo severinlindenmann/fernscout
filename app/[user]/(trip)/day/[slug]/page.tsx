@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { recordTripView } from "@/lib/analytics/record";
-import { getAllEntries, getEntryBySlug } from "@/lib/entries";
+import { getEntryBySlug } from "@/lib/entries";
 import { currentTripRef, getTrip } from "@/lib/trips";
 import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
-import { getUser, getUsernames } from "@/lib/users";
+import { getUser } from "@/lib/users";
 import { buildStoryProps } from "@/lib/tripView";
 import { DayStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
@@ -15,15 +15,16 @@ import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
 import { dayTrack } from "@/lib/gps/track";
 
-/** Per-day permalinks. Each entry gets a real, shareable, indexable URL that
- * renders the same scrolling story, opened at that day. */
-export function generateStaticParams() {
-  // Every user's days, so each one is prerendered at its own URL.
-  return getUsernames().flatMap((user) => {
-    const ref = currentTripRef(user);
-    return ref ? getAllEntries(ref).map((e) => ({ user, slug: e.slug })) : [];
-  });
-}
+/*
+ * Per-day permalinks. Each entry gets a real, shareable, indexable URL that
+ * renders the same scrolling story, opened at that day.
+ *
+ * Rendered per request, with no `generateStaticParams`: this page reads the
+ * reader's cookies, so the build could never prerender one of these, and the
+ * list it used to return only made `next build` read every journal's days to
+ * learn that — the build's route table showed it `ƒ` with or without it. See
+ * app/[user]/trips/[trip]/layout.tsx for the day that confusion was a 500.
+ */
 
 export async function generateMetadata({
   params,
