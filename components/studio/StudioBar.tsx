@@ -77,13 +77,55 @@ const StudioBarContext = createContext<StudioBarContextValue | null>(null);
  * no reserved space — the moment there is nothing to say (online, empty
  * queue): most studio sessions never see it.
  */
-export default function StudioBarProvider({ username, children }: { username: string; children: ReactNode }) {
+export default function StudioBarProvider({
+  username,
+  autoKeepTrips,
+  children,
+}: {
+  username: string;
+  /** D6, B2330 — the current trip and the soonest upcoming one
+   *  (`offlineKeepTrips`, `lib/studio/day.ts`), kept on this phone by
+   *  themselves once the studio is open and online, so the owner never has
+   *  to find "Keep on this phone" for either. Absent fields are simply
+   *  skipped — a journal with no trip yet, or nothing upcoming, keeps
+   *  nothing new. */
+  autoKeepTrips?: { current?: string; nextPlanned?: string };
+  children: ReactNode;
+}) {
   const { t } = useI18n();
   const [bar, setBar] = useState<BarState | null>(null);
   const [page, setPage] = useState<PageState | null>(null);
   const clearBar = useCallback(() => setBar(null), []);
   const value = useMemo(() => ({ setBar, clearBar, setPage }), [clearBar]);
   const outbox = useOutbox(username);
+
+  // D6, B2330 — ask the worker to keep whichever of the two named trips it
+  // does not already hold, the moment the studio is open and there is a
+  // connection to fetch them with. The same `fernscout-keep` message
+  // `KeepTrip.tsx`'s own "Keep on this phone" switch posts, so a trip kept
+  // this way is indistinguishable from one the owner kept by hand — and the
+  // same "is it already kept" read (`caches.keys()`, matched by the
+  // `-<user>-<trip>` suffix, identity ignored) `KeepTrip.tsx`'s own
+  // `keptBytes` uses, so this never re-fetches a trip already on the phone.
+  useEffect(() => {
+    if (!outbox.online) return;
+    if (typeof navigator === "undefined" || !("serviceWorker" in navigator) || typeof caches === "undefined") return;
+    const ids = [autoKeepTrips?.current, autoKeepTrips?.nextPlanned].filter((id): id is string => !!id);
+    if (ids.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const keys = await caches.keys().catch(() => [] as string[]);
+      for (const trip of ids) {
+        if (cancelled) return;
+        const suffix = `-${username}-${trip}`;
+        if (keys.some((k) => k.startsWith("kept-") && k.endsWith(suffix))) continue;
+        navigator.serviceWorker.controller?.postMessage({ type: "fernscout-keep", user: username, trip });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [outbox.online, autoKeepTrips?.current, autoKeepTrips?.nextPlanned, username]);
 
   // B2329 — the worker only knows which `personal-<id>` cache is this
   // owner's own once something has fetched `/api/v2/me/home` (the same

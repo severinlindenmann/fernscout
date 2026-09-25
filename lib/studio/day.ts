@@ -51,6 +51,25 @@ export function tripsForAddDay(username: string): { id: string; title: string; s
 }
 
 /**
+ * D6, B2330 — which two trips the studio keeps on the phone by itself,
+ * without the owner having to find "Keep on this phone" for either: the
+ * current one (if any) and the soonest upcoming one (if any). The same
+ * `status` `getTrips` already derives from a trip's own dates, so this
+ * cannot disagree with what the hub calls "current" — and the same sort
+ * (`getTrips`'s own doc comment: upcoming trips ordered by `start`) makes
+ * the first `"upcoming"` row the soonest one, with no second sort here.
+ * Either or both can be absent (a journal with no trip yet, or nothing
+ * upcoming); the caller keeps only what it is given.
+ */
+export function offlineKeepTrips(username: string): { current?: string; nextPlanned?: string } {
+  const trips = getTrips(username);
+  return {
+    current: trips.find((t) => t.status === "current")?.id,
+    nextPlanned: trips.find((t) => t.status === "upcoming")?.id,
+  };
+}
+
+/**
  * D3 — whether the chosen date already has a day on this trip, and which
  * one. `getAllEntries(ref, AS_AUTHOR)` is the same read every other
  * owner-facing surface uses for "does this day exist" (see

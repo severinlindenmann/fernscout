@@ -42,6 +42,13 @@ export interface OutboxIntent {
    *  IndexedDB's own `Blob` support rather than base64 in `body`, so a queued
    *  photograph is still its own print master and never re-encoded. */
   blob?: Blob;
+  /** B2330 wave 2 — extra headers a replay must send beyond the plain
+   *  `content-type: application/json` every non-upload intent already gets.
+   *  So far only `if-match`: "Change a day" reads a version when it opens
+   *  (`EditDay.tsx`) and a queued edit must replay against the same one, so
+   *  a save built on a stale read is refused (409, a `conflict`) rather than
+   *  silently applied over whatever moved underneath while this was queued. */
+  headers?: Record<string, string>;
 }
 
 export type NewIntent = Omit<OutboxIntent, "id" | "createdAt" | "state">;
@@ -175,7 +182,7 @@ export async function runOutbox(
         form.append("files", intent.blob as Blob, filename);
         requestBody = form;
       } else {
-        headers = { "content-type": "application/json" };
+        headers = { "content-type": "application/json", ...intent.headers };
         requestBody = intent.method === "DELETE" && intent.body === undefined ? undefined : JSON.stringify(intent.body);
       }
       const res = await fetchImpl(intent.url, { method: intent.method, headers, body: requestBody });
