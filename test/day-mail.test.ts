@@ -223,6 +223,15 @@ async function clearGrant(contactId: string) {
   await db.deleteFrom("access_grants").where("contact_id", "=", contactId).execute();
 }
 
+/** Grants a real `trip_people` place — the only thing that puts a private
+ *  trip's mail (or a closed trip's read) on an address since D3 (B2297).
+ *  A bare `people:` entry no longer does either. */
+async function addTripPlace(contactId: string, tripId: string) {
+  const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+  await claimTripPlace(OWNER, tripId, contactId, null);
+  await approveTripPlaces(OWNER, contactId);
+}
+
 async function agentToken(): Promise<string> {
   const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
   const verified = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
@@ -376,11 +385,36 @@ afterEach(async () => {
 });
 
 describe("who receives it", () => {
-  test("a private trip reaches the people on it, not a journal guest", async () => {
+  test("a bare people: entry reaches nobody — a byline is not a grant (D3, B2297)", async () => {
+    writeTrip("nogrant", { visibility: "private", people: [{ name: "Robin", email: "robin@example.test" }] });
+    const { slug } = writeEntry("nogrant");
+    // Confirmed and even approved as a journal guest — but never granted a
+    // place on this trip, and it is `private`, so an ordinary guest grant
+    // does not reach it either. Named in the file is all this leaves.
+    await addReader("robin@example.test", "en");
+
+    const outcome = await sendDayLetter(OWNER, "alex/nogrant", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent.map((s) => s.email)).not.toContain("robin@example.test");
+    expect(hasMailTo("robin-example-test")).toBe(false);
+  });
+
+  test("a private trip reaches a granted place, not a journal guest — before and after the migration's own grant", async () => {
     writeTrip("secret", { visibility: "private", people: [{ name: "Robin", email: "robin@example.test" }] });
     const { slug } = writeEntry("secret");
-    await addReader("robin@example.test", "en");
+    const robinId = await addReader("robin@example.test", "en");
     await addReader("stranger@example.test", "en");
+
+    // Before: named in the file, approved as a journal guest, still nothing
+    // — exactly `scripts/migrate-trip-people.mts`'s "before" state.
+    const before = await sendDayLetter(OWNER, "alex/secret", slug);
+    expect(before.ok).toBe(true);
+    if (before.ok) expect(before.sent.map((s) => s.email)).not.toContain("robin@example.test");
+
+    // After: the migration's own steps — a granted `trip_people` place —
+    // and Robin reaches the same mail she always effectively received.
+    await addTripPlace(robinId, "secret");
 
     const outcome = await sendDayLetter(OWNER, "alex/secret", slug);
     expect(outcome.ok).toBe(true);
@@ -395,10 +429,11 @@ describe("who receives it", () => {
     expect(hasMailTo("stranger-example-test")).toBe(false);
   });
 
-  test("wantsEmailDigest is the only consent this checks — off means nothing, traveller or not", async () => {
+  test("wantsEmailDigest is the only consent this checks — off means nothing, granted or not", async () => {
     writeTrip("secret2", { visibility: "private", people: [{ name: "Robin", email: "robin@example.test" }] });
     const { slug } = writeEntry("secret2");
-    await addReader("robin@example.test", "en", { wantsEmailDigest: false });
+    const robinId = await addReader("robin@example.test", "en", { wantsEmailDigest: false });
+    await addTripPlace(robinId, "secret2");
 
     const outcome = await sendDayLetter(OWNER, "alex/secret2", slug);
     expect(outcome.ok).toBe(true);

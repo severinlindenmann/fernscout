@@ -14,13 +14,17 @@ import {
 } from "@/lib/tripPeople";
 
 /**
- * Who took the trip — read access and byline credit, both unchanged by
- * B2297. The list still fails **closed**: one malformed line drops the whole
- * block rather than silently admitting or excluding one person. A
- * half-parsed list of people is a half-parsed answer to who may read a
- * closed trip. (Write access is a different, narrower question since
- * B2297 — `peopleOf`/`tripWriteVerdict`, grant-only — see
- * `test/trip-write-verdict.test.ts`.)
+ * Who `trip.md` names — the byline (`peopleNamedIn`), which still fails
+ * **closed**: one malformed line drops the whole block rather than silently
+ * admitting or excluding one person. A half-parsed list is a half-parsed
+ * credit.
+ *
+ * Since D3 (B2297), a bare `people:` entry is byline only and grants
+ * nothing — reading a closed trip, writing to it, and being mailed about it
+ * all come from `peopleOf`/`isPersonOn`/`tripWriteVerdict`, which are
+ * grant-only (the owner, or a granted `trip_people` place). See
+ * `test/trip-write-verdict.test.ts` and `test/access-gate.test.ts` for that
+ * coverage.
  */
 
 let dir: string;
@@ -106,7 +110,9 @@ describe("the people block", () => {
   test("addresses are lower-cased, because that is how they are compared", async () => {
     writeTrip("shared-2026", [{ name: "Robin", email: "Robin@Example.COM" }]);
     expect(trip("shared-2026").people).toEqual([{ name: "Robin", email: "robin@example.com" }]);
-    expect(await isPersonOn(trip("shared-2026"), "  ROBIN@example.com ")).toBe(true);
+    expect(peopleNamedIn(trip("shared-2026"))).toContain("robin@example.com");
+    // Named, not granted — since D3 a bare people: entry reads nothing.
+    expect(await isPersonOn(trip("shared-2026"), "  ROBIN@example.com ")).toBe(false);
   });
 
   test("ten is allowed", () => {
@@ -214,14 +220,14 @@ describe("a narrow request", () => {
     writeTrip("honeymoon-2027", []);
     const t = trip("vietnam-2026");
 
-    // Both addresses read/are named here — `isPersonOn` is the byline-and-
-    // reading check, unaffected by B2297; either may ask for this trip
-    // alone. (Whether "robin@e.com" could actually *write* through that
-    // scope is `tripWriteVerdict`'s question, grant-only since B2297 —
-    // `test/trip-write-verdict.test.ts`'s coverage.)
-    for (const email of ["alex@example.com", "robin@e.com"]) {
-      expect(await isPersonOn(t, email), email).toBe(true);
-    }
+    // The owner reads it (`isPersonOn`, grant-only since D3/B2297); Robin is
+    // only named in the file, so `isPersonOn` refuses them — a bare
+    // `people:` entry grants nothing. (Whether "robin@e.com" could actually
+    // *read or write* is a real grant's question, covered in
+    // `test/access-gate.test.ts` and `test/trip-write-verdict.test.ts`.)
+    expect(await isPersonOn(t, "alex@example.com")).toBe(true);
+    expect(await isPersonOn(t, "robin@e.com")).toBe(false);
+    expect(peopleNamedIn(t)).toContain("robin@e.com");
     const scope = tripWriteScope(t.id);
     expect(scopeAllows(scope, t)).toBe(true);
     expect(scopeAllows(scope, trip("honeymoon-2027"))).toBe(false);
