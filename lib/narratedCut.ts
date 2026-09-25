@@ -93,6 +93,26 @@ function bestPhotoForDay(dayEntries: PlaceEntry[]): GalleryItem | undefined {
 }
 
 /**
+ * Which narrated slides get a travel interlude before them — B2307.
+ *
+ * `placeIndexes[i]` is the index into `places` that narrated slide `i`
+ * belongs to (undefined only if the day couldn't be matched to a place,
+ * which shouldn't happen but is handled rather than assumed away). A slide
+ * gets an interlude when its place differs from the *previous* slide's — two
+ * days at the same stop never get one, and the first slide never does since
+ * it has no "before".
+ */
+export function slideNeedsTravelInterlude(
+  placeIndexes: readonly (number | undefined)[],
+  index: number,
+): boolean {
+  if (index <= 0 || index >= placeIndexes.length) return false;
+  const prev = placeIndexes[index - 1];
+  const cur = placeIndexes[index];
+  return prev !== undefined && cur !== undefined && prev !== cur;
+}
+
+/**
  * The one sentence that narrates a day, pulled verbatim from the entry's own
  * prose — this never invents text that isn't in the entry. Markdown syntax
  * is stripped (a link keeps its label, everything else is just dropped)

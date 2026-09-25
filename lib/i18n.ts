@@ -2543,6 +2543,8 @@ export type TranslationKey =
   | "show.settings"
   | "show.settingsClose"
   | "show.slower"
+  | "show.soundOff"
+  | "show.soundOn"
   | "show.start"
   | "show.watchAgain"
   | "showcase.body"
