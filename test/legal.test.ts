@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { hasLegal, legalLocales, readLegal } from "@/lib/legal";
+import { hasLegal, legalLocales, legalSections, readLegal } from "@/lib/legal";
 
 /**
  * The imprint page is content, not code (lib/legal.ts says why), so the two
@@ -87,5 +87,27 @@ describe("the instance's legal page", () => {
     } finally {
       fs.rmSync(site, { recursive: true, force: true });
     }
+  });
+
+  /** B2313: the date and the "In short" list are the operator's to write, and absent otherwise. */
+  test("reads updated and summary from front matter, and leaves them out when there is none", () => {
+    write("en", "---\nupdated: 2026-09-25\nsummary:\n  - One person\n  - 3\n---\n## Hi\n");
+    expect(readLegal("en")).toEqual({
+      markdown: "## Hi\n",
+      locale: "en",
+      updated: "2026-09-25",
+      summary: ["One person"],
+    });
+    write("en", "---\nupdated: last week\n---\n<!-- note\n for editors -->\nplain");
+    expect(readLegal("en")).toEqual({ markdown: "plain", locale: "en" });
+  });
+
+  test("a heading's {#id} fixes its anchor; without one the anchor is a slug", () => {
+    const { markdown, sections } = legalSections("intro\n\n## Your data {#privacy}\n\ntext\n\n## Wer betreibt das?\n");
+    expect(markdown).toBe("intro\n\n## Your data\n\ntext\n\n## Wer betreibt das?\n");
+    expect(sections).toEqual([
+      { id: "privacy", title: "Your data", line: 3 },
+      { id: "wer-betreibt-das", title: "Wer betreibt das?", line: 7 },
+    ]);
   });
 });
