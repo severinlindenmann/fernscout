@@ -220,6 +220,15 @@ describe("dictionaryFor with a scope", () => {
     const german = dictionaryFor("de");
 
     const journal = dictionaryFor("de", "journal");
+    // With the private `paid/` clone mounted, a scope that reaches a paid area
+    // ships the whole dictionary: the paid components' keys are not in the
+    // scan (lib/locales.ts, dictionaryFor).
+    const { PAID_AREAS } = await import("@paid/manifest");
+    const paidAreas: readonly string[] = PAID_AREAS;
+    if ((scopes.journal as { paid?: string[] }).paid?.some((area) => paidAreas.includes(area))) {
+      expect(journal).toBe(german);
+      return;
+    }
     expect(Object.keys(journal).sort()).toEqual([...scopes.journal.keys].sort());
     for (const key of scopes.journal.keys) expect(journal[key]).toBe(german[key]);
     expect(Object.keys(journal).length).toBeLessThan(Object.keys(english).length / 3);
