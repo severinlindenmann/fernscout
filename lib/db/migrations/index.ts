@@ -39,6 +39,7 @@ import * as photobookDrafts from "./037-photobook-drafts";
 import * as contactPhone from "./038-contact-phone";
 import * as pushKind from "./039-push-kind";
 import * as welcomeLinks from "./040-welcome-links";
+import * as adminAckSnooze from "./041-admin-ack-snooze";
 
 /**
  * Every migration, listed by hand.
@@ -93,6 +94,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "038-contact-phone": contactPhone,
   "039-push-kind": pushKind,
   "040-welcome-links": welcomeLinks,
+  "041-admin-ack-snooze": adminAckSnooze,
 };
 
 /**
