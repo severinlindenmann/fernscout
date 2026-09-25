@@ -19,6 +19,9 @@ import {
 import { makeJpeg, withExif } from "./support/exif-jpeg";
 import { tmpdir } from "node:os";
 
+/** Asked once, at load: which external HEIC decoder this machine has. */
+const heifDecoder = await heifDecoderName();
+
 const FIXTURES = path.join(process.cwd(), "test", "fixtures", "ingest");
 
 function scratch(): string {
@@ -110,7 +113,7 @@ describe("HEIC", () => {
   // What sharp's prebuilt libvips can do with HEIC is the thing this package
   // was told to check: it reads the container but has no HEVC decoder, so
   // ingest routes those files through an external converter.
-  test.runIf(heifDecoderName() !== null)("an iPhone HEIC decodes and resizes", async () => {
+  test.runIf(heifDecoder !== null)("an iPhone HEIC decodes and resizes", async () => {
     const source = await decodeSource(path.join(FIXTURES, "phone.heic"));
     expect(source.alreadyOriented).toBe(true);
     const derivative = await makeDerivative(source);
