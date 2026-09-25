@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import Link from "next/link";
 import { ChevronUp, ChevronDown, LayoutDashboard, Plus } from "lucide-react";
 import GamePath from "@/components/GamePath";
@@ -326,36 +327,82 @@ export default function TripStory({
     index.length > 0 ? ((activeIndex + 1) / index.length) * 100 : 0;
   const awayFromLanding = initialDate ? activeIndex !== landingIndex : false;
 
+  /**
+   * The key StoryPager's own crossfade is keyed on — B2326.
+   *
+   * Leaving the overview for a day, and coming back to it, is the one move in
+   * the reader that is going deeper and coming out again, so it pushes like
+   * an iPhone page (the CSS is `.fs-story-page` in globals.css). It is not a
+   * route change — the pager swaps steps in place and only `replaceState`s
+   * the address — so the transition is `document.startViewTransition` around
+   * the state change rather than React's `<ViewTransition>` on navigation.
+   *
+   * The browser needs the new step in the DOM when its callback returns, and
+   * `AnimatePresence mode="wait"` would hold it back behind the old step's
+   * exit. So a pushed move keeps the pager's key where it was — no key
+   * change, no crossfade, the content swaps synchronously — and every other
+   * move still changes the key and crossfades exactly as before.
+   */
+  const [pushed, setPushed] = useState<{ from: number; to: number } | null>(null);
+  const motionKey = pushed && pushed.to === stepIndex ? pushed.from : stepIndex;
+
+  /** Every move the reader makes. Only across the overview does it push;
+   * without the View Transitions API it is the plain state change it was. */
+  const moveTo = useCallback(
+    (next: number) => {
+      if ((stepIndex === 0) === (next === 0) || typeof document.startViewTransition !== "function") {
+        setStepIndex(next);
+        return;
+      }
+      const root = document.documentElement;
+      const way = next === 0 ? "back" : "forward";
+      root.dataset.pageNav = way;
+      document
+        .startViewTransition(() =>
+          flushSync(() => {
+            setPushed({ from: motionKey, to: next });
+            setStepIndex(next);
+          }),
+        )
+        .finished.finally(() => {
+          // ponytail: a second push inside 380ms can leave the first one's
+          // direction on for its tail; harmless, both are pushes.
+          if (root.dataset.pageNav === way) delete root.dataset.pageNav;
+        });
+    },
+    [stepIndex, motionKey],
+  );
+
   const jumpToDay = useCallback(
     (date: string) => {
       const i = index.findIndex((d) => d.date === date);
       if (i < 0) return;
       directionRef.current = 0;
-      setStepIndex(stepForDay(i));
+      moveTo(stepForDay(i));
     },
-    [index, stepForDay],
+    [index, stepForDay, moveTo],
   );
 
   /** Step 0 is the trip summary. */
   const goToOverview = useCallback(() => {
     directionRef.current = 0;
-    setStepIndex(0);
-  }, []);
+    moveTo(0);
+  }, [moveTo]);
   const onOverview = stepIndex === 0;
 
   const jumpToLanding = useCallback(() => {
     directionRef.current = 0;
-    setStepIndex(stepForDay(landingIndex));
-  }, [stepForDay, landingIndex]);
+    moveTo(stepForDay(landingIndex));
+  }, [stepForDay, landingIndex, moveTo]);
 
   const goStep = useCallback(
     (delta: number) => {
       const next = stepIndex + delta;
       if (next < 0 || next >= steps.length) return;
       directionRef.current = delta;
-      setStepIndex(next);
+      moveTo(next);
     },
-    [stepIndex, steps.length],
+    [stepIndex, steps.length, moveTo],
   );
 
   // For a finished trip, `landingDay` (below) is already its last day — see
@@ -387,9 +434,9 @@ export default function TripStory({
       const next = activeIndex + delta;
       if (next < 0 || next >= index.length) return;
       directionRef.current = 0;
-      setStepIndex(stepForDay(next));
+      moveTo(stepForDay(next));
     },
-    [activeIndex, index.length, stepForDay],
+    [activeIndex, index.length, stepForDay, moveTo],
   );
 
   if (index.length === 0) {
@@ -521,7 +568,7 @@ export default function TripStory({
           <GamePath days={index} currentIndex={activeIndex} onSelect={jumpToDay} />
         </aside>
 
-        <main id="main" tabIndex={-1} className="min-w-0 flex-1 py-4">
+        <main id="main" tabIndex={-1} className="fs-story-page min-w-0 flex-1 py-4">
           {/*
             The document's h1. On the overview it is the hero's own visible
             heading; on every other step the hero is not rendered at all, so a
@@ -542,9 +589,10 @@ export default function TripStory({
             steps={steps}
             stepIndex={stepIndex}
             hasPlaces={stats.places > 0}
+            motionKey={motionKey}
             onStepChange={(next) => {
               directionRef.current = next > stepIndex ? 1 : -1;
-              setStepIndex(next);
+              moveTo(next);
             }}
             onLegDone={() => {
               setDoneStep(stepIndex);
@@ -570,7 +618,7 @@ export default function TripStory({
                   coverSrc={heroCover}
                   onStart={() => {
                     directionRef.current = 0;
-                    setStepIndex(stepForDay(0));
+                    moveTo(stepForDay(0));
                   }}
                   onLatest={jumpToLanding}
                   onResume={

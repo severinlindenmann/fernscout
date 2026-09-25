@@ -24,6 +24,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Fernscout uses the microphone only while you are recording, so you can tell the helper about your day instead of typing it.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Fernscout imports the photographs you choose into your travel journal and keeps the originals.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
@@ -38,8 +40,29 @@
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
+	<!-- B2328 — iOS 27 terminates an app linked against its SDK that has
+	     not adopted the scene lifecycle. One scene, built from Main.storyboard
+	     exactly as UIMainStoryboardFile used to; SceneDelegate is in
+	     AppDelegate.swift. -->
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneConfigurationName</key>
+					<string>Default Configuration</string>
+					<key>UISceneDelegateClassName</key>
+					<string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>

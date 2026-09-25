@@ -35,8 +35,15 @@ import { writeTripFixture } from "./fixtures/content";
  * against.
  */
 
+/** The cookie jar `isOwner` reads via the mocked `next/headers` — the only
+ * door onto `/api/contacts/admin`'s `approve` since the security review
+ * (F5, B2295): it refuses any `Authorization` header outright. */
+const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: () => undefined, set: () => {} }),
+  cookies: async () => ({
+    get: (name: string) => (jar.cookies[name] === undefined ? undefined : { value: jar.cookies[name] }),
+    set: () => {},
+  }),
 }));
 
 const OWNER = "ana";
@@ -59,6 +66,16 @@ async function ownerToken(): Promise<string> {
   const result = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
   if (!result.ok) throw new Error("no owner token");
   return result.token;
+}
+
+/** Ana's own guest-cookie session — the only door onto `/api/contacts/admin`
+ *  since the security review (F5, B2295). */
+async function signInOwner(): Promise<void> {
+  const { issueCode, verifyCode } = await import("@/lib/auth");
+  const { code } = await issueCode(OWNER, OWNER_EMAIL, "guest");
+  const result = await verifyCode(OWNER, OWNER_EMAIL, code, "guest");
+  if (!result.ok) throw new Error("no owner cookie");
+  jar.cookies.fs_session = result.token;
 }
 
 /**
@@ -248,11 +265,12 @@ test("an already-active guest's later buddy link stays a request, not a grant", 
 
   // And the owner's own approve click still opens it — the mechanism that was
   // never broken, only reached without permission.
+  await signInOwner();
   const { POST: adminPost } = await import("@/app/api/contacts/admin/route");
   const approveResponse = await adminPost(
     new Request("https://example.test/api/contacts/admin", {
       method: "POST",
-      headers: { ...headers(), authorization: `Bearer ${token}` },
+      headers: headers(),
       body: JSON.stringify({ user: OWNER, action: "approve", id: contact!.id }),
     }),
   );

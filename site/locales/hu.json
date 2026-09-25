@@ -4282,6 +4282,13 @@
   "notifyStep.blocked.linkLost": "Ezt a linket egyszer már megmutattuk, ez a szerver nem tudja újra megmutatni",
   "notifyStep.error.dailyLimit": "Ez a napló ma már 50 meghívó üzenetet küldött. Próbáld holnap — semmit nem vontunk le.",
   "notifyStep.linkLost": "Ez a szerver {name} meghívó linkjéből csak egy ujjlenyomatot őriz, ezért nem tudja újra megmutatni vagy elküldeni. Semmit nem küldtünk el.",
+  "studio.outbox.offline": "Nincs kapcsolat",
+  "studio.outbox.offlineWaiting": "Nincs kapcsolat · {n} várakozik",
+  "studio.outbox.syncing": "Küldés…",
+  "studio.outbox.waiting": "Online · {n} várakozik",
+  "studio.outbox.confirmSignOut": "{n} változtatást még nem küldtünk el. Kijelentkezéskor ezek elvesznek.",
+  "studio.outbox.confirmSignOut.one": "{n} változtatást még nem küldtünk el. Kijelentkezéskor ez elvész.",
+  "studio.outbox.signOutAnyway": "Kijelentkezés mégis",
   "readers.noGuestTrip": "Még egyik utazásod sincs megnyitva a vendégeknek, így akit beengedsz, nem talál mit olvasni. Nyiss meg egy utazást a stúdióban, és válaszd ki, ki olvashatja.",
   "readers.add.title": "Személy hozzáadása",
   "readers.add.body": "Tudod, ki az. Írd be a nevét és egy elérhetőséget — amint megerősíti a kódot, amit küldünk, olvashat. Utána eldöntöd, hogyan értesüljön.",
@@ -4340,6 +4347,8 @@
   "readers.link.step2": "Név, aztán e-mail vagy mobil — és a kód, amit küldünk",
   "readers.link.step3": "Kapsz egy értesítést; ők „A válaszodra vár” alatt várnak",
   "readers.link.used": "{count}-szor használva",
+  "readers.link.used.one": "Egyszer használva",
+  "readers.link.days.one": "1 napig",
   "readers.link.stop": "Link leállítása…",
   "readers.link.stopQuestion": "Leállítod: „{name}”? Új ember nem használhatja. Aki már bent van, bent marad.",
   "readers.link.stopConfirm": "Link leállítása",
@@ -4506,7 +4515,5 @@
   "join.error.name": "Előbb add meg a neved.",
   "join.error.expired": "Ez a link már nem működik. Kérj újat attól, aki küldte.",
   "join.alreadyTitle": "Már bent vagy",
-  "join.alreadyBody": "Nincs mit kérned — már olvashatod: „{title}”.",
-  "readers.link.used.one": "Egyszer használva",
-  "readers.link.days.one": "1 napig"
+  "join.alreadyBody": "Nincs mit kérned — már olvashatod: „{title}”."
 }

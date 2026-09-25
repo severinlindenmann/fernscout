@@ -15,8 +15,8 @@
 import { invitesListResponse, invitePutResponse } from "@/lib/contacts/invitesResponse";
 import { joinCodeFor, joinUrl } from "@/lib/contacts/welcome";
 import { readDryRun } from "@/lib/api/v2/route";
-import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { contactsReady } from "@/lib/api/v2/social";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 
@@ -57,9 +57,9 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   if (request.headers.get("authorization")) {
     return Response.json(NOT_FOR_AGENTS, { status: 403 });
   }
-  // Creating a link is a write from the owner's browser: a present,
-  // mismatched Origin is refused (B1559), as on the readers doors.
-  if (foreignOrigin(request)) return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
+  if (foreignOrigin(request)) {
+    return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
+  }
   const { user } = await params;
   const denied = await guard(user);
   if (denied) return denied;

@@ -12,6 +12,7 @@ import { PhotoPicker } from "@/components/PhotoPicker";
 import FigureCreator from "@/components/studio/figures/FigureCreator";
 import type { FigureDoc } from "@/lib/api/v2/schemas/figures";
 import type { TranslationKey } from "@/lib/i18n";
+import { haptic } from "@/components/nativeShell";
 import { useStep } from "@/lib/studio/useStep";
 import { useSkipIntro } from "@/lib/studio/fromHub";
 import type { PersonRow } from "./types";
@@ -249,6 +250,7 @@ export default function PeopleFlow({
   }
 
   function toggleSelected(index: number) {
+    void haptic("selection");
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(index)) next.delete(index);

@@ -3,3 +3,5 @@
    than only the fallback the other two rely on. */
 "NSLocationWhenInUseUsageDescription" = "Fernscout records where you go during a trip you turned recording on for, so your journal gets a real map of the roads you took.";
 "NSLocationAlwaysAndWhenInUseUsageDescription" = "Fernscout records where you go during a trip you turned recording on for, including while the app is in the background, so your journal gets a real map of the roads you took.";
+/* B2322 — speaking to the helper. */
+"NSMicrophoneUsageDescription" = "Fernscout uses the microphone only while you are recording, so you can tell the helper about your day instead of typing it.";

@@ -4281,6 +4281,13 @@
   "notifyStep.blocked.linkLost": "This link was shown once and this server cannot show it again",
   "notifyStep.error.dailyLimit": "This journal has sent 50 welcome messages today. Try again tomorrow — nothing was charged.",
   "notifyStep.linkLost": "This server keeps only a fingerprint of {name}’s welcome link, so it cannot be shown or sent again. Nothing was sent.",
+  "studio.outbox.offline": "Offline",
+  "studio.outbox.offlineWaiting": "Offline · {n} waiting",
+  "studio.outbox.syncing": "Syncing",
+  "studio.outbox.waiting": "Online · {n} waiting",
+  "studio.outbox.confirmSignOut": "{n} changes have not been sent yet. Signing out now loses them.",
+  "studio.outbox.confirmSignOut.one": "{n} change has not been sent yet. Signing out now loses it.",
+  "studio.outbox.signOutAnyway": "Sign out anyway",
   "readers.noGuestTrip": "None of your trips is open to guests yet, so whoever you let in finds nothing to read. Open a trip in the studio and choose who may read it.",
   "readers.add.title": "Add a person",
   "readers.add.body": "You know who it is. Type a name and one way to reach them — they can read as soon as they confirm the code we send. Then choose how they hear about it.",
@@ -4339,6 +4346,8 @@
   "readers.link.step2": "Name, then email or mobile — and the code we send",
   "readers.link.step3": "You get a note; they wait under “Waiting for your answer”",
   "readers.link.used": "Used {count} times",
+  "readers.link.used.one": "Used once",
+  "readers.link.days.one": "1 day",
   "readers.link.stop": "Stop this link…",
   "readers.link.stopQuestion": "Stop “{name}”? Nobody new can use it. Everybody already let in stays in.",
   "readers.link.stopConfirm": "Stop the link",
@@ -4505,7 +4514,5 @@
   "join.error.name": "Tell us your name first.",
   "join.error.expired": "This link does not work any more. Ask the person who sent it for a new one.",
   "join.alreadyTitle": "You’re already in",
-  "join.alreadyBody": "Nothing to ask for — you can read “{title}” already.",
-  "readers.link.used.one": "Used once",
-  "readers.link.days.one": "1 day"
+  "join.alreadyBody": "Nothing to ask for — you can read “{title}” already."
 }

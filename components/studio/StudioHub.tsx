@@ -180,8 +180,8 @@ export default function StudioHub({
         <WaitingDays username={username} model={model.waitingDays} canWrite={false} />
         {halfDone}
         <div className="mt-3 grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <GroupCard group="bringIn" rows={bringInFirstRows(username, t)} />
-          <JournalCard username={username} rows={journalRows(username, t, tn, locale, model.analyticsEnabled, model.account)} />
+          <GroupCard group="bringIn" rows={bringInFirstRows(username, t)} arriveIndex={0} />
+          <JournalCard username={username} rows={journalRows(username, t, tn, locale, model.analyticsEnabled, model.account)} arriveIndex={1} />
         </div>
       </StudioPage>
     );
@@ -237,15 +237,20 @@ export default function StudioHub({
         />
       </label>
       <div className="mt-3 grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {groups.map(({ group, rows }) => (
+        {groups.map(({ group, rows }, i) => (
           <GroupCard
             key={group}
             group={group}
             rows={rows}
+            arriveIndex={i}
             foot={group === "print" ? <RecentOrders username={username} orders={model.print.recentOrders} /> : undefined}
           />
         ))}
-        <JournalCard username={username} rows={journalRows(username, t, tn, locale, model.analyticsEnabled, model.account)} />
+        <JournalCard
+          username={username}
+          rows={journalRows(username, t, tn, locale, model.analyticsEnabled, model.account)}
+          arriveIndex={groups.length}
+        />
       </div>
     </StudioPage>
   );
@@ -367,13 +372,29 @@ function CardHeader({ group, mix = 22 }: { group: StudioGroup; mix?: number }) {
   );
 }
 
-function GroupCard({ group, rows, foot }: { group: StudioGroup; rows: Row[]; foot?: React.ReactNode }) {
+function GroupCard({
+  group,
+  rows,
+  foot,
+  arriveIndex,
+}: {
+  group: StudioGroup;
+  rows: Row[];
+  foot?: React.ReactNode;
+  /** B2325 — this card's position in the grid on first paint; `.fs-arrive`
+   *  in `app/globals.css` reads it back as `--i` for its stagger. The card
+   *  keeps the same key across a re-render (a search filter, say), so React
+   *  reuses the same DOM node and the animation, which only ever runs once
+   *  per insertion, does not repeat. */
+  arriveIndex: number;
+}) {
   return (
     <section
       id={group}
       data-group={group}
       aria-labelledby={`h-${group}`}
-      className="scroll-mt-20 rounded-2xl border border-line-faint bg-surface-raised px-2.5 pb-1.5 pt-3"
+      className="fs-arrive scroll-mt-20 rounded-2xl border border-line-faint bg-surface-raised px-2.5 pb-1.5 pt-3"
+      style={{ "--i": arriveIndex } as React.CSSProperties}
     >
       <CardHeader group={group} />
       <ul className="divide-y divide-line-faint">
@@ -453,7 +474,7 @@ function Chip({ children, fact = false, amber = false }: { children: React.React
  * B2023. Pressing a tile opens that component with its question already
  * showing, so nothing is sent on the first press; Cancel folds it away.
  */
-function JournalCard({ username, rows }: { username: string; rows: Row[] }) {
+function JournalCard({ username, rows, arriveIndex }: { username: string; rows: Row[]; arriveIndex: number }) {
   const { t } = useI18n();
   const [open, setOpen] = useState<"export" | "delete" | null>(null);
   const tile =
@@ -463,7 +484,8 @@ function JournalCard({ username, rows }: { username: string; rows: Row[] }) {
       id="journal"
       data-group="journal"
       aria-labelledby="h-journal"
-      className="scroll-mt-20 rounded-2xl border border-line-faint bg-surface-neutral px-2.5 pb-2.5 pt-3"
+      className="fs-arrive scroll-mt-20 rounded-2xl border border-line-faint bg-surface-neutral px-2.5 pb-2.5 pt-3"
+      style={{ "--i": arriveIndex } as React.CSSProperties}
     >
       <CardHeader group="journal" mix={40} />
       <ul>

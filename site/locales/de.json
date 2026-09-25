@@ -4281,6 +4281,13 @@
   "notifyStep.blocked.linkLost": "Dieser Link wurde einmal angezeigt; dieser Server kann ihn nicht erneut anzeigen",
   "notifyStep.error.dailyLimit": "Dieses Tagebuch hat heute schon 50 Willkommensnachrichten verschickt. Versuch es morgen wieder — es wurde nichts abgebucht.",
   "notifyStep.linkLost": "Dieser Server speichert vom Willkommenslink für {name} nur einen Fingerabdruck — er kann weder angezeigt noch erneut gesendet werden. Es wurde nichts gesendet.",
+  "studio.outbox.offline": "Offline",
+  "studio.outbox.offlineWaiting": "Offline · {n} wartend",
+  "studio.outbox.syncing": "Wird gesendet …",
+  "studio.outbox.waiting": "Online · {n} wartend",
+  "studio.outbox.confirmSignOut": "{n} Änderungen wurden noch nicht gesendet. Beim Abmelden gehen sie verloren.",
+  "studio.outbox.confirmSignOut.one": "{n} Änderung wurde noch nicht gesendet. Beim Abmelden geht sie verloren.",
+  "studio.outbox.signOutAnyway": "Trotzdem abmelden",
   "readers.noGuestTrip": "Noch keine deiner Reisen ist für Gäste offen — wer hereinkommt, findet nichts zu lesen. Öffne eine Reise im Studio und wähle, wer sie lesen darf.",
   "readers.add.title": "Eine Person hinzufügen",
   "readers.add.body": "Du weisst, wer es ist. Name und ein Weg, sie zu erreichen — sobald sie den Code bestätigen, den wir schicken, können sie lesen. Dann wählst du, wie sie davon erfahren.",
@@ -4339,6 +4346,8 @@
   "readers.link.step2": "Name, dann E-Mail oder Handy — und der Code, den wir schicken",
   "readers.link.step3": "Du bekommst eine Nachricht; sie warten unter „Wartet auf deine Antwort“",
   "readers.link.used": "{count}-mal verwendet",
+  "readers.link.used.one": "Einmal verwendet",
+  "readers.link.days.one": "1 Tag",
   "readers.link.stop": "Diesen Link stoppen…",
   "readers.link.stopQuestion": "„{name}“ stoppen? Niemand Neues kann ihn dann verwenden. Wer schon drin ist, bleibt drin.",
   "readers.link.stopConfirm": "Link stoppen",
@@ -4505,7 +4514,5 @@
   "join.error.name": "Sag uns zuerst deinen Namen.",
   "join.error.expired": "Dieser Link funktioniert nicht mehr. Bitte die Person, die ihn geschickt hat, um einen neuen.",
   "join.alreadyTitle": "Du bist schon drin",
-  "join.alreadyBody": "Nichts zu fragen — du kannst „{title}“ schon lesen.",
-  "readers.link.used.one": "Einmal verwendet",
-  "readers.link.days.one": "1 Tag"
+  "join.alreadyBody": "Nichts zu fragen — du kannst „{title}“ schon lesen."
 }
