@@ -89,3 +89,22 @@ export function maskNumber(to: string): string {
   const digits = to.replace(/\D/g, "");
   return digits.length <= 4 ? "•".repeat(digits.length) : `${"•".repeat(digits.length - 4)}${digits.slice(-4)}`;
 }
+
+/**
+ * A proved mobile number as a sign-in subject — B2294.
+ *
+ * Sessions, codes and identities were built around one string per person,
+ * the address (`login_codes.email`, `users.email`). A guest may now prove a
+ * mobile number instead, and it travels through the same columns as
+ * `+<E.164 digits>`: no `@`, so `isEmail` never accepts one and no email can
+ * ever be mistaken for one, and a gate that compares the subject with an
+ * owner's `owner.email` can never match it.
+ */
+export function phoneSubject(digits: string): string {
+  return `+${digits}`;
+}
+
+/** The E.164 digits a phone subject names, or null for an email subject. */
+export function subjectPhone(subject: string | null | undefined): string | null {
+  return typeof subject === "string" && /^\+\d{8,15}$/.test(subject) ? subject.slice(1) : null;
+}

@@ -1,4 +1,5 @@
 import "server-only";
+import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { isEnabled } from "../capabilities";
@@ -52,7 +53,9 @@ class DryRunSmsTransport implements SmsTransport {
     const dir = path.join(dataDir(), "sms");
     fs.mkdirSync(dir, { recursive: true });
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const file = path.join(dir, `${stamp}-${maskNumber(message.to)}.json`);
+    // A random tail, because two texts in one millisecond (a code asked for
+    // twice) would otherwise share a name and the second overwrite the first.
+    const file = path.join(dir, `${stamp}-${maskNumber(message.to)}-${randomBytes(3).toString("hex")}.json`);
     fs.writeFileSync(file, JSON.stringify({ to: message.to, body: message.body }, null, 2) + "\n", "utf8");
     console.log(`[sms:dry-run] ${maskNumber(message.to)} -> ${file}`);
     return { backend: this.name, reference: null };

@@ -708,6 +708,7 @@
   "contact.mailCodeLinkBodyPreapproved": "Press the button and we will know this address is yours — and that is the whole of it. This address was already approved, so you are in as soon as you press it.",
   "contact.mailCodeLinkTitle": "One press, and you are done",
   "contact.mailCodeSubject": "Your code for {title}",
+  "contact.smsCodeBody": "{code} is your code for {title}. It works for {minutes} minutes.",
   "contact.mailCodeTitle": "One code, and you're done",
   "contact.mailFooter": "Sent by {site}.",
   "contact.mailInviteBuddyBody": "{nickname} would like you to help write {trip}, part of {title}. Press the button below to say yes — you will be asked to confirm your email address once, and that is all.",

@@ -15,7 +15,12 @@ import { sendMail, sendTransactional } from "@/lib/mail";
 import { renderMail, type MailBlock } from "@/lib/mail/template";
 import { sendSignupCode } from "@/lib/signupCode";
 import { sendWhatsappCode } from "@paid/whatsapp/lib/whatsapp/index";
-import { toE164 } from "@/lib/phone";
+import { phoneSubject, toE164 } from "@/lib/phone";
+import { whatsappCountryCode } from "@/lib/contactNumber";
+import { smsUnreachable } from "@/lib/sms";
+import { getContactByEmail } from "@/lib/contacts";
+import { sendGuestCode } from "@/lib/contacts/guestCode";
+import { afterResponse } from "@/lib/afterResponse";
 import { authTemplateFor } from "@paid/whatsapp/lib/whatsapp/settings";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, emailCodeAllowed, rateLimitFor } from "@/lib/rateLimit";
@@ -70,9 +75,16 @@ export async function POST(request: Request) {
   if (req.scope && req.for !== "write") {
     return fail("invalid_request", 'scope is only meaningful when "for" is "write".');
   }
+  if (req.phone !== undefined) return handlePhone(request, req);
+  // Neither field at all is a shape problem, as it was while `email` was
+  // required by the schema; a present but unusable address is `invalid_email`.
+  if (req.email === undefined) {
+    return fail("invalid_request", 'One of "email" or "phone" is required.');
+  }
   if (!isEmail(req.email)) {
     return fail("invalid_email", ERROR_CODES.invalid_email, undefined, 400);
   }
+  const withEmail: EmailCodesRequest = { ...req, email: req.email };
 
   /**
    * `auth` gates every `for` except `signup`, which has its own switch — a
@@ -125,10 +137,77 @@ export async function POST(request: Request) {
   const accepted = () =>
     ok({ status: "accepted" as const, next: NEXT[req.for] }, { status: 202 });
 
-  if (req.for === "identity") return handleIdentity(request, req, channel, accepted);
-  if (req.for === "signup") return handleSignup(request, req, channel, accepted);
-  return handleJournal(request, req, channel, accepted);
+  if (req.for === "identity") return handleIdentity(request, withEmail, channel, accepted);
+  if (req.for === "signup") return handleSignup(request, withEmail, channel, accepted);
+  return handleJournal(request, withEmail, channel, accepted);
 }
+
+type EmailCodesRequest = CodesRequest & { email: string };
+
+/**
+ * `phone` — a guest's sign-in code by SMS, B2294. `for: "read"` only: a
+ * number proves a reader or a buddy, never an owner (whose sign-in stays
+ * email plus a verified phone) and never an agent token.
+ *
+ * **Sent only to a number a contact of this journal holds.** Unlike an
+ * emailed code, which goes to whatever address was typed, a text costs the
+ * instance money and lands in somebody's pocket, so an unknown number is
+ * sent nothing. Every outcome that depends on the number — unknown, rate
+ * limited, a send that failed — answers the same 202, so this door cannot be
+ * used to learn which numbers a journal knows. What does not depend on the
+ * number (the request's shape, SMS being off, the sender's country
+ * restriction) says so.
+ */
+async function handlePhone(request: Request, req: CodesRequest) {
+  if (req.email !== undefined || req.for !== "read" || req.channel !== undefined) {
+    return fail(
+      "invalid_request",
+      '"phone" is only for "for": "read", without "email" and without "channel" — the code goes by SMS.',
+    );
+  }
+  if (!isEnabled("auth")) return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
+  if (!isEnabled("sms")) {
+    return fail("sms_disabled", "This server cannot send SMS. Ask for the code by email instead; nothing was issued.", undefined, 503);
+  }
+  const digits = toE164(req.phone ?? "", whatsappCountryCode());
+  if (!digits) {
+    return fail(
+      "invalid_request",
+      "That is not a mobile number this server can text. Include the country code, e.g. +41 76 000 00 00.",
+    );
+  }
+  const unreachable = smsUnreachable(digits);
+  if (unreachable) return fail("sms_unreachable", `Nothing was sent: ${unreachable}.`, undefined, 400);
+
+  const limit = rateLimitFor("codes-read", clientIp(request), RATE_LIMIT.read);
+  if (!limit.ok) {
+    const res = fail("too_many_requests", ERROR_CODES.too_many_requests, { retryAfter: limit.retryAfter }, 429);
+    res.headers.set("Retry-After", String(limit.retryAfter));
+    return res;
+  }
+
+  const accepted = () => ok({ status: "accepted" as const, next: NEXT_PHONE }, { status: 202 });
+  const username = req.user!;
+  const user = getUser(username);
+  if (!user) return accepted();
+  if (!isEnabled("auth", username)) return fail("auth_disabled", ERROR_CODES.auth_disabled, undefined, 404);
+
+  // After the response, known number or not (B159's shape, as
+  // `/api/contacts/request` does it): awaiting the text only for a number a
+  // contact holds would make the response time say which numbers those are.
+  const ip = clientIp(request);
+  const locale = pickLocale(req.locale ?? null, fromAcceptLanguage(request.headers.get("accept-language")));
+  const destination = safeDestination(username, req.destination);
+  afterResponse("auth", async () => {
+    const contact = await getContactByEmail(username, phoneSubject(digits));
+    if (!contact) return;
+    const sent = await sendGuestCode(username, contact.id, "sms", { ip, locale, destination });
+    if (!sent.ok) console.warn(`[auth] sms read code for ${username} not sent: ${sent.reason}`);
+  });
+  return accepted();
+}
+
+const NEXT_PHONE = 'POST /api/auth/codes/redeem with {"phone", "code", "for": "read"}';
 
 const RATE_LIMIT: Record<CredentialFor, { max: number; windowMs: number }> = {
   write: { max: 5, windowMs: 15 * 60 * 1000 },
@@ -148,7 +227,7 @@ const NEXT: Record<CredentialFor, string> = {
  * journal. Carried over from `/api/auth/identity/request` unchanged. */
 async function handleIdentity(
   request: Request,
-  req: CodesRequest,
+  req: EmailCodesRequest,
   channel: "mail" | "whatsapp",
   accepted: () => Response,
 ) {
@@ -209,7 +288,7 @@ async function handleIdentity(
  * WhatsApp is not offered here, the same as v1. */
 async function handleSignup(
   request: Request,
-  req: CodesRequest,
+  req: EmailCodesRequest,
   channel: "mail" | "whatsapp",
   accepted: () => Response,
 ) {
@@ -250,7 +329,7 @@ async function handleSignup(
  * `/api/auth/request` unchanged beyond the vocabulary rename. */
 async function handleJournal(
   request: Request,
-  req: CodesRequest,
+  req: EmailCodesRequest,
   channel: "mail" | "whatsapp",
   accepted: () => Response,
 ) {

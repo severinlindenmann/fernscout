@@ -709,6 +709,7 @@
   "contact.mailCodeLinkBodyPreapproved": "Koppints a gombra, és tudni fogjuk, hogy a cím a tiéd — és ezzel kész is vagy. Ez a cím már jóváhagyást kapott, tehát a koppintás után azonnal bent vagy.",
   "contact.mailCodeLinkTitle": "Egy koppintás, és kész",
   "contact.mailCodeSubject": "A kódod ide: {title}",
+  "contact.smsCodeBody": "{code} a(z) {title} kódod. {minutes} percig érvényes.",
   "contact.mailCodeTitle": "Egy kód, és kész",
   "contact.mailFooter": "Küldte: {site}.",
   "contact.mailInviteBuddyBody": "{nickname} szeretné, ha segítenél írni ezt: {trip}, ami ennek a része: {title}. Nyomd meg az alábbi gombot, hogy igent mondj — ehhez egyszer meg kell erősítened az e-mail-címedet, ennyi az egész.",

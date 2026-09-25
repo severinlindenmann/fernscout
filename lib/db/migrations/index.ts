@@ -36,6 +36,7 @@ import * as ownerTel from "./034-owner-tel";
 import * as signupInvites from "./035-signup-invites";
 import * as usageCacheTokens from "./036-usage-cache-tokens";
 import * as photobookDrafts from "./037-photobook-drafts";
+import * as contactPhone from "./038-contact-phone";
 
 /**
  * Every migration, listed by hand.
@@ -87,6 +88,7 @@ export const MIGRATIONS: Record<string, Migration> = {
   "035-signup-invites": signupInvites,
   "036-usage-cache-tokens": usageCacheTokens,
   "037-photobook-drafts": photobookDrafts,
+  "038-contact-phone": contactPhone,
 };
 
 /**
