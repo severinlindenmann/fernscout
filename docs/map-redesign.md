@@ -1,8 +1,8 @@
 # Map redesign: Paper, with the review fixes
 
-Plan, written 2026-09-25, before any of the work. Like everything in
-`docs/plans/`, it records intent and is not kept up to date afterwards. The
-code is the authority once the work lands.
+Plan, written 2026-09-25, before any of the work. It records intent: once a
+phase lands, the code is the authority, and this file is corrected or trimmed
+rather than trusted.
 
 The design is the "Paper" proposal (boards 02–09 on the map-redesign design
 canvas), changed by the review on board 10. The owner chose that combination.
