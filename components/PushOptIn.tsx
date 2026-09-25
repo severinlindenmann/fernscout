@@ -90,8 +90,11 @@ export default function PushOptIn({
    * control competing with three ways into the reading, and it is not one of
    * them: it is what you press once and never again.
    *
-   * The dead ends keep their sentence in either mode. "Add this to your Home
-   * Screen first" cannot be said with a bell.
+   * The dead ends render nothing in this mode. "Add this to your Home
+   * Screen first" cannot be said with a bell, and saying it in a paragraph
+   * under the trip's own buttons was device setup crowding the reading. The
+   * reader's own page (`/me`) keeps the sentence under its heading, and
+   * `PushInstallOnboarding` still says it once on the trip.
    */
   compact,
 }: {
@@ -340,6 +343,7 @@ export default function PushOptIn({
     state === "blocked" ||
     state === "unavailable"
   ) {
+    if (compact) return null;
     return inSection(
       <p className="mt-3 max-w-md text-[11px] leading-relaxed text-ink-muted">
         {t(

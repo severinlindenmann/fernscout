@@ -4,14 +4,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
-import { ArrowDown, BookOpen, Clapperboard, PlayCircle, Sparkles } from "lucide-react";
+import { ArrowDown, BookOpen, ChevronRight, Clapperboard, PlayCircle, Sparkles } from "lucide-react";
 import LatestDayButton from "./LatestDayButton";
 import TripMap from "./TripMap";
 import { isPlottable } from "@/lib/mapFrame";
 import type { Basemap } from "@/lib/basemap";
 import PushInstallOnboarding from "./PushInstallOnboarding";
 import PushOptIn from "./PushOptIn";
-import KeepTrip from "./KeepTrip";
+import { KeptMark } from "./KeepTrip";
 import Travelers from "./Travelers";
 import { partyFor } from "@/lib/travellers/parse";
 import UnconvertedNotice from "./UnconvertedNotice";
@@ -31,13 +31,16 @@ import type { TranslationKey } from "@/lib/i18n";
 import type { DaySummary, PhotobookEntry } from "@/lib/types";
 
 /**
- * The quiet way into the reading — a text link with an icon, not a capsule.
+ * The other ways into the reading, beside the one filled button — B989.
  *
- * `min-h-11` because it is still a tap target on a phone; the underline is
- * what says it is one, since nothing else about it does. B989.
+ * Equal shares of one row, so three of them read as a set of choices rather
+ * than a primary and its footnotes. `min-h-11` because each is a tap target.
+ * On a phone the icon sits above a smaller label, which keeps "Letzter Tag"
+ * on one line in a third of the card; from `sm` up they are ordinary
+ * side-by-side buttons.
  */
-const QUIET =
-  "inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-ink-body underline decoration-line-quiet decoration-2 underline-offset-4 transition-colors hover:text-ink-strong hover:decoration-line-prominent";
+const SECONDARY =
+  "inline-flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl border border-line-quiet bg-surface-raised px-2 py-2 text-center text-xs font-semibold leading-tight text-ink-strong transition-colors hover:border-line-prominent sm:flex-none sm:flex-row sm:gap-1.5 sm:px-4 sm:text-sm";
 
 export type HeroStats = {
   tripDays: number;
@@ -198,32 +201,56 @@ export default function TripHero({
       <section className="overflow-hidden rounded-2xl border border-line-quiet bg-surface-subtle shadow-sm">
         <div
           className={
-            coverSrc ? "grid gap-0 md:grid-cols-[1.1fr_1fr]" : "grid gap-0"
+            // `minmax(0, …)`: a column that may shrink below its content's
+            // widest line, so the row of reading buttons wraps its labels
+            // inside the card instead of widening the card past the screen.
+            coverSrc
+              ? "grid grid-cols-[minmax(0,1fr)] gap-0 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"
+              : "grid grid-cols-[minmax(0,1fr)] gap-0"
           }
         >
           <div className="p-6 sm:p-8">
-            <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight text-ink-strong sm:text-4xl">
-              {heading}
-            </h1>
             {/* B1585 — the trip is the gate, and it was the one level with no
-                label anywhere. Under the heading rather than beside it: the
-                badge is a link into the studio's "Who may read this trip"
-                flow (D4, B1938), which beside a 4xl heading would push the
-                whole masthead around if it opened in place instead. Owner
-                only, and absent for everybody else — `TripVisibility`
-                returns null. */}
-            <TripVisibility />
+                label anywhere. On the heading's own line, at its right edge:
+                on a row of its own it read as a stray button between the
+                title and the dates. `shrink-0` inside `TripVisibility` keeps
+                it whole while a long title wraps beside it. The badge is a
+                link into the studio's "Who may read this trip" flow (D4,
+                B1938), so nothing opens in place to push the masthead around.
+                Owner only, and absent for everybody else —
+                `TripVisibility` returns null. */}
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="min-w-0 font-display text-3xl font-semibold leading-tight tracking-tight text-ink-strong sm:text-4xl">
+                {heading}
+              </h1>
+              <span className="pt-2 sm:pt-3">
+                <TripVisibility />
+              </span>
+            </div>
             {subheading && (
               <p className="mt-1.5 max-w-md text-sm text-ink-secondary">
                 {subheading}
               </p>
             )}
-            {stats.firstDate && stats.lastDate && (
-              <p className="mt-0.5 text-xs text-ink-secondary">
-                {formatShortDate(stats.firstDate)}
-                {stats.firstDate !== stats.lastDate &&
-                  ` – ${formatShortDate(stats.lastDate)}`}
+            {/* The dates, and — once it is — that the trip is over. A status,
+                so it is words on the date line rather than a boxed card that
+                looked like one more thing to press. */}
+            {(stats.firstDate && stats.lastDate) || over ? (
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-ink-secondary">
+                {stats.firstDate && stats.lastDate && (
+                  <span>
+                    {formatShortDate(stats.firstDate)}
+                    {stats.firstDate !== stats.lastDate &&
+                      ` – ${formatShortDate(stats.lastDate)}`}
+                  </span>
+                )}
+                {stats.firstDate && stats.lastDate && over && <span aria-hidden>·</span>}
+                {over && <span className="font-semibold text-ink-strong">{t("hero.over")}</span>}
+                {/* Renders nothing unless this browser keeps the trip offline — B2159. */}
+                <KeptMark user={active.trip.username} trip={active.trip.id} />
               </p>
+            ) : (
+              <KeptMark user={active.trip.username} trip={active.trip.id} />
             )}
             {travellerNames && (
               <p className="mt-0.5 text-xs text-ink-secondary">
@@ -274,28 +301,25 @@ export default function TripHero({
               )
             ) : (
               // No dot, nothing pinging — the whole point is that this is
-              // not happening right now. It says so first, then where it
-              // ended, if the last day said where that was.
-              <div className="mt-4 inline-flex flex-col gap-0.5 rounded-xl border border-line-quiet bg-surface-raised px-3 py-2">
-                <span className="text-xs font-semibold text-ink-strong">
-                  {t("hero.over")}
-                </span>
-                {hasLocation && (
-                  <span className="text-xs text-ink-secondary">
-                    {t("hero.endedIn")}{" "}
-                    <strong className="font-semibold text-ink-strong">
-                      {flag} {current.location}
-                    </strong>{" "}
-                    · {formatShortDate(current.date)}
-                  </span>
-                )}
-              </div>
+              // not happening right now. That it is over is on the date line
+              // above; this says where it ended, if the last day said where
+              // that was.
+              hasLocation && (
+                <p className="mt-3 text-xs text-ink-secondary">
+                  {t("hero.endedIn")}{" "}
+                  <strong className="font-semibold text-ink-strong">
+                    {flag} {current.location}
+                  </strong>{" "}
+                  · {formatShortDate(current.date)}
+                </p>
+              )
             )}
 
             {/* One filled button decides where to start; everything else
-                that also enters the reading is a quiet link beside it. Four
-                capsules of near-equal weight gave a reader no way in, and
-                three of them went to the same place — B989. */}
+                that also enters the reading is a smaller, equal button in
+                one row under it. Four capsules of near-equal weight gave a
+                reader no way in, and three of them went to the same place —
+                B989. */}
             <div className="mt-6 flex flex-col items-stretch gap-3 sm:items-start">
               {onResume && resumeLabel ? (
                 <button
@@ -316,18 +340,22 @@ export default function TripHero({
                 />
               )}
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {/* The other ways into the reading, as one row of equal
+                  buttons. They used to be three underlined links and one
+                  capsule — four looks for the same kind of thing. */}
+              <div className="flex w-full items-stretch gap-2 sm:w-auto">
+                <button onClick={onStart} className={SECONDARY}>
+                  <ArrowDown className="h-4 w-4 shrink-0" aria-hidden />
+                  {t("hero.startReading")}
+                </button>
                 {onResume && resumeLabel && (
                   <LatestDayButton
                     tripOver={over}
                     onClick={onLatest}
-                    className={QUIET}
+                    className={SECONDARY}
+                    iconClassName="h-4 w-4 shrink-0"
                   />
                 )}
-                <button onClick={onStart} className={QUIET}>
-                  <ArrowDown className="h-4 w-4" aria-hidden />
-                  {t("hero.startReading")}
-                </button>
                 {/* Same button, same condition (`hasPlaces`), as the map
                     page's own Clapperboard — B2306. A plain link to the map
                     page rather than a button that opens the show in place:
@@ -336,31 +364,35 @@ export default function TripHero({
                     because this link sits on it. `?show=1` is read by
                     `MapPageContent`, which already has `places` in hand. */}
                 {hasPlaces && (
-                  <Link
-                    href={active.href("/map?show=1")}
-                    className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
-                  >
-                    <Clapperboard className="h-4 w-4" />
+                  <Link href={active.href("/map?show=1")} className={SECONDARY}>
+                    <Clapperboard className="h-4 w-4 shrink-0" aria-hidden />
                     {t("show.start")}
                   </Link>
                 )}
-                {/* The journey is finished — this is where somebody looking at
-                    that fact is offered the book of it. B569. */}
-                {photobook && stats.totalMedia > 0 && (
-                  <a
-                    href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
-                    className={QUIET}
-                  >
-                    <BookOpen className="h-4 w-4" aria-hidden />
-                    {t("photobook.start")}
-                  </a>
-                )}
-                {/* Renders nothing unless a worker controls the page — B2159. */}
-                <KeepTrip user={active.trip.username} trip={active.trip.id} className={QUIET} />
-                {/* Renders nothing unless this browser can actually do it. */}
+                {/* Renders nothing unless this browser can actually do it,
+                    and only the bell here: the sentences for the dead ends
+                    are on the reader's own page. */}
                 <PushOptIn compact />
               </div>
             </div>
+
+            {/* The journey is finished — this is where somebody looking at
+                that fact is offered the book of it. B569. The owner's own
+                tool, so below a rule rather than among the ways to read. */}
+            {photobook && stats.totalMedia > 0 && (
+              <div className="mt-5 border-t border-line-quiet pt-1">
+                <a
+                  href={`/${photobook.username}/trips/${photobook.trip}/photobook`}
+                  className="flex min-h-11 items-center justify-between gap-3 text-sm font-semibold text-ink-strong transition-colors hover:text-ink-body"
+                >
+                  <span className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" aria-hidden />
+                    {t("photobook.start")}
+                  </span>
+                  <ChevronRight className="h-4 w-4 text-ink-secondary" aria-hidden />
+                </a>
+              </div>
+            )}
             {/* Renders nothing unless it's iOS, push is on, and this browser
                 hasn't seen it before — see PushInstallOnboarding. */}
             <PushInstallOnboarding />

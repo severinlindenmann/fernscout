@@ -13,7 +13,7 @@ import { unusedPhotoCount } from "@/lib/staging/expiry";
 import { listRuns } from "@/lib/staging/manifest";
 import { inboxSummary, waitingDaysFor } from "@/lib/studio/inbox";
 import type { WaitingDays } from "@/lib/studio/dayCards";
-import { getTrips, parseTripRef, tripRef } from "@/lib/trips";
+import { getTrip, getTrips, parseTripRef, tripRef } from "@/lib/trips";
 import { daysUntil, readerTodayISO } from "@/lib/tripTime";
 
 /**
@@ -55,7 +55,7 @@ export type StudioHubModel =
        *  no published day to have one about, so this is always `null` here
        *  in practice, kept on both branches for the same reason
        *  `resumableImports` is. */
-      postcardSuggestion: { dayTitle: string; dayHref: string } | null;
+      postcardSuggestion: PostcardCard | null;
       /** Empty on this branch — there are no trips yet — kept for the same
        *  reason `resumableImports` is on both. */
       routeRecordingTrips: { id: string; title: string; start: string; end: string }[];
@@ -133,7 +133,7 @@ export type StudioHubModel =
        *  banner and that field can never disagree. `null`, not a banner
        *  with nothing in it, the moment any of that function's conditions
        *  fails. */
-      postcardSuggestion: { dayTitle: string; dayHref: string } | null;
+      postcardSuggestion: PostcardCard | null;
       /** B2067 — the neutral facts the hub's rows carry as chips. Each is
        *  read from something this function already loads, except
        *  `readersAsking`, which is `readersModel`'s `asking` (B2133). A chip renders
@@ -231,6 +231,15 @@ function resumableImports(username: string): ResumableImportSummary[] {
     });
 }
 
+/** What the hub's postcard card needs to name its day. `dayTitle` is null
+ *  for a day not yet named; `dayDate` is its ISO date. */
+export type PostcardCard = {
+  dayTitle: string | null;
+  dayDate: string | null;
+  tripTitle: string | null;
+  dayHref: string;
+};
+
 /** The one postcard-shaped moment worth surfacing, if there is one — B436,
  *  moved here from `app/[user]/me/page.tsx` by B2017 so it can sit beside the
  *  hub's own resume banners rather than only on `/[user]/me`. Kept as raw
@@ -241,11 +250,17 @@ function resumableImports(username: string): ResumableImportSummary[] {
  *  field. */
 async function postcardCard(
   username: string,
-): Promise<{ dayTitle: string; dayHref: string } | null> {
+): Promise<PostcardCard | null> {
   const suggestion = await postcardSuggestion(username);
   if (!suggestion) return null;
+  const entry = getEntryBySlug(suggestion.trip, suggestion.day, AS_AUTHOR);
   return {
-    dayTitle: getEntryBySlug(suggestion.trip, suggestion.day, AS_AUTHOR)?.title ?? suggestion.day,
+    // `||`, not `??`: a day not yet named has `title: ""`, which `??` let
+    // through and the card rendered as „“. And no slug in its place — the
+    // card names an untitled day by its date and trip instead.
+    dayTitle: entry?.title?.trim() || null,
+    dayDate: entry?.date ?? null,
+    tripTitle: getTrip(suggestion.trip)?.title ?? null,
     dayHref: `/${username}/trips/${parseTripRef(suggestion.trip)?.tripId ?? ""}/day/${suggestion.day}`,
   };
 }
