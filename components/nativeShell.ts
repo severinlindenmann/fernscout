@@ -40,6 +40,45 @@ export function useNativeShell(): boolean {
   );
 }
 
+/**
+ * A touch the page can feel — B2324. Only these five, the motion study's
+ * whole table: a light tap for a primary press, medium for confirming
+ * something destructive, a plain tick for a chip/toggle selection, and the
+ * two `success`/`error` kinds a sibling ticket (B2325) fires once the
+ * server has actually answered.
+ *
+ * A no-op outside the shell (`isNativeShell()` false) and the plugin is
+ * only ever imported from in here, so a browser's bundle never carries it.
+ * Errors are swallowed — a missed buzz is never worth surfacing.
+ */
+export type HapticKind = "light" | "medium" | "selection" | "success" | "error";
+
+export async function haptic(kind: HapticKind): Promise<void> {
+  if (!isNativeShell()) return;
+  try {
+    const { Haptics, ImpactStyle, NotificationType } = await import("@capacitor/haptics");
+    switch (kind) {
+      case "light":
+        await Haptics.impact({ style: ImpactStyle.Light });
+        break;
+      case "medium":
+        await Haptics.impact({ style: ImpactStyle.Medium });
+        break;
+      case "selection":
+        await Haptics.selectionChanged();
+        break;
+      case "success":
+        await Haptics.notification({ type: NotificationType.Success });
+        break;
+      case "error":
+        await Haptics.notification({ type: NotificationType.Error });
+        break;
+    }
+  } catch {
+    // Felt nothing; the tap or the write still happened.
+  }
+}
+
 /** What the picker hands back per photograph, the part of it this uses. */
 export type PickedPhoto = { name: string; mimeType: string; data?: string; modifiedAt?: number };
 

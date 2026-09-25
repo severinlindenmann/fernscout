@@ -5,7 +5,14 @@ import UserNotifications
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-    var window: UIWindow?
+    /// The scene's window — B2328. Under the scene lifecycle UIKit hands the
+    /// window to `SceneDelegate`, not to this class; this reads it back for
+    /// the notification tap below, which only knows the app delegate.
+    var window: UIWindow? {
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.delegate as? SceneDelegate }
+            .first?.window
+    }
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // B2196 — `Recorder` is created here, not lazily from the plugin,
@@ -35,32 +42,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
     }
 
-    func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
-        // B2196 — the recorder's other upload trigger, beside "30 minutes
-        // since the last one".
-        Recorder.shared.foreground()
-    }
-
     func applicationDidBecomeActive(_ application: UIApplication) {
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
-    }
-
-    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Called when the app was launched with a url. Feel free to add additional processing here,
-        // but if you want the App API to support tracking app url opens, make sure to keep this call
-        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
-    }
-
-    func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-        // Called when the app was launched with an activity, including Universal Links.
-        // Feel free to add additional processing here, but if you want the App API to support
-        // tracking app url opens, make sure to keep this call
-        return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
     // B2115 — forwarding required by @capacitor/push-notifications' own
@@ -80,6 +67,49 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 }
 
+// MARK: - SceneDelegate
+
+/// The one window scene — B2328. iOS 27 refuses to run an app built with its
+/// SDK that still uses the app-delegate-only lifecycle (a SIGTRAP in
+/// `_UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption` before
+/// anything is drawn). UIKit builds the window from `Main.storyboard` (the
+/// scene manifest in Info.plist names it), so Capacitor's bridge view
+/// controller comes up exactly as before. Under scenes the app delegate's
+/// foreground, open-URL and user-activity callbacks are no longer called, so
+/// they live here and forward where the app delegate used to.
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+
+    var window: UIWindow?
+
+    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        // A launch by URL or activity arrives here rather than through the
+        // callbacks below.
+        if let url = connectionOptions.urlContexts.first?.url {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: url, options: [:])
+        }
+        if let activity = connectionOptions.userActivities.first {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: activity, restorationHandler: { _ in })
+        }
+    }
+
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        // B2196 — the recorder's other upload trigger, beside "30 minutes
+        // since the last one".
+        Recorder.shared.foreground()
+    }
+
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        // Kept for the Capacitor App API's url-open tracking.
+        for context in URLContexts {
+            _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, open: context.url, options: [:])
+        }
+    }
+
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        _ = ApplicationDelegateProxy.shared.application(UIApplication.shared, continue: userActivity, restorationHandler: { _ in })
+    }
+}
+
 // MARK: - UNUserNotificationCenterDelegate
 
 extension AppDelegate: UNUserNotificationCenterDelegate {
@@ -87,8 +117,8 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     /// before-trip — loads that trip's studio page directly into the
     /// bridge's own `WKWebView`, the same page the notice names in
     /// `userInfo["url"]`. Works whether the app was foreground,
-    /// background or not running at all: `didFinishLaunching` always runs
-    /// first and always sets `window`.
+    /// background or not running at all: iOS delivers the response once the
+    /// scene has connected, and `window` reads it from there (B2328).
     ///
     /// B2115 — a tap on a *remote* push (an invite, a published day,
     /// anything `lib/push.ts`'s APNs sender sent) lands here too, unchanged.
