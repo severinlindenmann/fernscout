@@ -4,7 +4,6 @@ import { requestLocale, translateIn } from "@/lib/locales";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { existingTripsForNewTrip, restForNewTrip } from "@/lib/studio/newTrip";
 import { VISIBILITIES, ACCENTS } from "@/lib/tripWrite";
-import { isEnabled } from "@/lib/capabilities";
 import { waitingDaysFor } from "@/lib/studio/inbox";
 
 const isoDay = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "");
@@ -40,7 +39,6 @@ export default async function StudioNewTripPage({ params, searchParams }: PagePr
         visibilities={VISIBILITIES}
         accents={ACCENTS}
         existingTrips={existingTripsForNewTrip(user)}
-        whatsappAvailable={isEnabled("whatsapp", user)}
         initialRange={initialRange}
         photoRun={cards.find((c) => c.newTrip)?.newTrip ?? null}
         {...rest}

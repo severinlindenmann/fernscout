@@ -173,7 +173,6 @@ export default function NewTripFlow({
   visibilities,
   accents,
   existingTrips,
-  whatsappAvailable,
   otherLocales,
   defaultLocale,
   baseCurrency,
@@ -191,7 +190,6 @@ export default function NewTripFlow({
   accents: readonly string[];
   /** For T3! — see `lib/studio/newTrip.ts`'s own doc comment. */
   existingTrips: ExistingTripSummary[];
-  whatsappAvailable: boolean;
   /** `lib/studio/newTrip.ts`'s `restForNewTrip` — see its own doc comment. */
   otherLocales: string[];
   defaultLocale: string;
@@ -994,7 +992,6 @@ export default function NewTripFlow({
                   : []),
             ] as [DoneNext] | [DoneNext, DoneNext]}
           />
-          {whatsappAvailable && <p className="mt-4 text-xs text-ink-secondary">{t("studio.newTrip.done.whatsappHint")}</p>}
         </>
       )}
 

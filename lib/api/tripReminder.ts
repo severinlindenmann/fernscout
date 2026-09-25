@@ -1,10 +1,6 @@
 import "server-only";
-import { isEnabled } from "../capabilities";
 import { getTrip, parseTripRef, type TripRef } from "../trips";
 import type { ReminderChannel } from "../types";
-import { getUser } from "../users";
-import { getOwnerTel } from "../ownerTel";
-import { reminderTemplate } from "@paid/whatsapp/lib/whatsapp/settings";
 import { REMINDER_CHANNELS } from "../tripWrite";
 import { readTripFile, writeTripFile } from "./v2/store";
 
@@ -71,38 +67,6 @@ export async function patchTripReminder(ref: TripRef, raw: unknown): Promise<Rem
     };
   }
   const channel = enabled ? (requested as ReminderChannel) : null;
-
-  // A channel that could never actually send is refused here rather than
-  // written and left silently inert — the same rule that keeps this project
-  // from accepting a field a caller can never see take effect.
-  if (enabled && channel === "whatsapp") {
-    const { username } = parseTripRef(ref) ?? {};
-    const user = username ? getUser(username) : null;
-    if (!user) return { ok: false, error: "unknown_trip" };
-    if (!isEnabled("whatsapp", username)) {
-      return {
-        ok: false,
-        error: "channel_unavailable",
-        message: "This journal's WhatsApp channel is switched off; switch it on first, or choose mail.",
-      };
-    }
-    if (!(await getOwnerTel(username!))?.tel) {
-      return {
-        ok: false,
-        error: "channel_unavailable",
-        message: "There is no phone number on file for the owner to send a WhatsApp reminder to; choose mail.",
-      };
-    }
-    if (!reminderTemplate()) {
-      return {
-        ok: false,
-        error: "channel_unavailable",
-        message:
-          "This instance has not configured an approved WhatsApp template for reminders yet " +
-          "(features.whatsapp.reminderTemplate); choose mail.",
-      };
-    }
-  }
 
   /**
    * The write itself — D18, B1638.
