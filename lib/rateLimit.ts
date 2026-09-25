@@ -145,12 +145,10 @@ export function trackedBuckets(): number {
  * | `owner-tel-verify-number` / `-owner` / `phone-verify-instance` | phone / owner / instance | phone verification codes |
  * | `journals-create*` | requester's IP | the welcome mail a new journal gets |
  * | `storage-<level>` | username | a storage-ceiling warning |
- * | `trip-people-notify` | outgoing address | `notifyNewPeople` — mailing someone newly added to `people:` |
  *
- * `trip-people-notify` is a different shape from the rest of this table: the
- * caller already holds write access to the trip, so the risk is not a
- * stranger but a write token toggling one address on and off `people:` to
- * resend mail to it as fast as writes allow (B1689).
+ * `trip-people-notify` (B1689) used to live here, mailing someone newly named
+ * in `people:` — B2297 removed the sender: `people:` is the byline only now
+ * and never mails anyone.
  */
 
 /** Hashed so raw addresses never sit in memory or in a log line. */
