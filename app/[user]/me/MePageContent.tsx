@@ -623,7 +623,7 @@ export default function MePageContent({
         */}
         {/* Owner, on a phone only — B2208. */}
         {viewer.owner && <ThisPhone username={username} />}
-        {viewer.email && <SignOut />}
+        {viewer.email && <SignOut owner={viewer.owner ? username : undefined} />}
       </main>
     </div>
   );
