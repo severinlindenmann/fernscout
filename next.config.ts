@@ -333,6 +333,15 @@ const nextConfig: NextConfig = {
         source: "/:user/invite/:kind/:token",
         headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
       },
+      // B2292. The welcome link's code is in the path (B1970 option (a)): it
+      // grants nothing, and it still never leaves in a Referer header.
+      {
+        source: "/w/:code*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
       // B1087: every /api/v1 route is authenticated and `force-dynamic`, and the
       // auth flows carry codes and session state — none of it belongs in any
       // cache. Pinned here (not just relied on from `force-dynamic`) so a shared

@@ -177,6 +177,15 @@
      the yellow of the mark: the browser picks the tick's own colour from
      this one's contrast, and the brighter lozenge yellow gets a grey tick. */
   accent-color: var(--color-yellow-600);
+
+  /* Motion tokens — B2323 (draft 1 of the motion study). Defined once, here,
+     for every later motion ticket (B2325–B2327) to reference with a fallback
+     (`var(--ease-out, cubic-bezier(.22,1,.36,1))`) rather than redeclare. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press-in: 70ms;
+  --dur-press-out: 220ms;
+  --dur-move: 380ms;
 }
 
 @theme inline {
@@ -1251,5 +1260,167 @@ select:disabled {
   select,
   textarea {
     font-size: max(16px, 1em) !important;
+  }
+}
+
+/*
+ * Touch press feedback — B2323, draft 1 of the motion study
+ * (https://claude.ai/artifact/QHpBEgpa2GK5jXT8JJn18h). 309 `hover:` rules
+ * and 5 `active:` ones: on a phone, which has no hover, pressing almost
+ * anything changed nothing but WebKit's own grey tap rectangle.
+ *
+ * `hover: none` only — a mouse keeps every `hover:` rule as-is and never
+ * sees a scale on click.
+ *
+ * Layered as `utilities`, unlike the rest of this file. B752 above made
+ * this file's own rules unlayered on purpose, so they always beat a
+ * Tailwind utility regardless of specificity — right for a focus ring, wrong
+ * here: `TRIGGER` in Visibility.tsx already carries its own tuned
+ * `active:scale-[0.94]` / `active:scale-[0.88]`, and an unlayered rule would
+ * silently win over it no matter how it was written. Inside `utilities`,
+ * ordinary specificity decides, so a bare `button:active` (one class-level
+ * selector) loses on purpose to any component's own two-class
+ * `.active\:scale-*:active` utility, and only takes over where nothing more
+ * specific exists.
+ *
+ * Kept selectors bare (no `:not(:disabled)` chain) on `button` for the same
+ * specificity reason — every extra `:not()` is itself class-level
+ * specificity and would push a plain `button:active` above a component's
+ * own two-class utility. Disabled buttons do not need it anyway: a
+ * `disabled` button never matches `:active` in any browser, and
+ * `BusyButton.tsx` always sets `disabled` together with `aria-busy`, so the
+ * native behaviour already covers "skip disabled and aria-busy buttons" for
+ * real `<button>`s. `[role="button"]` is not a native control, so it keeps
+ * its own `aria-disabled`/`aria-busy` exclusions — nothing in this codebase
+ * pairs a non-svg `[role="button"]` with its own `active:` utility today, so
+ * there is no tie to lose. The two `role="button"` map pins (TripMap.tsx,
+ * WorldMap.tsx) are `<g>` elements that already use `transform` to place
+ * themselves on the map; `scale()` here would replace that positioning
+ * transform outright, so svg descendants are excluded entirely rather than
+ * fought over on specificity.
+ *
+ * `a` excludes `.prose a` — an inline link inside journal text (
+ * EntryContent.tsx) — because scaling a word mid-sentence reads as the text
+ * wiggling, not as feedback; those links still get `-webkit-tap-highlight-
+ * color: transparent` from the rule on `html` and lose nothing else. Every
+ * other `a` in this app is a card or a row (`Link`, per the grep above), so
+ * scale reads as a press.
+ */
+@media (hover: none) {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @layer utilities {
+    button,
+    [role="button"]:not(svg, svg *):not([aria-disabled="true"]):not([aria-busy="true"]),
+    summary,
+    label:has(> input:not(:disabled)),
+    a:not(.prose a):not([aria-disabled="true"]) {
+      transition:
+        transform var(--dur-press-out, 220ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+        filter var(--dur-press-out, 220ms) var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+      -webkit-touch-callout: none;
+      user-select: none;
+    }
+
+    /* Feedback without motion still needs to exist — the brightness change
+       applies unconditionally; only the scale below is gated on motion
+       preference. */
+    button:active,
+    [role="button"]:not(svg, svg *):not([aria-disabled="true"]):not([aria-busy="true"]):active,
+    summary:active,
+    label:has(> input:not(:disabled)):active,
+    a:not(.prose a):not([aria-disabled="true"]):active {
+      filter: brightness(0.94);
+      transition-duration: var(--dur-press-in, 70ms);
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      button:active,
+      [role="button"]:not(svg, svg *):not([aria-disabled="true"]):not([aria-busy="true"]):active,
+      summary:active,
+      label:has(> input:not(:disabled)):active,
+      a:not(.prose a):not([aria-disabled="true"]):active {
+        transform: scale(0.965);
+      }
+    }
+  }
+}
+
+/*
+ * B2326 — the reader's push. Overview to a day slides the day in from the
+ * right over the overview, which drifts 28% left under a 14% shade; back is
+ * the same run reversed. `moveTo` in app/TripStory.tsx starts the view
+ * transition and says which way on <html data-page-nav>. Only the story
+ * column moves; the header and sidebar crossfade with the root as usual.
+ * A browser without view transitions never gets here and keeps the cut.
+ */
+.fs-story-page {
+  view-transition-name: story-page;
+}
+::view-transition-image-pair(story-page) {
+  overflow: clip;
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-page-nav]::view-transition-group(story-page),
+  :root[data-page-nav]::view-transition-old(story-page),
+  :root[data-page-nav]::view-transition-new(story-page) {
+    animation-duration: 380ms;
+    animation-timing-function: var(--ease-ios, cubic-bezier(0.32, 0.72, 0, 1));
+    mix-blend-mode: normal;
+  }
+  :root[data-page-nav="forward"]::view-transition-old(story-page) {
+    animation-name: fs-push-under;
+  }
+  :root[data-page-nav="forward"]::view-transition-new(story-page) {
+    animation-name: fs-push-in;
+  }
+  /* Back has its own keyframes rather than `animation-direction: reverse`,
+     which would flip the curve too and make the pop start slowly. */
+  :root[data-page-nav="back"]::view-transition-old(story-page) {
+    animation-name: fs-pop-out;
+    z-index: 1;
+  }
+  :root[data-page-nav="back"]::view-transition-new(story-page) {
+    animation-name: fs-pop-under;
+  }
+  /* The header and sidebar change as they always did, at once: the scroll
+     jump back to the top would otherwise ghost them in a crossfade. */
+  :root[data-page-nav]::view-transition-old(root),
+  :root[data-page-nav]::view-transition-new(root) {
+    animation: none;
+  }
+}
+@keyframes fs-push-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes fs-push-under {
+  to {
+    transform: translateX(-28%);
+    filter: brightness(0.86);
+  }
+}
+@keyframes fs-pop-out {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes fs-pop-under {
+  from {
+    transform: translateX(-28%);
+    filter: brightness(0.86);
+  }
+}
+/* Reduced motion: no slide, a 200ms crossfade of the whole page. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) {
+    animation: none;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 200ms;
   }
 }

@@ -74,6 +74,8 @@ export const LEDGER_REASONS = [
   "ask_thread",
   "find_in_journal",
   "travellers_from_photo",
+  "invite",
+  "day_sms",
   "refund",
   "purchase_refund",
 ] as const;

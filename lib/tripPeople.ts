@@ -453,16 +453,22 @@ export async function pendingTripRequestsFor(username: string): Promise<Map<stri
  * blocked and press approve — which is the same deliberate act that hands back
  * the journal, not a side door into it.
  */
-export async function approveTripPlaces(username: string, contactId: string): Promise<string[]> {
+export async function approveTripPlaces(
+  username: string,
+  contactId: string,
+  /** B2292 — open this one trip's place and leave every other row alone. */
+  onlyTrip?: string,
+): Promise<string[]> {
   const handle = await getDatabaseOrNull();
   if (!handle) return [];
   const now = new Date();
-  const candidates = await handle.db
+  let query = handle.db
     .selectFrom("trip_people")
     .select(["id", "trip_id", "granted_at", "revoked_at", "expires_at"])
     .where("owner_id", "=", username)
-    .where("contact_id", "=", contactId)
-    .execute();
+    .where("contact_id", "=", contactId);
+  if (onlyTrip !== undefined) query = query.where("trip_id", "=", onlyTrip);
+  const candidates = await query.execute();
 
   // Revoked, never granted (a request), or granted and since lapsed. All three
   // are somebody who is not on the trip right now, which is the only question

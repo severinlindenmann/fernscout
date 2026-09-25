@@ -16,6 +16,7 @@ import {
   whatsappWouldCost,
   whatsappWouldReach,
 } from "@paid/whatsapp/lib/digest/dayWhatsapp";
+import { sendDaySms, smsSummary, smsWouldCost, smsWouldReach } from "@/lib/digest/daySms";
 import { AS_AUTHOR, getEntryBySlug } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import type { Trip } from "@/lib/types";
@@ -86,7 +87,7 @@ async function statusFor(owner: string, tripParam: string, slug: string): Promis
   if (entry.draft) return { error: "not_published" };
   if (isTestContent(trip, entry)) return { error: "test_content" };
 
-  const CHANNELS: NotifyChannel[] = ["mail", "whatsapp"];
+  const CHANNELS: NotifyChannel[] = ["mail", "whatsapp", "sms"];
   const reachable = CHANNELS.some((c) => channelEnabled(c, owner));
   const already = await notifiedChannelsFor(owner, trip.id, slug);
   const pending = CHANNELS.filter((c) => !already.has(c) && channelEnabled(c, owner));
@@ -101,7 +102,10 @@ async function statusFor(owner: string, tripParam: string, slug: string): Promis
             count: await whatsappWouldReach(owner, ref, slug),
             cost: await whatsappWouldCost(owner, ref, slug),
           }
-        : { channel, count: await mailWouldReach(owner, ref, slug), cost: 0 },
+        : channel === "sms"
+          ? // B2292 — one credit per paying recipient, like WhatsApp.
+            { channel, count: await smsWouldReach(owner, ref, slug), cost: await smsWouldCost(owner, ref, slug) }
+          : { channel, count: await mailWouldReach(owner, ref, slug), cost: 0 },
     ),
   );
   const needed = detailed.reduce((sum, c) => sum + c.cost, 0);
@@ -238,6 +242,10 @@ export async function POST(
       const outcome = await sendDayLetter(user, status.ref, slug);
       if (!outcome.ok) await releaseChannelClaim(user, status.trip.id, slug, channel);
       result.mail = mailSummary(outcome);
+    } else if (channel === "sms") {
+      const outcome = await sendDaySms(user, status.ref, slug);
+      if (!outcome.ok) await releaseChannelClaim(user, status.trip.id, slug, channel);
+      result.sms = smsSummary(outcome);
     } else {
       const outcome = await sendDayWhatsapp(user, status.ref, slug);
       if (!outcome.ok) await releaseChannelClaim(user, status.trip.id, slug, channel);

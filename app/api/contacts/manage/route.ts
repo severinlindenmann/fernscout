@@ -33,6 +33,7 @@ function selfView(contact: ContactRecord) {
     wantsEmailDigest: contact.wantsEmailDigest,
     wantsPostcard: contact.wantsPostcard,
     wantsWhatsapp: contact.wantsWhatsapp,
+    wantsSms: contact.wantsSms,
     address: contact.postalAddress,
     confirmedAt: contact.confirmedAt,
   };
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
           : undefined,
     wantsPostcard: typeof body.wantsPostcard === "boolean" ? body.wantsPostcard : undefined,
     wantsWhatsapp: typeof body.wantsWhatsapp === "boolean" ? body.wantsWhatsapp : undefined,
+    wantsSms: typeof body.wantsSms === "boolean" ? body.wantsSms : undefined,
   });
 
   if (!contact) return Response.json({ error: "unknown_token" }, { status: 404 });

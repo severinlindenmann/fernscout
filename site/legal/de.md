@@ -227,12 +227,16 @@ hinzufügt:
   gehen nur an dein eigenes Journal. Die Aufzeichnung stoppt von selbst am Tag
   nach dem Ende der Reise, ausser du lässt sie weiterlaufen, und du kannst sie
   jederzeit auf der Seite der Reise beenden.
+- **Das Mikrofon**, nur während du etwas für den Helfer aufnimmst, und erst,
+  nachdem du es erlaubt hast. Die Aufnahme geht an den Transkriptionsdienst,
+  wie unter [KI und Stimme](#ai) beschrieben, und wird nie gespeichert.
 - **Benachrichtigungen**, nur wenn du sie erlaubst, zugestellt über Apple.
 - **Teilen an Fernscout** aus einer anderen App nutzt eine Anmeldung, die im
   Schlüsselbund des Telefons liegt und sieben Tage gilt.
 
 **Alles funktioniert, wenn du Nein sagst.** Ohne Standort hat die Karte einer
-Reise keine aufgezeichnete Route; ohne Benachrichtigungen bekommst du keine.
+Reise keine aufgezeichnete Route; ohne Mikrofon tippst du statt zu sprechen;
+ohne Benachrichtigungen bekommst du keine.
 Es gibt in der App kein Tracking, keine Werbe-ID und keine Analyse durch
 Dritte.
 

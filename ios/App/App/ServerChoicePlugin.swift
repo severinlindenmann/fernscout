@@ -200,14 +200,20 @@ public class ServerChoicePlugin: CAPPlugin, CAPBridgedPlugin {
     /// change it — loading another URL into the old WebView would leave
     /// `appStartServerURL` naming the old one.
     private static func restart() {
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+        guard let window = sceneWindow,
               let fresh = UIStoryboard(name: "Main", bundle: nil).instantiateInitialViewController() else { return }
         window.rootViewController = fresh
         window.makeKeyAndVisible()
     }
 
+    /// The one scene's window — B2328 moved it from the app delegate to
+    /// `SceneDelegate`; `AppDelegate.window` reads it back from there.
+    private static var sceneWindow: UIWindow? {
+        (UIApplication.shared.delegate as? AppDelegate)?.window
+    }
+
     private static func present(_ alert: UIAlertController) {
-        var top = UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController
+        var top = sceneWindow?.rootViewController
         while let presented = top?.presentedViewController { top = presented }
         top?.present(alert, animated: true)
     }

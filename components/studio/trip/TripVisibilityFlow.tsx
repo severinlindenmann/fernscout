@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
+import { haptic } from "@/components/nativeShell";
 import DoneScreen from "@/components/studio/DoneScreen";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
@@ -103,6 +104,7 @@ export default function TripVisibilityFlow({
               checked={chosen === v}
               disabled={confirming}
               onChange={() => {
+                void haptic("selection");
                 setChosen(v as Visibility);
                 setError(null);
               }}
