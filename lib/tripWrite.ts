@@ -67,7 +67,10 @@ export const COSTS_VISIBILITIES = ["public", "guests"] as const;
  * one — the document imports the constant the validator uses, so there is
  * never a second copy of the list to disagree with the first.
  */
-export const REMINDER_CHANNELS = ["mail", "whatsapp"] as const;
+// B2339 retired WhatsApp as a reminder channel; SMS announcements and SMS
+// invites stayed (they need no Meta approval), but a reminder never had an
+// SMS leg to fall back to, so "mail" is what is left.
+export const REMINDER_CHANNELS = ["mail"] as const;
 
 /** Whether a planned stop's `arrive`/`leave` are the server's own derivation
  * (from the trip start, the route order and each stop's `nights`) or taken

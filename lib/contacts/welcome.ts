@@ -1,7 +1,7 @@
 import "server-only";
 import crypto from "node:crypto";
 import { hashSecret } from "../auth";
-import { hasSwitchedOff, isEnabled } from "../capabilities";
+import { isEnabled } from "../capabilities";
 import { balanceOf, creditsEnabled, refund, spend } from "../credits";
 import { formatChf } from "../creditsFormat";
 import { creditsInRappen } from "@paid/credits/lib/credits/pricing";
@@ -16,8 +16,6 @@ import { getTrip, tripRef } from "../trips";
 import type { Locale } from "../types";
 import { getUser } from "../users";
 import { whatsappCountryCode } from "../contactNumber";
-import { sendWhatsapp } from "@paid/whatsapp/lib/whatsapp/index";
-import { inviteTemplateFor } from "@paid/whatsapp/lib/whatsapp/settings";
 import { decryptString, encryptString, hasContactsKey } from "./crypto";
 import { getContact, type ContactRecord } from "./index";
 import { pickLocale } from "./locale";
@@ -139,15 +137,14 @@ export async function markWelcomeOpened(owner: string, contactId: string): Promi
 
 // ─── Channels ──────────────────────────────────────────────────────────────
 
-export type InviteChannel = "email" | "whatsapp" | "sms" | "self";
-export const INVITE_CHANNELS: readonly InviteChannel[] = ["email", "whatsapp", "sms", "self"];
+export type InviteChannel = "email" | "sms" | "self";
+export const INVITE_CHANNELS: readonly InviteChannel[] = ["email", "sms", "self"];
 
 /** Why a channel cannot be used for this person, or null when it can. */
 type ChannelBlock =
   | "no_email"
   | "no_mobile"
   | "mail_off"
-  | "whatsapp_off"
   | "sms_off"
   | "unreachable"
   /** The link was shown once and this server kept only its hash (no
@@ -191,16 +188,9 @@ export function ownerShortName(user: { owner: { nickname?: string; name: string 
   return user.owner.nickname?.trim() || firstName(user.owner.name);
 }
 
-/** Meta rejects a body parameter with a newline, a tab or four spaces in a row. */
-function asParameter(value: string): string {
-  return value.replace(/\s+/g, " ").trim().slice(0, 300) || "-";
-}
-
 type Message = {
   locale: Locale;
   url: string;
-  /** Filling the WhatsApp template's four variables, in order. */
-  params: [string, string, string, string];
   /** The whole message, as the person reads it on every channel. */
   text: string;
   /** The mail's subject line. */
@@ -222,7 +212,6 @@ async function messageFor(owner: string, contact: ContactRecord, code: string): 
   return {
     locale,
     url,
-    params: [vars.name, vars.owner, vars.title, vars.url],
     text: translateIn(locale, trip ? "welcomeLink.textBuddy" : "welcomeLink.textReader", vars),
     subject: translateIn(locale, "welcomeLink.mailSubject", vars),
   };
@@ -239,19 +228,15 @@ function blockFor(owner: string, contact: ContactRecord, channel: InviteChannel)
     return mailDisabledReason(owner) ? "mail_off" : null;
   }
   const digits = smsDigits(contact);
-  if (channel === "whatsapp") {
-    if (!isEnabled("whatsapp") || hasSwitchedOff("whatsapp", owner)) return "whatsapp_off";
-    return digits ? null : "no_mobile";
-  }
   if (!isEnabled("sms")) return "sms_off";
   if (!digits) return "no_mobile";
   return smsUnreachable(digits) ? "unreachable" : null;
 }
 
-/** What one message on this channel costs — 1 credit for WhatsApp and SMS
- * where this instance charges at all (D5), nothing otherwise. */
+/** What one message on this channel costs — 1 credit for SMS where this
+ * instance charges at all (D5), nothing otherwise. */
 function costOf(channel: InviteChannel): number {
-  return (channel === "whatsapp" || channel === "sms") && creditsEnabled() ? 1 : 0;
+  return channel === "sms" && creditsEnabled() ? 1 : 0;
 }
 
 export type InviteOptions = {
@@ -347,10 +332,11 @@ export type InviteSendResult =
  * Tell this person about their welcome link on one channel — the owner's
  * press, and the only thing here that sends or charges.
  *
- * WhatsApp and SMS take one credit before the message leaves and give it back
- * when the send throws; a short balance sends nothing and charges nothing.
- * Email is free and never touches the ledger. `self` sends nothing and
- * returns the link. Offered only while the link has not been opened.
+ * SMS takes one credit before the message leaves and gives it back when the
+ * send throws; a short balance sends nothing and charges nothing. Email is
+ * free and never touches the ledger. `self` sends nothing and returns the
+ * link. Offered only while the link has not been opened. WhatsApp retired as
+ * an invite channel, B2339.
  */
 export async function sendInvite(
   owner: string,
@@ -414,19 +400,7 @@ async function deliver(
   }
   const to = smsDigits(contact);
   if (!to) return null;
-  if (channel === "sms") return (await sendSms({ to, body: message.text })).backend;
-  const template = inviteTemplateFor(message.locale);
-  const sent = await sendWhatsapp({
-    to,
-    template: template.name,
-    language: template.language,
-    body: message.params.map(asParameter),
-    username: owner,
-    // Something the owner asked to send one person they named — Meta's
-    // utility category. B2298 registers the template.
-    category: "utility",
-  });
-  return sent?.backend ?? null;
+  return (await sendSms({ to, body: message.text })).backend;
 }
 
 async function recordInvited(owner: string, contactId: string, channel: InviteChannel): Promise<void> {

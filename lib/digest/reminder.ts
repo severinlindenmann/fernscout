@@ -12,9 +12,6 @@ import { getTrips, type TripRef } from "../trips";
 import type { ReminderChannel, Trip } from "../types";
 import { getUser, getUsernames, userDir } from "../users";
 import type { UserConfig } from "../config";
-import { getOwnerTel } from "../ownerTel";
-import { sendWhatsapp } from "@paid/whatsapp/lib/whatsapp/index";
-import { reminderTemplate } from "@paid/whatsapp/lib/whatsapp/settings";
 
 /**
  * The evening nudge itself — B1219, D46, and B673's open question answered.
@@ -88,63 +85,40 @@ type ReminderOutcome =
   | { sent: false; reason: string };
 
 /** Send tonight's one nudge for this trip, on the channel its own `trip.md`
- *  names. Never throws: a reminder that fails must not take the rest of the
+ *  names — mail only, since B2339 retired WhatsApp as a reminder channel.
+ *  Never throws: a reminder that fails must not take the rest of the
  *  night's sweep down with it, the same reasoning `recordUsage` follows. */
 async function sendReminder(username: string, user: UserConfig, trip: Trip): Promise<ReminderOutcome> {
   const channel = trip.reminder?.channel;
   if (!channel) return { sent: false, reason: "not_enabled" };
   const locale = pickLocale(user.defaultLocale);
 
-  if (channel === "mail") {
-    if (!user.owner.email) return { sent: false, reason: "no_owner_email" };
-    try {
-      const result = await sendMail(
-        renderMail(
-          user.owner.email,
-          translateIn(locale, "mail.reminderSubject", { trip: trip.title }),
-          {
-            preheader: translateIn(locale, "mail.reminderBody", { trip: trip.title }),
-            title: translateIn(locale, "mail.reminderTitle"),
-            blocks: [
-              { kind: "paragraph", text: translateIn(locale, "mail.reminderBody", { trip: trip.title }) },
-              {
-                kind: "button",
-                text: translateIn(locale, "mail.reminderButton"),
-                href: `${serverSite().url}/${encodeURIComponent(username)}/studio/day/new`,
-              },
-            ],
-            footer: translateIn(locale, "contact.mailFooter", { site: user.title }),
-          },
-          username,
-        ),
-      );
-      return result ? { sent: true, channel: "mail" } : { sent: false, reason: "mail_off" };
-    } catch (err) {
-      console.error(`[reminders] could not mail ${username} about ${trip.ref}:`, err);
-      return { sent: false, reason: "mail_failed" };
-    }
-  }
-
-  // whatsapp — refused at write time (`lib/api/tripReminder.ts`) unless a
-  // template and a proven number were both already on file, so a trip
-  // carrying this channel should always be able to send; checked again here
-  // rather than trusted, since either can have been withdrawn since.
-  const template = reminderTemplate();
-  const ownerTel = template ? await getOwnerTel(username) : null;
-  if (!template || !ownerTel?.tel) return { sent: false, reason: "whatsapp_unavailable" };
+  if (!user.owner.email) return { sent: false, reason: "no_owner_email" };
   try {
-    const result = await sendWhatsapp({
-      to: ownerTel.tel,
-      template: template.name,
-      language: template.language,
-      body: [trip.title],
-      username,
-      category: "utility",
-    });
-    return result ? { sent: true, channel: "whatsapp" } : { sent: false, reason: "whatsapp_off" };
+    const result = await sendMail(
+      renderMail(
+        user.owner.email,
+        translateIn(locale, "mail.reminderSubject", { trip: trip.title }),
+        {
+          preheader: translateIn(locale, "mail.reminderBody", { trip: trip.title }),
+          title: translateIn(locale, "mail.reminderTitle"),
+          blocks: [
+            { kind: "paragraph", text: translateIn(locale, "mail.reminderBody", { trip: trip.title }) },
+            {
+              kind: "button",
+              text: translateIn(locale, "mail.reminderButton"),
+              href: `${serverSite().url}/${encodeURIComponent(username)}/studio/day/new`,
+            },
+          ],
+          footer: translateIn(locale, "contact.mailFooter", { site: user.title }),
+        },
+        username,
+      ),
+    );
+    return result ? { sent: true, channel: "mail" } : { sent: false, reason: "mail_off" };
   } catch (err) {
-    console.error(`[reminders] could not WhatsApp ${username} about ${trip.ref}:`, err);
-    return { sent: false, reason: "whatsapp_failed" };
+    console.error(`[reminders] could not mail ${username} about ${trip.ref}:`, err);
+    return { sent: false, reason: "mail_failed" };
   }
 }
 
