@@ -26,7 +26,7 @@ import StudioPage from "@/components/studio/StudioPage";
 import { formatStagedBytes } from "@/lib/validate/media";
 import { GROUP_HUE, type StudioGroup } from "@/lib/studio/groups";
 import { bringInFirstRows, buildHubGroups, filterHubGroups, journalRows, type Row } from "@/lib/studio/hubGroups";
-import type { ResumableImportSummary, StudioHubModel } from "@/lib/studio/hub";
+import type { PostcardCard, ResumableImportSummary, StudioHubModel } from "@/lib/studio/hub";
 import type { TranslationKey } from "@/lib/i18n";
 import { daysUntil, readerTodayISO } from "@/lib/tripTime";
 import { unfinishedIcon, unfinishedTitle } from "@paid/printOrder/components/studio/UnfinishedPrint";
@@ -533,7 +533,7 @@ function HalfDone({
 }: {
   username: string;
   runs: ResumableImportSummary[];
-  postcard: { dayTitle: string; dayHref: string } | null;
+  postcard: PostcardCard | null;
   /** B2135 — postcards not sent and photobook setups not ordered. */
   unfinished: UnfinishedPrint[];
 }) {
@@ -590,7 +590,14 @@ function HalfDone({
             href: `/${username}/studio/postcard`,
             Icon: Mailbox,
             title: t("me.postcardCardTitle"),
-            detail: t("me.postcardCardBody", { title: postcard.dayTitle }),
+            detail: postcard.dayTitle
+              ? t("me.postcardCardBody", { title: postcard.dayTitle })
+              : postcard.dayDate && postcard.tripTitle
+                ? t("me.postcardCardBodyUntitled", {
+                    date: formatLongDate(postcard.dayDate),
+                    trip: postcard.tripTitle,
+                  })
+                : t("me.postcardCardBodyPlain"),
             chip: t("me.postcardCardOpen"),
           },
         ]

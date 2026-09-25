@@ -7,6 +7,7 @@ import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentLi
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
+import OfflineTrips from "@/components/OfflineTrips";
 import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import ThisPhone from "@/components/studio/ThisPhone";
@@ -560,6 +561,14 @@ export default function MePageContent({
             </Link>
           </p>
         )}
+
+        {/*
+          Which trips this browser keeps for reading offline — moved here from
+          each trip's hero, where "on this phone" named the wrong device on a
+          laptop and sat among the ways into the reading. Every trip this
+          reader may open, owner or not; absent without a service worker.
+        */}
+        <OfflineTrips username={username} trips={viewer.trips.map(({ id, title }) => ({ id, title }))} />
 
         {/*
           Where notifications are switched on, for a reader who is not standing
