@@ -5,7 +5,6 @@ import { isEnabled } from "@/lib/capabilities";
 import { awaitingApproval, guestBlockedByPrivateTrip, mayReadTrip, signedInAs } from "@/lib/tripGate";
 import { getCurrentTrip } from "@/lib/trips";
 import { getUser } from "@/lib/users";
-import { whatsappSignInOffered } from "@paid/whatsapp/lib/whatsapp/settings";
 
 /**
  * The gate, scoped to the pages that actually show the current trip.
@@ -27,11 +26,10 @@ export default async function TripPagesLayout({
 
   const current = getCurrentTrip(username);
   if (current && !(await mayReadTrip(current))) {
-    // Four reads about the reader in front of the gate, none depending on
+    // Three reads about the reader in front of the gate, none depending on
     // another — asked together rather than in the order the props list them.
-    const [who, whatsappSignIn, guestBlockedByPrivate, waiting] = await Promise.all([
+    const [who, guestBlockedByPrivate, waiting] = await Promise.all([
       signedInAs(username),
-      whatsappSignInOffered(username),
       guestBlockedByPrivateTrip(current),
       awaitingApproval(username),
     ]);
@@ -43,7 +41,6 @@ export default async function TripPagesLayout({
         signedInAs={who}
         canSignIn={isEnabled("auth", username)}
         codeMinutes={CODE_TTL_MINUTES}
-        whatsappSignIn={whatsappSignIn}
         guestBlockedByPrivate={guestBlockedByPrivate}
         waiting={waiting}
       />

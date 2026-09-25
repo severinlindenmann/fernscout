@@ -7,7 +7,7 @@ import Composer, { type StopOutcome } from "@/components/studio/plan/Composer";
 import MoneyPanel, { formatMoney } from "@/components/studio/plan/MoneyPanel";
 import LinksPanel from "@/components/studio/plan/LinksPanel";
 import { findGaps, moveStop, previewNightsSchedule } from "@/lib/planner/schedule";
-import type { CostsDoc, PendingPin, PlanDoc, PlanStop } from "@/lib/planner/types";
+import type { CostsDoc, PlanDoc, PlanStop } from "@/lib/planner/types";
 import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
 
 const UNDO_MS = 60_000;
@@ -37,7 +37,6 @@ export default function PlannerFlow({
   initialCosts,
   baseCurrency,
   currencies,
-  initialPins,
 }: {
   username: string;
   tripId: string;
@@ -48,14 +47,12 @@ export default function PlannerFlow({
   /** `journalCurrencies` (`lib/rates.ts`), base first — B2143. */
   currencies: string[];
   addressLookupEnabled: boolean;
-  initialPins?: PendingPin[];
 }) {
   const { t, tn, formatLongDate, locale } = useI18n();
   const [plan, setPlan] = useState<PlanDoc>(initialPlan ?? { route: [] });
   const [costs, setCosts] = useState<CostsDoc>(initialCosts ?? {});
   const linkCount =
     (plan.private?.links?.length ?? 0) + Object.values(plan.private?.stops ?? {}).reduce((n, stop) => n + (stop?.links?.length ?? 0), 0);
-  const [pins, setPins] = useState<PendingPin[]>(initialPins ?? []);
   const [view, setView] = useState<View>("list");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -143,25 +140,6 @@ export default function PlannerFlow({
     }
   }
 
-  /**
-   * A pin's own owner-only door — B2014. Best effort: a failed delete leaves
-   * the pin in the list rather than pretending it is gone, so the person can
-   * try Ignore (or Use as a place) again rather than losing track of it.
-   */
-  async function removePin(id: string): Promise<boolean> {
-    try {
-      const res = await fetch(
-        `/api/web/${encodeURIComponent(username)}/inbox/pins/${encodeURIComponent(id)}`,
-        { method: "DELETE" },
-      );
-      if (!res.ok) return false;
-    } catch {
-      return false;
-    }
-    setPins((p) => p.filter((pin) => pin.id !== id));
-    return true;
-  }
-
   const previewRoute = useMemo(
     () => (plan.mode === "dates" ? plan.route : previewNightsSchedule(plan.route, tripStart)),
     [plan.route, plan.mode, tripStart],
@@ -191,8 +169,7 @@ export default function PlannerFlow({
       const route = plan.route.map((s) =>
         s.id === outcome.stopId ? { ...s, see: [...(s.see ?? []), { name: outcome.place.name, lat: outcome.place.lat, lng: outcome.place.lng, source: outcome.place.source }] } : s,
       );
-      const ok = await save({ ...plan, route });
-      if (ok && outcome.place.pinId) void removePin(outcome.place.pinId);
+      await save({ ...plan, route });
       return;
     }
     if (outcome.action === "stay") {
@@ -201,8 +178,7 @@ export default function PlannerFlow({
       const existing = stops[outcome.stopId] ?? {};
       stops[outcome.stopId] = { ...existing, stay: { name: outcome.place.name, lat: outcome.place.lat, lng: outcome.place.lng } };
       nextPrivate.stops = stops;
-      const ok = await save({ ...plan, private: nextPrivate });
-      if (ok && outcome.place.pinId) void removePin(outcome.place.pinId);
+      await save({ ...plan, private: nextPrivate });
       return;
     }
     // newStop
@@ -219,8 +195,7 @@ export default function PlannerFlow({
     };
     const route = [...plan.route];
     route.splice(outcome.insertAt, 0, stop);
-    const ok = await save({ ...plan, route });
-    if (ok && outcome.place.pinId) void removePin(outcome.place.pinId);
+    await save({ ...plan, route });
   }
 
   function handleMove(from: number, to: number) {
@@ -286,8 +261,6 @@ export default function PlannerFlow({
             lastCurrency={lastCurrency}
               currencies={currencies}
             onCommit={commitOutcome}
-            pins={pins}
-            onIgnorePin={(id) => void removePin(id)}
           />
         </div>
         <p className="mt-4 text-sm text-ink-secondary" role="status">
@@ -312,8 +285,6 @@ export default function PlannerFlow({
               lastCurrency={lastCurrency}
               currencies={currencies}
               onCommit={commitOutcome}
-              pins={pins}
-              onIgnorePin={(id) => void removePin(id)}
             />
           </div>
 

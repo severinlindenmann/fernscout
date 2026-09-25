@@ -8,7 +8,7 @@
   },
   "visibility": "public",
   "reminder": {
-    "channel": "whatsapp"
+    "channel": "mail"
   },
   "accent": "yellow",
   "people": [

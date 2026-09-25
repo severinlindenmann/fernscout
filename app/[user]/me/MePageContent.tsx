@@ -166,7 +166,6 @@ export default function MePageContent({
   consentRows = [],
   canSignIn,
   codeMinutes,
-  whatsappSignIn,
   contactsEnabled,
   ownerName,
   signinNotice,
@@ -201,8 +200,6 @@ export default function MePageContent({
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
-  /** See `whatsappSignInOffered` — lib/whatsapp/settings. */
-  whatsappSignIn?: boolean;
   /** Whether this journal keeps a guest list at all. Resolved on the server;
    * `isEnabled` reads server config and this file is a client component. */
   contactsEnabled: boolean;
@@ -366,7 +363,7 @@ export default function MePageContent({
             {/* The way back for somebody who has been here before and lost the
                 email they were let in with. */}
             {canSignIn && (
-              <GuestSignIn username={username} codeMinutes={codeMinutes} whatsappSignIn={whatsappSignIn} />
+              <GuestSignIn username={username} codeMinutes={codeMinutes} />
             )}
           </>
         ) : (

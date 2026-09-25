@@ -424,8 +424,9 @@ describe("Readers: Let in, and inviting an import", () => {
     const { requestContact, getContactByEmail } = await import("@/lib/contacts");
     await requestContact(OWNER, { name: "Ida Import", email: "ida@example.test", locale: "en", wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner-import" });
     const ida = (await getContactByEmail(OWNER, "ida@example.test"))!;
-    // WhatsApp is off here: refused, and Ida stays "not invited yet".
-    expect((await notify(ida.id, "whatsapp")).status).toBe(409);
+    // WhatsApp is no longer an invite channel (B2339): refused as a bad
+    // request, and Ida stays "not invited yet".
+    expect((await notify(ida.id, "whatsapp")).status).toBe(400);
     expect((await contact(ida.id)).status).toBe("pending");
     // Email goes, and that is the owner letting her in.
     expect((await notify(ida.id, "email")).status).toBe(200);
