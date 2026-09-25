@@ -317,7 +317,6 @@ describe("no role ink under 7:1 carries small text (B2063)", () => {
     "app/docs/branding/identity/page.tsx": 2,
     "app/docs/branding/page.tsx": 1,
     "components/AddressLookupField.tsx": 1,
-    "components/ContactForm.tsx": 1,
     "components/ContactManage.tsx": 1,
     "components/EditDay.tsx": 1,
     "components/HelperConsentList.tsx": 2,
