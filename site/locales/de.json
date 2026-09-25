@@ -1557,6 +1557,8 @@
   "studio.photos.whoCame.you": "Du",
   "fallback.writtenIn.en": "Auf Englisch geschrieben — dieser Tag hat keine deutsche Fassung.",
   "fallback.writtenIn.hu": "Auf Ungarisch geschrieben — dieser Tag hat keine deutsche Fassung.",
+  "fallback.writtenIn.fr": "Auf Französisch geschrieben — dieser Tag hat keine deutsche Fassung.",
+  "fallback.writtenIn.it": "Auf Italienisch geschrieben — dieser Tag hat keine deutsche Fassung.",
   "gallery.all": "Alle",
   "gallery.description": "Alle Fotos und Videos der Reise, die neuesten zuerst — nach Ort filterbar.",
   "gallery.loadMore": "Mehr laden",

@@ -155,7 +155,7 @@ describe("the extract routes with the capability on", () => {
   });
 
   test("B1803 Task 4.2 — an unsupported language string is dropped, not stored", async () => {
-    const res = await startRunWith({ mode: "voice", language: "fr" });
+    const res = await startRunWith({ mode: "voice", language: "es" });
     const { runId } = (await res.json()) as { runId: string };
     const { readManifest } = await import("@/lib/staging/manifest");
     expect(readManifest("alex", runId)?.language).toBeUndefined();

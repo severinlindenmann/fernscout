@@ -26,7 +26,7 @@ import type { TranslationKey } from "@/lib/i18n";
  */
 
 const ROOT = path.resolve(__dirname, "..");
-const LOCALES = ["en", "de", "hu"] as const;
+const LOCALES = ["en", "de", "hu", "fr", "it"] as const;
 const PLACEHOLDER = /\{[a-zA-Z]+\}/;
 const english = JSON.parse(
   fs.readFileSync(path.join(ROOT, "site/locales/en.json"), "utf8"),

@@ -23,7 +23,7 @@ import type { Locale } from "../types";
  * differently.
  */
 
-/** `26 August` / `26. August` / `augusztus 26.` — the same shapes the site uses. */
+/** `26 August` / `26. August` / `augusztus 26.` / `26 août` — the same shapes the site uses. */
 export function formatDigestDate(locale: Locale, iso: string): string {
   const date = new Date(`${iso}T00:00:00Z`);
   if (Number.isNaN(date.getTime())) return iso;

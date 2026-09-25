@@ -2,7 +2,7 @@ import type { Entry, Locale, Trip } from "./types";
 
 /** The locales we maintain chrome translations for. A journal may offer
  * others; their chrome falls back to English (ROADMAP §1.2). */
-export const MAINTAINED_LOCALES = ["en", "de", "hu"] as const;
+export const MAINTAINED_LOCALES = ["en", "de", "hu", "fr", "it"] as const;
 
 /**
  * A constraint on writing a `{name}` string, not on reading one: Hungarian
@@ -28,6 +28,8 @@ export const LOCALE_LABEL: Record<string, string> = {
   en: "English",
   de: "Deutsch",
   hu: "Magyar",
+  fr: "Français",
+  it: "Italiano",
 };
 
 /** A language named in `locale`'s own words ("Englisch" on a German page),
@@ -46,6 +48,8 @@ export const LOCALE_SHORT: Record<string, string> = {
   en: "EN",
   de: "DE",
   hu: "HU",
+  fr: "FR",
+  it: "IT",
 };
 
 /** What `localizedTripTitle` needs — a full `Trip` satisfies this, but so
@@ -1150,7 +1154,9 @@ export type TranslationKey =
   | "exp.subject"
   | "exp.title"
   | "fallback.writtenIn.de"
+  | "fallback.writtenIn.fr"
   | "fallback.writtenIn.hu"
+  | "fallback.writtenIn.it"
   | "gallery.all"
   | "gallery.description"
   | "gallery.loadMore"
@@ -4791,6 +4797,34 @@ const MONTHS: Record<string, string[]> = {
     "november",
     "december",
   ],
+  fr: [
+    "janvier",
+    "février",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "août",
+    "septembre",
+    "octobre",
+    "novembre",
+    "décembre",
+  ],
+  it: [
+    "gennaio",
+    "febbraio",
+    "marzo",
+    "aprile",
+    "maggio",
+    "giugno",
+    "luglio",
+    "agosto",
+    "settembre",
+    "ottobre",
+    "novembre",
+    "dicembre",
+  ],
 };
 
 const WEEKDAYS: Record<string, string[]> = {
@@ -4813,6 +4847,8 @@ const WEEKDAYS: Record<string, string[]> = {
     "Samstag",
   ],
   hu: ["vasárnap", "hétfő", "kedd", "szerda", "csütörtök", "péntek", "szombat"],
+  fr: ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"],
+  it: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"],
 };
 
 /** Dates stay deterministic — never `toLocaleDateString`, which differs
@@ -4823,6 +4859,16 @@ export function monthNames(locale: string) {
 }
 export function weekdayNames(locale: string) {
   return WEEKDAYS[locale] ?? WEEKDAYS.en;
+}
+
+/** French abbreviates by convention rather than by cutting at three letters —
+ *  "juin" and "juillet" would both read "jui". */
+const SHORT_MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+
+/** A month's short form for a date chip: `Sep`, `Sep` (de), `sept.` (fr). */
+export function shortMonthName(locale: string, index: number): string {
+  if (locale === "fr") return SHORT_MONTHS_FR[index];
+  return monthNames(locale)[index].slice(0, 3);
 }
 
 /**

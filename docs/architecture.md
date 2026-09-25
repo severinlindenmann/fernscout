@@ -110,7 +110,7 @@ with its prose already rendered on the server, in the reader's language
 
 ## Languages
 
-**English, German and Hungarian**, switchable from the header. The choice is
+**English, German, Hungarian, French and Italian**, switchable from the header. The choice is
 remembered in the `fs.locale` **cookie**, so the server renders the right
 language on the first request rather than after hydration. Appending `?lang=de`
 to any URL sets it — that is the shareable form. Entry text is translated when
