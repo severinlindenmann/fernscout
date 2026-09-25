@@ -2554,6 +2554,8 @@ export type TranslationKey =
   | "show.perSlide"
   | "show.play"
   | "show.prev"
+  | "show.settings"
+  | "show.settingsClose"
   | "show.slower"
   | "show.start"
   | "showcase.body"
