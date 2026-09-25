@@ -48,7 +48,12 @@ const GUEST = "oma@example.test";
 const PENDING = "knock@example.test";
 /** Approved once, then revoked. */
 const BLOCKED = "gone@example.test";
-/** On `people:` for one trip, and not a contact at all. */
+/**
+ * On `people:` for one trip, and not a contact at all — since D3 (B2297)
+ * this is a bare byline and grants nothing, so this viewer must read exactly
+ * what `STRANGER` reads. See `describe("somebody let onto one trip by a buddy
+ * link")` below for the real, grant-only door.
+ */
 const ROBIN = "robin@example.test";
 /**
  * Signed in, and nothing else: never a contact, never invited, never on a
@@ -202,15 +207,15 @@ const EXPECTED: Record<string, Record<string, Expectation>> = {
     "proving-2026": { panel: "public", switcher: true, read: true, push: false },
     "proving-guest-2026": { panel: null, switcher: false, read: false, push: false },
   },
-  // On one trip's `people:`, and nothing else. Their own private trip, and
-  // not the journal's other one — and no more than a stranger everywhere else,
-  // because being on a trip is not being a guest of the journal.
+  // On one trip's `people:`, and nothing else — no grant, so since D3
+  // (B2297) this is identical to `stranger` in every column, `robins-2026`
+  // included. A byline is not a door.
   traveller: {
     "open-2026": { panel: "public", switcher: true, read: true, push: true },
     "quiet-2026": { panel: null, switcher: false, read: true, push: true },
     "invited-2026": { panel: null, switcher: false, read: false, push: false },
     "secret-2026": { panel: null, switcher: false, read: false, push: false },
-    "robins-2026": { panel: "traveller", switcher: true, read: true, push: false },
+    "robins-2026": { panel: null, switcher: false, read: false, push: false },
     "proving-2026": { panel: "public", switcher: true, read: true, push: false },
     "proving-guest-2026": { panel: null, switcher: false, read: false, push: false },
   },
@@ -358,6 +363,7 @@ beforeAll(async () => {
   const blockedId = await contactIdFor(BLOCKED);
   await approveContact(OWNER, blockedId);
   await revokeContact(OWNER, blockedId);
+
 
   const { saveSubscription } = await import("@/lib/push");
   // One device per viewer, carrying their contact id where they have one.
@@ -727,6 +733,22 @@ describe("a journal guest is refused a private trip", () => {
  * answers.
  */
 describe("why an approved guest was refused (B300)", () => {
+  // A real, grant-only traveller on `robins-2026` (D3, B2297) — `ROBIN`
+  // herself is only named in its `people:` and, since D3, is not a
+  // traveller at all (see the `traveller` row above), so a fresh address
+  // with an actual place stands in for "the trip's own traveller" below.
+  const ROBINS_BUDDY = "robins-buddy@example.test";
+  beforeAll(async () => {
+    const { approveContact } = await import("@/lib/contacts");
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    await addContact(ROBINS_BUDDY);
+    const id = await contactIdFor(ROBINS_BUDDY);
+    await approveContact(OWNER, id);
+    await claimTripPlace(OWNER, "robins-2026", id, null);
+    await approveTripPlaces(OWNER, id);
+    tokens.robinsBuddy = await signIn(ROBINS_BUDDY);
+  });
+
   test("true for the case it exists for: an approved guest, on a private trip", async () => {
     as("approved");
     const secret = (await tripsByRef()).get("secret-2026")!;
@@ -749,7 +771,7 @@ describe("why an approved guest was refused (B300)", () => {
   });
 
   test("false for the trip's own traveller, even though the trip is private", async () => {
-    as("traveller");
+    as("robinsBuddy");
     const robins = (await tripsByRef()).get("robins-2026")!;
     const { guestBlockedByPrivateTrip, mayReadTrip } = await import("@/lib/tripGate");
     // Sanity: the traveller reads this trip fine, so there is nothing here to

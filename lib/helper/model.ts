@@ -1070,7 +1070,7 @@ Never repeat back a location, an address or a coordinate as fact. You have no ac
 
 Never put words into a day that they did not say. What goes in set_day_words is theirs: what they told you, or what draft_words made of their notes and they read afterwards.
 
-Never say that a person can read something. Naming somebody does not let them in. To let somebody in, call invite_guest — and even sent, a link grants nothing: say "she can ask to be let in", never "she can read it".
+Never say that a person can read something. Naming somebody does not let them in, and nothing you can do here lets them in either — call invite_to_read to hand over Studio › Readers, the one place that does, and say only that: never "she can read it" and never "she can ask to be let in" on your own.
 
 Never say what a day says without calling read_day in this answer, and quote what is there rather than summarising.
 
@@ -1456,11 +1456,11 @@ function claimsAChatScreen(text: string): boolean {
  * read it; a false claim here is not a wasted tap, it is the whole purpose
  * quietly not happening.
  *
- * So a sentence saying **a person** can read something is checked against the
- * one thing that would make it true: an `invite_guest` proposal on this turn.
- * Naming somebody grants nothing — a closed trip is open to the people who
- * were on it and to the guests the owner has approved, and nothing a
- * conversation says changes either.
+ * So a sentence saying **a person** can read something is always suspect —
+ * B2295 (one door for readers, B2291) took away the last tool that could ever
+ * make it true. Naming somebody grants nothing, letting somebody in happens
+ * only from `/<user>/studio/readers`, and nothing a conversation says changes
+ * either.
  *
  * Two exemptions, and both are true readings rather than softenings. A
  * sentence that **denies** ("your daughter cannot read it yet") is the honest
@@ -2263,9 +2263,9 @@ const FIELDS_RETRY = `Stop. You asked them to type values — a date in a format
 
 Call the tool now, with whatever you already know filled in and the rest left empty. Never write a date format to a person: there is a date picker.`;
 
-const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing on this turn makes that true. Naming somebody does not let them in: a trip that is not public is open to the people who were on it and to the guests the owner has already approved, and nobody else. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
+const ACCESS_RETRY = `Stop. Your last answer said a person can read something, and nothing here can ever make that true: letting somebody in happens only from Studio › Readers, in the owner's own browser, never from this conversation. Saying otherwise is the worst thing you can get wrong here — this journal exists so that somebody's family can read it, and they will believe you.
 
-Answer again. If they want that person to read it, call invite_guest: it proposes a link for them to send. Say what the link is — the person opens it, proves their own address, and then asks; they can read nothing until the owner approves them. Otherwise say plainly, in their language, that the person has not been invited yet and cannot read it.`;
+Answer again. If they want that person to read it, call invite_to_read: it hands over Studio › Readers, the one place that adds a reader or a buddy. Say only that — never that the person can read it, and never that a link you name lets them in.`;
 
 /**
  * What the model is told when it promised to add a postcard recipient —
@@ -2274,7 +2274,7 @@ Answer again. If they want that person to read it, call invite_guest: it propose
  */
 const RECIPIENT_RETRY = `Stop. Your last answer said a postcard recipient would be, or has been, added, saved or recorded by name and place. There is no tool here that can do that: postcard_recipients only reads who has already asked, and propose_postcards addresses somebody already on that list, by id. Nothing you write adds anyone, and no address may ever be typed into this conversation.
 
-Answer again. Say plainly that nobody has asked this journal for post yet, and that a reader opts in themselves. If they want that person invited, call invite_guest — it proposes a link for the person to open; say only what that link does (they may then ask to read the journal), never that it makes them a postcard recipient. You may also say they can invite readers themselves, from their own access page. Ask for no name, no town and no country.`;
+Answer again. Say plainly that nobody has asked this journal for post yet, and that a reader opts in themselves. If they want that person invited, call invite_to_read — it hands over Studio › Readers, where adding them is one step; say only that it opens the page, never that it makes them a postcard recipient. Ask for no name, no town and no country.`;
 
 /**
  * What the model is told when it claimed somebody was a postcard recipient
@@ -2877,7 +2877,10 @@ export async function answerInThread(
     // so it is excluded here rather than in `saysTheListAgain` itself, which
     // stays a pure check of the list and the text against each other.
     if (proposals.length === 0 && saysTheListAgain(answer, blocks)) return "list";
-    if (claimsAccess(answer) && !proposals.some((one) => one.tool === "invite_guest")) {
+    // B2295 (one door for readers, B2291) took away the last tool that could
+    // ever make this claim true — no proposal on any turn grants access any
+    // more, so the check is no longer conditioned on one.
+    if (claimsAccess(answer)) {
       return "access";
     }
     // B1280 — a promise no tool in this registry can keep. Checked against

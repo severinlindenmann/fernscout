@@ -20,38 +20,19 @@ vi.mock("next/link", () => ({
 /**
  * B799 — the offer to show a day to somebody, on the day itself.
  *
- * The one property worth a test rather than a look: **this control can only
- * ever make a guest link.** A guest link belongs in a family group chat and a
- * buddy link leads to write access to a trip, which is why the two have
- * separate URLs and separate words on the contacts page. A button on a day
- * page that could hand over the wrong one by mistake would be the worst place
- * in the product for that mistake, so there is deliberately no kind to choose
- * here — the choice stays on the contacts page, where the two sit side by side
- * under the sentences that say what each does.
- *
- * Read from the source rather than rendered: the component fetches on mount to
- * decide whether to show itself at all, which `renderToStaticMarkup` never
- * runs — and what is being asserted is what it *can* ask the server for, which
- * is a fact about the file.
+ * B2295: this used to make a guest link itself; it is now a plain link to
+ * `/<user>/studio/readers`, the one place the owner decided a person is let
+ * in. Read from the source rather than rendered — same reason as before,
+ * kept simple now that there is no fetch to avoid running.
  */
 
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "components/InviteToRead.tsx"), "utf8");
 
 describe("the share control on a day", () => {
-  test("asks for a guest link and has no way to ask for a buddy one", () => {
-    expect(source).toContain('kind: "guest"');
-    expect(source, "no buddy link is reachable from here").not.toMatch(/"buddy"/);
-    expect(source, "and no trip is named, which this route refuses anyway").not.toMatch(
-      /\btrip:/,
-    );
-  });
-
-  test("says what a guest link does in the contacts page's own words", () => {
-    // `me.inviteGuestBody` is "…they see nothing until you say yes" — the
-    // sentence that keeps this honest about granting nothing.
-    expect(source).toContain("me.inviteGuestBody");
-    expect(source).toContain("me.inviteGuestTitle");
+  test("is a plain link to Studio › Readers, not a form of its own", () => {
+    expect(source).toContain("/studio/readers");
+    expect(source, "no invite link is minted here any more").not.toMatch(/fetch\(/);
   });
 
   test("is on the day she just published, and on the trip page", () => {

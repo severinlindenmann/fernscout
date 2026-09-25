@@ -399,6 +399,16 @@ export async function listInvites(owner: string): Promise<Invite[]> {
  * and for one that will not decrypt. The caller renders no copy action rather
  * than an empty one; a link that cannot be shown is not an error, it is the
  * old behaviour.
+ *
+ * **Also null for a legacy `personal` invite (security review, D3/B2295).**
+ * `/{user}/i/<token>` was the personal link's own page; B2295 (one door for
+ * readers, B2291) removed it along with every other agent-reachable way to
+ * create one, so nothing can create a new `personal` row any more — but an
+ * old one, from before that decision, can still be sitting in this table.
+ * `inviteLinkUrl` would still happily build `/{user}/i/<token>` for it, and
+ * that address now 404s: showing it would be handing the owner a link that
+ * was never going to work, the exact thing the null-url rule above already
+ * exists to avoid.
  */
 export async function listInvitesWithLinks(
   owner: string,
@@ -423,7 +433,7 @@ export async function listInvitesWithLinks(
       // hand somebody a URL that refuses them, which reads as the journal
       // being broken rather than the link being dead.
       url:
-        token && !invite.revokedAt && !isExpired(invite.expiresAt)
+        token && !invite.revokedAt && !isExpired(invite.expiresAt) && invite.kind !== "personal"
           ? inviteLinkUrl(base, owner, invite.kind, token)
           : null,
     };

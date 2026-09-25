@@ -23,8 +23,13 @@ import { writeDayFixture, writeTripFixture } from "./fixtures/content";
  *   an approved journal contact — the same three `mayReadTrip` lets in.
  * - `secret-2026`: `private`, nobody on it but the owner. The owner's own
  *   trip that started this ticket.
- * - `buddy-2026`: `private`, with BUDDY on `people:`. Proves a traveller
- *   finds *their* closed trip and no other closed one.
+ * - `buddy-2026`: `private`, with BUDDY on `people:` (byline) and, since D3
+ *   (B2297), a real granted `trip_people` place — the place, not the name,
+ *   is what a traveller's search now finds their closed trip through.
+ *   Granting it also approves BUDDY into the journal (there is no door left
+ *   that grants only one trip), so they find `invited-2026` too, and the
+ *   real negative this trip still proves is `secret-2026`: the *other*
+ *   closed trip, which neither the trip place nor the journal grant opens.
  * - `proving-2026`: `test: true`. Never found by anyone, owner included —
  *   B70, unconditionally.
  */
@@ -149,6 +154,33 @@ async function addApprovedContact(email: string) {
   await approveContact(OWNER, contact.id);
 }
 
+/** Grants a real `trip_people` place — the only thing that puts a closed
+ *  trip's search results on an address since D3 (B2297); a bare `people:`
+ *  entry grants nothing. `approveContact` opens the journal's `guest` trips
+ *  at the same time, since there is no door left that grants only one
+ *  trip — see the test this feeds. */
+async function addTripPlace(email: string, tripId: string) {
+  const { approveContact, confirmContactByOwner, listContacts, requestContact } = await import(
+    "@/lib/contacts"
+  );
+  const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+  await requestContact(OWNER, {
+    name: "Buddy",
+    email,
+    locale: "en",
+    address: null,
+    wantsEmailDigest: false,
+    wantsPostcard: false,
+    createdVia: "owner-grant",
+  });
+  const contact = (await listContacts(OWNER)).find((c) => c.email === email);
+  if (!contact) throw new Error(`no contact for ${email}`);
+  await confirmContactByOwner(OWNER, contact.id);
+  await approveContact(OWNER, contact.id);
+  await claimTripPlace(OWNER, tripId, contact.id, null);
+  await approveTripPlaces(OWNER, contact.id);
+}
+
 const tokens: Record<string, string | null> = { anonymous: null };
 function as(viewer: string) {
   jar.cookies = {};
@@ -168,6 +200,7 @@ beforeAll(async () => {
   for (const spec of TRIPS) writeTrip(dir, spec);
 
   await addApprovedContact(GUEST_EMAIL);
+  await addTripPlace(BUDDY_EMAIL, "buddy-2026");
   tokens.owner = await signIn(OWNER_EMAIL);
   tokens.buddy = await signIn(BUDDY_EMAIL);
   tokens.guest = await signIn(GUEST_EMAIL);
@@ -235,8 +268,12 @@ describe("a person on a trip", () => {
   test("finds their own closed trip and no other closed one", async () => {
     const json = await jsonFor("buddy");
     expect(found(json, BUDDYM)).toBe(true);
+    // The other closed trip, which nothing they hold opens.
     expect(json).not.toContain(SECRET);
-    expect(json).not.toContain(INVITED);
+    // Not a second closed trip — `invited-2026` is `guest`, and being
+    // granted onto `buddy-2026` approved them into the journal too (D3,
+    // B2297: there is no door left that grants only one trip).
+    expect(found(json, INVITED)).toBe(true);
   });
 
   test("does not get the owner's unlisted trip for free", async () => {

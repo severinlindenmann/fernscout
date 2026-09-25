@@ -50,7 +50,7 @@ export function BarChart({ title, bars, empty }: { title: string; bars: Bar[]; e
   const shown = rows.filter((row) => row.rappen > 0);
 
   return (
-    <section className="mt-8">
+    <section>
       <h2 className="font-display text-lg font-semibold text-ink-strong">{title}</h2>
       {shown.length === 0 ? (
         <p className="mt-2 text-sm text-ink-muted">{empty}</p>

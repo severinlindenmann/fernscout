@@ -1,9 +1,11 @@
 import { isEmail } from "@/lib/auth";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isEnabled } from "@/lib/capabilities";
 import { rateLimitFor } from "@/lib/rateLimit";
 import {
   addSelfContact,
   approveContact,
+  contactKey,
   deleteContact,
   getContact,
   listContacts,
@@ -49,7 +51,22 @@ export const dynamic = "force-dynamic";
  * variant and no listing that a reader may see a filtered version of: this
  * endpoint returns names, addresses and home addresses, so the only safe answer
  * to anybody else is nothing at all.
+ *
+ * **Cookie only, since D1/B2295 (security review).** `isOwner` itself still
+ * accepts an agent bearer token — that is correct for the callers D1 leaves
+ * an agent door for — but this page is exactly the door the owner decided an
+ * agent never gets: creating and mailing invites, approving, resending,
+ * updating a contact. `guard` refuses any `Authorization` header outright,
+ * the same way `/api/web/[user]/invites` does, and calls `isOwner(username)`
+ * with no request, so the bearer branch is never even reached.
  */
+const NOT_FOR_AGENTS = {
+  error: "not_for_agents",
+  message:
+    "This is the owner's own door, from a browser. Letting somebody read this journal, or " +
+    "changing a reader's row, happens only from Studio › Readers, in the owner's own browser " +
+    "— there is no agent bearer equivalent.",
+};
 
 /** What the owner sees. The address is included — they are the one person
  * besides its owner entitled to it, and they need it to post anything. */
@@ -121,10 +138,16 @@ function inviteView(invite: Invite & { url?: string | null }) {
 }
 
 async function guard(username: string, request: Request): Promise<Response | null> {
+  if (request.headers.get("authorization")) {
+    return Response.json(NOT_FOR_AGENTS, { status: 403 });
+  }
   if (!getUser(username) || !isEnabled("contacts", username)) {
     return Response.json({ error: "contacts_disabled" }, { status: 404 });
   }
-  if (!(await isOwner(username, request))) {
+  // Cookie only — see the file banner. No `request` passed, so `isOwner`'s
+  // own bearer branch cannot fire even if a caller found a way around the
+  // check above.
+  if (!(await isOwner(username))) {
     return Response.json({ error: "forbidden" }, { status: 403 });
   }
   return null;
@@ -155,7 +178,8 @@ export async function GET(request: Request) {
         contact,
         devices,
         relationshipsFor(
-          contact.email,
+          // The stored key, so a mobile-only buddy is matched too (B2291).
+          contactKey(contact),
           ownEmail,
           tripMemberships,
           contact.status === "active" && liveGrants.has(contact.id),
@@ -167,6 +191,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (foreignOrigin(request)) {
+    return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
+  }
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const username = typeof body.user === "string" ? body.user : "";
   const denied = await guard(username, request);

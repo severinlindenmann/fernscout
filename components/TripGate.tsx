@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import AskToBeLetIn from "@/components/AskToBeLetIn";
 import GuestSignIn from "@/components/GuestSignIn";
 import BackToJournal from "@/components/BackToJournal";
 import { useI18n } from "@/components/LocaleProvider";
@@ -51,21 +50,21 @@ import { useI18n } from "@/components/LocaleProvider";
  * - **signed in, still refused, for any other reason** — anybody who signed in
  *   with the wrong address, or a stranger who is signed in but not a guest of
  *   this journal at all. Showing them the form again would have them sign in
- *   twice and conclude the site is broken. Since B601 this is also the one
- *   state that can *ask*: the sentence told them to go and find the owner, and
- *   there was nothing on the page to press. The state above deliberately still
- *   has nothing — a guest of the journal meeting a `private` trip has already
- *   asked and already been let in, and no further request changes a trip that
- *   is closed to everyone but its travellers.
+ *   twice and conclude the site is broken. B2295 (one door for readers,
+ *   B2291): there used to be a form here too — "ask to be let in", which
+ *   wrote a request of its own. The owner decided
+ *   `/<user>/studio/readers` is the only place a person is let in, so this is
+ *   now a sentence and nothing to press: it names the owner and says where an
+ *   invite comes from.
  * - **sign-in switched off for this journal** — no form to show, so it says
  *   what to do instead rather than offering a door that leads nowhere.
  */
 export default function TripGate({
   username,
   journalTitle,
+  ownerName,
   signedInAs,
   canSignIn,
-  canAsk,
   codeMinutes,
   whatsappSignIn,
   guestBlockedByPrivate,
@@ -73,17 +72,17 @@ export default function TripGate({
 }: {
   username: string;
   journalTitle: string;
+  /**
+   * Who to name in "ask {owner} for an invite" — B2295. The owner's own
+   * nickname, falling back to the journal's title and then the username,
+   * the same fallback `app/[user]/trips/page.tsx` already uses for the same
+   * field.
+   */
+  ownerName: string;
   /** The address on this journal's session cookie, or null for a stranger. */
   signedInAs: string | null;
   /** Whether codes can be issued at all — `features.auth` for this journal. */
   canSignIn: boolean;
-  /**
-   * Whether asking is possible at all — `features.contacts` for this journal,
-   * because the request lands in the contacts queue and there is no queue
-   * without it. A capability that is off must be *absent* rather than broken,
-   * so the button is not rendered rather than rendered and refused.
-   */
-  canAsk: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
   /** See `whatsappSignInOffered` — lib/whatsapp/settings. */
@@ -180,10 +179,12 @@ export default function TripGate({
             {t("gate.refusedSeeAccess")}
           </Link>
           {/* Not for the reader above: `gate.privateBody` says in words that
-              there is nothing to ask for, and a button beside it would be the
-              page contradicting itself. B601. */}
-          {canAsk && !refusedForPrivacy && !stillWaiting ? (
-            <AskToBeLetIn username={username} />
+              there is nothing to ask for, and a sentence beside it would be
+              the page contradicting itself. */}
+          {!refusedForPrivacy && !stillWaiting ? (
+            <p className="mt-6 text-lg leading-8 text-ink-body">
+              {t("gate.askInvite", { owner: ownerName })}
+            </p>
           ) : null}
         </>
       ) : canSignIn ? (

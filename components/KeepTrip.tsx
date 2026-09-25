@@ -1,17 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Download } from "lucide-react";
+import Link from "next/link";
+import { CloudCheck } from "lucide-react";
 import { useI18n } from "./LocaleProvider";
 
 /**
- * "Keep on this phone" — B2159, W43 §1.
+ * "Save offline" — B2159, W43 §1.
  *
  * Asks the worker (`public/sw.js`, `fernscout-keep`) to fetch a whole trip
- * ahead, then shows what came back: progress, then *Kept · N MB · Remove*.
- * Renders nothing unless a worker controls the page, which rules out
- * development builds and browsers without one — there is nothing to keep
- * into.
+ * ahead, and reports what came back: progress, then *Saved offline · N MB*.
+ * Hidden unless a worker controls the page, which rules out development
+ * builds and browsers without one — there is nothing to keep into.
+ *
+ * The switch lives on the reader's own page (`OfflineTrips`, on `/me`) since
+ * it is device housekeeping rather than a way into the reading; the trip's
+ * hero only shows `KeptMark` once a trip is saved. The worker answers
+ * whichever page asked, so keeping from `/me` needs nothing of the trip's.
  *
  * Whether the trip is already kept is read from the worker's own cache, by
  * name: the kept `keep.json` manifest holds the size estimate, so no second
@@ -19,7 +24,7 @@ import { useI18n } from "./LocaleProvider";
  * because the page cannot know the reader's public id; the worker purges
  * every signed-in kept cache on sign-out, so what is found is the reader's.
  */
-type State =
+export type KeepState =
   | { kind: "hidden" }
   | { kind: "idle" }
   | { kind: "keeping"; done: number; total: number }
@@ -27,7 +32,7 @@ type State =
   | { kind: "refused"; bytes: number }
   | { kind: "failed" };
 
-function mb(bytes: number): string {
+export function mb(bytes: number): string {
   return `${Math.max(1, Math.round(bytes / 1e6))} MB`;
 }
 
@@ -46,25 +51,17 @@ async function keptBytes(user: string, trip: string): Promise<number | null> {
   }
 }
 
-export default function KeepTrip({
-  user,
-  trip,
-  className,
-}: {
-  user: string;
-  trip: string;
-  className?: string;
-}) {
-  const { t } = useI18n();
-  const [state, setState] = useState<State>({ kind: "hidden" });
+/** Said on `window` when something other than the worker emptied the kept
+ *  caches (`ThisPhone`'s *Clear cache*), so every switch reads them again. */
+export const KEPT_CHANGED = "fernscout-kept-changed";
+
+/** One trip's offline copy: what the worker has, and the two requests. */
+export function useKeptTrip(user: string, trip: string) {
+  const [state, setState] = useState<KeepState>({ kind: "hidden" });
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
     let cancelled = false;
-    void keptBytes(user, trip).then((bytes) => {
-      if (cancelled) return;
-      setState(bytes === null ? { kind: "idle" } : { kind: "kept", bytes });
-    });
 
     const onMessage = (event: MessageEvent) => {
       const m = event.data;
@@ -75,14 +72,19 @@ export default function KeepTrip({
       else if (m.state === "failed") setState({ kind: "failed" });
       else if (m.state === "gone") setState({ kind: "idle" });
     };
+    const reread = () =>
+      void keptBytes(user, trip).then((bytes) => {
+        if (!cancelled) setState(bytes === null ? { kind: "idle" } : { kind: "kept", bytes });
+      });
+    reread();
     navigator.serviceWorker.addEventListener("message", onMessage);
+    window.addEventListener(KEPT_CHANGED, reread);
     return () => {
       cancelled = true;
       navigator.serviceWorker.removeEventListener("message", onMessage);
+      window.removeEventListener(KEPT_CHANGED, reread);
     };
   }, [user, trip]);
-
-  if (state.kind === "hidden") return null;
 
   const post = (type: "fernscout-keep" | "fernscout-unkeep") =>
     navigator.serviceWorker.controller?.postMessage({ type, user, trip });
@@ -99,41 +101,36 @@ export default function KeepTrip({
     } catch {
       unpersisted = false;
     }
-    if (unpersisted) sessionStorage.setItem("fernscout-keep-unpersisted", "1");
+    try {
+      if (unpersisted) sessionStorage.setItem("fernscout-keep-unpersisted", "1");
+    } catch {
+      // No session storage: the note is simply not shown.
+    }
     post("fernscout-keep");
   };
 
-  if (state.kind === "kept") {
-    const unpersisted = sessionStorage.getItem("fernscout-keep-unpersisted") === "1";
-    return (
-      <span className={`inline-flex min-h-11 flex-wrap items-center gap-x-2 text-sm text-ink-secondary ${className ?? ""}`}>
-        <Check className="h-4 w-4 text-green-700" aria-hidden />
-        {t("keep.kept", { size: mb(state.bytes) })}
-        <button type="button" onClick={() => post("fernscout-unkeep")} className="font-semibold underline decoration-line-quiet underline-offset-4 hover:text-ink-strong">
-          {t("keep.remove")}
-        </button>
-        {unpersisted && <span className="basis-full text-xs">{t("keep.unpersisted")}</span>}
-      </span>
-    );
-  }
+  return { state, keep, remove: () => post("fernscout-unkeep") };
+}
 
-  if (state.kind === "keeping") {
-    return (
-      <span className={`inline-flex min-h-11 items-center gap-1.5 text-sm text-ink-secondary ${className ?? ""}`} aria-live="polite">
-        <Download className="h-4 w-4 animate-pulse" aria-hidden />
-        {state.total ? t("keep.keeping", { done: String(state.done), total: String(state.total) }) : t("keep.starting")}
-      </span>
-    );
-  }
-
+/**
+ * The hero's only trace of it: a small cloud on the date line once this
+ * browser holds the trip, linking to where the switch is. Nothing at all
+ * while it is not kept — an offer to save belongs on `/me`, not on the trip.
+ */
+export function KeptMark({ user, trip }: { user: string; trip: string }) {
+  const { t } = useI18n();
+  const { state } = useKeptTrip(user, trip);
+  if (state.kind !== "kept") return null;
+  const label = t("keep.kept", { size: mb(state.bytes) });
   return (
-    <button type="button" onClick={keep} className={className} title={state.kind === "refused" ? t("keep.refused", { size: mb(state.bytes) }) : undefined}>
-      <Download className="h-4 w-4" aria-hidden />
-      {state.kind === "refused"
-        ? t("keep.refused", { size: mb(state.bytes) })
-        : state.kind === "failed"
-          ? t("keep.failed")
-          : t("keep.action")}
-    </button>
+    <Link
+      href={`/${encodeURIComponent(user)}/me#offline`}
+      prefetch={false}
+      aria-label={label}
+      title={label}
+      className="inline-flex h-6 w-6 items-center justify-center text-green-700"
+    >
+      <CloudCheck className="h-4 w-4" aria-hidden />
+    </Link>
   );
 }

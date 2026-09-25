@@ -79,7 +79,6 @@ function fullTrip(): Record<string, unknown> {
       tagline: "no subtitle written",
       intro: "no opening prose written",
       listed: "not advertised for this fixture",
-      buddies: "travelling solo",
     },
   };
 }

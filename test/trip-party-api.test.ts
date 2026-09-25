@@ -42,20 +42,17 @@ import { writeTripFixture } from "./fixtures/content";
  *    refusal is `forbidden` (403) rather than v1's `out_of_scope`;
  *  - v1's `added`/`removed`/`note` fields (English sentences about what a
  *    change granted) have no v2 equivalent — the response is the echoed
- *    document plus `notifications` (who was mailed), nothing narrated. Those
- *    specific wording assertions are dropped rather than faked;
+ *    document, nothing narrated. Those specific wording assertions are
+ *    dropped rather than faked;
  *  - `people` requires at least one entry (`z.array(person).min(1)`), so
  *    v1's "empty list clears the block" has no v2 equivalent either — an
  *    empty list is refused, which is the opposite property, asserted below;
- *  - growing a trip from solo to several people while it holds a `buddies`
- *    decline used to have NO way back through PATCH: nothing in `tripBase`
- *    ever supplies a real `buddies` field for `retractDeclines` to key on
- *    (trip.ts, `checkRequiredOrDeclined`'s bespoke buddies check), so a solo
- *    trip's declined buddies question could never be un-declined once
- *    people grew past one (B1616). `retractAnsweredDeclines`
- *    (`lib/api/v2/write.ts`) now clears it — see the describe block below.
- *    The trips the rest of this file builds start non-solo, so those tests
- *    do not depend on it either way.
+ *  - B2297 (one door for readers, B2291/B2295) retired the whole `buddies`
+ *    required-or-declined question this file used to carry a describe block
+ *    about, and the mail `notifyNewPeople` used to send when `people` grew:
+ *    `people:` is the byline only now, grants nothing, and mails nobody.
+ *    Write access to a trip comes only from a buddy granted at
+ *    `/<user>/studio/readers` (`trip_people`, not this document at all).
  */
 
 let dir: string;
@@ -87,9 +84,7 @@ async function scopedToken(email: string, tripId: string): Promise<string> {
   return session.token;
 }
 
-/** A v2 trip document with every declinable answered, two people already on
- * it (so the buddies question is answered without ever being declined —
- * see the file banner on why that matters for these tests). */
+/** A v2 trip document with every declinable answered, two people on it. */
 function fullTrip(id: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id,
@@ -192,7 +187,7 @@ afterEach(async () => {
 });
 
 describe("PATCH /api/v2/{user}/trips/{trip} — the people section", () => {
-  test("adds somebody, and the person is mailed", async () => {
+  test("adds somebody to the byline, and mails nobody", async () => {
     const token = await ownerToken();
     await putV2Trip("reise-v2", fullTrip("reise-v2"), token);
 
@@ -207,8 +202,9 @@ describe("PATCH /api/v2/{user}/trips/{trip} — the people section", () => {
       "bo@example.test",
       "cami@example.test",
     ]);
-    const notified = ((body.notifications as { email: string }[]) ?? []).map((n) => n.email);
-    expect(notified).toContain("cami@example.test");
+    // B2297 — people: is the byline only; nothing about writing it mails
+    // anybody, and the echo carries no `notifications` field any more.
+    expect(body.notifications).toBeUndefined();
   });
 
   test("replaces rather than merges — dropping somebody drops them from the document", async () => {
@@ -292,56 +288,29 @@ describe("PATCH /api/v2/{user}/trips/{trip} — the people section", () => {
   });
 
   /**
-   * B1616 — a solo trip that declined buddies at create used to be stuck
-   * that way forever: T6's plain name-match retraction never fires for
-   * `buddies` because there is no `buddies` field to resupply, so the
-   * stored decline outlived any later `people` growth and `tripCreate`'s
-   * own superRefine then refused the merged document as claiming buddies
-   * both ways. `retractAnsweredDeclines` (`lib/api/v2/write.ts`) is the
-   * fix — it reads `people.length` instead of looking for a field named
-   * `buddies`.
+   * B2297 removed the `buddies` required-or-declined question this used to
+   * exercise: a solo trip no longer needs to decline anything about who
+   * else was there, because `people:` is a byline and grants nothing either
+   * way. A trip of one creates cleanly, with no `declined.buddies` to send
+   * or retract.
    */
-  test("a solo trip's declined buddies is retracted once a second person is added", async () => {
+  test("a solo trip creates cleanly, with no buddies question to answer", async () => {
     const token = await ownerToken();
-    await putV2Trip(
+    const { status, body } = await putV2Trip(
       "reise-solo",
-      fullTrip("reise-solo", {
-        people: [{ name: "Alex", email: OWNER_EMAIL }],
-        declined: {
-          rates: "no foreign currency tracked on this trip at all",
-          costs: "no budget tracked for this trip currently",
-          plan: "no planned route recorded for this trip",
-          days: "no days written for this trip at create time",
-          translations: "single-language journal, nothing to translate",
-          accent: "default accent left as the renderer's choice",
-          figures: "no walking figures drawn for this trip",
-          tagline: "no one-line subtitle written for this trip",
-          intro: "no opening prose written for this trip yet",
-          buddies: "travelling solo, nobody else was on this trip",
-        },
-      }),
+      fullTrip("reise-solo", { people: [{ name: "Alex", email: OWNER_EMAIL }] }),
       token,
     );
-
-    const { status, body } = await patchV2Trip(
-      "reise-solo",
-      { people: [{ name: "Alex", email: OWNER_EMAIL }, { name: "Bo Lind", email: "bo@example.test" }] },
-      token,
-    );
-    expect(status, JSON.stringify(body)).toBe(200);
+    expect(status, JSON.stringify(body)).toBe(201);
     expect((body.declined as Record<string, string> | undefined)?.buddies).toBeUndefined();
 
     const { body: onDisk } = await getV2Trip("reise-solo", token);
-    expect((onDisk.declined as Record<string, string> | undefined)?.buddies).toBeUndefined();
-    expect((onDisk.people as { email: string }[]).map((p) => p.email)).toEqual([
-      OWNER_EMAIL,
-      "bo@example.test",
-    ]);
+    expect((onDisk.people as { email: string }[]).map((p) => p.email)).toEqual([OWNER_EMAIL]);
   });
 
-  test("a multi-person trip patched to also declare declined.buddies is still refused", async () => {
+  test("declined.buddies is refused outright — it is not a field any more", async () => {
     const token = await ownerToken();
-    await putV2Trip("reise-v2", fullTrip("reise-v2"), token); // already two people, no decline
+    await putV2Trip("reise-v2", fullTrip("reise-v2"), token);
 
     const { status, body } = await patchV2Trip(
       "reise-v2",
@@ -350,8 +319,5 @@ describe("PATCH /api/v2/{user}/trips/{trip} — the people section", () => {
     );
     expect(status).toBe(400);
     expect(body.error).toBe("invalid_request");
-
-    const { body: onDisk } = await getV2Trip("reise-v2", token);
-    expect((onDisk.declined as Record<string, string> | undefined)?.buddies).toBeUndefined();
   });
 });
