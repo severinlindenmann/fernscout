@@ -178,6 +178,14 @@ type ContactsTable = {
    * failure leaves it null and a later re-confirmation retries it rather than
    * the notice being lost for good. See `012-contact-notified`. */
   notified_at: string | null;
+  /** B2294. The mobile number as typed, AES-256-GCM (`phoneAad`), or null.
+   * See `038-contact-phone`. */
+  phone_cipher: string | null;
+  /** HMAC of the number's E.164 digits (`phoneKey`), for lookup — unique per
+   * journal. Null when there is no number or it cannot be read as E.164. */
+  phone_key: string | null;
+  /** When an SMS code proved the number. Null until then. */
+  phone_proven_at: string | null;
 };
 
 /**

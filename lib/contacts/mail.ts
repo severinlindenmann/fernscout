@@ -53,6 +53,9 @@ export function mayMailContact(
   contact: Pick<ContactRecord, "email" | "confirmedAt">,
   options: { allowUnconfirmed?: boolean } = {},
 ): boolean {
+  // A contact with a mobile number and no address (B2294) stores `""`: there
+  // is nowhere to mail, whatever the reason for the letter.
+  if (!contact.email.includes("@")) return false;
   if (options.allowUnconfirmed) return true;
   if (contact.confirmedAt) return true;
   console.warn(
@@ -276,7 +279,7 @@ export async function sendImportedMail(
 ): Promise<SendResult | null> {
   // The third named exception (B334): this is the question an imported,
   // unproven address is asked before anything else is sent to it.
-  mayMailContact({ email: contact.email, confirmedAt: null }, { allowUnconfirmed: true });
+  if (!mayMailContact({ email: contact.email, confirmedAt: null }, { allowUnconfirmed: true })) return null;
   const locale = contact.locale;
   const vars = { title: user.title, nickname: user.owner.nickname };
   try {

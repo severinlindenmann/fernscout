@@ -143,6 +143,7 @@ export function trackedBuckets(): number {
  * | `deletion-request` | owner's address | `requestDeletion` — journal DELETE, trip DELETE, `/[user]/me/delete` |
  * | `deletion-confirm` | requester's IP | opening the confirmation link itself |
  * | `owner-tel-verify-number` / `-owner` / `phone-verify-instance` | phone / owner / instance | phone verification codes |
+ * | `sms-code-number` / `sms-code-ip` / `sms-code-instance` | number / requester's IP / instance | `smsCodeAllowed` — a guest's SMS sign-in code (B2294) |
  * | `journals-create*` | requester's IP | the welcome mail a new journal gets |
  * | `storage-<level>` | username | a storage-ceiling warning |
  * | `trip-people-notify` | outgoing address | `notifyNewPeople` — mailing someone newly added to `people:` |
@@ -267,4 +268,23 @@ export function emailCodeAllowed(email: string): boolean {
   if (!perAddress.ok) return false;
   const perInstance = rateLimitFor("email-code-instance", "*", { max: 500, windowMs: day });
   return perInstance.ok;
+}
+
+/**
+ * A guest's SMS sign-in code — B2294. Three at a time per number an hour,
+ * per requester's IP and per instance a day: a text costs the instance real
+ * money (the owner is never charged for a code, B2291 D4), and a number is
+ * somebody's pocket, so the per-number bucket is the narrowest of all the
+ * code buckets. Quietly `false`, like `emailCodeAllowed`.
+ */
+export const SMS_CODE_LIMITS = {
+  number: { max: 3, windowMs: 60 * 60 * 1000 },
+  ip: { max: 10, windowMs: 60 * 60 * 1000 },
+  instance: { max: 200, windowMs: 24 * 60 * 60 * 1000 },
+};
+
+export function smsCodeAllowed(digits: string, ip: string): boolean {
+  if (!rateLimitFor("sms-code-number", digits, SMS_CODE_LIMITS.number).ok) return false;
+  if (!rateLimitFor("sms-code-ip", ip, SMS_CODE_LIMITS.ip).ok) return false;
+  return rateLimitFor("sms-code-instance", "*", SMS_CODE_LIMITS.instance).ok;
 }

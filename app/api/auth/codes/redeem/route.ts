@@ -1,14 +1,14 @@
-import { cookies } from "next/headers";
 import {
-  GUEST_COOKIE,
   NO_JOURNAL,
-  SESSION_TTL_MS,
   isEmail,
   pendingCodeTrip,
   tripWriteScope,
   verifyCode,
 } from "@/lib/auth";
-import { issueIdentityCookie, setIdentityCookie } from "@/lib/auth/identityCookie";
+import { setGuestSessionCookies, setIdentityCookie } from "@/lib/auth/identityCookie";
+import { markContactPhoneProven } from "@/lib/contacts";
+import { whatsappCountryCode } from "@/lib/contactNumber";
+import { phoneSubject, subjectPhone, toE164 } from "@/lib/phone";
 import { isEnabled } from "@/lib/capabilities";
 import { signupAllowed } from "@/lib/inviteList";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
@@ -54,8 +54,23 @@ export async function POST(request: Request) {
   if (req.scope && req.for !== "write") {
     return fail("invalid_request", 'scope is only meaningful when "for" is "write".');
   }
-  if (!isEmail(req.email) || !req.code) {
-    return fail("invalid_request", ERROR_CODES.invalid_request);
+  /**
+   * B2294: a guest's mobile number, for `for: "read"` only. It becomes the
+   * code's subject, `+<digits>` (`phoneSubject`) — the same string the code
+   * was issued under — and from here on is spent exactly like an address.
+   */
+  let email: string;
+  if (req.phone !== undefined) {
+    const digits = toE164(req.phone, whatsappCountryCode());
+    if (req.email !== undefined || req.for !== "read" || !digits || !req.code) {
+      return fail("invalid_request", ERROR_CODES.invalid_request);
+    }
+    email = phoneSubject(digits);
+  } else {
+    if (req.email === undefined || !isEmail(req.email) || !req.code) {
+      return fail("invalid_request", ERROR_CODES.invalid_request);
+    }
+    email = req.email;
   }
 
   if (req.for === "signup") {
@@ -63,7 +78,7 @@ export async function POST(request: Request) {
     // B1693. Checked again rather than trusted from the request step: an
     // address taken off the list after its code was issued must not be able
     // to spend it.
-    if (!(await signupAllowed(req.email))) {
+    if (!(await signupAllowed(email))) {
       return fail("signup_not_invited", ERROR_CODES.signup_not_invited, undefined, 403);
     }
   } else if (!isEnabled("auth")) {
@@ -92,7 +107,7 @@ export async function POST(request: Request) {
 
   let scope: string | undefined;
   if (req.for === "write") {
-    const decided = await agentScope(owner, req.email, req.scope?.trip?.trim() ?? "");
+    const decided = await agentScope(owner, email, req.scope?.trip?.trim() ?? "");
     if (!decided.ok) {
       // The same answer as a wrong code — see agentScope's own comment.
       console.warn(`[auth] write token refused for ${owner}: ${decided.why}`);
@@ -102,7 +117,7 @@ export async function POST(request: Request) {
   }
 
   const userAgent = req.for === "identity" ? request.headers.get("user-agent") : undefined;
-  const result = await verifyCode(owner, req.email, req.code, kind, scope, userAgent);
+  const result = await verifyCode(owner, email, req.code, kind, scope, userAgent);
   if (!result.ok) {
     // One answer for every failure — wrong, expired, burned, wrong `for`, or a
     // `scope.trip` that does not match the bound code.
@@ -110,21 +125,11 @@ export async function POST(request: Request) {
   }
 
   if (req.for === "read") {
-    const jar = await cookies();
-    jar.set(GUEST_COOKIE, result.token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: Math.floor(SESSION_TTL_MS.guest / 1000),
-    });
-    // And an identity, because this code proved the address — B410. Guarded:
-    // a database hiccup here must not turn a successful sign-in into a 500.
-    try {
-      await issueIdentityCookie(req.email, request.headers.get("user-agent"));
-    } catch (err) {
-      console.warn("[auth] signed in, but no identity could be issued:", err);
-    }
+    // The journal session, and an identity because this code proved the
+    // address or number — B410. A proved number is stamped on its contact.
+    const digits = subjectPhone(email);
+    if (digits) await markContactPhoneProven(owner, digits);
+    await setGuestSessionCookies(result.token, email, request.headers.get("user-agent"));
     return ok({ ok: true, expires: result.expiresAt, scope: "read" as const });
   }
 
@@ -144,7 +149,7 @@ export async function POST(request: Request) {
    * exists to prevent.
    */
   if (req.for === "signup") {
-    const owned = journalsOwnedBy(req.email);
+    const owned = journalsOwnedBy(email);
     if (owned.length >= MAX_JOURNALS_PER_EMAIL) {
       return fail(
         "too_many_journals",
@@ -156,7 +161,7 @@ export async function POST(request: Request) {
         {
           next:
             `To write to one of them instead, POST /api/auth/codes with ` +
-            `{"user": "${owned[0]}", "email": "${req.email}", "for": "write"}, then redeem the ` +
+            `{"user": "${owned[0]}", "email": "${email}", "for": "write"}, then redeem the ` +
             `code at /api/auth/codes/redeem.`,
         },
         409,

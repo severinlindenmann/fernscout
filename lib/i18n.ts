@@ -882,6 +882,7 @@ export type TranslationKey =
   | "contact.relationOwner"
   | "contact.save"
   | "contact.saved"
+  | "contact.smsCodeBody"
   | "contact.startReading"
   | "contact.statusActive"
   | "contact.statusBlocked"

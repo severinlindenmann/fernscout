@@ -4,6 +4,7 @@ import { getDatabaseOrNull, newId, nowIso } from "./db";
 import { grantIsLive } from "./grants";
 import type { Trip } from "./types";
 import { getUser } from "./users";
+import { subjectLookup } from "./contacts/crypto";
 
 /**
  * Who may write to a trip.
@@ -78,7 +79,9 @@ export async function isPersonOn(trip: Trip, email: string | undefined | null): 
   // their own journal is the commonest caller by a wide margin, and they are
   // always the first entry in the list above.
   if (peopleNamedIn(trip).includes(address)) return true;
-  return (await redeemedPeopleOf(trip.username, trip.id)).includes(address);
+  // By the subject rather than by the list of addresses, so a buddy who
+  // proved a mobile number instead (B2294) is on the trip the same way.
+  return (await redeemedTripsFor(trip.username, address)).has(trip.id);
 }
 
 /**
@@ -189,13 +192,16 @@ export async function redeemedTripsFor(
   if (!email) return new Set();
   const handle = await getDatabaseOrNull();
   if (!handle) return new Set();
+  // An address or a proved mobile number (B2294) — `subjectLookup` decides.
+  const lookup = subjectLookup(email);
+  if (!lookup) return new Set();
   const now = new Date();
   const rows = await handle.db
     .selectFrom("trip_people")
     .innerJoin("contacts", "contacts.id", "trip_people.contact_id")
     .select(["trip_people.trip_id as trip_id", "trip_people.expires_at as expires_at"])
     .where("trip_people.owner_id", "=", username)
-    .where("contacts.email_key", "=", email.trim().toLowerCase())
+    .where(`contacts.${lookup[0]}`, "=", lookup[1])
     .where("trip_people.granted_at", "is not", null)
     .where("trip_people.revoked_at", "is", null)
     .where("contacts.status", "=", "active")

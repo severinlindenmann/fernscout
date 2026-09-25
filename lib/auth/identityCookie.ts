@@ -1,6 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { IDENTITY_COOKIE, SESSION_TTL_MS, openIdentitySession } from "./index";
+import { GUEST_COOKIE, IDENTITY_COOKIE, SESSION_TTL_MS, openIdentitySession } from "./index";
 
 /**
  * Setting and clearing the identity cookie, in one place — B410.
@@ -58,4 +58,33 @@ export async function setIdentityCookie(token: string): Promise<void> {
     path: "/",
     maxAge: Math.floor(SESSION_TTL_MS.identity / 1000),
   });
+}
+
+/**
+ * A redeemed guest code, put into the browser: the journal's `fs_session`,
+ * and an identity for the address or number it proved — B410, and since
+ * B2294 the one place both are set, for `/api/auth/codes/redeem` and for the
+ * welcome and invite pages that prove a guest by email or by SMS.
+ *
+ * The identity is guarded: a database hiccup there must not turn a
+ * successful sign-in into a 500.
+ */
+export async function setGuestSessionCookies(
+  token: string,
+  subject: string,
+  userAgent?: string | null,
+): Promise<void> {
+  const jar = await cookies();
+  jar.set(GUEST_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: Math.floor(SESSION_TTL_MS.guest / 1000),
+  });
+  try {
+    await issueIdentityCookie(subject, userAgent);
+  } catch (err) {
+    console.warn("[auth] signed in, but no identity could be issued:", err);
+  }
 }
