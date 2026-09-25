@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import { useOnline } from "@/components/studio/useOnline";
 import { formatCredits } from "@/lib/creditsFormat";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
@@ -151,6 +152,7 @@ export default function FigureCreator({
     flowId: "figure",
     param: "figure",
   });
+  const online = useOnline();
   const [startMode, setStartMode] = useState<StartMode>("look");
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [openAxis, setOpenAxis] = useState<ColourAxis | null>(null);
@@ -513,10 +515,14 @@ export default function FigureCreator({
                 <StepPrimary
                   busy={photoBusy}
                   busyLabel={t("studio.figures.photo.busy")}
-                  disabled={!photoFile}
+                  disabled={!photoFile || !online}
                   onClick={() => void proposeFromPhoto()}
                   label={t("studio.figures.photo.propose", { credits: formatCredits(photoCredits) })}
                 />
+                {/* B2330 — needs a live model call; greyed (via `disabled`
+                    above) with one line why, rather than a tap that only
+                    fails once it reaches the network. */}
+                {!online && <p className="mt-2 text-sm text-ink-secondary">{t("studio.figures.photo.offline")}</p>}
               </div>
               {photoNote && <p className="mt-2 text-sm text-ink-secondary">{photoNote}</p>}
               <SubmitError message={photoError} />
