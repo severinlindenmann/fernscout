@@ -28,6 +28,7 @@
     "reminders:send": "tsx --conditions=react-server scripts/reminders.mts",
     "gap-nudges:send": "tsx --conditions=react-server scripts/paid.mts whatsapp/scripts/gap-nudges.mts",
     "extract:remind": "tsx --conditions=react-server scripts/extract-remind.mts",
+    "migrate:trip-people": "tsx --conditions=react-server scripts/migrate-trip-people.mts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:future-clock": "FERNSCOUT_TEST_CLOCK_OFFSET_DAYS=365 vitest run",

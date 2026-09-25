@@ -227,11 +227,12 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   // validates its shape.
   const figuresMode = (body as Record<string, unknown>).figuresMode ?? { mode: "journal" };
 
+  // `company` only ever builds the byline now (B2297: `people:` grants
+  // nothing and mails nobody) — "solo" and "later" both mean nothing beyond
+  // the owner to name yet, so neither needs a decline of its own any more.
   let namedPeople: { name: string; email: string }[] | undefined;
   const company = (body as Record<string, unknown>).company;
-  if (company === "solo") {
-    declined.buddies = "travelling solo";
-  } else if (company === "named") {
+  if (company === "named") {
     const raw = (body as Record<string, unknown>).namedPeople;
     if (!Array.isArray(raw) || raw.length === 0) {
       refused(user, "create_trip", "invalid_named_people");
@@ -248,10 +249,6 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
       cleaned.push({ name, email });
     }
     namedPeople = cleaned;
-  } else {
-    // "later" — the step's own default — and an absent answer read the same
-    // way, for the reason the doc comment above gives.
-    declined.buddies = NEUTRAL_DEFERRAL;
   }
 
   // Absent means no card (B2185, owner decision D2) — a closed trip a
@@ -274,8 +271,8 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   }
 
   // The owner is always on their own trip — `peopleBlock` writes exactly
-  // what it is given with nothing added, so naming buddies here means
-  // building the whole list rather than trusting `createTrip`'s own
+  // what it is given with nothing added, so naming anyone else here means
+  // building the whole byline rather than trusting `createTrip`'s own
   // owner-fallback (which only fires when the list is empty).
   const people =
     namedPeople && journal?.owner.email

@@ -59,24 +59,28 @@ type InviteBody = {
   message?: string;
 };
 
-/** `PUT /api/v2/ana/invites/{id}`, as an agent holding the owner's own token
- * would call it — reshaped into the pre-v2 `{invite: {id, url}, sent}` shape
- * this file's assertions were written against, since v2's own response is
- * the flat document plus `url` and (only on a failed send) `note` rather
- * than a nested `invite` and an explicit `sent` boolean. */
+/** `invitePutResponse` directly, the way `/api/web/[user]/invites` (Studio ›
+ * Readers' own door) makes a link now — B2295 (one door for readers, B2291)
+ * removed the agent bearer route this used to go through — reshaped into
+ * the pre-v2 `{invite: {id, url}, sent}` shape this file's assertions were
+ * written against, since v2's own response is the flat document plus `url`
+ * and (only on a failed send) `note` rather than a nested `invite` and an
+ * explicit `sent` boolean. `_token` is unused and kept only so call sites
+ * did not all need editing too. */
 async function createLink(
-  token: string,
+  _token: string,
   body: Record<string, unknown>,
 ): Promise<{ status: number; body: InviteBody }> {
-  const { PUT } = await import("@/app/api/v2/[user]/invites/[id]/route");
+  const { invitePutResponse } = await import("@/lib/contacts/invitesResponse");
   const id = crypto.randomUUID();
-  const response = await PUT(
-    new Request(`https://example.test/api/v2/ana/invites/${id}`, {
+  const response = await invitePutResponse(
+    OWNER,
+    id,
+    new Request(`https://example.test/api/web/ana/invites`, {
       method: "PUT",
-      headers: headers({ authorization: `Bearer ${token}` }),
+      headers: headers(),
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ user: OWNER, id }) },
   );
   const status = response.status;
   const raw = (await response.json()) as {

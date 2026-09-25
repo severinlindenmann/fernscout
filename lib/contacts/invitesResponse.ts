@@ -1,15 +1,18 @@
-// GET/PUT/DELETE /api/v2/{user}/invites/{id} — B1623, phase 2 step 4.
+// The invite-link door's own logic, called only from
+// `app/api/web/[user]/invites*` (a cookie, from the owner's own browser) —
+// B2295 (one door for readers, B2291).
 //
-// PUT is the create door (S2/V10) — client-chosen id, matching the pattern
-// `.../figures/{id}` already established. An invite has no update once
-// created — only "exists" or "revoked" — so a PUT to an id already taken is
-// always a refusal, never an edit: `revokeInvite` and a fresh id are how an
-// owner changes their mind.
-import { inviteWrite } from "@/lib/api/v2/schemas";
-import { requireJournalOwner } from "@/lib/api/v2/auth";
-import { etagFor, fail, ok, readDryRun, readJson } from "@/lib/api/v2/route";
+// This used to also back `GET/PUT/DELETE /api/v2/{user}/invites*`, the agent
+// bearer door — removed per the owner's decision (B2291 "Design", D1): an
+// agent proposes, reads and writes a journal's content, but letting somebody
+// in happens only from `/<user>/studio/readers`, in the owner's own browser.
+// The functions stayed here (not folded back into the route files) because
+// there are two web routes that both need exactly this logic and neither may
+// import the other's glue.
+import { fail, ok, paginate, readDryRun, readJson } from "@/lib/api/v2/route";
 import { problemsFrom } from "@/lib/api/v2/incomplete";
-import { contactsReady, inviteToDoc } from "@/lib/api/v2/social";
+import { inviteToDoc } from "@/lib/api/v2/social";
+import { inviteWrite } from "@/lib/api/v2/schemas";
 import {
   createInvite,
   inviteExpiry,
@@ -24,36 +27,25 @@ import { serverSite } from "@/lib/site";
 import { getTrip, tripRef } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 
-export const dynamic = "force-dynamic";
+const DEFAULT_LIMIT = 50;
+const MAX_LIMIT = 200;
 
-async function guard(request: Request, user: string) {
-  const auth = await requireJournalOwner(request, user);
-  if (!auth.ok) return auth;
-  const ready = await contactsReady(user);
-  if (!ready.ok) return ready;
-  return auth;
-}
+export async function invitesListResponse(user: string, request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  let limit = DEFAULT_LIMIT;
+  const limitParam = url.searchParams.get("limit");
+  if (limitParam !== null) {
+    const n = Number(limitParam);
+    if (!Number.isInteger(n) || n < 1 || n > MAX_LIMIT) {
+      return fail("invalid_request", `limit must be a whole number from 1 to ${MAX_LIMIT}.`);
+    }
+    limit = n;
+  }
+  const cursor = url.searchParams.get("cursor") ?? undefined;
 
-/**
- * The three verbs' own logic, apart from who is asking — B1595. Each is
- * called here after `requireJournalOwner` + `contactsReady` (bearer), and by
- * `app/api/web/[user]/invites/[id]/route.ts` after its own cookie-only
- * `isOwner` check plus the same `contactsReady` — a v2 route file cannot
- * import a sibling's glue and there is none to duplicate here besides this
- * split.
- */
-export async function inviteGetResponse(user: string, id: string): Promise<Response> {
-  const invite = (await listInvites(user)).find((row) => row.id === id);
-  if (!invite) return fail("not_found", `No invite "${id}" on this journal.`, undefined, 404);
-  const doc = inviteToDoc(invite);
-  return ok(doc, { etag: etagFor(doc) });
-}
-
-export async function GET(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
-  const { user, id } = await params;
-  const guarded = await guard(request, user);
-  if (!guarded.ok) return guarded.response;
-  return inviteGetResponse(user, id);
+  const all = (await listInvites(user)).map(inviteToDoc);
+  const { items, nextCursor } = paginate(all, { limit, cursor }, (d) => d.id);
+  return ok({ invites: items, next_cursor: nextCursor });
 }
 
 export async function invitePutResponse(user: string, id: string, request: Request): Promise<Response> {
@@ -136,13 +128,6 @@ export async function invitePutResponse(user: string, id: string, request: Reque
   );
 }
 
-export async function PUT(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
-  const { user, id } = await params;
-  const guarded = await guard(request, user);
-  if (!guarded.ok) return guarded.response;
-  return invitePutResponse(user, id, request);
-}
-
 export async function inviteDeleteResponse(user: string, id: string, request: Request): Promise<Response> {
   const invite = (await listInvites(user)).find((row) => row.id === id);
   if (!invite) return fail("not_found", `No invite "${id}" on this journal.`, undefined, 404);
@@ -158,11 +143,4 @@ export async function inviteDeleteResponse(user: string, id: string, request: Re
     note: "The link stops working. Everybody already approved stays in — revoking an invite " +
       "removes nothing anybody already has.",
   });
-}
-
-export async function DELETE(request: Request, { params }: RouteContext<"/api/v2/[user]/invites/[id]">) {
-  const { user, id } = await params;
-  const guarded = await guard(request, user);
-  if (!guarded.ok) return guarded.response;
-  return inviteDeleteResponse(user, id, request);
 }
