@@ -1,96 +1,50 @@
 # Documentation
 
-Prose about the software — how it is built, how to run it, how to deploy it.
-`AGENTS.md` at the repository root and the skills in `.claude/skills/` are the
-maintained guidance for an agent; this folder is the long form for a person.
+Prose about the software: how it is built, how to run it, how to deploy it.
+`AGENTS.md` at the repository root is the short contract for an agent working
+in a checkout; this folder is the long form for a person.
 
 | | |
 | --- | --- |
 | [running-locally.md](running-locally.md) | production build on your machine; the agent API end to end |
 | [runbook.md](runbook.md) | deploying to a VPS, backups, the nightly timer |
+| [capabilities.md](capabilities.md) | every optional capability, what it needs, and what switching it off means |
 | [disaster-recovery.md](disaster-recovery.md) | the machine is gone: what a snapshot holds, and how the journals come back |
 | [architecture.md](architecture.md) | where things live, and why they are shaped that way |
 | [ingest.md](ingest.md) | photographs, EXIF, geodata |
 | [gps.md](gps.md) | where somebody actually went: a private position store, and the line a trip owns |
 | [statements.md](statements.md) | what a trip cost: reading a bank statement, and why it takes two calls |
-| [helper.md](helper.md) | Fernscout Helper — agent tools that make content for a journal |
+| [helper.md](helper.md) | Fernscout Helper, agent tools that make content for a journal |
 | [currencies.md](currencies.md) | how money is stored, converted and refused |
 | [config-upgrades.md](config-upgrades.md) | moving a config file forward a version |
 | [deploy-mail.md](deploy-mail.md) | mail, and the file transport that needs no SMTP |
-| [TESTING.md](TESTING.md) · [qa/](qa/) | the manual walkthrough, and the scenario catalogue |
-| [ROADMAP.md](ROADMAP.md) | the decision log |
+| [TESTING.md](TESTING.md) | the manual walkthrough |
+| [ROADMAP.md](ROADMAP.md) | the decision log, cited by number from the code |
+| [testing/](testing/) | the coverage matrix: which flows exercise which capability |
 | [branding/](branding/) | the mark, the palette, and what not to do to them |
-| [guides/](guides/) | the three reader-facing guides (guest, buddy, creator), served live at `/docs/guide/<id>` in every maintained locale (B445) |
-| [screenshots/](screenshots/) | how the pictures in the root `README.md` were made, and the byte ceiling they are kept under |
-| [tasks/](tasks/) | everything to build and everything found broken |
-| [plans/](plans/) | the record of intent, written before the work |
-| [superpowers/](superpowers/) | the same kind of record, from before this repo folded dated plans into `plans/` directly — kept, never corrected, same as `plans/` |
+| [guides/](guides/) | the reader-facing guides (guest, buddy, creator), served live at `/docs/guide/<id>` in every maintained locale |
+| [screenshots/](screenshots/) | how the pictures in the root `README.md` were made, and the size ceiling they are kept under |
 
 ## How much to trust this
 
-**Most of this folder was written by an agent during the build and has not been
-read line by line by a person.** On 2026-09-01 that was the reason the whole
-folder was moved to `docs/archiv/`; on 2026-09-04 it was moved back, because a
-directory called *archive* answers the wrong question. "Nobody has reviewed
-this" is a fact about provenance. *Archive* is read as a fact about currency —
-historical, superseded, safe to ignore — and none of these files are that. The
-disaster-recovery.md holds the live restore procedure; `config-upgrades.md` is the only
-place `configVersion` is explained. Thirty-odd citations in `lib/`, `scripts/`,
-`test/` and `.claude/skills/` never stopped pointing here, and the handful that
-were repointed into `archiv/` ended up telling an operator that the backup
-procedure was archived. See B23.
+**Much of this folder was written with an agent during the build, and not
+every line has been read by a person.** Treat it as useful, not as authority.
+It may describe intentions that were never built, decisions that were later
+reversed, or commands that have since changed shape. If you rely on something
+here, check it against the code first, and fix the document while you are
+there. The code is the authority.
 
-So the warning stays, without the misleading container:
+The **paths** these documents mention are checked: `test/docs-links.test.ts`
+fails the build when a cited file does not exist. The **claims** are not
+checked the same way. `architecture.md` is the strongest of them; its account
+of the module layout, `proxy.ts`, the built-in world map and the paged reading
+model has been spot-checked against the code.
 
-**Treat it as useful, not as authority.** It may describe intentions that were
-never built, decisions that were later reversed, or commands that have since
-changed shape. If you rely on something here, verify it against the code first,
-and fix the document while you are there. The code is the authority.
+`ROADMAP.md` is half history: the decision log at the top is durable and cited
+by number from the code ("ROADMAP decision 24"); the backlog below it is out of
+date. `TESTING.md` is accurate as far as anyone has walked it, which is not
+recently.
 
-### What was actually checked
-
-On 2026-09-01, every `lib/ app/ scripts/ deploy/ content/ test/` path these
-documents mention was resolved against the repository — about 117 references.
-All of them resolve. The handful that looked stale were false positives:
-`/var/lib/fernscout` matched as `lib/fernscout`, and `content/dev.db` and
-`content/example/mail/` are gitignored files that exist only once you have run
-the thing.
-
-So the **paths** are accurate. Nobody has checked every **claim** — whether the
-explanations are still true, whether the trade-offs described are the ones that
-shipped. `architecture.md` is the strongest of them: 40 path references, all
-resolving, and its account of the module layout, `proxy.ts`, the baked world
-map and the paged reading model was spot-checked against the code and held.
-
-Two files are known to be half stale, and are kept for the half that is not:
-
-- **`ROADMAP.md`** — the decision log at the top is durable and is cited by
-  number from code and from `AGENTS.md` ("ROADMAP decision 24"). The *open
-  backlog* below it is superseded by `tasks/`; read it as history, and capture
-  anything you still want into `docs/tasks/backlog/`.
-- **`TESTING.md` and `qa/`** — the walkthrough and the scenario catalogue.
-  Accurate as far as anyone has walked them, which is not recently.
-
-## Plans are not documentation
-
-`plans/` holds one file per work package, W01 through W38, plus the dated plan
-the `superpowers` skill wrote for W37. **They are the plans as they were
-written, before the work, and they are deliberately not updated to match what
-shipped** — a command or a path in one may not be the form that exists today.
-They are kept because code comments cite them for the reasoning behind a
-decision (`grep -rn "docs/plans" lib test`), and a citation that leads nowhere
-becomes folklore.
-
-Do not correct a plan, and do not move one out. When a plan has an unbuilt
-remainder, open a task pointing at it. Anything you want to be *true* goes in
-one of the files above, or in a task.
-
-`superpowers/plans/` and `superpowers/specs/` are the same convention, one
-level earlier: dated plan-and-spec pairs the `superpowers` skill wrote for
-work packages before this repo started landing its own dated plans straight
-into `plans/` (`2026-08-31-w37-owner-and-guests.md` onward). They cover the
-photobook ordering and Gelato print work, the docs information-architecture
-pass, the managed-instance testing framework, and the inbox day-assembly
-phases (B1595 and siblings) — real, current design intent, not scratch
-output. Same rule as `plans/`: read them, do not correct them, and do not move
-one out (B1415).
+Hosted-only features (photobooks, postcards, WhatsApp, buying credits) are not
+documented here; they live, with their documentation, in the private
+repository behind fernscout.ch.

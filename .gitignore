@@ -64,16 +64,10 @@ next-env.d.ts
 # be committed by somebody who has not cleared the directory out yet.
 /mail
 
-# Agent worktrees and local agent state — but .claude/skills/ is part of the
-# repository. The skills are how an agent is told to do the things the author
-# actually does (ROADMAP G1); they are source, not local state.
+# Agent worktrees and local agent state. This repository ships no skills of
+# its own; a maintainer's worktree may hold a .claude/skills link to them,
+# made by npm run worktree:bootstrap.
 .claude/*
-!.claude/skills/
-# One exception in the other direction: this instance's own deploy path — its
-# host, its ssh alias, its one command. The shipped software's deploy is
-# scripts/deploy.sh and the `deploy` skill, which work on anybody's VPS; a
-# skill that hardcodes ours is local state wearing a skill's clothes.
-.claude/skills/vps/
 
 # What scripts/deploy.sh last brought up healthy, written on the server (B258).
 .deploy-state

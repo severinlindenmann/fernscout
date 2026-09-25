@@ -66,8 +66,8 @@ export default async function HostingPage() {
           What a day looks like
         </h2>
         <p className="mt-2 text-ink-body">
-          One markdown file per update, carrying whatever fields are actually
-          known. An empty field beats a guessed one.
+          One JSON file per day, carrying whatever fields are actually known.
+          An empty field beats a guessed one.
         </p>
         <div className="mt-2">
           <EntryContent markdown={dayEntry} />

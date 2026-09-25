@@ -1,162 +1,84 @@
 ![Fernscout — travel mail: news from far away, arriving at home](docs/branding/readme-hero.svg)
 
-# Fernscout™
+# Fernscout
 
-*Travel mail — news from far away, arriving at home.*
-
-**A travel journal your agent writes — from a voice note on a night bus to a
-printed book of the trip.** You tell it about the day the way you would tell a
-friend; it writes the day up with the route, the place and what it cost, posts
-real postcards to the people who asked for one, and lays the whole trip out as
-a printed book. Your days stay JSON and photographs in a folder you own.
+**An open-source travel journal you host yourself.** Talk through your day
+with an AI agent, your own or the helper built into Fernscout, and it writes
+the day up: the place, the route, the photographs, what it cost. Your family
+and friends read it in a browser. Everything stays JSON and photographs in a
+folder you own.
 
 [See a real journal](https://fernscout.ch/example) ·
-[Start your own, free](https://fernscout.ch) ·
-[Docs](docs/) ·
+[Run your own](#run-it) ·
+[Docs](docs/)
+
 [![CI](https://github.com/severinlindenmann/fernscout/actions/workflows/ci.yml/badge.svg)](https://github.com/severinlindenmann/fernscout/actions/workflows/ci.yml)
+[![Licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
+[![Node 24](https://img.shields.io/badge/node-24-brightgreen)](.nvmrc)
+
+## What it looks like
+
+Every picture is the demo journal, on a production build.
 
 | | |
 | --- | --- |
 | [![A trip's story page: the winding day-by-day path, the day card, the route map](docs/screenshots/trip-story.jpg)](https://fernscout.ch/example) | [![One day's entry: the prose, three photographs, the reaction row](docs/screenshots/day-entry.jpg)](https://fernscout.ch/example) |
-| The story page — the rail on the left *is* the trip, one stop per day. | One day: prose, its gallery, what it cost, and the reactions readers leave. |
+| The story page. The rail on the left *is* the trip, one stop per day. | One day: prose, photographs, what it cost, and readers' reactions. |
+| [![The trip map: every stop joined by the route travelled](docs/screenshots/trip-map.jpg)](https://fernscout.ch/example) | [![The gallery: every photograph from the trip, filterable by place](docs/screenshots/gallery.jpg)](https://fernscout.ch/example) |
+| Every stop on one map. The base map is built in: no tile server, no API key. | The gallery, filterable by place, with a slideshow. |
 
-## Start
+## Run it
 
-**Hosted**, at [fernscout.ch](https://fernscout.ch) — sign up with your email,
-no password and no install, then hand your agent one address:
-
-```
-https://fernscout.ch/documentation.txt
-```
-
-It reads from there, asks you for a six-digit code, and starts writing.
-
-**Your own**, anywhere Node runs. That is the whole setup for a public journal
-— no database, no keys, nothing to sign up for:
+You need Node 24 (the exact version is in `.nvmrc`). A public journal needs no
+database, no keys and no accounts:
 
 ```bash
+git clone https://github.com/severinlindenmann/fernscout.git
+cd fernscout
 npm install
-npm run dev            # http://localhost:3000
+npm run dev            # then open http://localhost:3000/example
 ```
 
-**There is no CMS, and there will not be one.** Writing happens through an
-agent holding a token, over REST — your own, or this instance's own helper,
-over WhatsApp where it offers one, for people who don't bring one. Reading
-happens in a browser, where you may also correct a day you already have in
-place, but nothing there composes a new one out of form fields. Everything an
-agent writes arrives as a draft, so you can read a day back before it goes up.
+`/example` is a demo journal that ships in the repository. Your own journal
+lives in `content/<username>/` and appears at `/<username>`. One instance can
+host many people.
 
-## What the hosted instance adds
+**No agent yet?** A day is one JSON file, so you can start by hand: copy an
+entry from `content/example/trips/*/entries/`, change it, and reload. Or turn a
+folder of photos into dated, geotagged draft days:
 
-The optional capabilities a self-hosted instance has to configure are all
-switched on at [fernscout.ch](https://fernscout.ch):
+```bash
+npm run ingest -- --user <you> --trip <trip-id> ./photos
+```
 
-| | |
-| --- | --- |
-| **WhatsApp** | tell your readers a new day is up, on the app they already have |
-| **Email** | the same, by mail |
-| **Phone notifications** | web push to a phone or desktop, no app to install |
-| **Postcards** | pick a photo, write a back, order real printed cards to real addresses |
-| **Photobook** | a whole trip laid out as a print-ready PDF |
+To run it for real, see [docs/running-locally.md](docs/running-locally.md) for
+a production build and [docs/runbook.md](docs/runbook.md) for a server with
+backups.
 
-**Postcards, the photobook, the guided helper described in
-[docs/helper.md](docs/helper.md), and paying for credits are part of the
-hosted service only — the open build does not include ordering, print
-fulfilment or a Stripe checkout.** WhatsApp announcements, email and phone
-notifications above are ordinary self-hostable capabilities, configured the
-same as any row in the table further down.
+## How it works
 
-Sending anything physical or paid stops at a preview page with a button: an
-agent proposes, you press. Addresses never reach an agent — cards are
-addressed to people who asked your journal for one.
+- **An agent writes, a browser reads.** There is no CMS. Days arrive over a REST
+  API from an agent holding a token: your own assistant, or the built-in helper
+  with your own model key. In the browser you read, and you can correct a day in
+  place.
+- **Every day starts as a draft.** Nothing goes public until you publish it.
+- **Nothing is invented.** An agent writes what it was told and leaves a field
+  empty rather than guessing. One made-up memory, shown to somebody's family as
+  fact, can't be taken back.
+- **Your files, your folder.** A day is one JSON file and a photograph is a
+  file. `npm run export -- <username>` hands a whole journal back as a zip.
+- **Closed by default.** Every optional capability is off until you switch it
+  on, and switched off it is absent, not broken.
+- **No paid account needed to develop.** Mail writes `.eml` files to a folder,
+  and every provider has a dry-run mode.
 
-WhatsApp's template needs an image header, so the day's first photograph is
-uploaded to Meta's servers before the message goes — for every trip,
-including a `private` one. Mail differs here: it inlines the photograph so a
-closed trip's picture never leaves the gate.
-
-**What this does not promise.** fernscout.ch is a hobby project run by one
-person, free, one journal per person. There is no uptime guarantee, no
-durability guarantee and no support — best effort, and nothing more is
-implied by it being offered. Your content is still plain files in
-a folder you own — JSON documents and photographs — whoever hosts it: `npm run export -- <username>` hands the whole
-journal back as a zip at any time, so self-hosting the same content later is
-the documented way out, not a downgrade.
-
-## Self-hosting it
-
-**Your content is JSON documents and photographs in a folder you own** — no database needed, and everything exports
-as the files it already is. The prose inside a day is still prose you wrote;
-what changed in B1598 is the envelope around it, from YAML frontmatter to one
-JSON file per day and per trip. One instance serves many people:
-`content/<username>/…`, reachable at `/<username>`. A demo journal ships in the
-repo and serves at `/example`.
-
-### Capabilities
-
-Every optional capability is **off by default** and absent rather than broken
-when disabled — a disabled capability's routes 404, they do not error — so
-none needs a paid account to develop against: mail writes `.eml` files to a
-folder, and every print provider has a `dry-run` backend that writes files
-instead of printing anything. `FEATURE_NAMES` in
-[`lib/config.ts`](lib/config.ts) is the complete, current list; this table is
-checked against it:
-
-| Feature | Needs | Off means |
-| --- | --- | --- |
-| `reactions` | — | no reactions on days |
-| `costs` | — | no cost pages or totals |
-| `push` | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | no web-push notifications |
-| `mail` | transport-specific — `file`/`console` need nothing, `smtp` needs `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | nothing is sent |
-| `whatsapp` | backend-specific — `dry-run` needs nothing, `cloud` needs `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` | no WhatsApp announcements |
-| `auth` | `SESSION_SECRET` + a database | no agent tokens at all — the whole write path is gone |
-| `signup` | `SESSION_SECRET` + a database, and mail | nobody can create a journal on the instance |
-| `contacts` | `CONTACTS_ENCRYPTION_KEY` + a database | no guests, no invite links, no buddy write-access, no approval queue |
-| `postcards` | provider-specific — `dry-run` needs nothing, others need a key — + a database | no postcard ordering |
-| `photobook` | provider-specific — `dry-run` needs nothing, others need a key — + a database | no photobook ordering |
-| `logging` | — (operator-only, not a journal's choice) | no request logging |
-| `credits` | a database (operator-only) | sending is never charged |
-| `addressLookup` | provider-specific — the default (`photon`) needs nothing | no address suggestions in a contact form |
-| `weather` | — | a day's `weather: true` is never looked up |
-| `analytics` | a database | no visits page |
-
-Three rules govern all of them: **enabling one is a promise the server has to
-keep** — a flag on with its credentials missing refuses to boot, with the
-reason, rather than half-working; **a journal's own `config.json` can narrow
-the server's capabilities and never widen them** — a journal can never switch
-on something the server itself cannot do; and **`auth` off still leaves the
-whole public site working** — every reading page, the search index, the feed,
-the sitemap — because a public trip's gate never touches a database or a
-session. What you lose with `auth` off is writing, and guests.
-
-For a production build, see [docs/running-locally.md](docs/running-locally.md);
-for a VPS, see [docs/runbook.md](docs/runbook.md). What fernscout.ch itself
-runs today is not repeated here, since a list here would drift the first time
-a flag changes — read it live from
-[fernscout.ch/api/health](https://fernscout.ch/api/health).
-
-## What it looks like
-
-Every picture below is the demo journal, on a production build. Nothing in it
-belongs to a real person.
-
-The story page and one day's entry are at the top of this file. The other two:
-
-![The trip map: eighteen stops joined by the route travelled](docs/screenshots/trip-map.jpg)
-
-Every stop on one map, drawn from the `coordinates` each entry carries. The
-base map is baked into the build — no tile server, no API key.
-
-![The gallery: every photograph from the trip in a grid, filterable by place](docs/screenshots/gallery.jpg)
-
-The gallery, filterable by place, with a slideshow behind the button.
+Not a blog you type into and not an app that keeps your photos: the journal is
+written from what you tell it, and it stays in files you can take anywhere.
 
 ## What a day looks like
 
-One JSON file per update, in
-`content/<username>/trips/<trip-id>/entries/`, named `YYYY-MM-DD-slug.json`.
-It was YAML frontmatter and markdown until B1598; the prose is still prose,
-and it now lives in a `content` field:
+One JSON file per day, in
+`content/<username>/trips/<trip-id>/entries/YYYY-MM-DD-slug.json`:
 
 ```json
 {
@@ -182,82 +104,91 @@ and it now lives in a `content` field:
 }
 ```
 
-`"status": "draft"` keeps the day off the site. Anything unrecognised or
-missing reads as a draft too, never as published — a file nobody can parse
-must not publish itself. `src` is trip-relative; the username is added at
-read time. The `type`/`width`/`height` on a photograph are written by the
-upload, not by hand.
+Only `"status": "published"` puts a day on the site; anything else reads as a
+draft. A file that isn't valid JSON is skipped and logged, and the rest of the
+trip still shows. A trip's `trip.json` holds its title, dates, travellers,
+budget, planned route, exchange rates and visibility: `private`, `public` or
+`guest`. An unknown visibility reads as `private`, so a typo can't publish
+somebody's trip.
 
-Gaps are fine. A trip's own `trip.json` carries its title, dates, who was on
-it, its budget, its planned route, its exchange rates,
-and its visibility: `private`, `public` or `guest`. An unrecognised value reads
-as `private`, never as public — a typo must not publish somebody's trip.
+## What's in the box
 
-The one thing that stays out of an agent's hands is invention. One made-up
-memory, presented to somebody's family as fact, is not recoverable — so an
-agent writes what it was told and leaves a field empty rather than guessing,
-and content nobody lived is marked `test: true` and says so on the page.
+| | |
+| --- | --- |
+| **Trips and days** | a story page per trip, one entry per day, and trips that are private, public or for guests only |
+| **Maps** | every stop on one route map, with the base map built into the app |
+| **Photographs** | galleries, a slideshow, and EXIF import that turns a card of photos into draft days |
+| **Costs** | what the trip cost, per day and in total, in any currency, converted with ECB rates |
+| **Readers** | reactions, guests and invite links, and new-day mail and web push, with no app to install |
+| **Helper** | a writing helper, dictation and photo descriptions, with your own Anthropic and Deepgram keys |
+| **Location** | importers for Google Timeline and GPX, and route recording from the iPhone app in `ios/` |
+| **API** | a versioned REST API with a generated OpenAPI document, and agent guides at `/documentation.txt` |
+
+> **fernscout.ch, the hosted edition.** Don't want to run a server?
+> [fernscout.ch](https://fernscout.ch) runs this code for you, free, one journal
+> per person, and adds a few things that need one operator behind them:
+> **printed photobooks**, **real postcards** to your readers' addresses,
+> **WhatsApp** (a guided helper for people without an agent, and new-day
+> messages), and **credits** to pay for what costs money to send. Those live in
+> a separate private repository. fernscout.ch is a hobby project run by one
+> person, with no uptime or support guarantee, and your journal stays plain
+> files you can export and move to your own instance at any time.
+
+## Self-hosting
+
+Every optional capability, from reactions and mail to the helper and dictation,
+is off by default. Switching one on is a promise: if its credentials are
+missing, the server refuses to boot and says why. A journal can switch a
+capability off for itself, never on. With writing switched off entirely, every
+public page, the search, the feed and the sitemap still work.
+
+[docs/capabilities.md](docs/capabilities.md) lists every capability, what it
+needs and what switching it off means.
 
 ## Commands
 
 | | |
 | --- | --- |
 | `npm run dev` · `npm run build` · `npm start` | the site |
-| `npm run verify` | the gate before pushing — build, `tsc`, `eslint`, tests, stopping at the first failure |
-| `npm run ingest -- --user <u> --trip <id> <folder>` | a card of photos → dated, geotagged draft days |
-| `npm run rates:update` | refresh the cached ECB rates |
-| `npm run export -- <username>` | the whole journal as a zip |
+| `npm run verify` | build, `tsc`, `eslint`, tests and knip, stopping at the first failure |
+| `npm run ingest -- --user <u> --trip <id> <folder>` | a folder of photos into dated, geotagged draft days |
+| `npm run rates:update` | refresh the cached ECB exchange rates |
+| `npm run export -- <username>` | a whole journal as a zip |
 
 ## Documentation
 
-Indexed at [docs/](docs/), which also says how far to trust it. A running
-instance serves an owner-facing guide at `/docs`, the API reference at
-`/docs/api`, and the agent guide split by task at `/documentation.txt` and
-the nine `/skill/<task>.md` documents it indexes (B311) — generated from the
-same constants the endpoints enforce, so they cannot drift.
+[docs/](docs/) is the index. A running instance also serves an owner guide at
+`/docs`, the API reference at `/docs/api`, and the agent guide at
+`/documentation.txt`, generated from the same constants the API enforces.
 
 | | |
 | --- | --- |
-| [running-locally.md](docs/running-locally.md) | production build on your machine; the agent API end to end |
-| [runbook.md](docs/runbook.md) | deploying to a VPS, backups, restore |
-| [architecture.md](docs/architecture.md) | where things live, and why they are shaped that way |
-| [ingest.md](docs/ingest.md) | photographs, EXIF, geodata |
+| [running-locally.md](docs/running-locally.md) | a production build on your machine, and the agent API end to end |
+| [runbook.md](docs/runbook.md) | deploying to a server, backups, restore |
+| [capabilities.md](docs/capabilities.md) | every optional capability and what it needs |
+| [architecture.md](docs/architecture.md) | where things live, and why |
+| [ingest.md](docs/ingest.md) | photographs, EXIF and geodata |
+| [gps.md](docs/gps.md) | location history, and how little of it is ever shown |
 | [currencies.md](docs/currencies.md) | how money is stored, converted and refused |
 | [deploy-mail.md](docs/deploy-mail.md) | mail |
-| [TESTING.md](docs/TESTING.md) · [qa/](docs/qa/) | the manual walkthrough, and the scenario catalogue |
 | [branding/](docs/branding/) | the mark, the palette, and what not to do to them |
-| [ROADMAP.md](docs/ROADMAP.md) | the decision log — cited by number from the code |
-| [tasks/](docs/tasks/) · [plans/](docs/plans/) | everything still to do, and the record of intent |
-
-Working in a checkout rather than over the network? [AGENTS.md](AGENTS.md) and
-the skills in `.claude/skills/` cover the same jobs against files on disk.
 
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). In short: `npm run verify` passes, the
 dev server boots with a capability both on and off, and nothing personal goes
-anywhere outside `content/` — there is a test that fails the build over that.
+anywhere outside `content/`. A test fails the build over that.
 
 ## Licence
 
-[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0). Use it,
-self-host it, modify it, fork it, redistribute it — for as long as you like,
-at no cost, including to run a competing service. See `NOTICE` for the
-third-party map and place-name data this repository bundles.
+[Apache License 2.0](LICENSE): use it, self-host it, modify it, fork it,
+including to run your own service. [NOTICE](NOTICE) lists the bundled map and
+place-name data and their licences. `importers/` is MIT, so adding your own
+device's location export doesn't mean reading anything else first;
+`importers/README.md` is the contract.
 
-**`importers/` is MIT**, and is the one part of this repository that is. It
-holds the parsers that read a location export — Google Timeline, GPX, and a
-neutral format for anybody's own tool — and they are worth sharing on their
-own terms: adding support for your own device should not mean reading
-anything else first. `importers/LICENSE` is the operative text, and
-`importers/README.md` is what one has to implement — one file per format,
-grouped by the kind of data, with `<kind>/schema.ts` as the contract and a
-check to run against your own.
-
-**The name and logo are not included.** The Apache licence covers the code;
-it explicitly does not extend to trademarks (§6). "Fernscout", the waymark
-and the wordmark are the project's identity and stay outside this grant —
-see `BRAND-LICENSE` for exactly which files that covers, and
-[TRADEMARK.md](TRADEMARK.md) for the policy behind it. Running your own
-instance keeps them, because an instance has to be able to draw itself; a
-public fork under a different name replaces them.
+The name and logo are not included. "Fernscout", the waymark and the wordmark
+stay outside the Apache grant: [BRAND-LICENSE](BRAND-LICENSE) lists the files
+and [TRADEMARK.md](TRADEMARK.md) explains the policy. Your own instance may show
+them, because an instance has to draw itself. A public fork under another name
+replaces them.

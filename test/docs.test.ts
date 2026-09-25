@@ -26,12 +26,11 @@ describe("section()", () => {
 
   test("stops at the next heading, not the whole rest of the file", () => {
     const readme = readRepoFile("README.md");
-    const running = section(readme, "Start");
+    const running = section(readme, "Run it");
     expect(running).toContain("npm run dev");
-    // "What the hosted instance adds" is the next `##` — its own heading text
-    // must not leak into the section above it. (The section this used to read
-    // was "Or self-host it"; B1711 moved both quick starts up into "Start".)
-    expect(running).not.toContain("What the hosted instance adds");
+    // "How it works" is the next `##` — its own heading text must not leak
+    // into the section above it.
+    expect(running).not.toContain("How it works");
   });
 
   test("the four checks, from CONTRIBUTING.md's own words", () => {

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 440" width="1280" height="440" role="img" aria-label="Fernscout — a travel journal your agent writes. A trail across the image marks three stops: a voice note, the day written up, a card and a book in the post.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 440" width="1280" height="440" role="img" aria-label="Fernscout — a travel journal your agent writes. A trail across the image marks three stops: a voice note, the day written up, read at home.">
   <!-- Copyright 2026 Severin Lindenmann. The Fernscout wordmark and waymark
        are not licensed for use as the identity of another project or
        product. See TRADEMARK.md and the BRAND ASSETS section of LICENSE. -->
@@ -48,7 +48,7 @@
     <text x="660" y="326">the day, written up</text>
 
     <path d="M1000 260 L1020 280 L1000 300 L980 280 Z" fill="#ffd23f" stroke="#1e293b" stroke-width="2.5" stroke-linejoin="round" />
-    <text x="1000" y="242">a postcard, and a printed book</text>
+    <text x="1000" y="242">read at home</text>
   </g>
 
   <!-- the scout, already ahead of you -->
