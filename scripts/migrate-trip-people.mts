@@ -9,13 +9,28 @@
  * ability to write unless something turns them into a real, granted
  * `trip_people` place first. This is that something.
  *
- * For every journal and every trip, every non-owner `people:` entry becomes:
- *   - a contact, confirmed and approved (`grantContactAccess` — the same
- *     three steps Studio › Readers' own "add a person" does: request,
- *     owner-confirm, approve), and
+ * For every journal and every trip, every non-owner `people:` entry with an
+ * email becomes:
+ *   - a contact, confirmed and approved — the same three steps Studio ›
+ *     Readers' own "add a person" does (`grantContactAccess`: request,
+ *     owner-confirm, approve), except for one consent this run sets
+ *     differently on purpose (see below), and
  *   - a granted `trip_people` place on that trip (`claimTripPlace` then
  *     `approveTripPlaces`), the same shape a redeemed buddy link ends in
  *     once the owner says yes.
+ *
+ * **`wantsEmailDigest: true`, not `grantContactAccess`'s own `false`.** Read
+ * access to a closed trip and its day-update mail both used to come from a
+ * bare `people:` entry (D3 closes that door too, not only write's — see
+ * `lib/tripPeople.ts`'s file banner). Everyone this migration touches was
+ * therefore already receiving the day-update letter before it ran; granting
+ * them a place with the digest off would be this migration itself taking
+ * something away, which is the one thing it exists not to do. So this script
+ * calls `requestContact`/`confirmContactByOwner`/`approveContact` directly —
+ * `grantContactAccess`'s own three steps, inlined — rather than the shared
+ * helper, which stays `false` for its other caller
+ * (`app/api/helper/[user]/reader/grant/route.ts`), an owner adding someone
+ * new who never had the mail to begin with.
  *
  * Idempotent: run it twice and the second run changes nothing. Every step it
  * calls already is (`requestContact` merges into an existing row rather than
@@ -36,11 +51,42 @@
  */
 import { getUsernames, getUser } from "../lib/users";
 import { getTrips } from "../lib/trips";
-import { grantContactAccess } from "../lib/contacts";
+import { requestContact, confirmContactByOwner, approveContact, getContactByEmail } from "../lib/contacts";
 import { claimTripPlace, approveTripPlaces } from "../lib/tripPeople";
 import { getDatabase } from "../lib/db";
 import { migrateToLatest } from "../lib/db/migrate";
 import { pickLocale } from "../lib/contacts/locale";
+
+/**
+ * `grantContactAccess`'s own three steps, inlined so a *brand-new* contact
+ * can start with `wantsEmailDigest: true` instead of the shared helper's own
+ * `false` — see the file banner for why. An address that already has a
+ * contact row here (an earlier run, or any other door) keeps whatever it
+ * already carries: `requestContact` writes this consent unconditionally on
+ * every call, so re-running this script must read the existing value back
+ * rather than a second run quietly re-enabling a digest the owner has since
+ * turned off for that person.
+ */
+async function grantWithDigestOn(
+  owner: string,
+  input: { name: string; email: string; locale: ReturnType<typeof pickLocale> },
+): Promise<{ ok: true; contactId: string } | { ok: false }> {
+  const existing = await getContactByEmail(owner, input.email);
+  const result = await requestContact(owner, {
+    name: input.name,
+    email: input.email,
+    locale: input.locale,
+    wantsEmailDigest: existing ? existing.wantsEmailDigest : true,
+    wantsPostcard: existing ? existing.wantsPostcard : false,
+    wantsWhatsapp: existing ? existing.wantsWhatsapp : false,
+    createdVia: "owner-grant",
+  });
+  if (result.outcome === "ignored" || !result.contactId) return { ok: false };
+  await confirmContactByOwner(owner, result.contactId);
+  const approved = await approveContact(owner, result.contactId);
+  if (!approved) return { ok: false };
+  return { ok: true, contactId: approved.contact.id };
+}
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
@@ -88,7 +134,7 @@ async function run(): Promise<void> {
           continue;
         }
 
-        const granted = await grantContactAccess(username, {
+        const granted = await grantWithDigestOn(username, {
           name,
           email,
           locale: pickLocale(journal.defaultLocale),
@@ -99,10 +145,10 @@ async function run(): Promise<void> {
           continue;
         }
 
-        await claimTripPlace(username, trip.id, granted.contact.id, null);
-        const approved = await approveTripPlaces(username, granted.contact.id);
+        await claimTripPlace(username, trip.id, granted.contactId, null);
+        const approved = await approveTripPlaces(username, granted.contactId);
         counts[approved.includes(trip.id) ? "granted" : "already-granted"] += 1;
-        console.log(`[migrate-trip-people] ${label} -> ${granted.contact.id}`);
+        console.log(`[migrate-trip-people] ${label} -> ${granted.contactId}`);
       }
     }
   }
