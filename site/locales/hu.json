@@ -4287,6 +4287,7 @@
   "notifyStep.heading": "Hogyan tudja meg {name}?",
   "notifyStep.them": "ő",
   "notifyStep.email": "E-mail",
+  "notifyStep.whatsapp": "WhatsApp",
   "notifyStep.sms": "SMS",
   "notifyStep.self": "Magam küldöm el",
   "notifyStep.selfHint": "Másold ki a linket, és küldd el, ahogy neked tetszik",

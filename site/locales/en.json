@@ -4286,6 +4286,7 @@
   "notifyStep.heading": "How should {name} hear about it?",
   "notifyStep.them": "them",
   "notifyStep.email": "Email",
+  "notifyStep.whatsapp": "WhatsApp",
   "notifyStep.sms": "SMS",
   "notifyStep.self": "I’ll share it myself",
   "notifyStep.selfHint": "Copy the link and send it your own way",

@@ -45,7 +45,6 @@ function tree() {
           visibilities={["guest", "public", "private"]}
           accents={["sky"]}
           existingTrips={existingTrips}
-          whatsappAvailable={false}
           otherLocales={[]}
           defaultLocale="en"
           baseCurrency="CHF"

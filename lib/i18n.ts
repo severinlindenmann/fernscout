@@ -1838,6 +1838,7 @@ export type TranslationKey =
   | "notifyStep.step"
   | "notifyStep.them"
   | "notifyStep.to"
+  | "notifyStep.whatsapp"
   | "order.meta.proposed"
   | "order.meta.sent"
   | "order.object.cover"

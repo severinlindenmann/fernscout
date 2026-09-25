@@ -4286,6 +4286,7 @@
   "notifyStep.heading": "Wie soll {name} davon erfahren?",
   "notifyStep.them": "die Person",
   "notifyStep.email": "E-Mail",
+  "notifyStep.whatsapp": "WhatsApp",
   "notifyStep.sms": "SMS",
   "notifyStep.self": "Ich teile es selbst",
   "notifyStep.selfHint": "Link kopieren und auf deinem Weg weitergeben",
