@@ -298,7 +298,7 @@ type PushSubscriptionsTable = {
   user_agent: string | null;
   created_at: string;
   last_seen_at: string | null;
-  /** `"web"` | `"apns"` — added in 038-push-kind, defaulted to `"web"` for
+  /** `"web"` | `"apns"` — added in 039-push-kind, defaulted to `"web"` for
    * every row that predates it. */
   kind: Generated<string>;
 };
