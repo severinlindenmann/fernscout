@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, MessageCircle } from "lucide-react";
+import { Mail, MessageCircle, MessageSquareText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useI18n } from "./LocaleProvider";
 import BusyButton from "@/components/BusyButton";
@@ -8,7 +8,7 @@ import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
 import { formatCredits } from "@/lib/creditsFormat";
 
 /** One channel the button would use, and what it would do there — B1024. */
-type Pending = { channel: "mail" | "whatsapp"; count: number; cost: number };
+type Pending = { channel: "mail" | "whatsapp" | "sms"; count: number; cost: number };
 
 type Status = {
   ok: true;
@@ -175,6 +175,8 @@ export default function DayNotify({
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-surface-subtle text-ink-body">
                   {channel === "mail" ? (
                     <Mail className="h-4 w-4" aria-hidden />
+                  ) : channel === "sms" ? (
+                    <MessageSquareText className="h-4 w-4" aria-hidden />
                   ) : (
                     <MessageCircle className="h-4 w-4" aria-hidden />
                   )}
@@ -184,7 +186,7 @@ export default function DayNotify({
                 </span>
                 <span className="min-w-0 flex-1">
                   {tn(
-                    channel === "mail" ? "notify.viaMail" : "notify.viaWhatsapp",
+                    channel === "mail" ? "notify.viaMail" : channel === "sms" ? "notify.viaSms" : "notify.viaWhatsapp",
                     count,
                   )}
                 </span>

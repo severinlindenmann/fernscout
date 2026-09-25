@@ -97,6 +97,7 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
               wantsEmailDigest: contact.wantsEmailDigest,
               wantsPostcard: contact.wantsPostcard,
               wantsWhatsapp: contact.wantsWhatsapp,
+              wantsSms: contact.wantsSms,
               address: contact.postalAddress ?? EMPTY_ADDRESS,
             }}
             // B385: same fallback `toE164` reads at send time.
@@ -104,6 +105,7 @@ export default async function ManagePage({ params }: PageProps<"/[user]/c/[token
             // B399: same server-ceiling-and-journal-opt-in check as
             // everywhere else this capability is read.
             addressLookupEnabled={isEnabled("addressLookup", username)}
+            smsEnabled={isEnabled("sms")}
           />
         </main>
       </div>

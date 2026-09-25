@@ -56,6 +56,10 @@ const ALWAYS_RESERVED = [
   "legal",
   // The buddy/guest invite link shortener, app/s/[token].
   "s",
+  // B2291/B2292 — the per-person welcome link /w/<code> and the group
+  // invite link /j/<code>.
+  "w",
+  "j",
   // The service worker's offline fallback. A journal that shadowed it would
   // make the offline page unreachable exactly when it is needed.
   "offline",

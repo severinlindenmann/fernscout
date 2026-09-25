@@ -81,6 +81,8 @@ type LedgerReason =
   | "ask_thread"
   | "find_in_journal"
   | "travellers_from_photo"
+  | "invite"
+  | "day_sms"
   | "refund"
   /** Credits taken back because the money that bought them was returned —
    * B878. A negative delta that is not a spend, which is why
@@ -146,7 +148,15 @@ export type SpendReason =
    * reason `ask_thread` is: a different door, a different line on the
    * ledger. Charged before the call, refunded when it throws, and never for
    * writing anything — this call writes nothing at all. */
-  | "travellers_from_photo";
+  | "travellers_from_photo"
+  /** One welcome message the owner chose to send on WhatsApp or SMS — B2292
+   * (B2291 D5): the first invite and every "send again". Charged on the
+   * owner's press, refunded when the send throws. Email and codes are free
+   * and never reach the ledger. */
+  | "invite"
+  /** A day announced by SMS — B2292, `day_whatsapp`'s twin one channel
+   * along: one credit per paying recipient, the owner's own copy free. */
+  | "day_sms";
 
 /** @public open core: paid/ uses this (tagged by open-core/split). */
 export type LedgerRow = {

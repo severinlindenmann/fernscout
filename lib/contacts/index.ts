@@ -23,7 +23,7 @@ import {
 } from "./crypto";
 
 import { countInviteUse, preapprovedEmailFor } from "./invites";
-import { approveTripPlaces, revokeTripPlaces } from "../tripPeople";
+import { approveTripPlaces, claimTripPlace, revokeTripPlaces } from "../tripPeople";
 import { parseLocale, pickLocale } from "./locale";
 import { isMessageable, phoneSubject, subjectPhone, toE164 } from "../phone";
 import { getUser } from "../users";
@@ -85,6 +85,15 @@ export type ContactRecord = {
   phone: string | null;
   /** When an SMS code proved `phone`. Null while it is only what was typed. */
   phoneProvenAt: string | null;
+  /** B2292. New days by SMS — its own consent, gated on a number like
+   * `wantsWhatsapp`. */
+  wantsSms: boolean;
+  /** B2292. The last channel the owner chose to tell this person on
+   * (`email` | `whatsapp` | `sms` | `self`), and when. Null until then. */
+  invitedVia: string | null;
+  invitedAt: string | null;
+  /** B2292. When their welcome link (`/w/<code>`) was first opened. */
+  welcomeOpenedAt: string | null;
   createdVia: string | null;
   createdAt: string;
   confirmedAt: string | null;
@@ -152,6 +161,12 @@ type ContactRow = {
   phone_cipher: string | null;
   phone_key: string | null;
   phone_proven_at: string | null;
+  wants_sms: number;
+  welcome_code_hash: string | null;
+  welcome_code_cipher: string | null;
+  invited_via: string | null;
+  invited_at: string | null;
+  welcome_opened_at: string | null;
 };
 
 function toRecord(owner: string, row: ContactRow): ContactRecord {
@@ -172,6 +187,10 @@ function toRecord(owner: string, row: ContactRow): ContactRecord {
     postalAddress: postal || tel ? { ...(postal ?? EMPTY_ADDRESS), tel } : null,
     phone: tel || null,
     phoneProvenAt: row.phone_proven_at,
+    wantsSms: toBool(row.wants_sms),
+    invitedVia: row.invited_via,
+    invitedAt: row.invited_at,
+    welcomeOpenedAt: row.welcome_opened_at,
     createdVia: row.created_via,
     createdAt: row.created_at,
     confirmedAt: row.confirmed_at,
@@ -697,6 +716,7 @@ export type SelfUpdate = {
   wantsEmailDigest?: boolean;
   wantsPostcard?: boolean;
   wantsWhatsapp?: boolean;
+  wantsSms?: boolean;
 };
 
 /** Change language, change address, change your mind. */
@@ -741,6 +761,7 @@ export async function updateContactSelf(
 
   const wantsPostcard = patch.wantsPostcard ?? current.wantsPostcard;
   const wantsWhatsapp = patch.wantsWhatsapp ?? current.wantsWhatsapp;
+  const wantsSms = patch.wantsSms ?? current.wantsSms;
   // `isPostable` is the wrong gate for whether to keep the blob at all — a
   // record holding only a phone number is worth keeping, same as
   // `requestContact` and `updateContactByOwner`.
@@ -768,6 +789,9 @@ export async function updateContactSelf(
         wantsWhatsapp && keepAddress !== null && isMessageable(keepAddress.tel, whatsappCountryCode())
           ? 1
           : 0,
+      // B2292 — the same gate for the SMS channel.
+      wants_sms:
+        wantsSms && keepAddress !== null && isMessageable(keepAddress.tel, whatsappCountryCode()) ? 1 : 0,
       ...stored,
       updated_at: nowIso(),
     })
@@ -784,7 +808,7 @@ export async function unsubscribeContact(owner: string, token: string): Promise<
   const { db } = await getDatabase();
   await db
     .updateTable("contacts")
-    .set({ wants_email_digest: 0, wants_postcard: 0, wants_whatsapp: 0, updated_at: nowIso() })
+    .set({ wants_email_digest: 0, wants_postcard: 0, wants_whatsapp: 0, wants_sms: 0, updated_at: nowIso() })
     .where("id", "=", current.id)
     .execute();
   return true;
@@ -1374,6 +1398,41 @@ export type AddContactResult =
  */
 export async function addContact(owner: string, input: AddContactInput): Promise<AddContactResult> {
   return saveContact(owner, input, "owner");
+}
+
+export type AddPersonResult =
+  | { ok: true; outcome: "created" | "updated"; contact: ContactRecord }
+  | { ok: false; error: Exclude<AddContactResult, { ok: true }>["error"] | "not_approved" };
+
+/**
+ * "Add a person" — step 1 of B2291's first door, B2292's server half.
+ *
+ * The owner names somebody (email and/or mobile), and they are **pre-
+ * approved**: `addContact` (owner trust — the number becomes a sign-in
+ * number), then `confirmContactByOwner` + `approveContact`, the chain
+ * `grantContactAccess` has always used. A buddy is asked onto their trip first
+ * (`claimTripPlace`) so the same approval opens it, exactly as approving a
+ * buddy-link request does.
+ *
+ * Nothing is sent: telling the person is step 2 (`./welcome` `sendInvite`).
+ * An existing contact keeps every consent it had (`addContact` never touches
+ * them), and a blocked one is refused — letting somebody back in is the
+ * owner's explicit Let-in on their card, never a side effect of typing their
+ * address again.
+ */
+export async function addPersonByOwner(
+  owner: string,
+  input: Omit<AddContactInput, "createdVia"> & { buddyTripId?: string | null },
+): Promise<AddPersonResult> {
+  const added = await addContact(owner, { ...input, createdVia: "owner" });
+  if (!added.ok) return added;
+  if (input.buddyTripId) {
+    await claimTripPlace(owner, input.buddyTripId, added.contact.id, null);
+  }
+  await confirmContactByOwner(owner, added.contact.id);
+  const approved = await approveContact(owner, added.contact.id);
+  if (!approved) return { ok: false, error: "not_approved" };
+  return { ok: true, outcome: added.outcome, contact: approved.contact };
 }
 
 /**
