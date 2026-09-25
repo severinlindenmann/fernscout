@@ -82,7 +82,9 @@ export type StudioHubModel =
        *  the same `days` this function already loads for `facts.drafts`
        *  and `totalDays`, restricted to the current trip — no second disk
        *  walk. Drives the calmer hero's "you already told today" wording. */
-      toldToday: boolean;
+      /** Optional so a model built elsewhere (the private features repo's own
+       * fixtures) without it still type-checks; absent means "not yet". */
+      toldToday?: boolean;
       /** The nearest trip that has not started yet — B2011's own hub card,
        *  "Plan a trip". `null` hides that card outright rather than showing
        *  it disabled: a journal with nothing upcoming has nothing to plan,
