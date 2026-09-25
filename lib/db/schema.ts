@@ -300,7 +300,7 @@ type PushSubscriptionsTable = {
   last_seen_at: string | null;
   /** `"web"` | `"apns"` — added in 038-push-kind, defaulted to `"web"` for
    * every row that predates it. */
-  kind: string;
+  kind: Generated<string>;
 };
 
 type ReactionsTable = {
