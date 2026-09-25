@@ -83,6 +83,7 @@ function render(viewer: Viewer, locale = "en") {
                  contacts. Off, so nothing here depends on that link. */
               contactsEnabled={false}
               signupEnabled={true}
+              build={{ version: "0.0.0-test" }}
             />
           </TripListProvider>
         </CurrencyProvider>
@@ -166,6 +167,7 @@ describe("an approved reader who can see nothing — B395", () => {
                 codeMinutes={CODE_TTL_MINUTES}
                 contactsEnabled={false}
                 signupEnabled={true}
+                build={{ version: "0.0.0-test" }}
               />
             </TripListProvider>
           </CurrencyProvider>

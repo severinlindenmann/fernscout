@@ -94,6 +94,8 @@ export type ContactRecord = {
   invitedAt: string | null;
   /** B2292. When their welcome link (`/w/<code>`) was first opened. */
   welcomeOpenedAt: string | null;
+  /** B2293. When they finished the welcome guide — it runs once. */
+  onboardedAt: string | null;
   createdVia: string | null;
   createdAt: string;
   confirmedAt: string | null;
@@ -167,6 +169,7 @@ type ContactRow = {
   invited_via: string | null;
   invited_at: string | null;
   welcome_opened_at: string | null;
+  onboarded_at: string | null;
 };
 
 function toRecord(owner: string, row: ContactRow): ContactRecord {
@@ -191,6 +194,7 @@ function toRecord(owner: string, row: ContactRow): ContactRecord {
     invitedVia: row.invited_via,
     invitedAt: row.invited_at,
     welcomeOpenedAt: row.welcome_opened_at,
+    onboardedAt: row.onboarded_at,
     createdVia: row.created_via,
     createdAt: row.created_at,
     confirmedAt: row.confirmed_at,
@@ -1572,10 +1576,45 @@ async function saveContact(
   return { ok: true, outcome: existing ? "updated" : "created", contact };
 }
 
+/**
+ * An email address a code just proved for an existing contact that had none
+ * — B2293, the welcome guide's "Is this right?" screen (the email twin of
+ * `setProvenPhone`). Refuses (false) when another contact of this journal
+ * already holds the address, and never replaces an address a contact already
+ * has: changing one is `updateContactByOwner`'s, which takes access with it.
+ * The caller has redeemed the code (`confirmEmailProof`).
+ */
+export async function setProvenEmail(owner: string, contactId: string, raw: string): Promise<boolean> {
+  const email = normaliseEmail(raw);
+  if (!isEmail(email)) return false;
+  const holder = await getContactByEmail(owner, email);
+  if (holder && holder.id !== contactId) return false;
+  const { db } = await getDatabase();
+  const now = nowIso();
+  const result = await db
+    .updateTable("contacts")
+    .set({ email, email_key: email, updated_at: now })
+    .where("owner_id", "=", owner)
+    .where("id", "=", contactId)
+    .where("email", "=", "")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1 || holder?.id === contactId;
+}
+
 /** The `email_key` of a contact with no address: unique, and never equal to
  * a case-folded address, which always has an `@`. */
 function noEmailKey(id: string): string {
   return `no-email:${id}`;
+}
+
+/**
+ * The key a contact is stored under — its address, or for a phone-only
+ * contact the placeholder above. What `peopleOf` answers with, so a caller
+ * matching a contact against a trip's people must match on this, not on
+ * `email` (B2291: a buddy added by mobile only read as a reader).
+ */
+export function contactKey(contact: { id: string; email: string }): string {
+  return contact.email ? normaliseEmail(contact.email) : noEmailKey(contact.id);
 }
 
 /**

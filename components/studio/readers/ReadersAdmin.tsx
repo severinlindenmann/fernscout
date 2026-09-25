@@ -1,35 +1,40 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { ManageContact } from "@/components/ContactManage";
+import { useRouter } from "next/navigation";
 import { plural, translate, type TranslationKey } from "@/lib/i18n";
 import { splitReaders } from "@/lib/readers/split";
 import type { Locale } from "@/lib/types";
-import { GuestForm } from "./GuestForm";
-import InvitationLinks from "./InvitationLinks";
-import OwnDetails from "./OwnDetails";
+import AddPersonDoor from "./AddPersonDoor";
+import InviteLinkDoor from "./InviteLinkDoor";
+import LinksList from "./LinksList";
+import ReaderPreview from "./ReaderPreview";
+import type { TripPreview } from "@/lib/studio/audiencePreview";
 import { ReaderGroup, type CardEnv, type GuestFormEnv } from "./ReaderCard";
-import { resendableInvite, viaLabel, type AdminContact, type AdminInvite } from "./shared";
+import { notOpenedYet, viaLabel, type AdminContact, type AdminInvite } from "./shared";
 
 /**
- * Who is waiting, who is in, and when they last looked (C6) — the readers
- * page's sections below the invite (B2133): waiting for your answer, waiting
- * for them, reading now, then the owner's own row and the invitation links.
+ * Studio › Readers — **the only place a person is let in** (B2291, "Two
+ * doors, one page"). Two door cards, then the groups by whose turn it is:
+ * waiting for your answer · invited, not opened yet · not invited yet ·
+ * reading along · the links you've shared · access taken away (collapsed).
  *
  * The data arrives already fetched from the server component above, which did
- * the owner check. Every button goes back through `/api/contacts/admin`, which
- * does it again: a page that renders is not an authorisation. The split is
- * `splitReaders`, the same function the hub's chip counts with.
+ * the owner check. Every button goes back through a route that does it again
+ * — a page that renders is not an authorisation. The split is `splitReaders`,
+ * the same function the hub's chip counts with.
  *
- * Provider-free on purpose, so the row tests can render it alone.
+ * Provider-free except for the step-2 panel (`NotifyStep`, which reads the
+ * locale context the `[user]` layout provides), so the row tests can render
+ * it alone.
  */
 export default function ReadersAdmin({
   username,
   locale,
   locales,
   dictionary,
-  contacts: initialContacts,
-  invites: initialInvites,
+  contacts,
+  invites,
   trips = [],
   hasGuestTrip,
   highlightId,
@@ -38,90 +43,45 @@ export default function ReadersAdmin({
   whatsappEnabled = true,
   defaultCountryCode,
   addressLookupEnabled = false,
-  own,
-  canAddOwn = false,
+  ownEmail = null,
+  preview = [],
 }: {
   username: string;
   locale: Locale;
-  /** The trips a writing link can name. Empty is a real state — a journal with
-   * no trip yet can issue a reading link and nothing else. */
+  /** The trips a buddy can be added to, or a buddy link can name. */
   trips?: { id: string; title: string }[];
-  /**
-   * Whether an approved guest could read any trip in the journal at all —
-   * `visibility: guest` (what an approval itself opens, B300) or
-   * `visibility: public` (already open to everyone, approval or not). Only a
-   * journal whose every trip is `private` leaves an approval opening nothing,
-   * which is worth saying before the owner acts on it rather than after
-   * (B638: a fully public journal was wrongly told it had nothing to open).
-   */
+  /** Whether an approved guest could read any trip at all (B300, B638). */
   hasGuestTrip: boolean;
-  /** The languages this journal offers, from its config. */
   locales: string[];
   dictionary: Record<string, string>;
   contacts: AdminContact[];
   invites: AdminInvite[];
-  /**
-   * The request the owner's approval mail (`notifyOwnerOfRequest`) was
-   * about — B319. From the page's own `?contact=` query string, so the
-   * button in that mail opens the queue with this one already in front of
-   * the owner rather than merely at the top of a list they still have to
-   * find.
-   */
+  /** The request the owner's approval mail was about — B319. */
   highlightId?: string;
-  /** B360: whether this server can act on a postcard request at all —
-   * `isEnabled("postcards", username)`, from the page. Defaults to shown, the
-   * same reasoning as `GuestForm`'s own default below. */
   postcardsEnabled?: boolean;
-  /** Whether this journal offers notifications at all. Off, the note below the
-   * tick boxes describes a channel that does not exist here. */
   pushEnabled?: boolean;
-  /** B376: whether this server can act on a WhatsApp update at all —
-   * `isEnabled("whatsapp", username)`, from the page. Same default reasoning. */
   whatsappEnabled?: boolean;
-  /** B385: `whatsappCountryCode()` — passed through to `GuestForm`'s own
-   * default, unrelated to whether WhatsApp itself is on. */
   defaultCountryCode?: string;
-  /** B399: `isEnabled("addressLookup", username)`, from the page. */
   addressLookupEnabled?: boolean;
-  /**
-   * The owner's own row, when they have one — B621, moved here from
-   * `/{user}/me`. Present and `canAddOwn` false is the ordinary state once
-   * they have pressed the button once.
-   */
-  own?: { token: string; contact: ManageContact };
-  /** Whether to offer to make one. True only for an owner who has none: a
-   * guest gets a row by being invited and approved, which is the whole of
-   * `lib/contacts`, and a button here would be a way around it. */
-  canAddOwn?: boolean;
+  /** The owner's own address, left out of every group (B621) — their own
+   * details live under Settings since B2291. */
+  ownEmail?: string | null;
+  /** What a reader would see (B2130/B2132): `previewJournal(username, "guest")`. */
+  preview?: TripPreview[];
 }) {
-  const [contacts, setContacts] = useState(initialContacts);
-  const [invites, setInvites] = useState(initialInvites);
-  // A `router.refresh()` (the invite section's grant, B2133) hands new props;
-  // take them, the way React's docs adjust state to a changed prop.
-  const [seeded, setSeeded] = useState({ initialContacts, initialInvites });
-  if (seeded.initialContacts !== initialContacts || seeded.initialInvites !== initialInvites) {
-    setSeeded({ initialContacts, initialInvites });
-    setContacts(initialContacts);
-    setInvites(initialInvites);
-  }
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
-  // `null`: closed. `"new"`: the "Add a guest" link. Otherwise the row being
-  // corrected. One form on the page at a time.
-  const [formTarget, setFormTarget] = useState<"new" | AdminContact | null>(null);
-  // B244, B2133 — the status line each Approve / Revoke / Resend left, by
-  // contact id, so a card that moves group keeps saying what just happened.
+  const [editing, setEditing] = useState<AdminContact | null>(null);
   const [notes, setNotes] = useState<CardEnv["notes"]>({});
 
   const t = (key: TranslationKey, vars?: Record<string, string>) => translate(dictionary, key, vars);
   const tn = (key: TranslationKey, count: number, vars?: Record<string, string>) =>
     plural(dictionary, key, count, vars);
 
-  async function refresh() {
-    const response = await fetch(`/api/contacts/admin?user=${encodeURIComponent(username)}`).catch(() => null);
-    if (!response?.ok) return;
-    const body = (await response.json()) as { contacts: AdminContact[]; invites: AdminInvite[] };
-    setContacts(body.contacts);
-    setInvites(body.invites);
+  /** Every list on this page is the server's: re-render it rather than keep
+   * a second copy in the browser that can drift from what the gates read. */
+  function refresh() {
+    router.refresh();
   }
 
   async function act(body: Record<string, unknown>) {
@@ -132,29 +92,41 @@ export default function ReadersAdmin({
       body: JSON.stringify({ user: username, ...body }),
     }).catch(() => null);
     setBusy(false);
-    await refresh();
+    refresh();
     return response;
   }
 
-  /** Approve, Revoke or Resend — reached only from the card's ConfirmPanel,
-   * then said back as a status line on that card. */
-  async function confirmed(contact: AdminContact, action: "approve" | "revoke" | "resend") {
+  /** Let in (or back in) and Decline / Take access away — reached only from
+   * the card's ConfirmPanel, then said back as a status line on that card. */
+  async function confirmed(contact: AdminContact, action: "letin" | "revoke") {
     const name = contact.name ?? contact.email;
-    const response = await act({ action, id: contact.id });
-    const body = (await response?.json().catch(() => null)) as { tripsOpened?: string[]; sent?: boolean } | null;
     let text: string | null = null;
-    if (response?.ok && body) {
-      if (action === "approve") {
+    if (action === "letin") {
+      setBusy(true);
+      const response = await fetch(`/api/web/${encodeURIComponent(username)}/readers/letin`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ contactId: contact.id }),
+      }).catch(() => null);
+      setBusy(false);
+      const body = (await response?.json().catch(() => null)) as
+        | { tripsOpened?: string[]; told?: "email" | "sms" | null }
+        | null;
+      if (response?.ok && body) {
         const trips = body.tripsOpened ?? [];
-        // B244 — what the approval opened, said rather than inferred.
-        text = trips.length
-          ? t("contact.adminApprovedTrips", { trips: trips.join(", ") })
-          : t("contact.adminApprovedNoTrip");
-      } else if (action === "revoke") {
-        text = t("contact.adminRevoked", { name });
-      } else if (body.sent) {
-        text = t("contact.adminResent", { email: contact.email });
+        text = [
+          trips.length
+            ? t("contact.adminApprovedTrips", { trips: trips.join(", ") })
+            : t("contact.adminApprovedNoTrip"),
+          body.told ? t(body.told === "email" ? "readers.toldByEmail" : "readers.toldBySms", { name }) : "",
+        ]
+          .filter(Boolean)
+          .join(" ");
       }
+      refresh();
+    } else {
+      const response = await act({ action: "revoke", id: contact.id });
+      if (response?.ok) text = t("contact.adminRevoked", { name });
     }
     setNotes((previous) => ({
       ...previous,
@@ -162,10 +134,10 @@ export default function ReadersAdmin({
     }));
   }
 
-  // B621 — the owner's own row is the section near the bottom, never a reader.
-  const split = splitReaders(contacts, own?.contact.email ?? null);
+  const split = splitReaders(contacts, ownEmail);
+  const invited = [...split.readingNow.filter(notOpenedYet), ...split.waitingOnThem];
+  const reading = split.readingNow.filter((contact) => !notOpenedYet(contact));
 
-  const editingId = formTarget !== null && formTarget !== "new" ? formTarget.id : null;
   const guestFormEnv: GuestFormEnv = {
     fallbackLocale: locale,
     locales,
@@ -178,27 +150,24 @@ export default function ReadersAdmin({
     whatsappEnabled,
     defaultCountryCode,
     addressLookupEnabled,
-    onClose: () => setFormTarget(null),
+    onClose: () => setEditing(null),
   };
   const env: CardEnv = {
     t,
     tn,
     busy,
     locale,
-    locales,
+    username,
     defaultCountryCode,
     act: (body) => void act(body),
     confirmed: (contact, action) => void confirmed(contact, action),
-    onEdit: setFormTarget,
-    // B321 — resolved here, where the invite list and the trip titles are.
+    refresh,
+    onEdit: setEditing,
     via: (contact) => viaLabel(contact.createdVia, invites, trips, t),
-    // B384 — only an unconfirmed row with a live invite behind it.
-    canResend: (contact) =>
-      contact.status === "pending" && !contact.confirmedAt && resendableInvite(contact.createdVia, invites) !== null,
     notes,
     highlightId,
-    editingId,
-    guestFormEnv: editingId ? guestFormEnv : undefined,
+    editingId: editing?.id ?? null,
+    guestFormEnv: editing ? guestFormEnv : undefined,
   };
 
   // Put the highlighted request in view rather than merely marked — B319.
@@ -209,66 +178,48 @@ export default function ReadersAdmin({
 
   return (
     <div lang={locale}>
-      {/* B300/B638 — said ahead of every Approve: approving opens nothing
-          while no trip is open to guests. */}
+      {/* B300/B638 — said ahead of every Let in: letting somebody in opens
+          nothing while no trip is open to guests. */}
       {!hasGuestTrip && (
-        <p className="mt-8 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3 text-base text-on-bright">
-          {t("contact.adminNoGuestTrip")}
+        <p className="mt-6 rounded-xl border-2 border-coral-600 bg-coral-300 px-4 py-3 text-base text-on-bright">
+          {t("readers.noGuestTrip")}
         </p>
       )}
 
-      <ReaderGroup title={t("contact.adminPending")} rows={split.waitingOnYou} env={env} />
-      {split.waitingOnThem.length > 0 && (
-        <ReaderGroup title={t("contact.adminWaitingOnThem")} rows={split.waitingOnThem} env={env} />
-      )}
-      {/* B2296 — filed by an import, never invited. Its own group rather than
-          folded into "waiting for them": that name means an invite already
-          went out, and none did for these. */}
-      {split.notInvited.length > 0 && (
-        <ReaderGroup title={t("contact.adminNotInvited")} rows={split.notInvited} env={env} />
-      )}
-      <ReaderGroup title={t("contact.adminReadingNow")} rows={split.readingNow} env={env}>
-        {/* A contact typed in by hand, with an address for postcards — a
-            secondary action, so a link rather than a second primary. */}
-        {formTarget === "new" ? (
-          <GuestForm contact={null} {...guestFormEnv} />
-        ) : (
-          <button
-            type="button"
-            onClick={() => setFormTarget("new")}
-            className="mt-3 text-sm font-semibold text-ink-strong underline underline-offset-2"
-          >
-            {t("contact.adminAddGuest")}
-          </button>
-        )}
-      </ReaderGroup>
-      {split.revoked.length > 0 && <ReaderGroup title={t("contact.adminOther")} rows={split.revoked} env={env} />}
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <AddPersonDoor username={username} locale={locale} locales={locales} trips={trips} t={t} onDone={refresh} />
+        <InviteLinkDoor username={username} locale={locale} trips={trips} t={t} tn={tn} onCreated={refresh} />
+      </div>
+      {preview.length > 0 && <ReaderPreview preview={preview} t={t} tn={tn} />}
 
-      {(own || canAddOwn) && (
-        <OwnDetails
-          username={username}
-          locales={locales}
-          dictionary={dictionary}
-          defaultCountryCode={defaultCountryCode}
-          addressLookupEnabled={addressLookupEnabled}
-          own={own}
-          t={t}
-          onAdded={refresh}
-        />
-      )}
-
-      <InvitationLinks
-        username={username}
-        locale={locale}
-        locales={locales}
-        trips={trips}
-        invites={invites}
-        t={t}
-        busy={busy}
-        setBusy={setBusy}
-        act={(body) => void act(body)}
-        refresh={refresh}
+      <ReaderGroup title={t("contact.adminPending")} rows={split.waitingOnYou} kind="asking" env={env} />
+      <ReaderGroup title={t("readers.group.invited")} rows={invited} kind="invited" env={env} />
+      <ReaderGroup title={t("contact.adminNotInvited")} rows={split.notInvited} kind="notInvited" env={env} />
+      <ReaderGroup
+        title={t("readers.group.reading")}
+        rows={reading}
+        kind="reading"
+        env={env}
+        empty={t("readers.group.readingEmpty")}
       />
+
+      <LinksList username={username} locale={locale} invites={invites} trips={trips} t={t} tn={tn} onStopped={refresh} />
+
+      {split.revoked.length > 0 && (
+        <details className="mt-10">
+          <summary className="min-h-11 cursor-pointer py-2 font-semibold text-ink-strong underline underline-offset-2">
+            {t("readers.group.revoked", { count: String(split.revoked.length) })}
+          </summary>
+          <ReaderGroup title={t("readers.group.revokedTitle")} rows={split.revoked} kind="revoked" env={env} />
+        </details>
+      )}
+
+      <p className="mt-10 text-sm text-ink-secondary">
+        {t("readers.ownDetailsMoved")}{" "}
+        <a className="font-semibold text-ink-strong underline underline-offset-2" href={`/${username}/studio/journal#own-details`}>
+          {t("readers.ownDetailsLink")}
+        </a>
+      </p>
     </div>
   );
 }

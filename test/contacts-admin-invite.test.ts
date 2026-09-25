@@ -77,67 +77,9 @@ async function admin(body: Record<string, unknown>): Promise<{ status: number; b
   return { status: response.status, body: (await response.json()) as AdminBody };
 }
 
-/** `POST /api/contacts/redeem` — the door the mailed link's page posts to. */
-async function redeem(
-  body: Record<string, unknown>,
-): Promise<{ status: number; body: { status?: string } }> {
-  const { POST } = await import("@/app/api/contacts/redeem/route");
-  const response = await POST(
-    new Request("https://example.test/api/contacts/redeem", {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({ user: OWNER, kind: "guest", ...body }),
-    }),
-  );
-  return { status: response.status, body: (await response.json()) as { status?: string } };
-}
-
-/** `POST /api/contacts/confirm` — the door the six-digit code that follows
- * `redeem` posts to. */
-async function confirm(
-  email: string,
-  code: string,
-): Promise<{ status: number; body: { ok?: boolean; status?: string } }> {
-  const { POST } = await import("@/app/api/contacts/confirm/route");
-  const response = await POST(
-    new Request("https://example.test/api/contacts/confirm", {
-      method: "POST",
-      headers: headers(),
-      body: JSON.stringify({ user: OWNER, email, code }),
-    }),
-  );
-  return { status: response.status, body: (await response.json()) as { ok?: boolean; status?: string } };
-}
-
-async function freshCode(email: string): Promise<string> {
-  const { issueCode } = await import("@/lib/auth");
-  const { code } = await issueCode(OWNER, email, "guest");
-  return code;
-}
-
 async function contactRow(email: string) {
   const { getContactByEmail } = await import("@/lib/contacts");
   return getContactByEmail(OWNER, email);
-}
-
-async function grantExists(contactId: string): Promise<boolean> {
-  const { getDatabase } = await import("@/lib/db");
-  const { db } = await getDatabase();
-  const row = await db
-    .selectFrom("access_grants")
-    .select("id")
-    .where("owner_id", "=", OWNER)
-    .where("contact_id", "=", contactId)
-    .where("scope", "=", "read")
-    .executeTakeFirst();
-  return row !== undefined;
-}
-
-/** Every mail this journal has "sent" (dry-run: a file on disk), addressed to
- * the given local part. */
-function mailedTo(marker: string): boolean {
-  const files = fs.readdirSync(path.join(dir, "mail", OWNER));
-  return files.some((f) => f.includes(marker));
 }
 
 beforeAll(async () => {
@@ -214,56 +156,8 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
   describe("the owner adding a guest by hand mails an invitation, not a bare code", () => {
     const FAMILY = "family@example.test";
 
-    test("create mails a link, and the row is pre-approved the moment it is opened", async () => {
-      const created = await admin({ action: "create", name: "Family", email: FAMILY, locale: "en" });
-      expect(created.status).toBe(200);
-      expect(created.body.ok).toBe(true);
-      expect(created.body.contact?.status).toBe("pending");
-      expect(created.body.contact?.confirmedAt).toBeNull();
-      // Not `owner` any more — the row now points at the invite `sendInviteMail`
-      // used, which is what `preapprovedEmailFor` reads on confirmation.
-      expect(created.body.contact?.createdVia).toMatch(/^invite:/);
-
-      // A mail landed on disk, addressed to the family — the invitation, not
-      // the bare code B384 found.
-      expect(mailedTo("family-example-test")).toBe(true);
-
-      // Nothing was granted yet: the address has not proved itself.
-      const before = await contactRow(FAMILY);
-      expect(before?.status).toBe("pending");
-      expect(await grantExists(before!.id)).toBe(false);
-
-      // The recipient opens the mailed link — the same door B319's own link
-      // leads to — and proves the address with the six-digit code that follows.
-      const inviteId = created.body.contact!.createdVia!.slice("invite:".length);
-      const { listInvitesWithLinks } = await import("@/lib/contacts/invites");
-      const { serverSite } = await import("@/lib/site");
-      const invite = (await listInvitesWithLinks(OWNER, serverSite().url)).find(
-        (candidate) => candidate.id === inviteId,
-      );
-      expect(invite?.url).toBeTruthy();
-      const inviteToken = invite!.url!.split("/").pop()!;
-
-      // The owner's own cookie, from signing into `admin()` above, must not
-      // leak into the recipient's redemption.
-      jar.cookies = {};
-      const redeemed = await redeem({ token: inviteToken, name: "Family", email: FAMILY });
-      expect(redeemed.body.status).toBe("code");
-
-      const code = await freshCode(FAMILY);
-      const result = await confirm(FAMILY, code);
-
-      // `active`, not `pending`: the owner already vouched for this exact
-      // address by typing it in, so proving it is the whole of what was left.
-      expect(result.body.status).toBe("active");
-
-      const after = await contactRow(FAMILY);
-      expect(after?.status).toBe("active");
-      expect(after?.approvedAt).not.toBeNull();
-      expect(await grantExists(after!.id)).toBe(true);
-    });
-
     test("create refuses an address already on the list, same as before", async () => {
+      await admin({ action: "create", name: "First", email: FAMILY, locale: "en" });
       const dup = await admin({ action: "create", name: "Again", email: FAMILY, locale: "en" });
       expect(dup.status).toBe(409);
       expect(dup.body.error).toBe("contact_exists");
@@ -285,18 +179,6 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       // Two mails to the same address now: the original and the resend.
       const files = fs.readdirSync(path.join(dir, "mail", OWNER));
       expect(files.filter((f) => f.includes("lost-it-example-test")).length).toBeGreaterThanOrEqual(2);
-    });
-
-    test("refuses once the address has confirmed — nothing left to resend", async () => {
-      const email = "already-confirmed@example.test";
-      await admin({ action: "create", name: "Confirmed", email, locale: "en" });
-      const code = await freshCode(email);
-      await confirm(email, code);
-      const contact = await contactRow(email);
-
-      const resent = await admin({ action: "resend", id: contact!.id });
-      expect(resent.status).toBe(409);
-      expect(resent.body.error).toBe("already_confirmed");
     });
 
     // B388 — the button next to a pending row had no cooldown at all: every
@@ -347,54 +229,4 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
     });
   });
 
-  /**
-   * B244 — the response to `{"action":"approve"}` used to say only `ok: true`,
-   * dropping the trip ids `approveTripPlaces` already computes. Now it names
-   * them (as titles, for the owner reading the page), and names an empty list
-   * rather than nothing when the approval opened no trip.
-   */
-  describe("approving names the trips it opened", () => {
-    test("names a trip the contact had asked to join, by title", async () => {
-      const { requestContact } = await import("@/lib/contacts");
-      const { claimTripPlace } = await import("@/lib/tripPeople");
-
-      const { contactId } = await requestContact(OWNER, {
-        name: "Buddy",
-        email: "buddy@example.test",
-        locale: "en",
-        address: null,
-        wantsEmailDigest: false,
-        wantsPostcard: false,
-        createdVia: "owner",
-      });
-      const code = await freshCode("buddy@example.test");
-      await confirm("buddy@example.test", code);
-      await claimTripPlace(OWNER, "welcome-trip", contactId!, null);
-
-      const approved = await admin({ action: "approve", id: contactId! });
-      expect(approved.status).toBe(200);
-      expect(approved.body.ok).toBe(true);
-      expect(approved.body.tripsOpened).toEqual(["Welcome Trip"]);
-    });
-
-    test("names no trip when the approval only opens the journal itself", async () => {
-      const { requestContact } = await import("@/lib/contacts");
-
-      const { contactId } = await requestContact(OWNER, {
-        name: "Reader",
-        email: "reader-only@example.test",
-        locale: "en",
-        address: null,
-        wantsEmailDigest: false,
-        wantsPostcard: false,
-        createdVia: "owner",
-      });
-      const code = await freshCode("reader-only@example.test");
-      await confirm("reader-only@example.test", code);
-
-      const approved = await admin({ action: "approve", id: contactId! });
-      expect(approved.status).toBe(200);
-      expect(approved.body.tripsOpened).toEqual([]);
-    });
-  });
 });

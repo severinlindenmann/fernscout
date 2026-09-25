@@ -296,55 +296,6 @@ export async function sendWelcomeMail(
 }
 
 /**
- * "We have your details, the owner will let you in." Carries the manage link
- * — the first mail that can, because the address has just been proved.
- *
- * Best effort (B272). By the time this is called, `confirmContact` has
- * already succeeded and the reader has proved their code was right — an SMTP
- * hiccup here must not turn that into a 500 the UI renders as "that code
- * didn't work". Failure is logged and swallowed; there is no state to retry
- * from because this letter carries nothing the reader cannot get again from
- * `/{user}/c/manage` once they are approved.
- */
-export async function sendConfirmedMail(
-  username: string,
-  user: UserConfig,
-  contact: ContactRecord,
-  manageToken: string,
-): Promise<SendResult | null> {
-  if (!mayMailContact(contact)) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
-  const manage = manageUrl(baseUrl(), username, manageToken);
-  try {
-    return await sendMail(
-      renderMail(
-        contact.email,
-        translateIn(locale, "contact.doneTitle"),
-        {
-          preheader: translateIn(locale, "contact.doneBody", { title: user.title }),
-          title: translateIn(locale, "contact.doneTitle"),
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "contact.doneBody", { title: user.title }) },
-            {
-              kind: "button",
-              text: translateIn(locale, "contact.mailManageButton"),
-              href: manage,
-            },
-            { kind: "meta", text: translateIn(locale, "contact.mailManageCaption") },
-          ],
-          footer: footerFor(locale, user),
-          unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, manageToken),
-        },
-        username,
-      ),
-    );
-  } catch (err) {
-    console.error(`[contacts] confirmation mail to ${contact.email} failed:`, err);
-    return null;
-  }
-}
-
-/**
  * C16 — the owner hears about it.
  *
  * Sent the moment somebody confirms, not on a schedule, because the failure
