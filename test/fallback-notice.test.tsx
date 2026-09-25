@@ -53,9 +53,16 @@ describe("the fallback notice", () => {
 
   test("a reader on a locale the day does not carry sees the notice once, in their own language", () => {
     const expectedByReaderThenSource: Record<string, Record<string, string>> = {
-      en: { de: "Written in German", hu: "Written in Hungarian" },
-      de: { en: "Auf Englisch geschrieben", hu: "Auf Ungarisch geschrieben" },
-      hu: { de: "Németül íródott", en: "Angolul íródott" },
+      en: { de: "Written in German", hu: "Written in Hungarian", fr: "Written in French", it: "Written in Italian" },
+      de: {
+        en: "Auf Englisch geschrieben",
+        hu: "Auf Ungarisch geschrieben",
+        fr: "Auf Französisch geschrieben",
+        it: "Auf Italienisch geschrieben",
+      },
+      hu: { de: "Németül íródott", en: "Angolul íródott", fr: "Franciául íródott", it: "Olaszul íródott" },
+      fr: { en: "Écrit en anglais", de: "Écrit en allemand", hu: "Écrit en hongrois", it: "Écrit en italien" },
+      it: { en: "Scritto in inglese", de: "Scritto in tedesco", hu: "Scritto in ungherese", fr: "Scritto in francese" },
     };
 
     for (const reader of MAINTAINED_LOCALES) {

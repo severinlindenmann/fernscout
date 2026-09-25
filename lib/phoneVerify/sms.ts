@@ -20,6 +20,8 @@ const SENTENCES: Record<string, (code: string, site: string) => string> = {
   en: (code, site) => `${code} is your ${site} code. It expires in 30 minutes.`,
   de: (code, site) => `${code} ist dein Code für ${site}. Er läuft in 30 Minuten ab.`,
   hu: (code, site) => `${code} a(z) ${site} kódod. 30 percen belül lejár.`,
+  fr: (code, site) => `${code} est ton code ${site}. Il expire dans 30 minutes.`,
+  it: (code, site) => `${code} è il tuo codice ${site}. Scade tra 30 minuti.`,
 };
 
 async function start(phone: string, locale: string): Promise<StartResult> {

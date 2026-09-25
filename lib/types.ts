@@ -19,7 +19,7 @@ export type TransportMode =
   | "tram"
   | "ferry";
 
-export type Locale = "en" | "de" | "hu";
+export type Locale = "en" | "de" | "hu" | "fr" | "it";
 
 export type GalleryItem = {
   src: string;

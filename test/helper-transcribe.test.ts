@@ -190,12 +190,12 @@ describe("which language is asked for", () => {
 
   test("an override is honoured, and an unsupported one is refused rather than approximated", () => {
     expect(speechLanguageFor("hu", "en", "en")).toBe("hu");
-    expect(speechLanguageFor("fr", "en", "en")).toBeNull();
+    expect(speechLanguageFor("es", "en", "en")).toBeNull();
   });
 
   test("a journal in a language nothing here transcribes falls to the reader's, then to nothing", () => {
-    expect(speechLanguageFor("", "fr", "de")).toBe("de");
-    expect(speechLanguageFor("", "fr", "it")).toBeNull();
+    expect(speechLanguageFor("", "es", "de")).toBe("de");
+    expect(speechLanguageFor("", "es", "pt")).toBeNull();
   });
 
   test("the route sends the journal's own language to the provider", async () => {
@@ -208,9 +208,9 @@ describe("which language is asked for", () => {
   });
 
   test("a language nobody can transcribe is refused before any spend", async () => {
-    writeJournal(["fr"]);
+    writeJournal(["es"]);
     await consent();
-    const refused = await read(await call({ locale: "fr" }));
+    const refused = await read(await call({ locale: "es" }));
     expect(refused.status).toBe(400);
     expect(refused.body.error).toBe("unsupported_language");
     expect(transcribeAudio).not.toHaveBeenCalled();
