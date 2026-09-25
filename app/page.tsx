@@ -67,17 +67,17 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 const helperEnabled = isEnabled("helper");
 
-/**
- * B2341. `storeUrl` wins outright when set — the waitlist half is never
- * even asked. Both undefined/false is a fresh clone's answer, and is what
- * renders nothing at all; see `AppWaitlistDoor`.
- */
-const iosAppOn = isEnabled("iosApp");
-const appStoreUrl = iosAppOn ? iosAppStoreUrl() : undefined;
-const appWaitlistAvailable = iosAppOn && !appStoreUrl && iosAppWaitlistAvailable();
-
 export default async function Root() {
   const site = serverSite();
+  // B2341. Computed per request, unlike `helperEnabled` above: an operator
+  // sets `features.iosApp.storeUrl` without a redeploy, and a module-scope
+  // constant evaluated once at process start would never see it change.
+  // `storeUrl` wins outright when set — the waitlist half is never even
+  // asked. Both undefined/false is a fresh clone's answer, and is what
+  // renders nothing at all; see `AppWaitlistDoor`.
+  const iosAppOn = isEnabled("iosApp");
+  const appStoreUrl = iosAppOn ? iosAppStoreUrl() : undefined;
+  const appWaitlistAvailable = iosAppOn && !appStoreUrl && iosAppWaitlistAvailable();
   // The notice is the operator's own words in the reader's language — see
   // bannerFor(). Same locale rule as the tab title above, and for the same
   // reason: a German page with an English warning across the top of it is the
