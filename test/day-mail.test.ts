@@ -1,0 +1,1065 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import sharp from "sharp";
+import { clearConfigCache } from "@/lib/config";
+import { clearUserCache } from "@/lib/users";
+import { closeDatabase, getDatabase } from "@/lib/db";
+import { issueCode, verifyCode, tripWriteScope } from "@/lib/auth";
+import { balanceOf, grant, ledgerFor } from "@/lib/credits";
+import { requestContact, confirmContact, approveContact } from "@/lib/contacts";
+import { mailWouldReach, sendDayLetter } from "@/lib/digest/dayLetter";
+import { getEntryBySlug } from "@/lib/entries";
+import type { Locale } from "@/lib/types";
+import { writeTripFixture, writeDayFixture } from "./fixtures/content";
+import { hasPaid } from "./support/openCore";
+
+/**
+ * B345 — the letter one published day sends.
+ *
+ * These pin the properties the plan and the ticket call out by name: costs
+ * and trip access are asked per recipient rather than once, a `test: true`
+ * day sends nothing at all, the photograph travels as an attachment rather
+ * than a link, a failed send never fails the publish, and both triggers are
+ * the owner's alone to pull.
+ */
+
+const OWNER = "alex";
+const OWNER_EMAIL = "alex@example.test";
+
+let dir: string;
+
+function writeServerConfig(opts: { credits?: boolean } = {}) {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "R", url: "https://example.test", defaultUser: OWNER },
+      users: { reserved: [] },
+      features: {
+        auth: { enabled: true },
+        contacts: { enabled: true },
+        mail: { enabled: true, transport: "file" },
+        ...(opts.credits !== undefined ? { credits: { enabled: opts.credits } } : {}),
+      },
+    }),
+  );
+  clearConfigCache();
+}
+
+/** Turns on B366's billing switch for one test, mid-run — the rest of the
+ * file leaves it absent, which `paid/test/credits.test.ts` already pins as "off",
+ * so this file only has to prove that "on" is wired to the two send paths. */
+function enableCredits() {
+  writeServerConfig({ credits: true });
+}
+
+function writeUserConfig() {
+  fs.mkdirSync(path.join(dir, OWNER), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, OWNER, "config.json"),
+    JSON.stringify({
+      title: "Two Backpacks",
+      tagline: "one slow loop",
+      owner: { name: "Alex B", nickname: "Alex", email: OWNER_EMAIL },
+      startLocation: "Zurich",
+      defaultLocale: "en",
+      locales: ["en", "de"],
+      baseCurrency: "CHF",
+      displayCurrencies: ["CHF"],
+      units: "metric",
+      features: {
+        auth: { enabled: true },
+        contacts: { enabled: true },
+        mail: { enabled: true },
+        costs: { enabled: true },
+      },
+    }),
+  );
+}
+
+type TripOptions = {
+  visibility?: "public" | "guest" | "private";
+  costsVisibility?: "public" | "guests";
+  test?: boolean;
+  people?: { name: string; email: string }[];
+};
+
+/**
+ * `writeTripFixture` already writes through `createTrip` (`lib/tripWrite.ts`),
+ * the real production writer — which is `trip.json` now (B1598: `lib/trips.ts`
+ * reads that file directly, not a `.md` twin), so there is nothing left for a
+ * second, hand-rolled write to mirror. There used to be one here, kept in
+ * step with the v1 markdown this file otherwise wrote; that read-layer gap
+ * has closed (`lib/trips.ts`/`lib/entries.ts` both read v2 JSON), and the
+ * mirror had drifted into a bug rather than a workaround — it overwrote the
+ * `trip.json` `writeTripFixture` had just written, silently dropping
+ * `costsVisibility` (B1630's "costs are asked per recipient" case).
+ */
+function writeTrip(id: string, opts: TripOptions = {}) {
+  writeTripFixture(OWNER, {
+    id,
+    title: id,
+    start: "2026-09-01",
+    end: "2026-09-10",
+    status: "current",
+    visibility: opts.visibility ?? "public",
+    costsVisibility: opts.costsVisibility,
+    test: opts.test,
+    people: opts.people?.length ? opts.people : undefined,
+  });
+}
+
+async function writePhoto(tripId: string) {
+  const mediaDir = path.join(dir, OWNER, "trips", tripId, "media");
+  fs.mkdirSync(mediaDir, { recursive: true });
+  await sharp({ create: { width: 1200, height: 800, channels: 3, background: "#3fa9c4" } })
+    .jpeg()
+    .toFile(path.join(mediaDir, "photo.jpg"));
+}
+
+type EntryOptions = {
+  slug?: string;
+  title?: string;
+  date?: string;
+  costs?: boolean;
+  photo?: boolean;
+  translations?: boolean;
+  test?: boolean;
+  draft?: boolean;
+  noCoordinates?: boolean;
+};
+
+/** The day's own prose — shared so a later assertion can size a letter's
+ * excerpt against it without re-reading the file (there is no `.md` twin of
+ * it any more to read). */
+const ENTRY_CONTENT =
+  "The old town hangs with lanterns, and the canal carries a hundred candlelit " +
+  "boats past well after dark. We ate on the water and walked home slowly.";
+
+// Not on writeDayFixture directly (B1630): needs a `costs:` line, a
+// `translations:` block, a captioned gallery item and a coordinate toggle —
+// composed here from the fields writeDayFixture already understands, plus
+// the `declined` map completeness demands for whatever is left out (a draft
+// this file later publishes through the real API goes through the same
+// asked-or-declined check `dayWrite` runs — see lib/api/v2/schemas/day.ts).
+function writeEntry(tripId: string, opts: EntryOptions = {}): { slug: string; file: string } {
+  const title = opts.title ?? "Lanterns of Hoi An";
+  const date = opts.date ?? "2026-09-02";
+  const slug = opts.slug ?? "lanterns-of-hoi-an";
+
+  const provided: Record<string, boolean> = {
+    media: !!opts.photo,
+    costs: !!opts.costs,
+    coordinates: !opts.noCoordinates,
+    weather: false,
+    time: false,
+    timezone: false,
+    location: true,
+    country: true,
+    countryCode: false,
+    transportMode: false,
+    tags: false,
+    translations: !!opts.translations,
+    visibility: false,
+  };
+  const declined: Record<string, string> = {};
+  for (const [field, has] of Object.entries(provided)) {
+    if (!has) declined[field] = "n/a for this fixture";
+  }
+
+  const { file } = writeDayFixture(dir, OWNER, tripId, {
+    slug,
+    date,
+    title,
+    content: ENTRY_CONTENT,
+    location: "Hoi An",
+    country: "Vietnam",
+    ...(opts.noCoordinates ? {} : { coordinates: { lat: 15.8801, lng: 108.338 } }),
+    ...(opts.photo
+      ? { media: [{ src: `/media/${tripId}/photo.jpg`, type: "image", caption: "Lanterns at dusk" }] }
+      : {}),
+    ...(opts.costs ? { costs: [{ label: "Dinner", amount: 42, category: "food", currency: "CHF" }] } : {}),
+    ...(opts.translations
+      ? {
+          translations: {
+            de: {
+              title: "Laternen von Hoi An",
+              content: "Die Altstadt hängt voller Laternen, lange nach Einbruch der Dunkelheit.",
+            },
+          },
+        }
+      : {}),
+    ...(opts.test ? { test: true } : {}),
+    ...(opts.draft ? { status: "draft" as const } : {}),
+    declined,
+  });
+  return { slug, file };
+}
+
+async function addReader(
+  email: string,
+  locale: Locale,
+  opts: { wantsEmailDigest?: boolean; approve?: boolean } = {},
+): Promise<string> {
+  await requestContact(OWNER, {
+    name: `Reader ${locale}`,
+    email,
+    locale,
+    address: null,
+    wantsEmailDigest: opts.wantsEmailDigest ?? true,
+    wantsPostcard: false,
+    createdVia: "open",
+  });
+  const { code } = await issueCode(OWNER, email, "guest");
+  const confirmed = await confirmContact(OWNER, email, code);
+  if (!confirmed.ok) throw new Error("confirmation failed");
+  if (opts.approve !== false) await approveContact(OWNER, confirmed.contact.id);
+  return confirmed.contact.id;
+}
+
+async function clearGrant(contactId: string) {
+  const { db } = await getDatabase();
+  await db.deleteFrom("access_grants").where("contact_id", "=", contactId).execute();
+}
+
+async function agentToken(): Promise<string> {
+  const { code } = await issueCode(OWNER, OWNER_EMAIL, "agent");
+  const verified = await verifyCode(OWNER, OWNER_EMAIL, code, "agent");
+  if (!verified.ok) throw new Error(`could not mint a token: ${verified.reason}`);
+  return verified.token;
+}
+
+async function scopedToken(email: string, trip: string): Promise<string> {
+  const { code } = await issueCode(OWNER, email, "agent", { trip });
+  const session = await verifyCode(OWNER, email, code, "agent", tripWriteScope(trip));
+  if (!session.ok) throw new Error(`could not mint a trip token: ${session.reason}`);
+  return session.token;
+}
+
+/** `slug` here is the bare v1-style slug every call site already uses
+ * (`"unannounced-day"`); the v2 route addresses a day by the whole
+ * `YYYY-MM-DD-slug` filename stem, which `writeEntry` wrote — resolved from
+ * disk rather than changing every call site's slug. */
+function v2SlugFor(tripId: string, slug: string): string {
+  const entriesDir = path.join(dir, OWNER, "trips", tripId, "entries");
+  const file = fs.readdirSync(entriesDir).find((f) => f.endsWith(`-${slug}.json`));
+  if (!file) throw new Error(`no v2 mirror day for "${tripId}/${slug}" — did writeEntry() run for it?`);
+  return file.slice(0, -".json".length);
+}
+
+/**
+ * `body` here is old v1 vocabulary (`send_mail`, `costs`/`coordinates`/
+ * `photos` declines) — kept as every call site already writes it, and
+ * translated to v2's `publishRequest` shape (`sendMail`/`sendWhatsapp`;
+ * completeness is answered by `writeEntry`'s own declines instead of a
+ * per-call decline list, so those three v1 keys need no v2 counterpart).
+ *
+ * No draft/publish flip of the file needed here any more: the v2 route
+ * itself writes the day `published` (`lib/api/v2/store.ts`'s `writeDayFile`)
+ * before it calls `sendDayLetter`/`sendDayWhatsapp`, and those read the same
+ * `entries/*.json` back through `lib/entries.ts`, whose cache keys off each
+ * file's own mtime/size — so the write this route just made is what a send
+ * in the same call sees. There used to be a real v1/v2 split here (markdown
+ * on one side, JSON on the other); B1598 closed it by moving `lib/entries.ts`
+ * onto the same JSON `lib/api/v2/store.ts` writes.
+ */
+async function publish(
+  token: string,
+  tripId: string,
+  slug: string,
+  body: Record<string, unknown> = {},
+) {
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/publish/route");
+  const v2Slug = v2SlugFor(tripId, slug);
+  const v2Body: Record<string, unknown> = {};
+  if ("send_mail" in body) v2Body.sendMail = body.send_mail;
+  if ("send_whatsapp" in body) v2Body.sendWhatsapp = body.send_whatsapp;
+
+  const response = await POST(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${tripId}/days/${v2Slug}/publish`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify(v2Body),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: tripId, slug: v2Slug }) },
+  );
+  const status = response.status;
+  const responseBody = (await response.json()) as Record<string, unknown>;
+  return { status, body: responseBody };
+}
+
+async function resend(token: string, tripId: string, slug: string) {
+  const { POST } = await import("@/app/api/v2/[user]/trips/[trip]/days/[slug]/send/route");
+  const v2Slug = v2SlugFor(tripId, slug);
+  const response = await POST(
+    new Request(`https://t.test/api/v2/${OWNER}/trips/${tripId}/days/${v2Slug}/send`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ channels: ["mail"] }),
+    }),
+    { params: Promise.resolve({ user: OWNER, trip: tripId, slug: v2Slug }) },
+  );
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+function mailFiles(): string[] {
+  const box = path.join(dir, "mail", OWNER);
+  return fs.existsSync(box) ? fs.readdirSync(box).sort() : [];
+}
+
+/** The `.eml` addressed to one recipient — matched the same way the file
+ * transport names its files (`lib/mail/index.ts`'s own `slug()`). */
+// A boundary on both sides — not just `.includes` — because one address
+// being a substring of another ("quinn" fine, but "granted"/"ungranted"
+// is not) must not pick the wrong .eml silently.
+function addressPattern(emailFragment: string): RegExp {
+  const needle = emailFragment.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+  return new RegExp(`(^|[^a-z])${needle}([^a-z]|$)`);
+}
+
+function emlFor(emailFragment: string): string {
+  const pattern = addressPattern(emailFragment);
+  const file = mailFiles().find((f) => pattern.test(f));
+  if (!file) throw new Error(`no .eml addressed to "${emailFragment}" among: ${mailFiles().join(", ")}`);
+  return fs.readFileSync(path.join(dir, "mail", OWNER, file), "utf8");
+}
+
+function hasMailTo(emailFragment: string): boolean {
+  const pattern = addressPattern(emailFragment);
+  return mailFiles().some((f) => pattern.test(f));
+}
+
+/** The base64 `text/plain` body out of a raw `.eml`, whatever it is nested
+ * inside — a bare `multipart/alternative`, or one wrapped in
+ * `multipart/related` for an inline attachment. */
+function textPartOf(raw: string): string {
+  const match = /Content-Type: text\/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n([\s\S]*?)\r\n\r\n--/.exec(
+    raw,
+  );
+  if (!match) throw new Error("no text/plain part found");
+  return Buffer.from(match[1].replace(/\r\n/g, ""), "base64").toString("utf8");
+}
+
+beforeEach(async () => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-day-mail-"));
+  process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
+  process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
+  process.env.CONTACTS_ENCRYPTION_KEY = "33".repeat(32);
+  process.env.SESSION_SECRET = "day-mail-test-secret-day-mail-test";
+  delete process.env.AUTH_DEV_CODE;
+
+  writeServerConfig();
+  writeUserConfig();
+  vi.spyOn(console, "log").mockImplementation(() => {});
+
+  const { migrateToLatest } = await import("@/lib/db/migrate");
+  await migrateToLatest(await getDatabase());
+});
+
+afterEach(async () => {
+  await closeDatabase();
+  for (const key of [
+    "CONTENT_DIR",
+    "DATA_DIR",
+    "DATABASE_URL",
+    "CONTACTS_ENCRYPTION_KEY",
+    "SESSION_SECRET",
+  ]) {
+    delete process.env[key];
+  }
+  clearConfigCache();
+  clearUserCache();
+  vi.restoreAllMocks();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+describe("who receives it", () => {
+  test("a private trip reaches the people on it, not a journal guest", async () => {
+    writeTrip("secret", { visibility: "private", people: [{ name: "Robin", email: "robin@example.test" }] });
+    const { slug } = writeEntry("secret");
+    await addReader("robin@example.test", "en");
+    await addReader("stranger@example.test", "en");
+
+    const outcome = await sendDayLetter(OWNER, "alex/secret", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const sentTo = outcome.sent.map((s) => s.email);
+    expect(sentTo).toContain("robin@example.test");
+    expect(sentTo).not.toContain("stranger@example.test");
+    // The owner, always.
+    expect(sentTo).toContain(OWNER_EMAIL);
+
+    expect(hasMailTo("robin-example-test")).toBe(true);
+    expect(hasMailTo("stranger-example-test")).toBe(false);
+  });
+
+  test("wantsEmailDigest is the only consent this checks — off means nothing, traveller or not", async () => {
+    writeTrip("secret2", { visibility: "private", people: [{ name: "Robin", email: "robin@example.test" }] });
+    const { slug } = writeEntry("secret2");
+    await addReader("robin@example.test", "en", { wantsEmailDigest: false });
+
+    const outcome = await sendDayLetter(OWNER, "alex/secret2", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent.map((s) => s.email)).not.toContain("robin@example.test");
+    expect(hasMailTo("robin-example-test")).toBe(false);
+  });
+
+  test("a `guest` trip reaches an approved contact, and a public one reaches everybody who opted in", async () => {
+    writeTrip("open", { visibility: "guest" });
+    const { slug } = writeEntry("open", { date: "2026-09-03", slug: "open-day" });
+    const grantedId = await addReader("grant@example.test", "en");
+    await addReader("pending@example.test", "en", { approve: false });
+
+    const outcome = await sendDayLetter(OWNER, "alex/open", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    const sentTo = outcome.sent.map((s) => s.email);
+    expect(sentTo).toContain("grant@example.test");
+    expect(sentTo).not.toContain("pending@example.test");
+    expect(grantedId).toBeTruthy();
+  });
+});
+
+/**
+ * B1133 — the owner's own copy said they had asked to be kept posted, which
+ * is false: they published the day, and the letter is a receipt. The
+ * contact's copy is unchanged — it is genuinely true for them.
+ */
+describe("the owner's own copy of the letter", () => {
+  test("does not claim the owner asked to be kept posted, and offers no link that is not there", async () => {
+    writeTrip("owner-footer", { visibility: "public" });
+    const { slug } = writeEntry("owner-footer", { date: "2026-09-10", slug: "owner-footer-day" });
+    await addReader("reader@example.test", "en");
+
+    const outcome = await sendDayLetter(OWNER, "alex/owner-footer", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent.map((s) => s.email)).toEqual(
+      expect.arrayContaining([OWNER_EMAIL, "reader@example.test"]),
+    );
+
+    const ownerBody = textPartOf(emlFor("alex-example-test"));
+    expect(ownerBody).not.toContain("you asked");
+    expect(ownerBody).not.toContain("Change your language or stop these emails");
+    expect(ownerBody).not.toContain("Stop all emails");
+    const ownerRaw = emlFor("alex-example-test");
+    expect(ownerRaw).not.toContain("List-Unsubscribe");
+
+    // The contact's copy is untouched: still true, still carries the links.
+    const readerBody = textPartOf(emlFor("reader-example-test"));
+    expect(readerBody).toContain("you asked");
+    const readerRaw = emlFor("reader-example-test");
+    expect(readerRaw).toContain("List-Unsubscribe:");
+  });
+});
+
+describe("costs are asked per recipient", () => {
+  test("a guest with a live grant sees the cost, one without does not", async () => {
+    writeTrip("costed", { visibility: "public", costsVisibility: "guests" });
+    const { slug } = writeEntry("costed", { date: "2026-09-04", slug: "spendy-day", costs: true });
+
+    const grantedId = await addReader("penny@example.test", "en");
+    const ungrantedId = await addReader("quinn@example.test", "en");
+    await clearGrant(ungrantedId);
+    expect(grantedId).not.toBe(ungrantedId);
+
+    const outcome = await sendDayLetter(OWNER, "alex/costed", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent.map((s) => s.email)).toEqual(
+      expect.arrayContaining(["penny@example.test", "quinn@example.test"]),
+    );
+
+    const grantedMail = textPartOf(emlFor("penny-example-test"));
+    const ungrantedMail = textPartOf(emlFor("quinn-example-test"));
+    expect(grantedMail).toContain("CHF");
+    expect(ungrantedMail).not.toContain("CHF");
+  });
+});
+
+describe("the one rule", () => {
+  test("a `test: true` day sends nothing at all", async () => {
+    writeTrip("proving", { visibility: "public" });
+    const { slug } = writeEntry("proving", { date: "2026-09-05", slug: "invented-day", test: true });
+    await addReader("reader@example.test", "en");
+
+    const outcome = await sendDayLetter(OWNER, "alex/proving", slug);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("test_content");
+    expect(mailFiles()).toHaveLength(0);
+  });
+
+  test("a whole test trip carries the same rule to every one of its days", async () => {
+    writeTrip("wholly-test", { visibility: "public", test: true });
+    const { slug } = writeEntry("wholly-test", { date: "2026-09-05", slug: "ordinary-looking-day" });
+    await addReader("reader@example.test", "en");
+
+    const outcome = await sendDayLetter(OWNER, "alex/wholly-test", slug);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("test_content");
+  });
+});
+
+describe("the photograph and the letter's shape", () => {
+  test("is attached inline (cid:), never linked, and the text part carries the map link", async () => {
+    writeTrip("pictured", { visibility: "public" });
+    await writePhoto("pictured");
+    const { slug } = writeEntry("pictured", { date: "2026-09-06", slug: "photo-day", photo: true });
+    await addReader("reader@example.test", "en");
+
+    const outcome = await sendDayLetter(OWNER, "alex/pictured", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.failed).toHaveLength(0);
+
+    const raw = emlFor("reader-example-test");
+    expect(raw).toContain("multipart/related");
+    expect(raw).toContain("Content-ID: <day-photo>");
+    expect(raw).toContain("Content-Disposition: inline");
+    expect(raw).toContain("Content-Type: image/webp");
+    // Never a URL into the media route — a mail client has no session cookie.
+    expect(raw).not.toMatch(/src="cid:[^"]*"[^>]*src="https?:/);
+    expect(raw).not.toContain('src="https://example.test/alex/media');
+
+    const text = textPartOf(raw);
+    expect(text).toContain("https://www.google.com/maps?q=15.8801,108.338");
+  });
+
+  test("no coordinates means no map link, and that is the only thing missing", async () => {
+    writeTrip("nomap", { visibility: "public" });
+    const { slug } = writeEntry("nomap", { date: "2026-09-06", slug: "no-coords-day", noCoordinates: true });
+    await addReader("reader@example.test", "en");
+
+    const outcome = await sendDayLetter(OWNER, "alex/nomap", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.failed).toHaveLength(0);
+    const text = textPartOf(emlFor("reader-example-test"));
+    expect(text).not.toContain("google.com/maps");
+  });
+
+  test("each reader gets their own language, and only an opening of the words", async () => {
+    writeTrip("multilang", { visibility: "public" });
+    const { slug } = writeEntry("multilang", {
+      date: "2026-09-07",
+      slug: "lantern-day",
+      translations: true,
+    });
+    await addReader("english@example.test", "en");
+    await addReader("deutsch@example.test", "de");
+
+    const outcome = await sendDayLetter(OWNER, "alex/multilang", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.failed).toHaveLength(0);
+
+    const en = textPartOf(emlFor("english-example-test"));
+    const de = textPartOf(emlFor("deutsch-example-test"));
+    expect(en).toContain("Lanterns of Hoi An");
+    expect(de).toContain("Laternen von Hoi An");
+    // An invitation, not the whole page: the letter carries the opening, not
+    // every word — a link is where the rest is.
+    expect(en.length).toBeLessThan(ENTRY_CONTENT.length + 4000);
+  });
+});
+
+describe("the two triggers, and what only the owner may pull", () => {
+  test("publishing without send_mail sends nothing", async () => {
+    writeTrip("quiet", { visibility: "public" });
+    writeEntry("quiet", { date: "2026-09-08", slug: "unannounced-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "quiet", "unannounced-day", {});
+    expect(result.status).toBe(200);
+    expect(result.body.mail).toBeUndefined();
+    expect(mailFiles()).toHaveLength(0);
+  });
+
+  /*
+   * B558 — the prompt to ask, in the one place an agent reads after a
+   * publish. Not a nudge to send: the default is still nothing.
+   */
+  test("a publish that told nobody carries the question and the URLs", async () => {
+    writeTrip("prompted", { visibility: "public" });
+    writeEntry("prompted", { date: "2026-09-08", slug: "prompted-day", draft: true });
+
+    const token = await agentToken();
+    const result = await publish(token, "prompted", "prompted-day", {});
+    const notify = result.body.notify as { channels: { channel: string; url: string }[]; ask: string };
+    expect(notify.channels.map((c) => c.channel)).toContain("mail");
+    // v2's one send door (S1) — both channels share this URL now, distinguished
+    // by the `channels` array in the POST body, not by a channel-named path.
+    expect(notify.channels.find((c) => c.channel === "mail")?.url).toContain(
+      "/days/2026-09-08-prompted-day/send",
+    );
+    expect(notify.ask).toContain("Ask them");
+    expect(mailFiles()).toHaveLength(0);
+  });
+
+  test("no prompt when a channel was already asked for, and none for a test day", async () => {
+    writeTrip("asked", { visibility: "public" });
+    writeEntry("asked", { date: "2026-09-08", slug: "asked-day", draft: true });
+    writeTrip("pretend", { visibility: "public" });
+    writeEntry("pretend", { date: "2026-09-08", slug: "pretend-day", draft: true, test: true });
+
+    const token = await agentToken();
+    expect((await publish(token, "asked", "asked-day", { send_mail: true })).body.notify).toBeUndefined();
+    expect((await publish(token, "pretend", "pretend-day", {})).body.notify).toBeUndefined();
+  });
+
+  test("publishing with send_mail: true sends one letter per entitled reader and reports the count", async () => {
+    writeTrip("loud", { visibility: "public" });
+    writeEntry("loud", { date: "2026-09-08", slug: "announced-day", draft: true });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "loud", "announced-day", { send_mail: true });
+    expect(result.status).toBe(200);
+    expect(result.body.status).toBe("published");
+    // owner + two readers.
+    expect(result.body.mail).toMatchObject({ attempted: true, resend: false, sent: 3, failed: 0 });
+    expect(getEntryBySlug("alex/loud", "announced-day")?.draft).toBeUndefined();
+  });
+
+  test("a trip-scoped token is refused on both /publish and /send-mail", async () => {
+    writeTrip("shared", { visibility: "public", people: [{ name: "Buddy", email: "buddy@example.test" }] });
+    writeEntry("shared", { date: "2026-09-08", slug: "buddy-day", draft: true });
+
+    const token = await scopedToken("buddy@example.test", "shared");
+
+    const published = await publish(token, "shared", "buddy-day", { send_mail: true });
+    expect(published.status).toBe(403);
+    expect(published.body.error).toBe("out_of_scope");
+    expect(mailFiles()).toHaveLength(0);
+
+    // Publish it for real (owner), then the buddy's token tries to resend.
+    const owner = await agentToken();
+    await publish(owner, "shared", "buddy-day", {});
+    const sent = await resend(token, "shared", "buddy-day");
+    expect(sent.status).toBe(403);
+    expect(sent.body.error).toBe("out_of_scope");
+  });
+
+  test("a resend goes to everybody again, and says so", async () => {
+    writeTrip("again", { visibility: "public" });
+    writeEntry("again", { date: "2026-09-08", slug: "again-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    await publish(token, "again", "again-day", { send_mail: true });
+    const firstCount = mailFiles().length;
+    expect(firstCount).toBeGreaterThan(0);
+
+    const result = await resend(token, "again", "again-day");
+    expect(result.status).toBe(200);
+    // v2's one send door nests the outcome under `mail` (S1) rather than at
+    // the top level `send-mail` answered with.
+    const mail = result.body.mail as Record<string, unknown>;
+    expect(mail).toMatchObject({ attempted: true, resend: true });
+    expect((mail.sent as number)).toBeGreaterThan(0);
+    // Sent again, not skipped as already-delivered.
+    expect(mailFiles().length).toBe(firstCount * 2);
+  });
+
+  test("resending a draft is refused — nothing to send a letter about yet", async () => {
+    writeTrip("early", { visibility: "public" });
+    writeEntry("early", { date: "2026-09-08", slug: "still-a-draft", draft: true });
+    const token = await agentToken();
+    const result = await resend(token, "early", "still-a-draft");
+    expect(result.status).toBe(409);
+  });
+
+  test("resending a test day is refused, not silently empty", async () => {
+    writeTrip("proving2", { visibility: "public" });
+    writeEntry("proving2", { date: "2026-09-08", slug: "invented", test: true });
+    const token = await agentToken();
+    const result = await resend(token, "proving2", "invented");
+    // v2's one send door answers `test_content` as 409 (a conflict with what
+    // this day is), not v1's 400 — same error code, corrected status.
+    expect(result.status).toBe(409);
+    expect(result.body.error).toBe("test_content");
+  });
+});
+
+/**
+ * B400 was v1's `readPublishFlags`'s `=== true`: a non-boolean `send_mail`
+ * published anyway and silently sent nothing, until the response was made to
+ * say so (`flagsIgnored`). v2's `publishRequest` is a `z.strictObject` with
+ * `sendMail: z.boolean().optional()` — a non-boolean value is not silently
+ * ignored, it is refused outright, before anything is written. The property
+ * that matters (a malformed flag never sends mail) still holds, more
+ * strongly: nothing is published either, so there is no `flagsIgnored`
+ * vocabulary left for the response to carry.
+ */
+describe("a non-boolean sendMail is refused outright — v2 does not ignore it", () => {
+  test("a string is refused, and nothing is published or sent", async () => {
+    writeTrip("stringy", { visibility: "public" });
+    writeEntry("stringy", { date: "2026-09-08", slug: "stringy-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "stringy", "stringy-day", { send_mail: "true" });
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe("invalid_request");
+    expect(mailFiles()).toHaveLength(0);
+    expect(getEntryBySlug("alex/stringy", "stringy-day", { includeDrafts: true })?.draft).toBe(true);
+  });
+
+  test("a number is the same story", async () => {
+    writeTrip("numeric", { visibility: "public" });
+    writeEntry("numeric", { date: "2026-09-08", slug: "numeric-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "numeric", "numeric-day", { send_mail: 1 });
+    expect(result.status).toBe(400);
+    expect(result.body.error).toBe("invalid_request");
+    expect(mailFiles()).toHaveLength(0);
+    expect(getEntryBySlug("alex/numeric", "numeric-day", { includeDrafts: true })?.draft).toBe(true);
+  });
+
+  test("send_mail: true still sends", async () => {
+    writeTrip("boolean", { visibility: "public" });
+    writeEntry("boolean", { date: "2026-09-08", slug: "boolean-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "boolean", "boolean-day", { send_mail: true });
+    expect(result.status).toBe(200);
+    expect(result.body.mail).toMatchObject({ attempted: true, sent: 2, failed: 0 });
+  });
+
+  test("no send_mail key at all sends nothing", async () => {
+    writeTrip("silent", { visibility: "public" });
+    writeEntry("silent", { date: "2026-09-08", slug: "silent-day", draft: true });
+    await addReader("reader@example.test", "en");
+
+    const token = await agentToken();
+    const result = await publish(token, "silent", "silent-day", {});
+    expect(result.status).toBe(200);
+    expect(result.body.mail).toBeUndefined();
+    expect(mailFiles()).toHaveLength(0);
+  });
+});
+
+describe("mail is best-effort", () => {
+  test("a send that fails for one reader does not fail the publish, and is reported", async () => {
+    writeTrip("flaky", { visibility: "public" });
+    writeEntry("flaky", { date: "2026-09-09", slug: "flaky-day", draft: true });
+    await addReader("bad@example.test", "en");
+    await addReader("good@example.test", "en");
+
+    // The file transport writes through fs.writeFileSync — make exactly the
+    // write for "bad@example.test" throw, the way an SMTP hiccup would for a
+    // real transport (same technique as test/contact-notify-mail-failure.test.ts).
+    const real = fs.writeFileSync.bind(fs);
+    let thrown = false;
+    vi.spyOn(fs, "writeFileSync").mockImplementation((file, data, options) => {
+      if (!thrown && typeof file === "string" && file.includes("bad-example-test")) {
+        thrown = true;
+        throw new Error("450 4.2.1 mailbox temporarily unavailable");
+      }
+      return real(file, data, options);
+    });
+
+    const token = await agentToken();
+    const result = await publish(token, "flaky", "flaky-day", { send_mail: true });
+
+    // The publish itself is unaffected.
+    expect(result.status).toBe(200);
+    expect(result.body.status).toBe("published");
+    expect(getEntryBySlug("alex/flaky", "flaky-day")?.draft).toBeUndefined();
+
+    // And the failure is visible in the response, not only in a log.
+    const mail = result.body.mail as Record<string, unknown>;
+    expect(mail.attempted).toBe(true);
+    expect(mail.failed).toBeGreaterThanOrEqual(1);
+    expect(mail.errors).toBeDefined();
+  });
+});
+
+/**
+ * B614 made the owner's own copy free; **B840 made every copy free.**
+ *
+ * A letter to a reader costs about a hundredth of a Rappen to deliver, and a
+ * credit is CHF 0.20 — so announcing one day to a family of twenty came to
+ * CHF 4, which is the most ordinary thing anybody does here priced like a
+ * printed object. Every address on the list was approved by hand by the owner,
+ * so there is no fan-out for the meter to be defending against.
+ *
+ * What these tests hold down is that "free" means *sent and not charged*, in
+ * both directions: nothing is debited, and nothing is refunded either — a
+ * refund for a letter that was never paid for would mint a credit.
+ */
+describe("every copy is free — B614, then B840", () => {
+  test("a journal with no guests can publish a day on an empty balance", async () => {
+    enableCredits();
+    writeTrip("solo", { visibility: "public" });
+    const { slug } = writeEntry("solo", { date: "2026-09-10", slug: "solo-day" });
+    // Deliberately no `grant`: there is not even a credits row for this
+    // journal, which is the state a new one is in.
+
+    // The owner alone: no guests on this journal at all.
+    expect(await mailWouldReach(OWNER, "alex/solo", slug)).toBe(1);
+
+    const outcome = await sendDayLetter(OWNER, "alex/solo", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    // Sent, not skipped: free is not the same as absent.
+    expect(outcome.sent).toHaveLength(1);
+    expect(mailFiles().filter((f) => addressPattern("alex@example.test").test(f))).toHaveLength(1);
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("a journal with readers and an empty balance still sends to all of them", async () => {
+    enableCredits();
+    writeTrip("family", { visibility: "public" });
+    const { slug } = writeEntry("family", { date: "2026-09-10", slug: "family-day" });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    await addReader("three@example.test", "en");
+    // No grant at all: three readers used to be three credits, and this was
+    // the send that refused outright.
+
+    expect(await mailWouldReach(OWNER, "alex/family", slug)).toBe(4);
+
+    const outcome = await sendDayLetter(OWNER, "alex/family", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    // Three readers and the owner's own copy.
+    expect(outcome.sent).toHaveLength(4);
+    expect(await balanceOf(OWNER)).toBe(0);
+  });
+
+  test("a letter that fails refunds nothing", async () => {
+    enableCredits();
+    writeTrip("flaky-owner", { visibility: "public" });
+    const { slug } = writeEntry("flaky-owner", {
+      date: "2026-09-10",
+      slug: "flaky-owner-day",
+    });
+    await addReader("guest@example.test", "en");
+    // A balance that must come back untouched: nothing was charged for these
+    // letters, so a failure has nothing to give back. Refunding one would not
+    // return a credit — it would mint one.
+    await grant(OWNER, 1);
+
+    const real = fs.writeFileSync.bind(fs);
+    vi.spyOn(fs, "writeFileSync").mockImplementation((file, data, options) => {
+      if (typeof file === "string" && addressPattern("alex@example.test").test(file)) {
+        throw new Error("450 4.2.1 mailbox temporarily unavailable");
+      }
+      return real(file, data, options);
+    });
+
+    const outcome = await sendDayLetter(OWNER, "alex/flaky-owner", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.failed).toHaveLength(1);
+    expect(outcome.sent).toHaveLength(1);
+    expect(await balanceOf(OWNER)).toBe(1);
+  });
+});
+
+describe("credits — B366, and what B840 stopped charging for", () => {
+  test("an empty balance never refuses a letter, and never writes a ledger row", async () => {
+    enableCredits();
+    writeTrip("billed", { visibility: "public" });
+    const { slug } = writeEntry("billed", { date: "2026-09-10", slug: "billed-day" });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    await addReader("three@example.test", "en");
+    // Three readers used to be three credits, and two in the bank used to be
+    // the refusal this test asserted. Now the balance is beside the point.
+    await grant(OWNER, 2);
+
+    const outcome = await sendDayLetter(OWNER, "alex/billed", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(4);
+    expect(mailFiles()).toHaveLength(4);
+    expect(await balanceOf(OWNER)).toBe(2);
+    // `spend(owner, 0, …)` is a documented no-op that writes nothing, so the
+    // ledger has only the grant on it — the check that this is genuinely free
+    // rather than charged-and-refunded.
+    expect((await ledgerFor(OWNER)).map((row) => row.reason)).toEqual(["grant"]);
+  });
+
+  /**
+   * B379. `mailWouldReach` takes a trip ref and no slug, so it can see a
+   * `test: true` *trip* and not a `test: true` *day* inside an ordinary one —
+   * while `sendDayLetter` refuses the second with `test_content` before it
+   * charges anything. The publish pre-flight therefore quotes a price for a
+   * send that would cost nothing, and an owner low on credits cannot publish
+   * the very content the flag exists to let them publish freely.
+   */
+  test("a test day costs nothing, even inside an ordinary trip", async () => {
+    enableCredits();
+    writeTrip("proving-ground", { visibility: "public" });
+    const { slug } = writeEntry("proving-ground", {
+      date: "2026-09-11",
+      slug: "invented-day",
+      test: true,
+    });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    await grant(OWNER, 0 + 1); // one credit: fewer than the two paid readers
+
+    expect(await mailWouldReach(OWNER, "alex/proving-ground", slug)).toBe(0);
+
+    // And the send itself still refuses for the right reason, charging nothing.
+    const outcome = await sendDayLetter(OWNER, "alex/proving-ground", slug);
+    expect(outcome.ok).toBe(false);
+    if (outcome.ok) return;
+    expect(outcome.reason).toBe("test_content");
+    expect(mailFiles()).toHaveLength(0);
+    expect(await balanceOf(OWNER)).toBe(1);
+  });
+
+  test("a send leaves the balance exactly where it found it", async () => {
+    enableCredits();
+    writeTrip("paid", { visibility: "public" });
+    const { slug } = writeEntry("paid", { date: "2026-09-10", slug: "paid-day" });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    await grant(OWNER, 2);
+
+    const outcome = await sendDayLetter(OWNER, "alex/paid", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.sent).toHaveLength(3);
+    expect(outcome.failed).toHaveLength(0);
+    expect(await balanceOf(OWNER)).toBe(2);
+  });
+
+  test("a recipient whose send fails costs nothing and refunds nothing", async () => {
+    enableCredits();
+    writeTrip("flaky-credits", { visibility: "public" });
+    const { slug } = writeEntry("flaky-credits", {
+      date: "2026-09-10",
+      slug: "flaky-credits-day",
+    });
+    await addReader("bad@example.test", "en");
+    await addReader("good@example.test", "en");
+    await grant(OWNER, 2);
+
+    const real = fs.writeFileSync.bind(fs);
+    let thrown = false;
+    vi.spyOn(fs, "writeFileSync").mockImplementation((file, data, options) => {
+      if (!thrown && typeof file === "string" && file.includes("bad-example-test")) {
+        thrown = true;
+        throw new Error("450 4.2.1 mailbox temporarily unavailable");
+      }
+      return real(file, data, options);
+    });
+
+    const outcome = await sendDayLetter(OWNER, "alex/flaky-credits", slug);
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    expect(outcome.failed).toHaveLength(1);
+    // Nothing was spent, so nothing is given back. The failure is reported and
+    // the balance is untouched in both directions.
+    expect(await balanceOf(OWNER)).toBe(2);
+    expect((await ledgerFor(OWNER)).map((row) => row.reason)).toEqual(["grant"]);
+  });
+
+  test("the publish pre-flight lets a mail-only send through on an empty balance", async () => {
+    enableCredits();
+    writeTrip("preflight", { visibility: "public" });
+    writeEntry("preflight", { date: "2026-09-10", slug: "preflight-day", draft: true });
+    await addReader("one@example.test", "en");
+    await addReader("two@example.test", "en");
+    // Not a credit to its name. This used to be a 402 that left the day a
+    // draft, which meant an empty balance could stop somebody publishing.
+
+    const token = await agentToken();
+    const result = await publish(token, "preflight", "preflight-day", { send_mail: true });
+    expect(result.status).toBe(200);
+    expect(result.body.status).toBe("published");
+    expect(getEntryBySlug("alex/preflight", "preflight-day")?.draft).toBeUndefined();
+    // Owner plus the two readers.
+    expect(mailFiles()).toHaveLength(3);
+  });
+
+  test.skipIf(!hasPaid())("both channels are checked together — passing each alone is not enough", async () => {
+    // A bespoke server config for this one test: mail, whatsapp and credits
+    // all switched on at once, which no other test in this file needs.
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: OWNER },
+        users: { reserved: [] },
+        features: {
+          auth: { enabled: true },
+          contacts: { enabled: true },
+          mail: { enabled: true, transport: "file" },
+          whatsapp: {
+            enabled: true,
+            backend: "dry-run",
+            templates: { en: "fernscout_day_published" },
+          },
+          credits: { enabled: true },
+        },
+      }),
+    );
+    clearConfigCache();
+
+    writeTrip("combined", { visibility: "public" });
+    const { slug } = writeEntry("combined", {
+      date: "2026-09-10",
+      slug: "combined-day",
+      draft: true,
+    });
+
+    // Twelve contacts opted into both channels. Since B840 the mail half of
+    // that costs nothing and the WhatsApp half still costs twelve, so the
+    // pre-flight's sum is 0 + 12 — which is the property this ticket calls
+    // out, unchanged: it adds the channels it was asked for before it
+    // publishes anything, rather than checking them one at a time and
+    // half-sending. A free channel contributing zero is a case worth holding
+    // down, because "free" and "not counted" are easy to confuse in a sum.
+    for (let i = 0; i < 12; i++) {
+      const email = `reader${i}@example.test`;
+      await requestContact(OWNER, {
+        name: `Reader ${i}`,
+        email,
+        locale: "en",
+        address: { tel: `+4176${String(1000000 + i).padStart(7, "0")}` },
+        wantsEmailDigest: true,
+        wantsPostcard: false,
+        wantsWhatsapp: true,
+        createdVia: "open",
+      });
+      const { code } = await issueCode(OWNER, email, "guest");
+      const confirmed = await confirmContact(OWNER, email, code);
+      if (!confirmed.ok) throw new Error("confirmation failed");
+      await approveContact(OWNER, confirmed.contact.id);
+    }
+    await grant(OWNER, 8);
+
+    const token = await agentToken();
+    const result = await publish(token, "combined", slug, {
+      send_mail: true,
+      send_whatsapp: true,
+    });
+
+    expect(result.status).toBe(402);
+    expect(result.body.error).toBe("no_credits");
+    // v2's `fail()` nests a refusal's structured facts under `details`,
+    // rather than splicing them onto the body's own top level.
+    const details = result.body.details as { needed: number; balance: number };
+    expect(details.needed).toBe(12);
+    expect(details.balance).toBe(8);
+    expect(
+      getEntryBySlug("alex/combined", slug, { includeDrafts: true })?.draft,
+    ).toBe(true);
+    expect(mailFiles()).toHaveLength(0);
+  });
+});

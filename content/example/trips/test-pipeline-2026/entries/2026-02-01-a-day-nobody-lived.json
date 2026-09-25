@@ -1,0 +1,23 @@
+{
+  "title": "A day nobody lived",
+  "date": "2026-02-01",
+  "content": "This day was written to prove that a day can be written. It records nothing that happened to anybody.\n\nEvery reading path that filters test content filters this: the feed, the search index, the sitemap. The page itself says so in a banner, which is the point of it.",
+  "travelScene": "skip",
+  "test": true,
+  "declined": {
+    "media": "no photographs, because there was nothing to photograph",
+    "costs": "no money moved on a day that did not happen",
+    "coordinates": "nowhere to put a position on a day nobody lived",
+    "location": "there is no place, because there was no day",
+    "country": "there is no place, because there was no day",
+    "countryCode": "there is no place, because there was no day",
+    "weather": "no weather to look up for a day that did not happen",
+    "time": "no hour, on a day nobody lived",
+    "timezone": "no zone, on a day nobody lived",
+    "transportMode": "nobody travelled anywhere",
+    "tags": "nothing to file a rehearsal under",
+    "translations": "a rehearsal does not need translating",
+    "visibility": "shown to everyone the trip lets in, which is everyone"
+  },
+  "status": "published"
+}

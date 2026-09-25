@@ -1,0 +1,580 @@
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { buildUserExportZipBuffer } from "@/lib/exportZip";
+import { clearConfigCache } from "@/lib/config";
+import { getAllEntries } from "@/lib/entries";
+import { getTrips, tripRef } from "@/lib/trips";
+import { clearUserCache } from "@/lib/users";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
+
+/**
+ * M6 — "download my whole trip as a zip of markdown + photos", proven by
+ * actually restoring from it: unzip into a fresh content/<username>/ and
+ * confirm the app reads it back identically, using the real system `unzip`
+ * (not the library that wrote it) so this proves genuine interoperability,
+ * not just that our writer and our own reader agree with each other.
+ */
+
+let srcDir: string;
+let workDir: string;
+
+function write(file: string, contents: string) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, contents);
+}
+
+function seedSource() {
+  process.env.CONTENT_DIR = srcDir;
+  write(
+    path.join(srcDir, "config.json"),
+    JSON.stringify({ site: { name: "R", url: "https://example.test" }, users: {}, features: {} }),
+  );
+  write(
+    path.join(srcDir, "traveller", "config.json"),
+    JSON.stringify({
+      title: "Traveller's journal",
+      tagline: "t",
+      owner: { name: "A B", nickname: "A" },
+      startLocation: "X",
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF",
+      displayCurrencies: ["CHF"],
+      units: "metric",
+      features: { reactions: { enabled: true }, costs: { enabled: true } },
+    }),
+  );
+
+  writeTripFixture("traveller", {
+    id: "open-2026",
+    title: "Open Trip",
+    start: "2026-01-01",
+    end: "2026-01-05",
+    status: "past",
+    visibility: "public",
+    intro: "Body.",
+  });
+  writeDayFixture(srcDir, "traveller", "open-2026", {
+    slug: "unpublished",
+    date: "2026-01-03",
+    title: "Unpublished",
+    location: "Beta",
+    country: "Testland",
+    coordinates: { lat: 1.0, lng: 2.0 },
+    status: "draft",
+    content: "Entry content, marker DRAFT-MARKER.",
+  });
+  writeDayFixture(srcDir, "traveller", "open-2026", {
+    slug: "alpha",
+    date: "2026-01-02",
+    title: "Alpha",
+    location: "Alpha",
+    country: "Testland",
+    coordinates: { lat: 1.0, lng: 2.0 },
+    media: [{ src: "/media/open-2026/alpha/photo.jpg", type: "image" }],
+    content: "Entry content, marker OPEN-MARKER.",
+  });
+  write(
+    path.join(srcDir, "traveller", "trips", "open-2026", "media", "alpha", "photo.jpg"),
+    "not really a jpeg, just bytes to round-trip",
+  );
+  // B1603 — the untouched print master a photobook prints from, kept whole
+  // beside the derivative the site serves.
+  write(
+    path.join(srcDir, "traveller", "trips", "open-2026", "originals", "alpha", "photo.heic"),
+    "the untouched original, an order of magnitude larger",
+  );
+
+  // A real export pulled from a scratch journal turned these up — B1387.
+  // `.DS_Store` at the trip root *and* under `media/`, plus the internal
+  // bookkeeping ingest and the media pipeline keep beside a trip's files.
+  write(path.join(srcDir, "traveller", "trips", "open-2026", ".DS_Store"), "finder junk");
+  write(path.join(srcDir, "traveller", "trips", "open-2026", "media", ".DS_Store"), "finder junk");
+  write(path.join(srcDir, "traveller", "trips", "open-2026", ".ingest.json"), "{}");
+  write(
+    path.join(srcDir, "traveller", "trips", "open-2026", ".fingerprints", "alpha.json"),
+    "{}",
+  );
+
+  writeTripFixture("traveller", {
+    id: "secret-2026",
+    title: "Secret Trip",
+    start: "2026-02-01",
+    end: "2026-02-05",
+    status: "past",
+    visibility: "guest",
+    intro: "Secret body.",
+  });
+  writeDayFixture(srcDir, "traveller", "secret-2026", {
+    slug: "hidden",
+    date: "2026-02-02",
+    title: "Hidden",
+    location: "Hidden",
+    country: "Testland",
+    coordinates: { lat: 3.0, lng: 4.0 },
+    content: "Entry content, marker SECRET-MARKER.",
+  });
+
+  write(
+    path.join(srcDir, "traveller", "helper-consent.json"),
+    JSON.stringify({ agreedAt: "2026-01-01T00:00:00.000Z", provider: "Anthropic", scopes: ["words"] }),
+  );
+}
+
+beforeEach(() => {
+  srcDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-export-src-"));
+  workDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-export-work-"));
+  seedSource();
+});
+
+afterEach(() => {
+  delete process.env.CONTENT_DIR;
+  clearConfigCache();
+  clearUserCache();
+  fs.rmSync(srcDir, { recursive: true, force: true });
+  fs.rmSync(workDir, { recursive: true, force: true });
+});
+
+/** Writes the zip to disk, unzips it with the real `unzip` binary, and
+ * returns the directory it was extracted into. */
+function unzipInto(buffer: Buffer, label: string): string {
+  const zipPath = path.join(workDir, `${label}.zip`);
+  fs.writeFileSync(zipPath, buffer);
+  const dest = path.join(workDir, `${label}-restored`);
+  fs.mkdirSync(dest, { recursive: true });
+  execFileSync("unzip", ["-q", "-o", zipPath, "-d", dest]);
+  return dest;
+}
+
+describe("buildUserExportZipBuffer — scope 'all'", () => {
+  /** The owner's backup is a backup: drafts are their unpublished work, and
+   * an export that silently dropped them would lose it. */
+  test("keeps a draft entry", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "all-drafts");
+    expect(
+      fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries")),
+    ).toContain("2026-01-03-unpublished.json");
+  });
+
+  /**
+   * B1387 — flipped from the B722 assertion this test used to make. The
+   * consent record is internal bookkeeping the same way a dotfile is, and a
+   * real export pulled from a scratch journal showed it sitting at the
+   * content root alongside `.DS_Store` rather than anywhere a restore reads
+   * from. Excluded now, in every scope, not only the trip-scoped one.
+   */
+  test("does not carry the helper-consent record", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "all-consent");
+    expect(fs.existsSync(path.join(extracted, "helper-consent.json"))).toBe(false);
+  });
+
+  /** The same blanket dotfile rule as the trip-scoped export below — a
+   * `.DS_Store` or `.ingest.json` never belonged in a backup somebody
+   * restores from, whole-journal or not. */
+  test("excludes dotfiles at any depth under a trip", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "all-dotfiles");
+    expect(fs.existsSync(path.join(extracted, "trips", "open-2026", ".DS_Store"))).toBe(false);
+    expect(
+      fs.existsSync(path.join(extracted, "trips", "open-2026", "media", ".DS_Store")),
+    ).toBe(false);
+    expect(fs.existsSync(path.join(extracted, "trips", "open-2026", ".ingest.json"))).toBe(false);
+    expect(
+      fs.existsSync(path.join(extracted, "trips", "open-2026", ".fingerprints", "alpha.json")),
+    ).toBe(false);
+  });
+
+  test("round-trips: unzip into content/<user>/, the app reads it back identically", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+
+    // The zip's own contents become content/<user>/, restored fresh.
+    const restoredRoot = fs.mkdtempSync(path.join(workDir, "content-"));
+    const restoredUserDir = path.join(restoredRoot, "traveller");
+    const extracted = unzipInto(buffer, "all");
+    fs.mkdirSync(restoredUserDir, { recursive: true });
+    fs.cpSync(extracted, restoredUserDir, { recursive: true });
+
+    process.env.CONTENT_DIR = restoredRoot;
+    clearConfigCache();
+    clearUserCache();
+
+    const trips = getTrips("traveller")
+      .map((t) => t.id)
+      .sort();
+    expect(trips).toEqual(["open-2026", "secret-2026"]);
+
+    const openEntries = getAllEntries(tripRef("traveller", "open-2026"));
+    expect(openEntries.map((e) => e.slug)).toEqual(["alpha"]);
+    expect(openEntries[0].content).toContain("OPEN-MARKER");
+
+    const secretEntries = getAllEntries(tripRef("traveller", "secret-2026"));
+    expect(secretEntries[0].content).toContain("SECRET-MARKER");
+
+    // Frontmatter survives verbatim — this is the owner's own full backup.
+    const secretTripMd = fs.readFileSync(
+      path.join(restoredUserDir, "trips", "secret-2026", "trip.json"),
+      "utf8",
+    );
+    expect(secretTripMd).toContain('"visibility": "guest"');
+
+    // Media round-trips too.
+    const photo = fs.readFileSync(
+      path.join(restoredUserDir, "trips", "open-2026", "media", "alpha", "photo.jpg"),
+      "utf8",
+    );
+    expect(photo).toBe("not really a jpeg, just bytes to round-trip");
+  });
+});
+
+/**
+ * B1603 — an export used to skip `originals/` outright, on the theory that a
+ * hosted owner would "back it up with the filesystem" — not an option they
+ * have. The deletion export is the last chance to get a copy of anything
+ * before it is gone for good, so it has to carry the print master too.
+ */
+describe("buildUserExportZipBuffer — originals", () => {
+  test("scope 'all', whole journal: carries the original", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "all-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("scope 'open-to-link': carries the original for a trip anyone could already read", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "open-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("narrowed to one trip (the deletion export's own shape): carries the original", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only-originals");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo.heic"),
+      ),
+    ).toBe(true);
+  });
+
+  test("MEDIA_ORIGINALS_DIR pointed at another disk: the original still ends up in the zip", async () => {
+    const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-export-originals-"));
+    process.env.MEDIA_ORIGINALS_DIR = externalRoot;
+    write(
+      path.join(externalRoot, "traveller", "open-2026", "alpha", "photo-external.heic"),
+      "kept on another disk entirely",
+    );
+    try {
+      process.env.CONTENT_DIR = srcDir;
+      const buffer = await buildUserExportZipBuffer("traveller", "all");
+      const extracted = unzipInto(buffer, "external-originals");
+      expect(
+        fs.existsSync(
+          path.join(extracted, "trips", "open-2026", "originals", "alpha", "photo-external.heic"),
+        ),
+      ).toBe(true);
+    } finally {
+      delete process.env.MEDIA_ORIGINALS_DIR;
+      fs.rmSync(externalRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("buildUserExportZipBuffer — scope 'open-to-link'", () => {
+  /**
+   * The scope means "what an anonymous visitor could already see", and a draft
+   * is exactly what they cannot: it is absent from the story, the feed, the
+   * sitemap, the search index and its own permalink. Only the trip filter was
+   * being applied, so a public trip handed over every unreviewed thing an
+   * agent had written in it, to anybody, on a plain GET.
+   */
+  test("leaves out a draft entry", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "drafts");
+    const entries = fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries"));
+
+    expect(entries).toContain("2026-01-02-alpha.json");
+    expect(entries).not.toContain("2026-01-03-unpublished.json");
+  });
+
+  /** The anonymous, open-to-link archive is a packaging of content an
+   * unauthenticated visitor could already reach — a plain GET carries nothing
+   * that says who is asking. The owner's consent record is not that. */
+  test("does not carry the helper-consent record", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "open-consent");
+    expect(fs.existsSync(path.join(extracted, "helper-consent.json"))).toBe(false);
+  });
+
+  test("excludes the closed trip entirely", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "open");
+
+    expect(fs.existsSync(path.join(extracted, "trips", "open-2026"))).toBe(true);
+    expect(fs.existsSync(path.join(extracted, "trips", "secret-2026"))).toBe(false);
+
+    const listing = fs.readdirSync(path.join(extracted, "trips"));
+    expect(listing).toEqual(["open-2026"]);
+  });
+
+  test("the public trip still restores and reads correctly", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "open-restore");
+
+    const restoredRoot = fs.mkdtempSync(path.join(workDir, "content2-"));
+    const restoredUserDir = path.join(restoredRoot, "traveller");
+    fs.mkdirSync(restoredUserDir, { recursive: true });
+    fs.cpSync(extracted, restoredUserDir, { recursive: true });
+
+    process.env.CONTENT_DIR = restoredRoot;
+    clearConfigCache();
+    clearUserCache();
+
+    expect(getTrips("traveller").map((t) => t.id)).toEqual(["open-2026"]);
+    expect(getAllEntries(tripRef("traveller", "open-2026"))[0].content).toContain("OPEN-MARKER");
+  });
+});
+
+/**
+ * B1387 — a trip deletion's export, narrowed by the optional `tripId`.
+ *
+ * Reproduces the actual bug: a trip-deletion mail's prose says "this trip",
+ * and the export it linked used to be the whole journal — every other trip,
+ * `config.json`'s owner block, and all.
+ */
+describe("buildUserExportZipBuffer — narrowed to one trip", () => {
+  test("carries only the named trip, not the rest of the journal", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only");
+
+    const listing = fs.readdirSync(path.join(extracted, "trips"));
+    expect(listing).toEqual(["open-2026"]);
+    expect(
+      fs.readdirSync(path.join(extracted, "trips", "open-2026", "entries")),
+    ).toContain("2026-01-03-unpublished.json");
+  });
+
+  test("does not carry config.json — the owner's name, email and phone", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only-config");
+    expect(fs.existsSync(path.join(extracted, "config.json"))).toBe(false);
+  });
+
+  test("excludes dotfiles and the consent record the same as every other export", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all", "open-2026");
+    const extracted = unzipInto(buffer, "trip-only-dotfiles");
+    expect(fs.existsSync(path.join(extracted, "helper-consent.json"))).toBe(false);
+    expect(fs.existsSync(path.join(extracted, "trips", "open-2026", ".DS_Store"))).toBe(false);
+    expect(
+      fs.existsSync(path.join(extracted, "trips", "open-2026", "media", ".DS_Store")),
+    ).toBe(false);
+  });
+
+  test("an unnamed trip carries every trip, unchanged", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "no-trip-id");
+    expect(fs.readdirSync(path.join(extracted, "trips")).sort()).toEqual([
+      "open-2026",
+      "secret-2026",
+    ]);
+  });
+});
+
+describe("buildUserExportZipBuffer — a held-back photograph", () => {
+  /**
+   * B596/B632, one filter over from the draft mistake this file already
+   * records. "open-to-link" means, in exportZip's own words, what an
+   * anonymous visitor could already see — and such a visitor cannot see a
+   * photograph a day or an item marks guest or private: visible() strips it
+   * from every reading path and the media route refuses the file.
+   *
+   * The trip-level filter is not enough, because the narrowing can sit on one
+   * day or one photograph inside a trip anybody may read. An export carrying
+   * it would be the second half of that pair failing, which AGENTS.md calls
+   * worse than having no protection at all.
+   */
+  test("a private photograph in a public trip is not in an open-to-link export", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    writeTripFixture("traveller", {
+      id: "seen-2026",
+      start: "2026-03-01",
+      end: "2026-03-02",
+      visibility: "public",
+      listed: true,
+    });
+    const mediaDir = path.join(srcDir, "traveller", "trips", "seen-2026", "media", "a-day");
+    write(path.join(mediaDir, "open.jpg"), "open bytes");
+    write(path.join(mediaDir, "held.jpg"), "held bytes");
+    writeDayFixture(srcDir, "traveller", "seen-2026", {
+      slug: "a-day",
+      date: "2026-03-01",
+      title: "A day",
+      media: [
+        { src: "/media/seen-2026/a-day/open.jpg" },
+        { src: "/media/seen-2026/a-day/held.jpg", visibility: "private" },
+      ],
+    });
+
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "held-back");
+    const at = (name: string) =>
+      path.join(extracted, "trips", "seen-2026", "media", "a-day", name);
+
+    expect(fs.existsSync(at("open.jpg"))).toBe(true);
+    expect(fs.existsSync(at("held.jpg"))).toBe(false);
+  });
+
+  /**
+   * B1875 — the same photograph, one path over. `narrowedMedia` named
+   * `media/<day>/<file>`, so the derivative was dropped and the print master
+   * at `originals/<day>/<file>` — full resolution, and unlike the derivative
+   * still carrying the EXIF the coordinates live in — went into the zip
+   * handed to an anonymous visitor. The `.meta.json` sidecar beside it went
+   * too.
+   */
+  test("its original and its sidecar are not in an open-to-link export either", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    writeTripFixture("traveller", {
+      id: "master-2026",
+      start: "2026-05-01",
+      end: "2026-05-02",
+      visibility: "public",
+      listed: true,
+    });
+    const tripRoot = path.join(srcDir, "traveller", "trips", "master-2026");
+    write(path.join(tripRoot, "media", "a-day", "open.jpg"), "open bytes");
+    write(path.join(tripRoot, "media", "a-day", "held.jpg"), "held bytes");
+    write(path.join(tripRoot, "media", "a-day", "held.jpg.meta.json"), '{"lat":1}');
+    // A different extension, the way ingest keeps a HEIC behind a JPEG.
+    write(path.join(tripRoot, "originals", "a-day", "open.heic"), "open master");
+    write(path.join(tripRoot, "originals", "a-day", "held.heic"), "held master, with EXIF");
+    writeDayFixture(srcDir, "traveller", "master-2026", {
+      slug: "a-day",
+      date: "2026-05-01",
+      title: "A day",
+      media: [
+        { src: "/media/master-2026/a-day/open.jpg" },
+        { src: "/media/master-2026/a-day/held.jpg", visibility: "private" },
+      ],
+    });
+
+    const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+    const extracted = unzipInto(buffer, "held-back-original");
+    const at = (...parts: string[]) =>
+      path.join(extracted, "trips", "master-2026", ...parts);
+
+    expect(fs.existsSync(at("media", "a-day", "open.jpg"))).toBe(true);
+    expect(fs.existsSync(at("originals", "a-day", "open.heic"))).toBe(true);
+
+    expect(fs.existsSync(at("media", "a-day", "held.jpg"))).toBe(false);
+    expect(fs.existsSync(at("media", "a-day", "held.jpg.meta.json"))).toBe(false);
+    expect(fs.existsSync(at("originals", "a-day", "held.heic"))).toBe(false);
+  });
+
+  /** The second loop — `MEDIA_ORIGINALS_DIR` moves originals off the trip
+   * root, and that walk consulted no hold-back list whatsoever. */
+  test("MEDIA_ORIGINALS_DIR: the held-back photograph's master stays on the disk it is on", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-export-held-"));
+    process.env.MEDIA_ORIGINALS_DIR = externalRoot;
+    try {
+      writeTripFixture("traveller", {
+        id: "external-2026",
+        start: "2026-06-01",
+        end: "2026-06-02",
+        visibility: "public",
+        listed: true,
+      });
+      const mediaDir = path.join(srcDir, "traveller", "trips", "external-2026", "media", "a-day");
+      write(path.join(mediaDir, "open.jpg"), "open bytes");
+      write(path.join(mediaDir, "held.jpg"), "held bytes");
+      const externalDay = path.join(externalRoot, "traveller", "external-2026", "a-day");
+      write(path.join(externalDay, "open.heic"), "open master");
+      write(path.join(externalDay, "held.heic"), "held master, with EXIF");
+      writeDayFixture(srcDir, "traveller", "external-2026", {
+        slug: "a-day",
+        date: "2026-06-01",
+        title: "A day",
+        media: [
+          { src: "/media/external-2026/a-day/open.jpg" },
+          { src: "/media/external-2026/a-day/held.jpg", visibility: "private" },
+        ],
+      });
+
+      const buffer = await buildUserExportZipBuffer("traveller", "open-to-link");
+      const extracted = unzipInto(buffer, "held-back-external");
+      const at = (name: string) =>
+        path.join(extracted, "trips", "external-2026", "originals", "a-day", name);
+
+      expect(fs.existsSync(at("open.heic"))).toBe(true);
+      expect(fs.existsSync(at("held.heic"))).toBe(false);
+    } finally {
+      delete process.env.MEDIA_ORIGINALS_DIR;
+      fs.rmSync(externalRoot, { recursive: true, force: true });
+    }
+  });
+
+  test("scope all still carries it — the owner's own export is whole", async () => {
+    process.env.CONTENT_DIR = srcDir;
+    writeTripFixture("traveller", {
+      id: "whole-2026",
+      start: "2026-04-01",
+      end: "2026-04-02",
+      visibility: "public",
+      listed: true,
+    });
+    const mediaDir = path.join(srcDir, "traveller", "trips", "whole-2026", "media", "a-day");
+    write(path.join(mediaDir, "held.jpg"), "held bytes");
+    write(
+      path.join(srcDir, "traveller", "trips", "whole-2026", "originals", "a-day", "held.heic"),
+      "held master",
+    );
+    writeDayFixture(srcDir, "traveller", "whole-2026", {
+      slug: "a-day",
+      date: "2026-04-01",
+      title: "A day",
+      media: [{ src: "/media/whole-2026/a-day/held.jpg", visibility: "private" }],
+    });
+
+    const buffer = await buildUserExportZipBuffer("traveller", "all");
+    const extracted = unzipInto(buffer, "whole-export");
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "whole-2026", "media", "a-day", "held.jpg"),
+      ),
+    ).toBe(true);
+    // B1603, unchanged by B1875: the owner's own export keeps the print
+    // master of a held-back photograph too.
+    expect(
+      fs.existsSync(
+        path.join(extracted, "trips", "whole-2026", "originals", "a-day", "held.heic"),
+      ),
+    ).toBe(true);
+  });
+});

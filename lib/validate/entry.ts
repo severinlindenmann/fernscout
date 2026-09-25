@@ -1,0 +1,1050 @@
+// Validates the shape of an entry before it becomes a markdown file.
+//
+// Pure on purpose: no fs, no "server-only" import, nothing that only runs in
+// a route handler. That is what lets the REST route and `npm run ingest`
+// both call the same checks instead of two drifting copies, and what makes
+// every rule here testable with a plain object literal.
+//
+// Every rule returns a PROBLEM, not a boolean — and validateEntry collects
+// every problem an input has, not just the first. An agent fixing its own
+// mistake needs the whole list in one round trip; a single "something is
+// wrong" forces it to guess, fix, resubmit, and find the next one.
+import { COST_CATEGORIES, type CostCategory } from "../costFormat";
+import { isUsableZone } from "../digest/quiet";
+import { UNKNOWN } from "../tracks";
+import { RESERVED_SOURCES, hasMeasurement } from "../weather";
+import { captionProblem } from "./media";
+import { PHOTO_VISIBILITIES, mediaKey } from "../photos";
+
+/** Mirrors `TransportMode` in lib/types.ts. TypeScript has no way to turn a
+ * type union back into a runtime array, so this list is kept in sync by hand
+ * — there are only twelve, and a missing one shows up immediately as a
+ * rejected, correct value.
+ *
+ * `metro`, `tram` and `ferry` joined in B1519, added together rather than one
+ * at a time: an owner asked for a metro ride through Bangkok, and `tram` and
+ * `ferry` (distinct from a general `boat`) were the same gap in the same
+ * granularity — the list already tells `bus` from `train` and `taxi` from
+ * `car` by how the day felt to travel, not by rail-vs-road. */
+export const TRANSPORT_MODES = [
+  "flight", "train", "bus", "motorbike", "bicycle", "boat", "car", "taxi", "walk",
+  "metro", "tram", "ferry",
+] as const;
+
+/** Mirrors `TravelSceneVariant` in lib/types.ts, the same split as
+ * `TRANSPORT_MODES` above. Kept as the list an agent can discover — it is
+ * not, on its own, what refuses a bad value: see `checkTravelScene`. */
+export const TRAVEL_SCENE_VARIANTS = ["default", "quick", "skip"] as const;
+
+/** A short slug: lowercase words joined by single hyphens, no leading,
+ * trailing or doubled hyphen. The same shape a filename slug is held to
+ * elsewhere in this codebase (see `slugify` in lib/slug.ts, which is the one
+ * that mints every day slug). */
+const TAG_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export const TAG_MAX_LENGTH = 30;
+
+/**
+ * Ceilings on the two free-text fields.
+ *
+ * Every other field was bounded and these two were not, so a 5 000-character
+ * title and a 200 000-character body were both accepted — from the lowest-trust
+ * credential the system issues. Generous enough that no real day comes near
+ * them: a long title is a sentence, and a very long day is a few thousand
+ * words.
+ */
+const TITLE_MAX_LENGTH = 200;
+const CONTENT_MAX_LENGTH = 100_000;
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Same shape `normalizeCurrency` (lib/currency.ts) accepts. Checked here,
+ * ahead of the write, rather than left to that function's silent fallback —
+ * a bad currency would otherwise reach `normalizeCurrency`'s default and read
+ * back as the trip's base currency, with nothing said to anybody (B304).
+ *
+ * Exported since B304 so lib/validate/costs.ts — which checks the identical
+ * shape on a trip's `budget.currency` — shares this rather than keeping a
+ * second regex and a second message that could drift from this one. */
+const CURRENCY_RE = /^[A-Za-z]{3}$/;
+
+export function checkCurrencyCode(field: string, raw: unknown, problems: Problem[]): void {
+  if (raw === undefined) return;
+  if (typeof raw !== "string" || !CURRENCY_RE.test(raw.trim())) {
+    problems.push({
+      field,
+      got: describe(raw),
+      expected: "an ISO-4217 code, e.g. CHF — three letters",
+    });
+  }
+}
+
+export type Problem = {
+  /** Dotted/indexed path to the bad value, e.g. "costs[1].amount". */
+  field: string;
+  /** A readable rendering of what arrived — see `describe` below. */
+  got: string;
+  /** What would have been accepted, in plain words. */
+  expected: string;
+  /**
+   * A sentence, where the triple above is not enough on its own.
+   *
+   * B292 found an agent reading straight past `{field, got, expected}` and
+   * reporting that the field had not been named at all. B294's refusals lean
+   * on this hardest: "send the words the owner gave you, and if the journal
+   * is written in one language, fix the journal" is guidance a triple cannot
+   * carry, and without it an agent satisfies the validator by translating
+   * somebody's prose itself.
+   */
+  hint?: string;
+};
+
+type EntryCostInput = {
+  label?: unknown;
+  amount?: unknown;
+  currency?: unknown;
+  category?: unknown;
+};
+
+export type EntryInput = {
+  title?: unknown;
+  date?: unknown;
+  time?: unknown;
+  /** The IANA name `time` is local to — B42. See `checkTimezone`. */
+  timezone?: unknown;
+  lat?: unknown;
+  lng?: unknown;
+  transportMode?: unknown;
+  /** The travel scene's variant. See `checkTravelScene`. */
+  travelScene?: unknown;
+  costs?: unknown;
+  tags?: unknown;
+  /** Content nobody lived. See the note on `Entry.test` in lib/types.ts. */
+  test?: unknown;
+  /** The prose body — "content" is what the REST route calls it. */
+  content?: unknown;
+  /** The day's title and content in the journal's other languages. B294. */
+  translations?: unknown;
+  /** A caption per photograph, keyed by `src`. Edit only — B522. */
+  captions?: unknown;
+  /** A photograph held back, keyed by `src`. Edit only — B596. */
+  photoVisibility?: unknown;
+  /** This whole update, held back. Create or edit — B632. */
+  visibility?: unknown;
+  /** Declared here since B553 so `checkPlaceWords` can see them: they were in
+   *  `DraftInput` and not here, which is exactly how they went unchecked. */
+  location?: unknown;
+  country?: unknown;
+  transportFrom?: unknown;
+  transportTo?: unknown;
+  /** Ask the server to look up what the weather was. B325. */
+  weather?: unknown;
+  /** A reading the caller took themselves. B325 — and see `checkWeatherData`
+   * for why this is the most restricted field on a day. */
+  weatherData?: unknown;
+  /** The two declines that are not also a field — B531. `false` and nothing
+   *  else; `costs` takes it in the field above. */
+  coordinates?: unknown;
+  photos?: unknown;
+  /** The flag `lib/flags.ts` draws — see `checkCountryCode`. B540. */
+  countryCode?: unknown;
+};
+
+/**
+ * Renders a value the way someone debugging their own payload wants to see
+ * it: `undefined` reads as "nothing" rather than the string "undefined", and
+ * everything else goes through JSON so a stray string shows its quotes — the
+ * difference between "twelve" the number and "twelve" the word that isn't
+ * one has to be visible at a glance.
+ */
+// Exported since B295: the costs door's own validator (lib/validate/costs.ts)
+// reads a value back the same way rather than carrying a second renderer.
+/**
+ * How much of a value comes back — B568.
+ *
+ * Enough to recognise what was sent, and not a byte more. A caller can put a
+ * megabyte under a misspelled key and used to get all of it back; that is safe
+ * (JSON in a JSON body, never HTML or a log line) and it is unreadable, which
+ * is the part that matters. **A refusal is something an agent reads**, and one
+ * carrying the caller's own novel is no use to the weak model these messages
+ * were rewritten for. The useful part of `got` is its beginning.
+ */
+const DESCRIBE_MAX = 200;
+
+export function describe(value: unknown): string {
+  if (value === undefined) return "nothing";
+  if (value === null) return "null";
+  let rendered: string;
+  try {
+    rendered = JSON.stringify(value);
+  } catch {
+    rendered = String(value);
+  }
+  if (rendered.length <= DESCRIBE_MAX) return rendered;
+  // The length is named rather than left to be guessed: "…" alone says
+  // something was cut and not whether it was ten characters or ten megabytes,
+  // and the difference is usually the mistake.
+  return `${rendered.slice(0, DESCRIBE_MAX)}… (${rendered.length} characters in all)`;
+}
+
+/**
+ * `Date` silently rolls an out-of-range day into the next month —
+ * `2026-02-30` becomes March 2nd rather than an error — so the only way to
+ * catch it is to build the date and check nothing moved.
+ */
+function isRealCalendarDate(value: string): boolean {
+  if (!DATE_PATTERN.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+/**
+ * `required` defaults to true for `validateEntry` (creation, where a day
+ * without a date cannot be filed). `validateEntryEdit` below passes `false`:
+ * a PATCH that says nothing about the date is leaving it alone, not sending
+ * an invalid one.
+ */
+function checkDate(input: EntryInput, problems: Problem[], required = true): void {
+  if (!required && input.date === undefined) return;
+  if (typeof input.date !== "string" || !isRealCalendarDate(input.date)) {
+    problems.push({
+      field: "date",
+      got: describe(input.date),
+      expected: "a real calendar date, as YYYY-MM-DD",
+    });
+  }
+}
+
+function checkTime(input: EntryInput, problems: Problem[]): void {
+  if (input.time === undefined) return;
+  if (typeof input.time !== "string" || !TIME_PATTERN.test(input.time)) {
+    problems.push({ field: "time", got: describe(input.time), expected: "HH:mm, 00:00 to 23:59" });
+  }
+}
+
+/** An IANA name, checked the same way `lib/digest/quiet.ts` checks the
+ * instance's own zone — `Intl` accepting it, never a hand-kept list. */
+function checkTimezone(input: EntryInput, problems: Problem[]): void {
+  if (input.timezone === undefined) return;
+  if (typeof input.timezone !== "string" || !isUsableZone(input.timezone)) {
+    problems.push({
+      field: "timezone",
+      got: describe(input.timezone),
+      expected: 'an IANA zone name, e.g. "Asia/Bangkok" — not an offset',
+    });
+  }
+}
+
+/** lat/lng are a pair or nothing: half a coordinate is not a place, it is a
+ * typo waiting to be plotted at 0,0. */
+function checkCoordinates(input: EntryInput, problems: Problem[]): void {
+  const hasLat = input.lat !== undefined;
+  const hasLng = input.lng !== undefined;
+
+  if (hasLat !== hasLng) {
+    problems.push({
+      field: hasLat ? "lng" : "lat",
+      got: "nothing",
+      expected: "lat and lng must be given together, or not at all",
+    });
+  }
+
+  if (hasLat && (typeof input.lat !== "number" || !Number.isFinite(input.lat) || input.lat < -90 || input.lat > 90)) {
+    problems.push({ field: "lat", got: describe(input.lat), expected: "-90 to 90" });
+  }
+  if (hasLng && (typeof input.lng !== "number" || !Number.isFinite(input.lng) || input.lng < -180 || input.lng > 180)) {
+    problems.push({ field: "lng", got: describe(input.lng), expected: "-180 to 180" });
+  }
+}
+
+/** ISO 3166-1 alpha-2, the shape `lib/flags.ts` turns into an emoji.
+ * Case-insensitive on the way in — `countryCodeFor` uppercases it — so a
+ * caller need not remember which case the flag table wants. */
+const COUNTRY_CODE_RE = /^[A-Za-z]{2}$/;
+
+function checkCountryCode(input: EntryInput, problems: Problem[]): void {
+  if (input.countryCode === undefined) return;
+  if (typeof input.countryCode !== "string" || !COUNTRY_CODE_RE.test(input.countryCode)) {
+    problems.push({
+      field: "countryCode",
+      got: describe(input.countryCode),
+      expected: "an ISO 3166-1 alpha-2 code, e.g. CH — two letters",
+    });
+  }
+}
+
+/**
+ * The four fields that were declared and never checked — B553.
+ *
+ * `location`, `country`, `transportFrom` and `transportTo` are in `DraftInput`
+ * and were not in `EntryInput`, so nothing here ever looked at them. A number
+ * reached `quoteScalar`, which throws, and the caller got a 500 where every
+ * other bad field is a 400 naming itself — the one shape of answer that tells
+ * an agent to report a bug rather than fix its body.
+ */
+function checkPlaceWords(input: EntryInput, problems: Problem[]): void {
+  for (const field of ["location", "country", "transportFrom", "transportTo"] as const) {
+    const value = input[field];
+    if (value === undefined || typeof value === "string") continue;
+    problems.push({
+      field,
+      got: describe(value),
+      expected: "a string — the name of the place, as a person would write it",
+    });
+  }
+}
+
+function checkTransportMode(input: EntryInput, problems: Problem[]): void {
+  if (input.transportMode === undefined) return;
+  if (
+    typeof input.transportMode !== "string" ||
+    !(TRANSPORT_MODES as readonly string[]).includes(input.transportMode)
+  ) {
+    problems.push({
+      field: "transportMode",
+      got: describe(input.transportMode),
+      expected: `one of ${TRANSPORT_MODES.join(", ")}`,
+    });
+  }
+}
+
+/**
+ * Unlike `checkTransportMode`, a value outside `TRAVEL_SCENE_VARIANTS` is not
+ * refused here — only a non-string is. That is deliberate, and the same rule
+ * `visibility:` on a trip already follows for a typo: the write is accepted,
+ * the string round-trips into the file exactly as sent, and it is
+ * `parseTravelSceneVariant` in lib/entries.ts — a read-time fallback, not a
+ * gate on the way in — that reads anything unrecognised as the default rather
+ * than refusing the day or crashing the page. The set is still published here
+ * so an agent can discover the values that actually change anything.
+ */
+function checkTravelScene(input: EntryInput, problems: Problem[]): void {
+  if (input.travelScene === undefined) return;
+  if (typeof input.travelScene !== "string") {
+    problems.push({
+      field: "travelScene",
+      got: describe(input.travelScene),
+      expected:
+        `a string — one of ${TRAVEL_SCENE_VARIANTS.join(", ")} changes anything; any other ` +
+        "string is written as sent and read back as the default",
+    });
+  }
+}
+
+/**
+ * Exported since B295: the costs door's own `costs:` list — a trip's
+ * preparation spending — is the identical shape as a day's, so it refuses
+ * exactly what this refuses rather than a second opinion.
+ *
+ * Since B304 this also refuses a zero or negative amount and an
+ * unrecognisable currency, not just a missing label or an unknown category.
+ * Before that, a day written with `{"amount": 0, "currency": "Euros"}` was
+ * accepted here and then silently dropped — the amount by `parseCostItems`,
+ * which keeps only a strictly positive one, the currency by
+ * `normalizeCurrency`'s fallback to the trip's base currency
+ * (lib/costFormat.ts, lib/currency.ts) — reporting success on a write that
+ * stored nothing. Same failure `lib/validate/costs.ts` refuses on a trip's
+ * own budget door (B295); this is the day-costs half of it.
+ */
+/**
+ * `coordinates` and `photos` take one value and it is `false` — B531.
+ *
+ * Strict for the same reason `test:` is: these two words exist only to say a
+ * day deliberately lacks something, and `"photos": true` would read as a
+ * promise the writer cannot keep — photographs arrive on their own call. A
+ * caller that sent one meant *something*, and being told which value is
+ * accepted is cheaper than a day quietly written as though nothing was said.
+ */
+/**
+ * The two words that are answers rather than values.
+ *
+ * `false` says *there was none of this*; `"unknown"` says *there was some and
+ * nobody has it* — B560. Anything else on these fields is refused, because a
+ * caller that sent something meant something, and reading an unrecognised
+ * value as "not mentioned" is how a day ends up saying what nobody said.
+ *
+ * `isEdit` narrows `false` further — B599. `openapi.json` documents `false`
+ * as create-only for both fields, and until now nothing enforced that: a
+ * `PATCH` naming either field simply never reached this function at all,
+ * because neither was in `EDITABLE_DAY_FIELDS`, so the caller was told
+ * "unsupported_field" instead of the real reason. Now that both are editable,
+ * `false` on a `PATCH` is refused here, by name, with a message that says
+ * *why* rather than a generic list of fields the route accepts.
+ */
+function checkDeclines(input: EntryInput, problems: Problem[], isEdit = false): void {
+  for (const field of ["coordinates", "photos"] as const) {
+    const value = input[field];
+    if (value === undefined || value === UNKNOWN) continue;
+    if (value === false) {
+      if (!isEdit) continue;
+      problems.push({
+        field,
+        got: describe(value),
+        expected:
+          '`false` is the answer given when a day is created (POST .../days): it says, from ' +
+          "the start, that " +
+          (field === "coordinates"
+            ? "this day has no one place to put on a map"
+            : "there are no pictures from this day") +
+          ". This route cannot say that — only an existing day already carries it, if it " +
+          'was true at the start. What this route can say is "unknown": ' +
+          (field === "coordinates"
+            ? "it happened somewhere and nobody can say where"
+            : "there are pictures somewhere and nobody has them to hand") +
+          ". Send that instead.",
+      });
+      continue;
+    }
+    problems.push({
+      field,
+      got: describe(value),
+      expected:
+        field === "coordinates"
+          ? (isEdit ? "" : "false (this day has no one place) or ") +
+            '"unknown" (it happened somewhere and nobody can say where). To place the day, ' +
+            "send lat and lng instead"
+          : (isEdit ? "" : "false (there are no pictures from this day) or ") +
+            '"unknown" (there are some and nobody has them to hand). To add photographs, ' +
+            "POST them to .../media",
+    });
+  }
+}
+
+export function checkCosts(input: EntryInput, problems: Problem[]): void {
+  if (input.costs === undefined) return;
+  // `false` is the decline — B531. It says there was no money on this day,
+  // which is a statement about the day rather than a malformed list, so it
+  // passes here and is written as `without: [costs]` instead.
+  if (input.costs === false) return;
+  // `"unknown"` is the third answer — B560. Money was spent and the figures
+  // are gone, which is neither a list nor an absence, and is written as
+  // `unrecorded: [costs]`.
+  if (input.costs === UNKNOWN) return;
+  if (!Array.isArray(input.costs)) {
+    problems.push({
+      field: "costs",
+      got: describe(input.costs),
+      expected:
+        'a list of cost items, or false (nothing was spent), or "unknown" (money was ' +
+        "spent and nobody has the figures)",
+    });
+    return;
+  }
+
+  input.costs.forEach((raw, i) => {
+    const cost = (raw && typeof raw === "object" ? raw : {}) as EntryCostInput;
+    const prefix = `costs[${i}]`;
+
+    if (typeof cost.label !== "string" || cost.label.trim() === "") {
+      problems.push({ field: `${prefix}.label`, got: describe(cost.label), expected: "a non-empty label" });
+    }
+    if (typeof cost.amount !== "number" || !Number.isFinite(cost.amount)) {
+      problems.push({ field: `${prefix}.amount`, got: describe(cost.amount), expected: "a number" });
+    } else if (cost.amount <= 0) {
+      problems.push({
+        field: `${prefix}.amount`,
+        got: describe(cost.amount),
+        expected:
+          "a number greater than zero — parseCostItems drops a zero or negative amount " +
+          "silently when the page reads it back, which is the failure this door exists to refuse.",
+      });
+    }
+    if (
+      cost.category !== undefined &&
+      !(COST_CATEGORIES as readonly string[]).includes(cost.category as CostCategory)
+    ) {
+      problems.push({
+        field: `${prefix}.category`,
+        got: describe(cost.category),
+        expected: `one of ${COST_CATEGORIES.join(", ")}`,
+      });
+    }
+    checkCurrencyCode(`${prefix}.currency`, cost.currency, problems);
+  });
+}
+
+function checkTags(input: EntryInput, problems: Problem[]): void {
+  if (input.tags === undefined) return;
+  if (!Array.isArray(input.tags)) {
+    problems.push({ field: "tags", got: describe(input.tags), expected: "a list of short, slug-like strings" });
+    return;
+  }
+
+  input.tags.forEach((raw, i) => {
+    const ok = typeof raw === "string" && raw.length > 0 && raw.length <= TAG_MAX_LENGTH && TAG_PATTERN.test(raw);
+    if (!ok) {
+      problems.push({
+        field: `tags[${i}]`,
+        got: describe(raw),
+        expected: `a short slug of lowercase letters, digits and hyphens, up to ${TAG_MAX_LENGTH} characters`,
+      });
+    }
+  });
+}
+
+/** Same `required` story as `checkDate`. */
+function checkBody(input: EntryInput, problems: Problem[], required = true): void {
+  if (!required && input.content === undefined) return;
+  if (typeof input.content !== "string" || input.content.trim() === "") {
+    problems.push({ field: "content", got: describe(input.content), expected: "non-empty body text" });
+    return;
+  }
+  if (input.content.length > CONTENT_MAX_LENGTH) {
+    problems.push({
+      field: "content",
+      got: `${input.content.length} characters`,
+      expected: `at most ${CONTENT_MAX_LENGTH}`,
+    });
+  }
+}
+
+/** `validateDraft` refuses a present-but-empty title (absence is "no title
+ * yet" — B1442); only the length is checked here. */
+function checkTitle(input: EntryInput, problems: Problem[]): void {
+  if (typeof input.title === "string" && input.title.length > TITLE_MAX_LENGTH) {
+    problems.push({
+      field: "title",
+      got: `${input.title.length} characters`,
+      expected: `at most ${TITLE_MAX_LENGTH}`,
+    });
+  }
+}
+
+/**
+ * Every problem with `input`, or an empty list when it is fine to write.
+ *
+ * Fields absent from `input` are not errors here — `title` is required but
+ * checked by `validateDraft` in lib/api/entries.ts, which this module does
+ * not duplicate; everything else is optional frontmatter, validated only
+ * when present so a bare-minimum entry (date, content) still passes.
+ */
+/**
+ * The `translations:` block on a day — B294.
+ *
+ * A journal declares the languages it is readable in (`locales`, asked for at
+ * creation since B277 and changeable since B220), and until now that promise
+ * covered the site's chrome and a trip's title and nothing else: a reader who
+ * switched to English got English furniture around German prose, with no
+ * explanation and no way to get the prose. The owner's decision was that the
+ * content should catch up rather than the promise be trimmed — a day is
+ * written in every language its journal declares.
+ *
+ * **Refused, not defaulted, and that is the whole point.** B263 and B277 each
+ * shipped a field an agent was asked to send and allowed to omit; both were
+ * omitted, and in both cases the owner was told otherwise. This is the third
+ * of that pattern and the first caught before shipping, so a day missing a
+ * declared language is a `400` naming the language rather than a day quietly
+ * saved in one.
+ *
+ * The refusal names the *journal's* languages as the remedy on purpose, and
+ * also names `locales` as the way out for an owner writing in one language
+ * only — not because translating on request is forbidden (B316: it is not;
+ * carrying what the owner wrote into another language invents nothing), but
+ * because an agent stuck at a validator should not default to translating
+ * without being asked. The hint says which without ruling out the other.
+ */
+function checkTranslations(
+  input: EntryInput,
+  problems: Problem[],
+  locales: readonly string[],
+  writtenLocale: string,
+): void {
+  const raw = input.translations;
+
+  // Which languages a day owes, beyond the one its own `title` and `content`
+  // are already in.
+  const owed = locales.filter((code) => code !== writtenLocale);
+
+  if (raw === undefined || raw === null) {
+    if (owed.length === 0) return;
+    problems.push({
+      field: "translations",
+      got: "nothing",
+      expected: `this journal is read in ${locales.join(", ")}, so a day carries its title and content in ${owed.join(", ")} as well`,
+      hint:
+        `Send them as translations: {"${owed[0]}": {"title": "…", "content": "…"}}. The words ` +
+        `are the owner's — do not translate their prose yourself unless they ask you to; if ` +
+        `they do, translate it and say so in your reply. If this journal is written in one ` +
+        `language only, that is the journal's to fix and not the day's: PATCH the journal's ` +
+        `config with locales: ["${writtenLocale}"].`,
+    });
+    return;
+  }
+
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    problems.push({
+      field: "translations",
+      got: describe(raw),
+      expected: 'an object keyed by language code, e.g. {"de": {"title": "…", "content": "…"}}',
+    });
+    return;
+  }
+
+  const given = raw as Record<string, unknown>;
+
+  for (const [code, value] of Object.entries(given)) {
+    if (!locales.includes(code)) {
+      problems.push({
+        field: `translations.${code}`,
+        got: code,
+        expected: `one of ${locales.join(", ")} — this journal declares those and nothing else`,
+        hint:
+          `A translation into a language nothing renders would land, read back, and never ` +
+          `reach a reader. To offer ${code}, add it to the journal's locales first.`,
+      });
+      continue;
+    }
+    if (code === writtenLocale) {
+      problems.push({
+        field: `translations.${code}`,
+        got: code,
+        expected:
+          `not ${code} — this journal's own language, which the day's own title and content ` +
+          `hold already, not translations`,
+        hint:
+          `If translations.${code} is a duplicate of what you already sent as this day's ` +
+          `title and content, delete it. If it holds different words — prose in another ` +
+          `language that ended up under the wrong key — move it there instead: the day's own ` +
+          `title and content are always ${code}, and every other language, including the one ` +
+          `you have now, belongs under its own key in translations.`,
+      });
+      continue;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      problems.push({
+        field: `translations.${code}`,
+        got: describe(value),
+        expected: 'an object with "title" and "content"',
+      });
+      continue;
+    }
+    const tr = value as { title?: unknown; content?: unknown };
+    for (const part of ["title", "content"] as const) {
+      const v = tr[part];
+      if (typeof v !== "string" || v.trim() === "") {
+        problems.push({
+          field: `translations.${code}.${part}`,
+          got: v === undefined ? "nothing" : describe(v),
+          expected: `the day's ${part} in ${code}, as the owner wrote it`,
+        });
+      }
+    }
+  }
+
+  const missing = owed.filter((code) => {
+    const tr = given[code] as { title?: unknown; content?: unknown } | undefined;
+    return !tr || typeof tr.title !== "string" || typeof tr.content !== "string";
+  });
+  if (missing.length > 0 && !problems.some((p) => p.field.startsWith("translations."))) {
+    problems.push({
+      field: "translations",
+      got: `${Object.keys(given).join(", ") || "nothing"}`,
+      expected: `every language this journal is read in: ${owed.join(", ")}`,
+      hint:
+        `Missing ${missing.join(", ")}. Ask the person for those words rather than ` +
+        `translating their prose yourself. If the journal is written in one language, ` +
+        `PATCH its config with locales: ["${writtenLocale}"].`,
+    });
+  }
+}
+
+/** How long a hand-supplied `source` may be, and what may be in it. Bounded
+ * because it is written into a YAML flow mapping and shown to readers as the
+ * credit for a measurement — a newline or a quote in it would close the value
+ * from inside, and a paragraph in it is not a source. */
+const SOURCE_MAX_LENGTH = 60;
+const SOURCE_RE = /^[^\r\n"\\]+$/;
+
+/** Plausible ranges, so a typo is caught rather than drawn. The Earth's
+ * record extremes with room either side; precipitation and wind bounded at
+ * values no day has reached. */
+const WEATHER_RANGES: Record<string, [number, number]> = {
+  tempMin: [-95, 65],
+  tempMax: [-95, 65],
+  code: [0, 99],
+  precipitation: [0, 2000],
+  windMax: [0, 500],
+};
+
+const WEATHER_FIELDS = [...Object.keys(WEATHER_RANGES), "source", "recordedAt"];
+
+/**
+ * `weather: true` asks the server to look the day up. It is a request, not an
+ * answer, so the only thing to check is that it is a real boolean — the same
+ * reasoning as `checkTest`: a caller sending `"true"` means something, and
+ * silently reading it as absent would answer a question nobody asked.
+ */
+function checkWeather(input: EntryInput, problems: Problem[]): void {
+  if (input.weather !== undefined && typeof input.weather !== "boolean") {
+    problems.push({
+      field: "weather",
+      got: describe(input.weather),
+      expected: "true or false — the JSON booleans, not the strings",
+      hint:
+        "true asks this server to look up what the weather was at this day's coordinates, " +
+        "from Open-Meteo. It does not accept a reading from you; see weatherData if you " +
+        "have one you took yourself.",
+    });
+  }
+}
+
+/**
+ * `weatherData` is the one field on a day that a caller may not simply assert.
+ *
+ * This project's central rule is that an agent invents no weather — the
+ * temptation is real and the damage is not recoverable, because a plausible
+ * "it rained all afternoon" handed to somebody's family reads as a record of
+ * their life. A measurement is the exception, and **the only thing separating
+ * a measurement from an invention is that the measurement says where it came
+ * from**. So this field is accepted only with provenance, and the server's own
+ * source name is refused outright: an agent that could send
+ * `source: "open-meteo"` beside numbers it believed would erase the
+ * distinction with one string, and every rule above it would be decoration.
+ *
+ * Ask for `weather: true` instead if what you want is the archive's answer.
+ */
+function checkWeatherData(input: EntryInput, problems: Problem[]): void {
+  const raw = input.weatherData;
+  if (raw === undefined) return;
+
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    problems.push({
+      field: "weatherData",
+      got: describe(raw),
+      expected:
+        "an object with a source, a recordedAt and at least one measurement — " +
+        '{"tempMax": 24, "source": "the thermometer on the balcony", "recordedAt": "2026-08-26T17:00:00Z"}',
+    });
+    return;
+  }
+
+  const given = raw as Record<string, unknown>;
+
+  for (const [field, [lo, hi]] of Object.entries(WEATHER_RANGES)) {
+    const value = given[field];
+    if (value === undefined) continue;
+    if (typeof value !== "number" || !Number.isFinite(value) || value < lo || value > hi) {
+      problems.push({
+        field: `weatherData.${field}`,
+        got: describe(value),
+        expected: `a number between ${lo} and ${hi}`,
+      });
+    }
+  }
+
+  for (const key of Object.keys(given)) {
+    if (WEATHER_FIELDS.includes(key)) continue;
+    problems.push({
+      field: `weatherData.${key}`,
+      got: key,
+      expected: `one of ${WEATHER_FIELDS.join(", ")}`,
+    });
+  }
+
+  const source = typeof given.source === "string" ? given.source.trim() : undefined;
+  if (source === undefined || source === "") {
+    problems.push({
+      field: "weatherData.source",
+      got: describe(given.source),
+      expected: "where this reading came from, in a few words",
+      hint:
+        "Required, and it is the point of the field: a number with no source is " +
+        "indistinguishable from one you made up, and this journal's readers have no way to " +
+        "tell them apart. Name the thermometer, the app, the station — whatever it was. If " +
+        "you have no reading and want the archive's, send weather: true instead.",
+    });
+  } else if ((RESERVED_SOURCES as readonly string[]).includes(source.toLowerCase())) {
+    problems.push({
+      field: "weatherData.source",
+      got: describe(given.source),
+      expected: `not ${RESERVED_SOURCES.join(" or ")} — only this server may write those`,
+      hint:
+        "That name belongs to a lookup this server made itself, and a reader takes it to mean " +
+        "a measurement was retrieved from that archive. Send weather: true to have this server " +
+        "do the lookup, or name the source your reading actually came from.",
+    });
+  } else if (source.length > SOURCE_MAX_LENGTH || !SOURCE_RE.test(source)) {
+    problems.push({
+      field: "weatherData.source",
+      got: describe(given.source),
+      expected: `at most ${SOURCE_MAX_LENGTH} characters, on one line, with no quotes or backslashes`,
+    });
+  }
+
+  const recordedAt = given.recordedAt;
+  if (typeof recordedAt !== "string" || Number.isNaN(Date.parse(recordedAt))) {
+    problems.push({
+      field: "weatherData.recordedAt",
+      got: describe(recordedAt),
+      expected: 'when this reading was taken, as an ISO instant — "2026-08-26T17:00:00Z"',
+    });
+  }
+
+  if (!hasMeasurement(given as Parameters<typeof hasMeasurement>[0])) {
+    problems.push({
+      field: "weatherData",
+      got: "provenance and no measurement",
+      expected: "at least one of tempMin, tempMax, code, precipitation, windMax",
+    });
+  }
+}
+
+export function validateEntry(
+  input: EntryInput,
+  /** The journal's declared languages and the one its prose is written in.
+   * Omitted by callers that have no journal to hand — the shape checks still
+   * run, the completeness one cannot. */
+  languages?: { locales: readonly string[]; writtenLocale: string },
+): Problem[] {
+  const problems: Problem[] = [];
+  if (languages) {
+    checkTranslations(input, problems, languages.locales, languages.writtenLocale);
+  }
+  checkTitle(input, problems);
+  checkDate(input, problems);
+  checkTime(input, problems);
+  checkTimezone(input, problems);
+  checkCountryCode(input, problems);
+  checkPlaceWords(input, problems);
+  checkCoordinates(input, problems);
+  checkTransportMode(input, problems);
+  checkTravelScene(input, problems);
+  checkCosts(input, problems);
+  checkDeclines(input, problems);
+  checkTags(input, problems);
+  checkTest(input, problems);
+  checkVisibility(input, problems);
+  checkWeather(input, problems);
+  checkWeatherData(input, problems);
+  checkBody(input, problems);
+  return problems;
+}
+
+/**
+ * The same rules as `validateEntry`, for `PATCH .../days/<slug>` (B266).
+ *
+ * A PATCH is a partial edit: a field absent from the body means "leave it
+ * alone", not "reject the request" — so `date` and `content`, the two fields
+ * creation requires, are checked for shape only when they are present.
+ * Every other rule is unchanged, because a value that would be wrong on the
+ * way in is wrong on the way in either time.
+ *
+ * `lat`/`lng` still have to arrive together in the same call — `checkCoordinates`
+ * does not know what the day already has on disk, so patching only `lat` on a
+ * day that already carries `lng` is refused the same as it would be on
+ * creation. ponytail: send both if you want either changed; teach this check
+ * the file's existing values if that turns out to matter in practice.
+ */
+export function validateEntryEdit(
+  input: EntryInput,
+  languages?: { locales: readonly string[]; writtenLocale: string },
+  /**
+   * The `src` of every photograph the day currently has, exactly as
+   * `GET .../days/<slug>` reads them back — B540. This validator is pure and
+   * has no way to look the day up itself, so the caller (the route handler,
+   * which already has the entry in hand to answer the request) hands over
+   * the one fact `checkCaptions` needs from disk. Undefined skips the check
+   * entirely rather than treating "nothing given" as "the day has no
+   * photographs" — callers that have not been taught about a day's gallery
+   * yet must not start refusing every caption in it.
+   */
+  knownGallerySrcs?: readonly string[],
+): Problem[] {
+  const problems: Problem[] = [];
+  // An edit that rewrites the prose in one language and leaves the others
+  // standing is the drift B294 exists to stop, so `title` and `content`
+  // bring the completeness check with them. An edit to a coordinate or a tag
+  // does not.
+  if (languages && (input.title !== undefined || input.content !== undefined)) {
+    checkTranslations(input, problems, languages.locales, languages.writtenLocale);
+  } else if (languages && input.translations !== undefined) {
+    checkTranslations(input, problems, languages.locales, languages.writtenLocale);
+  }
+  checkTitle(input, problems);
+  checkDate(input, problems, false);
+  checkTime(input, problems);
+  checkTimezone(input, problems);
+  checkCountryCode(input, problems);
+  checkPlaceWords(input, problems);
+  checkCoordinates(input, problems);
+  checkTransportMode(input, problems);
+  checkTravelScene(input, problems);
+  checkCosts(input, problems);
+  checkDeclines(input, problems, true);
+  checkTags(input, problems);
+  checkTest(input, problems);
+  checkVisibility(input, problems);
+  checkWeather(input, problems);
+  checkWeatherData(input, problems);
+  checkBody(input, problems, false);
+  checkCaptions(input, problems, knownGallerySrcs);
+  checkPhotoVisibility(input, problems, knownGallerySrcs);
+  return problems;
+}
+
+// `mediaKey` — the owner prefix a `src` may or may not be carrying, stripped
+// so a request echoing back exactly what `GET .../days/<slug>` handed it still
+// matches what the day's gallery items answer to on disk — used to be written
+// out here, as a deliberate second copy: this module is pure (no fs, nothing
+// route-only) and lib/api/entries.ts is not, so there was nowhere to share it
+// from. lib/photos.ts is that somewhere, and is pure for this reason. B596.
+
+/**
+ * `captions` is `{ "<src>": "<text>" }` and nothing else.
+ *
+ * Refused rather than ignored, like every other malformed field here: a
+ * caption that silently did not land would be reported as written, and what
+ * an agent tells somebody it wrote has to be what is on disk. That includes a
+ * `src` naming no photograph the day has — B540. Before this, `spliceCaptions`
+ * simply found nothing to rewrite for a name it did not recognise, answered
+ * `200` with `changed: ["captions"]`, and wrote nothing: a typo in the one
+ * argument this field takes looked exactly like success. `knownGallerySrcs`
+ * is what lets this function tell "the day has no such photograph" from "the
+ * text is fine" — skipped when the caller has not supplied it, which is only
+ * ever a caller that has not been taught about the day's gallery yet, never a
+ * day that has none.
+ */
+function checkCaptions(
+  input: EntryInput,
+  problems: Problem[],
+  knownGallerySrcs?: readonly string[],
+): void {
+  if (input.captions === undefined) return;
+  const value = input.captions;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    problems.push({
+      field: "captions",
+      got: describe(value),
+      expected: 'an object keyed by the photograph\'s src — {"/you/media/trip/day/01.jpg": "…"}',
+    });
+    return;
+  }
+  const known = knownGallerySrcs ? new Set(knownGallerySrcs.map(mediaKey)) : undefined;
+  for (const [src, text] of Object.entries(value as Record<string, unknown>)) {
+    const field = `captions[${JSON.stringify(src)}]`;
+    if (known && !known.has(mediaKey(src))) {
+      problems.push({
+        field,
+        got: describe(src),
+        expected: "a src this day's gallery actually has — see the gallery in GET .../days/<slug>",
+      });
+      continue;
+    }
+    if (typeof text !== "string") {
+      problems.push({
+        field,
+        got: describe(text),
+        expected: "a string — an empty one removes the caption",
+      });
+      continue;
+    }
+    // The same two rules the media endpoint applies on the way in, from the
+    // same function: a caption corrected later is still a caption.
+    const problem = captionProblem(text.trim(), field);
+    if (problem) problems.push(problem);
+  }
+}
+
+/**
+ * `photoVisibility` is `{ "<src>": "guest" | "private" | null }` — B596.
+ *
+ * Refused rather than ignored, for the reason `checkCaptions` above is: what
+ * an agent tells somebody it did has to be what is on disk, and here that
+ * matters more than for a caption. "I have marked that photograph private"
+ * followed by nothing landing is the worst sentence this feature could
+ * produce, so an unknown `src` and an unknown word are both a `400`.
+ *
+ * `"public"` in particular is refused with the reason spelled out rather than
+ * quietly treated as `null`. A caller reaching for it is asking to widen, the
+ * one thing a label cannot do, and a silent success would have them believe a
+ * `private` trip's photograph had just been shown to the world.
+ */
+function checkPhotoVisibility(
+  input: EntryInput,
+  problems: Problem[],
+  knownGallerySrcs?: readonly string[],
+): void {
+  if (input.photoVisibility === undefined) return;
+  const value = input.photoVisibility;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    problems.push({
+      field: "photoVisibility",
+      got: describe(value),
+      expected:
+        'an object keyed by the photograph\'s src — {"/you/media/trip/day/01.jpg": "private"}',
+    });
+    return;
+  }
+  const known = knownGallerySrcs ? new Set(knownGallerySrcs.map(mediaKey)) : undefined;
+  for (const [src, level] of Object.entries(value as Record<string, unknown>)) {
+    const field = `photoVisibility[${JSON.stringify(src)}]`;
+    if (known && !known.has(mediaKey(src))) {
+      problems.push({
+        field,
+        got: describe(src),
+        expected: "a src this day's gallery actually has — see the gallery in GET .../days/<slug>",
+      });
+      continue;
+    }
+    if (level === null) continue;
+    if (!(PHOTO_VISIBILITIES as readonly unknown[]).includes(level)) {
+      problems.push({
+        field,
+        got: describe(level),
+        expected:
+          `one of ${PHOTO_VISIBILITIES.join(", ")}, or null to hold nothing back. ` +
+          "There is no \"public\": a label narrows what the trip's own visibility " +
+          "already allows and can never widen it, so null is how a photograph goes " +
+          "back to being seen by everyone the trip lets in.",
+      });
+    }
+  }
+}
+
+/**
+ * `visibility` — this whole update, held back — B632.
+ *
+ * The same shape `checkPhotoVisibility` above checks, minus the `src` map: one
+ * scalar rather than one per photograph, since a day has exactly one of
+ * itself. `null` clears a label the same way it does there, and `"public"` is
+ * refused with the same sentence for the same reason — there is no such value
+ * to widen with, and a caller reaching for it is asking for the one thing a
+ * label cannot do.
+ */
+function checkVisibility(input: EntryInput, problems: Problem[]): void {
+  if (input.visibility === undefined || input.visibility === null) return;
+  if (!(PHOTO_VISIBILITIES as readonly unknown[]).includes(input.visibility)) {
+    problems.push({
+      field: "visibility",
+      got: describe(input.visibility),
+      expected:
+        `one of ${PHOTO_VISIBILITIES.join(", ")}, or null to hold nothing back. ` +
+        "There is no \"public\": a label narrows what the trip's own visibility " +
+        "already allows and can never widen it, so null (or leaving the field out) " +
+        "is how a day goes back to being seen by everyone the trip lets in.",
+    });
+  }
+}
+
+/**
+ * `test` must be a real boolean, and a wrong value is refused rather than
+ * ignored.
+ *
+ * Every other optional field here can be dropped silently at worst. This one
+ * cannot: a caller sending `"test": "true"` is telling us this day did not
+ * happen, and treating that as absent would publish invented content with no
+ * banner on it — the exact outcome the flag exists to prevent.
+ */
+function checkTest(input: EntryInput, problems: Problem[]): void {
+  if (input.test === undefined) return;
+  if (typeof input.test !== "boolean") {
+    problems.push({
+      field: "test",
+      got: describe(input.test),
+      expected: "true or false — the JSON booleans, not the strings",
+    });
+  }
+}

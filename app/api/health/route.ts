@@ -1,0 +1,477 @@
+import crypto from "node:crypto";
+import { NextResponse } from "next/server";
+import { readBackupStatus, type BackupStatus } from "@/lib/backupStatus";
+import { basemapProblem } from "@/lib/basemap";
+import { resolveCapabilities } from "@/lib/capabilities";
+import { loadServerConfig } from "@/lib/config";
+import { FEATURE_NAMES, OPERATOR_ONLY_FEATURES } from "@/lib/config";
+import { DEFAULT_MEDIA_LIMITS } from "@/lib/mediaLimits";
+import { RESERVED_SOURCES } from "@/lib/weather";
+import { TRANSACTIONAL_MAIL_NOTE } from "@/lib/mail/types";
+import { contentRootProblem, contentRootWriteProblem, getUsernames } from "@/lib/users";
+import pkg from "@/package.json";
+import { PAID_AREAS } from "@paid/manifest";
+import { videoToolsKnown } from "@/lib/ingest/video";
+import {
+  CAPTION_MAX_CHARS,
+  IMAGE_FORMATS,
+  IMAGE_MAX_BYTES,
+  IMAGE_MAX_EDGE,
+  IMAGE_MAX_PIXELS,
+  MAX_ITEMS_PER_DAY,
+  REQUEST_MAX_BYTES,
+  VIDEO_FORMATS,
+  VIDEO_MAX_BYTES,
+  VIDEO_MAX_SECONDS,
+} from "@/lib/validate/media";
+
+// Never cache or prerender: this reflects the live state of the process
+// (env vars, config) at request time, not a build-time snapshot.
+export const dynamic = "force-dynamic";
+
+/**
+ * `/api/health` — for an uptime monitor, and for the person who deployed this
+ * at 2am to see *why* a feature isn't lighting up without grepping env vars.
+ *
+ * Reports each capability's resolved on/off state and, when off, the reason
+ * (`resolveCapabilities()` from lib/capabilities.ts) — never a secret value,
+ * only whether one is present. Also reports whether config.json parsed at
+ * all, since a broken config is the one failure that can take capability
+ * resolution down with it.
+ *
+ * **Backups, too.** `backup` reports when `scripts/backup.sh` last finished,
+ * because nothing else could answer it from outside the machine — a nightly
+ * backup that has aborted since March leaves a timer that still looks
+ * perfectly healthy (B64). It is reported as a field rather than folded into
+ * `status`: a stale backup is not a reason to take an instance out of a load
+ * balancer or fail a deploy, but it is very much a reason to page somebody.
+ * A monitor should assert on `.backup.state` being `"ok"`.
+ *
+ * **Per journal as well as per server.** A capability is a server ceiling and
+ * a journal opt-in, and this reported only the ceiling — so `contacts` read
+ * "enabled" while `/<user>/contacts` answered 404, because that journal had
+ * never switched it on. The person reading this page at 2am concluded the routing
+ * was broken. `journals` gives the answer they were actually looking for.
+ *
+ * **A content root it cannot read is `content: { ok: false }` and a 503.**
+ * `getUsernames()` cannot throw — a failed directory listing must not take
+ * every page down with it — so it returns an empty list, which reads exactly
+ * like an instance nobody has created a journal on. Everything downstream then
+ * answers politely and wrongly: no journal resolves, `journals` below is empty
+ * because there is nothing to compare, and this page said `ok`. B197 is what
+ * that cost, in the form of every journal's mail silently switched off. The
+ * empty `journals` block is the symptom an operator sees; this field is the
+ * only thing that can tell them it means "cannot tell" rather than "nothing to
+ * report".
+ *
+ * **Readable is not the same claim as writable — B1248.** `contentRootProblem()`
+ * only ever asked `readdirSync`, so a root that a signup, a publish or an
+ * upload could not write into read as `content: { ok: true }` throughout a
+ * five-hour outage: every page still rendered from disk, so nothing else here
+ * noticed either. `contentRootWriteProblem()` writes and removes one throwaway
+ * file per call — cheap, since this route is polled — and its fault takes the
+ * same `content` field and the same `status` down that an unreadable root
+ * already did, because an instance that cannot write a single new day is not
+ * `ok` merely because its existing ones still read.
+ *
+ * **A basemap that will not read is `basemap: { ok: false }` and a 200.**
+ * `bundle()` in lib/basemap.ts returns null both for a bundle nobody built —
+ * a supported state — and for one it could not read, and before B179 those
+ * were the same silent branch, cached for the life of the process: one failed
+ * read and every map on the instance drew blank until a restart. The fault now
+ * has a name and is reported here. It is a field rather than part of `status`,
+ * for the reason `backup` is: a map with no borders under it is not a reason
+ * to take an instance out of a load balancer, and very much a reason to tell
+ * somebody. Nothing here forces a read — this reports the last attempt any
+ * page made, so an instance that has drawn no map since booting says `ok`.
+ *
+ * A journal whose `mail` is narrowed off also carries `stillSent`, because
+ * that block is only true of the letters the journal writes to its readers:
+ * sign-in codes, deletion confirmations and operator alerts go out anyway.
+ * Reporting `enabled: false` and nothing else is what sent somebody hunting
+ * for a routing bug when a code arrived for a journal that said mail was off
+ * (B60).
+ *
+ * ## What is public here, and what is not (B234)
+ *
+ * This page is unauthenticated and stays that way — an uptime monitor cannot
+ * hold a credential, and every field below that a monitor asserts on is
+ * reachable without one. But some of its fields had drifted past "on or off"
+ * into things this instance does not otherwise hand out, and they appear
+ * precisely when the instance is already unhealthy, which is when somebody
+ * probing is most likely to be reading.
+ *
+ * **Public, to anybody:** `status`, `time`, `uptimeSeconds`, `version`,
+ * `commit`, `responseTimeMs`, every block's `ok` boolean and its
+ * machine-readable `code`, and the whole `capabilities` block including each
+ * reason. Reasons are named env vars and config keys — never a value, never a
+ * path, never a person — and AGENTS.md requires that a capability which is off
+ * explains itself. That promise is kept in full. `postcards` and `photobook`
+ * also carry a `note` when they are on but the configured provider is
+ * `dry-run`: `enabled: true` there means an order can be composed and a
+ * button can be pressed, not that anything will reach a printer (B492).
+ * `backup` is public too, but trimmed to `state`, `maxAgeHours` and the same
+ * two fields on `secondary` — see `publicBackupStatus()` below for why the
+ * rest waits for the token.
+ *
+ * **Behind `HEALTH_TOKEN`:** the free-text `error` on `config`, `content` and
+ * `basemap`, which carries the absolute content-root path and errno text; the
+ * whole `journals` block; and the rest of `backup` — `lastSuccessAt`,
+ * `ageHours`, `lastFailureAt`, the verbatim `lastFailure` text a systemd unit
+ * wrote, `reason`, and `secondary`'s own timestamps and `reason` (which names
+ * `RESTIC_REPOSITORY_SECONDARY`). B1045: none of that is a fact a caller who
+ * cannot already act on it has a use for, and the off-site posture in
+ * particular tells a stranger how much of this instance is recoverable before
+ * they would need to know. Present the token as `Authorization: Bearer
+ * <token>`. Unset means nobody is entitled, never everybody — a fresh install
+ * is safe before it is configured, and an instance that never sets it simply
+ * has no roster, and no backup detail, on this page.
+ *
+ * **The diagnostic that B197 added survives the redaction**, which is the
+ * point of drawing the line here rather than dropping the field. B197's
+ * complaint was that an empty `journals` block reads exactly like an instance
+ * with no journals, so nothing could say "cannot tell" rather than "nothing to
+ * report". `content: { ok: false }` is what says it, and that is public. Only
+ * the path is held back, and `getUsernames()` has already written the whole
+ * message to stdout, where the operator entitled to it already is.
+ *
+ * **`journals` is the whole roster, and it needs the token** (B473). B234
+ * filtered it through `listedUsernames()` instead, which held back the
+ * journals this instance does not advertise and left the advertised ones with
+ * their capability posture attached. Two things were wrong with stopping
+ * there. A listed journal's *name* is public by design — it is on
+ * `/documentation.txt` and the landing page — but which capabilities it has
+ * switched on is a fact about a deployment, and the only reader who wants it
+ * is the operator comparing this block against a 404, who is the reader
+ * `HEALTH_TOKEN` exists for. And `journalsWithheld` was a live count of the
+ * journals that asked not to be found: it names nobody, which is not the same
+ * as saying nothing.
+ *
+ * **Absent, not empty.** An unentitled caller gets no `journals` key at all. An
+ * empty object would read as "this instance has no journals" — precisely the
+ * ambiguity B197 existed to remove — and `content: { ok: false }` with its
+ * `code` is public for exactly that reason: it still distinguishes "cannot
+ * tell" from "nothing to report" without the roster.
+ */
+
+/**
+ * Whether this caller may read the detail as well as the state.
+ *
+ * A shared operator secret rather than an owner's bearer token, because the
+ * question this page answers is about the *instance* — its filesystem, its
+ * config, its journal list — and no single journal's owner is the authority on
+ * that. On a one-journal instance the two are the same person; on a shared one
+ * they are not, and the wrong one of those two is the one that leaks.
+ *
+ * Compared in constant time, and an unset `HEALTH_TOKEN` entitles nobody: the
+ * safe default for a fresh install is the redacted page, not the full one.
+ */
+function mayReadDetail(request: Request): boolean {
+  const expected = process.env.HEALTH_TOKEN ?? "";
+  if (expected === "") return false;
+  const supplied = /^bearer\s+(.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1] ?? "";
+  if (supplied === "") return false;
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/** A fault, as much of it as this caller is entitled to. */
+function fault(code: string, message: string, detailed: boolean) {
+  return { ok: false as const, code, ...(detailed ? { error: message } : {}) };
+}
+
+/**
+ * `backup`, trimmed to what a stranger has a use for — B1045.
+ *
+ * `state` is the one thing a monitor asserts on (the module comment on
+ * `readBackupStatus` says so), and it stays public along with `maxAgeHours`,
+ * which is a policy number rather than a fact about this machine. Everything
+ * else here was reconnaissance rather than health: `lastFailure` is the
+ * systemd unit's own text, passed through verbatim and unbounded in what it
+ * might say next; `secondary.reason` names the `RESTIC_REPOSITORY_SECONDARY`
+ * environment variable; and the timestamps say how much of this instance is
+ * recoverable right now, which is exactly what is worth knowing before
+ * attacking it. `HEALTH_TOKEN` — the same gate `config.error`, `content.error`
+ * and `journals` already use — is what brings the rest back.
+ */
+function publicBackupStatus(full: BackupStatus) {
+  return {
+    state: full.state,
+    maxAgeHours: full.maxAgeHours,
+    secondary: { state: full.secondary.state, maxAgeHours: full.secondary.maxAgeHours },
+  };
+}
+
+export async function GET(request: Request) {
+  const detailed = mayReadDetail(request);
+  const startedAt = Date.now();
+
+  let capabilities: Record<
+    string,
+    { enabled: boolean; reason?: string; note?: string; keepingCopies?: true }
+  >;
+  let configOk = true;
+  let configError: string | undefined;
+
+  try {
+    const resolved = resolveCapabilities();
+    capabilities = {};
+    for (const name of FEATURE_NAMES) {
+      const state = resolved[name];
+      capabilities[name] = state.enabled
+        ? { enabled: true, ...(state.note ? { note: state.note } : {}) }
+        : { enabled: false, reason: state.reason };
+    }
+
+    // Surfaced because it is a security-relevant setting an operator can
+    // otherwise only discover by reading the config file: with it on, every
+    // sign-in code, invitation and deletion link is also written to disk in
+    // plaintext. Reported as a flag, never as the value of anything.
+    if (capabilities.mail?.enabled && loadServerConfig().features.mail.keepCopy === true) {
+      capabilities.mail.keepingCopies = true;
+    }
+  } catch (err) {
+    // loadConfig() throws ConfigError for a missing/invalid site/config.json.
+    // That is a real health problem, not a 500 — report it as unhealthy instead
+    // of crashing the health check itself.
+    configOk = false;
+    configError = err instanceof Error ? err.message : String(err);
+    capabilities = {};
+  }
+
+  // Only the differences: on a single-user instance, or one where nobody has
+  // narrowed anything, this is empty and the server-level block above is the
+  // whole truth.
+  const journals: Record<
+    string,
+    Record<string, { enabled: boolean; reason?: string; stillSent?: string }>
+  > = {};
+  // Read after `getUsernames()`, never before it: the fault is recorded by the
+  // read, so asking first answers about whatever happened last time.
+  let contentProblem: string | null = null;
+  // "unreadable" for a directory listing that failed, "unwritable" for one
+  // that listed fine but refused the write probe — B1248. Two different
+  // faults, so an operator reading `content.code` knows which one it is
+  // rather than always seeing the older name.
+  let contentCode: "unreadable" | "unwritable" = "unreadable";
+  if (configOk) {
+    const usernames = getUsernames();
+    // Read first, then write. A root that cannot be listed is already
+    // unusable and the write probe would only repeat the same fault; one
+    // that lists fine but refuses a write is the state that took this
+    // instance down for five hours while every read kept answering
+    // politely, so the probe runs whenever the read did not already fail.
+    contentProblem = contentRootProblem();
+    if (!contentProblem) {
+      contentProblem = contentRootWriteProblem();
+      contentCode = "unwritable";
+    }
+    for (const username of usernames) {
+      const resolved = resolveCapabilities(username);
+      const narrowed: Record<
+        string,
+        { enabled: boolean; reason?: string; stillSent?: string }
+      > = {};
+      for (const name of FEATURE_NAMES) {
+        // `logging` and `credits` have no per-journal opt-in — they are the
+        // operator's decision alone, made once for the whole instance
+        // (`logging` B257, `credits` B366: the money lands on the operator's
+        // card, not the journal's). A journal that has never mentioned either
+        // must never appear here as though it had narrowed something.
+        // `resolveCapabilities(username)` narrows every capability a journal's
+        // config does not set to `true`, and neither of these is a journal's
+        // to set — so without this skip both would show up as narrowed for
+        // every journal, every time, contradicting the server-level answer
+        // above (`credits` was B397: reported off per-journal while live).
+        if ((OPERATOR_ONLY_FEATURES as readonly string[]).includes(name)) continue;
+        const state = resolved[name];
+        if (state.enabled === capabilities[name].enabled) continue;
+        narrowed[name] = state.enabled
+          ? { enabled: true }
+          : { enabled: false, reason: state.reason };
+        // `mail: { enabled: false }` for a journal is true of its letters to
+        // readers and false of everything else, and reporting only the first
+        // half was the lie B60 started as: the operator read "off", and
+        // sign-in codes kept arriving. Named here rather than left implied,
+        // from the same constant the docs quote.
+        if (name === "mail" && !state.enabled && capabilities.mail?.enabled) {
+          narrowed[name].stillSent = TRANSACTIONAL_MAIL_NOTE;
+        }
+      }
+      if (Object.keys(narrowed).length > 0) journals[username] = narrowed;
+    }
+  }
+
+  const basemapFault = basemapProblem();
+
+  const healthy = configOk && !contentProblem;
+
+  // The whole roster is operator detail, and it is absent rather than empty for
+  // an unentitled caller — see the note above on why the middle ground B234
+  // built is not enough, and why `content.ok` is what carries B197's
+  // diagnostic instead.
+
+  const body = {
+    status: healthy ? "ok" : "error",
+    time: new Date().toISOString(),
+    uptimeSeconds: Math.round(process.uptime()),
+    version: pkg.version ?? null,
+    commit: process.env.GIT_SHA ?? null,
+    // Open core: the paid areas this build carries for real (every other one
+    // is a public stub, and its capability refuses to switch on); the
+    // paid/ commit is main's own paidCommit (B2247) just below. Public, like `commit`.
+    paid: { areas: PAID_AREAS },
+    // The open-core split's private features tree's own commit (B2247), when
+    // this instance has one uploaded into paid/ — absent, not empty or
+    // "unknown", on a public-only instance, the same convention `commit`
+    // itself uses when GIT_SHA was never set. Public and unauthenticated, like
+    // `commit` — a build identifier is not a secret, and scripts/deploy.sh
+    // reads this to decide whether a paid-only push still needs a build.
+    paidCommit: process.env.PAID_SHA || null,
+    config: configOk ? { ok: true } : fault("unusable", configError ?? "", detailed),
+    // The journal directory itself, separately from the config file inside it.
+    // `ok: true` says the list below is the whole truth; `ok: false` says this
+    // process cannot see any journal at all, whatever `journals` looks like.
+    // That distinction is B197's, and it is public; the path is not.
+    content: contentProblem ? fault(contentCode, contentProblem, detailed) : { ok: true },
+    // The map data under every trip map, separately again: it is read from
+    // lib/, not from content/, and a journal directory that is fine says
+    // nothing about a bundle that is not. See the note above on why this does
+    // not move `status`.
+    basemap: basemapFault ? fault("unreadable", basemapFault, detailed) : { ok: true },
+    capabilities,
+    /**
+     * What this server will take in an upload, and how much of it.
+     *
+     * Here rather than only in the media endpoint's prose because an agent
+     * needs it *before* it uploads, and because it is the one part of the
+     * contract a client was otherwise forced to hard-code: the helper tools
+     * carried their own copy of these extensions, drifted (they listed `jpg`
+     * and `avif`, neither of which this server takes), and only found out when
+     * a batch was refused half-way. B540.
+     *
+     * Public, like `capabilities`: it is a limit, not a secret, and a caller
+     * that cannot read it before uploading is a caller that finds out by
+     * failing.
+     *
+     * `imageMaxEdge` in particular is a ceiling and a target at once, and
+     * `/openapi.json` says so in its own words (B1533) because a bare
+     * integer here cannot: the uploaded file is kept as the print master a
+     * photobook prints from, a smaller web copy is derived automatically,
+     * and "send the largest file you have" is the right reading of this
+     * number, not "stay under it to be polite". `fernscout-helper` read the
+     * absence of that sentence as licence to default to something closer to
+     * the site's own 2000 px web copy, and every photobook it made printed
+     * from roughly 170 dpi originals as a result.
+     */
+    media: {
+      imageFormats: [...IMAGE_FORMATS],
+      /**
+       * Empty on a server with no ffmpeg — B692.
+       *
+       * This used to be the constant, always, which told every caller that
+       * mp4, mov and webm were accepted while `storeUploads` refused each one
+       * for want of the tools. It is the failure this file exists to prevent:
+       * an optional capability is *absent* rather than broken, and a limit
+       * belongs where a caller can read it before they hit it.
+       *
+       * **`videoToolsKnown()` and never `videoToolsAvailable()` — B695.** This
+       * route is public and unauthenticated, and the second one spawns two
+       * processes and can hold its caller ten seconds, re-spawning next time
+       * whenever the check was inconclusive. That turns a cheap GET into a
+       * process amplifier, worst on a machine already loaded enough to make
+       * the check inconclusive. `register()` asks the question once at boot;
+       * this reads the answer.
+       *
+       * `null` — nobody has concluded anything yet — reports the formats. It
+       * is the honest answer to "we do not know": a clip may well work, and
+       * `storeUploads` still refuses cleanly if it does not. Saying "no video
+       * here" on a machine that merely hesitated would be the same kind of
+       * wrong this block was written to remove, pointed the other way.
+       */
+      videoFormats: videoToolsKnown() === false ? [] : [...VIDEO_FORMATS],
+      ...(videoToolsKnown() === false
+        ? {
+            video: {
+              // B1898 — this used to be `capabilities.whatsappInbound.reason`
+              // too, which took the whole channel down over a missing codec
+              // tool. The binary is still missing and still worth explaining
+              // here, in the one place a caller reads limits before hitting
+              // them; WhatsApp itself now just refuses the clip, in chat,
+              // the moment one arrives (see `wa.videoNotSupported`).
+              reason:
+                "ffmpeg and ffprobe are not installed on this server, so a clip cannot be " +
+                "converted for the browser or accepted over WhatsApp. Photographs are unaffected.",
+            },
+          }
+        : {}),
+      imageMaxBytes: IMAGE_MAX_BYTES,
+      imageMaxEdge: IMAGE_MAX_EDGE,
+      // The separate, hard pixel ceiling — B2179 round 2. A 9000×9000 image
+      // has an edge under `imageMaxEdge` and is still refused, on total
+      // pixel count, before this server decodes it; a caller could not have
+      // known that from `imageMaxEdge` alone.
+      imageMaxPixels: IMAGE_MAX_PIXELS,
+      videoMaxBytes: VIDEO_MAX_BYTES,
+      videoMaxSeconds: VIDEO_MAX_SECONDS,
+      itemsPerDay: MAX_ITEMS_PER_DAY,
+      requestMaxBytes: REQUEST_MAX_BYTES,
+      captionMaxChars: CAPTION_MAX_CHARS,
+      /**
+       * Everything one journal may hold, `content/<user>/` and all — B661.
+       *
+       * The instance's own ceiling, before anything a journal has bought and
+       * before its own config narrows it; `GET /api/v1/<user>/status` carries
+       * the number that actually applies to a caller, and how much of it is
+       * left. `null` means this instance sets no ceiling.
+       */
+      perJournalBytes: configOk
+        ? loadServerConfig().media.perUserBytes
+        : DEFAULT_MEDIA_LIMITS.perUserBytes,
+    },
+    /**
+     * The weather source names only this server may claim — B1580.
+     *
+     * `weatherData.source` is otherwise free text, and deliberately: it names
+     * whatever actually took the reading, which no server can enumerate. What
+     * *is* closed is the short list of names that mean **this server looked it
+     * up itself**, and `lib/validate/entry.ts` refuses those outright — one
+     * string standing between a measurement and an invention.
+     *
+     * Here because a client needs it before it sends, and because it was the
+     * one part of this rule a client was forced to hard-code: a day whose
+     * weather this server fetched carries `source: "open-meteo"` in its own
+     * file, so anything forwarding a journal's days hits the refusal on every
+     * such day. `fernscout-helper` found that by failing (B1578) and carried
+     * its own copy until this existed — which is the same shape as the upload
+     * formats two blocks up, and the same fix.
+     *
+     * A deny list rather than an `enum` on the field: every other value is
+     * valid, which is the opposite of what an enum says.
+     */
+    weather: {
+      reservedSources: [...RESERVED_SOURCES],
+    },
+    /**
+     * How many printed photobook orders a journal keeps on disk before older
+     * ones lose their PDFs — B483. Read before ordering a book nobody has
+     * downloaded yet: a caller past this count on the same journal will find
+     * the oldest order's files gone the next time one prints. `null` means
+     * this instance keeps every book.
+     */
+    photobook: {
+      keepOrdersPerUser: configOk
+        ? loadServerConfig().media.photobookOrdersPerUser
+        : DEFAULT_MEDIA_LIMITS.photobookOrdersPerUser,
+    },
+    ...(detailed ? { journals } : {}),
+    backup: detailed ? readBackupStatus() : publicBackupStatus(readBackupStatus()),
+    responseTimeMs: Date.now() - startedAt,
+  };
+
+  return NextResponse.json(body, {
+    status: healthy ? 200 : 503,
+    headers: { "cache-control": "no-store" },
+  });
+}

@@ -1,0 +1,49 @@
+import DocsUpLink from "@/components/DocsUpLink";
+import LocaleProvider from "@/components/LocaleProvider";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
+import { dictionaryFor, installedLocales, requestLocale, translateIn } from "@/lib/locales";
+import { serverSite } from "@/lib/site";
+
+/**
+ * One frame for every documentation page — B470.
+ *
+ * Before this there was no docs layout at all: `/docs`, `/docs/api` and the
+ * guides each built their own header, `/docs` contained no link back to the
+ * site at any point, and the language switcher lived inside the guides' own
+ * menu — so it read as a property of the guides rather than of the site.
+ *
+ * Two jobs, and each now belongs to exactly one place: the way home, and the
+ * language. The **navigation is deliberately not here** — the pages render it
+ * themselves, because the hub's cards *are* its navigation and a row of the
+ * same six links above them would be the second menu again, in a new place.
+ */
+export default async function DocsLayout({ children }: LayoutProps<"/docs">) {
+  const locale = await requestLocale();
+  const site = serverSite();
+
+  return (
+    <div className="min-h-full">
+      <header className="border-b border-line-quiet bg-surface-subtle/95 px-4 py-3 backdrop-blur sm:px-6">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4">
+          {/* One step up, not one page back — B1728. On a guide that is the
+              hub; on the hub it is the site. */}
+          <DocsUpLink
+            hubHref="/docs"
+            hubLabel={translateIn(locale, "docs.title")}
+            siteLabel={site.name}
+            className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-ink-body
+                       transition-colors hover:text-ink-strong
+                       focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          />
+          {/* `LocaleProvider` because the switcher is a client component that
+              reads its dictionary from context, and nothing above `/docs`
+              provides one — the journal layout is a sibling, not a parent. */}
+          <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+            <LocaleSwitcher locales={installedLocales()} subtle />
+          </LocaleProvider>
+        </div>
+      </header>
+      {children}
+    </div>
+  );
+}

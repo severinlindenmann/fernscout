@@ -1,0 +1,206 @@
+import type { Metadata } from "next";
+import { cookies, headers } from "next/headers";
+import { LOCALE_COOKIE } from "@/lib/requestKeys";
+import { notFound } from "next/navigation";
+import SiteProvider from "@/components/SiteProvider";
+import CurrencyProvider from "@/components/CurrencyProvider";
+import HtmlLang from "@/components/HtmlLang";
+import LocaleProvider from "@/components/LocaleProvider";
+import TripListProvider from "@/components/TripListProvider";
+import { isIndexable } from "@/lib/access";
+import { siteSummaryFor } from "@/lib/site";
+import { loadServerConfig } from "@/lib/config";
+import IdentityUpgrade from "@/components/IdentityUpgrade";
+import PushPrompt from "@/components/PushPrompt";
+import ShowcaseBar from "@/components/ShowcaseBar";
+import { resolveAccess } from "@/lib/auth/handshake";
+import { isOwner as resolveIsOwner } from "@/lib/contacts/session";
+import { listableTrips } from "@/lib/tripGate";
+import { getCurrentTrip, getTrips } from "@/lib/trips";
+import { currencyOptions } from "@/lib/rates";
+import { dictionaryFor, readerLocale } from "@/lib/locales";
+import { getDefaultUsername, getUser } from "@/lib/users";
+
+/**
+ * One user's site.
+ *
+ * Everything personal is resolved here, once: whose site this is, which trips
+ * they have, and whether the viewer may see the one they landed on. Gating in
+ * the layout rather than in each page means adding a page cannot add an
+ * unguarded route.
+ */
+export async function generateMetadata({
+  params,
+}: LayoutProps<"/[user]">): Promise<Metadata> {
+  const { user: username } = await params;
+  const user = getUser(username);
+  if (!user) return {};
+
+  // Two independent reasons not to be indexed, and either is enough. The trip
+  // on show may be private or unlisted; and the whole journal may be, in which
+  // case no page of it is advertised whatever its trips say. `user.visibility`
+  // is already normalised by `lib/config.ts` — a journal on disk still saying
+  // the old `private` reads back here as `guest`.
+  const trip = getCurrentTrip(username);
+  const robots =
+    user.visibility === "guest" || (trip && !isIndexable(trip))
+      ? { index: false, follow: false }
+      : undefined;
+
+  return {
+    // A tagline is optional (lib/config.ts defaults it to ""), and joining
+    // parts that exist keeps a dangling "— " out of the tab and the og:title
+    // for a journal that has none — B418.
+    title: {
+      default: [user.title, user.tagline].filter(Boolean).join(" — "),
+      template: `%s · ${user.title}`,
+    },
+    description: user.tagline,
+    alternates: {
+      canonical: `/${username}`,
+      /**
+       * The two machine readings of this journal — B879.
+       *
+       * `feed.xml` was served per journal and pointed at by nothing, so a feed
+       * reader looking at the page found none. `/<user>/documentation.txt` is
+       * this journal's own machine reading, and until this link an agent
+       * handed a journal URL had to already know the convention to find it.
+       *
+       * Deliberately not `/llms.txt`: `app/documentation.txt/route.ts` says
+       * why the off-convention name is the point. A `rel="alternate"` is
+       * discovery for somebody already holding the URL, without publishing a
+       * well-known path for every prober on the internet.
+       */
+      types: {
+        "application/rss+xml": `/${username}/feed.xml`,
+        "text/markdown": `/${username}/documentation.txt`,
+      },
+    },
+    ...(robots ? { robots } : {}),
+  };
+}
+
+export default async function UserLayout({ children, params }: LayoutProps<"/[user]">) {
+  const { user: username } = await params;
+  const user = getUser(username);
+  if (!user) notFound();
+
+  const isDefault = getDefaultUsername() === username;
+
+  // Whether to offer the access panel at all. A stranger opening it would find
+  // one line telling them to follow the link they were sent, and a menu entry
+  // that leads to "you have nothing" is worse than no entry.
+  // Either credential counts (B410). A reader holding only an instance-wide
+  // identity is as signed in as one holding this journal's own session, and
+  // hiding the panel from them would hide the one page that tells them what
+  // they may open.
+  const access = await resolveAccess(username);
+  const signedIn = Boolean(access.email);
+  // Whether there is anywhere to go *back* to — B433. An identity is what
+  // makes `/` a list of this reader's journals rather than the pitch, so it is
+  // the only credential the way out can be drawn from. Free here:
+  // `resolveAccess` is memoised per request and has already been asked.
+  const hasIdentity = Boolean(access.identity);
+  // B410 shipped to an instance whose readers were already signed in, and
+  // nothing upgrades them: identity is minted by the act of signing in, which
+  // a reader holding a year-long cookie will not repeat. This is the one
+  // reader who needs asking — proved for this journal, and carrying no
+  // identity to show for it. See app/api/auth/identity/upgrade. B459.
+  const upgradeIdentity = Boolean(access.session) && !access.identity;
+
+  // Whether this reader is the owner — B821. `resolveIsOwner` re-asks
+  // `resolveAccess` itself, cheaply: it is `cache()`d per request like this
+  // one, so this costs nothing beyond the address comparison.
+  const owner = await resolveIsOwner(username);
+
+  // A reader's choice from the language switcher, honoured only if this
+  // journal actually offers it — otherwise a cookie set on one journal would
+  // silently pick a language another one does not speak.
+  //
+  // Through `readerLocale` rather than written out here, because the same
+  // question is asked again by every `generateMetadata` on the way to the
+  // browser tab, and the second copy of the expression asked it differently:
+  // it narrowed to the languages the *project* maintains rather than the ones
+  // this journal offers, so a German cookie carried in from another journal
+  // gave a German `<title>` over this English page. B140, B185.
+  //
+  // Before any cookie exists — a reader's very first request, which for an
+  // installed PWA is also the request its offline cache gets built from — the
+  // device's own `Accept-Language` counts too, ahead of the journal's own
+  // `defaultLocale`. Without that a cold install always rendered the
+  // journal's default language regardless of the phone it was opened from,
+  // and a slow connection would go on serving that first, wrong-language
+  // response back from the service worker's cache forever after (B625).
+  const chosen = (await cookies()).get(LOCALE_COOKIE)?.value;
+  const acceptLanguage = (await headers()).get("accept-language");
+  const locale = readerLocale(chosen, user.locales, user.defaultLocale, acceptLanguage);
+
+  // Trimmed to what the switcher needs: a trip's `intro` has no business in
+  // the client bundle, and getTrips() touches node:fs.
+  const trips = (await listableTrips(getTrips(username))).map(
+    ({ id, ref, username: owner, title, start, end, status, translations }) => ({
+      id,
+      ref,
+      username: owner,
+      title,
+      start,
+      end,
+      status,
+      translations,
+    }),
+  );
+
+  return (
+    <SiteProvider value={siteSummaryFor(user, isDefault, signedIn, hasIdentity, owner)}>
+      {upgradeIdentity && <IdentityUpgrade />}
+      {/* The journal's own language, rendered on the server. This used to be
+          English on the server and the reader's choice after hydration, which
+          is why no German page had a URL of its own and search engines only
+          ever saw English. */}
+      <LocaleProvider
+        locale={locale}
+        dictionary={dictionaryFor(locale)}
+        writtenLocale={user.defaultLocale}
+      >
+        <HtmlLang locale={locale} />
+      <TripListProvider trips={trips}>
+        {/* Currency options are per user: two people on one server may budget
+            in different currencies and offer different display currencies. */}
+        <CurrencyProvider options={currencyOptions(username)}>
+        {children}
+        {/*
+          One question at the foot of the page, and which one depends on whose
+          journal this is — B1724.
+
+          **A journal somebody follows** gets the notification offer: shown once
+          the reader has read something (B440), at the layout rather than inside
+          `TripHero`, because `TripStory` renders the hero on the story's
+          landing step alone and the reader most worth asking is the one who has
+          paged into a day — exactly the reader the hero has scrolled away from
+          (B439). Rendered here, after `children`, so it sits in flow above the
+          footer rather than pinned over whatever the page is showing — B1992.
+          `PushPrompt` itself refuses to appear under `/<user>/studio`, the one
+          tree in this journal an owner scrolls to the very bottom of.
+
+          **A journal the operator put on show** gets the way out instead. Its
+          reader is not following Alex Berger's trip across the western United
+          States; they are deciding whether to make a journal of their own, and
+          a browser permission they cannot easily undo is not what they came
+          for. B1718 put the bar there for that reader at that moment, and two
+          cards asking at once is one too many.
+
+          `site.showcase` is the operator's list and only theirs, resolved on
+          the server, so each journal has exactly one of these in its document
+          rather than one hidden with CSS.
+        */}
+        {loadServerConfig().site.showcase.includes(username) ? (
+          <ShowcaseBar />
+        ) : (
+          <PushPrompt username={username} />
+        )}
+        </CurrencyProvider>
+      </TripListProvider>
+      </LocaleProvider>
+    </SiteProvider>
+  );
+}

@@ -1,0 +1,22 @@
+{
+  "id": "upcoming-2027",
+  "title": "An Upcoming Trip",
+  "tagline": "hasn't happened yet",
+  "dates": {
+    "from": "2027-01-01",
+    "to": "2027-01-10"
+  },
+  "visibility": "public",
+  "listed": true,
+  "people": [
+    {
+      "name": "Cre Ator",
+      "nickname": "Cre"
+    }
+  ],
+  "intro": "Not yet under way.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

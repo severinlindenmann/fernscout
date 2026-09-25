@@ -1,0 +1,541 @@
+import "server-only";
+import { tripWriteScope } from "./auth";
+import { getDatabaseOrNull, newId, nowIso } from "./db";
+import { grantIsLive } from "./grants";
+import type { Trip } from "./types";
+import { getUser } from "./users";
+
+/**
+ * Who may write to a trip.
+ *
+ * The journal's owner always may — they own the folder, and a trip that names
+ * nobody is theirs alone. Beyond that, anyone in the trip's `people:` block
+ * may write to **the whole trip**, not only to the days they wrote. Two people
+ * on one bus are not two authors with separate columns; splitting a shared day
+ * between them is a distinction nobody was making at the time.
+ *
+ * Scoped to one trip, deliberately. Being on somebody's Vietnam trip is not a
+ * reason to be able to rewrite their honeymoon.
+ *
+ * ## Two sources, and why (B33)
+ *
+ * The list used to be one thing: the file on disk. It is now the file **plus**
+ * the rows in `trip_people` — somebody who redeemed a buddy link and whom the
+ * owner then approved. That split has a real cost, and it was argued rather
+ * than assumed: `trip.md` stops being the whole answer to "who was on this",
+ * and anybody reading the frontmatter alone now has a partial one.
+ *
+ * It loses to two things a file cannot do. A stranger following a link must
+ * not cause a file the owner owns to be rewritten. And a row can be revoked,
+ * expired and listed, which is the entire reason for leaving a shared password
+ * behind — cutting one person off without cutting off everyone.
+ *
+ * The merge is **additive and in that order**: the file is read first and is
+ * never contradicted, so a hand-written `people:` entry behaves exactly as it
+ * did before any of this existed, and a database that is missing, empty or
+ * switched off changes nothing about it.
+ *
+ * What a redeemed place does *not* do is put somebody in the byline.
+ * `travellersOf` (`lib/site.ts`) still reads the file alone: credit for a trip
+ * is the owner's editorial statement about whose trip it was, made by typing a
+ * name into their own file, and it renders on every page from disk with no
+ * database in the path. Write access and credit were the same list until B33
+ * and are now two, which is a divergence worth knowing about rather than one
+ * to paper over.
+ */
+
+/**
+ * The list as `trip.md` states it: the owner, then `people:`.
+ *
+ * **Not the access check.** This is the record on disk, which since B33 is
+ * only part of the answer — use `isPersonOn` to decide anything. It is
+ * exported for the two callers that genuinely want the file's own version: the
+ * merge below, and anything reporting what the frontmatter says.
+ */
+export function peopleNamedIn(trip: Trip): string[] {
+  const rawOwner = getUser(trip.username)?.owner.email;
+  // Normalised here rather than trusted from the config parser: this is the
+  // security-relevant comparison (`isPersonOn`, below), and it should not
+  // depend on `parseOwner` having already lower-cased it for an unrelated
+  // reason (`lib/site.ts`'s byline).
+  const owner = rawOwner?.trim().toLowerCase();
+  const listed = trip.people.map((p) => p.email);
+  return owner ? [...new Set([owner, ...listed])] : listed;
+}
+
+/** Every address that may write to this trip, lower-cased. */
+export async function peopleOf(trip: Trip): Promise<string[]> {
+  const named = peopleNamedIn(trip);
+  const redeemed = await redeemedPeopleOf(trip.username, trip.id);
+  return [...new Set([...named, ...redeemed])];
+}
+
+/** Whether this address took this trip (or owns the journal it is in). */
+export async function isPersonOn(trip: Trip, email: string | undefined | null): Promise<boolean> {
+  if (!email) return false;
+  const address = email.trim().toLowerCase();
+  // The file first, and no query at all when it answers. The owner reading
+  // their own journal is the commonest caller by a wide margin, and they are
+  // always the first entry in the list above.
+  if (peopleNamedIn(trip).includes(address)) return true;
+  return (await redeemedPeopleOf(trip.username, trip.id)).includes(address);
+}
+
+/**
+ * The addresses holding a live place on this trip.
+ *
+ * Three conditions, and all three are the row saying the owner meant it:
+ * `granted_at` set (a row without it is a request, not access), `revoked_at`
+ * null, and an expiry that has not passed — `grantIsLive`, the same rule
+ * `access_grants` is read by, so "live" means one thing in this codebase.
+ *
+ * Returns nothing at all when there is no database. That is a supported way to
+ * run (`lib/db`), and it degrades in the right direction: the file's own list
+ * still works, and nobody is let in by an absence.
+ */
+async function redeemedPeopleOf(username: string, tripId: string): Promise<string[]> {
+  return (await redeemedContactsOf(username, tripId)).map((row) => row.email);
+}
+
+/**
+ * The same live places as `redeemedPeopleOf`, with each address' stored
+ * contact name alongside it — for `namesOnTrip`, which needs one and not the
+ * other. Kept as one query rather than two so "live" stays defined once.
+ */
+async function redeemedContactsOf(
+  username: string,
+  tripId: string,
+): Promise<{ email: string; name: string | null }[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const now = new Date();
+  const rows = await handle.db
+    .selectFrom("trip_people")
+    .innerJoin("contacts", "contacts.id", "trip_people.contact_id")
+    .select([
+      "contacts.email_key as email",
+      "contacts.name as name",
+      "trip_people.expires_at as expires_at",
+    ])
+    .where("trip_people.owner_id", "=", username)
+    .where("trip_people.trip_id", "=", tripId)
+    .where("trip_people.granted_at", "is not", null)
+    .where("trip_people.revoked_at", "is", null)
+    // A blocked contact is somebody the owner showed the door. They keep their
+    // row so they cannot re-request their way back in, and it must not still
+    // be a way onto a trip.
+    .where("contacts.status", "=", "active")
+    .execute();
+
+  return rows
+    .filter((row) => grantIsLive(row.expires_at, now))
+    .map((row) => ({ email: row.email.trim().toLowerCase(), name: row.name }));
+}
+
+/**
+ * Every name on this trip, owner first, then whoever else may write to it —
+ * B629. `peopleOf`'s own membership (file plus redeemed buddy rows) with a
+ * name attached to each address, for a postcard's default signature.
+ *
+ * **Not `travellersOf`.** That one is the byline in `lib/site.ts`: the file
+ * alone, deliberately, because credit is the owner's editorial statement
+ * (B33). This is a plainer question — who may currently write to the trip —
+ * so a buddy who joined by link is counted here and is not in the byline.
+ *
+ * Never an email. A redeemed row with no stored name (should not happen —
+ * `requestContact` requires one) is left out rather than falling back to any
+ * part of the address.
+ */
+export async function namesOnTrip(trip: Trip): Promise<string[]> {
+  const user = getUser(trip.username);
+  const ownerEmail = user?.owner.email?.trim().toLowerCase();
+  const ownerName = user?.owner.nickname || user?.owner.name || user?.title;
+
+  // Pushed unconditionally, even if empty: `postcardEntryFor` answered this
+  // same expression before this function existed, so an owner with neither a
+  // nickname nor a name keeps that exact (odd) answer rather than silently
+  // becoming a trip signed by nobody.
+  const names: string[] = [ownerName ?? ""];
+  const seen = new Set<string>();
+  if (ownerEmail) seen.add(ownerEmail);
+
+  for (const person of trip.people) {
+    const email = person.email.trim().toLowerCase();
+    if (seen.has(email)) continue;
+    seen.add(email);
+    names.push(person.nickname || person.name);
+  }
+
+  for (const { email, name } of await redeemedContactsOf(trip.username, trip.id)) {
+    if (!name || seen.has(email)) continue;
+    seen.add(email);
+    names.push(name);
+  }
+
+  return names;
+}
+
+/**
+ * Every trip in this journal this address holds a live place on.
+ *
+ * One query for a whole page, rather than `isPersonOn` per trip. `resolveViewer`
+ * and `listableTrips` both render a list of every trip in a journal, and both
+ * are on the path of an ordinary page view.
+ */
+export async function redeemedTripsFor(
+  username: string,
+  email: string | undefined | null,
+): Promise<Set<string>> {
+  if (!email) return new Set();
+  const handle = await getDatabaseOrNull();
+  if (!handle) return new Set();
+  const now = new Date();
+  const rows = await handle.db
+    .selectFrom("trip_people")
+    .innerJoin("contacts", "contacts.id", "trip_people.contact_id")
+    .select(["trip_people.trip_id as trip_id", "trip_people.expires_at as expires_at"])
+    .where("trip_people.owner_id", "=", username)
+    .where("contacts.email_key", "=", email.trim().toLowerCase())
+    .where("trip_people.granted_at", "is not", null)
+    .where("trip_people.revoked_at", "is", null)
+    .where("contacts.status", "=", "active")
+    .execute();
+
+  const out = new Set<string>();
+  for (const row of rows) if (grantIsLive(row.expires_at, now)) out.add(row.trip_id);
+  return out;
+}
+
+/**
+ * The same question as `isPersonOn`, asked against an already-loaded set.
+ *
+ * For the two list renderers. Written here rather than inlined at both call
+ * sites so that "the file, then the redeemed places" is one rule in one place
+ * — the panel and the gate disagreeing about who is on a trip would be B41's
+ * bug in a new spot.
+ */
+export function isPersonOnWith(
+  trip: Trip,
+  email: string | undefined | null,
+  redeemed: Set<string>,
+): boolean {
+  if (!email) return false;
+  if (peopleNamedIn(trip).includes(email.trim().toLowerCase())) return true;
+  return redeemed.has(trip.id);
+}
+
+/**
+ * The scope string stored on a session, and read back off it.
+ *
+ * A journal's owner gets the unqualified `write:content` they have always had.
+ * Somebody who is only on one trip gets a scope naming it, so the same token
+ * presented against another trip is refused by `scopeAllows` below rather than
+ * by a check somebody has to remember to write.
+ *
+ * **Defined in `lib/auth`** since B230 and re-exported here, because the thing
+ * that mints a session now has to build this string too: a code issued for one
+ * trip can only ever open that trip's scope, and `verifyCode` enforces it
+ * rather than trusting whatever the caller passed. Two copies of the format
+ * would have been one typo away from a comparison that never matches, which on
+ * that path means somebody getting more than they asked for. Every reader here
+ * is unchanged.
+ */
+export { tripWriteScope };
+
+export function scopeAllows(scope: string | undefined, trip: Trip): boolean {
+  if (!scope) return false;
+  if (scope === "write:content") return true; // the journal's owner
+  return scope === tripWriteScope(trip.id);
+}
+
+/**
+ * Why a write is allowed or refused — the scope **and** whether the person
+ * behind it is still on the trip.
+ *
+ * `scopeAllows` alone is not enough, and B98 is why. The scope is a string
+ * baked into the `sessions` row when the token was minted and never looked at
+ * again, so revoking somebody — `revokeContact`, `deleteContact`, or a name
+ * deleted from `people:` in `trip.md` by hand — stopped them reading
+ * immediately and let them keep writing for the remaining seven days of the
+ * token. Reads asked the database on every request; writes asked a week-old
+ * string.
+ *
+ * The check happens **at use** rather than the revocations each remembering to
+ * sweep `sessions`, because a name removed from a file by hand has nothing to
+ * hang a sweep off: there is no request, no row, and no code path that runs.
+ * Checking here covers that case and the database ones together.
+ *
+ * `out_of_scope` and `revoked` are separated so the caller can answer them
+ * differently. They must be: "this is not your trip" has to be
+ * indistinguishable from "no such trip" or a trip-scoped token could
+ * enumerate a journal by guessing ids, while "you were removed from this trip"
+ * is about the one trip the token already names and gives away nothing.
+ *
+ * The owner's unqualified `write:content` returns without a query. It is the
+ * commonest write in the system by a wide margin, and an owner cannot revoke
+ * themselves.
+ */
+export type TripWriteVerdict = "allowed" | "out_of_scope" | "revoked";
+
+export async function tripWriteVerdict(
+  scope: string | undefined,
+  email: string | undefined | null,
+  trip: Trip,
+): Promise<TripWriteVerdict> {
+  if (!scope) return "out_of_scope";
+  if (scope === "write:content") return "allowed"; // the journal's owner
+  if (scope !== tripWriteScope(trip.id)) return "out_of_scope";
+  return (await isPersonOn(trip, email)) ? "allowed" : "revoked";
+}
+
+/**
+ * Somebody redeemed a buddy link — B33.
+ *
+ * Writes a **request**, not a place: `granted_at` stays null, so nothing above
+ * reads this row as access. It is the trip-shaped half of what
+ * `requestContact` writes on the contacts table, and it exists for the same
+ * reason — the link decides who may ask, the owner decides who gets in.
+ *
+ * Redeeming twice is not two rows. The unique index is `(owner, trip,
+ * contact)`, and a second redemption of a place that has already been granted
+ * leaves the grant alone: re-following the link in a group chat must not
+ * quietly demote somebody who is already on the trip, the same rule
+ * `requestContact` follows for an `active` contact.
+ *
+ * **The early return is load-bearing since B213**, and not only a way of
+ * avoiding a duplicate. It is what a *revoked* row costs somebody to redeem
+ * past: `approveTripPlaces` now revives a revoked place when the owner
+ * approves the contact again, so a fresh row written over the top of a revoked
+ * one would be a clean slate that the person let themselves back into. Any row
+ * counts here — revoked included — which is why this asks whether the place
+ * exists rather than whether it is live. (`requestContact` refuses a blocked
+ * contact before this is even reached, so the two hold the same line twice.)
+ */
+export async function claimTripPlace(
+  username: string,
+  tripId: string,
+  contactId: string,
+  inviteId: string | null,
+): Promise<void> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return;
+  const existing = await handle.db
+    .selectFrom("trip_people")
+    .select(["id"])
+    .where("owner_id", "=", username)
+    .where("trip_id", "=", tripId)
+    .where("contact_id", "=", contactId)
+    .executeTakeFirst();
+  if (existing) return;
+
+  await handle.db
+    .insertInto("trip_people")
+    .values({
+      id: newId(),
+      owner_id: username,
+      trip_id: tripId,
+      contact_id: contactId,
+      invite_id: inviteId,
+      requested_at: nowIso(),
+      granted_at: null,
+      granted_by: null,
+      revoked_at: null,
+      expires_at: null,
+    })
+    .execute();
+}
+
+/**
+ * Every trip a contact has asked to join and nobody has granted yet — B1301.
+ *
+ * `approveContact` is still the only thing that opens one of these rows, and
+ * that stays true whether the contact is `pending` or already `active`: an
+ * address the owner approved for one trip does not carry over to a *different*
+ * one a later buddy link named, so the row `claimTripPlace` writes for that
+ * later trip sits here, unopened, until the owner presses Approve again — the
+ * same click that opens a brand-new contact's first trip. This is what makes
+ * that click visible on the owner's own page for an already-active contact,
+ * who would otherwise have nothing marking them as `pending` at all.
+ *
+ * Keyed by contact id rather than returned as a flat list, because the page
+ * that reads this is walking one contact at a time and would otherwise filter
+ * the same rows once per row.
+ */
+export async function pendingTripRequestsFor(username: string): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  const handle = await getDatabaseOrNull();
+  if (!handle) return out;
+  const rows = await handle.db
+    .selectFrom("trip_people")
+    .select(["contact_id", "trip_id"])
+    .where("owner_id", "=", username)
+    .where("granted_at", "is", null)
+    .where("revoked_at", "is", null)
+    .execute();
+
+  for (const row of rows) {
+    const list = out.get(row.contact_id) ?? [];
+    list.push(row.trip_id);
+    out.set(row.contact_id, list);
+  }
+  return out;
+}
+
+/**
+ * The owner waved somebody in, so every trip they asked to join opens.
+ *
+ * Called from `approveContact` and nowhere else, which is what keeps the
+ * promise in `AGENTS.md` true: approval is the only thing that turns a request
+ * into access, and there is one approval rather than two for the owner to
+ * remember. Approving somebody who redeemed a buddy link therefore does both
+ * things at once — lets them into the journal's `guest` trips, and puts them
+ * on the trip they were invited to. That is why a buddy link is described
+ * everywhere as the stronger of the two and not the one to forward.
+ *
+ * Returns the trips that were opened, so the caller can say so.
+ *
+ * **A row is not a place; a live row is** — B161, the `trip_people` half of
+ * what B130 fixed in `access_grants`. This used to pick its rows by asking
+ * whether they had ever been opened (`granted_at is null`), which is a test
+ * for the row's *existence* where every reader above tests whether it is
+ * `grantIsLive`. A place whose `expires_at` had passed was therefore skipped —
+ * it *was* granted — so the owner clicked approve, `approveContact` reported
+ * success, and the person was still not on the trip. The same divergence B82
+ * found in `lib/push.ts` and B130 found one table over: one writer and every
+ * reader asking different questions. So this writer asks `grantIsLive` too,
+ * and the two tables now behave the same way under one click.
+ *
+ * Approving is the owner saying *let them in now*, so a lapsed place is
+ * revived rather than left standing: the expiry is cleared and the stamps are
+ * rewritten, because this is a fresh decision and the old `granted_at`
+ * describes a place that has since run out. A place that never lapsed is not
+ * touched at all — restamping a live grant would rewrite a date that is still
+ * true.
+ *
+ * Nothing writes a non-null `expires_at` here yet (`claimTripPlace` hard-codes
+ * null, and no caller issues a time-limited place), which is the same standing
+ * that `lib/grants.ts` documents for `access_grants` under B178: the column is
+ * how the schema says "on this trip until Christmas", it stays enforced, and a
+ * rule honoured by whichever caller remembered it is worse than no rule.
+ *
+ * **And a revoked place comes back too** — B213, which is the decision B161
+ * left open when it wrote "not touched: a revoked place" here.
+ *
+ * The observed cost of leaving it closed was not a hypothetical. An owner who
+ * revoked somebody by mistake and clicked approve again got `{"ok": true,
+ * "contact": {"status": "active"}}` while the person still met `403
+ * access_revoked` on the trip, and no surface said so. Worse, there was no way
+ * back at all: a fresh buddy link does not help, because `claimTripPlace`
+ * returns early on the row that already exists, so the place could only be
+ * restored by editing the database by hand.
+ *
+ * It is also the divergence this function was fixed for once already. One
+ * table over, revocation has always been reversible — `revokeContact` deletes
+ * the `access_grants` row and `approveContact` writes a fresh one, so an
+ * un-revoked contact reads every `guest` trip in the journal again on the same
+ * click. Trip places being the one thing that did not come back was a filter's
+ * accident rather than anybody's decision, and one writer disagreeing with its
+ * neighbour is the shape of B82, B130 and B161.
+ *
+ * The reason B161 gave for hesitating is real and is kept, in the place that
+ * actually enforces it: **a revoked person cannot do this to themselves.**
+ * `requestContact` ignores a blocked contact, so redeeming the link again
+ * writes nothing and puts nothing back in the owner's queue; `claimTripPlace`
+ * returns on the existing row, so no second, clean row can be made; and
+ * `approveContact` is the only thing in the codebase that writes `status:
+ * "active"`. Reviving here therefore needs the owner to look at somebody they
+ * blocked and press approve — which is the same deliberate act that hands back
+ * the journal, not a side door into it.
+ */
+export async function approveTripPlaces(username: string, contactId: string): Promise<string[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const now = new Date();
+  const candidates = await handle.db
+    .selectFrom("trip_people")
+    .select(["id", "trip_id", "granted_at", "revoked_at", "expires_at"])
+    .where("owner_id", "=", username)
+    .where("contact_id", "=", contactId)
+    .execute();
+
+  // Revoked, never granted (a request), or granted and since lapsed. All three
+  // are somebody who is not on the trip right now, which is the only question
+  // the owner is answering when they click approve. Revoked is its own clause
+  // rather than a case of the others: such a row usually carries a live
+  // `granted_at` and no expiry, and would pass both of the tests below.
+  const opening = candidates.filter(
+    (row) =>
+      row.revoked_at !== null || row.granted_at === null || !grantIsLive(row.expires_at, now),
+  );
+  if (opening.length === 0) return [];
+
+  await handle.db
+    .updateTable("trip_people")
+    .set({ granted_at: nowIso(), granted_by: username, revoked_at: null, expires_at: null })
+    // Scoped again by owner and contact, though the ids came from a query that
+    // already was: an UPDATE reached by primary key alone is one refactor away
+    // from writing across journals.
+    .where("owner_id", "=", username)
+    .where("contact_id", "=", contactId)
+    .where(
+      "id",
+      "in",
+      opening.map((row) => row.id),
+    )
+    .execute();
+
+  return opening.map((row) => row.trip_id);
+}
+
+/**
+ * Take it back.
+ *
+ * Marked rather than deleted, matching `revokeContact`: the record that this
+ * person was once on the trip is worth keeping, and a deleted row would let
+ * them redeem the same link again into a clean slate. A place that was never
+ * granted is revoked too — an outstanding request from somebody the owner has
+ * just blocked should not be waiting to be approved by a later click.
+ *
+ * **Reversible, by the owner and by nobody else** — B213. Approving the
+ * contact again clears this stamp and puts them back on the trip, the same way
+ * approving again writes back the `access_grants` row `revokeContact` deleted.
+ * That is the owner changing their mind, which they are entitled to do and had
+ * no way to do; it is not the revoked person's route back, because every door
+ * they could push on refuses a blocked contact. See `approveTripPlaces`.
+ *
+ * The `revoked_at is null` guard is what keeps the stamp meaning the first
+ * time the owner said no: revoking twice must not move the date forward.
+ */
+export async function revokeTripPlaces(username: string, contactId: string): Promise<void> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return;
+  await handle.db
+    .updateTable("trip_people")
+    .set({ revoked_at: nowIso() })
+    .where("owner_id", "=", username)
+    .where("contact_id", "=", contactId)
+    .where("revoked_at", "is", null)
+    .execute();
+}
+
+/** Every trip this contact has asked to join or been let onto, granted or
+ * not — for the owner deciding, and for telling somebody what they are
+ * waiting on. */
+async function tripPlacesOf(
+  username: string,
+  contactId: string,
+): Promise<{ tripId: string; grantedAt: string | null; revokedAt: string | null }[]> {
+  const handle = await getDatabaseOrNull();
+  if (!handle) return [];
+  const rows = await handle.db
+    .selectFrom("trip_people")
+    .select(["trip_id", "granted_at", "revoked_at"])
+    .where("owner_id", "=", username)
+    .where("contact_id", "=", contactId)
+    .execute();
+  return rows.map((row) => ({
+    tripId: row.trip_id,
+    grantedAt: row.granted_at,
+    revokedAt: row.revoked_at,
+  }));
+}

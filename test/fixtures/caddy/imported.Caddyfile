@@ -1,0 +1,16 @@
+# The same machine again, doing it the way B66 landed on: the neighbouring site
+# untouched, and one import line pointing into the checkout. The path is
+# relative here because a fixture cannot assume /srv/fernscout; on the VPS it
+# is `import /srv/fernscout/deploy/fernscout.caddy`.
+{
+	email ops@example.invalid
+}
+
+other.example {
+	# A neighbour, kept deliberately path-free: `file_server` records the
+	# config file's own absolute path in its `hide` list, which would put this
+	# checkout's directory into a committed fixture.
+	respond "the other site, and this deploy did not touch it"
+}
+
+import ../../../deploy/fernscout.caddy

@@ -1,0 +1,445 @@
+import "server-only";
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { contentRoot } from "./contentRoot";
+import { parseTripRef, tripDir } from "./trips";
+import { IMAGE_MAX_PIXELS } from "./validate/media";
+
+/**
+ * Where a trip's media lives and how it is addressed.
+ *
+ * Files sit inside the trip they belong to — `content/trips/<id>/media/…` —
+ * so a trip is one self-contained directory that can be copied, archived or
+ * handed to someone else. The *URL* shape (`/media/<id>/…`) is unchanged from
+ * when these files lived in `public/`, which is why no entry frontmatter had
+ * to be rewritten for the move.
+ *
+ * Everything that reads or addresses media goes through here, so swapping the
+ * VPS disk for object storage later is a change to this module rather than a
+ * hunt through the codebase.
+ */
+
+/** URL prefix under which media is served. */
+const MEDIA_URL_PREFIX = "/media";
+
+/** The directory holding one trip's media. */
+export function tripMediaDir(ref: string): string {
+  return path.join(tripDir(ref), "media");
+}
+
+/**
+ * Where a trip's per-photograph sidecars live — B1863.
+ *
+ * A sibling of `media/`, for exactly the reason `tripOriginalsDir` below is
+ * one: `resolveMediaFile` resolves every `/media/…` request under
+ * `tripMediaDir` and refuses anything that escapes it, so nothing in here is
+ * reachable by URL.
+ *
+ * They used to sit *inside* `media/`, beside the derivative they describe,
+ * and the route served them to anybody — including for a photograph it
+ * correctly refused, since a sidecar is in no gallery and so matched no
+ * label. The uploader's original filename and the caption of a `private`
+ * photograph were a guessable URL away. Moving them out closes it by
+ * construction rather than with a fourth filter on a route that has already
+ * been wrong three times, and it is what makes any future enrichment of this
+ * file (camera, coordinates, faces) safe by default.
+ */
+export function tripMetaDir(ref: string): string {
+  return path.join(tripDir(ref), "meta");
+}
+
+/** The sidecar for one media file, addressed by that file's path relative to
+ * the trip's `media/` root: `meta/<day>/<name>.jpg.meta.json`. */
+export function tripSidecarPath(ref: string, relPath: string): string {
+  return path.join(tripMetaDir(ref), `${relPath}.meta.json`);
+}
+
+/**
+ * Where a trip's untouched source files are kept.
+ *
+ * A sibling of `media/`, not a child, and that is the whole security design:
+ * `resolveMediaFile` below resolves every `/media/…` request under
+ * `tripMediaDir` and refuses anything that escapes it, so nothing in here is
+ * reachable by URL. No route serves it and none should.
+ *
+ * It exists because a derivative is not a source. Ingest writes one image at
+ * 2000px on the longest edge and, until now, dropped what it was made from —
+ * but a full-page photobook plate at 300 dpi wants roughly 2500×3500, so the
+ * one artefact the print pipeline needs was the one being thrown away, and it
+ * cannot be recovered later.
+ *
+ * `MEDIA_ORIGINALS_DIR` moves the whole lot somewhere else — another disk,
+ * usually — for anyone whose content directory should stay small. The default
+ * keeps them with the trip they belong to, gitignored, because a feature that
+ * needs configuring before it works is a feature most people never get.
+ */
+export function tripOriginalsDir(ref: string): string {
+  const configured = mediaOriginalsRoot();
+  const parsed = parseTripRef(ref);
+  if (configured && parsed) {
+    return path.join(configured, parsed.username, parsed.tripId);
+  }
+  return path.join(tripDir(ref), "originals");
+}
+
+/**
+ * Where `MEDIA_ORIGINALS_DIR` points, absolute, or null when it is unset.
+ *
+ * Its own function because a second caller needs the *root* rather than one
+ * trip's directory under it: the photobook plan writes a path outside the
+ * content root relative to this, so the string it records does not depend on
+ * how far apart the two directories happen to sit (B210).
+ */
+export function mediaOriginalsRoot(): string | null {
+  const configured = process.env.MEDIA_ORIGINALS_DIR?.trim();
+  return configured ? path.resolve(configured) : null;
+}
+
+/** Public URL for a file inside a trip's media directory. */
+export function mediaUrl(ref: string, relativePath: string): string {
+  const clean = relativePath.replace(/^\/+/, "");
+  const parsed = parseTripRef(ref);
+  if (!parsed) return `${MEDIA_URL_PREFIX}/${clean}`;
+  return `/${parsed.username}${MEDIA_URL_PREFIX}/${parsed.tripId}/${clean}`;
+}
+
+/** `name`, folded the way two spellings of one file are the same file — see
+ * `resolveMediaFile`'s case-insensitive fallback. */
+const foldedName = (name: string) => name.normalize("NFC").toLowerCase();
+
+/**
+ * Walks `rest` under `root` one segment at a time, matching each against the
+ * directory's actual entries case-folded and NFC-normalised, rather than
+ * assuming the filesystem will.
+ *
+ * Exists because a case-sensitive volume (most production Linux disks; a
+ * developer's own Mac is not one) refuses `03.JPG` for a file written as
+ * `03.jpg` — and frontmatter and disk can disagree on case for the same
+ * reason `findOriginal` in `paid/photobook/lib/photobook/source.ts` has to: ingest and a
+ * hand-typed `gallery:` entry do not always spell a name the same way. Tried
+ * only after an exact match has already failed, so the common case pays
+ * nothing for it.
+ */
+function foldedWalk(root: string, rest: string[]): string | null {
+  let dir = root;
+  for (const segment of rest) {
+    const wanted = foldedName(segment);
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(dir);
+    } catch {
+      return null;
+    }
+    const match = entries.find((e) => foldedName(e) === wanted);
+    if (!match) return null;
+    dir = path.join(dir, match);
+  }
+  return dir;
+}
+
+/**
+ * Whether `file` is *really* inside `root` — B1878.
+ *
+ * The lexical check in `resolveMediaFile` compares strings, which a symlink
+ * inside the media directory satisfies while pointing anywhere at all: the
+ * path stays under the root, and `statSync` follows the link and reports a
+ * file. Nothing in Fernscout creates such a link, but the content folder is
+ * one people edit by hand and sync between machines, and sync tools do.
+ *
+ * Both sides are resolved, not only the target: a content root reached
+ * through a symlink (`/tmp` on macOS is one) would otherwise make every real
+ * path look like an escape. Anything that cannot be resolved — a dangling
+ * link, a race with a delete — is refused, which is the same 404 every other
+ * failure here produces.
+ */
+function reallyInside(root: string, file: string): boolean {
+  let realRoot: string;
+  let realFile: string;
+  try {
+    realRoot = fs.realpathSync(root);
+    realFile = fs.realpathSync(file);
+  } catch {
+    return false;
+  }
+  return realFile === realRoot || realFile.startsWith(realRoot + path.sep);
+}
+
+/**
+ * Resolve a `/media/...` request path to a file on disk, or null.
+ *
+ * Returns null rather than throwing for anything suspicious: a path that
+ * escapes the content root, a missing file, or a directory. Callers turn that
+ * into a 404, which is also the right answer for a traversal attempt — it
+ * tells a prober nothing.
+ */
+export function resolveMediaFile(username: string, segments: string[]): string | null {
+  if (segments.length < 2) return null;
+  // A leading dot is bookkeeping, never content — `.fingerprints/`, a
+  // `.DS_Store`, an `.ingest.json`. `lib/exportZip.ts` already refuses every
+  // such segment when packaging a trip; this refuses them over HTTP, and it
+  // subsumes `.` and `..` (B1863).
+  if (segments.some((s) => s === "" || s.startsWith(".") || s.includes("\0"))) {
+    return null;
+  }
+
+  const [tripId, ...rest] = segments;
+  const root = path.resolve(tripMediaDir(`${username}/${tripId}`));
+  let target = path.resolve(root, ...rest);
+
+  // Belt and braces: even with the segment check above, confirm the resolved
+  // path is still inside the trip's media directory. Lexical, and first,
+  // because it costs nothing — a traversal attempt is refused before this
+  // process touches the disk at all. The real path is checked once a file
+  // has actually been found, below.
+  if (target !== root && !target.startsWith(root + path.sep)) return null;
+
+  let stat: fs.Stats | undefined;
+  try {
+    stat = fs.statSync(target);
+  } catch {
+    // Fall through to the case-folded walk below.
+  }
+
+  if (!stat) {
+    const folded = foldedWalk(root, rest);
+    if (!folded) return null;
+    target = folded;
+    try {
+      stat = fs.statSync(target);
+    } catch {
+      return null;
+    }
+  }
+
+  // And the same containment question asked of the filesystem rather than of
+  // the string — B1878. After the case-folded walk as well as after the
+  // direct hit: either can land on a link, and either way the answer is the
+  // file this request actually gets.
+  return stat.isFile() && reallyInside(root, target) ? target : null;
+}
+
+const CONTENT_TYPES: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".avif": "image/avif",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime",
+};
+
+/**
+ * The media type this file is served as — and `application/octet-stream` is
+ * not one of them. It means "not a media type this route serves", and the
+ * media route refuses such a file rather than handing over bytes it cannot
+ * name (B1863). Callers that only want a label for something already known
+ * to be media are unaffected.
+ */
+export function contentTypeFor(file: string): string {
+  return CONTENT_TYPES[path.extname(file).toLowerCase()] ?? "application/octet-stream";
+}
+
+/**
+ * Whether this path names a clip rather than a photograph — B1885.
+ *
+ * Read off `CONTENT_TYPES` above rather than a second list of extensions:
+ * the question "is this a video" and the question "what do we serve it as"
+ * have one answer, and two lists of extensions is how a format gets added to
+ * one of them only. Takes a `src` as happily as a file path — both end in
+ * the extension, which is the whole of what is read.
+ */
+export function isVideoSrc(src: string): boolean {
+  return contentTypeFor(src).startsWith("video/");
+}
+
+/** Every media file in a trip, as URL paths. Used by tooling and tests. */
+function listTripMedia(ref: string): string[] {
+  const root = tripMediaDir(ref);
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.isFile()) out.push(mediaUrl(ref, path.relative(root, full)));
+    }
+  };
+  walk(root);
+  return out.sort();
+}
+
+/** Absolute path of the content root, for tooling that needs it. */
+function mediaContentRoot(): string {
+  return contentRoot();
+}
+
+/**
+ * A web-sized copy of one photograph, made here rather than by Next.
+ *
+ * Everything served from this directory is behind a permission check, and
+ * Next's image optimiser cannot pass one: it answers `/_next/image` by
+ * re-fetching the source through a mocked request carrying no cookies, so our
+ * route sees a stranger, returns 404, and the optimiser reports 400. Nobody
+ * could see the photographs on their own private trip.
+ *
+ * Ingest already writes a 2000px derivative, which is the right *source* and
+ * far too much for a thumbnail — a grid of twelve is twelve full-size
+ * downloads on whatever connection the reader has. So: resize on first ask,
+ * keep the answer.
+ *
+ * The cache is deliberately outside `media/`. `resolveMediaFile` maps a URL
+ * into a trip's media directory, so a cache kept in there would be reachable
+ * by guessing its path — and it holds copies of pictures whose whole point is
+ * that not everyone may fetch them. This sits under the content root's own
+ * `.cache/`, which no route resolves into.
+ *
+ * Returns null if the file is not something sharp can resize (a video, an SVG
+ * placeholder), which the caller reads as "serve the original".
+ */
+const RESIZABLE = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"]);
+
+/**
+ * What identifies one *representation* of a media file: the path it was
+ * reached by, the state of the bytes behind it, and the width being served.
+ *
+ * mtime and size rather than a digest of the content, because this is on the
+ * path of every media request and hashing a 200 MB clip to answer one is the
+ * cost being avoided rather than paid. The pair moves whenever a file is
+ * written, which is the case that matters — ingest gives a changed photograph
+ * a new name, so an in-place replacement is the rare hand-edit and this still
+ * notices it.
+ *
+ * `width` is part of it because one file is served at eight of them plus the
+ * original, and they are different bytes. `0` is the unresized answer; the
+ * allow-list in `lib/mediaSizes.ts` starts at 320, so it can never collide
+ * with a real width.
+ *
+ * Two callers, deliberately one function — B1730. `resizedCopy` names its
+ * disk cache with this and the media route sends it as an `ETag`, and the two
+ * drifting apart would mean a cached derivative served under a validator
+ * describing different bytes.
+ */
+function representationKey(file: string, source: fs.Stats, width: number): string {
+  return crypto
+    .createHash("sha256")
+    .update(`${file}:${source.mtimeMs}:${source.size}:${width}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+/**
+ * That key as a strong `ETag`, quoted and ready to send — or null when the
+ * file cannot be stat'd, which the caller reads as "send no validator" rather
+ * than as an error. B1730.
+ *
+ * Strong, not weak (`W/`), because it identifies the bytes exactly: two
+ * responses carrying the same value here are byte-identical, and a client may
+ * use it for a range request as well as for revalidation.
+ */
+export function mediaEtag(file: string, width: number | null): string | null {
+  let source: fs.Stats;
+  try {
+    source = fs.statSync(file);
+  } catch {
+    return null;
+  }
+  return `"${representationKey(file, source, width ?? 0)}"`;
+}
+
+/**
+ * Remove the web-sized copies `resizedCopy` cached for a photograph — B2259,
+ * when a deleted day is purged. `servedAs` is the path the media route
+ * resolved it at (what the cache key names); `bytesAt` is where the file is
+ * now, whose mtime and size are unchanged by the move into trash.
+ */
+export function forgetDerivatives(servedAs: string, bytesAt: string, widths: readonly number[]): void {
+  let source: fs.Stats;
+  try {
+    source = fs.statSync(bytesAt);
+  } catch {
+    return;
+  }
+  for (const width of widths) {
+    const key = representationKey(servedAs, source, width);
+    fs.rmSync(path.join(contentRoot(), ".cache", "media", `${key}.webp`), { force: true });
+  }
+}
+
+export async function resizedCopy(file: string, width: number): Promise<Buffer | null> {
+  if (!RESIZABLE.has(path.extname(file).toLowerCase())) return null;
+
+  let source: fs.Stats;
+  try {
+    source = fs.statSync(file);
+  } catch {
+    return null;
+  }
+
+  // Keyed by the file's identity *and* its mtime and size, so replacing a
+  // photograph in place cannot serve the old one at every width forever.
+  const key = representationKey(file, source, width);
+  const cached = path.join(contentRoot(), ".cache", "media", `${key}.webp`);
+
+  try {
+    return fs.readFileSync(cached);
+  } catch {
+    // Not made yet.
+  }
+
+  const sharp = (await import("sharp")).default;
+  let bytes: Buffer;
+  try {
+    bytes = await sharp(file, { failOn: "error", limitInputPixels: IMAGE_MAX_PIXELS })
+      .rotate()
+      .resize(width, undefined, { withoutEnlargement: true })
+      .keepIccProfile()
+      .webp({ quality: 78 })
+      .toBuffer();
+  } catch {
+    // A corrupt or unreadable image is still a file somebody uploaded; hand
+    // back the original and let the browser decide what to do with it.
+    return null;
+  }
+
+  try {
+    fs.mkdirSync(path.dirname(cached), { recursive: true });
+    // Written beside and renamed, so two requests for the same width racing
+    // each other cannot leave a half-written file for the third to read.
+    const partial = `${cached}.${process.pid}.partial`;
+    fs.writeFileSync(partial, bytes);
+    fs.renameSync(partial, cached);
+  } catch {
+    // An unwritable cache is a slow site, not a broken one.
+  }
+  return bytes;
+}
+
+/**
+ * The same resize `resizedCopy` does, for bytes that were never written to
+ * disk at all — B1517: a freshly uploaded photograph handed straight to a
+ * model has nowhere to be cached from and nothing worth caching, since the
+ * whole point is that it is read once and dropped, not kept.
+ *
+ * Returns null on anything sharp cannot decode, the same as `resizedCopy`.
+ */
+export async function resizedBuffer(bytes: Buffer, width: number): Promise<Buffer | null> {
+  const sharp = (await import("sharp")).default;
+  try {
+    return await sharp(bytes, { failOn: "error", limitInputPixels: IMAGE_MAX_PIXELS })
+      .rotate()
+      .resize(width, undefined, { withoutEnlargement: true })
+      .webp({ quality: 78 })
+      .toBuffer();
+  } catch {
+    return null;
+  }
+}

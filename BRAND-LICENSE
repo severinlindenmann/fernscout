@@ -1,0 +1,47 @@
+BRAND ASSETS
+------------
+
+This section is the licensor's statement of what is being made available. It
+carves the brand assets out of the Apache License 2.0 that otherwise covers
+this repository (see LICENSE) — the Apache text below the carve-out in
+`LICENSE` is unmodified; this is the separate, narrower statement about these
+files specifically.
+
+The brand assets are the Fernscout wordmark, the waymark logo and the icons
+drawn from it. In this repository they are:
+
+    docs/branding/fernscout-logo.svg
+    docs/branding/fernscout-logo-inverse.svg
+    docs/branding/fernscout-logo-mono.svg
+    docs/branding/fernscout-wordmark.svg
+    docs/branding/fernscout-mark.svg
+    docs/branding/fernscout-avatar-640.png
+    docs/branding/icon-waymark.svg
+    docs/branding/icon-cairn.svg
+    docs/branding/icon-farsight.svg
+    docs/branding/alt-cairn.svg
+    docs/branding/alt-farsight.svg
+    app/icon.svg
+    app/favicon.ico
+    ios/App/App/Assets.xcassets/AppIcon.appiconset
+    ios/App/App/Assets.xcassets/Splash.imageset
+    ios/App/ShareInbox/Assets.xcassets/Mark.imageset
+
+and the copies of the waymark's paths written inline, verbatim, in
+app/apple-icon.tsx and app/opengraph-image.tsx.
+
+They are part of the software and they ship with it, because an instance has
+to be able to draw itself. Run Fernscout for yourself, modify it,
+redistribute it: the assets come along, and that is intended.
+
+What the Apache-2.0 copyright licence in `LICENSE` does not extend to, for
+these files alone, is using them as the identity of something else — a fork
+presented to the public as its own project, or any other product or service.
+Copyright in them is retained in full, and it is a separate right from the
+trademark: rebranding a fork is not optional, and the drawings do not become
+anyone else's by being redistributed with the code.
+
+No trademark licence is granted by any of this. Apache-2.0 explicitly does
+not grant one either (§6, Trademarks); the name is not among the rights
+either licence hands over. TRADEMARK.md is the policy, and it is the document
+to read before using either.

@@ -1,0 +1,1229 @@
+/*
+ * `source(none)` turns off Tailwind v4's automatic content detection, which
+ * by default scans the *whole project* — every directory not gitignored,
+ * `test/`, `docs/` (task files included), even `.superpowers/`'s saved
+ * session transcripts — with a scanner that is a plain string match, not
+ * scoped to `className`, JSX, or even to source files. A class name typed in
+ * a sentence anywhere in any of those was compiling into the shipped bundle
+ * — B1840. The two `@source` lines below are the actual allowlist: the only
+ * two directories that ever hold a `className` this app renders. Narrower
+ * than excluding today's offenders one directory at a time, and it stays
+ * correct the next time an agent's own scratch files land somewhere new.
+ */
+@import "tailwindcss" source(none);
+@source "../app";
+@source "../components";
+@plugin "@tailwindcss/typography";
+
+:root {
+  /* "Game path" palette — bright and playful, not a moody dashboard. */
+  --color-cream-50: #fffaf0;
+  --color-cream-100: #fff3dc;
+  --color-cream-200: #ffe9bd;
+
+  /*
+    The navy ramp is split **by job**, not by taste. `navy-500` used to do all
+    four jobs at once — 11px metadata, 12px body, icon strokes and disabled
+    states, across white, cream-50 and cream-100 — and one token cannot be
+    right for all of them, which is why the contrast audit failed in eight
+    places at the same time.
+
+    Readers here are past sixty, on a phone, often outdoors, so small text is
+    held to AAA (7:1) rather than AA (4.5:1): at 11px in daylight the AA floor
+    is a number that passes and a line that doesn't get read.
+
+    Which token does which job, then:
+
+      navy-900   headings, values
+      navy-700   body copy
+      navy-600   secondary text at any size
+      navy-500   NOT TEXT — borders, rules, decorative icons, placeholders
+
+    The ratios behind that split are not written here, because they are
+    computed from these hexes and rendered at `/docs/branding/identity` —
+    a number typed into a comment is a number that stops being true the
+    first time somebody nudges a hex (B575).
+
+    navy-500 still clears AA, so nothing that was legal became illegal; it is
+    simply no longer the token that carries the smallest words on the page.
+  */
+  --color-navy-900: #1e293b;
+  /* One step darker than navy-900 — `.fs-ask-dark`'s own dark-mode
+     background (design-v2.html's `.ask` rule), B1803 Task 3.4 fix round 2.
+     Same value in both themes: nothing else on the light side reads
+     `navy-950`, so there is no light-mode meaning to give it, only a token
+     `test/contrast.test.ts` can see in place of the literal it used to be. */
+  --color-navy-950: #0f1520;
+  /* One quarter of the way from navy-900 toward navy-700 — the ramp had a
+     gap here too (B1035, the sibling gap B757 left behind): `navy-800` was
+     used across 27 files (`bg-`, `border-`, `ring-`, `outline-`, `text-`)
+     with nothing backing it, and Tailwind emitted no rule for an
+     unresolvable colour utility, so the affected elements silently kept
+     whatever colour they inherited. Sits close to navy-900 rather than at
+     the midpoint because 700/800/900 are compressed together at this end of
+     this non-linear ramp. */
+  --color-navy-800: #253145;
+  --color-navy-700: #3a4a63;
+  --color-navy-600: #44546c;
+  /* Dark enough for AA on cream-100 too, which #64748b was not (4.33:1). */
+  --color-navy-500: #5a6a80;
+  /* One third of the way from navy-200 toward navy-500 — the ramp had a gap
+     here (B757): `border-navy-300` was used across the app with nothing
+     backing it, so Tailwind emitted no colour and every one of those borders
+     silently rendered in `currentColor` instead of a hairline. */
+  --color-navy-300: #aeb7c5;
+  --color-navy-200: #d8dee8;
+  /* Midpoint of navy-500 and navy-300 — same gap, found alongside navy-800
+     while widening test/undefined-color-tokens.test.ts for B1035:
+     `text-navy-400`/`hover:text-navy-400` had nothing behind it either. */
+  --color-navy-400: #8490a2;
+  /* navy-200 mixed halfway/four-fifths to white — hairline borders and a
+     faint fill lighter than navy-200 had, found the same way. */
+  --color-navy-100: #eceef4;
+  --color-navy-50: #f7f8fa;
+
+  --color-sky-300: #8fe0ef;
+  --color-sky-400: #5ec8dc;
+  --color-sky-500: #3fa9c4;
+
+  --color-yellow-300: #ffe08a;
+  --color-yellow-400: #ffd23f;
+  --color-yellow-600: #d69b0a;
+  --color-yellow-950: #4a3300;
+  /*
+    B1810. `yellow-50`, `yellow-100` and `yellow-900` were never defined, so
+    the caution-banner classes already used across the photobook, postcards
+    and the helper room (`border-yellow-600 bg-yellow-50 ... text-yellow-900`)
+    silently drew from Tailwind's own fixed palette instead of this one —
+    correct-looking on cream by accident, and unchanged in dark mode because
+    Tailwind's palette does not know this app has one.
+
+    Light values are Tailwind's stock hexes for these shades, unchanged from
+    what was already rendering, because the light-mode banner was never the
+    complaint. Dark values follow B1798's method below: `yellow-900`, the
+    text-bearing shade, reuses `yellow-400`'s own hex (10.38:1 on the dark
+    banner fill) rather than inventing a new step in the ramp.
+  */
+  --color-yellow-50: #fefce8;
+  --color-yellow-100: #fef9c3;
+  --color-yellow-900: #713f12;
+
+  /* B1841 — green-100 was #ddf3e4, and text-green-700 on it measured 4.30:1,
+     under the 4.5:1 floor. green-700 is a text colour used on many grounds
+     (cream, white) and already clears the floor there, so the fill moves
+     instead: lightened toward white until the pairing clears 4.52:1+. */
+  --color-green-100: #ebf8ef;
+  --color-green-500: #22c55e;
+  --color-green-700: #15803d;
+
+  /* coral-300 mixed toward white — found alongside navy-800 while widening
+     test/undefined-color-tokens.test.ts for B1035: a badge background and
+     a hover fill had nothing behind them. */
+  --color-coral-50: #fdedf1;
+  /* B1841 — coral-100 was #fbdce4, and text-coral-600 on it measured 4.26:1,
+     under the 4.5:1 floor. Same method as green-100 above: the fill moves,
+     not the text, which already clears the floor on coral-50, cream and white. */
+  --color-coral-100: #fce7ed;
+  --color-coral-300: #f6a7bb;
+  --color-coral-400: #f06a8a;
+  /* The text-safe coral. coral-400 is fill-only. */
+  --color-coral-600: #c2334a;
+
+  --color-blue-500: #2f6fed;
+
+  --background: var(--color-cream-50);
+  --foreground: var(--color-navy-900);
+
+  /* Screen roles, separate from the brand hues above. A colour name cannot
+     answer both `text-navy-900` and `bg-navy-900` once the ground changes;
+     these variables say what the colour is doing instead. */
+  --surface-base: #fffaf0;
+  --surface-raised: #ffffff;
+  --surface-subtle: #fff3dc;
+  --surface-muted: #ffe9bd;
+  --surface-neutral: #f7f8fa;
+  --surface-neutral-strong: #eceef4;
+  --surface-selected: #d8dee8;
+  /* The mark beside a chosen row — a language, a theme. It has to carry the
+     brand's yellow *and* stay legible, which no single value does in both
+     themes: #422006 vanishes on a dark ground, and the bright yellow that
+     fixes that fails contrast on a light one (test/contrast.test.ts keeps
+     the light accents out of text colours for exactly that reason). So it
+     is a token that flips, like every other colour here. B1541. */
+  --selected-mark: #422006;
+  --ink-strong: #1e293b;
+  --ink-body: #3a4a63;
+  --ink-secondary: #43536b;
+  --ink-muted: #5a6a80;
+  --ink-faint: #8490a2;
+  --line-faint: #eceef4;
+  --line-quiet: #d8dee8;
+  --line-strong: #aeb7c5;
+  --line-prominent: #5a6a80;
+  --line-ink: #3a4a63;
+  --action-strong: #1e293b;
+  --action-strong-hover: #3a4a63;
+  --on-action: #fffaf0;
+  --on-bright: #1e293b;
+  --on-deep: #fffaf0;
+  --overlay-strong: #1e293b;
+  --overlay-ink: #ffffff;
+  --shadow-color: #1e293b;
+
+  /* Every checkbox, radio, range and progress bar on the site, in one line —
+     B702. Unset, the browser paints them in the operating system's blue,
+     which is the one colour on the page that belongs to no palette; six of
+     them sit in the photobook's own settings panel. yellow-600 rather than
+     the yellow of the mark: the browser picks the tick's own colour from
+     this one's contrast, and the brighter lozenge yellow gets a grey tick. */
+  accent-color: var(--color-yellow-600);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-cream-50: var(--color-cream-50);
+  --color-cream-100: var(--color-cream-100);
+  --color-cream-200: var(--color-cream-200);
+
+  --color-navy-900: var(--color-navy-900);
+  --color-navy-950: var(--color-navy-950);
+  --color-navy-800: var(--color-navy-800);
+  --color-navy-700: var(--color-navy-700);
+  --color-navy-600: var(--color-navy-600);
+  --color-navy-500: var(--color-navy-500);
+  --color-navy-400: var(--color-navy-400);
+  --color-navy-300: var(--color-navy-300);
+  --color-navy-200: var(--color-navy-200);
+  --color-navy-100: var(--color-navy-100);
+  --color-navy-50: var(--color-navy-50);
+
+  --color-sky-300: var(--color-sky-300);
+  --color-sky-400: var(--color-sky-400);
+  --color-sky-500: var(--color-sky-500);
+
+  --color-yellow-300: var(--color-yellow-300);
+  --color-yellow-400: var(--color-yellow-400);
+  --color-yellow-600: var(--color-yellow-600);
+  --color-yellow-950: var(--color-yellow-950);
+  --color-yellow-50: var(--color-yellow-50);
+  --color-yellow-100: var(--color-yellow-100);
+  --color-yellow-900: var(--color-yellow-900);
+
+  --color-green-100: var(--color-green-100);
+  --color-green-500: var(--color-green-500);
+  --color-green-700: var(--color-green-700);
+
+  --color-coral-50: var(--color-coral-50);
+  --color-coral-100: var(--color-coral-100);
+  --color-coral-300: var(--color-coral-300);
+  --color-coral-400: var(--color-coral-400);
+  --color-coral-600: var(--color-coral-600);
+
+  --color-blue-500: var(--color-blue-500);
+
+  --color-surface-base: var(--surface-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-neutral: var(--surface-neutral);
+  --color-surface-neutral-strong: var(--surface-neutral-strong);
+  --color-surface-selected: var(--surface-selected);
+  --color-selected-mark: var(--selected-mark);
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-body: var(--ink-body);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-line-faint: var(--line-faint);
+  --color-line-quiet: var(--line-quiet);
+  --color-line-strong: var(--line-strong);
+  --color-line-prominent: var(--line-prominent);
+  --color-line-ink: var(--line-ink);
+  --color-action-strong: var(--action-strong);
+  --color-action-strong-hover: var(--action-strong-hover);
+  --color-on-action: var(--on-action);
+  --color-on-bright: var(--on-bright);
+  --color-on-deep: var(--on-deep);
+  --color-overlay-strong: var(--overlay-strong);
+  --color-overlay-ink: var(--overlay-ink);
+  --color-shadow-color: var(--shadow-color);
+
+  /* B1044 — each family's -ext variable carries the latin-ext subset, not
+     preloaded (see app/layout.tsx), listed second so the browser reaches for
+     it only when a character the first font lacks shows up. */
+  --font-display: var(--font-fredoka), var(--font-fredoka-ext), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-jakarta), var(--font-jakarta-ext), ui-sans-serif, system-ui, sans-serif;
+  /* B733 — the mono voice for kickers, labels, pills, ids and counts. Loaded
+     in app/layout.tsx the same way --font-fredoka and --font-jakarta are. */
+  --font-mono: var(--font-plex-mono), var(--font-plex-mono-medium), ui-monospace, "SFMono-Regular", monospace;
+}
+
+html {
+  /* Sticky header + day bar, so anchored jumps don't land under them. */
+  scroll-padding-top: 7rem;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #171d29;
+  --foreground: #f2ecdd;
+  --surface-base: #171d29;
+  --surface-raised: #1f2736;
+  --surface-subtle: #242e40;
+  --surface-muted: #2b3750;
+  --surface-neutral: #20283a;
+  --surface-neutral-strong: #2a3550;
+  --surface-selected: #33405a;
+  --selected-mark: #facc15;
+  /*
+    B1798. `green-700` and `coral-600` are the two brand hues chosen to carry
+    text, and both were chosen against cream — 3.37:1 and 3.11:1 on this
+    theme's `#171d29`, below the 4.5:1 floor. Chosen, not computed: each is a
+    brighter step already in this hue's own family, so it reads as the same
+    green and the same coral rather than an invented shade.
+
+      green-700  #22c55e (= green-500's hex) — 7.41:1 on #171d29
+      coral-600  #f38ba6                      — 7.28:1 on #171d29
+
+    Both were also checked against every surface role text actually sits on
+    in this theme (surface-base through surface-selected) and against every
+    component that pairs the hue with a literal light fill below.
+  */
+  --color-green-700: #22c55e;
+  --color-coral-600: #f38ba6;
+  /*
+    The fills these two hues sit on in a badge (`bg-green-100`,
+    `bg-coral-50`, `bg-coral-100` — `components/ApproveButton.tsx`,
+    `components/order/OrderDocket.tsx`, `app/admin/page.tsx` among them) are
+    literal light tints and do not flip on their own. Leaving them pale would
+    put the brighter text above back under 4.5:1 the moment it lands on one
+    of these fills instead of the page — the same trap this ticket exists to
+    close, one layer further in. They flip alongside the text they carry:
+
+      green-100  #1c3327 — 5.94:1 against green-700's #22c55e
+      coral-50   #2b141a — 7.44:1 against coral-600's #f38ba6
+      coral-100  #33191f — 6.97:1 against coral-600's #f38ba6
+  */
+  --color-green-100: #1c3327;
+  --color-coral-50: #2b141a;
+  --color-coral-100: #33191f;
+  /* B1810 — the caution-banner shades, same method as the green/coral pair
+     above. yellow-50/yellow-100 become dark amber-tinted fills instead of
+     Tailwind's pale stock hexes; yellow-900 reuses yellow-400's own hex as
+     its text so the banner stays legible without inventing a new step. */
+  --color-yellow-50: #2e2610;
+  --color-yellow-100: #3a2f14;
+  --color-yellow-900: #ffd23f;
+  --ink-strong: #f2ecdd;
+  --ink-body: #e6e0d2;
+  --ink-secondary: #d7d4ca;
+  --ink-muted: #c9c8c0;
+  --ink-faint: #b9bbc0;
+  --line-faint: #2a3550;
+  --line-quiet: #33405a;
+  --line-strong: #60708c;
+  --line-prominent: #8490a2;
+  --line-ink: #c9c8c0;
+  --action-strong: #f2ecdd;
+  --action-strong-hover: #c9c8c0;
+  --on-action: #171d29;
+  --on-bright: #1e293b;
+  --on-deep: #fffaf0;
+  --overlay-strong: #10151f;
+  --overlay-ink: #ffffff;
+  --shadow-color: #080b11;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --background: #171d29;
+    --foreground: #f2ecdd;
+    --surface-base: #171d29;
+    --surface-raised: #1f2736;
+    --surface-subtle: #242e40;
+    --surface-muted: #2b3750;
+    --surface-neutral: #20283a;
+    --surface-neutral-strong: #2a3550;
+    --surface-selected: #33405a;
+    /* Same values as :root[data-theme="dark"] above, and the comment there —
+       this block is the automatic (`auto` choice, system dark) mirror of it. */
+    --color-green-700: #22c55e;
+    --color-coral-600: #f38ba6;
+    --color-green-100: #1c3327;
+    --color-coral-50: #2b141a;
+    --color-coral-100: #33191f;
+    --color-yellow-50: #2e2610;
+    --color-yellow-100: #3a2f14;
+    --color-yellow-900: #ffd23f;
+    --ink-strong: #f2ecdd;
+    --ink-body: #e6e0d2;
+    --ink-secondary: #d7d4ca;
+    --ink-muted: #c9c8c0;
+    --ink-faint: #b9bbc0;
+    --line-faint: #2a3550;
+    --line-quiet: #33405a;
+    --line-strong: #60708c;
+    --line-prominent: #8490a2;
+    --line-ink: #c9c8c0;
+    --action-strong: #f2ecdd;
+    --action-strong-hover: #c9c8c0;
+    --on-action: #171d29;
+    --on-bright: #1e293b;
+    --on-deep: #fffaf0;
+    --overlay-strong: #10151f;
+    --overlay-ink: #ffffff;
+    --shadow-color: #080b11;
+    color-scheme: dark;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+/* Faint paper-grain texture so flat panels don't read as plain CSS. */
+.grain {
+  position: relative;
+}
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="dark"] .grain::before {
+  opacity: 0.02;
+  mix-blend-mode: screen;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .grain::before {
+    opacity: 0.02;
+    mix-blend-mode: screen;
+  }
+}
+
+@keyframes path-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 210, 63, 0.5);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 8px rgba(255, 210, 63, 0);
+  }
+}
+
+/* What the weather actually was — B325, and the whole of its animation.
+
+   CSS rather than JavaScript on purpose: a trip page draws one of these per
+   day, forty at a time, and none of them has any state. It also makes
+   prefers-reduced-motion a media query at the bottom of this block rather
+   than a hook in every glyph. Slow on purpose — this sits beside a date in a
+   12px meta line, and anything quicker reads as a notification. */
+@keyframes fs-weather-drift {
+  0%,
+  100% {
+    transform: translateX(-0.6px);
+  }
+  50% {
+    transform: translateX(0.6px);
+  }
+}
+
+@keyframes fs-weather-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+
+@keyframes fs-weather-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fs-weather-pulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fs-weather-flash {
+  0%,
+  62%,
+  100% {
+    opacity: 0.85;
+  }
+  66%,
+  72% {
+    opacity: 0.25;
+  }
+}
+
+.fs-weather-drift {
+  animation: fs-weather-drift 5s ease-in-out infinite;
+}
+.fs-weather-drift-slow {
+  animation: fs-weather-drift 8s ease-in-out infinite reverse;
+}
+.fs-weather-fall {
+  animation: fs-weather-fall 1.4s linear infinite;
+}
+.fs-weather-spin {
+  animation: fs-weather-spin 24s linear infinite;
+}
+.fs-weather-pulse {
+  animation: fs-weather-pulse 4s ease-in-out infinite;
+}
+.fs-weather-flash {
+  animation: fs-weather-flash 3.5s ease-in-out infinite;
+}
+
+/* The deletion clock's last-minute pulse — B1806. Stingy on purpose: the
+   seconds segment only, and only in the last minute of an already-urgent
+   run, so a card that has been sitting near the top of the list for two
+   days never throbs. Two steps rather than a smooth fade, matching the
+   approved draft (`.superpowers/sdd/b1806/ticker.html`) — a card somebody
+   glances at for a second reads a blink more clearly than a fade. */
+@keyframes fs-ticker-pulse {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0.45;
+  }
+}
+.fs-ticker-pulse {
+  animation: fs-ticker-pulse 1s steps(2, end) infinite;
+}
+
+/* The question screen's own waveform (S7a) — B1803 Task 3.3. Each bar reads
+   the same keyframe with its own `animation-delay` (set inline, per bar, by
+   RecordButton's `hero` branch), which is what turns one shared animation
+   into a wave rather than every bar pulsing in lockstep. */
+@keyframes fs-waveform {
+  0%,
+  100% {
+    transform: scaleY(0.6);
+  }
+  50% {
+    transform: scaleY(1.4);
+  }
+}
+.fs-waveform {
+  animation: fs-waveform 0.9s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+/* The check-the-wording screen's own dark question card (S7a/S7b) —
+   B1803 Tasks 3.3/3.4, `--color-navy-900`/`--color-cream-50` exactly as
+   design-v2.html's own `.ask` rule. A darker token in dark mode, also
+   matching the design file: `--color-navy-900` does not get its own dark
+   override (B1803 Task 3.3 does not add one for a single card), and dark
+   mode's `--surface-raised` (`#1f2736`) sits close enough to `navy-900`
+   (`#1e293b`) that the card would otherwise all but vanish into its own
+   container. `--color-navy-950` (fix round 2) rather than the bare literal
+   this used to be, so `test/contrast.test.ts` can see and protect it like
+   every other colour in this file. */
+.fs-ask-dark {
+  background: var(--color-navy-900);
+  color: var(--color-cream-50);
+}
+:root[data-theme="dark"] .fs-ask-dark {
+  background: var(--color-navy-950);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fs-ask-dark {
+    background: var(--color-navy-950);
+  }
+}
+
+/* Non-negotiable, and the reason every one of the rules above is a class
+   rather than an inline style: one query turns the whole feature still. The
+   glyph stays — it is information — and only the movement goes. */
+@media (prefers-reduced-motion: reduce) {
+  .fs-weather-drift,
+  .fs-weather-drift-slow,
+  .fs-weather-fall,
+  .fs-weather-spin,
+  .fs-weather-pulse,
+  .fs-weather-flash,
+  .fs-assemble-in,
+  .fs-rise-in,
+  .fs-waymark-bounce,
+  .fs-ticker-pulse,
+  .fs-waveform {
+    animation: none;
+  }
+  /* Not merely `animation: none` — with nothing else setting its opacity,
+     that would leave a row of static dots that never becomes the reply
+     it stands in for. Reduced motion shows the bubble outright instead. */
+  .fs-chat-dots {
+    display: none;
+  }
+  /* The composer's own four, B1982 — each one leaves its element at its
+     resting state, which is in place, opaque and readable. */
+  .fs-book-chip,
+  .fs-book-tick,
+  .fs-book-fade,
+  /* B1983's making screen: the leaves rest in place and fully drawn, the
+     route rests drawn, the current line rests still. The bar's shimmer is
+     deliberately *not* here — it is the one thing that keeps moving under
+     reduced motion, because a screen that says it is working has to show it
+     is still working, and a travelling highlight on a 6px bar is the
+     smallest way to say so. */
+  .fs-book-build i,
+  .fs-book-build path,
+  .fs-book-now {
+    animation: none;
+  }
+}
+
+/*
+ * The photobook composer's small movements — B1982.
+ *
+ * Three, and each stands for one fact rather than for decoration: an answer
+ * that has just been given lands as a chip in the summary bar
+ * (`fs-book-chip`); a price that has just changed counts into place rather
+ * than swapping silently (`fs-book-tick`); a cover that has just been chosen
+ * crossfades where it stands instead of the plate blinking (`fs-book-fade`).
+ * All three are one-shot, all three are listed in the reduced-motion block
+ * above, and every one of them resolves to the finished state with no
+ * animation at all.
+ */
+@keyframes fs-book-chip {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fs-book-chip {
+  animation: fs-book-chip 0.3s ease-out 1;
+}
+@keyframes fs-book-tick {
+  from {
+    opacity: 0.35;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.fs-book-tick {
+  animation: fs-book-tick 0.5s ease-out 1;
+}
+@keyframes fs-book-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fs-book-fade {
+  animation: fs-book-fade 0.35s ease-out 1;
+}
+
+/*
+ * The wait between a sentence and an answer — B1124. Two states, and this is
+ * both of them: a card's own pieces arriving in the order they will be read
+ * (used when the next block is already known to be a proposal), and three
+ * waymark lozenges — the mark itself, not a spinner — for every other wait.
+ * `animation: none` above is the whole of `prefers-reduced-motion` for both:
+ * with no animation each piece sits at its own resting state, which for
+ * `fs-assemble-in` is fully visible (nothing here sets an inline opacity, so
+ * "no animation" means "always shown") and for `fs-waymark-bounce` is simply
+ * still.
+ */
+/*
+ * The showcase bar arriving from the foot of the page — B1718.
+ *
+ * One short slide, once. `animation: none` under `prefers-reduced-motion`
+ * above leaves it at its resting state, which is in place and fully visible:
+ * the reader still gets the bar, it simply does not move.
+ */
+@keyframes fs-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.fs-rise-in {
+  animation: fs-rise-in 0.32s ease-out 1;
+}
+
+/*
+ * What the bar's own measured height is spent on — B1718.
+ *
+ * `ShowcaseBar` is fixed to the foot of the page, so without this the last
+ * line of a day would sit underneath it: the bar publishes its own measured
+ * height and the document takes the same room. Unset on every journal that is
+ * not a showcase, and for every reader who has closed it, where the fallback
+ * makes this a no-op.
+ *
+ * It lifted `PushPrompt` above the bar too until B1724, which made a showcase
+ * journal draw the bar *instead* of that card — so the two can no longer be
+ * on one page and there is nothing left to lift.
+ */
+body {
+  padding-bottom: var(--fs-showcase-bar, 0px);
+  /* The top inset is zero everywhere but the iPhone shell (B2105): Safari
+     and the installed web app get an opaque status bar from iOS, a WKWebView
+     with viewport-fit=cover does not, and the first thing on the page — the
+     operator's banner, a trip's title — sat behind the clock. The sticky
+     page header pulls itself back up over this by the same amount and pads
+     instead, so it still covers the status bar while scrolled. */
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@keyframes fs-assemble-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fs-waymark-bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.5;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+.fs-assemble-in {
+  animation: fs-assemble-in 0.3s ease-out both;
+}
+
+/*
+ * Holding a staged arrival until it is actually looked at — B1722.
+ *
+ * `ChatVignette` stages its bubbles with `animation-delay`, counted from
+ * first paint. On `/agent` that is right — the vignette is the first thing on
+ * the page. On the landing page it sits a screen below the headline, so the
+ * conversation played out while the reader was still reading the lede and
+ * they scrolled down to a finished, static chat: the one thing the drawing is
+ * for never happened.
+ *
+ * `paused` pauses the *delay* as well as the animation, and `both` above
+ * already holds the `from` state — opacity 0 — so a held bubble needs no
+ * separate rule to hide it and nothing to unset when it starts. An
+ * `IntersectionObserver` in the component takes the class off.
+ *
+ * Deliberately not listed in the `prefers-reduced-motion` block: there
+ * `animation: none` already wins, which leaves every bubble at its resting
+ * state, fully visible. A hold that reintroduced a hidden state would make
+ * reduced motion mean "see nothing at all".
+ */
+.fs-hold-animation,
+.fs-hold-animation * {
+  animation-play-state: paused;
+}
+.fs-waymark-bounce {
+  animation: fs-waymark-bounce 1s ease-in-out infinite;
+}
+
+/*
+ * The typing-dots placeholder ahead of an agent reply in the `/agent` door's
+ * chat vignette — B1329. A window rather than a fade: invisible before its
+ * own delay, visible for the run, gone again exactly when the delay on the
+ * real bubble underneath (`fs-assemble-in`, same element position via CSS
+ * grid stacking) reaches zero and the bubble starts to show. `both` holds
+ * the 0% state before the delay and the 100% state — also opacity 0 — after,
+ * so no inline style is needed to hide it once its window has passed.
+ * `prefers-reduced-motion` below removes it outright rather than leaving it
+ * at some resting opacity, since a static row of dots that never resolves
+ * into an answer would be worse than nothing.
+ */
+@keyframes fs-chat-dots {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  15%,
+  85% {
+    opacity: 1;
+  }
+}
+.fs-chat-dots {
+  animation: fs-chat-dots 1s ease-in-out both;
+}
+
+/* Scrollable, but without the bar — used where the container is obviously
+   scrollable from its content and a bar would just add visual noise. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-quiet) transparent;
+}
+
+/* Keyboard focus. Nearly every control here is a custom-styled button, so
+   without this they fall back to whatever ring the browser happens to draw
+   — and on the yellow buttons that was nothing at all. blue-500 is the one
+   palette colour that clears 3:1 against every surface we put controls on
+   (cream 4.37, white 4.55, navy-900 3.22, yellow-400 3.15). */
+:focus-visible {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* B752. This file's own CSS is unlayered, and Tailwind's utilities load
+   inside `@layer utilities` — an unlayered rule always beats a layered one,
+   at any specificity, so `focus-visible:outline-none` on an element can never
+   turn the rule above back off. Most controls should never try; the one
+   exception is an input sitting inside a wrapper that already draws its own
+   focus indicator (`IdentitySignIn`'s email and code fields, inside a
+   `focus-within:ring-2` box) — there the input's own outline painted a
+   second, inner rectangle rather than nothing. This class is what actually
+   silences it: also unlayered, so it competes on the same terms, and more
+   specific than the bare pseudo-class above so it wins regardless of source
+   order. */
+.quiet-inner-focus:focus-visible {
+  outline: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Dropdowns — B1012.
+
+   Twenty-four `<select>`s and not one of them set `appearance`, so every one
+   drew the operating system's chevron, at its size, in its grey, on a page
+   that has gone to some trouble to look like somebody's travel journal. It is
+   the same argument this project already makes about `window.confirm`: a
+   control that arrives in the OS's own chrome has stopped belonging to the
+   page.
+
+   **One rule here rather than twenty-four class strings.** The call sites
+   already carry border, radius and size, and they differ on purpose — `text-sm`
+   in the photobook panel, `text-lg` on the contacts page. What was missing is
+   the same everywhere. Unlayered, for the reason B752 wrote out above: it has
+   to beat the `px-*` a call site sets, and Tailwind's utilities are layered.
+
+   The chevron is navy-500, which is this palette's decorative-icon token and
+   deliberately not one of its text colours. `[size]` and `[multiple]` are
+   excluded because those are list boxes, with nothing to drop down. */
+select:not([size]):not([multiple]) {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+select:disabled {
+  opacity: 0.6;
+}
+
+/* The chevron we draw ourselves, and only where we have to. Under
+   `base-select` below the browser lays out a real `::picker-icon` element and
+   reserves its own room for it — painting a background image *and* reserving
+   2.25rem here as well left the arrow doubled and squeezed a 150px control
+   enough to wrap "As this update" onto two lines. So the two branches are
+   exclusive rather than one overriding half of the other. */
+@supports not (appearance: base-select) {
+  select:not([size]):not([multiple]) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6a80' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    background-size: 1rem 1rem;
+    padding-right: 2rem;
+  }
+}
+
+@supports (appearance: base-select) {
+  select:not([size]):not([multiple]),
+  ::picker(select) {
+    appearance: base-select;
+  }
+
+  /* `base-select` makes the button a layout container. Without an explicit
+     one-line flex layout its picker icon is allowed to wrap under the selected
+     text while closed, then snaps to the right when the picker opens. */
+  select:not([size]):not([multiple]) {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  select:not([size]):not([multiple])::picker-icon {
+    color: var(--ink-muted);
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    transition: rotate 150ms ease;
+  }
+  select:not([size]):not([multiple]):open::picker-icon {
+    rotate: 180deg;
+  }
+
+  ::picker(select) {
+    border: 1px solid var(--line-quiet);
+    border-radius: 12px;
+    background: var(--surface-base);
+    padding: 4px;
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow-color) 16%, transparent);
+    /* The popup is the page's own surface now, so it inherits the page's own
+       type rather than the OS's. */
+    font: inherit;
+    /* It sizes itself to its longest option, and some of ours are whole
+       sentences — "Guests — everybody you have let into this journal" ran to
+       the edge of a 390px screen. Cap it and let the option wrap instead. */
+    max-width: min(88vw, 22rem);
+  }
+
+  option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--ink-strong);
+    /* See the cap above: a long option wraps rather than widening the popup
+       past the screen. */
+    white-space: normal;
+  }
+
+  option:hover,
+  option:focus {
+    background: var(--surface-subtle);
+    outline: none;
+  }
+
+  option:checked {
+    background: var(--color-yellow-300);
+    font-weight: 600;
+  }
+
+  /* The tick the base appearance puts in front of every option. Ours is the
+     brand's own dark yellow, and it holds its column when unchecked so the
+     labels do not shift as the selection moves. */
+  option::checkmark {
+    content: "";
+    color: var(--color-yellow-950);
+  }
+}
+
+/* ------------------------------------------------- the agent room's own --- */
+/* Text scale — B1209 (D03). `zoom` scales layout with the type, which is
+   exactly what a larger-print reader wants; the two steps bracket the
+   default rather than replacing the type scale. Scoped to the conversation
+   log so chrome (header, rails) keeps its size. */
+.fs-scale-s [role="log"] { zoom: 0.93; }
+.fs-scale-l [role="log"] { zoom: 1.12; }
+
+/* One short pulse when an accepted write changed the previewed day —
+   B1214 (D27). Removed for prefers-reduced-motion with everything else. */
+.fs-pulse { animation: fs-preview-pulse 1.2s ease-out 1; border-radius: 0.75rem; }
+@keyframes fs-preview-pulse {
+  0% { box-shadow: 0 0 0 3px rgb(255 210 63 / 0.9); }
+  100% { box-shadow: 0 0 0 3px rgb(255 210 63 / 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-pulse { animation: none; }
+}
+
+/* The trip map's stop names and its markers — B1911.
+
+   Utilities everywhere else, and a class here for one measured reason: a
+   two-hundred-day trip draws one of these buttons per stop, and a dozen
+   Tailwind class names repeated two hundred times is forty kilobytes of
+   markup that `test/payload.test.tsx` counts against what a day costs the
+   page. The colours are the same tokens the utilities would have used. */
+.fs-map-stops > button {
+  min-height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line-quiet);
+  background: var(--surface-base);
+  color: var(--ink-body);
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 150ms, background-color 150ms;
+}
+.fs-map-stops > button[aria-pressed="true"] {
+  border-color: var(--action-strong);
+  background: var(--action-strong);
+  color: var(--on-action);
+}
+.fs-map-stops > button:hover {
+  color: var(--ink-strong);
+}
+.fs-map-stops > button[aria-pressed="true"]:hover {
+  color: var(--on-action);
+}
+
+/* And the markers, for the same reason and with the focus ring the SVG
+   cannot inherit from a utility. */
+.fs-map-pin > g {
+  cursor: pointer;
+  outline: none;
+}
+.fs-map-pin > g:focus-visible > circle:first-of-type {
+  stroke: var(--color-blue-500);
+}
+
+/* Inline `code` in `.prose` (`components/EntryContent.tsx`, every
+   documentation page) — B1796. The typography plugin's own default is a
+   fixed near-black with no dark-mode counterpart, so it read fine on cream
+   and was invisible wherever a page's surface flips dark. `:not(pre code)`
+   is load-bearing, not decoration: a fenced code block is its own always-dark
+   chip by design (readable on cream *and* dark surfaces on purpose, the
+   opposite problem from inline code), and a plain `.prose code` rule here —
+   or a `prose-code:` utility on the component, which is what this used to be
+   — beats typography's own `pre code { color: inherit }` on specificity and
+   makes the block invisible in light mode instead. */
+.prose code:not(pre code) {
+  color: var(--ink-strong);
+}
+
+/*
+ * The making screen assembling a book — B1983.
+ *
+ * Six leaves landing one after another, a route drawn across them, a
+ * highlight travelling along the progress bar, and a dot pulsing on the line
+ * being worked. All of it decoration over facts the screen already holds
+ * (`MakingYourBook` renders it `aria-hidden`), which is what makes stopping
+ * it under reduced motion free: every piece rests visible and in place.
+ *
+ * No library. A `<svg>` and six spans.
+ */
+.fs-book-build {
+  position: relative;
+  width: 96px;
+  height: 72px;
+}
+/* The boards the leaves land on: static, so the movement above it reads as
+   pages arriving rather than as a square blinking. */
+.fs-book-build::before {
+  content: "";
+  position: absolute;
+  inset: 10px 18px;
+  border-radius: 2px;
+  border: 1px solid var(--color-line-quiet);
+  background: var(--color-surface-raised);
+}
+.fs-book-build i {
+  position: absolute;
+  inset: 14px 22px;
+  border-radius: 1px;
+  background: var(--color-surface-selected);
+  border: 1px solid var(--color-line-quiet);
+  transform-origin: left center;
+  animation: fs-book-leaf 4.2s infinite ease-in-out;
+}
+.fs-book-build i:nth-child(1) {
+  animation-delay: 0s;
+}
+.fs-book-build i:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.fs-book-build i:nth-child(3) {
+  animation-delay: 0.6s;
+}
+.fs-book-build i:nth-child(4) {
+  animation-delay: 0.9s;
+}
+.fs-book-build i:nth-child(5) {
+  animation-delay: 1.2s;
+}
+.fs-book-build i:nth-child(6) {
+  animation-delay: 1.5s;
+}
+@keyframes fs-book-leaf {
+  0% {
+    transform: perspective(300px) rotateY(-88deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  22%,
+  78% {
+    transform: perspective(300px) rotateY(0);
+  }
+  92%,
+  100% {
+    transform: perspective(300px) rotateY(0) translateY(-5px);
+    opacity: 0;
+  }
+}
+.fs-book-build svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.fs-book-build path {
+  fill: none;
+  stroke: var(--color-yellow-600);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-dasharray: 160;
+  stroke-dashoffset: 0;
+  animation: fs-book-route 4.2s infinite;
+}
+@keyframes fs-book-route {
+  0%,
+  35% {
+    stroke-dashoffset: 160;
+  }
+  70%,
+  92% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+/* The bar is already the width of what is done; this is the thing that says
+   the work between two lines is still happening. */
+.fs-book-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.fs-book-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: fs-book-sweep 1.2s infinite linear;
+}
+@keyframes fs-book-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.fs-book-now {
+  animation: fs-book-now 1.1s infinite ease-in-out;
+}
+@keyframes fs-book-now {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* The picture chips of the photobook's cards — B2007.
+   As many chips as the row fits at the text size actually in use: the
+   minimum is in rem, so it grows with the text, and three to a row on a
+   phone become two when somebody has set their text to 200 %. Capped at
+   45 % of the row, which is what stops the last step being one enormous
+   chip per line — a chip can always be halved, never wider than half.
+   A plain class rather than three copies of an arbitrary Tailwind value:
+   the layout chips, the text-form chips and the style grids are one
+   decision, and they were three fixed column counts that all overflowed
+   at the same point. */
+.fs-chip-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(45%, 6rem), 1fr));
+}
+
+/*
+ * A wizard's step change — B2094.
+ *
+ * `StepBody` remounts on every step (keyed by it), so this runs once per
+ * change and never on an ordinary re-render. What fades is the step's own
+ * content: the page header, the h1 and the studio bar sit outside the body,
+ * and the step indicator — which lives inside each step — is held still by
+ * fading only its siblings along the path to it, never it or a box around it.
+ * A step with no indicator fades whole. A browser without `:has()` drops
+ * both rules and simply cuts, which is what it did before.
+ *
+ * The done screen: the green band first, then each what-next card 60ms
+ * after the one before (`--i` is the card's index, set inline).
+ *
+ * Only for somebody who has not asked for less motion: outside the query
+ * there is no animation at all, so every piece sits at its resting state.
+ */
+@keyframes fs-step-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .studio-step > :not([data-step-indicator], :has([data-step-indicator])),
+  .studio-step :has([data-step-indicator]) > :not([data-step-indicator], :has([data-step-indicator])) {
+    animation: fs-step-in 120ms ease-out both;
+  }
+  .studio-done-band,
+  .studio-done-card {
+    animation: fs-step-in 120ms ease-out both;
+  }
+  .studio-done-card {
+    animation-delay: calc(60ms * (var(--i, 0) + 1));
+  }
+}
+
+/* B2166 — iOS WebKit zooms the whole page when a field with text under
+   16px takes focus, and the zoom does not undo itself: in the app and the
+   installed PWA the right edge of every studio step then sat off screen.
+   The fields keep their small text on a desktop; on a touch screen they get
+   the 16px that stops the zoom. `!important` because the utility class on
+   the element itself (`text-sm`) outranks any plain selector here. */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}

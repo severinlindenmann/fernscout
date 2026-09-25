@@ -1,0 +1,19 @@
+{
+  "id": "open-2021",
+  "title": "Public one",
+  "dates": {
+    "from": "2021-05-01",
+    "to": "2021-05-10"
+  },
+  "people": [
+    {
+      "name": "Test Person",
+      "nickname": "Test"
+    }
+  ],
+  "intro": "Anyone may read this.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

@@ -1,0 +1,317 @@
+import { describe, expect, test, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
+import TripGate from "@/components/TripGate";
+import LocaleProvider from "@/components/LocaleProvider";
+import { dictionaryFor } from "@/lib/locales";
+import { MAINTAINED_LOCALES } from "@/lib/i18n";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
+
+/**
+ * What the gate *says*, which is the half of B39 that is not about access.
+ *
+ * The password form had one state and one sentence, and it was the wrong one
+ * for two of the three people who meet it. Somebody signed in who still may
+ * not read this trip — a guest of the journal opening a `private` trip, or
+ * anybody who signed in with the wrong address — was shown the same form
+ * again. They will fill it in a second time, get the same page, and conclude
+ * the site is broken; the answer they need is knowable only on this side.
+ *
+ * Nothing here asserts on access. `mayReadTrip` has already said no by the
+ * time this renders; see `test/access-gate.test.ts` for who it says no to.
+ */
+
+vi.mock("next/link", () => ({
+  default: ({ href, children }: { href: string; children: React.ReactNode }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+// B822: `BackToJournal` renders through `BackLink`, which reads `useRouter()`
+// even on the render that never calls it — SSR here has no app router
+// mounted, so it needs a stub.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ back: () => {} }),
+  usePathname: () => "/alex/asia-2023",
+}));
+
+function render(
+  over: {
+    signedInAs?: string | null;
+    canSignIn?: boolean;
+    canAsk?: boolean;
+    locale?: string;
+    guestBlockedByPrivate?: boolean;
+    waiting?: boolean;
+  } = {},
+) {
+  const locale = over.locale ?? "en";
+  return renderToStaticMarkup(
+    <LocaleProvider locale={locale} dictionary={dictionaryFor(locale)}>
+      <TripGate
+        username="alex"
+        journalTitle="Alex's journal"
+        signedInAs={over.signedInAs ?? null}
+        canSignIn={over.canSignIn ?? true}
+        canAsk={over.canAsk ?? true}
+        codeMinutes={CODE_TTL_MINUTES}
+        guestBlockedByPrivate={over.guestBlockedByPrivate ?? false}
+        waiting={over.waiting ?? false}
+      />
+    </LocaleProvider>,
+  );
+}
+
+describe("a reader who is not signed in", () => {
+  test("is asked for an address, and never for a password", () => {
+    const html = render();
+    expect(html).toContain("signin-email");
+    expect(html).not.toMatch(/password/i);
+    expect(html).not.toContain('type="password"');
+  });
+
+  /**
+   * B117, and the reason the `<h1>` is the journal's name rather than the
+   * trip's.
+   *
+   * The gate used to head the page with the trip's own title. It read well —
+   * "sign in to see *Honeymoon, Kerala*" is kinder than "sign in to see
+   * something" — but the reader it was written for is not the only one who
+   * gets it. Trip ids are chosen by hand and guessable by construction
+   * (`alps-2024`, `japan-2027`), the journal name is public, and a private
+   * trip's title is often the sensitive part of it.
+   *
+   * What settled it is one line up: a reader who signs in and is *still*
+   * refused has never been shown the title. The site was naming the trip only
+   * to whoever had proved nothing at all.
+   *
+   * The journal's name stays, because it is already public and it is what
+   * tells a reader whose sign-in form this is. Somebody who followed a buddy
+   * or guest link still learns the trip's name from the invitation page, which
+   * takes a token — see `components/InviteRedeem.tsx`.
+   */
+  test("is told whose journal it is, and never which trip", () => {
+    expect(render()).toContain("Alex&#x27;s journal");
+  });
+
+  /** A door that leads nowhere is worse than no door: the endpoints 404. */
+  test("with sign-in switched off, is told to ask the owner instead", () => {
+    const html = render({ canSignIn: false });
+    expect(html).not.toContain("signin-email");
+    expect(html).toMatch(/ask whoever writes this journal/i);
+  });
+});
+
+describe("a reader who is signed in and still refused", () => {
+  const html = render({ signedInAs: "oma@example.test" });
+
+  /** The assertion this state exists for. */
+  test("is not shown the sign-in form again", () => {
+    expect(html).not.toContain("signin-email");
+    expect(html).not.toContain("signin-code");
+  });
+
+  test("is told it is this trip, not their sign-in, and by which address", () => {
+    expect(html).toMatch(/not shared with you/i);
+    expect(html).toContain("oma@example.test");
+  });
+
+  /** Not a dead end: the page that lists what this address *can* open, and
+   * carries the control for signing out and trying another one. */
+  test("is given somewhere to go", () => {
+    expect(html).toContain("/alex/me");
+    expect(html).toContain("/alex");
+  });
+
+  /** B601. The sentence told them to go and find the owner; this is the
+   * something to press. */
+  test("can ask to be let in from the page they are standing on", () => {
+    expect(html).toContain("ask-name");
+  });
+
+  /** A capability that is off is absent rather than broken: without contacts
+   * there is no queue for the request to land in, so there is no button. */
+  test("is not offered the button when this journal keeps no contacts", () => {
+    expect(render({ signedInAs: "oma@example.test", canAsk: false })).not.toContain("ask-name");
+  });
+});
+
+/**
+ * B300. An approved journal guest, refused this one trip because it is
+ * `private` — the case the bug report was about. `guestBlockedByPrivate` is
+ * the only thing that tells this state apart from the ordinary "signed in
+ * and still refused" one above; `TripGate` never sees the trip's visibility,
+ * its id or its title, so nothing here can assert on any of those without
+ * the component having leaked something it was never handed.
+ */
+describe("an approved journal guest refused a private trip", () => {
+  const html = render({ signedInAs: "oma@example.test", guestBlockedByPrivate: true });
+
+  test("is not shown the sign-in form again", () => {
+    expect(html).not.toContain("signin-email");
+    expect(html).not.toContain("signin-code");
+  });
+
+  /** The sentence B300 exists for: not "ask to be let in", which they already
+   * did, and were. */
+  test("is told the trip is closed to its travellers, and not to ask to be let in", () => {
+    expect(html).toMatch(/travell/i);
+    expect(html).not.toMatch(/ask whoever writes this journal to let you in/i);
+    expect(html).not.toMatch(/ask.*let you in/i);
+  });
+
+  /** B601, and the reason the button is in the sibling state and not this
+   * one: `gate.privateBody` says in words that there is nothing to ask for,
+   * and a button beside that sentence would be the page contradicting
+   * itself. They asked once and were let in — into the journal, which is not
+   * this trip and never becomes it. */
+  test("is offered no way to ask again", () => {
+    expect(html).not.toContain("ask-name");
+  });
+
+  /** Told apart from the ordinary refusal, which names the address instead. */
+  test("differs from the ordinary refusal shown to a reader with the wrong address", () => {
+    const ordinary = render({ signedInAs: "oma@example.test", guestBlockedByPrivate: false });
+    expect(html).not.toEqual(ordinary);
+    expect(html).not.toMatch(/not shared with you/i);
+  });
+
+  /** Still given somewhere to go, same as the ordinary refusal. */
+  test("is given somewhere to go", () => {
+    expect(html).toContain("/alex/me");
+  });
+});
+
+/**
+ * All three, because a reader who needs this page is the least likely to be
+ * reading it in English — and a missing string renders as its own key, which
+ * is exactly what a gate must not do.
+ */
+describe("every maintained locale", () => {
+  test.each(MAINTAINED_LOCALES)("%s says all three things without leaking a key", (locale) => {
+    for (const html of [
+      render({ locale }),
+      render({ locale, canSignIn: false }),
+      render({ locale, signedInAs: "oma@example.test" }),
+      render({ locale, signedInAs: "oma@example.test", guestBlockedByPrivate: true }),
+    ]) {
+      expect(html).not.toContain("gate.");
+      expect(html).not.toContain("me.signIn");
+    }
+  });
+});
+
+/** The keys the password form used are gone from every dictionary, not merely
+ * unreferenced — an orphan reads as live copy to the next person editing. */
+describe("the password copy", () => {
+  test.each(MAINTAINED_LOCALES)("%s has no access.* or passwordChanged keys left", (locale) => {
+    const keys = Object.keys(dictionaryFor(locale));
+    expect(keys.filter((k) => k.startsWith("access."))).toEqual([]);
+    expect(keys.filter((k) => k.includes("passwordChanged"))).toEqual([]);
+  });
+});
+
+/**
+ * The gate as the layout actually mounts it — the `<h1>` half of B117.
+ *
+ * Asserting on `TripGate` alone cannot prove this: once the prop is gone the
+ * component has nothing to leak, and the test passes for the wrong reason. The
+ * question is whether the *layout*, which holds the trip and therefore its
+ * title, hands it over. So this renders the shipped layout for a refused trip
+ * with a title no other string in the page resembles, and looks for it.
+ */
+describe("the layout that draws the gate", () => {
+  const SECRET = "Divorce trip 2026";
+
+  test("hands the gate no trip title, so an anonymous reader sees none", async () => {
+    vi.doMock("@/lib/tripGate", () => ({
+      mayReadTrip: async () => false,
+      signedInAs: async () => null,
+      // Not what this test is about — B300's own describe block above covers
+      // it — but the layout calls it in the same branch as the other two, so
+      // a mock missing it throws rather than exercising anything.
+      guestBlockedByPrivateTrip: async () => false,
+      // Same reason: the layout asks it in the same branch (B800).
+      awaitingApproval: async () => false,
+    }));
+    vi.doMock("@/lib/trips", () => ({
+      tripRef: (user: string, id: string) => `${user}/${id}`,
+      getTrip: () => ({
+        id: "secret-2026",
+        ref: "alex/secret-2026",
+        username: "alex",
+        title: SECRET,
+        visibility: "private",
+        listed: false,
+      }),
+    }));
+    vi.doMock("@/lib/users", () => ({ getUser: () => ({ title: "Alex journal" }) }));
+    vi.doMock("@/lib/capabilities", () => ({ isEnabled: () => true }));
+    vi.resetModules();
+
+    const { default: TripLayout } = await import("@/app/[user]/trips/[trip]/layout");
+    const tree = await TripLayout({
+      children: <p>the trip itself</p>,
+      params: Promise.resolve({ user: "alex", trip: "secret-2026" }),
+    } as never);
+
+    // From the same module graph the layout just pulled `TripGate` out of:
+    // `resetModules` gave it a fresh React context, and the copy imported at
+    // the top of this file is no longer the one it reads.
+    const { default: Provider } = await import("@/components/LocaleProvider");
+    const html = renderToStaticMarkup(
+      <Provider locale="en" dictionary={dictionaryFor("en")}>
+        {tree}
+      </Provider>,
+    );
+
+    // The gate is what rendered, not the trip.
+    expect(html).not.toContain("the trip itself");
+    expect(html).toContain("signin-email");
+
+    // And it names the journal, not the trip. Both spellings of the trip's
+    // title, because React escapes what it prints.
+    expect(html).not.toContain(SECRET);
+    expect(html).not.toMatch(/divorce/i);
+    expect(html).toContain("Alex journal");
+
+    vi.doUnmock("@/lib/tripGate");
+    vi.doUnmock("@/lib/trips");
+    vi.doUnmock("@/lib/users");
+    vi.doUnmock("@/lib/capabilities");
+    vi.resetModules();
+  });
+});
+
+/**
+ * B800 — the fifth state: signed in, already asked, nobody has decided yet.
+ *
+ * The failure it closes is not a missing sentence, it is a wrong one. A reader
+ * who redeemed an invitation an hour ago and comes back to the URL used to
+ * meet "ask whoever writes this journal to let you in" plus a button to ask
+ * again — so from the page there was no way to tell "not yet" from "broken",
+ * and the offered action would have put a second identical row in front of the
+ * owner.
+ */
+describe("a reader who has already asked", () => {
+  test("is told they are waiting, roughly how long, and offered nothing to press", () => {
+    const html = render({ signedInAs: "mum@example.test", waiting: true });
+    expect(html).toContain("in the queue");
+    expect(html).toMatch(/day or two/);
+    expect(html, "asking again is not the answer").not.toContain("ask-name");
+  });
+
+  test("but a guest refused a private trip is not, whatever their row says", () => {
+    const html = render({
+      signedInAs: "mum@example.test",
+      waiting: true,
+      guestBlockedByPrivate: true,
+    });
+    expect(html).not.toContain("in the queue");
+    expect(html).not.toContain("ask-name");
+  });
+
+  test("and a stranger with no session is shown the sign-in form as before", () => {
+    const html = render({ waiting: true });
+    expect(html).toContain("signin-email");
+    expect(html).not.toContain("in the queue");
+  });
+});

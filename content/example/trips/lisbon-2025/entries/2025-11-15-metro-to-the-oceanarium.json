@@ -1,0 +1,49 @@
+{
+  "title": "Out to the Oceanário on the metro",
+  "date": "2025-11-15",
+  "time": "09:05",
+  "timezone": "Europe/Lisbon",
+  "location": "Parque das Nações",
+  "country": "Portugal",
+  "countryCode": "PT",
+  "coordinates": {
+    "lat": 38.7633,
+    "lng": -9.095
+  },
+  "content": "Twenty minutes underground and you come up somewhere that looks like a different city built by people with different opinions.\n\nThe sunfish is the size of a door and appears to know it.",
+  "media": [
+    {
+      "src": "/media/lisbon-2025/oceanario/01.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1067
+    }
+  ],
+  "costs": [
+    {
+      "label": "Two tickets",
+      "amount": 49,
+      "currency": "EUR",
+      "category": "activities"
+    },
+    {
+      "label": "Metro, both ways",
+      "amount": 6,
+      "currency": "EUR",
+      "category": "transport"
+    }
+  ],
+  "transportMode": "metro",
+  "transportFrom": "Baixa-Chiado",
+  "transportTo": "Oriente",
+  "tags": [
+    "lisbon",
+    "rain"
+  ],
+  "weather": true,
+  "declined": {
+    "translations": "this short trip is written in English only",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

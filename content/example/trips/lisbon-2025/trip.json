@@ -1,0 +1,62 @@
+{
+  "id": "lisbon-2025",
+  "title": "Four days in Lisbon",
+  "tagline": "Trams, one wrong hill, and too much coffee",
+  "dates": {
+    "from": "2025-11-14",
+    "to": "2025-11-17"
+  },
+  "visibility": "guest",
+  "teaser": true,
+  "accent": "coral",
+  "cover": "/media/lisbon-2025/tram-28/01.jpg",
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    },
+    {
+      "name": "Priya Raman",
+      "nickname": "Priya",
+      "email": "priya@example.com"
+    }
+  ],
+  "rates": {
+    "currencies": [
+      "EUR"
+    ],
+    "manual": {
+      "CHF": 0.9451
+    }
+  },
+  "figures": {
+    "mode": "journal"
+  },
+  "intro": "Four days, no car, and a tram that goes past the door every eleven minutes whether you are ready or not.",
+  "costs": {
+    "budget": {
+      "total": 800,
+      "days": 4,
+      "currency": "CHF"
+    },
+    "items": [
+      {
+        "label": "Four nights, Alfama",
+        "amount": 420,
+        "category": "accommodation"
+      },
+      {
+        "label": "The pastéis budget, honestly stated",
+        "amount": 60,
+        "category": "food"
+      }
+    ],
+    "note": "Short enough that the flights were most of it, and we did not count coffees.",
+    "visibility": "guests"
+  },
+  "declined": {
+    "plan": "we booked the flights and decided the rest on the ground",
+    "translations": "written in English only, like the rest of this short one"
+  }
+}

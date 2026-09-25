@@ -1,0 +1,16 @@
+{
+  "title": "A Draft Day",
+  "date": "2026-01-03",
+  "location": "Nowhere Yet",
+  "country": "Testland",
+  "countryCode": "XT",
+  "coordinates": {
+    "lat": 7,
+    "lng": 8
+  },
+  "content": "Not on the site. Marker: DRAFTMARKERHIDDEN.",
+  "tags": [
+    "draft-only-tag"
+  ],
+  "status": "draft"
+}

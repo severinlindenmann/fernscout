@@ -1,0 +1,5 @@
+/* B2196 — route recording's usage strings. The base Info.plist entries are
+   already English; this file exists so en is a real localisation rather
+   than only the fallback the other two rely on. */
+"NSLocationWhenInUseUsageDescription" = "Fernscout records where you go during a trip you turned recording on for, so your journal gets a real map of the roads you took.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Fernscout records where you go during a trip you turned recording on for, including while the app is in the background, so your journal gets a real map of the roads you took.";

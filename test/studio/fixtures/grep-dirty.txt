@@ -1,0 +1,1 @@
+this file calls window.confirm("are you sure?") on purpose

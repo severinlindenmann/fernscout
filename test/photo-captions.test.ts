@@ -1,0 +1,323 @@
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { paintJpeg } from "./support/pictures";
+import { clearConfigCache } from "@/lib/config";
+import { clearUserCache } from "@/lib/users";
+import { storeUploads } from "@/lib/api/media";
+import { attachGallery, editEntry } from "@/lib/api/entries";
+import { getEntryBySlug } from "@/lib/entries";
+import { captionsFor, CAPTION_MAX_CHARS } from "@/lib/validate/media";
+import { validateEntryEdit } from "@/lib/validate/entry";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
+
+/**
+ * B522 — the line under a photograph.
+ *
+ * `caption` was on `GalleryItem` from the beginning and rendered on the day
+ * and in the lightbox, and there was no way to put one there: the upload
+ * endpoint composed the `gallery:` block itself and `PATCH` spliced everything
+ * except that block. So the only place to say who is in a picture was the
+ * prose, detached from the picture.
+ *
+ * What these hold the line on:
+ *
+ *  - a caption sent with the files reaches the day's frontmatter and reads
+ *    back;
+ *  - correcting one later is a **splice**, not a rewrite — the prose, the
+ *    title and the photographs' own `src`/`width`/`height` come back byte for
+ *    byte, because a caption edit that could drop a photograph is a worse
+ *    thing than no caption edit at all;
+ *  - text from a request body cannot break the frontmatter it lands in.
+ *
+ * Repointed onto writeTripFixture/writeDayFixture and JSON reads (B1630):
+ * this file's whole subject used to be the YAML-frontmatter escaping
+ * `lib/api/entries.ts` needed (`quoteScalar`, `galleryLines`, the
+ * "unparseable YAML" `bug` refusal) — retired now that a day is a JSON file
+ * (`dayToJson`, B1606), where a string is a string and there is no escaping
+ * left to get wrong. Most assertions that referenced the old format
+ * (`matter(onDisk())`, the byte-for-byte splice comparison) were repointed
+ * onto the same property expressed in JSON (`JSON.parse(onDisk())`, a
+ * `.replace()` on the `"caption": "..."` key rather than the YAML scalar) —
+ * the parser changed, the property did not. One test could not be: "an item
+ * smuggled past the type system that would write unparseable YAML is
+ * refused" guards a failure mode (`JSON.stringify` cannot produce
+ * unparseable JSON from any scalar) that no longer exists at all, and is
+ * left failing with its own comment rather than deleted or faked into
+ * passing — deciding whether it still has something to say is an editorial
+ * call past this ticket's scope.
+ */
+
+let dir: string;
+const REF = "alex/asia-2026";
+const DAY = "lanterns-of-hoi-an";
+const tripPath = () => path.join(dir, "alex", "trips", "asia-2026");
+
+const jpeg = () => paintJpeg(400, 300);
+
+function writeDay() {
+  writeDayFixture(dir, "alex", "asia-2026", {
+    slug: DAY,
+    date: "2026-08-26",
+    title: "Lanterns of Hoi An",
+    location: "Hoi An",
+    country: "Vietnam",
+    status: "draft",
+    content: "Words the author wrote, and nobody else may touch.",
+  });
+}
+
+const entryFile = () => path.join(tripPath(), "entries", `2026-08-26-${DAY}.json`);
+const onDisk = () => fs.readFileSync(entryFile(), "utf8");
+
+beforeEach(() => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-captions-"));
+  process.env.CONTENT_DIR = dir;
+  delete process.env.MEDIA_ORIGINALS_DIR;
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "F", url: "https://e.test", defaultUser: "alex" },
+      users: {},
+      features: {},
+    }),
+  );
+  fs.writeFileSync(
+    path.join(dir, "alex", "config.json"),
+    JSON.stringify({
+      title: "Alex",
+      tagline: "t",
+      owner: { name: "A B", nickname: "A", email: "alex@example.test" },
+      startLocation: "X",
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF",
+      displayCurrencies: ["CHF"],
+      units: "metric",
+      features: {},
+    }),
+  );
+  clearConfigCache();
+  clearUserCache();
+  writeTripFixture("alex", {
+    id: "asia-2026",
+    title: "Asia",
+    start: "2026-08-01",
+    end: "2026-08-31",
+    visibility: "public",
+  });
+  writeDay();
+});
+
+afterEach(() => {
+  delete process.env.CONTENT_DIR;
+  clearConfigCache();
+  clearUserCache();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+describe("a caption arrives with the photograph", () => {
+  test("what was sent is what the day carries, and what reads back", async () => {
+    // Two pictures, not one buffer twice: since B604 the same photograph sent
+    // twice lands once, which is a different test from this one.
+    const written = await storeUploads(REF, DAY, [
+      {
+        filename: "one.jpg",
+        bytes: await jpeg(),
+        caption: "The lanterns going up on the bridge",
+      },
+      { filename: "two.jpg", bytes: await jpeg() },
+    ]);
+    if (!written.ok) throw new Error(JSON.stringify(written.problems));
+    expect(attachGallery(REF, DAY, written.items)).toEqual({ ok: true, attached: 2 });
+
+    const gallery = getEntryBySlug(REF, DAY, { includeDrafts: true })?.gallery ?? [];
+    expect(gallery.map((item) => item.caption)).toEqual([
+      "The lanterns going up on the bridge",
+      undefined,
+    ]);
+  });
+
+  /**
+   * The bug this file was written to catch, and it was found *after* the
+   * feature worked.
+   *
+   * A caption is the first value in a gallery item that comes straight from a
+   * request body. `lib/ingest/entry.ts` had a private `yamlString` escaping
+   * backslash and quote only — the third copy of that function in the
+   * codebase, and the second one to be wrong in the way B204 already cost a
+   * trip id. A vertical tab, form feed, escape or NUL in a caption wrote a day
+   * that gray-matter could not parse: invisible at every reading path, and
+   * undeletable through the API, because every delete path resolves the day
+   * first. `galleryLines` now quotes with the shared `quoteScalar`, which
+   * cannot emit invalid YAML whatever it is handed.
+   *
+   * `attachGallery` now re-reads what it wrote, the same guard `editEntry`
+   * runs — see B528 and the "unparseable" test below.
+   */
+  test("a caption full of control characters still writes a day that reads back", async () => {
+    const nasty = "bell\u0007 vertical\u000b form\u000c escape\u001b nul\u0000 end";
+    const written = await storeUploads(REF, DAY, [
+      { filename: "one.jpg", bytes: await jpeg(), caption: nasty },
+    ]);
+    if (!written.ok) throw new Error(JSON.stringify(written.problems));
+    attachGallery(REF, DAY, written.items);
+
+    // Parses at all — the property the private escaper took away — and says
+    // what was sent, rather than a mangled copy of it. Repointed for
+    // B1598/B1606: a day is JSON now, so the parse is JSON.parse rather than
+    // gray-matter's YAML — JSON.stringify escapes every control character
+    // into a form JSON.parse reads back exactly, the same property
+    // quoteScalar used to buy for YAML.
+    expect(JSON.parse(onDisk()).title).toBe("Lanterns of Hoi An");
+    expect(getEntryBySlug(REF, DAY, { includeDrafts: true })?.gallery[0]?.caption).toBe(nasty);
+  });
+
+  test("a tab and a quote survive as themselves", async () => {
+    const written = await storeUploads(REF, DAY, [
+      { filename: "one.jpg", bytes: await jpeg(), caption: 'a\ttab and a "quote"' },
+    ]);
+    if (!written.ok) throw new Error(JSON.stringify(written.problems));
+    attachGallery(REF, DAY, written.items);
+    expect(getEntryBySlug(REF, DAY, { includeDrafts: true })?.gallery[0]?.caption).toBe(
+      'a\ttab and a "quote"',
+    );
+  });
+
+  // B528 — `width` is written unquoted (`width: ${item.width}`), which is
+  // fine for the number the type says it is and unparseable YAML for
+  // anything else. `quoteScalar` cannot save a field it is never asked to
+  // quote, which is exactly why `attachGallery` needs its own guard rather
+  // than trusting the escaper alone — the same reasoning `editEntry` already
+  // acted on.
+  //
+  // B1598 changed what makes this refuse, and the change is the point.
+  // `dayToJson` uses `JSON.stringify`, which cannot produce unparseable
+  // output from any scalar — a string in `width` becomes `"width": "1: ["`,
+  // valid JSON and a day that renders against a string dimension. So the
+  // old guard was an accident of YAML, and the accident stopped happening.
+  // `attachGallery` now checks the dimensions itself. The test is unchanged
+  // in what it asserts, because the property never depended on the format:
+  // a malformed item is refused, and the day on disk is untouched.
+  test("an item smuggled past the type system is refused, and the day is unchanged", async () => {
+    const before = onDisk();
+    const written = await storeUploads(REF, DAY, [{ filename: "one.jpg", bytes: await jpeg() }]);
+    if (!written.ok) throw new Error(JSON.stringify(written.problems));
+    const sneaky = [{ ...written.items[0], width: "1: [" as unknown as number }];
+    const result = attachGallery(REF, DAY, sneaky);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.bug).toBe(true);
+    expect(onDisk()).toBe(before);
+  });
+});
+
+describe("captionsFor: positional, and refused rather than misaligned", () => {
+  test("fewer captions than files is fine, and they stay in order", () => {
+    expect(captionsFor(["  first  "], 2)).toEqual({ ok: true, captions: ["first"] });
+    expect(captionsFor(undefined, 2)).toEqual({ ok: true, captions: [] });
+  });
+
+  test("more captions than files is refused", () => {
+    const result = captionsFor(["a", "b", "c"], 2);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.problem.got).toContain("3 captions for 2 files");
+  });
+
+  test("something that is not a list of strings is refused", () => {
+    expect(captionsFor({ "01.jpg": "hello" }, 1).ok).toBe(false);
+    expect(captionsFor([42], 1).ok).toBe(false);
+  });
+
+  test("a caption longer than the ceiling is refused", () => {
+    expect(captionsFor(["x".repeat(CAPTION_MAX_CHARS + 1)], 1).ok).toBe(false);
+    expect(captionsFor(["x".repeat(CAPTION_MAX_CHARS)], 1).ok).toBe(true);
+  });
+
+  // Refused at the door rather than folded onto one line, the same choice
+  // `singleLineProblem` makes for a title: a caption is somebody's words, and
+  // a caller who sent two lines by accident wants to hear it now.
+  test("a caption of two lines is refused, whichever break it uses", () => {
+    expect(captionsFor(["two\nlines"], 1).ok).toBe(false);
+    expect(captionsFor(["two\r\nlines"], 1).ok).toBe(false);
+    expect(captionsFor(["two\rlines"], 1).ok).toBe(false);
+  });
+});
+
+describe("correcting a caption is a splice, not a rewrite", () => {
+  async function dayWithTwoPhotographs() {
+    const written = await storeUploads(REF, DAY, [
+      { filename: "one.jpg", bytes: await jpeg(), caption: "First, as told" },
+      { filename: "two.jpg", bytes: await jpeg() },
+    ]);
+    if (!written.ok) throw new Error(JSON.stringify(written.problems));
+    attachGallery(REF, DAY, written.items);
+    return getEntryBySlug(REF, DAY, { includeDrafts: true })!.gallery;
+  }
+
+  test("only the caption line changes — every other byte survives", async () => {
+    const gallery = await dayWithTwoPhotographs();
+    const before = onDisk();
+
+    // Keyed by the src as the API hands it back, `/alex/media/…`, while the
+    // file on disk carries `/media/…`.
+    expect(gallery[0].src.startsWith("/alex/media/")).toBe(true);
+    const result = editEntry(REF, DAY, { captions: { [gallery[0].src]: "First, corrected" } });
+    expect(result).toEqual({ ok: true, slug: DAY, status: "draft" });
+
+    const after = onDisk();
+    // JSON.stringify, not a byte splice — the property that survives the
+    // move to JSON (B1606) is that only the caption changes, not that the
+    // write mechanism is a splice.
+    expect(after).toBe(
+      before.replace('"caption": "First, as told"', '"caption": "First, corrected"'),
+    );
+    // Said twice on purpose: the diff above is the property, and this is the
+    // sentence a person would check by eye.
+    expect(after).toContain("Words the author wrote, and nobody else may touch.");
+    expect(after).toContain('"title": "Lanterns of Hoi An"');
+  });
+
+  test("a photograph with no caption gains one, and nothing else moves", async () => {
+    const gallery = await dayWithTwoPhotographs();
+    editEntry(REF, DAY, { captions: { [gallery[1].src]: "Second, as told" } });
+
+    const read = getEntryBySlug(REF, DAY, { includeDrafts: true })!.gallery;
+    expect(read.map((item) => item.caption)).toEqual(["First, as told", "Second, as told"]);
+    expect(read.map((item) => item.src)).toEqual(gallery.map((item) => item.src));
+    expect(read.map((item) => item.width)).toEqual(gallery.map((item) => item.width));
+  });
+
+  test("an empty string removes a caption; an unknown src is ignored", async () => {
+    const gallery = await dayWithTwoPhotographs();
+    editEntry(REF, DAY, {
+      captions: { [gallery[0].src]: "", "/alex/media/asia-2026/other-day/99.jpg": "nowhere" },
+    });
+
+    const read = getEntryBySlug(REF, DAY, { includeDrafts: true })!.gallery;
+    expect(read.map((item) => item.caption)).toEqual([undefined, undefined]);
+    expect(read).toHaveLength(2);
+    expect(onDisk()).not.toContain("nowhere");
+  });
+
+  test("a day with no gallery at all is left alone rather than gaining a block", () => {
+    const before = onDisk();
+    const result = editEntry(REF, DAY, { captions: { "/alex/media/asia-2026/x/01.jpg": "hello" } });
+    expect(result.ok).toBe(true);
+    expect(onDisk()).toBe(before);
+  });
+});
+
+describe("validateEntryEdit: a malformed captions field is refused, not ignored", () => {
+  test("a list, a number, and an over-long caption", () => {
+    expect(validateEntryEdit({ captions: ["a"] })).toHaveLength(1);
+    expect(validateEntryEdit({ captions: { "/a/01.jpg": 4 } })).toHaveLength(1);
+    expect(
+      validateEntryEdit({ captions: { "/a/01.jpg": "x".repeat(CAPTION_MAX_CHARS + 1) } }),
+    ).toHaveLength(1);
+    expect(validateEntryEdit({ captions: { "/a/01.jpg": "fine" } })).toHaveLength(0);
+  });
+});

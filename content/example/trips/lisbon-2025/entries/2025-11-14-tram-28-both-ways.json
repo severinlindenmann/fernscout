@@ -1,0 +1,45 @@
+{
+  "title": "The 28, both ways",
+  "date": "2025-11-14",
+  "time": "10:20",
+  "timezone": "Europe/Lisbon",
+  "location": "Alfama",
+  "country": "Portugal",
+  "countryCode": "PT",
+  "coordinates": {
+    "lat": 38.7118,
+    "lng": -9.13
+  },
+  "content": "We rode the 28 end to end because everybody says not to, and then rode it back because the seats were free by then.\n\nThe hill it climbs is steeper than a tram has any business on. You can hear the brakes thinking about it.",
+  "media": [
+    {
+      "src": "/media/lisbon-2025/tram-28/01.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1067,
+      "caption": "Waiting at the top, both directions"
+    }
+  ],
+  "costs": [
+    {
+      "label": "Day tickets, two",
+      "amount": 13,
+      "currency": "EUR",
+      "category": "transport"
+    }
+  ],
+  "transportMode": "tram",
+  "transportFrom": "Martim Moniz",
+  "transportTo": "Campo Ourique",
+  "tags": [
+    "lisbon",
+    "trams"
+  ],
+  "weather": true,
+  "travelScene": "default",
+  "declined": {
+    "translations": "this short trip is written in English only",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

@@ -1,0 +1,12 @@
+{
+  "title": "First",
+  "date": "2026-04-01",
+  "location": "Wide Region",
+  "country": "Testland",
+  "coordinates": {
+    "lat": 47.0,
+    "lng": 10.0
+  },
+  "content": "Arrived.",
+  "status": "published"
+}

@@ -1,0 +1,33 @@
+{
+  "title": "A taxi, because of the rain",
+  "date": "2025-11-15",
+  "time": "21:40",
+  "timezone": "Europe/Lisbon",
+  "country": "Portugal",
+  "countryCode": "PT",
+  "content": "It started raining the way it does here, all at once, and the walk back up stopped being funny at the second corner.\n\nThe driver had opinions about the tram we took yesterday. He was not wrong.",
+  "costs": [
+    {
+      "label": "Taxi, Cais do Sodré to Alfama",
+      "amount": 11,
+      "currency": "EUR",
+      "category": "transport"
+    }
+  ],
+  "transportMode": "taxi",
+  "transportFrom": "Cais do Sodré",
+  "transportTo": "Alfama",
+  "tags": [
+    "lisbon",
+    "rain"
+  ],
+  "weather": true,
+  "declined": {
+    "media": "nobody was taking photographs in that rain",
+    "coordinates": "written up later from memory, with no position kept",
+    "location": "a taxi between two places, so neither is the day's own",
+    "translations": "this short trip is written in English only",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

@@ -1,0 +1,16 @@
+{
+  "title": "A Public Day",
+  "date": "2026-01-02",
+  "location": "Somewhere",
+  "country": "Testland",
+  "countryCode": "XT",
+  "coordinates": {
+    "lat": 1,
+    "lng": 2
+  },
+  "content": "This is public content, safe to syndicate. Marker: PUBLICMARKERONE.",
+  "tags": [
+    "sleeper-train"
+  ],
+  "status": "published"
+}

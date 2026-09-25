@@ -1,0 +1,211 @@
+# Disaster recovery
+
+The machine is gone. This is how the journals come back.
+
+Everything here was executed on 2026-09-07, against the snapshot the nightly
+timer had just written, and the corrections are inline. A procedure nobody has
+followed is a draft.
+
+## Before anything: the one thing not in the backup
+
+**The keys to the backup are deliberately not in the backup.** Everything else
+the service needs is — `DATABASE_URL`, `SESSION_SECRET`, the VAPID pair,
+`CONTACTS_ENCRYPTION_KEY`, the SMTP credentials, `FERNSCOUT_ADMIN_EMAIL` — all
+of it travels in `env/fernscout.env`. Three variables do not:
+
+| Stripped | Why |
+| --- | --- |
+| `RESTIC_PASSWORD` | decrypts every snapshot in both repositories (B653) |
+| `AWS_ACCESS_KEY_ID` | reaches the object storage they sit in, and — being |
+| `AWS_SECRET_ACCESS_KEY` | full-access at most providers — deletes from it (B1158) |
+
+The password, because a backup carrying the key to itself is no use to
+somebody holding only the backup. The storage pair, because somebody who *can*
+decrypt a snapshot would otherwise find inside it the credential that empties
+the off-site copy they would still have had. That escalation is destruction
+rather than disclosure, and it is precisely what the off-site copy exists to
+survive.
+
+Stripping them costs a restorer nothing they do not already have: reaching the
+bucket to fetch the snapshot needed those keys first. It does mean **a
+restored server takes no backup until they are put back** — loudly, not
+silently: restic fails and `/api/health` reports it.
+
+So all three live wherever this instance's operator keeps secrets, and **if
+`RESTIC_PASSWORD` is lost, every snapshot is unreadable ciphertext and nothing
+below is possible.** Confirm you have them before you need them:
+
+```bash
+# while the machine still exists
+sudo grep -E '^(RESTIC_PASSWORD|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY)=' /etc/fernscout/env
+```
+
+The other thing worth knowing before the day arrives: on this instance
+`RESTIC_REPOSITORY` is a **local path** (`/var/backups/fernscout`). That
+protects against deleting something by accident and not against losing the
+machine. B659 adds the mechanism for an off-site copy —
+`RESTIC_REPOSITORY_SECONDARY`, encrypted with the same `RESTIC_PASSWORD` — but
+whether it is actually configured on this instance is a separate, operator
+decision (see `docs/runbook.md` §"The off-site copy"). If it is: either
+repository restores exactly the same way below, since `restic copy` keeps the
+snapshot's contents identical; substitute `RESTIC_REPOSITORY_SECONDARY` for
+`RESTIC_REPOSITORY` in step 1 when the primary machine's own repository is
+the thing that was lost along with it.
+
+**Read the off-site value before you substitute it.** Where it ends in the
+literal `/<date>` the off-site copy is one standalone repository per night
+rather than one repository, and the thing to export is a real date:
+
+```bash
+# NOT this — `<date>` is a token the backup script expands, not a path
+export RESTIC_REPOSITORY='s3:https://endpoint/bucket/<date>'
+# this
+export RESTIC_REPOSITORY=s3:https://endpoint/bucket/2026-09-09
+```
+
+Which nights exist is listed in `RESTORE.txt` at the root of that bucket,
+rewritten by every successful nightly copy, along with this same procedure in
+short. Each night restores the whole instance on its own — they are not
+increments — so the newest is the one to take unless you are reaching past
+something that went wrong.
+
+## What a snapshot contains
+
+Since B653 the backup is an allowlist, not "everything under `DATA_DIR`":
+
+```
+db/postgres.dump        a pg_dump custom archive, when the deployment is Postgres
+db/fernscout.db         the SQLite file and its -wal/-shm, when it is not
+content/                the journals, and originals that exist nowhere else
+config/config.json      the instance config the app reads
+state/<name>.json       reactions, push subscriptions — lib/store.ts's own files
+env/fernscout.env       /etc/fernscout/env, minus RESTIC_PASSWORD and AWS_*
+```
+
+Not in it, on purpose: the npm cache, sent mail, generated postcards and
+photobooks, and anything else anybody has left in `DATA_DIR`. Each skipped
+entry is named in the run's log, one line each — **read that log when adding
+something new to the server**, because the allowlist's failure mode is a new
+thing silently excluded.
+
+## Restoring onto a fresh machine
+
+```bash
+# 0. Steps 1–5 of the runbook's "First deploy", then put RESTIC_REPOSITORY,
+#    RESTIC_PASSWORD and — where the repository is object storage —
+#    AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in /etc/fernscout/env by
+#    hand. They are all you need to read the repository; everything else
+#    arrives in step 5. Put those same four back afterwards: the restored env
+#    file does not carry them, and without them the new machine takes no
+#    backup.
+set -a; . /etc/fernscout/env; set +a
+
+# 1. Restore. -E carries the restic credentials across sudo.
+sudo -E restic restore latest --target /restore
+
+# 2. The tree keeps the absolute path it was staged at, so find it once.
+STAGED=$(sudo find /restore -maxdepth 4 -type d -name 'fernscout-backup-staging' | head -1)
+
+# 3. restic restores as root; the steps below run as fernscout.
+sudo chmod -R a+rX /restore
+
+# 4. Database. Skip if this deployment has none; for SQLite, the file is
+#    restored with DATA_DIR in step 6 and there is nothing to do here.
+sudo -u postgres createdb fernscout -O fernscout || true
+sudo -E -u fernscout pg_restore --dbname="$DATABASE_URL" --clean --if-exists \
+  "$STAGED/db/postgres.dump"
+
+# 5. The environment. This is the step that did not exist before B653, and
+#    without it the service will not start — see the trap below.
+sudo cp "$STAGED/env/fernscout.env" /etc/fernscout/env.restored
+#    Merge by hand: keep the RESTIC_PASSWORD you supplied in step 0, take
+#    everything else from the restored file. Then:
+sudo chown root:fernscout /etc/fernscout/env && sudo chmod 640 /etc/fernscout/env
+
+# 6. Journals, instance config and state.
+sudo mkdir -p /var/lib/fernscout
+sudo rsync -a "$STAGED/content/" /var/lib/fernscout/content/
+sudo cp "$STAGED/config/config.json" /var/lib/fernscout/config.json
+sudo rsync -a "$STAGED/state/" /var/lib/fernscout/ 2>/dev/null || true
+sudo chown -R fernscout:fernscout /var/lib/fernscout
+
+# 7. Build and start.
+cd /srv/fernscout && sudo -u fernscout npm ci && sudo -u fernscout npm run build
+sudo systemctl restart fernscout
+
+# 8. Verify.
+curl -s https://<domain>/api/health
+```
+
+**Do not rsync `$STAGED/content/` into `/srv/fernscout/content/`.** That is the
+git checkout, not what the app reads; it leaves tracked files modified and the
+next `git pull --ff-only` in `scripts/deploy.sh` refuses. Restore there only
+where `CONTENT_DIR` is genuinely unset.
+
+## The trap that ends a restore
+
+**A restored service will not boot without step 5**, and the error names a
+feature rather than the cause:
+
+```
+Some capabilities are enabled but not configured:
+  - features.contacts is enabled but CONTACTS_ENCRYPTION_KEY is not set
+```
+
+That is `assertCapabilities` in `lib/capabilities.ts`, and it is the whole
+argument for putting the env file in the backup. Before B653 the answer was to
+reconstruct a dozen secrets from memory, and `CONTACTS_ENCRYPTION_KEY` is not
+reconstructible at all — without the original, every stored contact address
+stays encrypted and the invitations that reference them are gone.
+
+## Rehearsing it without touching production
+
+The drill below runs the whole service off restored bytes on a laptop. It is
+the only thing that proves any of this, and it costs nothing.
+
+```bash
+# 1. Restore on the server into scratch, and copy it down.
+ssh <host> 'sudo -E restic restore latest --target /var/tmp/dr-drill'
+ssh <host> 'sudo chmod -R a+rX /var/tmp/dr-drill'
+rsync -a <host>:/var/tmp/dr-drill/var/tmp/fernscout-backup-staging/ ./dr/
+
+# 2. Run the app from those bytes, with the snapshot's own env.
+set -a; source ./dr/env/fernscout.env; set +a
+export CONTENT_DIR="$PWD/dr/content" DATA_DIR="$PWD/dr-data"
+export DATABASE_URL="sqlite:$PWD/dr-data/fernscout.db"
+export FERNSCOUT_CONFIG="$PWD/dr-data/instance-config.json"
+npx next dev -p 3111
+```
+
+**Neutralise the outbound channels first, and this is not optional.** The
+restored env carries live SMTP credentials and a real WhatsApp token, so a
+restored copy run unmodified mails the journal's actual contacts. Take
+`config/config.json` from the snapshot, set `mail.transport` to `file`, the
+print providers to `dry-run` and `whatsapp.enabled` to false, save it as the
+`FERNSCOUT_CONFIG` above, and `unset SMTP_* WHATSAPP_*` before starting.
+
+Signing in locally needs no mailbox: with the file transport the code is
+written as an `.eml` under `$DATA_DIR/mail/`, and the mail carries a one-click
+`/s/<token>` link.
+
+Restoring the Postgres dump locally needs a **Postgres 17** `pg_restore` — the
+dump is a v1.16 custom archive and a v16 client refuses it with `unsupported
+version (1.16) in file header`, which reads like corruption and is not.
+
+## Drill record
+
+- [x] **2026-09-01, native stack, ~35 seconds end to end.** Seeded 7 reaction
+  rows, an uncommitted file under `content/`, and a 64 KiB
+  `originals/DRILL.RAF` in neither git nor the export. Dropped the database,
+  `rm -rf`'d `DATA_DIR`, restored. All three came back identical. `npm ci` and
+  the build were 29 of the 35 seconds.
+
+- [x] **2026-09-07, first drill against the B653 layout.** Restored 1487 files
+  / 556 MiB in 1s; the dump restored into a scratch Postgres 17 with 5 users,
+  14 sessions, 12 credit-ledger rows, 6 print orders, 2 contacts and 2 access
+  grants; `env/fernscout.env` came back with 22 variables and no
+  `RESTIC_PASSWORD`; the service booted from the restored tree and served
+  journals, days and original photographs. The first boot **failed** on
+  `CONTACTS_ENCRYPTION_KEY`, which is what put the trap above in this
+  document. Database restored on the server rather than the laptop: no
+  Postgres 17 client locally.

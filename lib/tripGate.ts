@@ -1,0 +1,430 @@
+import "server-only";
+import type { Metadata } from "next";
+import { isOpenToLink, maySeeCosts } from "./access";
+import { resolveAccess } from "./auth/handshake";
+import { isEnabled } from "./capabilities";
+import { isJournalGuest, isOwner, journalReader } from "./contacts/session";
+import { isPersonOn, isPersonOnWith, redeemedTripsFor } from "./tripPeople";
+import type { ReadOptions } from "./entries";
+import type { ReaderLevel } from "./photos";
+import type { Trip } from "./types";
+
+/**
+ * Whether the current request may read this trip.
+ *
+ * **Every gated page must call this itself.** It is tempting to check once in
+ * the route group's layout and treat the pages below as covered — that is what
+ * this code did, and it leaked. A layout returning something other than
+ * `children` changes what is *displayed*; it does not stop the page component
+ * from running, and the page's data is serialised into the RSC payload and the
+ * document's `<head>` either way. A closed trip was shipping its day index —
+ * dates, locations, coordinates, per-day spend — plus JSON-LD for every day
+ * and the day's own prose in `<meta name="description">`, to anybody who
+ * opened the URL.
+ *
+ * So: pages return `null` when this says no (the layout draws the gate), and
+ * `generateMetadata` returns `lockedMetadata` instead of the real thing.
+ * Everything that lists or links trips filters separately — see lib/access.ts.
+ */
+export async function mayReadTrip(trip: Trip): Promise<boolean> {
+  if (isOpenToLink(trip)) return true;
+
+  /**
+   * The journal's owner, which since B480 can also mean the instance's — and
+   * this is not the `session !== null` test the long note below warns about.
+   * It turns on an address matching `owner.email` on disk or
+   * `FERNSCOUT_ADMIN_EMAIL` in the environment, neither of which a reader can
+   * make true by proving an inbox.
+   *
+   * A journal's own owner already passed further down, through
+   * `isTravellerOn` — `peopleNamedIn` puts them at the head of every trip's
+   * list. The admin is not on any trip and deliberately never will be (the
+   * digest reads that list), so the question has to be asked here instead.
+   */
+  if (await isOwner(trip.username)) return true;
+
+  // The people who took it are always let in, whichever way the trip is
+  // closed. Somebody who was on the bus should not have to be invited back to
+  // read their own week, and for a `private` trip they are the only way in.
+  if (await isTravellerOn(trip)) return true;
+
+  // `private` is the people who were there, and nobody else — not the people
+  // the owner has let into the journal. It is the
+  // one thing being a guest does not widen, and the reason there are three
+  // visibility values rather than two: invite the family to the journal and
+  // every non-public trip becomes theirs to read unless one word can hold a
+  // trip back.
+  if (trip.visibility === "private") return false;
+
+  // `guest`: an invitation to the journal, and nothing else.
+  //
+  // `isJournalGuest` is the same call `resolveViewer` makes to decide what to
+  // *list* on `/<user>/me`, so a trip shown there under "what you can read" is
+  // a trip this returns true for. Before B41 the panel said yes and this said
+  // no, and the reader met a password form for a password nobody had ever
+  // sent them. B39 then removed the password, leaving this as the only door.
+  //
+  // **A session is not a key.** This is the only branch a signed-in reader can
+  // reach that an anonymous one cannot, and it turns on a grant the owner
+  // wrote — not on the reader having proved an address. Anyone can prove an
+  // address; that is what makes `/api/auth/request` safe to answer `202` for
+  // every address on earth. Put a `session !== null` test anywhere above this
+  // line and every closed trip on the instance becomes readable by anyone with
+  // an inbox. See `test/access-gate.test.ts`, "a signed-in stranger".
+  return isJournalGuest(trip.username);
+}
+
+/**
+ * Whether the signed-in reader took this trip.
+ *
+ * A guest session carries the address it was issued to, which is the same
+ * address `people:` lists. The frontmatter was once the whole mechanism; since
+ * B33 it is the first of two sources, the other being a buddy link the owner
+ * issued and then approved. `isPersonOn` merges them, and this asks it exactly
+ * one question so that a redeemed place and a typed-in name are the same
+ * answer here.
+ */
+export async function isTravellerOn(trip: Trip): Promise<boolean> {
+  // `resolveAccess` rather than the cookie: since B410 the address can arrive
+  // on the journal session *or* on an instance-wide identity, and being on a
+  // trip is a fact about the address either way. The journal check that used
+  // to live here — `session.owner !== trip.username` — is inside it.
+  const { email } = await resolveAccess(trip.username);
+  if (!email) return false;
+  return isPersonOn(trip, email);
+}
+
+/** What a reader may do with this trip's unpublished days. */
+export type DraftAccess = {
+  /** Whether they may see them at all. */
+  visible: boolean;
+  /** Whether putting one on the site is theirs to do — the owner, and nobody
+   * else. Carried beside `visible` because the two come apart for exactly the
+   * person this exists for, and the copy on the page has to say which. */
+  canPublish: boolean;
+};
+
+/**
+ * Who may see this trip's drafts — B327.
+ *
+ * **The owner, or somebody on the trip.** That is not a new rule: it is the
+ * one the API has enforced since B296, where `GET .../days` reads with
+ * `includeDrafts: true` behind `mayWriteTrip` and its comment says the gate
+ * "already establishes the caller may see them: owner, or somebody on the
+ * trip". The *site* asked a narrower question — `isOwner(user)`, at nine
+ * reading paths — so the codebase held two answers and the narrower one was on
+ * the surface a person actually reads.
+ *
+ * What that cost, once B320 told a buddy they could write: they hand a prompt
+ * to an agent, the agent writes a day, everything it writes lands as a draft
+ * by design, and the day is then absent from the trip page, its own URL, the
+ * gallery and the map. Nothing errors. The readings available to them are "the
+ * agent lied" or "the site is broken", and neither is true. AGENTS.md says the
+ * draft default is "a courtesy to them, not a gate against you" — a person who
+ * may write the day and cannot read it back was the one case where that
+ * sentence was false.
+ *
+ * **Per trip, never per journal**, which `isTravellerOn` gets right for free:
+ * it checks the session is for this journal and then asks `isPersonOn` about
+ * *this* trip. Somebody on one trip learns nothing about another's unfinished
+ * days, including one they may otherwise read.
+ *
+ * A guest of the journal is not a traveller and gets nothing. Being let in to
+ * read is not being on the trip, and `viewer.guest` is deliberately not
+ * consulted here.
+ *
+ * `request` is threaded to `isOwner` alone, which accepts a bearer token as
+ * well as a cookie — `story.json` passes one and must keep behaving as it did.
+ * The traveller half stays cookie-only, matching `isTravellerOn`: this is
+ * somebody reading the site in a browser, and an agent has the API.
+ */
+export async function draftsVisibleTo(trip: Trip, request?: Request): Promise<DraftAccess> {
+  if (await isOwner(trip.username, request)) return { visible: true, canPublish: true };
+  return { visible: await isTravellerOn(trip), canPublish: false };
+}
+
+/**
+ * How far this reader has got, for a photograph's own label — B596.
+ *
+ * Mirrors `isGuestOf` below, branch for branch and in the same order, and the
+ * order is what makes it safe: somebody on the trip first, then the owner,
+ * then `private` refusing everybody else outright, then the journal's grant.
+ * A signed-in stranger reaches the last line and is answered `public`, because
+ * proving an address opens nothing — the long note at the end of `mayReadTrip`
+ * is about exactly that mistake.
+ *
+ * It reports what the reader has *proved*, never what they may read: a trip a
+ * journal guest cannot open at all still answers `guest` for them if it is not
+ * `private`, and `mayReadTrip` is what refuses them. Two questions, kept
+ * apart, which is what B327 got wrong on this route's sibling.
+ */
+export async function readerLevelFor(trip: Trip, request?: Request): Promise<ReaderLevel> {
+  if (await isTravellerOn(trip)) return "person";
+  if (await isOwner(trip.username, request)) return "person";
+  // `private` is the people who were there. Nobody the journal let in gets a
+  // level above `public` on it, so a `guest` photograph on a `private` trip is
+  // seen by the travellers and by nobody else — the label narrows, it cannot
+  // widen (lib/photos.ts).
+  if (trip.visibility === "private") return "public";
+  return (await isJournalGuest(trip.username)) ? "guest" : "public";
+}
+
+/**
+ * Everything a reading path needs to know about who is asking: which days, and
+ * which photographs.
+ *
+ * One call, deliberately, and it replaced `draftsVisibleTo` at every page that
+ * reads entries. The pattern before it was two lines — resolve the draft
+ * access, then build `{ includeDrafts }` — and adding a second question to it
+ * meant editing thirty files and getting all thirty right. B327 is what
+ * happens when that goes one file short: nine reading paths learned who was
+ * asking and the tenth kept refusing a buddy their own photographs.
+ *
+ * `canPublish` rides along because the pages that need the read options
+ * mostly need it too, for `TripProvider` — and asking `draftsVisibleTo`
+ * separately for it would put the two answers back in two calls.
+ */
+export async function readFor(
+  trip: Trip,
+  request?: Request,
+): Promise<{ read: ReadOptions; canPublish: boolean; owner: boolean }> {
+  const drafts = await draftsVisibleTo(trip, request);
+  return {
+    read: { includeDrafts: drafts.visible, reader: await readerLevelFor(trip, request) },
+    canPublish: drafts.canPublish,
+    /**
+     * Whether this reader owns the journal — B1585, and deliberately a second
+     * field rather than a second reading of `canPublish`.
+     *
+     * The two are the same boolean today, from the same `isOwner` call one
+     * line above, and they are still two questions: `canPublish` is "may you
+     * put a draft on the site", this is "is the journal yours". The visibility
+     * controls need the second — deciding who may read a trip is not deciding
+     * whether a day is finished — and `GalleryGrid`'s own comment already
+     * warned, before this existed, that borrowing `canPublish` for a different
+     * question is how two answers end up sharing one field and then need to
+     * stop. No extra work: `draftsVisibleTo` has already asked.
+     */
+    owner: drafts.canPublish,
+  };
+}
+
+/**
+ * The only metadata a locked trip may emit — which is none of the trip's.
+ *
+ * It used to carry the trip's own title, on the reasoning that the gate says
+ * which trip it is guarding and the browser tab should agree. B117 reversed
+ * that. Trip ids are human-chosen and guessable by construction — `alps-2024`,
+ * `japan-2027` — and the journal name is public, so the title was readable by
+ * anyone willing to try a short dictionary against a URL. A private trip's
+ * title is often the sensitive part of it: a surname, a place that says who
+ * was there, `Divorce trip 2026`.
+ *
+ * The asymmetry settled it. A reader who signs in and is *still* refused has
+ * never been told the title — the gate answers "this trip is not shared with
+ * you" — so the site was naming the trip only to the reader who had proved
+ * nothing at all. Both cannot be right, and `visibility` fails closed
+ * everywhere else it is read.
+ *
+ * Omitting `title` rather than inventing one lets the journal layout's own
+ * default stand, so the tab reads the journal's public name. Nothing else
+ * either: no day title, no description drawn from the day's prose, no Open
+ * Graph image. `noindex` on top, so a crawler that reaches the URL is asked to
+ * forget it.
+ *
+ * Takes no trip on purpose. A function that is never handed the title cannot
+ * be edited into leaking it again.
+ */
+export function lockedMetadata(): Metadata {
+  return {
+    description: undefined,
+    robots: { index: false, follow: false },
+    openGraph: undefined,
+    twitter: undefined,
+  };
+}
+
+/**
+ * Whether this viewer may see the trip's money.
+ *
+ * `costsVisibility: guests` was parsed, typed, given a fail-closed default and
+ * documented — and never consulted: `maySeeCosts` existed with no callers, so
+ * a trip that declared its spending private published it in full. This is the
+ * one call every costs-rendering path makes.
+ */
+export async function mayViewCosts(trip: Trip): Promise<boolean> {
+  /**
+   * An instance — or a journal — that does not do spending shows no spending,
+   * to anybody. B165.
+   *
+   * A different question from the rest of this function, and asked first
+   * because it outranks it: `costsVisibility` decides which readers see the
+   * numbers, and this decides whether there are numbers at all. `costs` was a
+   * capability in `FEATURE_NAMES`, in `REQUIREMENTS` and on `/api/health`, and
+   * the only thing that ever asked was the photobook — so an operator who
+   * switched spending off got no change, while `/api/health` went on
+   * reporting a capability the running site contradicted.
+   *
+   * Here rather than in each page because this is already "the one call every
+   * costs-rendering path makes": the story feed's per-day badge and the spend
+   * block both come through `showCosts`, which is this answer. The two costs
+   * *pages* additionally 404 — a page for a capability this journal does not
+   * have should be absent, not an empty panel.
+   */
+  if (!isEnabled("costs", trip.username)) return false;
+  return maySeeCosts(trip, await isGuestOf(trip));
+}
+
+/**
+ * True when the viewer has proved they belong here — used for costs.
+ *
+ * `costsVisibility: guests` means an approved contact of the journal, or
+ * somebody who was on the trip: the money on a trip they may read is theirs
+ * to see. It stays false for a
+ * `private` trip whatever the journal let them into — being a guest of the
+ * journal is not being on the trip, and this must never say yes about a trip
+ * `mayReadTrip` says no about.
+ */
+export async function isGuestOf(trip: Trip): Promise<boolean> {
+  // Somebody who took the trip has already seen what it cost.
+  if (await isTravellerOn(trip)) return true;
+  // And whoever owns the journal, including the instance admin of B480 — who
+  // is not on the trip, so the line above cannot answer for them.
+  if (await isOwner(trip.username)) return true;
+  if (trip.visibility === "private") return false;
+  return isJournalGuest(trip.username);
+}
+
+/**
+ * Whether a refusal from `mayReadTrip` was specifically an approved journal
+ * guest meeting a `private` trip — B300.
+ *
+ * A **sibling** to `mayReadTrip`, not a second return value bolted onto it.
+ * The long comment at the end of `mayReadTrip` is explicit about why: that
+ * function's branch order is load-bearing, and a `session !== null` test
+ * placed anywhere above its `private` check opens every closed trip on the
+ * instance to anyone with an inbox (`test/access-gate.test.ts`, "a signed-in
+ * stranger"). Widening what `mayReadTrip` *returns* is exactly the kind of
+ * edit that invites that mistake later, so the answer to "which branch
+ * refused" lives here instead, asked the same way and in the same order —
+ * traveller first, then `private`, then the grant — so it can only ever be
+ * true for the one case it names. It is safe to call on its own, not only
+ * after `mayReadTrip` has already said no.
+ *
+ * The only caller is `TripGate`, by way of both layouts, and only to choose
+ * a more specific sentence for somebody the gate has already refused. It
+ * hands back a bare `boolean` — never the trip's visibility, never anything
+ * else about it — so B117 still holds: nothing this function's result can
+ * put on the page names the trip to a reader who is not this exact case.
+ */
+export async function guestBlockedByPrivateTrip(trip: Trip): Promise<boolean> {
+  if (await isTravellerOn(trip)) return false;
+  if (trip.visibility !== "private") return false;
+  return isJournalGuest(trip.username);
+}
+
+/**
+ * Whether the reader in front of the gate has already asked, and is waiting —
+ * B800.
+ *
+ * The failure it closes: somebody redeems an invite, is told "you're in the
+ * queue" on the tab they happen to have open, and then comes back to the day
+ * URL an hour later — where the gate met them as a stranger and offered the
+ * same door again, with nothing anywhere saying they had already knocked. From
+ * that page there is no way to tell "not yet approved" from "broken", and the
+ * honest reading of a form you have already filled in is that the first one
+ * did not work.
+ *
+ * A bare `boolean` about the *reader*, exactly like
+ * `guestBlockedByPrivateTrip` above and for the same reason: nothing it can
+ * put on the page says anything about the trip (B117), and it is a fact this
+ * reader already knows about themselves — they typed the address that proves
+ * it.
+ *
+ * `pending` and not "has a contact row": `active` is somebody the owner let in
+ * (they are refused here for a different reason — a `private` trip — which the
+ * sentence above already handles), and `blocked` is somebody shown the door,
+ * who must never be told so.
+ */
+export async function awaitingApproval(username: string): Promise<boolean> {
+  const { contact } = await journalReader(username);
+  return contact?.status === "pending";
+}
+
+/**
+ * Trips this viewer may see *listed*.
+ *
+ * Public trips, plus the journal's `guest` trips once its owner has let this
+ * reader in. An `unlisted` trip is deliberately absent: being reachable by link and being
+ * advertised in a switcher are different things, and conflating them is how
+ * "unlisted" quietly stops meaning anything.
+ */
+export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
+  // Every trip in the list belongs to one journal — the switcher never mixes
+  // two — so the journal to resolve against is the first one's.
+  const username = trips[0]?.username;
+  const { email } = username ? await resolveAccess(username) : { email: null };
+  // One lookup for the whole list rather than one per trip: a grant is
+  // journal-wide, so the answer cannot differ between two trips in it. Only
+  // asked when somebody is signed in — the switcher renders on every page,
+  // including for strangers.
+  const owner = email && username ? username : undefined;
+  const guest = owner !== undefined && (await isJournalGuest(owner));
+  /**
+   * B584. `mayReadTrip` opens every trip in a journal to the journal's owner
+   * *and*, since B480, to the instance's admin address; this list knew only
+   * about the first, and only by accident — `peopleNamedIn` puts the owner's
+   * own address at the head of every trip's `people:`, and nothing put the
+   * admin's anywhere. So the admin signed into a journal saw an empty trips
+   * page, and `app/[user]/trips/page.tsx` then explained it as `listed:
+   * false`, which was not what had happened.
+   *
+   * Asked only when there is a closed trip on the list to decide about: a
+   * journal of public trips pays nothing for it, and `listed: false` above
+   * still hides a public trip from everybody, owner included.
+   */
+  const journalOwner =
+    username !== undefined && trips.some((t) => t.visibility !== "public")
+      ? await isOwner(username)
+      : false;
+  // The trips this reader holds a redeemed place on, in one query rather than
+  // one per trip — the switcher renders on every page.
+  const redeemed = owner === undefined ? new Set<string>() : await redeemedTripsFor(owner, email);
+
+  return trips.filter((trip) => {
+    // `listed: false` is the old `unlisted` — reachable by link, never
+    // advertised, not even to somebody who could open it.
+    if (trip.visibility === "public") return trip.listed;
+    // Whoever may open every trip in this journal must be able to find them.
+    if (journalOwner) return true;
+    // A trip you were on is listed for you: it is yours to find again.
+    if (owner === trip.username && isPersonOnWith(trip, email, redeemed)) return true;
+    // `private` is nobody else's — not even a guest of the journal's, which
+    // `mayReadTrip` refuses before it asks anything else. Listing it here
+    // would advertise a trip the switcher cannot open.
+    if (trip.visibility === "private") return false;
+    // A guest of the journal: the same question the panel on `/<user>/me` asks
+    // and the same one the gate asks, so the switcher, the panel and the gate
+    // name one set of trips between them (B41, B45).
+    return guest && owner === trip.username;
+  });
+}
+
+/**
+ * Who the gate thinks is asking, for the page that has to explain why it is
+ * shut.
+ *
+ * Two sentences, not one, and telling them apart is the whole point. Somebody
+ * with no session needs the sign-in form. Somebody *already signed in* who
+ * still may not read this trip needs to be told exactly that — a guest of the
+ * journal meeting a `private` trip, or a reader signed in with the wrong
+ * address. Show them the form again and they will sign in a second time, get
+ * the same page, and conclude the site is broken.
+ *
+ * Returns the address on the session **for this journal**, or null. It never
+ * says whether that address may read anything; `mayReadTrip` is the only
+ * answer to that, and this is called after it has already said no.
+ */
+export async function signedInAs(username: string): Promise<string | null> {
+  return (await journalReader(username)).email;
+}

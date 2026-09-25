@@ -1,0 +1,207 @@
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import type { FeatureName } from "@/lib/config";
+
+/**
+ * B74 — where the panel's answer about contacts comes from.
+ *
+ * `isEnabled` reads server config, and the panel is a client component, so the
+ * question has to be asked in `app/[user]/me/page.tsx` and travel as a prop.
+ * The bug was that it was asked once, for `manageHref`, and not again for the
+ * owner's link to the guest list — which then pointed at a page that answers
+ * 404 whenever the journal has contacts off.
+ *
+ * This asserts the wiring rather than the markup: what the server page hands
+ * down. `test/access-panel.test.tsx` covers what the panel then draws with it.
+ */
+
+const enabled = vi.fn<(name: FeatureName, username?: string) => boolean>(() => true);
+/** Overridden per-test by `test/access-panel-capability.test.ts`'s B359 block,
+ * so `resolveViewer` can answer "signed in" without a second mock file. */
+const viewerEmail = vi.hoisted(() => vi.fn<() => string | null>(() => null));
+/** Whether the reader owns this journal. Almost every test here is the owner,
+ * which is what the panel is mostly about; B619 gave the address a reason to
+ * travel for that one reader and none at all for anybody else, so the
+ * distinction now has to be expressible. */
+const viewerOwner = vi.hoisted(() => vi.fn<() => boolean>(() => true));
+
+vi.mock("@/lib/capabilities", () => ({
+  isEnabled: (name: FeatureName, username?: string) => enabled(name, username),
+}));
+/** The journal as its config holds it — a name, a short form, and the address
+ * that must not travel with them (B20). */
+const JOURNAL = {
+  title: "Alex's journal",
+  owner: { name: "Robin Berger", nickname: "Robin", email: "owner@example.test" },
+  // Always populated by `lib/users.ts` from `DEFAULT_FEATURES`, so a fixture
+  // without it is a shape that cannot occur — and since B463 the page reads
+  // it, to tell a channel this journal has muted from one the server cannot
+  // offer at all.
+  features: { mail: { enabled: true }, whatsapp: { enabled: true } },
+};
+vi.mock("@/lib/users", () => ({ getUser: () => JOURNAL }));
+// The page reports how full the journal is (B661), which means walking a
+// content directory these fixtures do not have. Stubbed whole: this file is
+// about which capabilities the panel is told about, and a byte count is
+// `paid/test/storage-quota.test.ts`'s subject.
+vi.mock("@/lib/storageQuota", () => ({
+  storageFor: async () => ({
+    usedBytes: 0,
+    limitBytes: null,
+    purchasedBytes: 0,
+    remainingBytes: null,
+  }),
+  formatBytes: (n: number) => `${n} B`,
+}));
+vi.mock("@/lib/viewer", () => ({
+  resolveViewer: async () => ({
+    email: viewerEmail(),
+    owner: viewerOwner(),
+    guest: false,
+    trips: [],
+  }),
+}));
+/** Spied rather than reimplemented: what this file asserts is that the page
+ * asks for the owner's short name and passes *that* down, not what the answer
+ * is. `test/site-travellers.test.ts` owns the answer. */
+const shortName = vi.hoisted(() => vi.fn(() => "Robin"));
+vi.mock("@/lib/site", () => ({
+  serverSite: () => ({ url: "https://example.test" }),
+  ownerShortName: (...args: unknown[]) => shortName(...(args as [])),
+}));
+vi.mock("@/lib/contacts", () => ({
+  listContacts: async () => [],
+  manageTokenFor: () => "t",
+  normaliseEmail: (email: string) => email,
+  // B367 added this export; nothing here asserts on its output (see
+  // test/payment-panel.test.ts), just that the page's other calls still
+  // resolve with a full mock in place.
+  optedInCounts: () => ({ email: 0, whatsapp: 0 }),
+}));
+vi.mock("next/navigation", () => ({
+  notFound: () => {
+    throw new Error("notFound");
+  },
+}));
+
+/**
+ * `searchParams` is passed because Next always passes it, and since B142 the
+ * page reads it — `?signin=expired` is how somebody whose welcome link was
+ * spent by their own mail provider is told what happened. The cast is what
+ * kept this helper compiling while it was one prop short.
+ */
+async function propsOf(user = "alex", searchParams: Record<string, string> = {}) {
+  const { default: MePage } = await import("@/app/[user]/me/page");
+  const element = (await MePage({
+    params: Promise.resolve({ user }),
+    searchParams: Promise.resolve(searchParams),
+  } as Parameters<typeof MePage>[0])) as { props: Record<string, unknown> };
+  return element.props;
+}
+
+beforeEach(() => {
+  enabled.mockReset();
+  viewerOwner.mockReset();
+  viewerOwner.mockReturnValue(true);
+  viewerEmail.mockReset();
+  viewerEmail.mockReturnValue(null);
+});
+
+describe("what the me page tells the panel about contacts", () => {
+  test("passes the capability down, resolved for this journal", async () => {
+    enabled.mockImplementation(() => true);
+    expect((await propsOf()).contactsEnabled).toBe(true);
+    expect(enabled).toHaveBeenCalledWith("contacts", "alex");
+  });
+
+  test("and says no when the journal has it off, so no link is drawn", async () => {
+    enabled.mockImplementation((name) => name !== "contacts");
+    const props = await propsOf();
+    expect(props.contactsEnabled).toBe(false);
+    // The other capability on the page is a separate question and unaffected.
+    expect(props.canSignIn).toBe(true);
+  });
+});
+
+/**
+ * B142. `?signin=expired` has been redirected to since the sign-in link
+ * existed, and nothing on the page ever said anything about it — so somebody
+ * whose welcome link had been spent by their own mail provider landed on an
+ * ordinary page with no explanation and every reason to think they had done
+ * something wrong.
+ */
+describe("why the reader landed on /me rather than in the journal", () => {
+  test("a spent link is explained, and a throttle is a different sentence", async () => {
+    enabled.mockReturnValue(true);
+    expect((await propsOf("alex", { signin: "expired" })).signinNotice).toBe("me.signinExpired");
+    expect((await propsOf("alex", { signin: "throttled" })).signinNotice).toBe(
+      "me.signinThrottled",
+    );
+  });
+
+  test("an ordinary visit says nothing, and neither does an invented value", async () => {
+    enabled.mockReturnValue(true);
+    expect((await propsOf("alex")).signinNotice).toBeUndefined();
+    // The parameter selects one of two known keys or nothing at all — it never
+    // becomes text, so it cannot be used to put a sentence on somebody's page.
+    expect((await propsOf("alex", { signin: "<script>alert(1)</script>" })).signinNotice)
+      .toBeUndefined();
+  });
+
+  /**
+   * B359 — the notice used to survive its own fix. `GuestSignIn` reloads
+   * rather than navigating, so `?signin=expired` is still on the request
+   * that renders the new session, and the page told the reader they were not
+   * signed in directly above "Signed in as owner@example.com".
+   */
+  test("and is gone once the session that answers it exists", async () => {
+    enabled.mockReturnValue(true);
+    viewerEmail.mockReturnValue("owner@example.test");
+    expect((await propsOf("alex", { signin: "expired" })).signinNotice).toBeUndefined();
+  });
+});
+
+/**
+ * B20 — the stranger is told who to ask, and nothing more about them.
+ *
+ * The name is picked here, at the server boundary, rather than by handing the
+ * component the config object and choosing inside it: `owner.email` sits in
+ * the same object, and a later edit to a client component should not be able
+ * to reach a field it was never meant to have.
+ *
+ * B619 narrowed that from "never" to "never for anybody but the owner". The
+ * owner's own card shows their address and says why it cannot be edited
+ * there, which is a person being shown their own email on a page they signed
+ * in to with it — not a fact about somebody else escaping. The rule for every
+ * other reader is unchanged, and is what the second test here now pins: the
+ * only thing that reaches a stranger is a short name.
+ */
+describe("what the me page tells the panel about its owner", () => {
+  test("hands down a short name, asked for by the page itself", async () => {
+    enabled.mockReturnValue(true);
+    const props = await propsOf();
+    expect(props.ownerName).toBe("Robin");
+    expect(shortName).toHaveBeenCalledWith(JOURNAL);
+  });
+
+  test("and nothing else about them — the address never travels to a reader", async () => {
+    enabled.mockReturnValue(true);
+    viewerOwner.mockReturnValue(false);
+    const props = await propsOf();
+    expect(JSON.stringify(props)).not.toContain("owner@example.test");
+    expect(props).not.toHaveProperty("owner");
+    expect(props).not.toHaveProperty("ownerEmail");
+    // The card that carries it is owner-only, and absent rather than empty
+    // for everybody else — B74's rule, and here it is also B20's.
+    expect(props.journal).toBeUndefined();
+  });
+
+  test("the journal panel no longer travels here at all, even to the owner — B2017", async () => {
+    // B619's own card (this journal's name, subtitle and owner address) moved
+    // whole to `app/[user]/studio/journal/page.tsx` by B2017, along with the
+    // rest of the owner block — `journalProfile()` and `getOwnerTel()` are
+    // read there now, not by this page.
+    enabled.mockReturnValue(true);
+    const props = await propsOf();
+    expect(props.journal).toBeUndefined();
+  });
+});

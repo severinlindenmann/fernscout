@@ -1,0 +1,214 @@
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "srv0": {
+          "listen": [
+            ":443"
+          ],
+          "routes": [
+            {
+              "match": [
+                {
+                  "host": [
+                    "journal.example"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "handler": "request_body",
+                          "max_size": 545259520
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/api/v2/*/media",
+                            "/api/helper/*/inbox",
+                            "/api/helper/*/day/media",
+                            "/api/v2/*/import",
+                            "/api/v2/*/trips/*/travellers/from-photo",
+                            "/api/helper/*/extract/upload",
+                            "/api/probe/upload"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "request_body",
+                          "max_size": 25000000
+                        }
+                      ],
+                      "match": [
+                        {
+                          "path": [
+                            "/api/helper/*/transcribe"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "handler": "request_body",
+                          "max_size": 10000000
+                        }
+                      ],
+                      "match": [
+                        {
+                          "not": [
+                            {
+                              "path": [
+                                "/api/v2/*/media",
+                                "/api/helper/*/inbox",
+                                "/api/helper/*/day/media",
+                                "/api/v2/*/import",
+                                "/api/v2/*/trips/*/travellers/from-photo",
+                                "/api/helper/*/extract/upload",
+                                "/api/probe/upload",
+                                "/api/helper/*/transcribe"
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "handle": [
+                        {
+                          "encodings": {
+                            "gzip": {},
+                            "zstd": {}
+                          },
+                          "handler": "encode",
+                          "prefer": [
+                            "gzip",
+                            "zstd"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group2",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "static_response",
+                                  "status_code": 405
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ],
+                      "match": [
+                        {
+                          "method": [
+                            "TRACE",
+                            "TRACK"
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "group": "group2",
+                      "handle": [
+                        {
+                          "handler": "subroute",
+                          "routes": [
+                            {
+                              "handle": [
+                                {
+                                  "handler": "reverse_proxy",
+                                  "headers": {
+                                    "request": {
+                                      "set": {
+                                        "X-Forwarded-For": [
+                                          "{http.request.remote.host}"
+                                        ]
+                                      }
+                                    }
+                                  },
+                                  "upstreams": [
+                                    {
+                                      "dial": "127.0.0.1:3000"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "terminal": true
+            },
+            {
+              "match": [
+                {
+                  "host": [
+                    "other.example"
+                  ]
+                }
+              ],
+              "handle": [
+                {
+                  "handler": "subroute",
+                  "routes": [
+                    {
+                      "handle": [
+                        {
+                          "body": "the other site, and this deploy did not touch it",
+                          "handler": "static_response"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "terminal": true
+            }
+          ]
+        }
+      }
+    },
+    "tls": {
+      "automation": {
+        "policies": [
+          {
+            "subjects": [
+              "journal.example",
+              "other.example"
+            ],
+            "issuers": [
+              {
+                "email": "ops@example.invalid",
+                "module": "acme"
+              },
+              {
+                "ca": "https://acme.zerossl.com/v2/DV90",
+                "email": "ops@example.invalid",
+                "module": "acme"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

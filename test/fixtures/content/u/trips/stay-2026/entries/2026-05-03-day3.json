@@ -1,0 +1,12 @@
+{
+  "title": "Day 3",
+  "date": "2026-05-03",
+  "location": "One Town",
+  "country": "Testland",
+  "coordinates": {
+    "lat": 47.01,
+    "lng": 10.0
+  },
+  "content": "A day here.",
+  "status": "published"
+}

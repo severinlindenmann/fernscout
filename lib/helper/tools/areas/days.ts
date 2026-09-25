@@ -1,0 +1,879 @@
+import "server-only";
+import type { Tool } from "../types";
+import type { ProposalField } from "../../blocks";
+import type { Say } from "../../intents";
+import { ALL_TRACKED, CARD_PREFILL_TRACKS, TRACK_ROWS, UNKNOWN, missingFrom } from "../../../tracks";
+import { AS_AUTHOR, getAllEntries } from "../../../entries";
+import { DAY_ARGS, DAY_REF_ARGS, PREVIEW_CHARACTERS, TRIP_ARG } from "../args";
+import { draftsForWizard, lastDayForWizard } from "../../server";
+import { type CatalogueRow, searchCatalogueFor } from "../../../search";
+import { factsOfEntry } from "../../../api/entries";
+import { isWritten } from "../../draft";
+import { firstUnwritten, noTrip, readersOf, resolveDay, resolveTrip, tripIdFor } from "../resolve";
+import { missingForDayFolder, type DayFolderMissing } from "../../../dayMissing";
+import { listDayInbox, listInbox } from "../../../inbox";
+import { readWords } from "../../../dayReadiness";
+import { WRITE_DAY_NOTES_MAX_CHARS } from "../../credits";
+
+/**
+ * One `DayFolderMissing` item, as one or two proposal fields —
+ * `assemble_day`'s own version of `start_day`'s `asked.map(...)` above,
+ * extended for the two questions `lib/tracks.ts` does not carry at all
+ * (`weather`, `caption`).
+ *
+ * The two-option shape (`unknown`/`none`) is `start_day`'s own for a `Track`
+ * row, reused rather than reinvented — a trip's own three-answer prose
+ * (`TRACK_ROWS[row].decline`/`.unknown`) is written for the honesty-net's
+ * retry message, not for a button label. `weather` gets its own two options
+ * instead (`lookup`/`decline`): it is never "nobody has it" the way a `Track`
+ * row can be, it is "look it up, or don't bother", and the confirm route
+ * needs to tell those two apart — only `lookup` requests the archive.
+ *
+ * `caption` is the one free-text field, and it is named `caption` rather than
+ * `caption_<photoId>` on purpose: a field's label comes from
+ * `agent.slot.<name>` (`components/HelperAsk.tsx`), a static lookup against
+ * the locale files, and a name built from a photo's own hash could never have
+ * one. `caption_photo` rides beside it, `fixed`, so the press still says
+ * which photograph the words are for. `propose()` below asks about at most
+ * one photograph's caption per batch for exactly this reason — two caption
+ * questions in one press would collide on the same field name.
+ */
+function fieldFor(missing: DayFolderMissing, say: Say): ProposalField[] {
+  if (missing.field === "caption") {
+    return [
+      { name: "caption", value: "" },
+      { name: "caption_photo", value: missing.photoId, fixed: true },
+    ];
+  }
+  if (missing.field === "weather") {
+    // Its own two answers, not `start_day`'s `unknown`/`none` — a weather
+    // question is never "nobody has it", it is "look it up, or don't
+    // bother", and the confirm route needs to tell those two apart to know
+    // whether the create step requests the archive at all.
+    return [
+      {
+        name: "weather",
+        value: "lookup",
+        options: [
+          { value: "lookup", label: say("agent.answerLookUpWeather") },
+          { value: "decline", label: say("agent.answerSkipWeather") },
+        ],
+      },
+    ];
+  }
+  return [
+    {
+      name: missing.field,
+      value: UNKNOWN,
+      options: [
+        { value: UNKNOWN, label: say("agent.answerUnknown") },
+        { value: "none", label: say("agent.answerNone") },
+      ],
+    },
+  ];
+}
+
+/**
+ * The distinct dates undated inbox content implies — the "several days from
+ * one batch" question (Phase 3's own Global Constraint). `takenAt` is a
+ * photograph's own EXIF measurement, `receivedAt` a WhatsApp message's
+ * arrival time; either is a real timestamp nobody typed, never a guess.
+ */
+function undatedDates(username: string): string[] {
+  const dates = new Set<string>();
+  for (const entry of Object.values(listInbox(username)).flat()) {
+    const stamp = entry.takenAt ?? entry.receivedAt;
+    if (stamp && stamp.length >= 10) dates.add(stamp.slice(0, 10));
+  }
+  return [...dates].sort();
+}
+
+/**
+ * A day, from empty to on the site — the arc this product is for.
+ *
+ * One area of the registry — B1042. The tools were a nine-hundred-line array
+ * in a single file, which is a file two people cannot edit at once and nobody
+ * can read the shape of. What decides where a tool lives is what a person is
+ * doing, not which route it posts to.
+ */
+export const DAYS_TOOLS: readonly Tool[] = [
+  {
+    name: "days",
+    kind: "read",
+    renders: "choose",
+    describe:
+      "The days of one trip: the date, what each is called, and whether it is on the site or still a draft.",
+    properties: TRIP_ARG,
+    run: async (username, args) => {
+      const trip = resolveTrip(username, args.trip);
+      if (!trip) return noTrip(username, args.trip);
+      return getAllEntries(trip.ref, AS_AUTHOR).map((entry) => ({
+        trip: trip.id,
+        date: entry.date,
+        slug: entry.slug,
+        title: entry.title,
+        draft: Boolean(entry.draft),
+        photos: entry.gallery.length,
+      }));
+    },
+    block: (data, say) => {
+      if (!Array.isArray(data) || data.length === 0) return null;
+      const days = data as { date: string; slug: string; title: string; draft: boolean }[];
+      return {
+        shape: "choose",
+        text: say("agent.block.days"),
+        options: days.map((day) => ({
+          value: day.slug,
+          label: day.title,
+          detail: day.date,
+        })),
+      };
+    },
+  },
+  {
+    name: "unfinished",
+    kind: "read",
+    renders: "choose",
+    describe:
+      "The days started and not yet published — what is waiting, which trip and date each belongs to, whether it has photographs and whether the words are written.",
+    properties: {},
+    run: async (username) => draftsForWizard(username),
+    block: (data, say) => {
+      const days = data as { trip: string; slug: string; date: string; title: string }[];
+      if (days.length === 0) return null;
+      return {
+        shape: "choose",
+        text: say("agent.block.unfinished"),
+        options: days.map((day) => ({
+          value: `${day.trip}/${day.slug}`,
+          label: day.title,
+          detail: day.date,
+        })),
+      };
+    },
+  },
+  {
+    /**
+     * "The last day" as a person actually means it — B1266. `unfinished`
+     * above answers "what's waiting" and stays drafts-only on purpose; a
+     * person asking for their last day just as often means one already
+     * published, and until this existed the only cross-trip read that needed
+     * no trip name was that drafts-only list. This is the single most recent
+     * day in the whole journal, whichever state it is in, so the model has
+     * something honest to call when nothing else names a trip or a date.
+     */
+    name: "last_day",
+    kind: "read",
+    renders: "preview",
+    describe: "Newest day, any trip.",
+    properties: {},
+    run: async (username) => lastDayForWizard(username),
+    block: (data, say) => {
+      if (!data) return null;
+      const day = data as { date: string; title: string };
+      return {
+        shape: "preview",
+        text: say("agent.block.lastDay"),
+        lines: [day.date, day.title].filter((line) => line !== ""),
+      };
+    },
+  },
+  {
+    name: "read_day",
+    kind: "read",
+    renders: "preview",
+    describe:
+      "One day of a trip: its title, its slug, whether it is published, how many photographs it carries and the words on it.",
+    properties: {
+      ...TRIP_ARG,
+      date: { type: "string", description: "The day, as YYYY-MM-DD." },
+    },
+    run: async (username, args) => {
+      const trip = resolveTrip(username, args.trip);
+      if (!trip) return noTrip(username, args.trip);
+      const entries = getAllEntries(trip.ref, AS_AUTHOR).filter(
+        (entry) => !args.date || entry.date === args.date,
+      );
+      if (entries.length === 0) return { found: false, trip: trip.id, why: "no day on that date" };
+      return entries.map((entry) => ({
+        trip: trip.id,
+        date: entry.date,
+        slug: entry.slug,
+        title: entry.title,
+        draft: Boolean(entry.draft),
+        photos: entry.gallery.length,
+        words: entry.content,
+        // Whether this day actually carries a caption or a coordinate —
+        // B1563. The honesty net checks a claim that they are "on the page"
+        // against this, never against the day's words alone: a claim about
+        // captions is a claim about the gallery, and one about a location is
+        // a claim about `lat`/`lng`, neither of which `words` can answer.
+        hasCaptions: entry.gallery.some((item) => (item.caption ?? "").trim() !== ""),
+        hasCoordinates: Number.isFinite(entry.lat) && Number.isFinite(entry.lng),
+      }));
+    },
+    block: (data, say) => {
+      if (!Array.isArray(data) || data.length === 0) return null;
+      const day = data[0] as { date: string; title: string; words: string };
+      return {
+        shape: "preview",
+        text: say("agent.block.day"),
+        // The day's own words and the day's own date: nothing here needs
+        // translating, because none of it is this software's prose.
+        lines: [day.date, day.title, day.words.slice(0, PREVIEW_CHARACTERS)].filter(
+          (line) => line !== "",
+        ),
+      };
+    },
+  },
+  {
+    /**
+     * The day itself, started — B818 is the date.
+     *
+     * **The default is the first day nobody has written, not today.** A person
+     * writing up a trip is behind it; today is the one date they are least
+     * likely to mean, and it was the one the wizard opened on.
+     */
+    name: "start_day",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose starting a day of a trip — an empty day with a date, ready for words and photographs. Nothing is created until they press. Without a date it fills in the trip's first unwritten day.",
+    properties: {
+      ...TRIP_ARG,
+      date: { type: "string", description: "The day, as YYYY-MM-DD. Omit to use the first unwritten day." },
+      /**
+       * What they said about the day, when they said it all at once — B969.
+       *
+       * The commonest thing anybody does here is describe a day in a sentence,
+       * and the day usually does not exist yet. The whole paragraph used to be
+       * dropped: four times out of four in an ordinary write-up, somebody was
+       * told to press a button and then say it all again.
+       */
+      notes: {
+        type: "string",
+        description:
+          "Anything they already said about the day, in their own words. Pass it through when they described the day while asking for it: it rides to the next card and is not written here. Never write it yourself.",
+      },
+      /**
+       * B1650 (decision a) — real answers, from a real question, never a
+       * default this card invents. Each of these four is also a row in
+       * `lib/tracks.ts`, so a write silent on one of them is refused
+       * (`incomplete_day`, naming the row) — that refusal is what should
+       * send the model back to ask, in words, rather than this card
+       * pre-filling a value nobody was asked for.
+       */
+      time: { type: "string", description: 'HH:MM if said; "none"/"unknown" once asked.' },
+      transportMode: { type: "string", description: 'Mode if said; "none"=rest day, else ask first.' },
+      tags: { type: "string", description: 'Comma-separated if said; "none"/"unknown" once asked.' },
+      visibility: { type: "string", description: '"guest"/"private" if asked; else "none".' },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day`,
+    propose: async (username, args, say, today) => {
+      const trip = resolveTrip(username, args.trip);
+      const date = args.date ?? firstUnwritten(username, trip?.id ?? "", today);
+      /**
+       * The trip's own questions, on the proposal — B917.
+       *
+       * `POST .../day` refuses a day that says nothing about what its trip
+       * keeps (`lib/tracks.ts`), and the conversation had no way to answer:
+       * every press came back `incomplete_day`. So the questions are fields
+       * like any other, and they open on `unknown` — which is not a guess but
+       * the literal state of affairs, exactly as B810 decided for the wizard's
+       * express path: money was spent and nobody has told this journal the
+       * figures. Nothing is invented; nobody has been asked yet. A real
+       * figure is `add_cost` afterwards, and the sentence says so.
+       *
+       * Only the `write` rows: `photos` is asked at publish, and there is no
+       * photograph at creation for anybody to answer about.
+       *
+       * **Only `CARD_PREFILL_TRACKS`** — B1650 (decision a). The rows added by
+       * that ticket (`time`, `transportMode`, `tags`, `visibility`) are
+       * deliberately not pre-filled here: a default a person can merely press
+       * past is the auto-decline this ticket exists to stop. `POST .../day`
+       * still refuses a day silent on any of them, which is the reminder to
+       * go and ask, in words, before pressing again — never a card that has
+       * already answered for them.
+       */
+      const asked = CARD_PREFILL_TRACKS.filter(
+        (row) => TRACK_ROWS[row].when === "write" && (trip?.tracks ?? ALL_TRACKED)[row],
+      );
+      const sentence = say("agent.tool.startDay", {
+        date,
+        trip: trip?.title ?? "",
+      });
+      /**
+       * **Their words, carried across the press** — B969.
+       *
+       * `POST .../day` makes an empty day and cannot hold prose, which is
+       * right: writing and reading back are two steps here as they are
+       * everywhere else. What was missing is that the notes somebody had
+       * *already given* went nowhere, so they typed their paragraph, pressed,
+       * and typed it again.
+       *
+       * `next` is the mechanism `draft_words` already uses to hand its prose
+       * to `set_day_words`. The browser carries this proposal's own arguments
+       * into the next one, so the notes ride along and the trip and slug come
+       * from what the route actually wrote.
+       *
+       * Only when there are notes. A card offering to spend a credit writing
+       * up an empty day is worse than no card.
+       */
+      const carryOn = (args.notes ?? "").trim() !== "";
+      return {
+        ...(carryOn
+          ? { next: { tool: "draft_words", from: { trip: "trip", slug: "slug" } } }
+          : {}),
+        sentence: asked.length > 0 ? `${sentence} ${say("agent.tool.startDayUnknown")}` : sentence,
+        accept: say("agent.tool.startDayAccept"),
+        done: say("agent.tool.startDayDone"),
+        fields: [
+          { name: "trip", value: trip?.id ?? "", fixed: true },
+          { name: "date", value: date, date: true },
+          ...asked.map((row) => ({
+            name: row,
+            value: UNKNOWN,
+            options: [
+              { value: UNKNOWN, label: say("agent.answerUnknown") },
+              { value: "none", label: say("agent.answerNone") },
+            ],
+          })),
+          /**
+           * B1650 (decision a) — carried through exactly as the model filled
+           * them in, never shown with a pre-filled default: `fixed` means
+           * `HelperAsk` draws nothing for these, so there is no button to
+           * press past without having actually been asked. Absent when the
+           * model has not been told, which is what lets `POST .../day`'s own
+           * completeness check catch a day still silent on one of them.
+           */
+          ...(["time", "transportMode", "tags", "visibility"] as const)
+            .filter((name) => (args[name] ?? "").trim() !== "")
+            .map((name) => ({ name, value: args[name]!.trim(), fixed: true as const })),
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * The one tool that spends a credit, and it spends it on the press.
+     *
+     * It writes nothing either: `POST .../day/write-day` returns prose to be
+     * read, and keeping it is `set_day_words` — a second proposal and a second
+     * press, which is `next`. The person reads what came back before any of it
+     * is in their journal, which is what makes the "write only what you were
+     * told" rule checkable rather than merely stated.
+     */
+    name: "draft_words",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose turning their own notes about a day into a title and a few paragraphs. Nothing is written and nothing is spent until they press; what comes back is shown to them to read, change or throw away. It costs one credit.",
+    properties: {
+      ...DAY_ARGS,
+      notes: {
+        type: "string",
+        description:
+          `Their own notes about the day, in their own words, exactly as they said them. Never write these yourself and never add anything they did not say. At most ${WRITE_DAY_NOTES_MAX_CHARS} characters.`,
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/write-day`,
+    // What came back is prose to read, not a day. Keeping it is the second
+    // proposal and the second press: `draft.prose` is what the write-day
+    // route calls the words.
+    next: { tool: "set_day_words", from: { title: "draft.title", content: "draft.prose" } },
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: say("agent.tool.draftWords", {
+          credits: "1",
+          // B1107: the resolved day is no longer drawn, so the sentence says
+          // which day this credit is being spent on.
+          date: found?.entry.date ?? args.date ?? "",
+        }),
+        accept: say("agent.tool.draftWordsAccept"),
+        done: say("agent.tool.draftWordsDone"),
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+          { name: "date", value: found?.entry.date ?? args.date ?? "", date: true },
+          { name: "notes", value: args.notes ?? "", long: true },
+        ],
+      };
+    },
+  },
+  {
+    name: "set_day_words",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Propose the title and words of a day that already exists. Use their own words, never yours. Nothing is saved until they press; a published day stays on the site. Also how a wrong word is corrected.",
+    properties: {
+      ...DAY_ARGS,
+      title: { type: "string", description: "The day's title, short, from what they said." },
+      content: { type: "string", description: "The day's words, in their language, as they said them." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day`,
+    method: "PATCH",
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        /**
+         * **A guess may not overwrite what is already written** — B954.
+         *
+         * `resolveDay` falls back to the newest day when nothing names one,
+         * and that is right for the ordinary flow: somebody who has just
+         * started a day and says "now the words" means that day. It is not
+         * right when the day it landed on already has prose and nobody said
+         * which day — that is somebody's writing replaced on a guess, by a
+         * press this card invited them to make.
+         *
+         * The distinction is the day's own state rather than the phrasing:
+         * filling an empty day costs nothing if it is the wrong one, and it
+         * is the case the fallback exists for.
+         */
+        ...(found?.guessed && found.entry.content.trim() !== ""
+          ? { refuse: "agent.tool.whichDayToRewrite" }
+          : {}),
+        sentence: say("agent.tool.setWords", { date: found?.entry.date ?? args.date ?? "" }),
+        accept: say("agent.tool.setWordsAccept"),
+        done: say("agent.tool.setWordsDone"),
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+          { name: "title", value: args.title ?? found?.entry.title ?? "" },
+          /**
+           * What the day already says, when nothing was proposed — B942.
+           *
+           * It opened on nothing, under a sentence saying it would set the
+           * day's words — and no press of it could succeed, because
+           * `lib/api/entries.ts` refuses empty content. B929's shape again: a
+           * proposal on somebody's screen that nothing can accept.
+           *
+           * It is also what makes a correction possible at all (B941). A
+           * person saying "it should say udon, not ramen" is editing one word
+           * of a paragraph, and the model had to reproduce the whole
+           * paragraph from memory to do it — expensive, easy to get wrong,
+           * and the reason it reached for a different tool instead.
+           *
+           * A day with no words at all stays refused, which is right: that
+           * is not an edit, it is deleting the day.
+           */
+          { name: "content", value: args.content ?? found?.entry.content ?? "", long: true },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * **A rendered day, and then one press.** The preview is not decoration
+     * and not optional: publishing is the moment a day becomes readable by
+     * other people, and the plan's rule is that it happens after somebody has
+     * read it back — never from a sentence. There are no editable fields,
+     * because there is nothing here to correct: a wrong day is corrected by
+     * saying which day, and the next turn proposes that one.
+     */
+    name: "publish_day",
+    kind: "write",
+    renders: "confirm",
+    describe:
+      "Propose putting a day on the site. This shows them the day as their readers will see it and stops; it publishes nothing. Only the button under it publishes.",
+    properties: DAY_ARGS,
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/publish`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      /**
+       * The publish-time questions, on the confirmation — B929, and B917's
+       * fix at the other end of the day's life.
+       *
+       * `photos` is a `publish` row (`lib/tracks.ts`), so nothing before this
+       * moment could answer it and the press came back `incomplete_day` every
+       * time. Whatever the route is about to refuse is asked here instead —
+       * `missingFrom` is the same function the route runs, so the two cannot
+       * drift into asking different questions.
+       *
+       * They open on `unknown`, which is not a guess: nobody has been asked
+       * yet, and "there are pictures somewhere and nobody has them to hand"
+       * is the true thing to write. **They are not in `properties`**, so the
+       * model cannot answer them on somebody's behalf; only the person's own
+       * select does.
+       */
+      const asked = found
+        ? missingFrom(factsOfEntry(found.entry), found.trip.tracks, "publish").map((row) => row.field)
+        : [];
+      /**
+       * **Who will be able to read it, in the same breath as the button** —
+       * B933, and it is the sentence this whole product is for.
+       *
+       * She could only find out that her daughter had no access by reading
+       * `people: []` and `invites: []` out of the API. Every persona here has
+       * asked some version of *"can my mother read this"*, and the answer has
+       * always cost either a route call or a leap of faith — which is exactly
+       * how B931 happened: a trip set to `guest` so one named person could
+       * read it, nobody approved, and the model saying she could.
+       *
+       * Before the press rather than after it. Publishing is the moment a day
+       * becomes readable by other people, and the audience is the thing a
+       * person is actually consenting to.
+       *
+       * It says **nought as a sentence**, never as a number: "only you, and
+       * you have not let anybody in yet" is the reading that would have
+       * caught B931 without an agent.
+       */
+      const audience = found ? await readersOf(username, found.trip.id, say) : "";
+      const sentence = found
+        ? `${say("agent.tool.publishDay", { date: found.entry.date, title: found.entry.title })} ${audience}`
+        : say("agent.tool.publishNoDay");
+      /**
+       * **Nothing to publish is not a day to publish** — B1561.
+       *
+       * A day is created with `NO_PROSE` (`lib/helper/draft.ts`) so a closed
+       * tab loses no photographs, and that placeholder plus an empty gallery
+       * is not a day anybody described — it is the day exactly as
+       * `start_day` left it. `isWritten` is the same test the wizard uses to
+       * decide whether the words step is done; a photo-only day is a real
+       * day (photo-only days are legitimate) and still gets the button, but
+       * the sentence says the words are still missing.
+       */
+      const empty = found
+        ? !isWritten(found.entry.content) && found.entry.gallery.length === 0
+        : false;
+      const wordless = found ? !isWritten(found.entry.content) && found.entry.gallery.length > 0 : false;
+      return {
+        /**
+         * A day already on the site does not go up twice — B1305,
+         * scenario-edges.md finding 3. `unpublish_day`'s own mirror check
+         * below (`agent.tool.alreadyDraft`) claimed this one "has always"
+         * existed; it had not — asking to publish an already-published day
+         * drew a full "read this the way your readers will" card and a
+         * wasted press (the route's own `already_published` 409 kept the
+         * write itself safe, but the card shown before it was pointless).
+         */
+        ...(empty ? { refuse: "agent.tool.publishDayEmpty" } : {}),
+        ...(found && !found.entry.draft ? { refuse: "agent.tool.alreadyPublished" } : {}),
+        sentence: [
+          sentence,
+          wordless ? say("agent.tool.publishDayNoWords") : "",
+          asked.length > 0 ? say("agent.tool.publishDayUnknown") : "",
+        ]
+          .filter((part) => part !== "")
+          .join(" "),
+        accept: say("agent.tool.publishDayAccept"),
+        done: say("agent.tool.publishDayDone"),
+        preview: found
+          ? [found.entry.date, found.entry.title, found.entry.content.slice(0, PREVIEW_CHARACTERS)].filter(
+              (line) => line !== "",
+            )
+          : [],
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+          ...asked.map((row) => ({
+            name: row,
+            value: UNKNOWN,
+            options: [
+              { value: UNKNOWN, label: say("agent.answerUnknown") },
+              { value: "none", label: say("agent.answerNone") },
+            ],
+          })),
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * The front door for the case Phase 1/2 (inbox day-assembly) exist to
+     * serve — B1573's Phase 3. Everything for a date already sits in its own
+     * folder (photographs, a location pin, a note or two); this surveys it
+     * once and either asks about everything still missing in one batch, or
+     * proposes the real entry once nothing is. It replaces none of
+     * `start_day`/`attach_files`/`draft_words` — those remain the one-step-
+     * at-a-time door for a person who wants it.
+     *
+     * Two shapes are folded into the one `endpoint`, because the person only
+     * ever sees one card at a time and both are a press on the same journal
+     * fact: what a date folder still owes. The confirm-side route decides
+     * from the body which one a press meant.
+     */
+    name: "assemble_day",
+    kind: "write",
+    renders: "form",
+    describe:
+      "Survey a date's staged content — photos, a location, words already said — and ask what's still missing, or propose creating the day when nothing is. Prefer this over start_day once a date already has something staged.",
+    properties: {
+      ...TRIP_ARG,
+      date: { type: "string", description: "The date to assemble, as YYYY-MM-DD." },
+      /**
+       * B1650 (decision a) — the same four rows `start_day` now takes, real
+       * answers only. This survey never asks about them itself (they are
+       * absent from `CARD_PREFILL_TRACKS`); the create press refuses with
+       * `incomplete_day` naming whichever is still silent, and that refusal
+       * is what should send the model back to ask before calling this again.
+       */
+      time: {
+        type: "string",
+        description: "Same rule as start_day's own time.",
+      },
+      transportMode: {
+        type: "string",
+        description: "Same rule as start_day's own transportMode.",
+      },
+      tags: {
+        type: "string",
+        description: "Same rule as start_day's own tags.",
+      },
+      visibility: {
+        type: "string",
+        description: "Same rule as start_day's own visibility.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/assemble-day`,
+    propose: async (username, args, say, today) => {
+      const trip = resolveTrip(username, args.trip);
+      const date = (args.date ?? "").trim();
+
+      /**
+       * **Several days from one batch, asked before anything else** — the
+       * plan's own Global Constraint. Undated content whose own timestamps
+       * imply more than one day is not this trip's to guess at: "one day, or
+       * several?" comes before any single date folder is surveyed.
+       */
+      if (date === "") {
+        const dates = undatedDates(username);
+        if (dates.length > 1) {
+          return {
+            // `assemble_day` again, once the chosen date's undated content is
+            // actually moved into its folder — the confirm route tells this
+            // press apart from an ordinary missing-fields answer by the
+            // `chooseDate` marker below, and moves rather than creates.
+            next: { tool: "assemble_day", from: {} },
+            sentence: say("agent.tool.assembleDayMultipleDates", { count: String(dates.length) }),
+            accept: say("agent.tool.assembleDayMultipleDatesAccept"),
+            done: say("agent.tool.assembleDayMultipleDatesDone"),
+            fields: [
+              { name: "trip", value: trip?.id ?? "", fixed: true },
+              { name: "chooseDate", value: "1", fixed: true },
+              {
+                name: "date",
+                value: dates[0],
+                options: dates.map((d) => ({ value: d, label: d })),
+              },
+            ],
+          };
+        }
+      }
+
+      const chosenDate = date || today;
+      const missing = missingForDayFolder(username, chosenDate, trip?.tracks ?? ALL_TRACKED);
+      if (missing.length > 0) {
+        // Ask, once, about everything still missing. `missingForDayFolder`
+        // has already filtered out anything declined, unrecorded or answered
+        // — a field that reaches here is genuinely unasked, so nothing is
+        // asked twice across turns.
+        //
+        // At most one caption question per batch — `fieldFor`'s own note on
+        // why a caption field cannot be named per photo. A second missing
+        // caption still surfaces, on the next call, once this one is
+        // answered and no longer "missing".
+        const firstCaptionIndex = missing.findIndex((m) => m.field === "caption");
+        const capped = missing.filter((m, index) => m.field !== "caption" || index === firstCaptionIndex);
+        return {
+          // `capped.length`, not `missing.length` — the sentence should count
+          // what the fields below actually ask, and a second missing caption
+          // that is not shown this batch must not inflate the number.
+          sentence: say("agent.tool.assembleDayMissing", { date: chosenDate, count: String(capped.length) }),
+          accept: say("agent.tool.assembleDayAsk"),
+          done: say("agent.tool.assembleDayAsked"),
+          fields: [
+            { name: "trip", value: trip?.id ?? "", fixed: true },
+            { name: "date", value: chosenDate, fixed: true },
+            ...capped.flatMap((m) => fieldFor(m, say)),
+          ],
+        };
+      }
+
+      const staged = listDayInbox(username, chosenDate);
+      const words = readWords(username, chosenDate);
+      return {
+        sentence: say("agent.tool.assembleDayReady", { date: chosenDate, count: String(staged.media.length) }),
+        accept: say("agent.tool.assembleDayCreateAccept"),
+        done: say("agent.tool.assembleDayCreateDone"),
+        preview: [words.slice(0, PREVIEW_CHARACTERS)].filter((line) => line !== ""),
+        fields: [
+          { name: "trip", value: trip?.id ?? "", fixed: true },
+          { name: "date", value: chosenDate, fixed: true },
+          // B1650 — carried through exactly as the model filled them in, from
+          // an actual question asked in conversation; absent when it has not
+          // asked, which is what lets the route's own completeness check
+          // catch a day still silent on one of them.
+          ...(["time", "transportMode", "tags", "visibility"] as const)
+            .filter((name) => (args[name] ?? "").trim() !== "")
+            .map((name) => ({ name, value: args[name]!.trim(), fixed: true as const })),
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * The takedown, and **it is not a delete** (B816).
+     *
+     * The day goes back to being a draft: off the site, off the feed, still on
+     * disk with every photograph attached, and publishing it again is the
+     * undo. Nothing in this registry deletes anything, and the words that mean
+     * *destroy* are refused before a model is asked at all.
+     */
+    name: "unpublish_day",
+    kind: "write",
+    renders: "confirm",
+    describe:
+      "Propose taking a day back off the site. It becomes a draft again — nothing is deleted, every photograph stays, and publishing it again puts it back. Nothing happens until they press.",
+    properties: DAY_ARGS,
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/unpublish`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        /**
+         * A day that was never up does not come down — B951.
+         *
+         * The comment here used to claim `publish_day` "has always refused"
+         * the mirror case (an already-published day) — it had not, until
+         * B1305: asking to publish an already-published day drew a full
+         * "read this the way your readers will" card and a wasted press. The
+         * two are symmetric now, each its own `refuse` line beside its own
+         * `propose`, rather than one comment asserting a fact about the
+         * other function that nobody kept true.
+         */
+        ...(found?.entry.draft ? { refuse: "agent.tool.alreadyDraft" } : {}),
+        sentence: found
+          ? say("agent.tool.unpublishDay", { date: found.entry.date, title: found.entry.title })
+          : say("agent.tool.publishNoDay"),
+        accept: say("agent.tool.unpublishDayAccept"),
+        done: say("agent.tool.unpublishDayDone"),
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+        ],
+      };
+    },
+  },
+  {
+    name: "find_day",
+    kind: "read",
+    renders: "choose",
+    describe:
+      "Find a day by what was in it, not by date. Try before start_day or create_trip.",
+    properties: {
+      said: { type: "string", description: "What they are looking for." },
+    },
+    /**
+     * B906 — "the day with the photograph of Anna in it", which named a thing
+     * rather than a date and used to land on the screen that creates a day.
+     *
+     * No second search: `searchCatalogueFor` and `findInJournal` are B904's
+     * own, the same two calls `app/api/helper/[user]/search/route.ts` makes
+     * for the search box's own fallback. The catalogue is already this
+     * reader's own (`buildDocsForReader`, `visible()`, `readFor`) — nothing
+     * here reinterprets who may see what. And the same discipline that route
+     * applies: **ids in, ids out.** A hit for an id the catalogue never
+     * carried (another journal's day, a private trip this reader is not on)
+     * is dropped rather than returned, the same `byId.get` filter, so a model
+     * cannot repeat a name it was never shown.
+     *
+     * Nothing found is not a soft failure to paper over with a guess: `why`
+     * tells the model to say so, in words, rather than to fall through to
+     * proposing a new day for it.
+     */
+    run: async (username, args) => {
+      const said = args.said ?? "";
+      if (said === "") return { found: false, why: "nothing was said to search for" };
+      const rows = await searchCatalogueFor(username);
+      if (rows.length === 0) {
+        return { found: false, why: "there is nothing in this journal to search yet" };
+      }
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      const today = new Date().toISOString().slice(0, 10);
+      // A dynamic import, not a top-level one: `./model` imports `TOOLS` from
+      // this file already (for its own honesty checks), so a static import
+      // here the other way would be a cycle that leaves `TOOLS` undefined
+      // partway through either module's own load.
+      const { findInJournal } = await import("../../model");
+      const found = await findInJournal(said, rows, today, username);
+      const hits = found.hits
+        .map((hit) => ({ row: byId.get(hit.id), why: hit.why }))
+        .filter((pair): pair is { row: CatalogueRow; why: string } => Boolean(pair.row));
+      if (hits.length === 0) {
+        return {
+          found: false,
+          why: "nothing in this journal matches: say so plainly and do not offer to start a new day for it",
+        };
+      }
+      return { found: true, hits: hits.map(({ row, why }) => ({ ...row, why })) };
+    },
+    block: (data, say) => {
+      const result = data as { found: boolean; hits?: (CatalogueRow & { why: string })[] };
+      if (!result.found || !result.hits || result.hits.length === 0) return null;
+      return {
+        shape: "choose",
+        text: say("agent.block.findDay"),
+        options: result.hits.map((row) => ({
+          value: row.id,
+          label: row.title,
+          detail: row.where,
+        })),
+      };
+    },
+  },
+  {
+    /**
+     * "Rückgängig" — B1218 (D47). A swap, not a delete: `POST .../day/undo`
+     * stashes what is on the day now before restoring what was stashed
+     * before it, so pressing this a second time undoes the undo. Reached
+     * mostly through the chip after an accepted words write, never through a
+     * sentence — but a model asked to "put it back the way it was" can call
+     * it too.
+     */
+    name: "undo_words",
+    kind: "write",
+    renders: "confirm",
+    describe: "Restore a day's words to before the last write. One version back.",
+    properties: DAY_REF_ARGS,
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/undo`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: say("agent.tool.undoWords", { date: found?.entry.date ?? args.date ?? "" }),
+        accept: say("agent.tool.undoWordsAccept"),
+        done: say("agent.tool.undoWordsDone"),
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * "Wetter nachschlagen lassen" — B1218 (D48). The one documented route to
+     * a day's weather (AGENTS.md, B325): a public archive, at the day's own
+     * coordinates, never a word the model supplies. Reached through the chip
+     * after a words write on a day with coordinates.
+     */
+    name: "look_up_weather",
+    kind: "write",
+    renders: "confirm",
+    describe: "Look a day's weather up in the public archive. Never a guess.",
+    properties: DAY_REF_ARGS,
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/weather`,
+    propose: async (username, args, say) => {
+      const found = resolveDay(username, args);
+      return {
+        sentence: say("agent.tool.lookUpWeather", { date: found?.entry.date ?? args.date ?? "" }),
+        accept: say("agent.tool.lookUpWeatherAccept"),
+        done: say("agent.tool.lookUpWeatherDone"),
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+        ],
+      };
+    },
+  },
+];

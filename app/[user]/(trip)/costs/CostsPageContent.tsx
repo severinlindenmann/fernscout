@@ -1,0 +1,545 @@
+"use client";
+
+import { useState } from "react";
+import { Table2, BarChart3, TrendingDown, TrendingUp } from "lucide-react";
+import PageHeader from "@/components/PageHeader";
+import UnconvertedNotice from "@/components/UnconvertedNotice";
+import { StackedShareBar, BarList, DailyColumns, CumulativeArea } from "@/components/charts/Charts";
+import { useI18n } from "@/components/LocaleProvider";
+import { useMoney } from "@/components/CurrencyProvider";
+import { flagFor } from "@/lib/flags";
+import {
+  CATEGORY_STYLE,
+  type BudgetPace,
+  type BudgetStatus,
+  type CostSummary,
+  type CostCategory,
+} from "@/lib/costFormat";
+import type { TranslationKey } from "@/lib/i18n";
+
+export default function CostsPageContent({
+  summary,
+  travellers,
+  noDaySpending = false,
+}: {
+  summary: CostSummary;
+  travellers: string;
+  /** Owner-only: a budget with not one day recording any spending. B539. */
+  noDaySpending?: boolean;
+}) {
+  const { t, formatShortDate } = useI18n();
+  const { money, original, currency, base, approximate, asOf } = useMoney();
+  const [showTable, setShowTable] = useState(false);
+
+  const catLabel = (c: CostCategory) => t(`cost.cat.${c}` as TranslationKey);
+
+  /**
+   * Which page this is: the one about a trip that is happening, or the one
+   * about a trip that is planned.
+   *
+   * Decided once, from the summary's own flag, and never re-derived from a
+   * length or a zero further down — that is how the same bug comes back for
+   * the next field that happens to be empty (B19). Everything conditional
+   * below hangs off this line and off `budget.pace`, which is the same
+   * decision made in the type.
+   */
+  const planned = !summary.hasBegun;
+
+  const slices = summary.byCategory.map((c) => ({
+    key: c.category,
+    label: catLabel(c.category),
+    value: c.amount,
+    color: CATEGORY_STYLE[c.category].color,
+  }));
+
+  return (
+    <div className="min-h-screen">
+      <PageHeader />
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <h1 className="font-display text-3xl font-semibold tracking-tight text-ink-strong sm:text-4xl">
+          {t("cost.title")}
+        </h1>
+        {/* Which of the two pages this is, said in a sentence, so a reader
+            never has to work it out from a zero. */}
+        <p className="mt-1 max-w-2xl text-sm text-ink-secondary">
+          {planned ? t("cost.subtitlePlanned", { currency }) : t("cost.subtitle", { currency })}
+        </p>
+
+        {/* What the totals had to leave out, before the totals themselves. */}
+        <UnconvertedNotice items={summary.unconverted} />
+
+        {/* Headline numbers. Before departure the two rates — what a day
+            costs, and what has gone on the road — are zero because there are
+            no days yet, not because the trip is cheap. */}
+        {planned ? (
+          <dl className="mt-6 grid grid-cols-2 gap-3">
+            <Stat label={t("cost.total")} value={money(summary.total)} hero />
+            <Stat label={t("cost.prep")} value={money(summary.preparation)} />
+          </dl>
+        ) : (
+          <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Stat label={t("cost.total")} value={money(summary.total)} hero />
+            <Stat label={t("cost.perDay")} value={money(summary.perDay)} />
+            <Stat label={t("cost.onTheRoad")} value={money(summary.onTheRoad)} />
+            <Stat label={t("cost.prep")} value={money(summary.preparation)} />
+          </dl>
+        )}
+
+        {/* The budget: how it is going, or — before there is a "going", or
+            after there is no more "going" left — what it is. `isOver` decides
+            between the two static readings; `pace` is present exactly when
+            the trip has begun and is not yet over (B1521). */}
+        {summary.budget &&
+          (summary.isOver ? (
+            <PastBudgetPanel budget={summary.budget} spent={summary.total} />
+          ) : summary.budget.pace ? (
+            <BudgetPanel budget={summary.budget} pace={summary.budget.pace} spent={summary.total} />
+          ) : (
+            <PlannedBudgetPanel budget={summary.budget} spent={summary.total} />
+          ))}
+
+        {/* Owner-only: says why the page otherwise looks like an import that
+            dropped everything, rather than leaving them to wonder. B539. */}
+        {noDaySpending && <p className="mt-2 text-xs text-ink-secondary">{t("cost.noDaySpending")}</p>}
+
+        {/* Where the money went */}
+        <Section title={t("cost.byCategory")}>
+          <StackedShareBar slices={slices} format={(n) => money(n)} />
+        </Section>
+
+        {/* Per country */}
+        {summary.byCountry.length > 0 && (
+          <Section title={t("cost.byCountry")} note={t("cost.byCountryNote")}>
+            <BarList
+              rows={summary.byCountry.map((c) => ({
+                key: c.country,
+                label: `${flagFor(c.country, c.countryCode)} ${c.country}`,
+                value: c.amount,
+                sub: `${money(c.perDay)}/${t("cost.day")}`,
+              }))}
+              format={(n) => money(n)}
+              accent={CATEGORY_STYLE.preparation.color}
+            />
+          </Section>
+        )}
+
+        {/* Day by day, and the running total. Both plot the days the trip
+            has, so before departure there is nothing to draw — omitted the
+            way `byCountry` above is, rather than drawn as empty axes under a
+            heading promising a breakdown. */}
+        {!planned && (
+          <>
+            {/* Said before the charts rather than after them, because it
+                changes how every number under it should be read: a day whose
+                spending nobody recorded counts as a zero everywhere here, and
+                a zero means "nothing was spent". B560. */}
+            {summary.unrecordedDays > 0 && (
+              <p className="text-sm text-ink-secondary/70">
+                {t("cost.unrecordedDays").replace("{count}", String(summary.unrecordedDays))}
+              </p>
+            )}
+
+            {summary.byDay.length >= 2 ? (
+              <>
+                {/* Both charts plot `summary.byDay`, and both need more than
+                    one point to be a chart rather than a full-width block
+                    (DailyColumns) or an empty frame (CumulativeArea, whose
+                    path has no line segment with one point). Gated together,
+                    since one point below this threshold is one point below
+                    it for either. B1300. */}
+                <Section title={t("cost.perDayChart")} note={t("cost.perDayChartNote")}>
+                  <DailyColumns
+                    data={summary.byDay}
+                    average={summary.perDay}
+                    format={(n) => money(n)}
+                    formatDate={formatShortDate}
+                    // Neutral, not a category colour: this bar is each day's
+                    // total, not one category, and green (accommodation) and
+                    // orange (flights) below both appeared in no legend on
+                    // this page. B1300.
+                    accent="#5a6a80"
+                  />
+                </Section>
+
+                <Section title={t("cost.cumulative")} note={t("cost.cumulativeNote")}>
+                  <CumulativeArea
+                    data={summary.byDay}
+                    format={(n) => money(n)}
+                    formatDate={formatShortDate}
+                    accent="#5a6a80"
+                    reference={
+                      summary.budget?.pace
+                        ? { values: summary.budget.pace.curve, label: t("cost.plannedSpend") }
+                        : undefined
+                    }
+                  />
+                </Section>
+              </>
+            ) : (
+              summary.byDay.length === 1 && (
+                <Section title={t("cost.perDayChart")}>
+                  <p className="text-sm text-ink-secondary">
+                    {formatShortDate(summary.byDay[0].date)} · {money(summary.byDay[0].amount)}
+                  </p>
+                </Section>
+              )
+            )}
+          </>
+        )}
+
+        {/* Everything, itemised — also the accessible fallback for the charts */}
+        <section className="mt-10">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-display text-xl font-semibold text-ink-strong">
+              {t("cost.everyExpense")}
+            </h2>
+            <button
+              onClick={() => setShowTable((v) => !v)}
+              className="flex min-h-11 items-center gap-1.5 rounded-full border border-line-quiet bg-surface-raised px-3.5 text-sm font-semibold text-ink-secondary transition-colors hover:text-ink-strong"
+            >
+              {showTable ? <BarChart3 className="h-3.5 w-3.5" /> : <Table2 className="h-3.5 w-3.5" />}
+              {showTable ? t("cost.hideTable") : t("cost.showTable")}
+            </button>
+          </div>
+
+          {showTable && (
+            <div className="mt-3 overflow-x-auto rounded-xl border border-line-quiet bg-surface-raised">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b border-line-quiet text-xs text-ink-secondary">
+                  <tr>
+                    <th className="px-4 py-2 font-semibold">{t("cost.when")}</th>
+                    <th className="px-4 py-2 font-semibold">{t("cost.what")}</th>
+                    <th className="px-4 py-2 font-semibold">{t("cost.category")}</th>
+                    <th className="px-4 py-2 text-right font-semibold">{t("cost.amount")}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line-quiet">
+                  {summary.items.map((item, i) => (
+                    <tr key={`${item.label}-${i}`}>
+                      <td className="whitespace-nowrap px-4 py-2 text-xs text-ink-secondary">
+                        {item.date ? formatShortDate(item.date) : t("cost.beforeLeaving")}
+                      </td>
+                      <td className="px-4 py-2 text-ink-strong">
+                        {item.label}
+                        {/* A real space, not a margin. JSX drops the newline
+                            between these two, so the margin was the only thing
+                            separating them and copying the table gave you
+                            "GroceriesMoab". */}
+                        {item.location && (
+                          <> <span className="text-xs text-ink-secondary">{item.location}</span></>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-2">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-ink-secondary">
+                          <span
+                            className="h-2.5 w-2.5 rounded-sm"
+                            style={{ background: CATEGORY_STYLE[item.category].color }}
+                            aria-hidden
+                          />
+                          {catLabel(item.category)}
+                        </span>
+                      </td>
+                      {/* The converted figure leads, with what was actually
+                          handed over underneath it — and nothing but the
+                          original when no rate reaches it. */}
+                      <td className="whitespace-nowrap px-4 py-2 text-right">
+                        {item.base === undefined ? (
+                          <>
+                            <span className="font-display font-semibold text-ink-strong">
+                              {original(item.amount, item.currency)}
+                            </span>
+                            <span className="ml-1.5 rounded-full bg-coral-300 px-2 py-0.5 text-xs font-semibold text-on-bright">
+                              {t("cost.noRate")}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-display font-semibold text-ink-strong">
+                              {money(item.base)}
+                            </span>
+                            {item.currency !== currency && (
+                              <span className="block text-[11px] font-normal text-ink-secondary">
+                                {original(item.amount, item.currency)} {t("cost.spentIn")}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="border-t border-line-quiet bg-surface-base">
+                  <tr>
+                    <td colSpan={3} className="px-4 py-2 text-sm font-semibold text-ink-strong">
+                      {t("cost.total")}
+                    </td>
+                    <td className="px-4 py-2 text-right font-display font-semibold text-ink-strong">
+                      {money(summary.total)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <p className="mt-8 text-xs text-ink-secondary">
+          {t("cost.disclaimer", {
+            travellers,
+            currency: summary.baseCurrency,
+          })}
+        </p>
+        {approximate && (
+          <p className="mt-1.5 text-xs text-ink-secondary">
+            {asOf
+              ? t("currency.approxNote", { currency, base, date: asOf })
+              : t("currency.approxNoteUndated", { currency, base })}
+          </p>
+        )}
+        {/* A rate the archive supplied, not a person, names where it came
+            from — B543. A hand-typed rate has no entry here at all. */}
+        {Object.keys(summary.ratesFrom).length > 0 && (
+          <p className="mt-1.5 text-xs text-ink-secondary">
+            {t("cost.ratesFrom", {
+              list: Object.entries(summary.ratesFrom)
+                .map(([code, note]) => `${code} — ${note}`)
+                .join(", "),
+            })}
+          </p>
+        )}
+      </main>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  note,
+  children,
+}: {
+  title: string;
+  note?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-10">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">{title}</h2>
+      {note && <p className="mb-4 mt-0.5 text-xs text-ink-secondary">{note}</p>}
+      <div className={note ? "" : "mt-4"}>{children}</div>
+    </section>
+  );
+}
+
+/**
+ * The budget before departure: a plan, not a scoreboard.
+ *
+ * The same three numbers the author wrote down — what the trip is budgeted
+ * at, what a day of it is allowed, how many days it was drawn for — and what
+ * preparation has already taken out of it. No delta, no projection, no
+ * colour: there is nothing yet to be over or under. See B19.
+ */
+function PlannedBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: number }) {
+  const { t } = useI18n();
+  const { money } = useMoney();
+  // Preparation is real money and it is really gone, so the bar is honest —
+  // it is only the *pace* that has no meaning yet. Neutral, for the same
+  // reason: a colour here would be a verdict.
+  const used = budget.total > 0 ? Math.min(1, spent / budget.total) : 0;
+
+  return (
+    <section className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
+      <h2 className="font-display text-lg font-semibold text-ink-strong">{t("cost.budgetPlan")}</h2>
+
+      <div className="mt-4">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-surface-selected/50">
+          <div
+            className="h-full rounded-full transition-[width] duration-700"
+            style={{ width: `${used * 100}%`, background: "#5a6a80" }}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-ink-secondary">
+          {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
+        </p>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label={t("cost.budgetTotal")} value={money(budget.total)} />
+        <Stat label={t("cost.budgetPerDay")} value={money(budget.perDay)} />
+        <Stat label={t("cost.budgetDays")} value={String(budget.days)} />
+        <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
+      </dl>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-ink-secondary">
+        {t("cost.budgetNotePlanned")}
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The budget for a trip that is over — B1521.
+ *
+ * No pace bar, no "für heute" tick, no projection: there is no "so far" left
+ * to be ahead or behind on, and nothing left to forecast. Three numbers, all
+ * of them already final — what the trip cost, what it was meant to cost, and
+ * the difference — which is the whole of what AGENTS.md calls the honest
+ * panel for a finished trip.
+ */
+function PastBudgetPanel({ budget, spent }: { budget: BudgetStatus; spent: number }) {
+  const { t } = useI18n();
+  const { money } = useMoney();
+  const delta = spent - budget.total;
+  const over = delta > 0;
+  const used = budget.total > 0 ? Math.min(1, spent / budget.total) : 0;
+
+  return (
+    <section className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="font-display text-lg font-semibold text-ink-strong">{t("cost.budget")}</h2>
+        <p className={`font-display text-sm font-semibold ${over ? "text-coral-600" : "text-green-700"}`}>
+          {money(Math.abs(delta))} {over ? t("cost.overBudgetFinal") : t("cost.underBudgetFinal")}
+        </p>
+      </div>
+
+      <div className="mt-4">
+        <div className="h-3 w-full overflow-hidden rounded-full bg-surface-selected/50">
+          <div
+            className="h-full rounded-full"
+            style={{ width: `${used * 100}%`, background: over ? CATEGORY_STYLE.other.color : "#5a6a80" }}
+          />
+        </div>
+        <p className="mt-1.5 text-[11px] text-ink-secondary">
+          {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
+        </p>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <Stat label={t("cost.budgetTotal")} value={money(budget.total)} />
+        <Stat label={t("cost.budgetPerDay")} value={money(budget.perDay)} />
+        <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
+      </dl>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-ink-secondary">{t("cost.budgetNoteFinal")}</p>
+    </section>
+  );
+}
+
+function BudgetPanel({
+  budget,
+  pace,
+  spent,
+}: {
+  budget: BudgetStatus;
+  pace: BudgetPace;
+  spent: number;
+}) {
+  const { t } = useI18n();
+  const { money } = useMoney();
+  const delta = pace.deltaToDate;
+  // Anything inside a single day's allowance is noise, not a trend worth colouring.
+  const onPace = Math.abs(delta) < budget.perDay;
+  const under = delta < 0;
+  // The bar reports exactly one thing — how much of the whole budget is
+  // gone — so its length and colour must measure the same quantity. Pace
+  // (ahead of or behind plan) is a different fact, said in words and in the
+  // tick below rather than by recolouring the fill. B1268.
+  const used = budget.total > 0 ? Math.min(1, spent / budget.total) : 0;
+  const overBudget = budget.total > 0 && spent > budget.total;
+
+  const tone = {
+    text: onPace ? "text-ink-body" : under ? "text-green-700" : "text-coral-600",
+    // Neutral while there is budget left; the one colour this site uses for
+    // an alarm only once spending has actually passed the total, which is
+    // the one state the bar being full-and-red should mean.
+    bar: overBudget ? CATEGORY_STYLE.other.color : "#5a6a80",
+  };
+
+  // Where the plan says spending should stand today, as a tick on the same
+  // bar — the pace signal the colour used to carry, stated without
+  // recolouring the whole fill.
+  const expectedPct =
+    budget.total > 0 ? Math.min(1, Math.max(0, pace.expectedToDate / budget.total)) : null;
+
+  return (
+    <section className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="font-display text-lg font-semibold text-ink-strong">{t("cost.budget")}</h2>
+        <p className={`flex items-center gap-1.5 font-display text-sm font-semibold ${tone.text}`}>
+          {!onPace &&
+            (under ? (
+              <TrendingDown className="h-4 w-4" aria-hidden />
+            ) : (
+              <TrendingUp className="h-4 w-4" aria-hidden />
+            ))}
+          {onPace
+            ? t("cost.onPace")
+            : `${money(Math.abs(delta))} ${under ? t("cost.underBudget") : t("cost.overBudget")}`}
+        </p>
+      </div>
+
+      <div className="mt-4">
+        <div className="relative h-3 w-full overflow-hidden rounded-full bg-surface-selected/50">
+          <div
+            className="h-full rounded-full transition-[width] duration-700"
+            style={{ width: `${used * 100}%`, background: tone.bar }}
+          />
+          {expectedPct !== null && (
+            <div
+              className="absolute inset-y-0 w-px bg-overlay-strong/60"
+              style={{ left: `${expectedPct * 100}%` }}
+              aria-hidden
+            />
+          )}
+        </div>
+        <p className="mt-1.5 text-[11px] text-ink-secondary">
+          {Math.round(used * 100)}% {t("cost.ofBudget")} · {money(spent)} / {money(budget.total)}
+          {expectedPct !== null && (
+            <span className="sr-only">
+              {" "}
+              {t("cost.paceMark", { percent: String(Math.round(expectedPct * 100)) })}
+            </span>
+          )}
+        </p>
+      </div>
+
+      <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Stat label={t("cost.budgetTotal")} value={money(budget.total)} />
+        <Stat label={t("cost.budgetPerDay")} value={money(budget.perDay)} />
+        {/*
+         * The projection, only when there is enough recorded to build one
+         * (absent when most elapsed days are `unrecorded: [costs]`, B1521),
+         * and labelled with the denominator it stands on rather than shown
+         * as a bare franc figure — "hochgerechnet" beside "Tagesbudget"
+         * otherwise invites exactly the wrong reading: one is per costed day,
+         * the other per calendar day.
+         */}
+        {pace.projectedTotal !== undefined && (
+          <Stat
+            label={t("cost.projectedFrom", { days: String(pace.projectedFromDays) })}
+            value={money(pace.projectedTotal)}
+          />
+        )}
+        <Stat label={t("cost.remaining")} value={money(budget.remaining)} />
+      </dl>
+
+      <p className="mt-3 text-[11px] leading-relaxed text-ink-secondary">{t("cost.budgetNote")}</p>
+    </section>
+  );
+}
+
+function Stat({ label, value, hero = false }: { label: string; value: string; hero?: boolean }) {
+  return (
+    <div
+      className={`rounded-xl border px-4 py-3 ${
+        hero ? "border-yellow-600/40 bg-yellow-400/25" : "border-line-quiet bg-surface-raised"
+      }`}
+    >
+      <dt className="text-xs text-ink-secondary">{label}</dt>{" "}
+      <dd
+        className={`font-display font-semibold text-ink-strong ${hero ? "text-2xl" : "text-xl"}`}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}

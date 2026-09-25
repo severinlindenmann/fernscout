@@ -1,0 +1,4 @@
+/* B2196 — route recording's usage strings. Unread by a Hungarian speaker
+   yet, same as site/locales/hu.json's studio.record.* keys. */
+"NSLocationWhenInUseUsageDescription" = "A Fernscout rögzíti, hova mész egy olyan út során, amelyhez bekapcsoltad a rögzítést, hogy a naplód valódi térképet kapjon a megtett útvonalról.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "A Fernscout rögzíti, hova mész egy olyan út során, amelyhez bekapcsoltad a rögzítést, akkor is, amikor az alkalmazás a háttérben fut, hogy a naplód valódi térképet kapjon a megtett útvonalról.";

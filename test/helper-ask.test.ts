@@ -1,0 +1,518 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { clearConfigCache } from "@/lib/config";
+import { clearUserCache } from "@/lib/users";
+import { closeDatabase, getDatabase } from "@/lib/db";
+import { migrateToLatest } from "@/lib/db/migrate";
+import { balanceOf, grant, ledgerFor } from "@/lib/credits";
+import { clearIdempotencyStore } from "@/lib/idempotency";
+import type { Say } from "@/lib/helper/intents";
+import { runTool } from "@/lib/helper/tools";
+import { history } from "@/lib/helper/thread";
+import { storeInboxFile } from "@/lib/inbox";
+import { getTrips } from "@/lib/trips";
+import { writeDayFixture, writeTripFixture } from "./fixtures/content";
+import { WEB_CALLER } from "./support/callers";
+
+/**
+ * The one door a sentence goes through — B685, B889, and B900.
+ *
+ * **Nothing here reaches a network**: `answerInThread` is stubbed, because
+ * what a model answers is not assertable and everything that matters is on
+ * either side of it. The *tools* are real — the stub calls `runTool` — so a
+ * proposal in these assertions is the proposal the product makes.
+ *
+ * What is asserted is the discipline: a write proposes and the journal is
+ * untouched, the press is a second call to a route that already existed, the
+ * proposal is remembered so "no, the 14th" has something to correct, the door
+ * charges a flat credit a turn and nothing more (B1091), and a bearer token
+ * gets nowhere near it.
+ */
+
+const OWNER_EMAIL = "alex@example.test";
+
+const { resolveAccess } = vi.hoisted(() => ({
+  resolveAccess: vi.fn(async () => ({ email: OWNER_EMAIL as string | null })),
+}));
+vi.mock("@/lib/auth/handshake", () => ({ resolveAccess }));
+
+// A read-only answer is a sentence in the reader's own language, so the route
+// asks `requestLocale()`, which reads `next/headers` and throws outside a real
+// request scope. An empty jar is enough: it falls back to English, which is
+// what the assertions below read.
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+  headers: async () => new Headers(),
+}));
+
+const { answerInThread } = vi.hoisted(() => ({ answerInThread: vi.fn() }));
+vi.mock("@/lib/helper/model", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/helper/model")>()),
+  answerInThread,
+}));
+
+/** A turn that says something and calls one real tool — which is how a
+ *  proposal in this file is the product's own rather than a fixture's. */
+function turnCalling(name: string, args: Record<string, string>, answer = "Here it is.") {
+  return async (user: string, _said: string, _turns: unknown, today: string, say: Say) => {
+    const ran = await runTool(user, name, args, say, today, [], "", WEB_CALLER);
+    return {
+      answer,
+      looked: [name],
+      blocks: ran.blocks,
+      proposals: ran.proposal ? [ran.proposal] : [],
+    };
+  };
+}
+
+const { POST } = await import("@/app/api/helper/[user]/ask/route");
+const { POST: tripRoute } = await import("@/app/api/helper/[user]/trip/route");
+const { POST: consentRoute } = await import("@/app/api/helper/[user]/consent/route");
+const { POST: proposalRoute } = await import("@/app/api/helper/[user]/proposal/route");
+
+let dir: string;
+const params = { params: Promise.resolve({ user: "alex" }) };
+
+function post(url: string, body: unknown, headers: Record<string, string> = {}) {
+  return new Request(url, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...headers },
+    body: JSON.stringify(body),
+  });
+}
+
+function ask(said: string, headers: Record<string, string> = {}) {
+  return POST(post("https://t.test/api/helper/alex/ask", { said, today: "2026-09-07" }, headers), params);
+}
+
+async function read(response: Response) {
+  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+}
+
+beforeEach(async () => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-ask-"));
+  process.env.CONTENT_DIR = dir;
+  process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
+  process.env.SESSION_SECRET = "helper-ask-secret-b685";
+  process.env.ANTHROPIC_API_KEY = "not-a-real-key";
+  resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
+  answerInThread.mockReset();
+  clearIdempotencyStore();
+
+  fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "alex", "config.json"),
+    JSON.stringify({
+      title: "Alex",
+      tagline: "t",
+      owner: { name: "A B", nickname: "A", email: OWNER_EMAIL },
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF",
+    }),
+  );
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "T", url: "https://t.test" },
+      features: { auth: { enabled: true }, credits: { enabled: true }, helper: { enabled: true } },
+    }),
+  );
+  clearConfigCache();
+  clearUserCache();
+  await migrateToLatest(await getDatabase());
+  await grant("alex", 10);
+  await consentRoute(new Request("https://t.test/api/helper/alex/consent", { method: "POST" }), params);
+});
+
+afterEach(async () => {
+  await closeDatabase();
+  delete process.env.CONTENT_DIR;
+  delete process.env.DATABASE_URL;
+  delete process.env.ANTHROPIC_API_KEY;
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+/**
+ * What is selected in the files pane — B902.
+ *
+ * The claim is not that a model does anything useful with it; that is the
+ * model's. The claim is that the sentence going out carries what the person
+ * pointed at, resolved from **disk** rather than from the request, and that
+ * what is remembered afterwards is still only what they said.
+ */
+describe("the whole file, kept in written order", { shuffle: false }, () => {
+  describe("a selection is referable from a sentence", { shuffle: false }, () => {
+    beforeEach(() => {
+      // A fixed answer: what the model *says* is not the claim here, and an
+      // echo would put the context line into the thread through the reply
+      // rather than through the person's own turn.
+      answerInThread.mockImplementation(async () => ({
+        answer: "Right you are.",
+        looked: [],
+        blocks: [],
+        proposals: [],
+      }));
+    });
+
+    function askWith(said: string, selected: string[]) {
+      return POST(
+        post("https://t.test/api/helper/alex/ask", { said, today: "2026-09-07", selected }),
+        params,
+      );
+    }
+
+    test("what was selected goes to the model beside their words", async () => {
+      const stored = storeInboxFile("alex", "files", "statement.csv", Buffer.from("a,b\n"), {});
+      const routed = await read(await askWith("what is this", [`inbox:${stored.entry.id}`]));
+      expect(routed.status).toBe(200);
+      const sent = answerInThread.mock.calls[0][1] as string;
+      expect(sent.startsWith("what is this\n[")).toBe(true);
+      expect(sent).toContain("statement.csv");
+    });
+
+    test("an id nothing answers to reaches the model as nothing at all", async () => {
+      await askWith("what is this", ["inbox:nope", "photo:no:such"]);
+      expect(answerInThread.mock.calls[0][1]).toBe("what is this");
+    });
+
+    test("the thread remembers their sentence, not the selection", async () => {
+      const stored = storeInboxFile("alex", "files", "statement.csv", Buffer.from("a,b\n"), {});
+      await askWith("what is this", [`inbox:${stored.entry.id}`]);
+      const said = (await history("alex")).map((turn) => turn.text);
+      expect(said[0]).toBe("what is this");
+      expect(said.join("\n")).not.toContain("statement.csv");
+    });
+  });
+
+  describe("a write tool proposes", () => {
+    beforeEach(() => {
+      answerInThread.mockImplementation(
+        turnCalling("create_trip", {
+          title: "Japan",
+          start: "2027-03-01",
+          end: "2027-03-31",
+          // B1660 — asked and declined, the same "none" sentinel `start_day`'s
+          // own four rows use (B1650). A press silent on any of these is
+          // refused (`incomplete_trip`), so a model that answered nothing
+          // would never reach a proposal at all in real use; these tests are
+          // about what happens once it has.
+          accent: "none",
+          tagline: "none",
+          intro: "none",
+          rates: "none",
+        }),
+      );
+    });
+
+    test("it comes back as fields to press on, and writes nothing", async () => {
+      const routed = await read(await ask("make a new trip to Japan in March"));
+      expect(routed.status).toBe(200);
+      const proposals = routed.body.proposals as Record<string, unknown>[];
+      expect(proposals).toHaveLength(1);
+      expect(proposals[0].tool).toBe("create_trip");
+      expect(proposals[0].endpoint).toBe("/api/helper/alex/trip");
+      expect(proposals[0].method).toBe("POST");
+      expect(proposals[0].fields).toEqual([
+        { name: "title", value: "Japan" },
+        { name: "start", value: "2027-03-01", date: true },
+        { name: "end", value: "2027-03-31", date: true },
+        // "alex" is a public journal, so the card opens on the value the
+        // server would write anyway — B1342 (E04 A).
+        expect.objectContaining({ name: "visibility", value: "public" }),
+        // B1660 — carried through fixed, exactly as the model was told, never
+        // shown as a button to press past.
+        { name: "accent", value: "none", fixed: true },
+        { name: "tagline", value: "none", fixed: true },
+        { name: "intro", value: "none", fixed: true },
+        { name: "rates", value: "none", fixed: true },
+      ]);
+      // The whole point: a turn ran and the journal is untouched.
+      expect(getTrips("alex")).toHaveLength(0);
+    });
+
+    test("who may read it is asked in words, never defaulted silently", async () => {
+      const routed = await read(await ask("new trip"));
+      const fields = (routed.body.proposals as { fields: { name: string; options?: { label: string }[] }[] }[])[0]
+        .fields;
+      const visibility = fields.find((field) => field.name === "visibility");
+      const labels = (visibility?.options ?? []).map((option) => option.label);
+      expect(labels).toHaveLength(3);
+      // The two closed ones are told apart by what they mean, not by their name.
+      expect(labels.join(" ")).toContain("let into this journal");
+      expect(labels.join(" ")).toContain("on the trip");
+    });
+
+    test("only the press writes it, at the route the proposal named", async () => {
+      const routed = await read(await ask("make a new trip to Japan in March"));
+      const proposal = (routed.body.proposals as { endpoint: string; fields: { name: string; value: string }[] }[])[0];
+      const created = await read(
+        await tripRoute(
+          post(
+            `https://t.test${proposal.endpoint}`,
+            Object.fromEntries(proposal.fields.map((f) => [f.name, f.value])),
+          ),
+          params,
+        ),
+      );
+      expect(created.status).toBe(201);
+      expect(created.body.id).toBe("japan-2027");
+      expect(getTrips("alex").map((t) => t.title)).toEqual(["Japan"]);
+      expect(getTrips("alex")[0].visibility).toBe("public");
+    });
+
+    test("the proposal is remembered, so a correction has something to correct", async () => {
+      await ask("make a new trip to Japan in March");
+      const remembered = (await history("alex"))
+        .map((turn) => turn.text)
+        .join("\n");
+      expect(remembered).toContain("create_trip");
+      expect(remembered).toContain("2027-03-31");
+      // And it is remembered as a proposal rather than as a fact.
+      expect(remembered).toContain("not written");
+    });
+
+    test("an argument the tool never declared is dropped rather than shown", async () => {
+      answerInThread.mockImplementation(
+        turnCalling("create_trip", { title: "Japan", teaser: "true" } as Record<string, string>),
+      );
+      const routed = await read(await ask("new trip"));
+      const proposed = (routed.body.proposals as { arguments: Record<string, string> }[])[0]
+        .arguments;
+      expect(proposed).not.toHaveProperty("teaser");
+      // The declared ones are all there — since B935 the arguments are the whole
+      // of what a press sends, fields and defaults included. `accent`/
+      // `tagline`/`intro`/`rates` (B1660) are absent rather than `""`: the
+      // model said nothing about them, `argumentsOf` only keeps a non-empty
+      // string, and `create_trip`'s own `fields` never adds one nobody
+      // answered either (never a pre-filled default to press past).
+      expect(proposed).toEqual({ title: "Japan", start: "", end: "", visibility: "public" });
+    });
+  });
+
+  describe("a read tool runs", () => {
+    test("it answers on the spot, with nothing to press", async () => {
+      answerInThread.mockImplementation(turnCalling("trips", {}, "You have no trips yet."));
+      const routed = await read(await ask("show me my trips"));
+      expect(routed.body.answer).toBe("You have no trips yet.");
+      expect(routed.body.proposals).toEqual([]);
+    });
+  });
+
+  describe("what it costs", () => {
+    // B1091: a flat `HELPER_TURN_CREDITS` (0.02) a turn, under its own
+    // `ask_thread` ledger reason — the door is no longer free, and this file's
+    // own module doc above is corrected to say so.
+    test("a flat credit a turn, and nothing more for whatever the turn does", async () => {
+      answerInThread.mockImplementation(turnCalling("account", {}, "Ten credits."));
+      await ask("how much storage do I have");
+      await ask("and again");
+      expect(await balanceOf("alex")).toBeCloseTo(9.96, 5);
+      const rows = await ledgerFor("alex");
+      expect(rows.filter((row) => row.reason === "ask_thread")).toHaveLength(2);
+      expect(rows).toHaveLength(3); // the grant, and two turns
+    });
+
+    test("proposing a write costs the same flat turn credit, however many times", async () => {
+      answerInThread.mockImplementation(
+        turnCalling("draft_words", { notes: "we walked to the harbour" }),
+      );
+      await ask("write up yesterday");
+      await ask("no, the day before");
+      await ask("actually leave it");
+      // Three turns, none of which pressed the proposal — pressing (and its
+      // own price) is a separate route this file never calls.
+      expect(await balanceOf("alex")).toBeCloseTo(9.94, 5);
+    });
+
+    /**
+     * B1663 — a double-tap, a flaky connection or a client retry must not
+     * spend the credit or run the model twice. `write-day`'s own idempotency
+     * test is the model for this one: a supplied key that repeats gets the
+     * first turn's answer back, verbatim, and the model is asked once.
+     */
+    test("a retry under the same idempotency key is answered once, not charged again", async () => {
+      answerInThread.mockImplementation(turnCalling("account", {}, "Ten credits."));
+      const call = async () =>
+        read(
+          await POST(
+            post("https://t.test/api/helper/alex/ask", {
+              said: "how much storage do I have",
+              today: "2026-09-07",
+              idempotency_key: "same-tap",
+            }),
+            params,
+          ),
+        );
+      const first = await call();
+      const again = await call();
+      expect(again.status).toBe(200);
+      expect(again.body).toEqual(first.body);
+      expect(answerInThread).toHaveBeenCalledTimes(1);
+      expect(await balanceOf("alex")).toBeCloseTo(9.98, 5);
+    });
+  });
+
+  describe("the door", () => {
+    test("a bearer token is refused — this is a cookie route", async () => {
+      resolveAccess.mockResolvedValue({ email: null });
+      const refused = await read(await ask("how much storage", { authorization: "Bearer whatever" }));
+      expect(refused.status).toBe(404);
+      expect(answerInThread).not.toHaveBeenCalled();
+    });
+
+    test("with the capability off the route refuses rather than failing", async () => {
+      fs.writeFileSync(
+        path.join(dir, "config.json"),
+        JSON.stringify({
+          site: { name: "T", url: "https://t.test" },
+          features: { auth: { enabled: true }, credits: { enabled: true } },
+        }),
+      );
+      clearConfigCache();
+      clearUserCache();
+      const refused = await read(await ask("how much storage"));
+      expect(refused.status).toBe(404);
+      expect(refused.body.error).toBe("helper_unavailable");
+      expect(answerInThread).not.toHaveBeenCalled();
+    });
+
+    test("the sentence is not sent before somebody has consented", async () => {
+      const { revokeHelperConsent } = await import("@/lib/helper/consent");
+      revokeHelperConsent("alex", "words");
+      const refused = await read(await ask("how much storage"));
+      expect(refused.status).toBe(403);
+      expect(refused.body.error).toBe("consent_required");
+      expect(answerInThread).not.toHaveBeenCalled();
+    });
+
+    /**
+     * B1039 — this used to cut a long message to 500 characters and send the
+     * front half on, with nothing telling the person or the model that
+     * anything was missing. Past the ceiling it now refuses outright, and
+     * `answerInThread` never sees the sentence at all — the model must never
+     * be handed less than a person typed while believing it has the whole
+     * thing.
+     */
+    test("a message past the ceiling is refused, not quietly shortened", async () => {
+      const long = "a".repeat(4001);
+      const refused = await read(await ask(long));
+      expect(refused.status).toBe(400);
+      expect(refused.body.error).toBe("too_long");
+      expect(refused.body.limit).toBe(4000);
+      expect(answerInThread).not.toHaveBeenCalled();
+    });
+
+    test("a message right at the ceiling still goes through, whole", async () => {
+      answerInThread.mockImplementation(async () => ({
+        answer: "Right you are.",
+        looked: [],
+        blocks: [],
+        proposals: [],
+      }));
+      const atCeiling = "a".repeat(4000);
+      const ok = await read(await ask(atCeiling));
+      expect(ok.status).toBe(200);
+      expect(answerInThread).toHaveBeenCalledTimes(1);
+      const sentSentence = answerInThread.mock.calls[0][1] as string;
+      expect(sentSentence).toBe(atCeiling);
+    });
+  });
+
+  /**
+   * The chain — B900.
+   *
+   * `draft_words` asks the model for prose and writes nothing; keeping those
+   * words is a second proposal with a second button. What matters is that the
+   * second half is an ordinary proposal on the same screen rather than a quieter
+   * way to write: same fields, same route, same press.
+   */
+  describe("one accepted write handing on to the next", () => {
+    /**
+     * The day has to be **there** — B940.
+     *
+     * This used to run against a journal with no trips at all, and got a
+     * proposal anyway: `resolveTrip` fell through to the newest trip, found
+     * none, and the trip field took the model's own word for it. So the
+     * assertion below was passing on a proposal to rewrite a day that did not
+     * exist, in a trip that did not exist. The chain is what is under test, and
+     * a chain needs something to be chained to.
+     */
+    beforeEach(() => {
+      writeTripFixture("alex", {
+        id: "reise",
+        title: "Die Reise",
+        start: "2026-05-01",
+        end: "2026-05-10",
+        visibility: "private",
+        intro: "Intro.",
+      });
+      writeDayFixture(dir, "alex", "reise", {
+        slug: "one",
+        date: "2026-05-01",
+        title: "Der erste Tag",
+        status: "draft",
+        content: "Worte.",
+      });
+      clearUserCache();
+    });
+
+    test("the next proposal is asked for by name, and writes nothing itself", async () => {
+      const answered = await read(
+        await proposalRoute(
+          post("https://t.test/api/helper/alex/proposal", {
+            tool: "set_day_words",
+            arguments: { trip: "reise", slug: "one", title: "Der erste Tag", content: "Worte." },
+          }),
+          params,
+        ),
+      );
+      expect(answered.status).toBe(200);
+      const proposal = answered.body.proposal as Record<string, unknown>;
+      expect(proposal.endpoint).toBe("/api/helper/alex/day");
+      expect(proposal.method).toBe("PATCH");
+      expect(proposal.fields).toContainEqual({ name: "content", value: "Worte.", long: true });
+    });
+
+    test("a read tool has nothing to propose, and is refused rather than run", async () => {
+      const refused = await read(
+        await proposalRoute(
+          post("https://t.test/api/helper/alex/proposal", { tool: "trips", arguments: {} }),
+          params,
+        ),
+      );
+      expect(refused.status).toBe(404);
+      expect(refused.body.error).toBe("unknown_tool");
+    });
+
+    /**
+     * The second job this route used to have, and no longer does — B939.
+     *
+     * `wrote: true` was how the *browser* told the conversation a press had gone
+     * through, and it was the only thing doing so: a caller that was not our own
+     * page was told on the next turn that nothing had been saved. The routes
+     * that write say so themselves now (`test/helper-write-notes.test.ts`), so
+     * the flag means nothing here — and what matters is that it means nothing
+     * *and writes nothing*, rather than becoming a way to put a claim about a
+     * write into a conversation without one having happened.
+     */
+    test("claiming a write happened neither writes one nor records one", async () => {
+      const told = await read(
+        await proposalRoute(
+          post("https://t.test/api/helper/alex/proposal", {
+            tool: "create_trip",
+            arguments: { title: "Japan" },
+            wrote: true,
+          }),
+          params,
+        ),
+      );
+      expect(told.status).toBe(200);
+      // The one the fixture wrote, and no Japan.
+      expect(getTrips("alex").map((trip) => trip.id)).toEqual(["reise"]);
+      expect((await history("alex")).map((turn) => turn.text).join("\n")).not.toContain("written:");
+    });
+  });
+});

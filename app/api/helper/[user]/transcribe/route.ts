@@ -1,0 +1,170 @@
+import { isEnabled } from "@/lib/capabilities";
+import { hasHelperConsent } from "@/lib/helper/consent";
+import { isHelperOwner, notYourJournal } from "@/lib/helper/server";
+import {
+  MAX_AUDIO_BYTES,
+  MAX_SPEECH_SECONDS,
+  SPEECH_LANGUAGES,
+  speechLanguageFor,
+} from "@/lib/helper/speech";
+import { speechProvider } from "@/lib/helper/transcribe";
+import { spendAndTranscribe } from "@/lib/helper/transcribeSpend";
+import { fingerprintOf, idempotencyKey, recall, remember } from "@/lib/idempotency";
+import { defaultLocaleFor } from "@/lib/locales";
+import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { readJsonBody } from "@/lib/api/jsonBody";
+
+export const dynamic = "force-dynamic";
+
+/**
+ * A recording in, words out, and the recording gone — B686.
+ *
+ * The same shape as `day/write-day` and `day/describe-photos`, and the same
+ * gate order for the same reasons: owner (cookie only, bearer refused), the
+ * capability, the rate limit, consent, idempotency, the spend, and only then
+ * the provider — each gate cheaper than the next, so the expensive one is the
+ * only one that can fail after money has moved.
+ *
+ * **Nothing is written to disk, at any point.** The bytes live in this
+ * request and die with it: no file under `contentRoot()`, none under
+ * `dataDir()`, no temporary anywhere. What the person asked for is the
+ * transcript, which is returned and goes into their draft if they keep it;
+ * a saved copy of somebody's voice is a thing nobody agreed to.
+ *
+ * **The language is passed explicitly and is never detected.** It comes from
+ * the journal, with the reader's own UI language as a fallback and an override
+ * on the button — `lib/helper/speech.ts` sets out why automatic detection is
+ * the one choice that fails silently for half the languages this exists for.
+ */
+
+/** Fifteen minutes, and more holds than a person on a bus makes. A brake on a
+ *  script; the credit is the quota. */
+const LIMIT = { max: 30, windowMs: 15 * 60 * 1000 };
+
+/** What a browser's `MediaRecorder` actually produces, plus what a phone
+ *  might. Anything else is refused before a byte is sent anywhere. */
+/** The body carries the recording as base64 — four bytes per three — so its
+ *  own JSON ceiling is the audio limit's base64 size plus room for the other
+ *  fields (B2243), not the 4 MB every other JSON door gets. Past it, the
+ *  audio would be refused as `audio_too_large` anyway. */
+const TRANSCRIBE_BODY_MAX_BYTES = Math.ceil(MAX_AUDIO_BYTES / 3) * 4 + 64 * 1024;
+
+const AUDIO_TYPES = ["audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav"];
+
+/** The shape `newRunId` (`lib/staging/manifest.ts`) produces. Anything else
+ *  is ignored rather than refused — a recording is still a recording. */
+const RUN_ID_RE = /^[A-Za-z0-9_-]{1,64}$/;
+
+function text(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export async function POST(
+  request: Request,
+  { params }: RouteContext<"/api/helper/[user]/transcribe">,
+) {
+  const { user } = await params;
+  if (!(await isHelperOwner(user))) {
+    return notYourJournal(request, user);
+  }
+  if (!isEnabled("transcription", user)) {
+    return Response.json({ error: "transcription_unavailable" }, { status: 404 });
+  }
+
+  const limited = rateLimitFor("helper-transcribe", clientIp(request), LIMIT);
+  if (!limited.ok) {
+    return Response.json(
+      { error: "too_many_requests" },
+      { status: 429, headers: { "retry-after": String(limited.retryAfter) } },
+    );
+  }
+
+  const jsonBody = await readJsonBody(request, TRANSCRIBE_BODY_MAX_BYTES);
+  if (!jsonBody.ok) return jsonBody.response;
+  const body = (jsonBody.value) as Record<string, unknown> | null;
+  if (!body) return Response.json({ error: "invalid_json" }, { status: 400 });
+
+  // The media type is checked before the bytes are decoded, and the bytes
+  // before anything is charged for them.
+  const mediaType = text(body.mediaType).split(";")[0].toLowerCase();
+  if (!AUDIO_TYPES.includes(mediaType)) {
+    return Response.json({ error: "unsupported_audio", accepted: AUDIO_TYPES }, { status: 400 });
+  }
+  const audio = Buffer.from(text(body.audio), "base64");
+  if (audio.byteLength === 0) return Response.json({ error: "no_audio" }, { status: 400 });
+  if (audio.byteLength > MAX_AUDIO_BYTES) {
+    return Response.json({ error: "audio_too_large", maxBytes: MAX_AUDIO_BYTES }, { status: 413 });
+  }
+
+  const claimed = typeof body.seconds === "number" && Number.isFinite(body.seconds) ? body.seconds : 0;
+  if (claimed > MAX_SPEECH_SECONDS) {
+    return Response.json(
+      { error: "recording_too_long", maxSeconds: MAX_SPEECH_SECONDS },
+      { status: 400 },
+    );
+  }
+
+  const language = speechLanguageFor(text(body.language), defaultLocaleFor(user), text(body.locale));
+  if (!language) {
+    return Response.json(
+      { error: "unsupported_language", supported: [...SPEECH_LANGUAGES] },
+      { status: 400 },
+    );
+  }
+
+  // A voice is neither the words somebody typed nor their photographs, and it
+  // goes to a different company than either — so consent to those is not
+  // consent to this. B687's split, extended in B686.
+  if (!hasHelperConsent(user, "speech")) {
+    return Response.json({ error: "consent_required" }, { status: 403 });
+  }
+
+  const supplied = text(body.idempotency_key);
+  const key = supplied === "" ? null : idempotencyKey(user, "helper.transcribe", supplied);
+  // The audio's own length and bytes, not the recording itself: a fingerprint
+  // is held in memory and this one must not be a copy of somebody's voice.
+  const fingerprint = fingerprintOf({ bytes: audio.byteLength, language, seconds: claimed });
+  const recalled = await recall<Record<string, unknown>>(key, fingerprint);
+  if (recalled.kind === "replay") return Response.json(recalled.value);
+  if (recalled.kind === "conflict") {
+    return Response.json({ error: "idempotency_conflict" }, { status: 409 });
+  }
+
+  // Spend, call, refund on failure, reconcile to what was actually
+  // measured — the whole money path, shared with the WhatsApp door
+  // (B1060) through `lib/helper/transcribe.ts:spendAndTranscribe` rather
+  // than kept here as a copy for it to drift from.
+  // The import run this recording belongs to, when the caller is inside one
+  // — B1803 final review, finding 4. It reaches nothing but the ledger ref,
+  // and the shape is checked here rather than trusted: a run id is what
+  // `newRunId` produces, and nothing else becomes part of a ledger row.
+  const run = text(body.run);
+  const runId = RUN_ID_RE.test(run) ? run : undefined;
+  const outcome = await spendAndTranscribe(user, audio, mediaType, language, claimed, runId);
+  if (!outcome.ok) {
+    const status =
+      outcome.error === "no_credits" ? 402 : outcome.error === "recording_too_long" ? 400 : 502;
+    return Response.json({ error: outcome.error }, { status });
+  }
+
+  const answer = {
+    ok: true,
+    text: outcome.text,
+    language,
+    spent: outcome.spent,
+    provider: speechProvider(),
+    // The check-the-wording screen's own highlight (B1803 Task 3.4) —
+    // absent whenever nothing was measured confident enough to flag, never
+    // guessed here or on the client. `uncertainWordOccurrence` (fix round 2)
+    // is which occurrence of that word this is, so a repeated word on the
+    // client is not always resolved to its first appearance.
+    ...(outcome.uncertainWord
+      ? {
+          uncertainWord: outcome.uncertainWord.word,
+          uncertainWordOccurrence: outcome.uncertainWord.occurrence,
+        }
+      : {}),
+  };
+  await remember(key, fingerprint, answer);
+  return Response.json(answer);
+}

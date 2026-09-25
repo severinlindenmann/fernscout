@@ -1,0 +1,220 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fernscout upload probe (B1750)</title>
+<!--
+  Throwaway. B1750 asks three questions no laptop can answer: does a phone keep
+  EXIF through a file pick, how many files survive one upload, and can a PWA
+  finish one in the background. Plain HTML in public/ rather than a route, so
+  it shadows no username and is deleted by deleting one file.
+-->
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 1.2rem; max-width: 46rem; }
+  h1 { font-size: 1.2rem; margin: 0 0 .2rem; }
+  p.sub { margin: 0 0 1.2rem; opacity: .7; font-size: .9rem; }
+  label.pick { display: block; padding: 1.4rem; border: 2px dashed currentColor; border-radius: .6rem;
+               text-align: center; opacity: .8; margin-bottom: 1rem; }
+  input[type=file] { display: block; margin: .6rem auto 0; }
+  button { font: inherit; padding: .7rem 1.2rem; border-radius: .5rem; border: 1px solid currentColor;
+           background: transparent; color: inherit; }
+  button[disabled] { opacity: .4; }
+  #log { white-space: pre-wrap; font: 12px/1.45 ui-monospace, monospace; margin-top: 1rem;
+         padding: .8rem; border-radius: .5rem; background: rgba(127,127,127,.12); }
+  .row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; }
+  progress { width: 100%; height: .6rem; }
+</style>
+
+<h1>Upload probe</h1>
+<p class="sub">Pick photographs — as many as the picker will give — and press upload.
+Nothing here becomes part of a journal; the files are deleted after 48 hours.</p>
+
+<label class="pick">
+  Choose photographs
+  <input id="pick" type="file" multiple accept="image/*,video/*">
+</label>
+
+<div class="row">
+  <button id="go" disabled>Upload</button>
+  <label><input id="awake" type="checkbox" checked> keep the screen awake</label>
+  <span id="chosen"></span>
+</div>
+<progress id="bar" value="0" max="1" hidden></progress>
+<div id="log">ready</div>
+
+<script>
+// ---------------------------------------------------------------------------
+// Question 3, answered before anything is uploaded: what does this platform
+// actually support? Recorded rather than assumed — the whole point of B1750.
+// ---------------------------------------------------------------------------
+const support = {
+  userAgent: navigator.userAgent,
+  platform: navigator.platform,
+  standalone: window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true,
+  serviceWorker: 'serviceWorker' in navigator,
+  backgroundSync: 'ServiceWorkerRegistration' in window
+    && 'sync' in ServiceWorkerRegistration.prototype,
+  backgroundFetch: 'ServiceWorkerRegistration' in window
+    && 'backgroundFetch' in ServiceWorkerRegistration.prototype,
+  periodicSync: 'ServiceWorkerRegistration' in window
+    && 'periodicSync' in ServiceWorkerRegistration.prototype,
+  keepalive: 'keepalive' in new Request(location.href),
+  wakeLock: 'wakeLock' in navigator,
+  deviceMemory: navigator.deviceMemory ?? null,
+  screen: `${screen.width}x${screen.height}@${devicePixelRatio}`,
+};
+
+const key = new URLSearchParams(location.search).get('k') || '';
+const runId = (new URLSearchParams(location.search).get('run') || '')
+  || `run-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+// Ten, not the server's sixty. A batch is one request with no progress of its
+// own, so a big one on mobile data is a long silence; ten phone photographs is
+// around 40 MB, and a dropped connection costs that rather than the selection.
+const BATCH = 10;
+
+// Keep the screen on for the duration of an upload.
+//
+// Asked for after the 99-file run: a long upload means standing there keeping
+// the phone awake, because a sleeping screen backgrounds the tab and iOS
+// suspends a backgrounded tab's network. Whether it stalls outright is exactly
+// what question 3 still has to observe — this is so the person can choose not
+// to find out the hard way.
+//
+// The system drops the lock whenever the page is hidden and does not hand it
+// back, so it has to be re-taken on the way in. Without that it silently
+// protects only until the first interruption.
+let lock = null;
+let uploading = false;
+async function keepAwake(on) {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    if (on && !lock) {
+      lock = await navigator.wakeLock.request('screen');
+      lock.addEventListener('release', () => { lock = null; });
+      log('[wake] screen lock held');
+    } else if (!on && lock) {
+      await lock.release();
+      lock = null;
+      log('[wake] screen lock released');
+    }
+  } catch (err) {
+    // Refused (low battery, no user gesture, unsupported in this context). Not
+    // fatal — it just means the person has to keep the phone awake themselves.
+    log(`[wake] refused: ${err.message}`);
+  }
+}
+
+const pick = document.getElementById('pick');
+const awake = document.getElementById('awake');
+const go = document.getElementById('go');
+const bar = document.getElementById('bar');
+const logEl = document.getElementById('log');
+const chosen = document.getElementById('chosen');
+let lines = [];
+function log(msg) {
+  lines.push(msg);
+  logEl.textContent = lines.join('\n');
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+log('run ' + runId);
+log(JSON.stringify(support, null, 1));
+if (!key) log('WARNING: no ?k= token in the URL — every upload will 404.');
+if (!support.wakeLock) {
+  awake.checked = false;
+  awake.disabled = true;
+  log('No Screen Wake Lock on this browser — keep the screen on yourself.');
+}
+
+// Did the page get backgrounded mid-upload, and did the upload survive it?
+// Question 3 for the platforms with no Background Sync at all, which is the
+// answer we expect on iOS.
+const visibility = [];
+document.addEventListener('visibilitychange', () => {
+  visibility.push({ state: document.visibilityState, at: Date.now() });
+  log(`[visibility] ${document.visibilityState}`);
+  // The system drops the lock on hide and does not give it back on show.
+  if (document.visibilityState === 'visible' && uploading && awake.checked) keepAwake(true);
+});
+
+pick.addEventListener('change', () => {
+  const files = [...pick.files];
+  const bytes = files.reduce((n, f) => n + f.size, 0);
+  chosen.textContent = `${files.length} files, ${(bytes / 1048576).toFixed(1)} MB`;
+  go.disabled = files.length === 0;
+  log(`[pick] ${files.length} files, ${(bytes / 1048576).toFixed(1)} MB`);
+  // Question 2 starts here: whatever the picker refused is invisible to us, so
+  // the number the person selected and the number that arrived both matter.
+  for (const f of files.slice(0, 5)) {
+    log(`  ${f.name} ${f.type || '(no type)'} ${(f.size / 1024).toFixed(0)}kB ` +
+        `mtime=${new Date(f.lastModified).toISOString()}`);
+  }
+  if (files.length > 5) log(`  … and ${files.length - 5} more`);
+});
+
+async function send(batch, index) {
+  const body = new FormData();
+  body.append('run', runId);
+  for (const f of batch) body.append('file', f, f.name);
+  body.append('client', JSON.stringify({ support, visibility, batch: index }));
+  const bytes = batch.reduce((n, f) => n + f.size, 0);
+  log(`[batch ${index}] sending ${batch.length} files, ${(bytes / 1048576).toFixed(1)} MB…`);
+  const started = performance.now();
+  // Deliberately no `keepalive` — it caps the body at 64 kB, which is one
+  // thumbnail. Whether a batch in flight survives the tab being backgrounded
+  // is therefore the browser's ordinary behaviour, which is exactly the thing
+  // B1750 wants observed rather than configured around.
+  const res = await fetch(`/api/probe/upload?k=${encodeURIComponent(key)}`, {
+    method: 'POST',
+    body,
+  });
+  const secs = ((performance.now() - started) / 1000).toFixed(1);
+  if (!res.ok) throw new Error(`batch ${index}: HTTP ${res.status} ${await res.text()}`);
+  const json = await res.json();
+  const withGps = json.report.filter((r) => r.hasGps).length;
+  const withTime = json.report.filter((r) => r.hasTakenAt).length;
+  const containers = [...new Set(json.report.map((r) => r.container))].join(', ');
+  log(`[batch ${index}] ${json.count} files in ${secs}s — ` +
+      `${withGps} with GPS, ${withTime} with a timestamp, containers: ${containers}`);
+  return json;
+}
+
+go.addEventListener('click', async () => {
+  const files = [...pick.files];
+  go.disabled = true;
+  uploading = true;
+  if (awake.checked) await keepAwake(true);
+  bar.hidden = false;
+  bar.max = files.length;
+  bar.value = 0;
+  const started = performance.now();
+  let done = 0;
+  try {
+    for (let i = 0; i < files.length; i += BATCH) {
+      await send(files.slice(i, i + BATCH), i / BATCH);
+      done = Math.min(i + BATCH, files.length);
+      bar.value = done;
+    }
+    const secs = ((performance.now() - started) / 1000).toFixed(1);
+    log(`[done] ${done}/${files.length} files in ${secs}s. Run id: ${runId}`);
+  } catch (err) {
+    log(`[FAILED after ${done}/${files.length}] ${err.message}`);
+    if (err instanceof TypeError) {
+      // fetch rejects with a bare TypeError ("Load failed" on Safari, "Failed
+      // to fetch" elsewhere) when the connection closed instead of answering,
+      // so there is no status to report. The proxy cutting an oversized body
+      // looks exactly like the signal dropping — B1750's first run was the
+      // former and read as the latter.
+      log('No HTTP status: the connection closed rather than answered. Either ' +
+          'the proxy refused the body size, or the link dropped. Say which ' +
+          'batch size it died on.');
+    }
+    log('That failure is a finding — say what you were doing when it happened.');
+  } finally {
+    uploading = false;
+    await keepAwake(false);
+    go.disabled = false;
+  }
+});
+</script>

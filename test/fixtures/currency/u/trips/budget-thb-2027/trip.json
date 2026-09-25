@@ -1,0 +1,18 @@
+{
+  "id": "budget-thb-2027",
+  "title": "A budget in a currency with no rate",
+  "dates": {
+    "from": "2027-01-01",
+    "to": "2027-01-01"
+  },
+  "accent": "navy",
+  "intro": "The rate table is empty, and the budget is in baht.",
+  "costs": {
+    "budget": {
+      "total": 50000,
+      "days": 10,
+      "currency": "THB"
+    },
+    "note": "No preparation spend."
+  }
+}

@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 440" width="1280" height="440" role="img" aria-label="Fernscout — a travel journal your agent writes. A trail across the image marks three stops: a voice note, the day written up, a card and a book in the post.">
+  <!-- Copyright 2026 Severin Lindenmann. The Fernscout wordmark and waymark
+       are not licensed for use as the identity of another project or
+       product. See TRADEMARK.md and the BRAND ASSETS section of LICENSE. -->
+  <title>Fernscout — README hero</title>
+  <!--
+    B1711. The repository's shopfront, and the same idea the landing page
+    leads with: one spoken day goes in, and a page, a postcard and a printed
+    book come out. Drawn rather than photographed so it costs nothing to
+    load, themes nowhere and never goes stale.
+
+    The trail, the yellow waymark and the green scout ahead of you are the
+    marks from fernscout-logo.svg, at the scale of a banner: the three
+    lozenges are the three stops, and the scout is already past the last of
+    them. docs/branding/BRAND.md has the reasoning behind all three.
+
+    Fredoka is named first and will not resolve on GitHub, which renders an
+    SVG without webfonts — the fallback stack is deliberate and the same one
+    the logo carries. Every colour is a literal from the palette because this
+    file is also read by things that have no stylesheet.
+  -->
+  <rect width="1280" height="440" fill="#1e293b" />
+
+  <!-- mark -->
+  <g>
+    <rect x="80" y="56" width="96" height="96" rx="21" fill="#fffaf0" />
+    <path d="M98 131 L114 118 L127 113 L143 93 L158 80" fill="none" stroke="#1e293b" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M128 83 L151 106 L128 129 L105 106 Z" fill="#ffd23f" stroke="#1e293b" stroke-width="3" stroke-linejoin="round" />
+    <circle cx="158" cy="80" r="6.5" fill="#22c55e" stroke="#1e293b" stroke-width="1.8" />
+  </g>
+
+  <!-- wordmark and what the thing is -->
+  <text x="204" y="126" font-family="Fredoka, 'Trebuchet MS', sans-serif" font-size="72" font-weight="700" fill="#fffaf0">Fernscout</text>
+  <text x="82" y="204" font-family="'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="500" fill="#ffd23f">Travel mail — news from far away, arriving at home.</text>
+  <text x="82" y="244" font-family="'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif" font-size="21" fill="#aeb7c5">A self-hostable travel journal your agent writes.</text>
+
+  <!-- the trail, and the three stops on it -->
+  <path d="M82 412 C 260 412, 300 374, 470 370 S 760 362, 880 318 S 1080 262, 1198 240"
+        fill="none" stroke="#fffaf0" stroke-width="5" stroke-linecap="round" opacity="0.35" />
+  <path d="M82 412 C 260 412, 300 374, 470 370 S 760 362, 880 318"
+        fill="none" stroke="#ffd23f" stroke-width="5" stroke-linecap="round" />
+
+  <g font-family="'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#fffaf0" text-anchor="middle">
+    <path d="M300 370 L320 390 L300 410 L280 390 Z" fill="#ffd23f" stroke="#1e293b" stroke-width="2.5" stroke-linejoin="round" />
+    <text x="300" y="352">a voice note</text>
+
+    <path d="M660 344 L680 364 L660 384 L640 364 Z" fill="#ffd23f" stroke="#1e293b" stroke-width="2.5" stroke-linejoin="round" />
+    <text x="660" y="326">the day, written up</text>
+
+    <path d="M1000 260 L1020 280 L1000 300 L980 280 Z" fill="#ffd23f" stroke="#1e293b" stroke-width="2.5" stroke-linejoin="round" />
+    <text x="1000" y="242">a postcard, and a printed book</text>
+  </g>
+
+  <!-- the scout, already ahead of you -->
+  <circle cx="1198" cy="240" r="10" fill="#22c55e" stroke="#1e293b" stroke-width="2.5" />
+</svg>

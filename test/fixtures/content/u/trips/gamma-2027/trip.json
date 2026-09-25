@@ -1,0 +1,25 @@
+{
+  "id": "gamma-2027",
+  "title": "Gamma, still to come",
+  "dates": {
+    "from": "2027-04-02",
+    "to": "2027-04-23"
+  },
+  "accent": "green",
+  "cover": "/brand/placeholder.jpg",
+  "intro": "Not yet.",
+  "costs": {
+    "budget": {
+      "total": 2000,
+      "days": 20
+    },
+    "items": [
+      {
+        "label": "Visas",
+        "amount": 100,
+        "category": "preparation"
+      }
+    ],
+    "note": "Paid before we go."
+  }
+}

@@ -1,0 +1,416 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterAll, afterEach, beforeAll, describe, expect, test, vi } from "vitest";
+import { GET as health } from "@/app/api/health/route";
+import { clearConfigCache } from "@/lib/config";
+import { clearUserCache } from "@/lib/users";
+import { validateEntry } from "@/lib/validate/entry";
+
+/**
+ * B234 — what `/api/health` says to somebody who is not the operator.
+ *
+ * The page is unauthenticated by design and stays that way: an uptime monitor
+ * cannot hold a credential, and everything a monitor asserts on is still
+ * reachable without one. Two fields had drifted past "on or off":
+ *
+ * - `content.error` and `config.error` carried the **absolute content-root
+ *   path** and the errno text, to anybody, and precisely when the instance was
+ *   already unhealthy.
+ * - `journals` named any journal that had narrowed a capability — **including
+ *   one whose own config says `visibility: private`**, which is meant to be
+ *   absent from `/documentation.txt`, the landing page and `sitemap.xml`.
+ *
+ * The line drawn: the *state* is public, the *detail* is not. `ok`, a
+ * machine-readable `code`, and the whole `capabilities` block with its reasons
+ * stay anonymous — AGENTS.md requires a capability that is off to explain
+ * itself, and B197 requires an unreadable content root to be reportable here.
+ * The path and the unadvertised names need `HEALTH_TOKEN`.
+ *
+ * **B473 moved the line once more**, and this file is where both positions are
+ * recorded. B234 filtered `journals` through `listedUsernames()`; B473 takes
+ * the block away from an unentitled caller entirely, because a listed
+ * journal's capability posture is a fact about a deployment rather than about
+ * a journal, and `journalsWithheld` was a live count of the journals that
+ * asked not to be found. The same audit found `lib/api/openapi.ts` naming a
+ * journal by `getUsernames()[0]` in a public document, four files from the
+ * line that does it correctly; the last test here is that one.
+ */
+
+const TOKEN = "s3cret-health-token";
+const PRIVATE_JOURNAL = "hidden";
+const PUBLIC_JOURNAL = "shown";
+
+let dir: string;
+
+function writeJournal(username: string, visibility: "public" | "private") {
+  fs.mkdirSync(path.join(dir, username), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, username, "config.json"),
+    JSON.stringify({
+      title: username,
+      tagline: "t",
+      owner: { name: "A B", nickname: "A", email: `${username}@example.test` },
+      startLocation: "X",
+      defaultLocale: "en",
+      locales: ["en"],
+      baseCurrency: "CHF",
+      displayCurrencies: ["CHF"],
+      units: "metric",
+      ...(visibility === "private" ? { visibility } : {}),
+      // Narrowed, which is the only reason a journal appears in `journals`
+      // at all. `mail` (unlike `reactions`) is still a real per-journal mute
+      // since decision 5 (docs/v2-migration/00-decisions.md, B1666) — see
+      // `USER_DEFAULT_FEATURES` in lib/config.ts.
+      features: { mail: { enabled: false } },
+    }),
+  );
+}
+
+/** What an uptime monitor sends: no credential of any kind. */
+const anonymous = () => new Request("https://example.test/api/health");
+/** What the operator sends. */
+const operator = (token = TOKEN) =>
+  new Request("https://example.test/api/health", {
+    headers: { authorization: `Bearer ${token}` },
+  });
+
+beforeAll(() => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-health-"));
+  process.env.CONTENT_DIR = dir;
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "R", url: "https://example.test", defaultUser: PUBLIC_JOURNAL },
+      users: { reserved: [] },
+      features: { mail: { enabled: true, transport: "file" } },
+    }),
+  );
+  writeJournal(PUBLIC_JOURNAL, "public");
+  writeJournal(PRIVATE_JOURNAL, "private");
+  clearConfigCache();
+  clearUserCache();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  delete process.env.HEALTH_TOKEN;
+  clearUserCache();
+});
+
+afterAll(() => {
+  delete process.env.CONTENT_DIR;
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+describe("what a stranger is told", () => {
+  test("a monitor's assertions are unchanged", async () => {
+    const response = await health(anonymous());
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.status).toBe("ok");
+    expect(body.backup.state).toBeDefined();
+    expect(typeof body.uptimeSeconds).toBe("number");
+    expect(body.content).toEqual({ ok: true });
+  });
+
+  test("backup is trimmed to state and maxAgeHours — B1045", async () => {
+    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-health-backup-"));
+    process.env.DATA_DIR = backupDir;
+    fs.writeFileSync(
+      path.join(backupDir, ".backup-last-failure"),
+      `${new Date().toISOString()}\nfernscout-backup.service failed (result=exit-code) (exit 1)\n`,
+    );
+    try {
+      const body = await (await health(anonymous())).json();
+      expect(body.backup).toEqual({
+        state: "failing",
+        maxAgeHours: expect.any(Number),
+        secondary: { state: "unknown", maxAgeHours: expect.any(Number) },
+      });
+      const raw = JSON.stringify(body);
+      expect(raw).not.toContain("fernscout-backup.service");
+      expect(raw).not.toContain("RESTIC_REPOSITORY_SECONDARY");
+      expect(body.backup.lastFailure).toBeUndefined();
+      expect(body.backup.lastFailureAt).toBeUndefined();
+      expect(body.backup.reason).toBeUndefined();
+      expect(body.backup.secondary.reason).toBeUndefined();
+    } finally {
+      delete process.env.DATA_DIR;
+      fs.rmSync(backupDir, { recursive: true, force: true });
+    }
+  });
+
+  test("an unreadable content root is reported without its path", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    clearUserCache();
+
+    const response = await health(anonymous());
+    expect(response.status).toBe(503);
+    const body = await response.json();
+
+    // B197's diagnostic survives: "cannot tell" is distinguishable from
+    // "nothing to report", which is the whole reason the field exists.
+    expect(body.status).toBe("error");
+    expect(body.content.ok).toBe(false);
+    expect(body.content.code).toBe("unreadable");
+    // And the path does not. Asserted on the serialised body rather than on
+    // the field, because the next field added is the one that leaks it.
+    expect(body.content.error).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain(dir);
+    expect(JSON.stringify(body)).not.toContain("EACCES");
+  });
+
+  test("a server-only capability is never narrowed per journal — B397", async () => {
+    // Turn credits on at the server. It has no per-journal opt-in
+    // (`creditsEnabled()` asks without a username), so no journal config sets
+    // it — which used to make `resolveCapabilities(username)` report it as
+    // "not enabled by <user>" and list it as narrowed for every journal, a
+    // live-billed journal included. `logging` is skipped for the same reason;
+    // this proves `credits` now is too.
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: PUBLIC_JOURNAL },
+        users: { reserved: [] },
+        features: { mail: { enabled: true, transport: "file" }, credits: { enabled: true } },
+      }),
+    );
+    // Credits needs a database to count as enabled at the server level; without
+    // one the server answer and the per-journal answer would both be "off" and
+    // the skip would never be exercised.
+    process.env.DATABASE_URL = `sqlite:${path.join(dir, "health-credits.sqlite")}`;
+    // Read as the operator: since B473 an unentitled caller has no `journals`
+    // block to inspect, and the claim here is about what that block contains.
+    process.env.HEALTH_TOKEN = TOKEN;
+    clearConfigCache();
+    clearUserCache();
+    const { migrateToLatest } = await import("@/lib/db/migrate");
+    const { getDatabase, closeDatabase } = await import("@/lib/db");
+    await migrateToLatest(await getDatabase());
+    try {
+      const body = await (await health(operator())).json();
+      // The public journal still appears (it narrowed `mail`), but no
+      // journal's block ever mentions credits — a whole-object check, because
+      // the next field added is the one that reintroduces the leak.
+      expect(body.journals[PUBLIC_JOURNAL]?.mail.enabled).toBe(false);
+      expect(JSON.stringify(body.journals)).not.toContain("credits");
+      if (fs.existsSync(path.join(process.cwd(), "paid"))) expect(body.capabilities.credits.enabled).toBe(true);
+    } finally {
+      await closeDatabase();
+      delete process.env.DATABASE_URL;
+      delete process.env.HEALTH_TOKEN;
+      fs.writeFileSync(
+        path.join(dir, "config.json"),
+        JSON.stringify({
+          site: { name: "R", url: "https://example.test", defaultUser: PUBLIC_JOURNAL },
+          users: { reserved: [] },
+          features: { mail: { enabled: true, transport: "file" } },
+        }),
+      );
+      clearConfigCache();
+      clearUserCache();
+    }
+  });
+
+  test("no journal is named at all, advertised or not", async () => {
+    // B234 filtered this list through `listedUsernames()`; B473 took the whole
+    // block away from an unentitled caller. A listed journal's *name* is
+    // public by design, but which capabilities it has switched on is a fact
+    // about a deployment — and `journalsWithheld` was a live count of the
+    // journals that asked not to be found.
+    const body = await (await health(anonymous())).json();
+
+    expect(body.journals, "absent, not empty — see the note in the route").toBeUndefined();
+    expect(body.journalsWithheld).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain(PRIVATE_JOURNAL);
+    expect(JSON.stringify(body)).not.toContain(PUBLIC_JOURNAL);
+  });
+
+  test("B197's diagnostic survives the redaction", async () => {
+    // The constraint that makes taking the roster away safe. B197's complaint
+    // was that an empty `journals` block reads exactly like an instance with
+    // no journals, so nothing could say "cannot tell" rather than "nothing to
+    // report". `content` is what says it, and it stays public.
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    clearUserCache();
+    try {
+      const response = await health(anonymous());
+      const body = await response.json();
+      expect(response.status).toBe(503);
+      expect(body.content).toEqual({ ok: false, code: "unreadable" });
+      // The code, yes. The path it could not read, no.
+      expect(JSON.stringify(body)).not.toContain(dir);
+    } finally {
+      vi.restoreAllMocks();
+      clearUserCache();
+    }
+  });
+
+  test("why a capability is off is still public", async () => {
+    const body = await (await health(anonymous())).json();
+    // AGENTS.md: "/api/health explains why something is off." Reasons name env
+    // vars and config keys, never a value, a path or a person.
+    expect(body.capabilities.push).toEqual({
+      enabled: false,
+      reason: "not enabled on this server",
+    });
+  });
+});
+
+describe("what the operator is told", () => {
+  test("HEALTH_TOKEN brings back the path and the errno", async () => {
+    process.env.HEALTH_TOKEN = TOKEN;
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.spyOn(fs, "readdirSync").mockImplementation(() => {
+      throw new Error("EACCES: permission denied");
+    });
+    clearUserCache();
+
+    const body = await (await health(operator())).json();
+    expect(body.content.ok).toBe(false);
+    expect(body.content.error).toMatch(/EACCES/);
+    expect(body.content.error).toContain(dir);
+  });
+
+  test("HEALTH_TOKEN brings back the full backup block — B1045", async () => {
+    process.env.HEALTH_TOKEN = TOKEN;
+    const backupDir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-health-backup-op-"));
+    process.env.DATA_DIR = backupDir;
+    fs.writeFileSync(
+      path.join(backupDir, ".backup-last-failure"),
+      `${new Date().toISOString()}\nfernscout-backup.service failed (result=exit-code) (exit 1)\n`,
+    );
+    try {
+      const body = await (await health(operator())).json();
+      expect(body.backup.lastFailure).toContain("fernscout-backup.service");
+      expect(body.backup.secondary.reason).toContain("RESTIC_REPOSITORY_SECONDARY");
+    } finally {
+      delete process.env.DATA_DIR;
+      fs.rmSync(backupDir, { recursive: true, force: true });
+    }
+  });
+
+  test("HEALTH_TOKEN brings back every journal, advertised or not", async () => {
+    process.env.HEALTH_TOKEN = TOKEN;
+    const body = await (await health(operator())).json();
+
+    expect(body.journals[PRIVATE_JOURNAL]?.mail.enabled).toBe(false);
+    expect(body.journals[PUBLIC_JOURNAL]?.mail.enabled).toBe(false);
+    // The whole roster or none of it — there is no filtered middle any more,
+    // so nothing counts what was dropped.
+    expect(body.journalsWithheld).toBeUndefined();
+  });
+
+  test("a wrong token is a stranger, and so is an unset one", async () => {
+    process.env.HEALTH_TOKEN = TOKEN;
+    const wrong = await (await health(operator("not-the-token"))).json();
+    expect(wrong.journals).toBeUndefined();
+
+    // The dangerous default is the one where an operator who never set the
+    // variable has been serving the full page all along.
+    delete process.env.HEALTH_TOKEN;
+    const unset = await (await health(operator())).json();
+    expect(unset.journals).toBeUndefined();
+
+    // An empty variable is not a token either — `Bearer ` would otherwise
+    // match it.
+    process.env.HEALTH_TOKEN = "";
+    const empty = await (await health(operator(""))).json();
+    expect(empty.journals).toBeUndefined();
+  });
+});
+
+describe("the other public document that names a journal", () => {
+  // B1734: /openapi.json (v1) is retired and /api/v2/openapi.json is the only
+  // published contract, so the leak this test guards against is now this
+  // document's worked example instead.
+  test("/api/v2/openapi.json's example username never names an unadvertised journal", async () => {
+    // B473. `getUsernames()` is sorted, so with no `defaultUser` the worked
+    // example took whichever journal directory sorts first — and here that is
+    // the private one, which is the whole point of the two fixture names.
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test" },
+        users: { reserved: [] },
+        features: { reactions: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+
+    const { openApiDocumentV2 } = await import("@/lib/api/v2/openapi");
+    const document = JSON.stringify(openApiDocumentV2());
+
+    expect(PRIVATE_JOURNAL < PUBLIC_JOURNAL, "the fixture only bites if the private name sorts first").toBe(true);
+    expect(document).not.toContain(PRIVATE_JOURNAL);
+    expect(document).toContain(PUBLIC_JOURNAL);
+  });
+});
+
+/**
+ * B1580 — the reserved weather sources, published so nobody has to guess them.
+ *
+ * `weatherData.source` is free text on purpose: it names whatever actually
+ * took the reading. The closed part is the short list of names meaning *this
+ * server looked it up itself*, which `lib/validate/entry.ts` refuses — one
+ * string standing between a measurement and an invention.
+ *
+ * It was enforced in code and described only in prose, so a client had
+ * nothing to read and `fernscout-helper` hard-coded it (B1578). These tests
+ * are what make the copy unnecessary: the list is served, and it cannot drift
+ * from the one the validator actually uses, because both are the same import.
+ */
+describe("the reserved weather sources are published (B1580)", () => {
+  test("/api/health serves them, unauthenticated", async () => {
+    const { RESERVED_SOURCES } = await import("@/lib/weather");
+    const response = await health(new Request("https://example.test/api/health"));
+    const body = (await response.json()) as { weather?: { reservedSources?: string[] } };
+    expect(body.weather?.reservedSources).toEqual([...RESERVED_SOURCES]);
+    expect(body.weather?.reservedSources).toContain("open-meteo");
+  });
+
+  test("the published list is the one the validator refuses by — not a second copy", async () => {
+    const { RESERVED_SOURCES } = await import("@/lib/weather");
+    const { validateEntry } = await import("@/lib/validate/entry");
+    const response = await health(new Request("https://example.test/api/health"));
+    const body = (await response.json()) as { weather?: { reservedSources?: string[] } };
+
+    // Every name the document publishes is actually refused. A list that said
+    // more than the validator enforces would send a client round a bend that
+    // is not there; one that said less is the drift this ticket is about.
+    for (const source of body.weather?.reservedSources ?? []) {
+      const problems = validateEntry({
+        title: "A day",
+        date: "2026-06-24",
+        content: "Something happened.",
+        weatherData: { tempMax: 14, source, recordedAt: "2026-06-24T17:00:00Z" },
+      });
+      expect(problems.map((p) => p.field)).toContain("weatherData.source");
+    }
+    expect(body.weather?.reservedSources).toHaveLength(RESERVED_SOURCES.length);
+  });
+
+  test("an ordinary source is not refused — the deny list denies only what it names", () => {
+    // The guard-that-fires-on-an-honest-run case: this field is free text and
+    // almost every value is valid.
+    const problems = validateEntry({
+      title: "A day",
+      date: "2026-06-24",
+      content: "Something happened.",
+      weatherData: {
+        tempMax: 14,
+        source: "the Kestrel on my handlebars",
+        recordedAt: "2026-06-24T17:00:00Z",
+      },
+    });
+    expect(problems).toEqual([]);
+  });
+});

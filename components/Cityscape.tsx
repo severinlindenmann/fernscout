@@ -1,0 +1,375 @@
+"use client";
+
+/**
+ * A small illustrated skyline, sized to the place it names.
+ *
+ * The *shape* is derived from the location name, so somewhere looks consistent
+ * every time it is drawn and unlike its neighbours. Two things are not from
+ * the name, because a hash is not evidence about anywhere real:
+ *
+ * - **How big it is** comes from `population`, which `lib/tripView.ts` reads
+ *   out of the GeoNames index already committed for reverse-geocoding photos.
+ *   Before this every place got five to seven towers, so a hamlet in the Alps
+ *   and Tokyo were drawn identically. Absent — no index built, mid-ocean, or a
+ *   place the dump has no figure for — draws a modest town, which is the
+ *   honest thing to render when nothing is known.
+ * - **What grows there** comes from `lat`. There were two palm trees hard-
+ *   coded into every skyline, so Reykjavík and Ulaanbaatar had them too.
+ */
+
+/** Exported for `components/travel/Skyline.tsx`, the other caller that needs
+ * a name to draw the same consistent shape from. */
+export function hashString(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h);
+}
+
+export function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Exported for `components/travel/Skyline.tsx` — the dense, full-width
+// backdrop a `metro` leg draws above its tunnel wall (B1545) picks from the
+// same palette every named city does, rather than a second list that could
+// drift from it.
+export const WALLS = ["#f4a259", "#5fb08a", "#e8746c", "#6ea8dc", "#f0c05a", "#b98adc"];
+export const ROOFS = ["#c9743a", "#3f8a68", "#c2544c", "#4a80ad", "#c99a35", "#8f66ad"];
+
+/** Every shape a skyline can put up. The bench at `/docs/branding/animation`
+ * draws one of each, which is the only place any of them is seen alone. */
+export const BUILDING_KINDS = ["flat", "pitched", "spire", "dome", "airport"] as const;
+
+type BuildingKind = (typeof BUILDING_KINDS)[number];
+
+export type Building = {
+  x: number;
+  w: number;
+  h: number;
+  wall: string;
+  roof: string;
+  kind: BuildingKind;
+  /** Decides which windows are lit. Fixed when the building is generated, so
+   * a re-render never relights them. */
+  seed: number;
+};
+
+/**
+ * A place's size on a 0–1 scale, from its population.
+ *
+ * Logarithmic, because population is: a village of 800 and a town of 8,000 is
+ * the same visible step as a city of 800,000 and one of 8 million, and a
+ * linear scale would draw every place under a million as the same hamlet.
+ * 1,000 → 0 (the smallest entry GeoNames' `cities1000` carries) and 10 million
+ * → 1.
+ *
+ * `undefined` lands at 0.35 — a small town. Not 0: an unknown place is not
+ * evidence of a tiny one, and the fallback should be the shrug, not a claim.
+ */
+export function cityScale(population?: number): number {
+  if (population === undefined || population < 1) return 0.35;
+  return Math.min(1, Math.max(0, (Math.log10(population) - 3) / 4));
+}
+
+/** What grows at a latitude. Coarse on purpose — four bands, drawn from the
+ * one number every day already carries. */
+export type Flora = "palm" | "broadleaf" | "conifer" | "bare";
+
+export function floraFor(lat?: number): Flora {
+  if (lat === undefined || !Number.isFinite(lat)) return "broadleaf";
+  const a = Math.abs(lat);
+  if (a <= 23.5) return "palm";
+  if (a <= 48) return "broadleaf";
+  if (a <= 66.5) return "conifer";
+  return "bare";
+}
+
+export default function Cityscape({
+  name,
+  population,
+  lat,
+  airport = false,
+  width = 260,
+  height = 140,
+  className,
+}: {
+  name: string;
+  /** From the GeoNames index — see `cityScale`. */
+  population?: number;
+  /** Decides what is planted alongside — see `floraFor`. */
+  lat?: number;
+  /** Whether this leg flies — see `isFlight` in `TravelScene.tsx`. Adds one
+   * more building to the skyline: a terminal with a control tower, drawn
+   * last so it sits nearest the viewer, the way an airport sits at a city's
+   * edge rather than among its towers. */
+  airport?: boolean;
+  width?: number;
+  height?: number;
+  className?: string;
+}) {
+  const rand = mulberry32(hashString(name));
+  const scale = cityScale(population);
+  const buildings: Building[] = [];
+
+  // Three buildings for a village, twelve for a capital — and the tall ones
+  // only appear where there are enough of them for a tall one to belong.
+  const count = 3 + Math.round(scale * 9);
+  // A hamlet's tallest building is a third of the frame; a metropolis fills it.
+  const tallest = 30 + scale * (height - 56);
+  const narrow = 20 + scale * 10;
+
+  // A flight leg adds a terminal, low and wide beside the skyline it flies
+  // out of — a bigger place gets a longer one, the same way it gets taller
+  // towers. Its width is reserved before the loop below runs, rather than
+  // added after, so it does not depend on the random buildings happening to
+  // leave room: for most sizes they fill the whole frame, so "after" meant
+  // "almost never".
+  const airportW = airport ? 40 + Math.floor(scale * 30) + Math.floor(rand() * 10) : 0;
+  const loopWidth = airport ? width - airportW - 8 : width;
+
+  let x = 4;
+  for (let i = 0; i < count && x < loopWidth - 16; i++) {
+    const w = narrow + Math.floor(rand() * 16);
+    const h = 26 + Math.floor(rand() * Math.max(12, tallest - 26));
+    const ci = Math.floor(rand() * WALLS.length);
+    const kindRoll = rand();
+    // Spires and domes are civic buildings; a place too small to have one is
+    // drawn without one rather than given a cathedral by the dice.
+    const kind: BuildingKind =
+      kindRoll > 0.86 && scale > 0.45
+        ? "spire"
+        : kindRoll > 0.72 && scale > 0.3
+          ? "dome"
+          : kindRoll > 0.45
+            ? "pitched"
+            : "flat";
+    buildings.push({ x, w, h, wall: WALLS[ci], roof: ROOFS[ci], kind, seed: rand() * 1e9 });
+    x += w + 4 + Math.floor(rand() * 7);
+  }
+
+  // Last in the list rather than mixed into the loop, so it draws in front,
+  // at the city's edge, instead of among the towers it belongs beside.
+  if (airport) {
+    const h = 18 + Math.floor(scale * 8);
+    const ci = Math.floor(rand() * WALLS.length);
+    // Clamped to the frame: the loop leaves `x` wherever its last building
+    // ended, which can be past `loopWidth`, and the terminal is the one
+    // building drawn at a skyline's edge — on the arrival side that edge is
+    // the frame's, and the tower ran off it.
+    buildings.push({
+      x: Math.min(x, width - airportW - 4),
+      w: airportW,
+      h,
+      wall: WALLS[ci],
+      roof: ROOFS[ci],
+      kind: "airport",
+      seed: rand() * 1e9,
+    });
+  }
+
+  const baseY = height - 10;
+  const flora = floraFor(lat);
+
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className={className}
+      style={{ overflow: "visible" }}
+      aria-hidden
+    >
+      {buildings.map((b, i) => (
+        <BuildingShape key={i} b={b} baseY={baseY} />
+      ))}
+
+      {/* What grows here, from the latitude rather than from a preference for
+          palm trees. `bare` plants nothing: above the treeline there is
+          nothing to draw, and an empty verge says that. */}
+      {/* The right verge, except on a flight leg — that is where the terminal
+          stands, and two trees planted on top of it hid the one building this
+          skyline was drawn to show. */}
+      <Tree flora={flora} x={airport ? 10 : width - 26} baseY={baseY} scale={1} />
+      <Tree flora={flora} x={airport ? 26 : width - 6} baseY={baseY} scale={0.78} />
+
+      {/* ground line */}
+      <rect x={-10} y={baseY} width={width + 20} height={12} fill="#cdeecb" />
+    </svg>
+  );
+}
+
+/**
+ * One building, drawn from its own facts and nothing else.
+ *
+ * Out of the `buildings.map()` it used to live in so that the bench at
+ * `/docs/branding/animation` can draw one alone — an airport among four
+ * towers at the bottom of a 340px frame was reported missing twice by people
+ * looking straight at it, and there was nowhere to hold it still. B700.
+ */
+export function BuildingShape({ b, baseY }: { b: Building; baseY: number }) {
+  const top = baseY - b.h;
+  const rand = mulberry32(Math.floor(b.seed));
+  const cols = Math.max(2, Math.floor(b.w / 13));
+  const rows = Math.max(2, Math.floor(b.h / 18));
+
+  // The tower stands at the terminal's far end, and rises well clear of it:
+  // the whole silhouette is a long low shed with one thin mast beside it, and
+  // a mast that stops among the roofline is just another aerial.
+  const mast = b.x + b.w - 11;
+  const cabTop = top - 46;
+
+  return (
+    <g>
+      {/* body */}
+      <rect x={b.x} y={top} width={b.w} height={b.h} rx={3} fill={b.wall} />
+      {/* roof treatments */}
+      {b.kind === "pitched" && (
+        <path
+          d={`M${b.x - 3},${top + 1} L${b.x + b.w / 2},${top - 12} L${b.x + b.w + 3},${top + 1} Z`}
+          fill={b.roof}
+        />
+      )}
+      {b.kind === "dome" && (
+        <path
+          d={`M${b.x + 2},${top + 2} a${b.w / 2 - 2},${b.w / 2 - 2} 0 0 1 ${b.w - 4},0 Z`}
+          fill={b.roof}
+        />
+      )}
+      {b.kind === "spire" && (
+        <>
+          <rect x={b.x + b.w / 2 - 1.5} y={top - 16} width={3} height={16} fill={b.roof} />
+          <circle cx={b.x + b.w / 2} cy={top - 18} r={3} fill={b.roof} />
+        </>
+      )}
+      {b.kind === "flat" && (
+        <rect x={b.x - 2} y={top - 4} width={b.w + 4} height={5} rx={2} fill={b.roof} />
+      )}
+      {b.kind === "airport" && (
+        <>
+          {/* terminal: a curved roof over the whole length. Not the flat cap —
+              that is what every plain block already wears, which is why the
+              first drawing of this read as one more block with a stick on it */}
+          <path
+            d={`M${b.x - 3},${top + 3} Q${b.x + b.w / 2},${top - 12} ${b.x + b.w + 3},${top + 3} Z`}
+            fill={b.roof}
+          />
+          {/* the glazed front, in one strip rather than a grid of windows, and
+              stopping short of the tower rather than running under it */}
+          <rect
+            x={b.x + 4}
+            y={top + 7}
+            width={Math.max(8, mast - b.x - 8)}
+            height={Math.max(5, b.h * 0.34)}
+            rx={2}
+            fill="#ffffff"
+            opacity={0.6}
+          />
+          {/* control tower: mast planted on the ground beside the terminal, a
+              cab that flares out over it, and the aerial above that */}
+          <rect x={mast} y={cabTop} width={4.5} height={baseY - cabTop} fill={b.wall} />
+          <path
+            d={`M${mast - 4},${cabTop + 11} L${mast + 8.5},${cabTop + 11} L${mast + 12},${cabTop} L${mast - 7.5},${cabTop} Z`}
+            fill={b.roof}
+          />
+          <rect
+            x={mast - 5.5}
+            y={cabTop + 2}
+            width={16}
+            height={5}
+            rx={1.5}
+            fill="#ffffff"
+            opacity={0.75}
+          />
+          <rect x={mast + 1} y={cabTop - 7} width={1.6} height={7} fill={b.roof} />
+        </>
+      )}
+      {/* windows — the airport has its glazed strip instead */}
+      {b.kind !== "airport" &&
+        Array.from({ length: rows }).map((_, r) =>
+          Array.from({ length: cols }).map((_, c) => {
+            const wx = b.x + 6 + c * ((b.w - 10) / cols);
+            const wy = top + 12 + r * ((b.h - 18) / rows);
+            if (wy > baseY - 12) return null;
+            const lit = rand() > 0.45;
+            return (
+              <rect
+                key={`${r}-${c}`}
+                x={wx}
+                y={wy}
+                width={5.5}
+                height={7}
+                rx={1.2}
+                fill={lit ? "#fff8d8" : "#ffffff"}
+                opacity={lit ? 0.95 : 0.45}
+              />
+            );
+          }),
+        )}
+    </g>
+  );
+}
+
+function Tree({
+  flora,
+  x,
+  baseY,
+  scale,
+}: {
+  flora: Flora;
+  x: number;
+  baseY: number;
+  scale: number;
+}) {
+  if (flora === "bare") return null;
+  if (flora === "broadleaf") {
+    const h = 30 * scale;
+    return (
+      <g transform={`translate(${x}, ${baseY})`}>
+        <rect x={-1.6 * scale} y={-h} width={3.2 * scale} height={h} rx={1.5} fill="#8a6a44" />
+        <circle cx={0} cy={-h - 5 * scale} r={11 * scale} fill="#4a9c78" />
+        <circle cx={-7 * scale} cy={-h + 1 * scale} r={7.5 * scale} fill="#3f8a68" />
+        <circle cx={7 * scale} cy={-h + 1 * scale} r={7.5 * scale} fill="#3f8a68" />
+      </g>
+    );
+  }
+  if (flora === "conifer") {
+    const h = 36 * scale;
+    return (
+      <g transform={`translate(${x}, ${baseY})`}>
+        <rect x={-1.6 * scale} y={-8 * scale} width={3.2 * scale} height={8 * scale} fill="#8a6a44" />
+        <path d={`M0,${-h} L${9 * scale},${-8 * scale} L${-9 * scale},${-8 * scale} Z`} fill="#3f8a68" />
+        <path
+          d={`M0,${-h + 8 * scale} L${11 * scale},${-2 * scale} L${-11 * scale},${-2 * scale} Z`}
+          fill="#4a9c78"
+        />
+      </g>
+    );
+  }
+  const h = 34 * scale;
+  return (
+    <g transform={`translate(${x}, ${baseY})`}>
+      <path
+        d={`M0,0 q-2,${-h / 2} 1,${-h}`}
+        stroke="#8a6a44"
+        strokeWidth={3.2 * scale}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <g transform={`translate(1, ${-h})`}>
+        <path d={`M0,0 q-13,-4 -17,4`} stroke="#3f8a68" strokeWidth={4 * scale} fill="none" strokeLinecap="round" />
+        <path d={`M0,0 q13,-4 17,4`} stroke="#3f8a68" strokeWidth={4 * scale} fill="none" strokeLinecap="round" />
+        <path d={`M0,0 q-6,-12 -14,-11`} stroke="#4a9c78" strokeWidth={4 * scale} fill="none" strokeLinecap="round" />
+        <path d={`M0,0 q6,-12 14,-11`} stroke="#4a9c78" strokeWidth={4 * scale} fill="none" strokeLinecap="round" />
+      </g>
+    </g>
+  );
+}

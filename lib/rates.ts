@@ -1,0 +1,189 @@
+import fs from "node:fs";
+import path from "node:path";
+import { contentRoot } from "./contentRoot";
+import { siteRoot } from "./siteRoot";
+import { dataDir } from "./dataDir";
+import { loadUserConfig } from "./config";
+import { crossRate, normalizeCurrency, parseRateTable, type RateTable } from "./currency";
+
+/**
+ * The second hop: base currency → whatever the reader picked.
+ *
+ * The trip's own frozen rates handle local → base (`lib/trips.ts`). Going on
+ * from there to a reader's currency needs a *current* rate, and that comes
+ * from the European Central Bank reference rates cached at
+ * `<DATA_DIR>/rates/ecb.json` and refreshed by `npm run rates:update`.
+ *
+ * Read off disk, never fetched here. The build has to work on a machine with
+ * no network, so a missing table is a supported state rather than an error.
+ *
+ * **It is deliberately not in git** (B1084). It used to be committed at
+ * `site/rates/ecb.json` and shipped by `git pull` like code, which had two
+ * faults: the number only moved when a person happened to run a command and
+ * deploy the result — twelve days stale on the live instance when this was
+ * measured — and a server refreshing it in place would dirty the checkout and
+ * stop the next `git pull`. A measurement with a date on it is instance state,
+ * not source: it belongs beside the reaction counts and the SQLite file, where
+ * a rebuild cannot delete it and a deploy need not carry it.
+ */
+
+export type EcbSnapshot = {
+  /** The ECB's publication date for these rates, `yyyy-mm-dd`. */
+  date: string;
+  /** Units of each currency for one euro. */
+  rates: RateTable;
+};
+
+/**
+ * Where a refresh writes. One path, no fallbacks: a writer that guesses is how
+ * two copies of a table start disagreeing about what today's rate is.
+ */
+export function ecbCacheWritePath(): string {
+  return path.join(dataDir(), "rates", "ecb.json");
+}
+
+/**
+ * Where a read looks, newest home first.
+ *
+ * The two fallbacks are for instances that have not refreshed since B1084 and
+ * B510 respectively: `CONTENT_DIR` is where this lived before B510, and the
+ * checkout copy is where it lived before it stopped being committed. Both are
+ * read-only legacies — nothing writes them any more — and an instance keeps
+ * converting off whichever it has until its first nightly refresh, rather than
+ * losing every non-base currency the moment it updates.
+ */
+function ecbCachePath(): string {
+  const own = ecbCacheWritePath();
+  if (fs.existsSync(own)) return own;
+  const legacyContent = path.join(contentRoot(), "rates", "ecb.json");
+  return fs.existsSync(legacyContent)
+    ? legacyContent
+    : path.join(siteRoot(), "rates", "ecb.json");
+}
+
+const cache = new Map<string, EcbSnapshot | null>();
+
+/**
+ * The cached ECB table, or undefined when there isn't one.
+ *
+ * Undefined is a supported state, not an error: a fresh clone with its own
+ * content folder and no rates file still renders, it simply offers no
+ * currency but the base one. That is a visible absence rather than a wrong
+ * number, which is the trade this whole package is built around.
+ */
+export function loadEcbRates(): EcbSnapshot | undefined {
+  const file = ecbCachePath();
+  if (cache.has(file)) return cache.get(file) ?? undefined;
+
+  let snapshot: EcbSnapshot | null = null;
+  try {
+    const raw = JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
+    const rates = parseRateTable(raw.rates, (m) => console.warn(`[rates] ${file}: ${m}`));
+    if (Object.keys(rates).length === 0) {
+      console.warn(`[rates] ${file} holds no usable rates — ignoring it.`);
+    } else {
+      snapshot = { date: String(raw.date ?? ""), rates };
+    }
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") {
+      console.warn(`[rates] ${file} could not be read (${String(err)}) — ignoring it.`);
+    }
+  }
+
+  cache.set(file, snapshot);
+  return snapshot ?? undefined;
+}
+
+/** Test seam — drops the memoised snapshot. */
+export function clearRatesCache(): void {
+  cache.clear();
+}
+
+/**
+ * What a reader may switch the display to, and the multiplier for each.
+ *
+ * Serialisable on purpose: the root layout hands this to `CurrencyProvider`,
+ * the same way it hands `siteSummary()` to `SiteProvider`, because this
+ * module reads the filesystem and cannot be in the client bundle.
+ */
+export type CurrencyOptions = {
+  /** The currency every stored total is normalised to. */
+  base: string;
+  /** Offered currencies, always starting with the base. */
+  currencies: string[];
+  /** Units of each offered currency for one unit of the base. */
+  rates: Record<string, number>;
+  /** The ECB publication date behind those rates, when there is one. */
+  asOf?: string;
+};
+
+/**
+ * Builds the reader-facing currency list.
+ *
+ * A configured display currency with no rate is dropped from the list rather
+ * than offered and then silently wrong. There is no journal-level override
+ * for a currency the ECB does not publish any more — decision 5 (B1666)
+ * retired `site.manualRates`, and the per-trip `rates.manual` (`lib/trips.ts`,
+ * `lib/tripWrite.ts`) answers a different question, what a trip's own costs
+ * may be priced in, not what this journal-wide switcher may offer. A journal
+ * whose `displayCurrencies` names a currency the ECB does not cover simply
+ * loses that option from the switcher, logged below, rather than the site
+ * failing to build.
+ */
+export function currencyOptions(username: string): CurrencyOptions {
+  const site = loadUserConfig(username);
+  const base = normalizeCurrency(site.baseCurrency, site.baseCurrency.toUpperCase());
+  const snapshot = loadEcbRates();
+  const eur: RateTable = snapshot?.rates ?? {};
+
+  const currencies: string[] = [base];
+  const rates: Record<string, number> = { [base]: 1 };
+
+  for (const raw of site.displayCurrencies) {
+    const code = normalizeCurrency(raw);
+    if (!code || code === base || rates[code] !== undefined) continue;
+    const rate = crossRate(base, code, eur);
+    if (rate === undefined) {
+      console.warn(
+        `[rates] site.displayCurrencies lists ${code}, but the cached ECB table does not cover ` +
+          `${base}→${code}. Run npm run rates:update, or drop it from displayCurrencies.`,
+      );
+      continue;
+    }
+    currencies.push(code);
+    rates[code] = rate;
+  }
+
+  return {
+    base,
+    currencies,
+    rates,
+    asOf: currencies.length > 1 ? snapshot?.date || undefined : undefined,
+  };
+}
+
+/**
+ * Every currency this instance's rates table can price — the ECB's own codes
+ * plus EUR, the table's base — sorted. Empty when there is no table. What the
+ * journal settings' currency picker offers (B2143): a code nothing here can
+ * convert is never offered.
+ */
+export function knownCurrencies(): string[] {
+  const snapshot = loadEcbRates();
+  if (!snapshot) return [];
+  return [...new Set(["EUR", ...Object.keys(snapshot.rates)])].sort();
+}
+
+/**
+ * The journal's own currency list, base first, then `displayCurrencies` in
+ * the order the owner chose them — B2143. Every currency choice in the studio
+ * (a new trip's other currencies and budget, the planner's cost line, a
+ * statement's whole-file currency) offers only these.
+ */
+export function journalCurrencies(username: string): string[] {
+  const site = loadUserConfig(username);
+  const base = normalizeCurrency(site.baseCurrency, site.baseCurrency.toUpperCase());
+  const rest = site.displayCurrencies.map((code) => normalizeCurrency(code)).filter(Boolean);
+  return [...new Set([base, ...rest])];
+}

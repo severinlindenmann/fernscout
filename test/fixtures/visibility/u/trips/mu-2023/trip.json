@@ -1,0 +1,21 @@
+{
+  "id": "mu-2023",
+  "title": "Public and saying so",
+  "dates": {
+    "from": "2023-11-01",
+    "to": "2023-11-05"
+  },
+  "visibility": "public",
+  "listed": true,
+  "people": [
+    {
+      "name": "Test Person",
+      "nickname": "Test"
+    }
+  ],
+  "intro": "A restatement of what visibility already said.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

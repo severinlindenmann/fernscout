@@ -1,0 +1,63 @@
+import { notFound } from "next/navigation";
+import { recordTripView } from "@/lib/analytics/record";
+import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
+import { getAllEntries } from "@/lib/entries";
+import { currentTripOrRedirect } from "@/lib/currentTrip";
+import { buildStoryProps } from "@/lib/tripView";
+import { BlogStructuredData } from "@/components/StructuredData";
+import TripProvider from "@/components/TripProvider";
+import { siteSummary, travellerNamesOf, travellersOf } from "@/lib/site";
+import { getDefaultUsername, getUser } from "@/lib/users";
+import TripStory from "@/app/TripStory";
+
+export default async function Home({ params }: PageProps<"/[user]">) {
+  const { user } = await params;
+  const site = siteSummary(user, getDefaultUsername() === user);
+  if (!site) notFound();
+  // No current trip is a normal state, not a missing journal — the four
+  // pages `SiteNav` offers all resolve it the same way. See lib/currentTrip.ts.
+  const current = currentTripOrRedirect(user);
+  const tripId = current.ref;
+  // The layout draws the gate; this stops the page from *running*.
+  // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
+  // payload and the document head even when it renders something else.
+  if (!(await mayReadTrip(current))) return null;
+
+  // B566. After the gate, deliberately: a view that was refused is not a
+  // view. `journal` rather than `trip` because this URL *is* the journal —
+  // `/<user>` renders whichever trip is current — so it is the number the
+  // owner means by "was it opened at all". The trip id rides along so the
+  // per-trip table still counts it.
+  await recordTripView(current, "journal");
+
+  // B327: the owner, or somebody on the trip. `canPublish` travels with it
+  // because the draft banner has to say which of the two is reading.
+  const { read, canPublish, owner } = await readFor(current);
+  const { trip, index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
+    showCosts: await mayViewCosts(current),
+    ...read,
+  });
+  const userConfig = getUser(user);
+  if (!userConfig) notFound();
+  return (
+    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
+      <BlogStructuredData
+        entries={getAllEntries(tripId)}
+        site={site}
+        authors={travellersOf(userConfig, trip).map((p) => p.name)}
+      />
+      <TripStory
+        index={index}
+        days={days}
+        windowStart={windowStart}
+        initialDate={initialDate}
+        stats={stats}
+        basemap={basemap}
+        locals={locals}
+        // B10 — who took this trip, visible on the page itself rather than
+        // only inside the StructuredData script tag above.
+        travellerNames={travellerNamesOf(userConfig, trip)}
+      />
+    </TripProvider>
+  );
+}

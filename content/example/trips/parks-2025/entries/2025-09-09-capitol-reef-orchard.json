@@ -1,0 +1,76 @@
+{
+  "title": "An orchard in the desert",
+  "date": "2025-09-09",
+  "timezone": "America/Denver",
+  "location": "Capitol Reef National Park",
+  "country": "United States",
+  "countryCode": "US",
+  "coordinates": {
+    "lat": 38.2919,
+    "lng": -111.2615
+  },
+  "content": "There is a Mormon orchard in the middle of the park where you can pick fruit off the trees and pay for it by weight in an honesty box.\n\nWe ate four apples each and bought a pie we did not need.",
+  "media": [
+    {
+      "src": "/media/parks-2025/capitol-reef-orchard/01.jpg",
+      "type": "image",
+      "width": 1600,
+      "height": 1065
+    },
+    {
+      "src": "/media/parks-2025/capitol-reef-orchard/02.jpg",
+      "type": "image",
+      "width": 1066,
+      "height": 1600
+    },
+    {
+      "src": "/media/parks-2025/capitol-reef-orchard/03.jpg",
+      "type": "image",
+      "width": 1066,
+      "height": 1600
+    }
+  ],
+  "costs": [
+    {
+      "label": "Fuel",
+      "amount": 36,
+      "category": "transport",
+      "currency": "USD"
+    },
+    {
+      "label": "Campground",
+      "amount": 25,
+      "category": "accommodation",
+      "currency": "USD"
+    },
+    {
+      "label": "Pie, from the orchard",
+      "amount": 18,
+      "category": "food",
+      "currency": "USD"
+    }
+  ],
+  "transportMode": "car",
+  "transportFrom": "Escalante",
+  "transportTo": "Torrey",
+  "tags": [
+    "utah",
+    "national-parks",
+    "food"
+  ],
+  "weather": {
+    "tempMin": 13.3,
+    "tempMax": 29.8,
+    "code": 3,
+    "precipitation": 0,
+    "windMax": 27.3,
+    "source": "open-meteo",
+    "recordedAt": "2026-09-06T08:32:19.120Z"
+  },
+  "declined": {
+    "time": "the hour was not noted when this was written",
+    "translations": "this day has not been translated yet",
+    "visibility": "shown to everyone the trip already lets in"
+  },
+  "status": "published"
+}

@@ -1,0 +1,1139 @@
+import "server-only";
+import { createHash } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import sharp from "sharp";
+import {
+  MAX_DECODE_PIXELS,
+  decodeSource,
+  extensionFor,
+  makeDerivative,
+  perceptualHash,
+  perceptualHashOf,
+} from "../ingest/image.ts";
+import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "../entries";
+import { frontmatterSrc } from "../ingest/paths.ts";
+import { resolveMediaFile, tripMediaDir, tripMetaDir, tripOriginalsDir, tripSidecarPath } from "../media";
+import { moveSidecar, removeTripSidecar, writeTripSidecar, type Sidecar } from "../sidecar";
+import { measureImage } from "../ingest/imageFacts";
+import { getTrips, parseTripRef, tripDir, tripRef } from "../trips";
+import {
+  IMAGE_FORMATS,
+  VIDEO_SHORT_SECONDS,
+  pixelCountProblem,
+  validateMediaBatch,
+  type MediaCandidate,
+  type Problem,
+} from "../validate/media";
+import { VIDEO_EXTENSIONS, probeVideo, transcodeVideo, videoToolsAvailable } from "../ingest/video";
+import { contentHash, isDuplicate } from "../ingest/hash.ts";
+import { loadUserConfig } from "../config";
+import { mediaKey, type PhotoVisibility } from "../photos";
+import { withStorageQuota } from "../storageQuota";
+import type { GalleryItem } from "../types";
+
+/**
+ * Photographs arriving over the network rather than off a memory card.
+ *
+ * `npm run ingest` has always been the only way media got in, which meant an
+ * agent working over the network could write a day's prose and nothing else.
+ * This is the same pipeline — decode, orient, strip metadata, resize — reached
+ * through the API instead of the filesystem.
+ *
+ * Two files come out of one going in. The derivative is what the browser
+ * gets: ≤2000px, no EXIF, no GPS. The original is kept untouched beside the
+ * trip, because a derivative is not a source and a photobook plate wants more
+ * pixels than a web page ever will. See `tripOriginalsDir`.
+ */
+
+export type UploadCandidate = {
+  filename: string;
+  bytes: Buffer;
+  /**
+   * What the person said about this picture, if they said anything.
+   *
+   * The one field on a gallery item an agent can supply, because it is the one
+   * the server cannot work out for itself — everything else here is measured
+   * off the file. It is what you were told, never what the picture looks like
+   * to you; an empty caption beats a plausible one (B522).
+   */
+  caption?: string;
+  /**
+   * Held back from readers the trip otherwise lets in — B596.
+   *
+   * The second field on a gallery item an agent may supply, and the second
+   * thing the server cannot work out for itself. It is what the owner asked
+   * for; a picture nobody said anything about is not held back on a hunch.
+   */
+  visibility?: PhotoVisibility;
+  /**
+   * The sidecar these bytes already carry, when they came out of the inbox —
+   * absolute path. Filing MOVES that file onto the trip rather than writing a
+   * second one beside it: one metadata file per photograph, for life (B1864).
+   */
+  sidecar?: string;
+  /** Which door the bytes came through, and whom it resolved to. Recorded
+   * once, at upload, because neither can be recovered from the file later.
+   * Absent rather than invented when a door has no identity in hand. */
+  source?: Sidecar["source"];
+  uploadedBy?: string;
+};
+
+/**
+ * What was kept of one file, as opposed to what is served.
+ *
+ * The endpoint has always kept the original — the raw bytes, before any
+ * resize, for whichever door they arrived through — and never said so. An
+ * agent that sends 3000px, reads 2000px back in `items`, and has just been
+ * told by the guide that a photobook is printed from the original has every
+ * reason to conclude the promise did not hold. `items` carries the *served*
+ * copy's dimensions; this carries the original's, so the two can be compared
+ * rather than confused.
+ */
+export type KeptOriginal = {
+  /** The name the caller sent, or the one derived from the URL. */
+  filename: string;
+  bytes: number;
+  /** Absent for a video, where dimensions come from a probe rather than a
+   * decode and are the transcode's business. */
+  width?: number;
+  height?: number;
+};
+
+/**
+ * A photograph this day already has — B604.
+ *
+ * Not a refusal. A caller resending a batch after a network failure is the
+ * ordinary case and the ordinary case should be idempotent, so the file is
+ * left out and named here: `matched` is the picture already on the day, so an
+ * agent can see the upload did not vanish, it arrived earlier.
+ */
+export type SkippedUpload = {
+  /** What the caller called the file they sent. */
+  filename: string;
+  /** The `src` of the photograph already on the day, as it will read back. */
+  matched: string;
+};
+
+export type UploadResult =
+  | {
+      ok: true;
+      items: GalleryItem[];
+      kept: KeptOriginal[];
+      advice: string[];
+      skipped: SkippedUpload[];
+    }
+  | { ok: false; problems: Problem[] };
+
+/**
+ * A slug good enough to be a directory name, from whatever was sent.
+ *
+ * Deliberately not `slugify` from lib/slug.ts, which mints a slug from a
+ * title. This one normalises a slug the caller already claims to have, and
+ * the difference that matters is the empty case: `slugify` falls back to
+ * "entry", so a `day=` of "!!!" would come out as a lookup for a day called
+ * "entry" instead of the 400 the caller has earned. Everything reaching here
+ * is already an ASCII slug that lib/slug.ts produced, so the two never
+ * disagree about a letter in practice — but if this ever grows a caller that
+ * passes a title, it should call lib/slug.ts and check the result instead.
+ */
+function safeSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+}
+
+/**
+ * The next free `NN` in a day's folder.
+ *
+ * Numbered rather than named after the upload: two cameras produce
+ * `IMG_0001.JPG` on the same day about as often as not, and the frontmatter
+ * has to keep them apart. Counting what is already there means a second
+ * upload to the same day appends instead of overwriting.
+ */
+function nextIndex(dir: string): number {
+  if (!fs.existsSync(dir)) return 1;
+  const used = fs
+    .readdirSync(dir)
+    .map((f) => Number.parseInt(path.basename(f, path.extname(f)), 10))
+    .filter((n) => Number.isFinite(n));
+  return used.length === 0 ? 1 : Math.max(...used) + 1;
+}
+
+/**
+ * Writes one day's worth of media and returns the gallery block for it.
+ *
+ * Validated as a batch before anything is written: a request that breaks a
+ * limit leaves no half-imported day behind, which is the state that is
+ * genuinely annoying to clean up by hand.
+ */
+/**
+ * Photograph or clip, from the name alone.
+ *
+ * Not from the bytes: the batch is validated before anything is written, and
+ * at that point all we have is what the caller called the file. Deciding
+ * wrongly is caught downstream — a "video" that will not probe and an "image"
+ * that will not decode are both refused with a message that names the file.
+ */
+export function kindOf(filename: string): "image" | "video" {
+  return VIDEO_EXTENSIONS.has(path.extname(filename).toLowerCase()) ? "video" : "image";
+}
+
+/**
+ * One photograph already on this day, as the two questions asked of it.
+ *
+ * `sha` is the served file's own bytes — a fact, and the only thing allowed to
+ * discard an upload. `phash` is what it looks like — an opinion, and absent
+ * for a picture the hash has nothing to say about.
+ */
+type Fingerprint = { file: string; sha: string; phash?: string };
+
+/** One file's fingerprint, plus what identifies the bytes it was taken from. */
+type CachedFingerprint = Fingerprint & { size: number; mtimeMs: number };
+
+/**
+ * Where a day's fingerprints are remembered between requests — B720.
+ *
+ * Beside `.ingest.json`, at the trip's root rather than inside `media/`: that
+ * directory is served straight to the browser (`app/[user]/media/…`), and a
+ * file the gallery never mentions still falls under the day's own visibility
+ * there — harmless for a held-back day, but there is no reason for a decode
+ * cache to be servable at all. `.fingerprints/<slug>.json` sits next to
+ * `.ingest.json` instead, which the same route never resolves into.
+ *
+ * Not `.ingest.json` itself, and not one ledger for the whole trip: that file
+ * names what ingest imported, and going stale about a deletion is exactly the
+ * bug this avoids repeating (see the doc comment below). This sidecar names
+ * nothing — it is keyed by size and mtime, so a cache entry is either for the
+ * file currently at that name or is ignored and recomputed. Deleting it is
+ * always safe; it is rebuilt as a side effect of the next upload.
+ */
+function fingerprintCachePath(ref: string, slug: string): string {
+  return path.join(tripDir(ref), ".fingerprints", `${slug}.json`);
+}
+
+function readFingerprintCache(cacheFile: string): Record<string, CachedFingerprint> {
+  try {
+    return JSON.parse(fs.readFileSync(cacheFile, "utf8"));
+  } catch {
+    return {};
+  }
+}
+
+function writeFingerprintCache(cacheFile: string, cache: Record<string, CachedFingerprint>): void {
+  try {
+    fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+    fs.writeFileSync(cacheFile, JSON.stringify(cache));
+  } catch {
+    // Best effort: a cache that fails to write costs the next request a
+    // decode, not correctness.
+  }
+}
+
+/**
+ * What this day already holds, as bytes and as pictures — B604, B872.
+ *
+ * Read off the files rather than remembered in a ledger, and that is the
+ * point: `.ingest.json` is a record of what ingest imported, so a photograph
+ * removed by `DELETE .../media` (B605) would still be in it and the re-upload
+ * that was meant to fix the mistake would be skipped as a duplicate. The
+ * folder cannot be stale about itself — this still lists the directory on
+ * every call and never trusts a name the cache alone remembers.
+ *
+ * Posters are left out. A clip's still frame is not a gallery item, and a
+ * photograph refused for resembling one would be the worst kind of wrong here
+ * — a picture silently missing from somebody's day.
+ *
+ * The cost used to be a decode of every photograph already on the day, up to
+ * `itemsPerDay` of them, on *every* upload to it — and since B683 made
+ * one-file-per-request the normal shape, that made the nth upload to a day
+ * decode n−1 pictures again: a batch of forty paid for roughly 40² decodes
+ * rather than 40. `.fingerprints.json` beside the derivatives (B720) is what
+ * a decode already found out, keyed by the size and mtime it found it at: a
+ * file already in the cache at the same size and mtime is a fact already
+ * known, not a photograph to open again, and a file the cache does not
+ * mention — new, or changed since — is decoded once and remembered for next
+ * time.
+ */
+async function dayFingerprints(
+  dir: string,
+  cacheFile: string,
+): Promise<{ fingerprints: Fingerprint[]; cache: Record<string, CachedFingerprint> }> {
+  let names: string[];
+  try {
+    names = fs.readdirSync(dir);
+  } catch {
+    return { fingerprints: [], cache: {} }; // No folder yet: the first upload to this day.
+  }
+
+  const previous = readFingerprintCache(cacheFile);
+  const cache: Record<string, CachedFingerprint> = {};
+  const out: Fingerprint[] = [];
+  for (const name of names.sort()) {
+    if (name.startsWith(".")) continue; // The cache file itself, and any other dotfile.
+    if (kindOf(name) === "video" || /-poster\.jpe?g$/i.test(name)) continue;
+    const file = path.join(dir, name);
+    let stat: fs.Stats;
+    try {
+      stat = fs.statSync(file);
+    } catch {
+      continue;
+    }
+    const known = previous[name];
+    if (known && known.size === stat.size && known.mtimeMs === stat.mtimeMs) {
+      out.push({ file: known.file, sha: known.sha, phash: known.phash });
+      cache[name] = known;
+      continue;
+    }
+    try {
+      const sha = contentHash(fs.readFileSync(file));
+      const source = await decodeSource(file);
+      let phash: string | undefined;
+      try {
+        phash = await perceptualHash(source);
+      } finally {
+        source.dispose();
+      }
+      out.push({ file: name, sha, phash });
+      cache[name] = { file: name, sha, phash, size: stat.size, mtimeMs: stat.mtimeMs };
+    } catch {
+      // Something in the folder that will not decode. It is not a photograph
+      // this upload can be a duplicate of, and refusing the upload over it
+      // would be answering a question nobody asked.
+    }
+  }
+  return { fingerprints: out, cache };
+}
+
+export async function storeUploads(
+  ref: string,
+  daySlug: string,
+  uploads: UploadCandidate[],
+): Promise<UploadResult> {
+  const tripId = parseTripRef(ref)?.tripId;
+  if (!tripId) {
+    return { ok: false, problems: [{ field: "trip", got: ref, expected: "<user>/<trip-id>" }] };
+  }
+
+  const slug = safeSlug(daySlug);
+  if (!slug) {
+    return {
+      ok: false,
+      problems: [{ field: "day", got: JSON.stringify(daySlug), expected: "a day slug" }],
+    };
+  }
+  if (uploads.length === 0) {
+    return {
+      ok: false,
+      problems: [
+        {
+          field: "files",
+          got: "nothing",
+          expected: "at least one file",
+          hint: "Send bytes as multipart/form-data under the field `files`, or JSON with `urls`.",
+        },
+      ],
+    };
+  }
+
+  // The day has to exist. Accepting any slug meant a typo silently produced a
+  // folder of public files attached to nothing, discoverable by anyone who
+  // guessed the path and cleaned up by nobody. Drafts count: attaching
+  // photographs to a day still awaiting approval is the normal way round.
+  // AS_AUTHOR: the caller's write access is already established above, and a
+  // bare `{includeDrafts: true}` reads as a stranger — so a day the owner
+  // narrowed to `guest` or `private` came back absent and their own
+  // photographs were refused for a day that plainly exists. B1647's shape.
+  const entry = getEntryBySlug(ref, slug, AS_AUTHOR);
+  if (!entry) {
+    return {
+      ok: false,
+      problems: [
+        {
+          field: "day",
+          got: JSON.stringify(daySlug),
+          expected: "the slug of a day that exists in this trip — write the day first",
+        },
+      ],
+    };
+  }
+
+  const limits = loadUserConfig(parseTripRef(ref)!.username).media;
+  const mediaOut = path.join(tripMediaDir(ref), slug);
+  const originalsOut = path.join(tripOriginalsDir(ref), slug);
+
+  // The batch limit counts items in the gallery, not files on disk — B708. A
+  // video leaves a poster frame and a second format beside it in `mediaOut`,
+  // so counting the directory made a day of clips hit the ceiling at a third
+  // of the advertised count. The frontmatter's own gallery list is what
+  // "item" means everywhere else (the day page, `story.json`, this same
+  // limit's own error message), so it is what counts here too.
+  const existing = entry.gallery.length;
+  // Every upload used to be declared an image, so an .mp4 was measured
+  // against the image formats and refused as a broken photograph — while the
+  // limits table in /agent.md advertised video. The extension decides.
+  //
+  // `longestEdge` used to be left undefined here, which made `imageEdge` in
+  // `validateMediaBatch` below dead code on this path — B1554. It is read off
+  // the header, not decoded (`limitInputPixels` makes sharp refuse a header
+  // claiming more pixels than this server will ever decode, rather than
+  // allocating the raw buffer to find out), so a crafted small file claiming
+  // an enormous image is caught here, before the loop below ever calls
+  // `decodeSource` or `makeDerivative` on it.
+  const candidates: MediaCandidate[] = [];
+  // Separate from `candidates`/`validateMediaBatch` below — B2179 round 2.
+  // `longestEdge` on a `MediaCandidate` means a real, measured edge; a file
+  // whose header sharp refused to even read (declaring more pixels than
+  // `MAX_DECODE_PIXELS`) has no real edge to report, and the previous shape
+  // of this code invented one (`limits.imageEdge + 1`), which is not just
+  // imprecise but can be the wrong problem entirely: a 9000×9000 (81 MP)
+  // image has an edge under `IMAGE_MAX_EDGE` and would have been reported as
+  // "12001px", a number nobody measured, on the wrong axis.
+  const pixelProblems: Problem[] = [];
+  for (const u of uploads) {
+    const kind = kindOf(u.filename);
+    let longestEdge: number | undefined;
+    if (kind === "image") {
+      try {
+        const meta = await sharp(u.bytes, { limitInputPixels: MAX_DECODE_PIXELS }).metadata();
+        if (meta.width && meta.height) longestEdge = Math.max(meta.width, meta.height);
+      } catch (err) {
+        // Sharp's own refusal for a header claiming more pixels than
+        // `MAX_DECODE_PIXELS`. Anything else — a file that is not an image
+        // at all, a format sharp cannot even read the header of — is left
+        // for the decode loop further down, which already reports that with
+        // a real message (`UndecodableImageError`).
+        if (/exceeds pixel limit/i.test((err as Error).message ?? "")) {
+          // Still a header read, not a decode: sharp's own (much larger)
+          // default ceiling bounds this second, unlimited call, so a
+          // genuinely hostile header still answers "more than", never an
+          // invented width.
+          const real = await sharp(u.bytes).metadata().catch(() => undefined);
+          pixelProblems.push(
+            pixelCountProblem(
+              u.filename,
+              real?.width && real?.height ? { width: real.width, height: real.height } : undefined,
+            ),
+          );
+        }
+      }
+    }
+    candidates.push({
+      name: u.filename,
+      kind,
+      format: path.extname(u.filename).replace(".", "").toLowerCase().replace("jpg", "jpeg"),
+      bytes: u.bytes.byteLength,
+      longestEdge,
+    });
+  }
+  const problems = [...pixelProblems, ...validateMediaBatch(candidates, limits)];
+
+  // Video needs ffmpeg, which is the one thing here that is not an npm
+  // dependency. Absent rather than broken: if it is not installed, say so
+  // rather than failing at the transcode with a stack trace.
+  if (candidates.some((c) => c.kind === "video") && !videoToolsAvailable()) {
+    problems.push({
+      field: "files",
+      got: "a video, on a server with no ffmpeg",
+      expected:
+        "images only on this instance — ffmpeg and ffprobe are not installed, " +
+        "so video cannot be converted for the browser. Send the photographs on " +
+        "their own, and ask the person to install ffmpeg for the rest.",
+    });
+  }
+
+  // Said differently from `validateMediaBatch`'s request-level problem above,
+  // which used to carry the identical `expected` string — B209. This one is
+  // about the day, it names what is already there, and its remedy is another
+  // day rather than another request.
+  if (existing + uploads.length > limits.itemsPerDay) {
+    problems.push({
+      field: "files",
+      got: `${existing + uploads.length} items in this day`,
+      expected:
+        `at most ${limits.itemsPerDay} items in one day. This day already holds ${existing}, ` +
+        `so it has room for ${Math.max(0, limits.itemsPerDay - existing)} more — put the rest ` +
+        `on another day.`,
+    });
+  }
+
+  if (problems.length > 0) return { ok: false, problems };
+
+  // The journal's whole allowance — every byte under `content/<user>/`, not
+  // only this trip's photographs. `lib/storageQuota.ts` owns the question, and
+  // owns telling the owner when the answer is getting close.
+  //
+  // Checked and written under the same per-username lock (B1556): the check
+  // alone answers from a directory walk with nothing held, so two uploads
+  // that each individually fit could both pass it before either had written a
+  // byte, and both proceed — taking the journal arbitrarily far past its
+  // ceiling. `withStorageQuota` is what makes "check, then write" one step.
+  const guard = await withStorageQuota(
+    parseTripRef(ref)!.username,
+    uploads.reduce((n, u) => n + u.bytes.byteLength, 0),
+    () => writeUploads(ref, slug, uploads, limits, mediaOut, originalsOut),
+  );
+  if (!guard.ok) {
+    return { ok: false, problems: [{ field: "media", got: "no room left in this journal", expected: guard.problem }] };
+  }
+  return guard.value;
+}
+
+/**
+ * The part of `storeUploads` that actually touches disk — split out so it can
+ * run inside `withStorageQuota`'s lock rather than after a separate check.
+ */
+async function writeUploads(
+  ref: string,
+  slug: string,
+  uploads: UploadCandidate[],
+  limits: ReturnType<typeof loadUserConfig>["media"],
+  mediaOut: string,
+  originalsOut: string,
+): Promise<UploadResult> {
+  const tripId = parseTripRef(ref)!.tripId;
+
+  // Everything is built in a staging directory and moved into place only once
+  // the whole batch has succeeded.
+  //
+  // The guide promises that "if any file in a batch is refused, nothing is
+  // written: fix it and send the batch again", and that is the only advice
+  // that can be given — an agent has no way to tell which of its files landed.
+  // The *validation* was all-or-nothing; the writing was not. The loop wrote
+  // each file as it went and returned on the first one that would not decode,
+  // leaving everything before it on disk, so following the advice wrote those
+  // a second time under fresh numbers and the retry duplicated half the day.
+  //
+  // Staged beside the trip rather than inside `media/`, because
+  // `resolveMediaFile` resolves URLs into that directory and a half-written
+  // batch should not be fetchable while it is being written. Same filesystem,
+  // so the moves at the end are renames.
+  const staging = fs.mkdtempSync(path.join(tripDir(ref), ".staging-"));
+  const staged: { from: string; to: string }[] = [];
+  const items: GalleryItem[] = [];
+  const originals: KeptOriginal[] = [];
+  /** Said about a batch that succeeded — see the long-clip note below. */
+  const advice: string[] = [];
+  /** Left out because the day already has them — B604. */
+  const skipped: SkippedUpload[] = [];
+  /**
+   * One metadata file per photograph — B1864. Collected as the batch is built
+   * and written only once every rename has succeeded, so an abandoned batch
+   * leaves no sidecar describing a photograph that is not there. A candidate
+   * that arrived from the inbox has its existing file MOVED here rather than
+   * a second one written.
+   */
+  const sidecars: { rel: string; carry?: string; patch: Sidecar }[] = [];
+  /**
+   * What the day holds, plus what this batch has added as it goes: a batch
+   * carrying the same photograph twice is the same mistake as sending it in
+   * two batches, and it arrives here rather more often.
+   */
+  const fingerprintCacheFile = fingerprintCachePath(ref, slug);
+  const { fingerprints, cache: fingerprintCache } = await dayFingerprints(mediaOut, fingerprintCacheFile);
+  /** What this batch adds to `fingerprints`, so the cache can learn it too. */
+  const newFingerprints: Fingerprint[] = [];
+  let index = nextIndex(mediaOut);
+
+  /** Give up, leaving the trip exactly as it was. */
+  const abandon = (problems: Problem[]): UploadResult => {
+    fs.rmSync(staging, { recursive: true, force: true });
+    return { ok: false, problems };
+  };
+
+  try {
+    for (const upload of uploads) {
+      const stem = String(index).padStart(2, "0");
+      // sharp reads a path, not a buffer, for the HEIC fallback path — so the
+      // bytes land on disk first and are decoded from there. That also means
+      // the original survives a failure to make a derivative.
+      const kept = path.join(staging, `orig-${stem}${path.extname(upload.filename).toLowerCase()}`);
+      fs.writeFileSync(kept, upload.bytes);
+      staged.push({ from: kept, to: path.join(originalsOut, path.basename(kept).slice(5)) });
+
+      if (kindOf(upload.filename) === "video") {
+        // Transcoded rather than served as sent: a phone's clip is HEVC in a
+        // MOV that a lot of browsers will not play, often with GPS in its
+        // metadata. `transcodeVideo` is the same one ingest uses — h264 in an
+        // MP4, faststart, metadata dropped — so both doors produce the same
+        // thing.
+        const probe = probeVideo(kept);
+        if (!probe) {
+          return abandon([
+            {
+              field: `${upload.filename}.format`,
+              got: "something ffprobe could not read as video",
+              expected: "a readable mp4, mov or webm",
+            },
+          ]);
+        }
+        if (probe.durationSeconds > limits.videoSeconds) {
+          return abandon([
+            {
+              field: `${upload.filename}.duration`,
+              got: `${probe.durationSeconds.toFixed(0)}s`,
+              expected: `at most ${limits.videoSeconds}s — trim it first`,
+            },
+          ]);
+        }
+
+        const name = `${stem}.mp4`;
+        const poster = `${stem}-poster.jpg`;
+        const result = transcodeVideo(kept, path.join(staging, name), {
+          maxSeconds: limits.videoSeconds,
+        });
+        fs.writeFileSync(path.join(staging, poster), result.poster);
+        staged.push(
+          { from: path.join(staging, name), to: path.join(mediaOut, name) },
+          { from: path.join(staging, poster), to: path.join(mediaOut, poster) },
+        );
+        /**
+         * B670. The original of a clip is staged like any other upload's, and
+         * was the one kind never reported back — so a response promising
+         * "what was stored untouched for print" listed the photographs and
+         * silently dropped the video, and an agent checking its own work read
+         * that as the file having been thrown away. No `width`/`height`: for
+         * a video those come from the probe and describe the transcode, which
+         * `items` already carries.
+         */
+        originals.push({ filename: upload.filename, bytes: upload.bytes.byteLength });
+        sidecars.push({
+          rel: path.join(slug, name),
+          carry: upload.sidecar,
+          patch: sidecarFor(upload, tripId, slug),
+        });
+        /**
+         * And the advice that replaced a refusal. Long clips are accepted now
+         * (see `VIDEO_MAX_SECONDS`); saying which one was long, once, is what
+         * is left of the old wall — the person can trim it and send it again,
+         * or leave it, and either is a real answer.
+         */
+        if (probe.durationSeconds > VIDEO_SHORT_SECONDS) {
+          advice.push(
+            `${upload.filename} is ${probe.durationSeconds.toFixed(0)}s. It went in as it is — ` +
+              `nothing was cut — but a clip of about ${VIDEO_SHORT_SECONDS}s or less is the one ` +
+              `people actually watch, and it costs a reader on mobile data far less. Trim it and ` +
+              `send it again if that suits the day better.`,
+          );
+        }
+        items.push({
+          // Trip-relative, like every other item pushed here — see the doc
+          // comment on the image branch below for why, and where the
+          // username actually gets added on for the API response (B540, in
+          // the route that calls this).
+          src: frontmatterSrc(tripId, path.join(slug, name)),
+          type: "video",
+          caption: upload.caption || undefined,
+          visibility: upload.visibility,
+          width: result.width,
+          height: result.height,
+          poster: frontmatterSrc(tripId, path.join(slug, poster)),
+          from: upload.filename,
+        });
+        index += 1;
+        continue;
+      }
+
+      // Decoding is where a file that merely *claims* to be an image gives up,
+      // and it throws. Uncaught, that reached the route as a bare 500 with an
+      // empty body — nothing for an agent to act on.
+      let source;
+      try {
+        source = await decodeSource(kept);
+      } catch (err) {
+        // The reason travels — B869. A decoder that hands back the embedded
+        // thumbnail instead of the photograph is refused here rather than
+        // stored, and "could not be decoded" alone left the caller with
+        // nothing to act on: which file, and why, are both in that message.
+        return abandon([
+          {
+            field: `${upload.filename}.format`,
+            got: "something that could not be decoded as an image",
+            expected: `a readable ${IMAGE_FORMATS.join(", ")} file`,
+            hint:
+              `Nothing was stored for this batch. ` +
+              String((err as Error).message ?? err).replace(/\s*\n\s*/g, " "),
+          },
+        ]);
+      }
+
+      /**
+       * The same photograph twice — B604, and rebuilt by B872.
+       *
+       * `nextIndex` appends, so a resent batch used to become a second file, a
+       * second `gallery:` line and a second tile, with nothing on the write
+       * path ever comparing the arriving picture to what the day already had.
+       * Eleven such pairs across four days were found on one real trip.
+       *
+       * Three things changed after this dropped thirty-eight photographs on
+       * the live instance in one afternoon:
+       *
+       *  1. **The derivative is built first and everything is read off it.**
+       *     The day's fingerprints come from the files on disk, which are
+       *     derivatives; hashing the arriving *original* against them compared
+       *     two different pictures — rotated, resized and re-encoded is not the
+       *     same 9×9 grid — so a file uploaded twice could fail to match itself.
+       *  2. **Identical bytes is the only thing that discards.** That is a
+       *     fact: what is on the day is what was sent, so nothing is lost.
+       *  3. **A resemblance is an opinion, and it keeps the file.** The hash
+       *     agreeing on both axes is good evidence and it is still only
+       *     evidence, and the two ways of being wrong do not cost the same —
+       *     a second tile is deleted in ten seconds, a photograph dropped in
+       *     silence is gone. So it is said in `advice` and stored anyway.
+       */
+      let derivative;
+      let original;
+      try {
+        // Measured from the decoded source rather than from `upload.bytes`,
+        // because a HEIC's own header is not something sharp can always read —
+        // `decodeSource` is what guarantees a file with legible dimensions.
+        // These are the *original's* pixels; the derivative's are below.
+        original = await sharp(source.file, { limitInputPixels: MAX_DECODE_PIXELS }).metadata();
+        derivative = await makeDerivative(source);
+      } finally {
+        source.dispose();
+      }
+
+      const sha = contentHash(derivative.bytes);
+      let phash: string | undefined;
+      try {
+        phash = await perceptualHashOf(derivative.bytes);
+      } catch {
+        // Un-hashable is not a reason to refuse: it goes in unchecked.
+      }
+
+      const identical = fingerprints.find((seen) => seen.sha === sha);
+      if (identical) {
+        skipped.push({
+          filename: upload.filename,
+          matched: frontmatterSrc(tripId, path.join(slug, identical.file)),
+        });
+        // The staged original goes too: keeping it would spend the journal's
+        // quota on a photograph that is not in the day.
+        staged.pop();
+        fs.rmSync(kept, { force: true });
+        continue;
+      }
+
+      const resembles = phash
+        ? fingerprints.find((seen) => seen.phash && isDuplicate(seen.phash, phash!))
+        : undefined;
+      if (resembles) {
+        advice.push(
+          `${upload.filename} looks like a photograph this day already has ` +
+            `(${frontmatterSrc(tripId, path.join(slug, resembles.file))}). It is not the same ` +
+            `file, so it was stored rather than left out — a resemblance is a guess, and a ` +
+            `second copy you can delete beats a picture dropped without telling you. Remove ` +
+            `one with DELETE .../media if they really are the same.`,
+        );
+      }
+
+      {
+        const name = `${stem}${extensionFor(derivative.format)}`;
+        fs.writeFileSync(path.join(staging, name), derivative.bytes);
+        staged.push({ from: path.join(staging, name), to: path.join(mediaOut, name) });
+        items.push({
+          // Trip-relative, never `/<user>/media/…`: the owner is prefixed at
+          // read time, which is what let the move to multi-user rewrite no
+          // entry file. `attachGallery` (lib/api/entries.ts) writes this
+          // straight into the entry's frontmatter, so it has to stay
+          // trip-relative — the route that calls `storeUploads` is where the
+          // username is added back on for the API response only (B540).
+          src: frontmatterSrc(tripId, path.join(slug, name)),
+          type: "image",
+          caption: upload.caption || undefined,
+          visibility: upload.visibility,
+          width: derivative.width,
+          height: derivative.height,
+          // What the caller called it, so reading the day back tells them
+          // which of their files landed and not merely how many — B527.
+          from: upload.filename,
+        });
+        originals.push({
+          filename: upload.filename,
+          bytes: upload.bytes.byteLength,
+          width: original.width,
+          height: original.height,
+        });
+        fingerprints.push({ file: name, sha, phash });
+        newFingerprints.push({ file: name, sha, phash });
+        // Measured off the derivative, here, while it is in hand — the
+        // photobook planner reads it back instead of decoding a second time
+        // (B1865). A measurement that fails is omitted, never fatal.
+        let image;
+        try {
+          image = await measureImage(derivative.bytes);
+        } catch (err) {
+          console.warn(`could not measure ${name}: ${String((err as Error).message ?? err)}`);
+        }
+        sidecars.push({
+          rel: path.join(slug, name),
+          carry: upload.sidecar,
+          // `phash` rides along with `image` — B1978. It is already in hand
+          // above (the resemblance check used it), and the photobook needs
+          // it at plan time to stop printing the same picture twice. Kept on
+          // the sidecar rather than only in `.fingerprints/`, which is
+          // deletable, mtime-keyed and absent from every real trip.
+          patch: {
+            ...sidecarFor(upload, tripId, slug),
+            ...(image ? { image } : {}),
+            ...(phash ? { phash } : {}),
+          },
+        });
+      }
+      index += 1;
+    }
+
+    fs.mkdirSync(mediaOut, { recursive: true });
+    fs.mkdirSync(originalsOut, { recursive: true });
+    for (const { from, to } of staged) fs.renameSync(from, to);
+
+    for (const { rel, carry, patch } of sidecars) {
+      if (carry) moveSidecar(carry, tripSidecarPath(ref, rel), patch);
+      else writeTripSidecar(ref, rel, patch);
+    }
+
+    // What this batch just wrote is fingerprinted already — say so in the
+    // cache now, rather than making the next request decode it to find out.
+    for (const fp of newFingerprints) {
+      try {
+        const stat = fs.statSync(path.join(mediaOut, fp.file));
+        fingerprintCache[fp.file] = { ...fp, size: stat.size, mtimeMs: stat.mtimeMs };
+      } catch {
+        // Renamed away or otherwise gone — the next request's directory
+        // listing is the source of truth, not this cache entry.
+      }
+    }
+    if (newFingerprints.length > 0) writeFingerprintCache(fingerprintCacheFile, fingerprintCache);
+  } catch (error) {
+    // Anything unforeseen — a transcode that dies, a full disk — leaves the
+    // trip untouched rather than half-written.
+    fs.rmSync(staging, { recursive: true, force: true });
+    throw error;
+  } finally {
+    fs.rmSync(staging, { recursive: true, force: true });
+  }
+
+  return { ok: true, items, kept: originals, advice, skipped };
+}
+
+/**
+ * What this door knows about one arriving file, for its sidecar.
+ *
+ * The full `sha256` is of the **original** bytes and is the repair handle a
+ * v1 photograph has nothing else to offer: its filename is positional
+ * (`01.jpg`) and says nothing about its content, so this is what ties the
+ * derivative, the kept original and this file to one photograph.
+ */
+function sidecarFor(upload: UploadCandidate, tripId: string, slug: string): Sidecar {
+  return {
+    // A carried sidecar already answers all four, and better: its
+    // `uploadedAt` is when the file actually arrived, which filing it onto a
+    // day is not. Only a photograph arriving here for the first time gets
+    // them written.
+    ...(upload.sidecar
+      ? {}
+      : {
+          filename: upload.filename,
+          bytes: upload.bytes.byteLength,
+          sha256: createHash("sha256").update(upload.bytes).digest("hex"),
+          uploadedAt: new Date().toISOString(),
+        }),
+    trip: tripId,
+    day: slug,
+    ...(upload.caption ? { caption: upload.caption } : {}),
+    ...(upload.source ? { source: upload.source } : {}),
+    ...(upload.uploadedBy ? { uploadedBy: upload.uploadedBy } : {}),
+  };
+}
+
+/**
+ * A trusted `src` or `poster`, resolved and removed — best-effort, never an
+ * error for a file already gone.
+ *
+ * Through `resolveMediaFile`, the same guarded resolve the read route uses:
+ * it refuses anything that would resolve outside `tripMediaDir`, so a `src`
+ * this function is ever handed has to have been matched against the day's
+ * own gallery first (see `detachGallery` in lib/api/entries.ts, the only
+ * caller). `segments[0]` is checked against `tripId` for the same reason a
+ * hand-edited frontmatter file is not fully trusted content — a gallery item
+ * naming a different trip's media is left alone rather than resolved into
+ * that trip's directory.
+ */
+function removeIfOwnedByTrip(username: string, tripId: string, src: string | undefined): void {
+  if (!src) return;
+  const segments = mediaKey(src).split("/");
+  if (segments[0] !== tripId) return;
+  // And the sidecar, in both places one can be — B1877. A `.meta.json` that
+  // outlives its photograph is the difference between "deleted" and "mostly
+  // deleted": it holds the uploader's original filename and upload time, and
+  // since B1864 the whole of what a photograph acquired in its life. `meta/`
+  // is where B1863 writes them; beside the derivative is where every upload
+  // before it left one. A poster has no sidecar, and removing one that was
+  // never there costs nothing.
+  //
+  // Through `removeTripSidecar` rather than two `rmSync` calls of its own, so
+  // there is one implementation of where a sidecar can be (it also drops the
+  // day's `meta/<day>` directory when that was the last one). Before the
+  // bytes are resolved, so a photograph whose file is already gone still has
+  // its description removed rather than left behind.
+  removeTripSidecar(tripRef(username, tripId), segments.slice(1).join("/"));
+
+  const file = resolveMediaFile(username, segments);
+  if (!file) return;
+  try {
+    fs.unlinkSync(file);
+  } catch {
+    // Already gone.
+  }
+}
+
+/**
+ * Delete one photograph's files — the derivative, the poster if it is a
+ * clip, and the kept original — for B605.
+ *
+ * The original is found by the derivative's own stem rather than by a name
+ * nothing here is told: `storeUploads` numbers both from the same `index`
+ * but the two may carry different extensions (a HEIC original behind a JPEG
+ * derivative), so `01.jpg` in `media/` and `01.heic` in `originals/` are the
+ * same photograph and neither name predicts the other's. The scan below is
+ * over a directory this function already knows is the trip's own, never over
+ * a path built from the request.
+ */
+export function deleteMediaFiles(ref: string, item: GalleryItem): void {
+  const parsed = parseTripRef(ref);
+  if (!parsed) return;
+  const { username, tripId } = parsed;
+
+  removeIfOwnedByTrip(username, tripId, item.src);
+  removeIfOwnedByTrip(username, tripId, item.poster);
+
+  const segments = mediaKey(item.src).split("/");
+  if (segments[0] !== tripId || segments.length < 2) return;
+  const rest = segments.slice(1);
+  const filename = rest[rest.length - 1];
+  const dirs = rest.slice(0, -1);
+  const stem = path.basename(filename, path.extname(filename));
+
+  // The same containment `resolveMediaFile` applies to the derivative, which
+  // this half was doing without: `dirs` comes from a `src` read off disk, and
+  // frontmatter is not something the API writes — a hand-edited `src:` of
+  // `/u/media/<trip>/../../..` passes the `tripId` check above and would have
+  // this scanning, and unlinking stem-matched files from, a directory outside
+  // the trip. Only reachable by somebody who can already edit the file, so it
+  // is asymmetry rather than a hole; a delete path is the wrong place to
+  // leave one.
+  const originalsRoot = path.resolve(tripOriginalsDir(ref));
+  const originalsDir = path.resolve(originalsRoot, ...dirs);
+  if (originalsDir !== originalsRoot && !originalsDir.startsWith(originalsRoot + path.sep)) return;
+  let siblings: string[] = [];
+  try {
+    siblings = fs.readdirSync(originalsDir);
+  } catch {
+    // No original was kept, or it is already gone.
+  }
+  for (const sibling of siblings) {
+    if (path.basename(sibling, path.extname(sibling)) !== stem) continue;
+    try {
+      fs.unlinkSync(path.join(originalsDir, sibling));
+    } catch {
+      // Already gone.
+    }
+  }
+}
+
+/**
+ * Move a day's media, originals and fingerprint cache to a new slug —
+ * B1276, the media half of a rename fired when a draft's real title finally
+ * gives it a real address.
+ *
+ * Each of the three lives at `<something>/<slug>`, and each is moved only if
+ * it exists — a fresh day with no photographs yet has none of them, and that
+ * is not a failure. A destination that already exists refuses outright,
+ * before anything moves, rather than have one day's files land inside
+ * another's directory.
+ *
+ * Renames rather than four independent ones: every completed move is tracked,
+ * and a failure partway through puts back everything already moved, in
+ * reverse order, before answering. `lib/api/entries.ts`'s `renameEntrySlug` is
+ * the only caller and is what moves the entry file and rewrites its gallery
+ * `src`/`poster` fields to match — call that, not this, to rename a day.
+ */
+/**
+ * Whether a slug's media or originals folder already holds files — B1539.
+ *
+ * `renameDayMedia` below already refuses to rename a day onto a slug whose
+ * folder is non-empty; `createDraft` picking a brand-new slug never asked the
+ * same question, which is the gap this closes. A day can be deleted while its
+ * photographs stay on disk (`deleteEntry`'s own doc comment: "the photographs
+ * stay either way" — an entry can be rewritten, and a deleted original cannot
+ * be recovered), so the slug that day held is free again while its folder is
+ * not. A later day that happens to land on the same slug — the common case is
+ * the same date, since an untitled day's placeholder slug is derived from its
+ * date — would otherwise have its own photographs numbered in after a stranger's
+ * leftovers, and its uploads silently deduplicated against them.
+ */
+export function slugHasOrphanedMedia(ref: string, slug: string): boolean {
+  // `meta/` too — B1863 moved the sidecars out of `media/`, and a folder of
+  // sidecars with no photographs left is still a stranger's leftovers.
+  for (const dir of [tripMediaDir(ref), tripOriginalsDir(ref), tripMetaDir(ref)]) {
+    const folder = path.join(dir, slug);
+    try {
+      if (fs.readdirSync(folder).some((name) => !name.startsWith("."))) return true;
+    } catch {
+      // No folder — nothing orphaned.
+    }
+  }
+  return false;
+}
+
+export function renameDayMedia(
+  ref: string,
+  oldSlug: string,
+  newSlug: string,
+): { ok: true } | { ok: false; error: string } {
+  const candidates: [string, string][] = [
+    [path.join(tripMediaDir(ref), oldSlug), path.join(tripMediaDir(ref), newSlug)],
+    [path.join(tripOriginalsDir(ref), oldSlug), path.join(tripOriginalsDir(ref), newSlug)],
+    // The sidecars, which used to ride along inside `media/<slug>` and since
+    // B1863 sit in their own `meta/<slug>` — a rename that left them behind
+    // would orphan every caption and original filename the day carries.
+    [path.join(tripMetaDir(ref), oldSlug), path.join(tripMetaDir(ref), newSlug)],
+    [fingerprintCachePath(ref, oldSlug), fingerprintCachePath(ref, newSlug)],
+  ];
+  const moves = candidates.filter(([from]) => fs.existsSync(from));
+
+  for (const [, to] of moves) {
+    if (fs.existsSync(to)) {
+      return {
+        ok: false,
+        error: `"${newSlug}" already has files on disk at ${to} — refusing to overwrite them`,
+      };
+    }
+  }
+
+  const done: [string, string][] = [];
+  try {
+    for (const [from, to] of moves) {
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      fs.renameSync(from, to);
+      done.push([from, to]);
+    }
+  } catch (err) {
+    for (const [from, to] of done.reverse()) {
+      try {
+        fs.renameSync(to, from);
+      } catch {
+        // Best effort — the caller's own error already names what went wrong.
+      }
+    }
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+
+  return { ok: true };
+}
+
+// ---------------------------------------------------------------------------
+// The same picture twice
+// ---------------------------------------------------------------------------
+
+/** One photograph in a duplicate group, as the caller would delete it. */
+export type DuplicateMediaItem = {
+  src: string;
+  day: string;
+  width?: number;
+  height?: number;
+  bytes: number;
+};
+
+/**
+ * Photographs a trip holds more than once — B1103.
+ *
+ * `storeUploads` above already says so **at the moment of upload**, in
+ * `advice`, and deliberately stores the second copy anyway: a resemblance is a
+ * guess, and dropping a photograph nobody can get back is the worse mistake.
+ * That leaves the other half unanswered — an agent handed a journal it did not
+ * upload has no way to ask the question at all, and an eleven-copy trip is not
+ * something anybody finds by looking. This is that question.
+ *
+ * It reads the **derivatives**, which is the same side of the pipeline the
+ * upload path hashes (see `perceptualHashOf`) and the reason this agrees with
+ * the advice a caller was given rather than contradicting it. `dayFingerprints`
+ * does the work and its cache is written back, so a second call on an unchanged
+ * trip decodes nothing.
+ *
+ * Only what a day's gallery actually names is reported. A file in `media/`
+ * that no entry mentions is not something `DELETE .../media` will accept, and
+ * a report whose rows cannot be acted on is worse than a shorter one.
+ *
+ * Groups, not pairs: three copies of one photograph are one row to decide
+ * about. Largest first inside a group, because the biggest is nearly always
+ * the one to keep — but this never says which, and never deletes. Which copy a
+ * journal keeps is an editorial decision and belongs in the second call.
+ */
+export async function findDuplicateMedia(ref: string): Promise<DuplicateMediaItem[][]> {
+  const parsed = parseTripRef(ref);
+  if (!parsed) return [];
+
+  type Candidate = Fingerprint & { item: DuplicateMediaItem };
+  const candidates: Candidate[] = [];
+
+  for (const entry of getAllEntries(ref, AS_AUTHOR)) {
+    const gallery = new Map(
+      entry.gallery.filter((g) => g.type !== "video").map((g) => [mediaKey(g.src), g]),
+    );
+    if (gallery.size === 0) continue;
+
+    const dir = path.join(tripMediaDir(ref), entry.slug);
+    const cacheFile = fingerprintCachePath(ref, entry.slug);
+    const { fingerprints, cache } = await dayFingerprints(dir, cacheFile);
+    writeFingerprintCache(cacheFile, cache);
+
+    for (const print of fingerprints) {
+      const src = frontmatterSrc(parsed.tripId, path.join(entry.slug, print.file));
+      const item = gallery.get(mediaKey(src));
+      if (!item) continue;
+      let bytes = 0;
+      try {
+        bytes = fs.statSync(path.join(dir, print.file)).size;
+      } catch {
+        continue; // Named by the day, gone from disk: not a duplicate, a hole.
+      }
+      candidates.push({
+        ...print,
+        item: { src, day: entry.slug, width: item.width, height: item.height, bytes },
+      });
+    }
+  }
+
+  // Union-find over the candidates. `sha` beside `isDuplicate` because a
+  // picture the difference hash has no opinion about — a plain wall, a
+  // whiteout — is still the same photograph when the bytes agree.
+  const parent = candidates.map((_, i) => i);
+  const root = (i: number): number => (parent[i] === i ? i : (parent[i] = root(parent[i])));
+  for (let i = 0; i < candidates.length; i++) {
+    for (let j = i + 1; j < candidates.length; j++) {
+      const [a, b] = [candidates[i], candidates[j]];
+      const same = a.sha === b.sha || (a.phash && b.phash && isDuplicate(a.phash, b.phash));
+      if (same) parent[root(i)] = root(j);
+    }
+  }
+
+  const groups = new Map<number, DuplicateMediaItem[]>();
+  for (let i = 0; i < candidates.length; i++) {
+    const key = root(i);
+    const group = groups.get(key) ?? [];
+    group.push(candidates[i].item);
+    groups.set(key, group);
+  }
+
+  const area = (item: DuplicateMediaItem) => (item.width ?? 0) * (item.height ?? 0);
+  return [...groups.values()]
+    .filter((group) => group.length > 1)
+    .map((group) => group.sort((a, b) => area(b) - area(a) || b.bytes - a.bytes))
+    .sort((a, b) => b.length - a.length || a[0].src.localeCompare(b[0].src));
+}

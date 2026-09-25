@@ -1,0 +1,536 @@
+// A trip, as v2 speaks it: the whole trip is one JSON document — B1587.
+//
+// Read whole, written whole (or merge-patched). What today is ~12 routes
+// (/rates, /people, /visibility, /costs, /plan …) is sections of this one
+// schema, each always-required, required-or-declined, or server-owned.
+import { z } from "zod";
+import {
+  ACCENTS,
+  COSTS_VISIBILITIES,
+  ID_RE,
+  PLAN_MODES,
+  PLAN_READERS,
+  PLAN_STOP_SOURCES,
+  REMINDER_CHANNELS,
+  STATUSES,
+  VISIBILITIES,
+} from "../../../tripWrite";
+import { MAX_TRIP_PEOPLE } from "../../../trips";
+import { costItem, costLines, dayDoc, dayWrite } from "./day";
+import { tripFigures } from "./figures";
+import {
+  checkPatchConflicts,
+  checkRequiredOrDeclined,
+  declinedMap,
+  isoDate,
+  tripId,
+  type Declinable,
+} from "./shared";
+
+/** ── sections ────────────────────────────────────────────────────────── */
+
+/** Who took the trip: write access, byline, and who may hold a trip-scoped
+ * token. At least one — a trip nobody was on is not a trip — so there is no
+ * decline path. */
+const person = z.strictObject({
+  name: z.string().trim().min(1),
+  /** What this trip calls them, where that is shorter than their name.
+   * Optional, unlike the journal owner's: `peopleOf`/`partyNames`
+   * (lib/tripPeople.ts) fall back to `name` when it is absent, and
+   * `lib/trips.ts` already reads it as optional off disk. Here because the
+   * byline renders it, not because v1 had it. */
+  nickname: z.string().trim().min(1).optional(),
+  email: z.email(),
+});
+
+/** The currencies money moved in on this trip, against the journal's base.
+ * The reference table for conversion stays the server's (ECB); this is only
+ * which currencies the trip's figures may name. */
+const rates = z.strictObject({
+  currencies: z.array(z.string().length(3)).min(1),
+  /** Rates for any listed currency the ECB does not publish, and overrides
+   * for ones it does — per trip, not per journal (owner review). Same
+   * convention as the ECB table: units per 1 EUR, e.g. {"VND": 30500}. */
+  manual: z.record(z.string().length(3), z.number().positive()).optional(),
+});
+
+/** Budget + preparation costs — what costs.md carries today. Entries on days
+ * live on the days.
+ *
+ * `items` and `note` joined in B1597: `costs.md` always had a preparation
+ * cost list and a prose body of its own (budgeting for the trip before it
+ * had any days) and the wire section had no field for either — a caller
+ * could set a budget but not the spend that justified it. `items` reuses
+ * the day's own `costItem` shape (imported, not retyped) because a
+ * preparation cost and a day's cost are the same kind of fact. */
+const costs = z.strictObject({
+  /**
+   * Optional, D19 — and the reason is worth reading before anyone tightens
+   * it back.
+   *
+   * `createTrip` writes `costs: {visibility: "guests"}` the moment somebody
+   * chooses who sees the money, which is at trip creation, long before there
+   * is a budget to state. `lib/costs.ts` reads exactly that and treats a
+   * section as malformed only when it holds *nothing* usable. So a required
+   * `budget` here made the contract disagree with both the writer and the
+   * reader, and the writer won every time: the section was written anyway
+   * and simply failed to typecheck.
+   *
+   * What it costs, stated plainly: `costs` is a declinable whose promise is
+   * "every trip carries a budget, or says why costs are not tracked here",
+   * and an optional budget means a trip can satisfy that declinable with a
+   * section that states no budget at all. The promise weakens to "the owner
+   * engaged with costs". That is the honest trade for letting visibility and
+   * preparation spend exist before a budget does — both of which are real
+   * states a trip passes through, not edge cases.
+   */
+  budget: z
+    .strictObject({
+      total: z.number().positive(),
+      /** Absent means the trip's own day count. */
+      days: z.number().int().positive().optional(),
+      /** Absent means the journal's base currency. */
+      currency: z.string().length(3).optional(),
+    })
+    .optional(),
+  /** Preparation spend — before there are any days to carry it. */
+  items: z.array(costItem).optional(),
+  /** `costs.md`'s own prose body. */
+  note: z.string().optional(),
+  /** Whether readers of the trip see the money: public (anyone who can read
+   * the trip) or guests (narrower). Absent reads as public. */
+  visibility: z.enum(COSTS_VISIBILITIES).optional(),
+});
+
+/** `costs` as a caller sends it — `items` bounded (B2243). */
+const costsWrite = costs.extend({ items: costLines.optional() });
+
+/** A place worth seeing at a stop — never a bed, never a bill. `lat`/`lng`
+ * are asked whenever `name` is, same as a stop itself, so this can sit on
+ * the map beside the route without a separate lookup (B2009). */
+const planSee = z.strictObject({
+  name: z.string().trim().min(1),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  source: z.enum(PLAN_STOP_SOURCES).optional(),
+});
+
+/** The intended route, for an upcoming trip — plan.md today. */
+const planStop = z.strictObject({
+  /**
+   * A stable handle for this stop, used by `costs.items[].stop` and by
+   * `plan.private.stops` to attach a hotel or a link to the one stop it
+   * belongs to without repeating its name. A slug of `location`, assigned by
+   * the server when a caller omits it (B2009) — never guessed at the
+   * client's own idea of a slug, so two callers naming the same place never
+   * disagree about its id.
+   */
+  id: z.string().regex(ID_RE, "lowercase words joined by hyphens, e.g. tokyo").optional(),
+  location: z.string().trim().min(1),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+  country: z.string().optional(),
+  countryCode: z.string().length(2).optional(),
+  note: z.string().optional(),
+  /** How many nights this stop lasts — the input in `nights` mode, and the
+   * server's own recount of `arrive`/`leave` when switching back to it from
+   * `dates` mode. Absent stops the derivation: this stop keeps whatever
+   * `arrive` the previous stop's nights carried it to, loses its own
+   * `leave`, and every later stop loses both (B2009 — the server cannot
+   * know when an unstated stay ends). */
+  nights: z.number().int().positive().optional(),
+  /** Taken as given in `dates` mode; server-derived and overwritten in
+   * `nights` mode (the default) every time the route is written. */
+  arrive: isoDate.optional(),
+  leave: isoDate.optional(),
+  /** Places worth seeing here — public, unlike `plan.private.stops`, which
+   * is where the bed and the bookings live. */
+  see: z.array(planSee).optional(),
+  /** How this stop's coordinates were arrived at. */
+  source: z.enum(PLAN_STOP_SOURCES).optional(),
+});
+
+const planLink = z.strictObject({
+  label: z.string().trim().min(1),
+  url: z.url(),
+});
+
+/**
+ * What only the owner may read back — B2009. A hotel typed as an ordinary
+ * stop publishes the hotel; this is where it goes instead, keyed by the
+ * route's own stop ids so a private fact never needs its own copy of a
+ * stop's name and coordinates. Dropped whole by the read path unless the
+ * reader is `person` (lib/plan.ts, lib/trips.ts, and the v2 GET route —
+ * beside where drafts are stripped for the same audience).
+ */
+const planPrivate = z.strictObject({
+  links: z.array(planLink).optional(),
+  stops: z.record(z.string(), z.strictObject({
+    stay: z.strictObject({
+      name: z.string().trim().min(1),
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+    }).optional(),
+    links: z.array(planLink).optional(),
+  })).optional(),
+});
+
+/**
+ * `private.stops` names may only be checked against route ids once every
+ * stop actually has one — which, for a caller who left an id or two for the
+ * server to assign, is only true after `derivePlan` (lib/api/v2/write.ts)
+ * has run. That check therefore lives there, at the door, alongside the
+ * nights/dates derivation it already has to do in the same pass — not here,
+ * where an unassigned id would make every `private.stops` key look wrong.
+ */
+const plan = z.strictObject({
+  route: z.array(planStop).min(1),
+  body: z.string().optional(),
+  /** Whether `arrive`/`leave` are the server's own derivation from `nights`
+   * (the default) or taken as given. */
+  mode: z.enum(PLAN_MODES).optional(),
+  /** Whether a reader gets the map alone (the default) or the fuller
+   * stop-by-stop detail — B2011/B2012 render the difference; this is only
+   * the flag they read. */
+  readers: z.enum(PLAN_READERS).optional(),
+  private: planPrivate.optional(),
+}).superRefine((doc, ctx) => {
+  const seen = new Set<string>();
+  for (const [i, stop] of doc.route.entries()) {
+    if (stop.id === undefined) continue;
+    if (seen.has(stop.id)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["route", i, "id"],
+        message: `stop id "${stop.id}" is not unique in the route`,
+        params: { v2: "conflict" },
+      });
+    }
+    seen.add(stop.id);
+  }
+});
+
+/** The trip's card text in the journal's other languages. The route refuses
+ * a locale the journal does not declare, since it would be written and never
+ * rendered — that check needs the journal's config and lives at the door. */
+const translations = z.record(
+  z.string(),
+  z.strictObject({
+    title: z.string().optional(),
+    tagline: z.string().optional(),
+    /** T4/B1589: the photobook prints from this — built into the set now
+     * rather than grown field-by-field a fourth time. */
+    intro: z.string().optional(),
+  }),
+);
+
+/** ── the required-or-declined ledger for a trip ──────────────────────── */
+
+export const TRIP_DECLINABLES: readonly Declinable[] = [
+  {
+    field: "rates",
+    whyRequired: "every trip states the currencies its figures may use, or declines them",
+  },
+  {
+    field: "costs",
+    whyRequired: "every trip carries a budget, or says why costs are not tracked here",
+  },
+  {
+    field: "plan",
+    whyRequired: "an upcoming trip carries its intended route, or says why there is none",
+  },
+  {
+    field: "days",
+    whyRequired: "a trip carries its days, or says why there are none yet (e.g. it has not started)",
+  },
+  {
+    field: "translations",
+    whyRequired:
+      "a journal that maintains several languages carries each trip's title and tagline in all of them, or says why not (a single-language journal is exempt — the route skips this check)",
+  },
+  {
+    field: "accent",
+    whyRequired: "every trip picks the colour its cards are drawn in, or leaves it to the default with a reason",
+  },
+  // cover is deliberately NOT asked at create (V8): no photograph can exist
+  // yet, so the question had no honest answer and every create declined it
+  // identically. The route asks it on update once the trip holds media.
+  {
+    field: "figures",
+    whyRequired:
+      'how the party is drawn as walking figures: {mode: "off"}, {mode: "journal"} (the journal\'s default set), or {mode: "custom", figures: [ids]} — create figures at /figures first',
+  },
+  {
+    field: "tagline",
+    whyRequired: "every trip card carries its one-line subtitle, or a reason it has none",
+  },
+  {
+    field: "intro",
+    whyRequired: "a trip page opens with a few lines of prose, or says why there are none",
+  },
+] as const;
+
+/** Asked only of a public trip — a closed trip is never advertised, so the
+ * question does not exist there and both the field and its decline are
+ * refused. */
+const LISTED_DECLINABLE: Declinable = {
+  field: "listed",
+  whyRequired:
+    "a public trip states whether it is advertised (sitemap, feed, switcher): listed true or false, or declined",
+};
+
+/**
+ * Exported (D9, 06-contract-deltas.md) so the shared write path's T6 decline
+ * retraction (`lib/api/v2/write.ts`) can clear a stored decline of `listed`
+ * or `buddies` too — both are decline-able (the schema's `declined` map
+ * accepts them) even though neither is in `TRIP_DECLINABLES`, since each is
+ * asked by a bespoke `superRefine` check rather than
+ * `checkRequiredOrDeclined`. No change to any accepted document.
+ */
+export const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "figures", "tagline", "intro", "listed", "buddies"] as const;
+
+/**
+ * Creating a trip: the whole document at once. Every declinable section is
+ * present or in `declined` — a silent omission answers 422 with the missing
+ * list, which is the documentation delivered at the moment it is needed.
+ *
+ * Deliberately absent from the write shape:
+ * - `status` — derived from the dates on every read (calendarStatus), never
+ *   written. v1's manual override is retired; a stored status is how a trip
+ *   stays "current" for a year (decided 2026-09-12).
+ * - v1's `tracks:` — "what this trip keeps track of" is now the same
+ *   declined map as everything else, one mechanism instead of two.
+ */
+const tripBase = z
+  .strictObject({
+    // ── always required ──
+    /** Client-chosen, forever. Retried create → 409 with the stored doc. */
+    id: tripId,
+    title: z.string().trim().min(1).max(200),
+    dates: z.strictObject({ from: isoDate, to: isoDate }),
+    /** An explicit choice, never a guessed default — a typo must not publish
+     * somebody's trip. Unrecognised reads as private on disk; here it is
+     * refused outright. */
+    visibility: z.enum(VISIBILITIES),
+    /** Who is on the trip — the owner plus any buddies, each name + email.
+     * Everyone listed may write to the trip; the access only materialises
+     * when that person proves the address through the sign-in code, so a
+     * wrong email grants nothing. The server mails every newly added
+     * non-owner: a "you are on trip X" note if the address is already known
+     * to this journal, an onboarding invite if it is not — and the echo's
+     * `notifications` says which went out. A trip with only the owner on it
+     * declines `buddies` instead ("travelling solo"). */
+    people: z.array(person).min(1).max(MAX_TRIP_PEOPLE),
+    /** Required on a closed trip (guest/private): may the trip's existence
+     * show as a locked card? A boolean is its own answer, so there is no
+     * decline path — bring true or false. Refused on a public trip, where
+     * `listed` is the key that decides. B587. */
+    teaser: z.boolean().optional(),
+
+    // ── required-or-declined (see TRIP_DECLINABLES) ──
+    rates: rates.optional(),
+    costs: costs.optional(),
+    plan: plan.optional(),
+    days: z.array(dayWrite).optional(),
+    translations: translations.optional(),
+    accent: z.enum(ACCENTS).optional(),
+    /** The media src the trip's card shows. Not asked at create (V8 — no
+     * photograph can exist yet, so the question had no honest answer); the
+     * route asks it on update once the trip holds media, same conditional
+     * shape as listed/teaser. Declined → auto-pick newest, echo says so.
+     * On a PATCH only, `null` clears it back to absent (D14). */
+    cover: z.string().optional(),
+    /** Which figures walk this trip's animation — see ./figures.ts. */
+    figures: tripFigures.optional(),
+    /** One line under the title on the trip card. On a PATCH only, `null`
+     * clears it back to absent (D14). */
+    tagline: z.string().optional(),
+    /** The trip page's opening prose — trip.md's body. On a PATCH only,
+     * `null` clears it back to absent (D14). */
+    intro: z.string().optional(),
+    /** Public trips only: is the trip advertised (sitemap, feed, switcher)?
+     * false is "unlisted" — still readable at its URL. On a closed trip the
+     * question does not exist and the key is refused. B51. */
+    listed: z.boolean().optional(),
+    /**
+     * An opt-in evening nudge while the trip is running — B1219, D46, D18.
+     *
+     * **Presence is the switch.** Absent means off; present carries the
+     * channel it goes out on. v1 split this across two frontmatter scalars,
+     * `reminder: true` and `reminderChannel:`, which could disagree — and did
+     * often enough that `lib/trips.ts` carries a warning for the case. One
+     * field makes the disagreement unrepresentable, which is this contract's
+     * own "one fact, one address" rule.
+     *
+     * Owner only, like `visibility`: a trip-scoped token writes days into its
+     * trip, but whether the journal nudges somebody in the evening is the
+     * owner's question, not that of whoever is holding the pen this week.
+     * That check lives in the route.
+     *
+     * Not a declinable. A reminder is a setting rather than something the
+     * journal says about the trip, so there is nothing here for a reader to
+     * be owed an answer about — the same reason `listed` and `teaser` are
+     * plain optionals above.
+     */
+    reminder: z.strictObject({ channel: z.enum(REMINDER_CHANNELS) }).optional(),
+    declined: declinedMap(DECLINABLE_KEYS).optional(),
+
+    // ── plain optional ──
+    /** Content nobody lived. */
+    test: z.boolean().optional(),
+  });
+
+const refineTripCreate = (doc: z.infer<typeof tripBase>, ctx: z.RefinementCtx) => {
+    const declinables =
+      doc.visibility === "public" ? [...TRIP_DECLINABLES, LISTED_DECLINABLE] : TRIP_DECLINABLES;
+    checkRequiredOrDeclined(doc, declinables, ctx);
+    // buddies: a solo trip says so; a trip with buddies has answered.
+    if (doc.people !== undefined) {
+      const solo = doc.people.length <= 1;
+      const buddiesDeclined = doc.declined?.buddies !== undefined;
+      if (solo && !buddiesDeclined) {
+        ctx.addIssue({
+          code: "custom",
+          // `buddies` — not `people` — because `incompleteFrom` keys the
+          // 422 row by `issue.path[0]` and a caller resolves any other row
+          // by sending `declined.<field>` built from that same field. On
+          // `people` the row read `declined.people`, which is not a
+          // DECLINABLE_KEYS entry at all and would earn a fresh, unrelated
+          // refusal (B1601, moderate finding 3); `to_provide` would also
+          // have shown the `people` array's own shape, which says nothing
+          // about the buddies question being asked.
+          path: ["buddies"],
+          message:
+            "only one person is on this trip — add the buddies who were there (name + email; the server mails them), or decline: declined.buddies (e.g. travelling solo)",
+          params: { v2: "missing", toDecline: "declined.buddies: <reason>" },
+        });
+      }
+      if (!solo && buddiesDeclined) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["people"],
+          message: "buddies are both listed in people and declined — remove one",
+          params: { v2: "conflict" },
+        });
+      }
+    }
+    // listed: a public trip's question only.
+    if (doc.visibility !== "public" && (doc.listed !== undefined || doc.declined?.listed !== undefined)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["listed"],
+        message:
+          "a closed trip is never advertised, so there is nothing to list or to decline — remove listed",
+        params: { v2: "conflict" },
+      });
+    }
+    // teaser: mandatory question on a closed trip, meaningless on an open one.
+    if (doc.visibility === "public" && doc.teaser !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["teaser"],
+        message: "a public trip has nothing to tease — `listed` is the key that decides. Remove teaser.",
+        params: { v2: "conflict" },
+      });
+    }
+    if (doc.visibility !== "public" && doc.teaser === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["teaser"],
+        message:
+          "a closed trip states whether its existence may show as a locked card: teaser: true or teaser: false",
+        params: { v2: "missing" },
+      });
+    }
+};
+
+/** A trip as a caller SENDS it: `costs.items` bounded (`costLine`, B2243). */
+export const tripCreate = tripBase.extend({ costs: costsWrite.optional() }).superRefine(refineTripCreate);
+
+/** The same checks over a document that is already STORED (a PATCH's merged
+ * re-validation): `costs.items` unbounded, so a trip over the cost bounds
+ * for any reason can still be corrected (B2243 review F1). */
+export const tripCreateStored = tripBase.superRefine(refineTripCreate);
+
+/**
+ * D14 (06-contract-deltas.md) — a PATCH only, widening these four plain
+ * scalars to accept `null` as well as their ordinary type: sending `null`
+ * removes the field, returning the document to the state before it was ever
+ * set. Finishes RFC 7386 (JSON Merge Patch), which the contract already
+ * names as v2's patch semantics and where `null` already means exactly this
+ * — v2's own merge-patch had no spelling for it at all until now.
+ *
+ * Deliberately not on `tripBase` itself, so `tripCreate` (a PUT is refused
+ * `null`, decision 7 — a full replace already expresses absence by
+ * omission) and `tripDoc` (a read never sees `null` here) are untouched.
+ * Deliberately not on any other field: a declinable SECTION (`costs`,
+ * `plan`, `rates`, `figures`, `translations`, …) keeps the `declined` map as
+ * its only way to say "not answered" — a `null` spelling there would be a
+ * second way to say one thing, which is the drift this row exists to avoid.
+ * Derived/conditional fields (`listed`, `teaser`, `buddies`) keep B1616's
+ * reconciliation and gain no `null` spelling either.
+ */
+const NULLABLE_ON_PATCH = {
+  cover: z.string().nullable().optional(),
+  accent: z.enum(ACCENTS).nullable().optional(),
+  tagline: z.string().nullable().optional(),
+  intro: z.string().nullable().optional(),
+};
+
+/**
+ * Editing a trip (V2): merge-patch over the same shape. Nothing is asked —
+ * a patch answers only the questions it raises — but it cannot contradict
+ * itself, `days` is refused (a day changes through its own route, so
+ * deleting one is never a side effect of shortening a list), and supplying
+ * a previously declined section clears the stored decline (T6, write path).
+ * The conditional rules (teaser/listed vs visibility, the buddy question,
+ * cover-once-media-exists) need the STORED document and run in the route,
+ * where old and new can be merged first.
+ */
+const tripPatchShape = tripBase.partial().extend(NULLABLE_ON_PATCH);
+const refineTripPatch = (doc: z.infer<typeof tripPatchShape>, ctx: z.RefinementCtx) => {
+    checkPatchConflicts(doc, DECLINABLE_KEYS, ctx);
+    if (doc.days !== undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["days"],
+        message:
+          "days are not editable through the trip document — write each day through its own route",
+        params: { v2: "conflict" },
+      });
+    }
+};
+export const tripPatch = tripPatchShape.extend({ costs: costsWrite.optional() }).superRefine(refineTripPatch);
+/** `tripPatch` over the merged, stored document — unbounded costs, see `tripCreateStored`. */
+export const tripPatchStored = tripPatchShape.superRefine(refineTripPatch);
+
+/**
+ * What every GET answers: the stored document plus the server-owned truth.
+ * `days` echoes as full day documents; on *update* the `days` key is
+ * rejected (read-only echo) — a day changes through its own slug route, so
+ * deleting one can never be a side effect of shortening a list.
+ */
+export const tripDoc = z.object({
+  ...tripBase.def.shape,
+  days: z.array(dayDoc),
+  // ── server-owned ──
+  /** Derived from the dates on every read; stored nowhere. */
+  status: z.enum(STATUSES),
+  /** One field on read too: the cover actually in effect. When the write
+   * declined it, this is the auto-picked newest photograph — the
+   * `declined.cover` entry standing beside it is how an agent tells a
+   * choice from an auto-pick. Absent only while the trip has no photos. */
+  cover: z.string().optional(),
+  /** The ground actually covered, derived from the gps store, clipped and
+   * cleaned. Never writable; the store itself is reachable by no route. */
+  track: z.strictObject({ present: z.boolean(), updatedAt: z.string().optional() }).optional(),
+  /** What the server mailed when people were added: a "you are on trip X"
+   * note to an address this journal already knows, an onboarding invite to
+   * one it does not. Report these as mails sent — never as access granted;
+   * access materialises when the person proves the address. */
+  notifications: z
+    .array(z.strictObject({ email: z.string(), kind: z.enum(["trip-added", "journal-invite"]) }))
+    .optional(),
+});
+
+export type TripCreate = z.infer<typeof tripCreate>;

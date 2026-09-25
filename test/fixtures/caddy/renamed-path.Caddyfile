@@ -1,0 +1,54 @@
+# B1910, exactly: a route renamed in deploy/fernscout.caddy
+# (`/api/helper/*/extract/upload` became `/api/helper/*/studio/upload`) while
+# this machine's hand-merged block still carries the old path. The handler is
+# byte-identical either side — same `max_size 520MiB` — only the path it is
+# attached to moved, which is the whole of what this fixture exists to catch.
+{
+	email ops@example.invalid
+}
+
+other.example {
+	# A neighbour, kept deliberately path-free: `file_server` records the
+	# config file's own absolute path in its `hide` list, which would put this
+	# checkout's directory into a committed fixture.
+	respond "the other site, and this deploy did not touch it"
+}
+
+journal.example {
+	encode gzip zstd
+	@debugmethods method TRACE TRACK
+	handle @debugmethods {
+		respond 405
+	}
+
+	@bigbody {
+		path /api/v2/*/media
+		path /api/helper/*/inbox
+		path /api/helper/*/day/media
+		path /api/v2/*/import
+		path /api/v2/*/trips/*/travellers/from-photo
+		path /api/helper/*/extract/upload
+		path /api/probe/upload
+	}
+	@transcribe {
+		path /api/helper/*/transcribe
+	}
+	@smallbody {
+		not path /api/v2/*/media /api/helper/*/inbox /api/helper/*/day/media /api/v2/*/import /api/v2/*/trips/*/travellers/from-photo /api/helper/*/extract/upload /api/probe/upload /api/helper/*/transcribe
+	}
+	request_body @bigbody {
+		max_size 520MiB
+	}
+	request_body @transcribe {
+		max_size 25MB
+	}
+	request_body @smallbody {
+		max_size 10MB
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000 {
+			header_up X-Forwarded-For {remote_host}
+		}
+	}
+}

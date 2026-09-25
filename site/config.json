@@ -1,0 +1,146 @@
+{
+  "configVersion": 1,
+  "site": {
+    "name": "Fernscout",
+    "url": "https://fernscout.ch",
+    "defaultUser": "example",
+    "showcase": [
+      "example"
+    ],
+    "repository": "https://github.com/severinlindenmann/fernscout",
+    "banner": {
+      "enabled": true,
+      "text": "Beta – Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
+      "translations": {
+        "de": "Beta – Fernscout ist noch unterwegs: Einzelne Funktionen verhalten sich vielleicht noch nicht wie gedacht.",
+        "en": "Beta – Fernscout is still on its way: a few things may not work as intended yet.",
+        "hu": "Béta – a Fernscout még úton van: néhány funkció talán még nem úgy működik, ahogy kellene."
+      }
+    },
+    "credit": {
+      "name": "[Operator name]",
+      "url": "https://the owner's own mail domain",
+      "countryCode": "CH"
+    }
+  },
+  "users": {
+    "reserved": [
+      "api",
+      "agent",
+      "media",
+      "_next",
+      "static",
+      "admin",
+      "trips",
+      "day",
+      "costs",
+      "gallery",
+      "map",
+      "welcome",
+      "i",
+      "join",
+      "auth",
+      "legal",
+      "map-credits",
+      "docs",
+      "documentation",
+      "llms",
+      "openapi",
+      "sitemap",
+      "robots",
+      "manifest",
+      "icon",
+      "apple-icon",
+      "opengraph-image",
+      "favicon"
+    ]
+  },
+  "features": {
+    "reactions": {
+      "enabled": false
+    },
+    "costs": {
+      "enabled": false
+    },
+    "push": {
+      "enabled": false
+    },
+    "mail": {
+      "enabled": false,
+      "transport": "file"
+    },
+    "whatsapp": {
+      "enabled": false,
+      "backend": "dry-run",
+      "defaultCountryCode": "41",
+      "templates": {
+        "de": "fernscout_day_published_v2",
+        "en": "fernscout_day_published_v2",
+        "hu": "fernscout_day_published_v2"
+      }
+    },
+    "auth": {
+      "enabled": false
+    },
+    "signup": {
+      "inviteOnly": true
+    },
+    "contacts": {
+      "enabled": false
+    },
+    "postcards": {
+      "enabled": false,
+      "provider": "dry-run"
+    },
+    "photobook": {
+      "enabled": false,
+      "provider": "dry-run"
+    },
+    "logging": {
+      "enabled": false
+    },
+    "credits": {
+      "enabled": false
+    },
+    "addressLookup": {
+      "enabled": false,
+      "provider": "photon"
+    },
+    "weather": {
+      "enabled": false
+    },
+    "analytics": {
+      "enabled": false
+    },
+    "helper": {
+      "enabled": false
+    },
+    "transcription": {
+      "enabled": false,
+      "backend": "dry-run"
+    }
+  },
+  "costs": {
+    "models": {
+      "claude-haiku-4-5": {
+        "inputPerMillionRappen": 80,
+        "outputPerMillionRappen": 400
+      }
+    },
+    "transcriptionPerThousandMinutesRappen": 344,
+    "fixedMonthly": [
+      {
+        "label": "Your server, per month",
+        "rappen": 0
+      },
+      {
+        "label": "Your domain, per month",
+        "rappen": 0
+      },
+      {
+        "label": "Stannp API access (GBP 12), per month",
+        "rappen": 0
+      }
+    ]
+  }
+}

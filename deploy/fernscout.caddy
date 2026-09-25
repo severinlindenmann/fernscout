@@ -1,0 +1,128 @@
+# Fernscout's site block, and nothing else. **This file is the release's.**
+#
+# It is meant to be `import`ed, not copied:
+#
+#     # in /etc/caddy/Caddyfile, once, and never edited again
+#     import /srv/fernscout/deploy/fernscout.caddy
+#
+# and that one line is the whole of what an operator owns. The file it points
+# at is inside the checkout, so `git pull` — which is to say every deploy —
+# updates the proxy config with the commit that changed it, on a machine that
+# already serves other sites, without anything writing to /etc/caddy at all.
+#
+# That is B66. `deploy/Caddyfile` was a template nobody ran: a proxy directive
+# added here reached the machine only if somebody remembered to merge it by
+# hand, and B01's `header_up` line below — without which every rate limit on
+# the server can be reset by forging a header — was deployed, reported
+# healthy, and had no effect for as long as it took a person to notice.
+#
+# `scripts/check-caddy.mts` is the backstop: it compares what Caddy is
+# actually running against this file, and `scripts/deploy.sh` runs it on every
+# deploy. An operator who declines the import and merges by hand keeps a
+# working site and gets told, out loud, each time the two drift apart.
+#
+# Deliberately no global options block. There is one per machine, it belongs
+# to whoever set the machine up, and a second one is a config error — see
+# deploy/Caddyfile.
+
+{$CADDY_DOMAIN} {
+	encode gzip zstd
+
+	# Next.js sets its own cache headers per-route (see next.config.ts and
+	# the API routes' `cache-control: no-store`); Caddy just proxies. The app
+	# runs on this host — there is no container to address by name.
+	#
+	# It sets its own security headers too, in the `headers()` block of
+	# next.config.ts: Content-Security-Policy, Referrer-Policy,
+	# X-Content-Type-Options, X-Frame-Options and Strict-Transport-Security.
+	# Caddy passes all five through unchanged. **Do not add a `header` directive
+	# repeating them here** — Caddy's `header` replaces rather than appends, so a
+	# second HSTS or CSP line silently becomes the only one, and the app's stays
+	# behind. If this proxy is ever replaced by one that strips response headers,
+	# the replacement has to carry them instead. See B02.
+	# B1088: TRACE and TRACK reach Next as unsupported methods and it answers a
+	# bare 500 — it rejects them before any application code runs, so proxy.ts
+	# never sees them and the app cannot answer them itself. They have no
+	# legitimate use here, so reject them at the one layer that sees them first.
+	# `handle` blocks are ordered and mutually exclusive: this one wins for those
+	# two methods, and every other request falls through to the reverse_proxy.
+	@debugmethods method TRACE TRACK
+	handle @debugmethods {
+		respond 405
+	}
+
+	# B1551: Next buffers a request's whole body in memory before the route
+	# handler — and therefore before authenticate() — ever runs, up to
+	# `REQUEST_MAX_BYTES` in lib/validate/media.ts (512 MiB, applied
+	# instance-wide by `experimental.proxyClientMaxBodySize` in
+	# next.config.ts). Below that ceiling Next does not refuse; it truncates
+	# silently. So an unauthenticated caller can hold half a gigabyte of RAM
+	# per connection just by opening one, and Caddy — sitting in front of that
+	# buffer — is the only thing that can refuse a huge body before it ever
+	# reaches the app's memory.
+	#
+	# Two tiers, plus one route that needs a size of its own. The handful of
+	# routes that legitimately take a large upload (a trip's media, the
+	# inbox, an import, a helper photo upload) get just enough headroom to
+	# clear the app's own ceiling — 520MiB, so a caller past the real limit
+	# sees the app's own error message rather than a bare Caddy 413.
+	# `/api/helper/*/transcribe` takes a recording as base64 *inside* a JSON
+	# body — MAX_AUDIO_BYTES in lib/helper/speech.ts is 16 MiB, and base64
+	# inflates that by a third on the wire, so it gets its own 25MB rather
+	# than sharing either the JSON-sized default or the upload tier: sharing
+	# the small default would 413 a legitimate recording below the app's own
+	# ceiling, and sharing the big tier would hand an unauthenticated caller
+	# the same half-gigabyte buffer this ticket exists to close for a route
+	# that never needs it. Everything else is JSON and small, capped at 10MB.
+	# Keep this list in step with `lib/validate/media.ts`'s REQUEST_MAX_BYTES
+	# and with whichever routes actually call `request.formData()` — see the
+	# comment there.
+	@bigbody {
+		path /api/v2/*/media
+		path /api/helper/*/inbox
+		path /api/helper/*/day/media
+		path /api/v2/*/import
+		path /api/v2/*/trips/*/travellers/from-photo
+		path /api/helper/*/studio/upload
+		# B1750's throwaway phone-upload probe, and the reason this list is
+		# worth keeping in step: the probe fell into @smallbody's 10MB, Caddy
+		# truncated a batch of twenty photographs, and both Safari and Brave
+		# reported "Load failed" with no status — because the connection was
+		# closed rather than answered. That is exactly the failure the comment
+		# above describes and it still cost an hour. Goes when the probe does.
+		path /api/probe/upload
+	}
+	@transcribe {
+		path /api/helper/*/transcribe
+	}
+	@smallbody {
+		not path /api/v2/*/media /api/helper/*/inbox /api/helper/*/day/media /api/v2/*/import /api/v2/*/trips/*/travellers/from-photo /api/helper/*/studio/upload /api/probe/upload /api/helper/*/transcribe
+	}
+	request_body @bigbody {
+		max_size 520MiB
+	}
+	request_body @transcribe {
+		max_size 25MB
+	}
+	request_body @smallbody {
+		max_size 10MB
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:{$PORT:3000} {
+			# Overwrite, never append — and this line is load-bearing.
+			#
+			# Caddy's default is to *append* the real client address to whatever
+			# `X-Forwarded-For` arrived. `clientIp()` in lib/rateLimit.ts reads the
+			# first value, so without this a client that sends its own
+			# `X-Forwarded-For: 203.0.113.9` is rate-limited as 203.0.113.9 —
+			# rotate the header per request and every limit on this server resets.
+			# That includes the eight-guess limit in front of a trip's password.
+			#
+			# The app trusts the first value *because* of this line. If Caddy is
+			# ever replaced, the replacement has to overwrite the header too, or
+			# `clientIp()` has to stop trusting it. See B01.
+			header_up X-Forwarded-For {remote_host}
+		}
+	}
+}

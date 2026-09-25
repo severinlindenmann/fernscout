@@ -1,0 +1,1004 @@
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { sql } from "kysely";
+import { renderToStaticMarkup } from "react-dom/server";
+import { NextRequest } from "next/server";
+import proxy from "@/proxy";
+import { clearConfigCache } from "@/lib/config";
+import { grant } from "@/lib/credits";
+import { clearUserCache, getUser, userExists } from "@/lib/users";
+import { closeDatabase, getDatabase, TABLE_NAMES } from "@/lib/db";
+import { migrateToLatest } from "@/lib/db/migrate";
+import { issueCode, verifyCode, type Session } from "@/lib/auth";
+import { tripWriteScope } from "@/lib/tripPeople";
+import { createJournal } from "@/lib/journals";
+import { createTrip } from "@/lib/tripWrite";
+import { writeDayFixture } from "./fixtures/content";
+import { getTrip, getTrips, tripRef } from "@/lib/trips";
+import { journalTombstone, tripTombstone } from "@/lib/tombstones";
+import { resetRateLimitsForTests } from "@/lib/rateLimit";
+import {
+  confirmDeletion,
+  DELETION_TTL_MS,
+  requestDeletion,
+  resolveDeletionToken,
+  summarise,
+} from "@/lib/deletions";
+import { DELETE as deleteJournalRoute } from "@/app/api/v2/[user]/route";
+import { DELETE as deleteTripRoute, PATCH as patchTripRoute } from "@/app/api/v2/[user]/trips/[trip]/route";
+import * as confirmRoute from "@/app/api/v2/[user]/deletions/[token]/route";
+import DeletePage from "@/app/[user]/delete/[token]/page";
+import { GET as deletionExport } from "@/app/[user]/delete/[token]/export.zip/route";
+
+/**
+ * Deleting a journal, and deleting one trip out of it (B38).
+ *
+ * The most dangerous code in this repository: everything else here can be
+ * corrected by editing a file. So the tests are mostly about what does *not*
+ * happen — a `DELETE` that deletes nothing, a link that is inert on GET, a
+ * token that works once — and about the sweep leaving nothing behind when it
+ * finally does run.
+ */
+
+let dir: string;
+const OWNER = "owner@example.test";
+const GUEST = "someone@example.test";
+const DATES = { start: "2027-04-01", end: "2027-04-20" };
+
+function serverConfig(): void {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "Testbed", url: "https://t.test" },
+      users: { reserved: ["admin"] },
+      features: {
+        signup: { inviteOnly: false },
+        auth: { enabled: true },
+        // The file transport, which is what makes this whole flow testable
+        // with no mail account anywhere — AGENTS.md's rule.
+        mail: { enabled: true, transport: "file" },
+      },
+    }),
+  );
+}
+
+/** B374: `serverConfig` plus the one switch its tests need to turn. */
+function serverConfigWithCredits(enabled: boolean): void {
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      site: { name: "Testbed", url: "https://t.test" },
+      users: { reserved: ["admin"] },
+      features: {
+        signup: { inviteOnly: false },
+        auth: { enabled: true },
+        mail: { enabled: true, transport: "file" },
+        credits: { enabled },
+      },
+    }),
+  );
+  clearConfigCache();
+}
+
+beforeEach(async () => {
+  dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-deletions-"));
+  process.env.CONTENT_DIR = dir;
+  process.env.DATA_DIR = dir;
+  process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
+  process.env.SESSION_SECRET = "test-secret-for-deletions";
+  serverConfig();
+  clearConfigCache();
+  clearUserCache();
+  resetRateLimitsForTests();
+  await migrateToLatest(await getDatabase());
+});
+
+afterEach(async () => {
+  await closeDatabase();
+  delete process.env.CONTENT_DIR;
+  delete process.env.DATA_DIR;
+  delete process.env.DATABASE_URL;
+  delete process.env.SESSION_SECRET;
+  clearConfigCache();
+  clearUserCache();
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+/** One address owns one journal (B840), so a test that wants a second journal
+ *  has to give it an owner of its own — which is what these tests mean anyway:
+ *  the point is somebody else's journal, not a second one of Anna's. */
+function makeJournal(username = "anna", ownerEmail = OWNER) {
+  const created = createJournal({
+    username,
+    title: "Anna's journal",
+    ownerEmail,
+    ownerName: "Anna Traveller",
+    ownerNickname: "Anna",
+  });
+  if (!created.ok) throw new Error(created.message);
+  return created.username;
+}
+
+function makeTrip(username: string, id = "japan-2027", visibility?: "public" | "guest" | "private") {
+  const created = createTrip(username, { id, title: "Japan", ...DATES, ...(visibility ? { visibility } : {}) });
+  if (!created.ok) throw new Error(created.message);
+  return id;
+}
+
+/** A day with a photograph beside it, so "the media goes too" is testable. */
+function writeDay(username: string, tripId: string, slug: string) {
+  const trip = path.join(dir, username, "trips", tripId);
+  fs.mkdirSync(path.join(trip, "media"), { recursive: true });
+  writeDayFixture(dir, username, tripId, {
+    slug,
+    date: "2027-04-02",
+    title: slug,
+    location: "Kyoto",
+    country: "Japan",
+    content: "Words.",
+  });
+  fs.writeFileSync(path.join(trip, "media", `${slug}.jpg`), Buffer.alloc(2048, 7));
+}
+
+/** A real session, minted the way the auth route mints one. */
+async function session(owner: string, email: string, scope?: string): Promise<Session> {
+  const { code } = await issueCode(owner, email, "agent");
+  const verified = await verifyCode(owner, email, code, "agent", scope);
+  if (!verified.ok) throw new Error(`could not open a session: ${verified.reason}`);
+  const { resolveSession } = await import("@/lib/auth");
+  const resolved = await resolveSession(verified.token, "agent");
+  if (!resolved) throw new Error("session did not resolve");
+  return resolved;
+}
+
+async function tokenFor(owner: string, email: string, scope?: string): Promise<string> {
+  const { code } = await issueCode(owner, email, "agent");
+  const verified = await verifyCode(owner, email, code, "agent", scope);
+  if (!verified.ok) throw new Error(`could not open a session: ${verified.reason}`);
+  return verified.token;
+}
+
+function request(url: string, token?: string): Request {
+  return new Request(url, {
+    method: "DELETE",
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  });
+}
+
+/** The `.eml` files written under a journal, newest last. */
+function mails(username: string): string[] {
+  const mailDir = path.join(dir, "mail", username);
+  if (!fs.existsSync(mailDir)) return [];
+  return fs.readdirSync(mailDir).filter((f) => f.endsWith(".eml")).sort();
+}
+
+/** The plain-text alternative of one message — same MIME walk as
+ * test/journals.test.ts, for the same reason: a base64 body has blank lines. */
+function mailBody(username: string, index = 0): string {
+  const files = mails(username);
+  const raw = fs.readFileSync(path.join(dir, "mail", username, files[index]), "utf8");
+  const boundary = raw.match(/boundary="([^"]+)"/)?.[1];
+  if (!boundary) throw new Error("no MIME boundary in the message");
+  for (const part of raw.split(`--${boundary}`)) {
+    if (!/Content-Type: text\/plain/i.test(part)) continue;
+    const encoded = part.split(/\r?\n\r?\n/).slice(1).join("\n");
+    return Buffer.from(encoded.replace(/\s/g, ""), "base64").toString("utf8");
+  }
+  throw new Error("no text/plain part in the message");
+}
+
+/**
+ * The confirmation link out of the mail — the only place it exists — and the
+ * mail is consumed on the way out.
+ *
+ * Consumed rather than indexed because the file transport names a message by
+ * timestamp, recipient and subject, so two identical mails inside the same
+ * millisecond land on one filename and a test that read `files[1]` failed
+ * about one run in ten. Captured as B50; here, taking the mail as you read it
+ * removes the ordering question altogether.
+ */
+function takeToken(username: string): string {
+  const files = mails(username);
+  if (files.length !== 1) {
+    throw new Error(`expected exactly one unread mail for ${username}, found ${files.length}`);
+  }
+  const body = mailBody(username, 0);
+  const match = body.match(new RegExp(`/${username}/delete/([A-Za-z0-9_-]+)`));
+  if (!match) throw new Error(`no deletion link in the mail:\n${body}`);
+  fs.unlinkSync(path.join(dir, "mail", username, files[0]));
+  return match[1];
+}
+
+describe("asking to delete", () => {
+  test("a journal: 202, nothing deleted, and a mail naming what would go", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    writeDay(user, trip, "kyoto-in-the-rain");
+    const token = await tokenFor(user, OWNER);
+
+    const response = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`, token), {
+      params: Promise.resolve({ user }),
+    });
+    const body = (await response.json()) as Record<string, unknown>;
+
+    expect(response.status).toBe(202);
+    expect(body.deleted).toBe(false);
+    expect(body.mailedTo).toBe(OWNER);
+    expect(String(body.note)).toContain("NOTHING HAS BEEN DELETED");
+
+    // The journal is untouched.
+    expect(fs.existsSync(path.join(dir, user, "config.json"))).toBe(true);
+    expect(getTrips(user)).toHaveLength(1);
+
+    const text = mailBody(user);
+    expect(text).toContain("Anna's journal");
+    expect(text).toMatch(/1 trips, 1 days/);
+    expect(text).toContain(`/${user}/delete/`);
+    // The export is offered, and it is the complete one.
+    expect(text).toContain(`/${user}/delete/`);
+    expect(text).toMatch(/export\.zip/);
+  });
+
+  test("a trip: 202, nothing deleted, and the mail says the photographs go too", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    writeDay(user, trip, "kyoto-in-the-rain");
+    const token = await tokenFor(user, OWNER);
+
+    const response = await deleteTripRoute(
+      request(`https://t.test/api/v2/${user}/trips/${trip}`, token),
+      { params: Promise.resolve({ user, trip }) },
+    );
+    const body = (await response.json()) as Record<string, unknown>;
+
+    expect(response.status).toBe(202);
+    expect(body.deleted).toBe(false);
+    expect(getTrip(tripRef(user, trip))).toBeTruthy();
+
+    const text = mailBody(user);
+    expect(text).toContain("Japan");
+    expect(text.toLowerCase()).toContain("photograph");
+  });
+
+  test("a second request retires the first link, so one inbox holds one live one", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    const first = await requestDeletion({ kind: "journal", username: user });
+    expect(first.ok).toBe(true);
+    const staleToken = takeToken(user);
+    const second = await requestDeletion({ kind: "journal", username: user });
+    expect(second.ok).toBe(true);
+
+    const stale = staleToken;
+    const live = takeToken(user);
+    expect(await resolveDeletionToken(user, stale)).toMatchObject({ ok: false, reason: "used" });
+    expect(await resolveDeletionToken(user, live)).toMatchObject({ ok: true });
+  });
+
+  test("a journal with no owner.email is refused rather than deleted on a token's word", async () => {
+    const user = makeJournal();
+    const config = JSON.parse(fs.readFileSync(path.join(dir, user, "config.json"), "utf8"));
+    delete config.owner.email;
+    fs.writeFileSync(path.join(dir, user, "config.json"), JSON.stringify(config));
+    clearConfigCache();
+    clearUserCache();
+
+    const asked = await requestDeletion({ kind: "journal", username: user });
+    expect(asked).toMatchObject({ ok: false, error: "no_owner_address" });
+  });
+
+  test("B1491: a fourth ask in the window is refused, not mailed", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+
+    for (let i = 0; i < 3; i++) {
+      const asked = await requestDeletion({ kind: "journal", username: user });
+      expect(asked.ok).toBe(true);
+    }
+
+    const refused = await requestDeletion({ kind: "journal", username: user });
+    expect(refused).toMatchObject({ ok: false, error: "too_many_requests", status: 429 });
+
+    // Nothing deleted, mail-bombed or otherwise — this is a refusal to ask
+    // again, not a fourth confirmation link.
+    expect(userExists(user)).toBe(true);
+  });
+
+  test("B1491: the limit is shared across all three callers, keyed on the mailed address", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    const token = await tokenFor(user, OWNER);
+
+    // Two through the bearer-token API routes, one through the owner's own
+    // cookie-only page — all three mail the same address, so all three spend
+    // the one bucket.
+    const first = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`, token), {
+      params: Promise.resolve({ user }),
+    });
+    expect(first.status).toBe(202);
+
+    const second = await deleteTripRoute(request(`https://t.test/api/v2/${user}/trips/${trip}`, token), {
+      params: Promise.resolve({ user, trip }),
+    });
+    expect(second.status).toBe(202);
+
+    const third = await requestDeletion({ kind: "journal", username: user });
+    expect(third.ok).toBe(true);
+
+    const fourth = await requestDeletion({ kind: "journal", username: user });
+    expect(fourth).toMatchObject({ ok: false, error: "too_many_requests", status: 429 });
+  });
+
+  test("with mail switched off the endpoint is absent, not broken", async () => {
+    const user = makeJournal();
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "Testbed", url: "https://t.test" },
+        users: { reserved: [] },
+        features: { auth: { enabled: true }, signup: { inviteOnly: false }, mail: { enabled: false } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+
+    const asked = await requestDeletion({ kind: "journal", username: user });
+    expect(asked).toMatchObject({ ok: false, error: "deletion_unavailable", status: 404 });
+    expect(userExists(user)).toBe(true);
+  });
+});
+
+describe("who may ask", () => {
+  test("a trip-scoped token is refused on both endpoints", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    // What somebody listed in a trip's `people:` gets from /api/auth/request.
+    const scoped = await tokenFor(user, GUEST, tripWriteScope(trip));
+
+    // v2's owner-only gate (`lib/api/v2/auth.ts`'s `ownerOnlyRefusal`)
+    // answers "forbidden" here, on the journal itself, the same as it does
+    // on the trip below: this token IS in scope for the journal (`ownsUser`
+    // passes) — it is the wrong *authority* within it (`mayActAsOwner`
+    // fails) — where v1's `[user]` route said "out_of_scope" instead. Still
+    // 403, still refused outright either way.
+    const journal = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`, scoped), {
+      params: Promise.resolve({ user }),
+    });
+    expect(journal.status).toBe(403);
+    expect((await journal.json()).error).toBe("forbidden");
+
+    // Refused on the very trip the token may write days into: writing to a
+    // journey and ending it are different authorities.
+    const tripResponse = await deleteTripRoute(
+      request(`https://t.test/api/v2/${user}/trips/${trip}`, scoped),
+      { params: Promise.resolve({ user, trip }) },
+    );
+    expect(tripResponse.status).toBe(403);
+    expect((await tripResponse.json()).error).toBe("forbidden");
+
+    expect(mails(user)).toHaveLength(0);
+    expect(getTrip(tripRef(user, trip))).toBeTruthy();
+  });
+
+  test("a token for another journal cannot reach this one", async () => {
+    const anna = makeJournal("anna");
+    makeJournal("bruno", "bruno@example.test");
+    const brunosToken = await tokenFor("bruno", "bruno@example.test");
+
+    const response = await deleteJournalRoute(request(`https://t.test/api/v2/${anna}`, brunosToken), {
+      params: Promise.resolve({ user: anna }),
+    });
+    expect(response.status).toBe(403);
+    expect(userExists(anna)).toBe(true);
+  });
+
+  test("no token at all is a 401", async () => {
+    const user = makeJournal();
+    const response = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`), {
+      params: Promise.resolve({ user }),
+    });
+    expect(response.status).toBe(401);
+  });
+});
+
+describe("the link", () => {
+  test("following it with GET deletes nothing", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    writeDay(user, trip, "kyoto-in-the-rain");
+    await requestDeletion({ kind: "journal", username: user });
+    const token = takeToken(user);
+
+    // The page is a page, and pages cannot be POSTed to. Rendering it is the
+    // whole of what a mail scanner following the link can do.
+    const rendered = await DeletePage({ params: Promise.resolve({ user, token }), searchParams: Promise.resolve({}) });
+    expect(rendered).toBeTruthy();
+
+    expect(userExists(user)).toBe(true);
+    expect(getTrips(user)).toHaveLength(1);
+    expect(journalTombstone(user)).toBeNull();
+    // And the token is not spent by looking at it.
+    expect(await resolveDeletionToken(user, token)).toMatchObject({ ok: true });
+  });
+
+  test("the confirmation endpoint has no GET at all", () => {
+    expect(typeof confirmRoute.POST).toBe("function");
+    expect((confirmRoute as Record<string, unknown>).GET).toBeUndefined();
+    expect((confirmRoute as Record<string, unknown>).DELETE).toBeUndefined();
+  });
+
+  test("a used token is refused, and the page explains rather than 404s", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    await requestDeletion({ kind: "trip", username: user, tripId: "japan-2027" });
+    const token = takeToken(user);
+
+    const first = await confirmRoute.POST(
+      new Request(`https://t.test/api/v2/${user}/deletions/${token}`, { method: "POST" }),
+      { params: Promise.resolve({ user, token }) },
+    );
+    expect(first.status).toBe(200);
+
+    const second = await confirmRoute.POST(
+      new Request(`https://t.test/api/v2/${user}/deletions/${token}`, { method: "POST" }),
+      { params: Promise.resolve({ user, token }) },
+    );
+    expect(second.status).toBe(409);
+    // B1734: the v2 door answers the shared error envelope (`error`/`message`),
+    // not v1's `{error: reason, deleted: false}` — nothing here deletes on a
+    // refusal either way, there is simply no `deleted` field to say so anymore.
+    expect((await second.json()).error).toBe("deletion_link_used");
+
+    const page = (await DeletePage({ params: Promise.resolve({ user, token }), searchParams: Promise.resolve({}) })) as {
+      props: { title: string; body: string; actions: { href: string }[] };
+    };
+    expect(page.props.title).toBe("This link no longer works");
+    expect(page.props.body).toContain("already been used");
+    expect(page.props.actions[0].href).toBe(`/${user}`);
+  });
+
+  test("an expired token is refused", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    await requestDeletion({ kind: "journal", username: user });
+    const token = takeToken(user);
+
+    const { db } = await getDatabase();
+    await db
+      .updateTable("deletion_requests")
+      .set({ expires_at: new Date(Date.now() - DELETION_TTL_MS).toISOString() })
+      .execute();
+
+    expect(await resolveDeletionToken(user, token)).toMatchObject({ ok: false, reason: "expired" });
+    const response = await confirmRoute.POST(
+      new Request(`https://t.test/api/v2/${user}/deletions/${token}`, { method: "POST" }),
+      { params: Promise.resolve({ user, token }) },
+    );
+    expect(response.status).toBe(409);
+    expect(userExists(user)).toBe(true);
+
+    // And the person following the dead link reads a sentence, not a 404.
+    const page = (await DeletePage({ params: Promise.resolve({ user, token }), searchParams: Promise.resolve({}) })) as {
+      props: { title: string; body: string };
+    };
+    expect(page.props.title).toBe("This link no longer works");
+    expect(page.props.body).toContain("60 minutes");
+  });
+
+  test("a token issued for one journal will not delete another", async () => {
+    const anna = makeJournal("anna");
+    const bruno = makeJournal("bruno", "bruno@example.test");
+    makeTrip(anna);
+    makeTrip(bruno);
+    await requestDeletion({ kind: "journal", username: anna });
+    const annasToken = takeToken(anna);
+
+    expect(await resolveDeletionToken(bruno, annasToken)).toMatchObject({
+      ok: false,
+      reason: "unknown",
+    });
+    const response = await confirmRoute.POST(
+      new Request(`https://t.test/api/v2/${bruno}/deletions/${annasToken}`, { method: "POST" }),
+      { params: Promise.resolve({ user: bruno, token: annasToken }) },
+    );
+    expect(response.status).toBe(404);
+    expect(userExists(bruno)).toBe(true);
+    expect(userExists(anna)).toBe(true);
+
+    // Pasted under the wrong journal, it explains rather than 404s.
+    const page = (await DeletePage({
+      params: Promise.resolve({ user: bruno, token: annasToken }),
+      searchParams: Promise.resolve({}),
+    })) as { props: { title: string; actions: { href: string }[] } };
+    expect(page.props.title).toBe("This link no longer works");
+    expect(page.props.actions[0].href).toBe(`/${bruno}`);
+  });
+
+  test("it hands over the complete export, private trips and drafts included", async () => {
+    const user = makeJournal();
+    // Explicit, so this test proves what it claims regardless of B306: a
+    // trip's default now follows its journal (`makeJournal` above leaves it
+    // `public`), so this has to ask for `private` to be the thing an
+    // anonymous export would not otherwise have carried.
+    const trip = makeTrip(user, "japan-2027", "private");
+    writeDay(user, trip, "kyoto-in-the-rain");
+    await requestDeletion({ kind: "journal", username: user });
+    const token = takeToken(user);
+
+    const response = await deletionExport(new Request("https://t.test/x"), {
+      params: Promise.resolve({ user, token }),
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Content-Type")).toBe("application/zip");
+    const bytes = Buffer.from(await response.arrayBuffer());
+    expect(getTrip(tripRef(user, trip))?.visibility).toBe("private");
+    expect(bytes.toString("latin1")).toContain(`trips/${trip}/entries/`);
+    // Reading the copy does not spend the link.
+    expect(await resolveDeletionToken(user, token)).toMatchObject({ ok: true });
+  });
+});
+
+describe("deleting a journal", () => {
+  /**
+   * One row in every table, discovered rather than listed.
+   *
+   * The point of the assertion below is that it does not rot when a table is
+   * added, so the seeding must not either: the columns are read off the
+   * database, and every non-nullable one without a default is filled.
+   */
+  async function seedEveryTable(username: string): Promise<void> {
+    const { db } = await getDatabase();
+    const tables = await db.introspection.getTables();
+    let n = 0;
+    // `sessions.user_id` is a real foreign key onto `users.id`, so the users
+    // row has to exist first — which it does, because TABLE_NAMES is in
+    // dependency order.
+    const seeded: Record<string, string> = {};
+    for (const name of TABLE_NAMES) {
+      const meta = tables.find((t) => t.name === name);
+      if (!meta) throw new Error(`no such table: ${name}`);
+      seeded[name] = `seed-${name}-${n++}`;
+      const columns: string[] = [];
+      const values: unknown[] = [];
+      for (const column of meta.columns) {
+        // `id` always, whatever the introspection says: SQLite reports a text
+        // primary key as nullable, and a users row with a null id fails every
+        // foreign key pointing at it.
+        if (column.name !== "id" && (column.isNullable || column.hasDefaultValue)) continue;
+        columns.push(column.name);
+        if (column.name === "owner_id") values.push(username);
+        else if (column.name === "id") values.push(seeded[name]);
+        // `sessions.user_id` and `access_grants.contact_id` are real foreign
+        // keys. Resolved by convention (`<thing>_id` -> the `<thing>s` table)
+        // rather than by a list, so a new one does not silently break the
+        // seeding this whole assertion depends on.
+        else if (column.name.endsWith("_id") && seeded[`${column.name.slice(0, -3)}s`])
+          values.push(seeded[`${column.name.slice(0, -3)}s`]);
+        else if (/int|real|double|numeric|float/i.test(column.dataType)) values.push(1);
+        else values.push("x");
+      }
+      try {
+        await sql`insert into ${sql.table(name)} (${sql.join(columns.map((c) => sql.ref(c)))}) values (${sql.join(values.map((v) => sql.lit(v as string)))})`.execute(db);
+      } catch (err) {
+        throw new Error(`seeding ${name} (${columns.join(",")}) = ${JSON.stringify(values)}: ${String(err)}`);
+      }
+    }
+  }
+
+  async function rowsNaming(username: string): Promise<Record<string, number>> {
+    const { db } = await getDatabase();
+    const counts: Record<string, number> = {};
+    for (const name of TABLE_NAMES) {
+      const result = await sql<{ n: number }>`select count(*) as n from ${sql.table(name)} where owner_id = ${username}`.execute(db);
+      counts[name] = Number(result.rows[0].n);
+    }
+    return counts;
+  }
+
+  test("takes the folder and every row in every table with it", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    writeDay(user, trip, "kyoto-in-the-rain");
+    await seedEveryTable(user);
+
+    // Every table really did have a row naming this journal, or the assertion
+    // afterwards would pass for the wrong reason.
+    const before = await rowsNaming(user);
+    for (const name of TABLE_NAMES) expect(`${name}=${before[name]}`).toBe(`${name}=1`);
+
+    await requestDeletion({ kind: "journal", username: user });
+    const token = takeToken(user);
+    const done = await confirmDeletion(user, token);
+    expect(done).toMatchObject({ ok: true, kind: "journal" });
+
+    expect(fs.existsSync(path.join(dir, user))).toBe(false);
+    expect(userExists(user)).toBe(false);
+
+    // The check that will not rot as tables are added: nothing, anywhere,
+    // still names this journal.
+    const after = await rowsNaming(user);
+    for (const name of TABLE_NAMES) expect(`${name}=${after[name]}`).toBe(`${name}=0`);
+  });
+
+  test("leaves a tombstone, keeps the name, and answers 410 on the old URLs", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    await requestDeletion({ kind: "journal", username: user });
+    await confirmDeletion(user, takeToken(user));
+
+    const stone = journalTombstone(user);
+    expect(stone).toMatchObject({ kind: "journal", username: user, title: "Anna's journal" });
+    expect(stone?.requestedBy).toBe(OWNER);
+
+    // The name is not handed back.
+    const again = createJournal({
+      username: user,
+      title: "Somebody else",
+      ownerEmail: "other@example.test",
+      ownerName: "Other Person",
+      ownerNickname: "Other",
+    });
+    expect(again).toMatchObject({ ok: false, error: "deleted_username" });
+
+    for (const url of [
+      `https://t.test/${user}`,
+      `https://t.test/${user}/trips/japan-2027`,
+      `https://t.test/${user}/documentation.txt`,
+    ]) {
+      const response = proxy(new NextRequest(new Request(url)));
+      expect(`${url} -> ${response?.status}`).toBe(`${url} -> 410`);
+      expect(await response!.text()).toContain("This journal has been deleted");
+    }
+
+    // A journal that was never here still answers 404, not 410.
+    expect(proxy(new NextRequest(new Request("https://t.test/nobody")))?.status).not.toBe(410);
+  });
+
+  test("the API answers 410 rather than 404 for a journal that has gone", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    const token = await tokenFor(user, OWNER);
+    await requestDeletion({ kind: "journal", username: user });
+    await confirmDeletion(user, takeToken(user));
+
+    const response = await deleteJournalRoute(request(`https://t.test/api/v2/${user}`, token), {
+      params: Promise.resolve({ user }),
+    });
+    expect(response.status).toBe(410);
+  });
+
+  /**
+   * B1175 — the live incident: a step deep in the sweep threw (there, an
+   * `EACCES` unlinking a `.registry/` lock; here, the same shape on the
+   * folder itself) after the folder and the database rows were already gone
+   * and the tombstone was still the *last* thing written. The throw skipped
+   * it, leaving a journal that was gone everywhere but still answered 404
+   * rather than 410, with its address and username never freed and no
+   * record of what happened — recoverable only with a shell and
+   * `npm run registry -- reconcile`.
+   */
+  test("a step throwing after the tombstone still leaves the tombstone, the 410, and the hygiene that follows it", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    const dirPath = path.join(dir, user);
+    const originalRmSync = fs.rmSync.bind(fs);
+    const rmSpy = vi.spyOn(fs, "rmSync").mockImplementation((target: fs.PathLike, options?: fs.RmOptions) => {
+      if (String(target) === dirPath) {
+        throw Object.assign(new Error("EACCES: permission denied, unlink"), { code: "EACCES" });
+      }
+      return originalRmSync(target, options);
+    });
+    const errorLog = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await requestDeletion({ kind: "journal", username: user });
+    const token = takeToken(user);
+
+    // The removal itself failed — this is not silently reported as done.
+    await expect(confirmDeletion(user, token)).rejects.toThrow(/EACCES/);
+    rmSpy.mockRestore();
+
+    // But the tombstone is there, from before any of that ran, so the
+    // journal already reads as gone.
+    const stone = journalTombstone(user);
+    expect(stone).toMatchObject({ kind: "journal", username: user, title: "Anna's journal" });
+    const response = proxy(new NextRequest(new Request(`https://t.test/${user}`)));
+    expect(response?.status).toBe(410);
+
+    // The hygiene that comes after the failed step still ran: the owner's
+    // address is free again, even though the old folder is still on disk.
+    const freed = createJournal({
+      username: "someone-else",
+      title: "A different journal",
+      ownerEmail: OWNER,
+      ownerName: "Someone Else",
+      ownerNickname: "Someone",
+    });
+    expect(freed).toMatchObject({ ok: true });
+
+    // The link was not left spent on a deletion that never finished: the
+    // same token still works, and completes now that the removal succeeds.
+    const retried = await confirmDeletion(user, token);
+    expect(retried).toMatchObject({ ok: true, kind: "journal" });
+    expect(fs.existsSync(dirPath)).toBe(false);
+
+    errorLog.mockRestore();
+  });
+});
+
+describe("the inventory a person reads before the button", () => {
+  /**
+   * The count is the last thing somebody sees before an irreversible delete,
+   * and it has to be the whole truth — the doc comment on `summarise` says as
+   * much: the number exists "to be recognised" before the button.
+   *
+   * It read at `reader: "public"`, so a day narrowed to `guest` or `private`
+   * (B596/B632) was left out of it. The person was shown fewer days than the
+   * button would take, and the ones missing were the most private ones they
+   * had. Same root cause as B1647.
+   */
+  test("counts days the owner narrowed to guest or private", () => {
+    const user = makeJournal();
+    const trip = makeTrip(user, "japan-2027");
+    writeDay(user, trip, "an-open-day");
+    writeDayFixture(dir, user, trip, {
+      slug: "a-guarded-day",
+      date: "2027-04-03",
+      title: "a-guarded-day",
+      content: "Words.",
+      visibility: "private",
+    });
+    writeDayFixture(dir, user, trip, {
+      slug: "a-guest-day",
+      date: "2027-04-04",
+      title: "a-guest-day",
+      content: "Words.",
+      visibility: "guest",
+    });
+
+    const summary = summarise({ kind: "trip", username: user, tripId: trip });
+    expect(summary?.days).toBe(3);
+  });
+
+  test("counts them for a whole journal too, across its trips", () => {
+    const user = makeJournal();
+    const one = makeTrip(user, "japan-2027");
+    const two = makeTrip(user, "peru-2028");
+    writeDay(user, one, "an-open-day");
+    writeDayFixture(dir, user, two, {
+      slug: "a-guarded-day",
+      date: "2028-01-05",
+      title: "a-guarded-day",
+      content: "Words.",
+      visibility: "private",
+    });
+
+    const summary = summarise({ kind: "journal", username: user });
+    expect(summary?.days).toBe(2);
+  });
+});
+
+describe("deleting a trip", () => {
+  test("takes its media, and leaves the rest of the journal alone", async () => {
+    const user = makeJournal();
+    const going = makeTrip(user, "japan-2027");
+    const staying = makeTrip(user, "peru-2028");
+    writeDay(user, going, "kyoto-in-the-rain");
+    writeDay(user, staying, "lima-at-dusk");
+
+    const summary = summarise({ kind: "trip", username: user, tripId: going });
+    expect(summary?.files).toBeGreaterThan(1);
+
+    await requestDeletion({ kind: "trip", username: user, tripId: going });
+    const done = await confirmDeletion(user, takeToken(user));
+    expect(done).toMatchObject({ ok: true, kind: "trip", tripId: going });
+
+    expect(fs.existsSync(path.join(dir, user, "trips", going))).toBe(false);
+    expect(fs.existsSync(path.join(dir, user, "trips", going, "media"))).toBe(false);
+
+    // Everything else is exactly where it was.
+    expect(userExists(user)).toBe(true);
+    expect(getUser(user)?.title).toBe("Anna's journal");
+    expect(getTrips(user).map((t) => t.id)).toEqual([staying]);
+    expect(
+      fs.existsSync(path.join(dir, user, "trips", staying, "media", "lima-at-dusk.jpg")),
+    ).toBe(true);
+    expect(journalTombstone(user)).toBeNull();
+  });
+
+  test("its rows go with it, and the journal's others stay", async () => {
+    const user = makeJournal();
+    const going = makeTrip(user, "japan-2027");
+    const staying = makeTrip(user, "peru-2028");
+
+    const { db } = await getDatabase();
+    for (const trip of [going, staying]) {
+      await db
+        .insertInto("reactions")
+        .values({
+          id: `r-${trip}`,
+          owner_id: user,
+          trip_id: trip,
+          day_slug: "a-day",
+          voter_id: "v",
+          emoji: "❤",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .execute();
+    }
+
+    await requestDeletion({ kind: "trip", username: user, tripId: going });
+    await confirmDeletion(user, takeToken(user));
+
+    const left = await db.selectFrom("reactions").select("trip_id").execute();
+    expect(left.map((r) => r.trip_id)).toEqual([staying]);
+  });
+
+  test("old trip URLs answer 410, and the rest of the journal still renders", async () => {
+    const user = makeJournal();
+    const going = makeTrip(user, "japan-2027");
+    await requestDeletion({ kind: "trip", username: user, tripId: going });
+    await confirmDeletion(user, takeToken(user));
+
+    expect(tripTombstone(user, going)).toMatchObject({ kind: "trip", title: "Japan" });
+    const gone = proxy(new NextRequest(new Request(`https://t.test/${user}/trips/${going}`)));
+    expect(gone?.status).toBe(410);
+    expect(await gone!.text()).toContain("This trip has been deleted");
+
+    // The journal itself is not gone, so it must not answer 410.
+    expect(proxy(new NextRequest(new Request(`https://t.test/${user}`)))?.status).not.toBe(410);
+  });
+});
+
+describe("the mail is the gate", () => {
+  test("a session that asked cannot finish it — only the link can", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    const asking = await session(user, OWNER);
+    const asked = await requestDeletion({ kind: "journal", username: user }, { sessionId: asking.id });
+    expect(asked.ok).toBe(true);
+
+    // The token is nowhere in the reply. It exists in the mailbox and, as a
+    // hash, in the database — and nowhere else. That is the whole design.
+    const token = takeToken(user);
+    expect(JSON.stringify(asked)).not.toContain(token);
+
+    const { db } = await getDatabase();
+    const row = await db.selectFrom("deletion_requests").selectAll().executeTakeFirst();
+    expect(row?.token_hash).not.toBe(token);
+    expect(row?.requested_by).toBe(asking.id);
+    expect(userExists(user)).toBe(true);
+  });
+});
+
+/**
+ * B374 — a balance dies with the journal, silently, unless the mail and the
+ * page both say so before the button.
+ */
+describe("credits are named before they are lost", () => {
+  async function renderedPage(user: string, token: string): Promise<string> {
+    const rendered = await DeletePage({
+      params: Promise.resolve({ user, token }),
+      searchParams: Promise.resolve({}),
+    });
+    return renderToStaticMarkup(rendered as Parameters<typeof renderToStaticMarkup>[0]);
+  }
+
+  test("a balance of 180 is named in the mail and on the page", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    serverConfigWithCredits(true);
+    await grant(user, 180, "test");
+
+    const asked = await requestDeletion({ kind: "journal", username: user });
+    expect(asked.ok).toBe(true);
+    expect(mailBody(user)).toContain("180");
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).toContain("180");
+  });
+
+  test("B2059: a balance of 49950 reads 49’950 in the mail and on the page", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    serverConfigWithCredits(true);
+    await grant(user, 49950, "test");
+
+    const asked = await requestDeletion({ kind: "journal", username: user });
+    expect(asked.ok).toBe(true);
+    expect(mailBody(user)).toContain("49’950 unspent credits");
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).toContain("49’950");
+  });
+
+  test("a balance of zero says nothing about credits", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    serverConfigWithCredits(true);
+    // No grant: the journal's balance is zero, the same as every journal
+    // starts with.
+
+    await requestDeletion({ kind: "journal", username: user });
+    expect(mailBody(user)).not.toMatch(/credit/i);
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
+  });
+
+  test("credits switched off says nothing, even over a balance granted before the switch", async () => {
+    const user = makeJournal();
+    makeTrip(user);
+    serverConfigWithCredits(true);
+    await grant(user, 50, "test");
+    serverConfigWithCredits(false);
+
+    await requestDeletion({ kind: "journal", username: user });
+    expect(mailBody(user)).not.toMatch(/credit/i);
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
+  });
+
+  test("deleting a trip never mentions credits — a trip destroys none", async () => {
+    const user = makeJournal();
+    const trip = makeTrip(user);
+    serverConfigWithCredits(true);
+    await grant(user, 90, "test");
+
+    await requestDeletion({ kind: "trip", username: user, tripId: trip });
+    expect(mailBody(user)).not.toMatch(/credit/i);
+
+    const token = takeToken(user);
+    expect(await renderedPage(user, token)).not.toMatch(/credit/i);
+  });
+});
+
+/**
+ * B293 — the two verbs a real agent guessed, and what they say now.
+ *
+ * Both routes answered a bare `405` with no body. The agent that got one could
+ * not tell "wrong verb" from "wrong path" from "not built", and went on to
+ * offer its owner a web interface that does not exist. These are not
+ * deletion tests; they live here because this is the file that already holds
+ * these two route modules.
+ */
+describe("a verb these routes do not have", () => {
+  test("PATCH on a journal is a door now, not a signpost — B1632", async () => {
+    // v1's `PATCH /api/v1/{user}` was the 405 signpost this describe is
+    // named for, pointing an agent at `.../config`. B1632 retired both:
+    // `PATCH /api/v2/{user}` is a real operation now (the journal document),
+    // so a caller with no token gets the ordinary refusal of a real call
+    // rather than a signpost to a route that no longer exists either.
+    const user = makeJournal("alex", "alex@example.test");
+    const { PATCH: patchV2JournalRoute } = await import("@/app/api/v2/[user]/route");
+    const response = await patchV2JournalRoute(new Request(`https://x.test/api/v2/${user}`), {
+      params: Promise.resolve({ user }),
+    } as never);
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).not.toBe("method_not_allowed");
+  });
+
+  test("PATCH on a trip is a door now, not a signpost — B622", async () => {
+    // It used to be a 405 naming every route that did exist and apologising
+    // for the four it did not. B622 built those four, so what a caller with
+    // no token gets is the ordinary refusal of a real operation.
+    // `test/trip-details.test.ts` owns what it does with one.
+    //
+    // v2's PATCH checks the journal exists (`getUser`) before it looks at
+    // the token, so a username nobody has made would answer 404
+    // `no_such_journal` here rather than the 401 this test is about — a real
+    // journal (`makeJournal`) is what keeps the assertion aimed at "no
+    // token", the thing B622 fixed, rather than "no such user".
+    const user = makeJournal("alex", "alex@example.test");
+    const response = await patchTripRoute(new Request(`https://x.test/api/v2/${user}/trips/alps`), {
+      params: Promise.resolve({ user, trip: "alps" }),
+    } as never);
+    expect(response.status).toBe(401);
+    const body = (await response.json()) as { error: string };
+    expect(body.error).not.toBe("method_not_allowed");
+  });
+});

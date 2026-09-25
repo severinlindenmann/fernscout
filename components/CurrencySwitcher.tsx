@@ -1,0 +1,79 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Check } from "lucide-react";
+import { useI18n } from "./LocaleProvider";
+import { useMoney } from "./CurrencyProvider";
+
+/**
+ * Display-currency chip, built the same way as `LocaleSwitcher` so the header
+ * gains one more small control rather than a second interaction pattern.
+ *
+ * Renders nothing when the site offers a single currency: an alternative that
+ * has no rate is dropped upstream (`currencyOptions()`), so a one-item menu
+ * means there is genuinely nothing to choose.
+ */
+export default function CurrencySwitcher() {
+  const { t } = useI18n();
+  const { currency, currencies, setCurrency } = useMoney();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  if (currencies.length < 2) return null;
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label={t("currency.label")}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={t("currency.label")}
+        className="flex min-h-11 items-center gap-1 rounded-full border border-line-quiet bg-surface-raised px-2.5 text-xs font-bold text-ink-body transition-colors hover:border-line-prominent"
+      >
+        {currency}
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-40 mt-1.5 min-w-[9rem] overflow-hidden rounded-xl border border-line-quiet bg-surface-raised py-1 shadow-lg"
+        >
+          {currencies.map((c) => (
+            <button
+              key={c}
+              role="menuitemradio"
+              aria-checked={currency === c}
+              onClick={() => {
+                setCurrency(c);
+                setOpen(false);
+              }}
+              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs transition-colors hover:bg-surface-base ${
+                currency === c ? "font-semibold text-ink-strong" : "text-ink-secondary"
+              }`}
+            >
+              {c}
+              {currency === c && <Check className="h-4 w-4 text-yellow-950" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

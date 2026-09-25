@@ -1,0 +1,223 @@
+"use client";
+
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft, ChevronUp } from "lucide-react";
+import ActionBar from "@/components/studio/ActionBar";
+import GroupMark from "@/components/studio/GroupMark";
+import { useI18n } from "@/components/LocaleProvider";
+import { STUDIO_GROUPS, type StudioGroup } from "@/lib/studio/groups";
+
+type BarState = { actions: ReactNode; mode: "extend" | "replace"; revealAfterScroll: number; desktop: boolean };
+
+/** What `StudioPage` tells the bar about the page it is drawing — B2069/B2076. */
+type PageState = { group?: StudioGroup; width: "flow" | "board" | "wide" };
+
+type StudioBarContextValue = {
+  setBar: (state: BarState) => void;
+  clearBar: () => void;
+  setPage: (page: PageState | null) => void;
+};
+
+/** The desktop row lines up with the page's own column (StudioPage's WIDTH). */
+const ROW_WIDTH = { flow: "md:max-w-xl", board: "md:max-w-3xl", wide: "md:max-w-5xl" } as const;
+
+const StudioBarContext = createContext<StudioBarContextValue | null>(null);
+
+/**
+ * One bottom `ActionBar` per studio subpage — B2001.
+ *
+ * B1992 gave four studio pages (the hub, the photobook chooser, the inbox
+ * and the postcard flow) their own sticky bottom bar, each rendering
+ * `ActionBar` itself. Every other studio page had none, so on a phone the
+ * only way back to the studio was the header's small crumb at the very top
+ * of a long page. `app/[user]/studio/layout.tsx` wraps every studio page in
+ * this provider instead, which renders the one `ActionBar` — last in flow,
+ * as `ActionBar`'s own doc comment requires for `position: sticky` to
+ * behave — so a page gets a bar by doing nothing, and the four pages that
+ * already had one keep it by calling `useStudioBar` instead of rendering
+ * `ActionBar` themselves.
+ *
+ * The default, when no page has registered anything: a "Zurück zum Studio"
+ * link to `/{user}/studio` (`studio.flow.backToStudio` — the exact string
+ * `PhotobookPick`, `InboxHub` and `PostcardFlow` already used for the same
+ * link before this ticket). `extend` keeps that link and adds a page's own
+ * actions beside it; `replace` shows only the page's own actions — the hub
+ * uses this because the hub *is* the studio, so a link back to itself would
+ * be circular, and the inbox/postcard use it while a sheet or a selection
+ * is open, so the default back link cannot be tapped by mistake mid-action.
+ *
+ * B2069: a page drawn through `StudioPage` tells this provider its group
+ * (`StudioBarPage`), and the back link returns to that group's anchor on the
+ * hub (`/{user}/studio#plan`) rather than the top of it.
+ *
+ * B2076: from `md` up the same bar is a static, right-aligned row under the
+ * page's column — one element at every width, so the back link and the one
+ * primary exist once in the document. Only on a `StudioPage` (the hub keeps
+ * its own desktop grid) and only for what a caller marked `desktop` (a step
+ * primary, the photobook chooser's "Show more"); the inbox and the postcard
+ * already draw their own sheet and links in flow from `md`, so their bar
+ * content stays phone-only.
+ *
+ * B2137: below `md` the provider's own wrapper is at least one viewport
+ * tall with the page growing to fill it, so on a short page the bar's place
+ * in the flow is the viewport's bottom edge — still `position: sticky`, still
+ * last in flow, no reserved room. From `md` the wrapper is a plain block and
+ * the desktop row follows the page, as before.
+ *
+ * B2141: beside "← Studio" a chevron opens `GroupSheet`, the six groups as
+ * links to their hub sections. The back link itself stays one plain tap.
+ */
+export default function StudioBarProvider({ username, children }: { username: string; children: ReactNode }) {
+  const { t } = useI18n();
+  const [bar, setBar] = useState<BarState | null>(null);
+  const [page, setPage] = useState<PageState | null>(null);
+  const clearBar = useCallback(() => setBar(null), []);
+  const value = useMemo(() => ({ setBar, clearBar, setPage }), [clearBar]);
+
+  // A step's primary (B2002) shares the row with this link below 430px —
+  // the same width the hub's own three-pill row gives up a label at
+  // (B1996) — so below that width the back link keeps only its icon and
+  // lets the primary's own label have the room instead.
+  const hasExtension = bar?.mode !== "replace" && !!bar?.actions;
+  const backLink = (
+    <Link
+      href={`/${username}/studio${page?.group ? `#${page.group}` : ""}`}
+      aria-label={t("studio.flow.backToStudio")}
+      className={`flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-line-strong
+                 px-4 text-sm font-semibold text-ink-body transition-colors hover:bg-surface-subtle ${
+                   // Beside a step primary the link is only an arrow below
+                   // 430px, so it takes the arrow's width and no more — the
+                   // primary's label gets the rest of the row (B2002).
+                   hasExtension ? "flex-none min-[430px]:min-w-0 min-[430px]:flex-1" : "min-w-0 flex-1"
+                 } md:flex-none`}
+    >
+      <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden strokeWidth={2.2} />
+      <span className={hasExtension ? "hidden truncate min-[430px]:inline" : "truncate"}>
+        {t("studio.flow.backToStudio")}
+      </span>
+    </Link>
+  );
+
+  return (
+    <StudioBarContext.Provider value={value}>
+      <div className="max-md:flex max-md:min-h-[100dvh] max-md:flex-col">
+      <div className="max-md:flex-1">{children}</div>
+      <ActionBar
+        revealAfterScroll={bar?.revealAfterScroll ?? 0}
+        desktop={page && !(bar?.mode === "replace" && !bar.desktop) ? ROW_WIDTH[page.width] : null}
+      >
+        {bar?.mode === "replace" ? (
+          bar.actions
+        ) : (
+          <>
+            {backLink}
+            {page && <GroupSheet username={username} />}
+            {bar?.desktop ? bar.actions : bar?.actions && <div className="contents md:hidden">{bar.actions}</div>}
+          </>
+        )}
+      </ActionBar>
+      </div>
+    </StudioBarContext.Provider>
+  );
+}
+
+/**
+ * The six studio groups, one tap from any subpage — B2141. A `<details>`, so
+ * it opens from the keyboard (Enter/Space on the chevron) with no script of
+ * its own; Escape and choosing a group close it. It opens upwards: the bar
+ * sits at the foot of the page.
+ */
+function GroupSheet({ username }: { username: string }) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDetailsElement>(null);
+  const close = () => {
+    if (ref.current) ref.current.open = false;
+  };
+  return (
+    <details
+      ref={ref}
+      data-group-sheet
+      // Below md the sheet hangs off the sticky bar itself (left-aligned with
+      // the page, never past the viewport's edge); from md, off the chevron.
+      className="flex-none md:relative"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && ref.current?.open) {
+          close();
+          ref.current.querySelector("summary")?.focus();
+        }
+      }}
+    >
+      <summary
+        aria-label={t("studio.flow.groups")}
+        className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center rounded-full border
+                   border-line-strong text-ink-body transition-colors hover:bg-surface-subtle [&::-webkit-details-marker]:hidden"
+      >
+        <ChevronUp className="h-4 w-4" aria-hidden strokeWidth={2.2} />
+      </summary>
+      <nav
+        aria-label={t("studio.flow.groups")}
+        className="absolute bottom-full left-4 z-30 mb-2 w-60 md:left-auto md:right-0 rounded-2xl border border-line-quiet bg-surface-raised p-2 shadow-lg"
+      >
+        <ul>
+          {STUDIO_GROUPS.map((group) => (
+            <li key={group}>
+              <Link
+                href={`/${username}/studio#${group}`}
+                onClick={close}
+                className="block rounded-xl px-2 pt-2 pb-0.5 hover:bg-surface-subtle"
+              >
+                <GroupMark group={group} size="sm" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </details>
+  );
+}
+
+/**
+ * Registers one page's own bottom-bar content. Sets it in an effect (so the
+ * very first paint — server-rendered, before this effect has run — shows
+ * the provider's default back link) and clears it on unmount, so a page
+ * that stops rendering never leaves stale actions behind for the next one.
+ *
+ * `replace: true` hides the default back link and shows only `actions`;
+ * `revealAfterScroll` (the hub's own option, B1992) keeps the bar hidden
+ * until the page has been scrolled that many pixels — every other caller
+ * leaves it at 0 and shows the bar at once.
+ */
+export function useStudioBar(
+  actions: ReactNode,
+  {
+    replace = false,
+    revealAfterScroll = 0,
+    desktop = false,
+  }: { replace?: boolean; revealAfterScroll?: number; desktop?: boolean } = {},
+) {
+  const ctx = useContext(StudioBarContext);
+  if (!ctx) throw new Error("useStudioBar must be used under app/[user]/studio/layout.tsx");
+  const { setBar, clearBar } = ctx;
+  useEffect(() => {
+    setBar({ actions, mode: replace ? "replace" : "extend", revealAfterScroll, desktop });
+    return clearBar;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `actions` is a fresh element tree every render by design; re-registering on every change is the point (an inbox move sheet, a postcard selection).
+  }, [actions, replace, revealAfterScroll, desktop]);
+}
+
+/**
+ * Rendered by `StudioPage` — tells the provider this is a subpage, which
+ * group it belongs to (the back link's anchor) and how wide its column is
+ * (the desktop row's). Draws nothing; a no-op outside the provider, so
+ * `StudioPage` still renders on its own in a test.
+ */
+export function StudioBarPage({ group, width }: PageState) {
+  const setPage = useContext(StudioBarContext)?.setPage;
+  useEffect(() => {
+    if (!setPage) return;
+    setPage({ group, width });
+    return () => setPage(null);
+  }, [setPage, group, width]);
+  return null;
+}

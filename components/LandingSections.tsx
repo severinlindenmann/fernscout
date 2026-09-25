@@ -1,0 +1,1078 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import {
+  BookOpen,
+  ChevronDown,
+  FolderOpen,
+  Image as ImageIcon,
+  Mail,
+  MessageCircle,
+  Mic,
+} from "lucide-react";
+import ChatVignette from "@/components/ChatVignette";
+import CopyLine from "@/components/CopyLine";
+import { mediaLoader } from "@/components/mediaLoader";
+import { flagFor } from "@/lib/flags";
+import { useI18n } from "@/components/LocaleProvider";
+import LocaleSwitcher from "@/components/LocaleSwitcher";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
+
+/**
+ * The root page's parts, as separate pieces — B411.
+ *
+ * They were one component in one order, because there was one page. There are
+ * now two: a stranger gets the pitch, and somebody signed in gets their own
+ * journals first with the pitch below. The sections themselves are identical
+ * in both, so they live here and each order composes them — rather than the
+ * markup existing twice and drifting apart the first time one is edited.
+ */
+
+export type PublicJournal = {
+  username: string;
+  title: string;
+  tagline: string;
+  trips: number;
+  cover?: string;
+};
+
+/**
+ * The mono voice, shared — B733. Uppercase, letter-spaced `IBM Plex Mono`
+ * (`--font-mono`, `app/globals.css`) for the machine-ish things: kickers,
+ * labels, pills, ids and counts. One place rather than the class typed out
+ * per section, which is how it drifted before — `SiteHeader`'s own kicker
+ * carried the string by hand.
+ */
+function Kicker({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="font-mono text-xs uppercase tracking-[0.14em] text-ink-secondary">
+      {children}
+    </p>
+  );
+}
+
+/**
+ * A small labelled fact — B733. Not a status indicator (that is still a
+ * plain word in prose; a pill that lies about being a control is worse than
+ * none), just the mockup's `.pill`: a bordered, rounded mono chip that reads
+ * as an instrument rather than a sentence.
+ */
+function Pill({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-line-quiet bg-surface-subtle px-2.5 py-1 font-mono text-[11px] text-ink-secondary">
+      {children}
+    </span>
+  );
+}
+
+/**
+ * The primary action, shared — B733. `yellow-400` with a `yellow-600` edge
+ * and `yellow-950` text: the waymark colour doing the job the waymark does.
+ * Text on `yellow-400` is `navy-900` or `yellow-950` and nothing else —
+ * `yellow-950` here clears AAA. Callers add their own width/margin.
+ */
+export const PRIMARY_BUTTON =
+  "inline-flex min-h-14 items-center justify-center rounded-xl border border-yellow-600 bg-yellow-400 px-6 " +
+  "text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 " +
+  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500";
+
+/**
+ * A quiet "or" between two ways in — B1314, the owner's chosen design for
+ * both WhatsApp doors. A hairline on each side rather than a bare word, so
+ * it reads as a divider between two actions and not as a stray label.
+ *
+ * B1325: `compact` drops the hairlines from `sm` up, for the one caller
+ * (`LandingHero`) whose two doors sit in a row on desktop — a hairline there
+ * has nothing to span. `AgentDoor`'s stacked divider stays as it was.
+ */
+function OrDivider({ compact = false }: { compact?: boolean } = {}) {
+  const { t } = useI18n();
+  const hairline = `h-px flex-1 bg-surface-selected ${compact ? "sm:hidden" : ""}`;
+  return (
+    <div role="separator" className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-ink-faint">
+      <span className={hairline} />
+      {t("common.or")}
+      <span className={hairline} />
+    </div>
+  );
+}
+
+/**
+ * The WhatsApp door itself — B1314. Transparent background, a green border
+ * and text, and a small round green glyph, per the drafts the owner picked
+ * from (`.claude/runs/2026-09-09-whatsapp-agent/door-drafts.html`, variants
+ * "Landing B" and "Agent A"). `MessageCircle` rather than a new icon: it is
+ * already the WhatsApp idiom `ContactsAdmin` and `DayNotify` use, and lucide
+ * is already a dependency. Shared between `LandingHero` and `AgentDoor`
+ * rather than drawn twice, since a colour or a radius edited in one and not
+ * the other is exactly how these two drifted apart the first time (B1310
+ * shipped both as a plain underlined line).
+ */
+function WhatsAppButton({
+  number,
+  label,
+  className = "",
+}: {
+  number: string;
+  label: string;
+  className?: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <a
+      href={`https://wa.me/${number}?text=${encodeURIComponent(t("agent.open.whatsappGreeting"))}`}
+      target="_blank"
+      rel="noreferrer"
+      className={
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-green-700 bg-transparent px-5 " +
+        "text-base font-semibold text-green-700 transition-colors hover:bg-green-100 " +
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 " +
+        className
+      }
+    >
+      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-700 text-on-deep" aria-hidden>
+        <MessageCircle className="h-3 w-3" strokeWidth={2.5} />
+      </span>
+      {label}
+    </a>
+  );
+}
+
+/**
+ * A section title sitting on a rule — B733's "visible structure". Used
+ * where a section previously carried its own `border-t` above it; this puts
+ * the line directly under the heading instead, which is what makes the page
+ * read as an instrument rather than a document.
+ */
+function SectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="border-b border-line-quiet pb-3 font-display text-xl font-semibold text-ink-strong">
+      {children}
+    </h2>
+  );
+}
+
+/** The GitHub mark. Inline because lucide-react carries no brand icons. */
+function GithubMark({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      className={className}
+      fill="currentColor"
+      aria-hidden
+      focusable="false"
+    >
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+    </svg>
+  );
+}
+
+/**
+ * The name on the left, the language on the right.
+ *
+ * The switcher is the first thing on the page for a reason: somebody who
+ * cannot read the hero has no way to guess that the rest of the site is
+ * translated.
+ */
+export function SiteHeader({
+  siteName,
+  locales,
+  admin,
+  helperEnabled = false,
+  onSignIn,
+}: {
+  siteName: string;
+  locales?: string[];
+  /**
+   * Whether this reader runs the instance — B746, placed here by B758.
+   *
+   * A corner word rather than a section, which is the shape this page already
+   * settled on for a link only some readers want: B426's note below records
+   * the reader's way in being put "next to the language switcher, in the same
+   * weight as the language switcher", and this is the same kind of door for a
+   * much smaller population.
+   *
+   * `undefined` on the server pass and for everybody who is not the operator.
+   * It arrives from `/api/v2/me/home` rather than the page, because `/` is the
+   * same cacheable document for everybody (B412) — and it grants nothing:
+   * `/admin` asks `isInstanceAdmin()` for itself on every request.
+   */
+  admin?: boolean;
+  /**
+   * Whether the write door can actually be offered here — B825, revised by
+   * B1905. Unlike `admin`, this one is for everybody: the hero's own button
+   * (`LandingHero`) is already gated on the same flag, so a reader who
+   * scrolls past it or who arrives on a page where the hero is not the first
+   * thing shown still finds the same door up here.
+   *
+   * `Landing.tsx` also folds "signed in already" into this flag: once a
+   * reader has a session, this chip has nowhere useful of its own to send
+   * them (their own journals are the page below it, and `onSignIn` would be
+   * a sign-in form shown to somebody already signed in), so the caller stops
+   * passing `true` rather than this component guessing a destination.
+   */
+  helperEnabled?: boolean;
+  /**
+   * Opens the page's own inline sign-in — B1905. This chip used to be a
+   * `Link` to `/agent`, which was "write door" and "sign-in door" at once;
+   * splitting the studio out from `/agent` split that too. `/agent` still
+   * exists but is on a retirement path (`docs/plans/2026-09-17-the-studio.md`)
+   * and this page must not be one more way in. `onSignIn` is only ever
+   * called while `helperEnabled` is true, which the caller only passes for a
+   * reader with no session yet.
+   */
+  onSignIn?: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="pt-3">
+        <Kicker>{siteName}</Kicker>
+      </div>
+      <div className="flex items-center gap-1">
+        {admin && (
+          // Drawn as LocaleSwitcher's `subtle` chip is, down to the hit area:
+          // two controls side by side in the same corner have to read as one
+          // pair, and min-h-11 is the tap target the switcher already keeps.
+          <Link
+            href="/admin"
+            className="flex min-h-11 items-center rounded-full border border-transparent bg-transparent px-2.5 text-xs font-bold text-ink-secondary transition-colors hover:bg-surface-subtle hover:text-ink-strong"
+          >
+            {t("home.operator")}
+          </Link>
+        )}
+        {helperEnabled && (
+          // Filled, unlike the operator chip beside it — B836. It was drawn
+          // quiet to stay out of the hero's way and read as a label rather
+          // than a control. Navy rather than the hero's yellow: the hero's
+          // "start writing" leads to the same place, and two yellow buttons
+          // for one destination on one screen is a repetition, not emphasis.
+          // Navy is also what the agent control wears inside a journal, so
+          // the thing has one look wherever it appears.
+          //
+          // A `button`, not a `Link` — B1905. It opens the same inline
+          // sign-in `ReaderInvite` already uses below, rather than a route:
+          // a stranger clicking this has no journal and no session, so there
+          // is nothing at the far end of a link yet.
+          <button
+            type="button"
+            onClick={onSignIn}
+            className="flex min-h-11 items-center rounded-full bg-action-strong px-3.5 text-xs font-bold text-on-action transition-colors hover:bg-action-strong-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+          >
+            {t("home.agentLink")}
+          </button>
+        )}
+        <ThemeSwitcher subtle />
+        <LocaleSwitcher locales={locales} subtle />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The other reader — B427.
+ *
+ * This page was written for one person: whoever is deciding whether to run
+ * Fernscout. But two people arrive at the bare domain, and the second is the
+ * one this project is actually *for* — somebody whose daughter shared a
+ * journal, who has lost the email, and who typed the address into a browser
+ * because that is what you do when a link is gone. Until B426 there was
+ * nothing here for them at all; after it there was a small word in the corner,
+ * next to the language switcher, in the same weight as the language switcher.
+ *
+ * So the page forks at the top and lets each of them self-select. This is
+ * first because for the reader it is the whole page, and a person who has to
+ * hunt for the way in has already been told this software is not for them.
+ *
+ * **Deliberately not another airmail border.** That frame is the agent block's
+ * signature and it is the one thing this page is remembered by; a second one
+ * would make it wallpaper. What this gets instead is the waymark's yellow down
+ * its edge — a Swiss trail marker means *you are on the right path, keep
+ * going*, which is exactly what is being said. `navy-900` on `cream-100`
+ * throughout: `yellow-600` is 2.36:1 on cream and is not a text colour.
+ */
+export function ReaderInvite({ onSignIn }: { onSignIn: () => void }) {
+  const { t } = useI18n();
+  return (
+    <section
+      aria-labelledby="reader-invite"
+      className="mt-6 overflow-hidden rounded-2xl border border-line-quiet border-l-8 border-l-yellow-400 bg-surface-base p-5 sm:p-6"
+    >
+      {/* Who this card is for — B1339. The two blocks at the top of the page
+          serve two different people, and at phone width nothing said which
+          was whose: a first-time visitor read this card as the pitch. The
+          label is the mono kicker voice (B733), not a second yellow edge. */}
+      <Kicker>{t("home.inviteKicker")}</Kicker>
+      <h2
+        id="reader-invite"
+        className="mt-2 font-display text-xl font-semibold leading-tight text-ink-strong sm:text-2xl"
+      >
+        {t("home.inviteTitle")}
+      </h2>
+      <p className="mt-2 max-w-prose text-base leading-7 text-ink-strong sm:text-lg">
+        {t("home.inviteBody")}
+      </p>
+      {/* Full width on a phone and min-h-14 rather than the 11 used elsewhere:
+          this one control is the entire page for the person it is aimed at,
+          and it is aimed at people who miss small targets. */}
+      <button
+        type="button"
+        onClick={onSignIn}
+        className={`mt-4 w-full sm:w-auto ${PRIMARY_BUTTON}`}
+      >
+        {t("home.inviteAction")}
+      </button>
+      {/* For the reader who is not sure they are in the right place at all —
+          B445. Quiet, under the control, so it never competes with it. */}
+      <p className="mt-3">
+        <Link
+          href="/docs/guide/guest"
+          className="text-sm text-ink-body underline decoration-line-quiet underline-offset-4
+                     transition-colors hover:decoration-line-prominent
+                     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          {t("guides.readMore")}
+        </Link>
+      </p>
+    </section>
+  );
+}
+
+/**
+ * The first screen — B694, trimmed further by B732.
+ *
+ * `helperEnabled` decides which door is primary. Off (the default, and what
+ * every self-hoster has today) this renders exactly as it always has: the
+ * headline and the lede, with the instruction box and its copy button as the
+ * next thing on the page. On, a link to `/welcome` — B2170; B1905 made it a
+ * button opening sign-in, and before that it was a `Link` to `/agent` — is
+ * the primary call to action, and everything the
+ * other audience needs is one tap away in `AgentDisclosure`, which
+ * `Landing.tsx` renders directly below this. One page, two arrangements —
+ * see `Landing.tsx` for where the flag comes from.
+ *
+ * The quiet `#handover` link this used to carry is gone: B732 turned what it
+ * pointed at into the disclosure's own `<summary>`, so a second line saying
+ * the same thing here would be noise above it.
+ *
+ * **Why `/welcome` and not `/[user]/studio` — B2170.** A stranger reading
+ * this page owns no journal and has no session; there is no username to put
+ * in that path yet. B1905 made this button open the inline `IdentitySignIn`,
+ * which signed a stranger in to nothing. `/welcome` makes the journal and
+ * ends in its studio; somebody who already has one signs in from there or
+ * from the header.
+ */
+export function LandingHero({
+  helperEnabled = false,
+  whatsappNumber,
+}: {
+  helperEnabled?: boolean;
+  /**
+   * The instance's own `wa.me` number, resolved server-side — B1310. Nothing
+   * here checks anybody's own state, unlike `RoomOpening`'s prop of the same
+   * name: a stranger has none yet, so the only gate is whether this instance
+   * has a number configured at all (`whatsappDisplayNumber()`).
+   */
+  whatsappNumber?: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      {/* The other half of B1339's labelling: the guest card directly above
+          carries "for guests", so this block names its own audience too, and
+          the wider gap (mt-12, was mt-4 on the h1) is what makes the two
+          read as separate doors rather than one column of text. */}
+      <div className="mt-12">
+        <Kicker>{t("landing.heroKicker")}</Kicker>
+      </div>
+      {/* Two headlines, and which one shows is not a style choice — B1711.
+          With a WhatsApp number configured, the first thing a stranger reads
+          is the one claim nothing else in this category makes: you talk to it
+          and a journal comes out. Without a number that sentence would be a
+          lie on this instance, so the page falls back to what it always said
+          — the same bargain every other gate on this page makes. */}
+      <h1 className="mt-3 font-display text-[clamp(1.75rem,6vw,2.75rem)] font-semibold leading-[1.12] text-ink-strong">
+        {t(whatsappNumber ? "landing.heroWhatsapp" : "landing.hero")}
+      </h1>
+      <p className="mt-4 text-lg leading-7 text-ink-body">
+        {t(whatsappNumber ? "landing.ledeWhatsapp" : "landing.lede")}
+      </p>
+      {/* B1325: on desktop the two doors sit side by side in one row, with
+          the divider shrunk to the inline word between them; on mobile they
+          stay stacked exactly as before (`sm:flex-row` only applies above
+          the breakpoint). The margin above still depends on which doors are
+          actually present, matching what each used to carry on its own:
+          `mt-6` when the primary button leads, `mt-4` when the WhatsApp door
+          is the first thing shown. */}
+      {(helperEnabled || whatsappNumber) && (
+        <div
+          className={`flex w-full flex-col items-stretch gap-4 sm:w-auto sm:flex-row sm:items-center ${
+            helperEnabled ? "mt-6" : "mt-4"
+          }`}
+        >
+          {helperEnabled && (
+            <Link href="/welcome" className={`w-full text-center sm:w-auto ${PRIMARY_BUTTON}`}>
+              {t("landing.helperCta")}
+            </Link>
+          )}
+          {/* A second door beside the first — B1310, redrawn to the owner's
+              chosen design in B1314: an "oder"-divider, then the green
+              WhatsApp button, rather than a plain underlined line competing
+              for attention with nothing to set it apart. The WhatsApp door
+              itself is independent of `helperEnabled` — the channel is
+              answered by whatever agent the owner has put behind it, not by
+              this instance's own `/agent` wizard — but the divider is not:
+              it separates this door from the helper button above, and with
+              `helperEnabled` off there is no first door to separate it from
+              (B1712). Every self-hosted instance runs with the helper off,
+              so without this gate the divider read as "or" with nothing
+              before it. */}
+          {whatsappNumber && (
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+              {helperEnabled && <OrDivider compact />}
+              <WhatsAppButton number={whatsappNumber} label={t("landing.whatsappCta")} className="w-full sm:w-auto" />
+            </div>
+          )}
+        </div>
+      )}
+      {/* Shown with the WhatsApp headline and only then: it illustrates that
+          sentence, and beside "hand your agent a link" it would illustrate
+          nothing.
+
+          `ChatVignette` rather than a second, static copy of it — B1717. The
+          same component is `/agent`'s first screen, and B1711 shipped a
+          hand-written imitation of it here: four bubbles became three, the
+          typing indicators were gone, and the two pages answered "what does
+          talking to it look like" differently. Nothing about this one is
+          landing-specific except the caption. */}
+      {whatsappNumber && <ChatVignette caption />}
+    </>
+  );
+}
+
+/**
+ * The photographs both print drawings borrow — B1717.
+ *
+ * The demo journal's own published pictures, read through the ordinary media
+ * route like `ChatVignette`'s, so the gate that decides whether any trip photo
+ * is visible decides these too. Never new binaries in the repository.
+ */
+const PRINT_PHOTOS = [
+  "/example/media/usa-2026/oregon-coast/01.jpg",
+  "/example/media/usa-2026/oregon-coast/02.jpg",
+  "/example/media/usa-2026/oregon-coast/03.jpg",
+];
+
+/**
+ * A card, at the size one gets printed — B1717.
+ *
+ * The aspect ratios are `A6_LANDSCAPE`'s own millimetres, 148 × 105, written
+ * here as a bare ratio rather than imported: `paid/postcard/lib/postcard/spec.ts` is
+ * reached through a chain that pulls the renderer into the landing page's
+ * bundle, and this needs one number from it. If the printer's card ever stops
+ * being A6 landscape, `test/postcard-spec.test.ts` is where that shows up and
+ * this comment is the pointer.
+ *
+ * **The address side is deliberately blank.** Ruled lines, no name, no
+ * street — which is both the honest drawing (nobody has addressed this card
+ * yet) and the claim the card beside it makes in words: the address stays
+ * with the journal and the agent never sees one. Writing a plausible address
+ * here would contradict the sentence it illustrates.
+ *
+ * The message side is ruled for the same reason. A quotation would have to be
+ * either somebody's real words, which are not ours to print on a marketing
+ * page, or invented ones.
+ */
+function PostcardProof() {
+  return (
+    <div aria-hidden className="mt-4 grid pb-5">
+      {/* The back, behind and offset — enough of it showing to say "this has
+          a written side and an address side", not so much that it competes
+          with the photograph. */}
+      <div
+        className="col-start-1 row-start-1 ml-auto mt-0 flex w-[80%] -rotate-2 gap-2 rounded-md
+                   border border-line-strong bg-surface-subtle p-2.5"
+        style={{ aspectRatio: "148 / 105" }}
+      >
+        <div className="flex flex-1 flex-col gap-[5px] pt-0.5">
+          {[100, 96, 88, 92, 64].map((width, i) => (
+            <span key={i} className="block h-px bg-line-strong" style={{ width: `${width}%` }} />
+          ))}
+        </div>
+        <span className="w-px self-stretch bg-line-strong" />
+        <div className="flex flex-1 flex-col gap-[5px]">
+          <span className="ml-auto block h-5 w-4 rounded-[2px] border border-dashed border-line-strong" />
+          <span className="mt-auto block h-px w-full bg-line-strong" />
+          <span className="block h-px w-5/6 bg-line-strong" />
+          <span className="block h-px w-2/3 bg-line-strong" />
+        </div>
+      </div>
+      {/* The front, in front, with the white margin a printed card has. */}
+      <div
+        className="col-start-1 row-start-1 mt-4 w-[80%] rotate-2 overflow-hidden rounded-md border
+                   border-line-strong bg-surface-raised p-1 shadow-lg"
+      >
+        <div className="overflow-hidden rounded-sm" style={{ aspectRatio: "148 / 105" }}>
+          <Image
+            src={PRINT_PHOTOS[0]}
+            loader={mediaLoader}
+            alt=""
+            width={296}
+            height={210}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A printed book, and the fact that there is a choice of size — B1717, redrawn
+ * in B1722.
+ *
+ * It was an open spread with ruled lines standing in for prose, and on the
+ * page it read as two photographs with a gap between them: no cover, no
+ * thickness, no paper. The postcard beside it works because it is a *thing*.
+ * So this is a thing too — a photographed cover with a spine down one side and
+ * the cut page block down the other, and a second book behind it in the other
+ * shape, because "which size?" is the first question the composer asks.
+ *
+ * Both aspect ratios are real: `BOOK_SIZES` in `paid/photobook/lib/photobook/spec.ts` gives
+ * square as 200 × 200 and portrait as 210 × 280. Written as bare ratios rather
+ * than imported for the same reason `PostcardProof` gives — that module
+ * reaches the renderer, and this needs two numbers from it.
+ */
+function PhotobookProof() {
+  return (
+    <div aria-hidden className="mt-4 flex items-end justify-center gap-2 pb-1">
+      {/* The portrait book, behind and smaller: the other format on offer. */}
+      <div
+        className="relative w-[34%] shrink-0 -rotate-3 overflow-hidden rounded-r-md rounded-l-sm
+                   border border-line-strong bg-surface-subtle shadow-md"
+        style={{ aspectRatio: "210 / 280" }}
+      >
+        <Image
+          src={PRINT_PHOTOS[2]}
+          loader={mediaLoader}
+          alt=""
+          width={210}
+          height={280}
+          className="h-full w-full object-cover opacity-90"
+        />
+        <span className="absolute inset-y-0 left-0 w-[7%] bg-navy-900/45" />
+        <span className="absolute inset-y-[3%] right-0 w-[2.5%] bg-surface-raised" />
+      </div>
+      {/* The square book, in front: the shape the composer defaults to, and
+          the one where neither photograph orientation is second class. */}
+      <div
+        className="relative w-[56%] shrink-0 rotate-1 overflow-hidden rounded-r-md rounded-l-sm
+                   border border-line-strong bg-surface-subtle shadow-lg"
+        style={{ aspectRatio: "200 / 200" }}
+      >
+        <Image
+          src={PRINT_PHOTOS[1]}
+          loader={mediaLoader}
+          alt=""
+          width={200}
+          height={200}
+          className="h-full w-full object-cover"
+        />
+        {/* The spine: the darker roll of the cover into the binding. */}
+        <span className="absolute inset-y-0 left-0 w-[8%] bg-navy-900/45" />
+        <span className="absolute inset-y-0 left-[8%] w-px bg-navy-900/30" />
+        {/* The cut page block on the fore edge — the two pale strips are what
+            make this a stack of paper rather than a photograph with a border. */}
+        <span className="absolute inset-y-[2.5%] right-0 w-[3%] bg-surface-raised" />
+        <span className="absolute inset-y-[4%] right-[3%] w-px bg-line-strong" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * What a day becomes once the journal has it — B1711.
+ *
+ * The page used to stop at the mechanism: an agent, a token, a folder. It
+ * never said that a printed card can arrive at somebody's letterbox, that the
+ * trip prints itself as a book, or that the whole thing is yours to take
+ * away. Those were rows in the README's capability table, beside the
+ * environment variables they need.
+ *
+ * Each card is gated on the capability that makes it true, resolved on the
+ * server in `app/page.tsx`. A disabled capability's card is **absent**, not
+ * greyed out: this page is read by people deciding, and a promise an instance
+ * cannot keep is worse here than anywhere else on the site. The last card
+ * needs no gate — files in a folder is what this is with everything switched
+ * off.
+ */
+export function LandingPitch({
+  postcards = false,
+  photobook = false,
+}: {
+  postcards?: boolean;
+  photobook?: boolean;
+}) {
+  const { t } = useI18n();
+  // Nothing to say here on an instance that prints nothing. The heading asks
+  // what becomes of a day once it is sent, and with both print capabilities
+  // off the honest answer is only "it is a file you own" — which the lede and
+  // the colophon already say, twice. A section heading over one card about
+  // something the page has said before is worse than no section.
+  if (!postcards && !photobook) return null;
+  const cards: {
+    key: string;
+    icon: React.ReactNode;
+    title: string;
+    body: string;
+    proof?: React.ReactNode;
+  }[] = [];
+  if (postcards) {
+    cards.push({
+      key: "postcards",
+      icon: <Mail className="h-5 w-5 text-ink-secondary" aria-hidden />,
+      title: t("landing.pitchPostcardsTitle"),
+      body: t("landing.pitchPostcardsBody"),
+      proof: <PostcardProof />,
+    });
+  }
+  if (photobook) {
+    cards.push({
+      key: "photobook",
+      icon: <BookOpen className="h-5 w-5 text-ink-secondary" aria-hidden />,
+      title: t("landing.pitchPhotobookTitle"),
+      body: t("landing.pitchPhotobookBody"),
+      proof: <PhotobookProof />,
+    });
+  }
+  cards.push({
+    key: "own",
+    icon: <FolderOpen className="h-5 w-5 text-ink-secondary" aria-hidden />,
+    title: t("landing.pitchOwnTitle"),
+    body: t("landing.pitchOwnBody"),
+  });
+
+  return (
+    <section aria-labelledby="pitch" className="mt-12">
+      <h2
+        id="pitch"
+        className="border-b border-line-quiet pb-3 font-display text-xl font-semibold text-ink-strong"
+      >
+        {t("landing.pitchHeading")}
+      </h2>
+      <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+        {cards.map((card, index) => (
+          <li
+            key={card.key}
+            /* Three cards in two columns leaves one alone in a half-width box
+               beside empty space. The odd one out spans instead — which is
+               also the right emphasis, since the card that is always present
+               is the one about the files being yours. */
+            className={
+              "rounded-2xl border border-line-quiet bg-surface-base px-5 py-5" +
+              (cards.length % 2 === 1 && index === cards.length - 1 ? " sm:col-span-2" : "")
+            }
+          >
+            <h3 className="flex items-center gap-2 font-display text-base font-semibold text-ink-strong">
+              {card.icon}
+              {card.title}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-ink-body">{card.body}</p>
+            {card.proof}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * The bring-your-own-agent material, behind one tap — B732.
+ *
+ * With the helper on, the first screen a visitor scrolls through used to be a
+ * copyable prompt, three numbered steps about seven-day tokens, and a
+ * paragraph about there being no CMS — none of which the person who just
+ * pressed "Start writing" needs. A native `<details>` rather than `useState`:
+ * it is keyboard-operable and findable by the browser's own find-in-page for
+ * free, and this is already a client component for other reasons so there is
+ * no cost to *not* reaching for state here.
+ *
+ * What it reveals — `AgentBlock` and `LandingSteps`, which itself carries the
+ * `landing.noEditor` paragraph — is exactly what sat directly on the page
+ * before this ticket, unmoved and unrewritten. The trigger reuses
+ * `landing.helperOwnAgent` rather than a new key, because it is the same
+ * sentence the removed `#handover` link used to say.
+ *
+ * The chevron is what tells a sighted reader this expands rather than
+ * navigates — B748. Underlined text with no marker read exactly like the
+ * "Read the guide" link a few hundred pixels above it, and the two do
+ * different things. Pure CSS off `<details>`'s own `open` attribute: the
+ * `group-open:` variant rotates it, no JavaScript and no state, and
+ * `motion-reduce:transition-none` drops the animation for a reader who asked
+ * for less motion — the chevron still ends up rotated, just without the turn.
+ */
+export function AgentDisclosure({
+  docUrl,
+  agentUrl,
+}: {
+  docUrl: string;
+  agentUrl: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <details className="group mt-6">
+      <summary
+        className="flex min-h-11 cursor-pointer list-none items-center gap-1.5 text-sm font-semibold
+                   text-ink-body underline decoration-line-quiet underline-offset-4
+                   transition-colors hover:decoration-line-prominent
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500
+                   [&::-webkit-details-marker]:hidden"
+      >
+        {t("landing.helperOwnAgent")}
+        <ChevronDown
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-180 motion-reduce:transition-none"
+        />
+      </summary>
+      {/* B751: belongs here — this disclosure exists to hold exactly this
+          material, and it renders nowhere else on this arrangement of the
+          page. */}
+      <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
+      <LandingSteps helperEnabled />
+    </details>
+  );
+}
+
+/**
+ * What you actually hand over.
+ *
+ * Used to be set like an address on an airmail envelope — a 5px striped
+ * border in coral and sky, the one piece of postal vernacular everybody
+ * recognises on sight. B751 dropped it: the owner called it "flashing", and
+ * once the helper (B694/B732) made this page's first screen about signing in
+ * rather than about handing a string to an agent, the stripes were the
+ * loudest thing beside panels that are all deliberately quieter — including
+ * `AgentHandover`, the signed-in sibling of this block. This is now built to
+ * match it: `cream-50`, a `navy-200` hairline, `rounded-2xl`, a real
+ * `font-display` heading rather than an all-caps mono kicker (the mono voice
+ * stays on the instruction itself, where it means "this is machine text").
+ * `docs/branding/BRAND.md` keeps the airmail direction on record even though
+ * it is no longer drawn here.
+ *
+ * `heading` lets the signed-in page title this "your agent" rather than "hand
+ * this to your agent" — the same block one step further along, for somebody
+ * who already has a journal and is not being sold anything.
+ */
+export function AgentBlock({
+  docUrl,
+  agentUrl,
+  heading,
+}: {
+  docUrl: string;
+  agentUrl: string;
+  heading?: string;
+}) {
+  const { t } = useI18n();
+  return (
+    <section
+      aria-labelledby="handover"
+      className="mt-8 rounded-2xl border border-line-quiet bg-surface-base px-5 py-5 sm:px-6"
+    >
+      <h2
+        id="handover"
+        className="font-display text-xl font-semibold text-ink-strong"
+      >
+        {heading ?? t("landing.handTitle")}
+      </h2>
+      <p className="mt-1 text-base leading-7 text-ink-body">
+        {t("landing.handBody")}
+      </p>
+      {/* The instruction itself, visible — the same string, from the same
+          key, that the button below copies. B255: a postal-style address
+          and a sentence fragment used to sit here, showing a different
+          thing than the clipboard carried. Set quietly, inset, rather than
+          as the centrepiece — the heading and the button are what a reader's
+          eye should land on first.
+
+          `overflow-wrap: anywhere` rather than Tailwind's `break-words`
+          (`break-word`) — B431. The two wrap a rendered line identically;
+          they differ in the one place that mattered here, which is that
+          `anywhere` also lets the **min-content** width of this paragraph
+          fall below the length of the URL. `break-word` does not, so the
+          block reported a min-content width of the whole URL, the flex item
+          above refused to shrink under it, and the entire page laid out
+          wider than the phone. */}
+      <p className="mt-3 rounded-xl bg-surface-subtle p-3 font-mono text-sm leading-6 text-ink-strong [overflow-wrap:anywhere]">
+        {t("landing.instruction", { docUrl, agentUrl })}
+      </p>
+      <div className="mt-4">
+        {/* With visible and copied text identical, `name` is no longer
+            covering a mismatch — it stays anyway, because an accessible
+            name that recites a whole sentence is worse than one that says
+            what the button does (B199). B254. The yellow pill matches the
+            page's other primary actions — B751: this is the block's only
+            action, so it earns the weight. */}
+        <CopyLine
+          value={t("landing.instruction", { docUrl, agentUrl })}
+          label={t("landing.copyInstruction")}
+          copiedLabel={t("landing.copied")}
+          name={t("landing.copyInstruction")}
+          variant="primary"
+        />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The three steps for bring-your-own-agent, and the promise that there is no
+ * CMS.
+ *
+ * `helperEnabled` picks which close the last line gets — "whether it's this
+ * instance's or your own" is only true where `/agent` can actually write
+ * (B726). Off, the sentence stops one clause earlier rather than claiming an
+ * agent this instance does not host.
+ */
+export function LandingSteps({
+  helperEnabled = false,
+}: {
+  helperEnabled?: boolean;
+}) {
+  const { t } = useI18n();
+  const steps = [
+    { title: t("landing.step1"), body: t("landing.step1Body") },
+    { title: t("landing.step2"), body: t("landing.step2Body") },
+    { title: t("landing.step3"), body: t("landing.step3Body") },
+  ];
+  return (
+    <>
+      <ol className="mt-8 space-y-4">
+        {steps.map((step, i) => (
+          <li key={step.title} className="grid grid-cols-[1.75rem_1fr] gap-x-3">
+            {/* Numbered because it genuinely is a sequence — the code cannot
+                be exchanged before it is requested. */}
+            <span
+              aria-hidden="true"
+              className="font-mono text-sm leading-6 text-coral-600"
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <div>
+              <h3 className="text-base font-semibold leading-6 text-ink-strong">
+                {step.title}
+              </h3>
+              <p className="text-base leading-6 text-ink-body">{step.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <p className="mt-6 border-l-2 border-yellow-400 pl-4 text-base leading-6 text-ink-strong">
+        {t(helperEnabled ? "landing.noEditor" : "landing.noEditorNoHelper")}
+      </p>
+    </>
+  );
+}
+
+/**
+ * Right after the instruction, not tucked into the self-host column below: the
+ * guide is for anyone deciding whether to use this, not only for somebody
+ * about to run their own instance.
+ */
+export function DocsLink() {
+  const { t } = useI18n();
+  return (
+    <Link
+      href="/docs"
+      className="mt-6 inline-flex min-h-11 items-center gap-2 text-base font-semibold text-ink-strong
+                 underline decoration-blue-500 decoration-2 underline-offset-4
+                 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+    >
+      <BookOpen className="h-4 w-4" aria-hidden />
+      {t("landing.docs")}
+    </Link>
+  );
+}
+
+/** The reason to stay on the page: somebody else's trip, one click away. */
+export function PublicJournals({ journals }: { journals: PublicJournal[] }) {
+  const { t, tn } = useI18n();
+  return (
+    <section className="mt-12">
+      <SectionHeading>{t("landing.publicTitle")}</SectionHeading>
+
+      {journals.length === 0 ? (
+        <p className="mt-3 text-base leading-6 text-ink-body">
+          {t("landing.publicNone")}
+        </p>
+      ) : (
+        <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+          {journals.map((journal) => (
+            <li key={journal.username}>
+              <Link
+                href={`/${journal.username}`}
+                className="group block h-full overflow-hidden rounded-xl border border-line-quiet bg-surface-base
+                           transition-colors hover:border-line-ink
+                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                {journal.cover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={journal.cover}
+                    alt=""
+                    loading="lazy"
+                    className="h-28 w-full object-cover"
+                  />
+                ) : null}
+                {/* No band when there is no cover — B1291. 112px of flat
+                    `cream-100` said nothing and read as a photograph that had
+                    failed to load; a coverless journal is title-and-line, and
+                    nothing here has to earn a phone screen's worth of colour
+                    it cannot fill. */}
+                <div className="p-4">
+                  <p className="font-display text-base font-semibold text-ink-strong">
+                    {journal.title}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-ink-secondary">
+                    {journal.tagline}
+                  </p>
+                  <p className="mt-2 font-mono text-xs text-ink-secondary">
+                    /{journal.username} ·{" "}
+                    {tn("landing.trips", journal.trips, {
+                      count: String(journal.trips),
+                    })}
+                  </p>
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+export function Colophon({
+  repository,
+  credit,
+  legal,
+}: {
+  repository?: string;
+  credit?: { name: string; url?: string; countryCode?: string };
+  /** Whether this instance has written a `site/legal/` page. Absent
+   * instances draw no link rather than one that 404s — the same bargain every
+   * optional capability makes. */
+  legal?: boolean;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      <section className="mt-10 grid gap-6 border-t border-line-quiet pt-8 sm:grid-cols-2">
+        <div>
+          <h2 className="font-display text-base font-semibold text-ink-strong">
+            {t("landing.readers")}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-ink-body">
+            {t("landing.readersBody")}
+          </p>
+        </div>
+        <div>
+          <h2 className="font-display text-base font-semibold text-ink-strong">
+            {t("landing.selfHost")}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-ink-body">
+            {t("landing.selfHostBody")}
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            {repository && (
+              <a
+                href={repository}
+                className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-ink-strong
+                           underline decoration-blue-500 decoration-2 underline-offset-4
+                           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                <GithubMark className="h-4 w-4" />
+                {t("landing.source")}
+              </a>
+            )}
+            {/* One door to the documentation, not three — B470. The API
+                reference is a card on `/docs`, one click away; three separate
+                links from this page is how a visitor came to meet the docs at
+                three different depths depending on which one they pressed. */}
+          </div>
+        </div>
+      </section>
+
+      {/*
+        Who made it, if this instance says so.
+
+        Read from `site.credit` rather than written here: the content folder's
+        whole promise is that somebody deletes it, drops in their own and has
+        their own site, and a name compiled into a component would greet every
+        one of their visitors with mine. Absent by default, and absent stays
+        absent — there is no fallback that quietly credits the wrong person.
+      */}
+      {(credit || legal) && (
+        <footer className="mt-12 border-t border-line-quiet pt-6 text-sm text-ink-secondary">
+          {credit && (
+            <p>
+              {/* Split on the {name} token rather than appending the link after
+              the sentence: German ends "von {name}" and Hungarian puts it
+              after a dash, and a name glued to the end would be wrong in both
+              the moment a translator moves it. */}
+              {(() => {
+                const flag = flagFor("", credit.countryCode);
+                const [before, after = ""] = t("landing.madeBy", {
+                  flag: flag || "",
+                  name: "\u0000",
+                }).split("\u0000");
+                const name = credit.url ? (
+                  <a
+                    href={credit.url}
+                    className="font-semibold text-ink-strong underline decoration-blue-500 decoration-2 underline-offset-4"
+                  >
+                    {credit.name}
+                  </a>
+                ) : (
+                  <span className="font-semibold text-ink-strong">
+                    {credit.name}
+                  </span>
+                );
+                return (
+                  <>
+                    {before}
+                    {name}
+                    {after}
+                  </>
+                );
+              })()}
+            </p>
+          )}
+          {/*
+            What this instance can honestly say about itself, in the place a
+            reader goes looking for it — B487 put it in a card above the
+            colophon, which gave a privacy claim more of the page than the
+            journals underneath it. A footer line is the honest weight: it is
+            reassurance for somebody who thought to ask, not a selling point.
+          */}
+          <p className="mt-2 text-xs leading-5 text-ink-secondary">
+            {t("landing.hostedIn")} · {t("landing.noTracking")}
+            {legal && (
+              <>
+                {" · "}
+                <Link
+                  href="/legal"
+                  className="underline decoration-blue-500 decoration-2 underline-offset-4
+                             focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                >
+                  {t("landing.legal")}
+                </Link>
+              </>
+            )}
+          </p>
+        </footer>
+      )}
+    </>
+  );
+}

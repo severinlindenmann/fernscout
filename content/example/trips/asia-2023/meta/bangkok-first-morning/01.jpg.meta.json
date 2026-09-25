@@ -1,0 +1,28 @@
+{
+  "phash": "0e0e0f0b0d0f1b25fffcf8ffff3effff",
+  "image": {
+    "width": 1600,
+    "height": 1067,
+    "brightness": 0.3799,
+    "dominant": {
+      "r": 56,
+      "g": 40,
+      "b": 8
+    },
+    "sharpness": 3.9752,
+    "entropy": 7.5805,
+    "quietTiles": [
+      0.1631,
+      0.1327,
+      0.244,
+      0.1302,
+      0.181,
+      0.2435,
+      0.0383,
+      0.0447,
+      0.0346
+    ],
+    "measuredAt": "2026-09-22T17:49:57.746Z",
+    "version": 1
+  }
+}

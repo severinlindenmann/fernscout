@@ -1,0 +1,29 @@
+# Nightly backup.
+#
+# Installed and reloaded by scripts/deploy.sh (B138); enabling it once is the
+# operator's:
+#
+#   sudo systemctl enable --now fernscout-backup.timer
+#   systemctl list-timers fernscout-backup    # when the NEXT run is due
+#
+# For whether the LAST run worked — which is the question people actually mean
+# — `list-timers` is the wrong command; it prints a healthy-looking schedule
+# over a backup that has aborted every night since March. Use either of:
+#
+#   systemctl status fernscout-backup        # the last run's result
+#   curl -s https://<domain>/api/health | jq .backup
+#
+# deploy/fernscout-alert@.service, which the backup unit's OnFailure= starts,
+# arrives with the same deploy. It is what makes a failed run turn up without
+# being asked, and it is the one that used to get forgotten.
+[Unit]
+Description=Nightly Fernscout backup
+
+[Timer]
+OnCalendar=*-*-* 03:20:00
+# Spread the load, and survive a machine that was asleep at 03:20.
+RandomizedDelaySec=20min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

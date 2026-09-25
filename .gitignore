@@ -1,0 +1,153 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Ad-hoc redirected command output (e.g. npm run verify > verify-full.log) —
+# holds absolute local paths, never committed (B2250).
+*.log
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Reader data written at runtime (reactions, push subscriptions).
+# On the VPS this lives in DATA_DIR outside the repo instead.
+.data/
+
+# The SQLite file docs/running-locally.md tells you to make:
+#   export DATABASE_URL="file:./.local-dev.db"
+# Three files, in the repository root, that nothing ignored — so every agent
+# who followed that page left them untracked in the shared checkout, where
+# they read as somebody's uncommitted work and get in the way of the next
+# `git merge`. Found on 2026-09-05 with all three sitting on `main`.
+.local-dev.db
+.local-dev.db-*
+
+# Local development artefacts.
+# `/mail` is where signup mail used to land, from a `process.cwd()` fallback
+# that B111 removed. Still ignored so an old checkout's plaintext codes cannot
+# be committed by somebody who has not cleared the directory out yet.
+/mail
+
+# Agent worktrees and local agent state — but .claude/skills/ is part of the
+# repository. The skills are how an agent is told to do the things the author
+# actually does (ROADMAP G1); they are source, not local state.
+.claude/*
+!.claude/skills/
+# One exception in the other direction: this instance's own deploy path — its
+# host, its ssh alias, its one command. The shipped software's deploy is
+# scripts/deploy.sh and the `deploy` skill, which work on anybody's VPS; a
+# skill that hardcodes ours is local state wearing a skill's clothes.
+.claude/skills/vps/
+
+# What scripts/deploy.sh last brought up healthy, written on the server (B258).
+.deploy-state
+.deploy-state-paid
+
+# The open-core split's private features tree (B2246/B2247): uploaded by
+# ship.sh from the laptop harness, never cloned or pulled by the server, and
+# never checked in here — it is a whole separate, private git history.
+/paid/
+/paid.new/
+/paid.prev/
+
+# Generated per-user output. Postcards carry postal addresses, so none of it
+# belongs in git — with content/example the deliberate exception, since it
+# holds nothing real.
+content/*/postcards/
+content/*/photobooks/
+# Sent mail lived here before B636 moved it to `<dataDir>/mail/`, which
+# `.data/` above already covers. Still ignored so a checkout that has not
+# restarted since, or has not cleared the old directory by hand, cannot
+# accidentally commit a plaintext sign-in code.
+content/*/mail/
+content/.mail/
+# The files exactly as the camera wrote them. Kept so the photobook has
+# something better than a 2000px derivative to print from, gitignored because
+# a repository is the wrong place for a hundred 40 MB originals.
+content/*/trips/*/originals/
+!content/example/
+
+# scratch output from .claude/skills/apply-the-brand/favicon-check.mjs
+favicon-check.png
+
+# Playwright MCP scratch output (screenshots, snapshots, console logs)
+.playwright-mcp/
+
+# Journal exports. `npm run export` writes real content — somebody's actual
+# trips, photographs and addresses — and it must never be committed.
+*-export.zip
+/*.png
+
+# Resized copies made by the media route, rebuilt on demand.
+content/.cache/
+
+# Tombstones for deleted journals and trips (lib/tombstones.ts). They keep the
+# username reserved and make old URLs answer 410, and they name real people's
+# journals — so they live on the operator's disk, not in the repository.
+content/.deleted/
+
+# B1064's registry lock — one journal per proven email, one per proven
+# number (lib/registry.ts). Rebuildable from content/ with
+# `npm run registry -- reconcile`, and it names real addresses and numbers.
+content/.registry/
+
+# Journal backups from `npm run export`. Never committed: they hold private
+# trips and unpublished drafts.
+exports/
+
+# Alternative build outputs — see NEXT_DIST_DIR in next.config.ts.
+.next-*
+
+# Downloaded Natural Earth sources for scripts/build-mapdata.mjs — the baked
+# output in lib/mapdata/ is committed, these are not.
+.mapdata-cache/
+.qa-shots/
+
+# The ECB reference rates are a measurement with a date on them, refreshed
+# nightly on the server into DATA_DIR — instance state, not source (B1084).
+# They were committed here until then, and this entry is what stops a stray
+# `npm run rates:update` on somebody's laptop putting them back: a table that
+# arrives by `git pull` is one that only moves when a person deploys, which is
+# the bug.
+site/rates/
+
+
+# App Store screenshots (B2127): uploads, not sources
+/docs/app-store/screenshots/*
+!/docs/app-store/screenshots/README.md

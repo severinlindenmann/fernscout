@@ -1,0 +1,567 @@
+import "server-only";
+import fs from "node:fs";
+import type { Say } from "../../intents";
+import type { Tool } from "../types";
+import { DAY_ARGS } from "../args";
+import { isEnabled } from "../../../capabilities";
+import { listContacts, normaliseEmail } from "../../../contacts";
+import { MAX_IMPORT_ROWS } from "../../../contacts/importRows";
+import { readContactsFile } from "../../../contacts/readImport";
+import { AS_AUTHOR, getEntryBySlug } from "../../../entries";
+import { findInboxFile, listInbox } from "../../../inbox";
+import { contentTypeFor } from "../../../media";
+import { formatBytes } from "../../../storageQuota";
+import { getTrips } from "../../../trips";
+import { resolveDay, tripIdFor } from "../resolve";
+
+/** The one staged vCard `import_contacts` is about, or why there is none —
+ *  B1394. Ticked wins over the single waiting card, the same rule
+ *  `attach_files` above already applies to a photograph. */
+function findCard(
+  username: string,
+  selected: string[],
+): { id: string; filename: string } | "none" | "ambiguous" {
+  const waiting = listInbox(username).files.filter((entry) => /\.vcf$/i.test(entry.filename));
+  const ticked = selected
+    .filter((id) => id.startsWith("inbox:"))
+    .map((id) => id.slice("inbox:".length));
+  const tickedCard = waiting.find((entry) => ticked.includes(entry.id));
+  if (tickedCard) return { id: tickedCard.id, filename: tickedCard.filename };
+  if (waiting.length === 1) return { id: waiting[0].id, filename: waiting[0].filename };
+  if (waiting.length === 0) return "none";
+  return "ambiguous";
+}
+
+/** `import_contacts`'s own ceiling — `lib/contacts/importRows`' own
+ *  `MAX_IMPORT_ROWS`, the same bound both the v1 and v2 `contacts/import`
+ *  writers enforce, imported here so a card never offers more ticks than a
+ *  single press can file and a hand-typed "50" cannot drift from it. */
+const MAX_VCARD_ROWS = MAX_IMPORT_ROWS;
+
+/** What kind of thing an inbox entry is, in the words a person reads rather
+ *  than the folder name — `INBOX_KINDS` from `lib/inbox.ts`. `media` is not
+ *  here: it is a still or a clip, and `inboxKindWord` below tells them apart
+ *  by extension rather than by the folder they share (B1566). */
+const INBOX_KIND_WORD: Record<string, string> = {
+  files: "file",
+  photobook: "photobook order",
+  postcards: "postcard order",
+};
+
+/**
+ * The human word for one staged file — "photograph" or "video" for `media`,
+ * the fixed word above for everything else.
+ *
+ * `media` holds both: a `.mov` is not a photograph, and calling it one
+ * invites it to be attached where a still belongs (B1566). Told apart by the
+ * same extension → content-type map `contentTypeFor` already uses to serve
+ * the file, not a second list of video extensions.
+ */
+function inboxKindWord(kind: string, filename: string, say: Say): string {
+  if (kind === "media") {
+    return contentTypeFor(filename).startsWith("video/")
+      ? say("agent.block.inboxKindVideo")
+      : say("agent.block.inboxKindPhotograph");
+  }
+  return INBOX_KIND_WORD[kind] ?? kind;
+}
+
+/**
+ * The day and the photograph a tick in the files pane names — B925's own
+ * trick, for a photograph rather than a staged file.
+ *
+ * `describeSelection` already resolves a `photo:<slug>:<src>` id this way to
+ * say what is selected; this is the same walk, kept small, because the id
+ * carries no trip and the entry it names could be in any of them.
+ */
+function entryWithPhoto(username: string, slug: string, src: string) {
+  for (const trip of getTrips(username)) {
+    const entry = getEntryBySlug(trip.ref, slug, AS_AUTHOR);
+    const item = entry?.gallery.find((one) => one.src === src);
+    if (entry && item) return { trip, entry, item };
+  }
+  return null;
+}
+
+/**
+ * Photographs and the files waiting to become them.
+ *
+ * One area of the registry — B1042. The tools were a nine-hundred-line array
+ * in a single file, which is a file two people cannot edit at once and nobody
+ * can read the shape of. What decides where a tool lives is what a person is
+ * doing, not which route it posts to.
+ */
+export const FILES_TOOLS: readonly Tool[] = [
+  {
+    /**
+     * The photographs already waiting, put on a day — B915.
+     *
+     * The one sentence the files pane exists for. A person ticks two
+     * photographs in the inbox and says "put these on yesterday"; the ids ride
+     * into the conversation on the selection line (`describeSelection`,
+     * lib/helper/server.ts), and this proposes the move — the files named, the
+     * day named, and nothing moved until the press.
+     *
+     * **It does not upload anything**, which is why `add_photos` below still
+     * exists and still hands over the day's own page: bytes from a camera are
+     * a picker and a file input, and neither is a sentence. This moves files
+     * this journal already has, through the same
+     * `attachStagedFiles` the documented v1 route calls, so the same
+     * duplicate rule holds at both doors — the inbox names a file by a hash of
+     * its bytes, so the same photograph offered twice is recognised rather
+     * than stored again.
+     */
+    name: "attach_files",
+    kind: "write",
+    renders: "confirm",
+    describe:
+      "Propose putting photographs waiting in the inbox onto a day — \"put these on yesterday\", \"the ones waiting\". Leave `files` out: the ticked ones are used, or every waiting photograph when nothing is ticked, each named for them to check. Never ask for an id.",
+    properties: {
+      ...DAY_ARGS,
+      files: {
+        type: "string",
+        description: "Omit it: the ticked files are used, or all waiting photographs when nothing is ticked.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/attach`,
+    propose: async (username, args, say, _today, selected) => {
+      const found = resolveDay(username, args);
+      /**
+       * **The selection is resolved here, not read out by a person** — B925.
+       *
+       * The browser sends what is ticked on every turn. It used to reach the
+       * tool only as a sentence in the model's context, so a model that did
+       * not copy the ids asked *them* for ids — which appear nowhere on the
+       * screen. What the model says is used when it says something; otherwise
+       * the tick is the answer.
+       *
+       * **And with nothing ticked at all, the answer is everything waiting**
+       * — B1189. "Put the photos waiting in my inbox on today" with empty
+       * hands used to propose nothing, one turn after the `inbox` read had
+       * listed those very files by name: a claim and its contradiction in
+       * one message. The proposal is what makes the fallback safe — every
+       * file is named on the card, and nothing moves until the press.
+       */
+      const waiting = Object.values(listInbox(username))
+        .flat()
+        .filter((entry) => entry.kind === "media");
+      const explicit = (args.files ?? "").trim();
+      const ticked = selected
+        .filter((id) => id.startsWith("inbox:"))
+        .map((id) => id.slice("inbox:".length));
+      // Resolved against disk, here as well as in the route: an id is a
+      // reference and never a fact, and a proposal must name the files a
+      // person will actually get rather than the ones a model typed. A
+      // model that typed a *filename* instead of an id is answered too —
+      // the filename is on the screen, the id never is.
+      const names: string[] = [];
+      const ids: string[] = [];
+      const take = (entry: { id: string; filename: string }) => {
+        if (ids.includes(entry.id)) return;
+        names.push(entry.filename);
+        ids.push(entry.id);
+      };
+      if (explicit !== "") {
+        for (const asked of explicit.split(",")) {
+          const token = asked.trim();
+          const staged = findInboxFile(username, token);
+          if (staged && staged.entry.kind === "media") take(staged.entry);
+          else {
+            const byName = waiting.find((entry) => entry.filename === token);
+            if (byName) take(byName);
+          }
+        }
+      } else if (ticked.length > 0) {
+        for (const asked of ticked) {
+          const staged = findInboxFile(username, asked.trim());
+          if (staged && staged.entry.kind === "media") take(staged.entry);
+        }
+      } else {
+        for (const entry of waiting) take(entry);
+      }
+      // Either both or neither: a day with no files and files with no day are
+      // the same refusal, and it says so rather than proposing half a move.
+      const onto = names.length > 0 ? found : null;
+      return {
+        sentence: onto
+          ? say(names.length === 1 ? "agent.tool.attachFiles.one" : "agent.tool.attachFiles", {
+              count: String(names.length),
+              date: onto.entry.date,
+              title: onto.entry.title,
+            })
+          : say("agent.tool.attachNone"),
+        accept: say("agent.tool.attachFilesAccept"),
+        done: say("agent.tool.attachFilesDone"),
+        // The files by name, and the day they are going on, before the press.
+        // Their own filenames: nothing here is this software's prose.
+        preview: onto ? [`${onto.entry.date} — ${onto.entry.title}`, ...names] : [],
+        fields: [
+          { name: "trip", value: tripIdFor(username, args, found), fixed: true },
+          { name: "slug", value: found?.entry.slug ?? args.slug ?? "", fixed: true },
+          { name: "files", value: ids.join(",") },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * Photographs come in through the room's own pane now — B1220 (D52).
+     * This used to hand people out to the step-wizard page; since B1171
+     * the pane uploads into the inbox and `attach_files` puts things on a
+     * day, so the honest answer is a sentence about the controls already
+     * on this screen. Server text, not the model's — the screen-claim
+     * guard checks the model's own answer, never a tool's block.
+     */
+    name: "add_photos",
+    kind: "read",
+    renders: "say",
+    describe:
+      "How photographs are added: say where the controls on this screen are. Use this whenever they want to put pictures on a day.",
+    properties: DAY_ARGS,
+    run: async () => ({ wrote: false }),
+    block: (_data, say) => ({ shape: "say", text: say("agent.tool.addPhotosPane") }),
+  },
+  {
+    /**
+     * What is staged and belongs to no day yet — for talking about it, not
+     * for drawing a second pane.
+     *
+     * The files pane already shows this on the screen (`FilesPane`,
+     * `components/HelperRoom.tsx`); this exists so "was liegt noch rum?"
+     * gets an answer in the conversation itself, without a person having to
+     * look sideways at a pane that may be scrolled out of view. **Nothing on
+     * a sidecar is reachable by URL** (`lib/inbox.ts`), so what goes on the
+     * screen is a filename and a rough size, and the id — a hash of the
+     * file's own bytes, safe to say for the same reason `describeSelection`
+     * already says it for `attach_files`.
+     */
+    name: "inbox",
+    kind: "read",
+    renders: "files",
+    describe:
+      "What is waiting in the inbox and belongs to no day yet — what each file is and roughly how big.",
+    properties: {},
+    run: async (username) =>
+      Object.values(listInbox(username))
+        .flat()
+        .map((entry) => ({
+          id: entry.id,
+          filename: entry.filename,
+          kind: entry.kind,
+          bytes: entry.bytes,
+        })),
+    block: (data, say) => {
+      const staged = data as { id: string; filename: string; kind: string; bytes: number }[];
+      if (staged.length === 0) return null;
+      return {
+        shape: "files",
+        text: say("agent.block.inbox"),
+        files: staged.map((file) => ({
+          id: file.id,
+          name: `${file.filename} — ${inboxKindWord(file.kind, file.filename, say)}, ${formatBytes(file.bytes)}`,
+        })),
+      };
+    },
+  },
+  {
+    /**
+     * The one irreversible thing in this area — B851's own sentence, said
+     * before a press rather than found out after one.
+     *
+     * `detachGallery` (`lib/api/entries.ts`) deletes the derivative and the
+     * kept original from disk — nothing here is a takedown like
+     * `unpublish_day`, which only changes `status:`. So this renders a
+     * `preview` of the photograph before the `confirm`, the same order
+     * `publish_day` uses for the same reason: read it back before it is gone.
+     *
+     * The photograph is never named by the model. It comes from a tick in
+     * the files pane (`photo:<slug>:<src>`, the same id `describeSelection`
+     * already reads out) or, failing that, from `src` when somebody typed
+     * one out — but a `src` that resolves to nothing proposes nothing rather
+     * than proposing the wrong photograph, which is the whole of what this
+     * tool must never do.
+     */
+    name: "remove_photo",
+    kind: "write",
+    renders: "confirm",
+    describe:
+      "Propose taking one photograph off a day. This deletes it — the picture and its kept original both — and there is no undo. Use it only for a named photograph, never for a whole day.",
+    properties: {
+      ...DAY_ARGS,
+      src: { type: "string", description: "Omit it: the ticked photograph is used." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/day/remove-photo`,
+    propose: async (username, args, say, _today, selected) => {
+      const askedSrc = (args.src ?? "").trim();
+      const ticked = selected.find((id) => id.startsWith("photo:"));
+      let target: ReturnType<typeof entryWithPhoto> = null;
+      if (askedSrc !== "") {
+        const found = resolveDay(username, args);
+        const item = found?.entry.gallery.find((one) => one.src === askedSrc);
+        target = found && item ? { trip: found.trip, entry: found.entry, item } : null;
+      } else if (ticked) {
+        const rest = ticked.slice("photo:".length);
+        const at = rest.indexOf(":");
+        if (at >= 0) target = entryWithPhoto(username, rest.slice(0, at), rest.slice(at + 1));
+      }
+      return {
+        ...(target ? {} : { refuse: "agent.tool.removePhotoNone" }),
+        sentence: target
+          ? say("agent.tool.removePhoto", { date: target.entry.date, title: target.entry.title })
+          : "",
+        accept: say("agent.tool.removePhotoAccept"),
+        done: say("agent.tool.removePhotoDone"),
+        // The picture, before the button: its own filename, never this
+        // software's prose about it.
+        preview: target
+          ? [`${target.entry.date} — ${target.entry.title}`, target.item.from ?? target.item.src]
+          : [],
+        fields: [
+          { name: "trip", value: target?.trip.id ?? "", fixed: true },
+          { name: "slug", value: target?.entry.slug ?? "", fixed: true },
+          { name: "src", value: target?.item.src ?? "", fixed: true },
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * Throwing away one or several files nobody put on a day — the inbox's
+     * own take-back, with this family's credential. `DELETE
+     * /api/v1/<user>/inbox/<id>` has done this since B663; a browser here
+     * holds a cookie and no bearer token, so that door was never reachable
+     * from the room.
+     *
+     * No preview and no picture: an inbox file is not yet on the site, not
+     * yet read by anyone, and `removeInboxFile` is the same one-step take-back
+     * the v1 route already offers without a confirmation code. `confirm` here
+     * is only the ordinary "nothing happens until they press" rule every
+     * write in this registry follows — and, since B1391, a genuine second
+     * press before anything is thrown away (`ProposalView`'s own
+     * `needsSecondPress`, in `HelperAsk.tsx`).
+     *
+     * **Several at once, since B1391** — "lösche alle Dateien in meiner
+     * Inbox" named files explicitly and had nowhere to land: this tool took
+     * one id, and so did its route. `file` is now a comma-separated list,
+     * the same convention `attach_files` above already uses, and `all` is
+     * the one further step past that: "empty my inbox" names nothing at all,
+     * so the model says `all: "true"` instead of trying to invent ids it
+     * was never shown. Whatever `findInboxFile` can address — every kind
+     * under `content/<user>/inbox/`, B663's whole bucket — is in scope; a
+     * day, a trip or the journal itself is not reachable through this tool
+     * at all, which is what keeps "empty my inbox" from ever meaning
+     * "empty my journal".
+     */
+    name: "discard_file",
+    kind: "write",
+    renders: "confirm",
+    describe: "Propose discarding inbox files. Never a photograph on a day — remove_photo is that.",
+    properties: {
+      // Named `file` rather than `id`: `revoke_key` also asks for an `id`, and
+      // a slot's label is looked up by the field's own name — one `agent.slot.id`
+      // cannot read correctly for both a key and a photograph waiting in an inbox.
+      file: {
+        type: "string",
+        description: "Ticked files if omitted. Ids, comma-separated.",
+      },
+      all: {
+        type: "string",
+        description: "\"true\" for every waiting file, if none ticked or named.",
+      },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/inbox/discard`,
+    propose: async (username, args, say, _today, selected) => {
+      const asked = (args.file ?? "").trim();
+      const wantsAll = (args.all ?? "").trim().toLowerCase() === "true";
+      const ticked = selected
+        .filter((id) => id.startsWith("inbox:"))
+        .map((id) => id.slice("inbox:".length));
+
+      const ids: string[] = [];
+      const take = (id: string) => {
+        if (id !== "" && !ids.includes(id)) ids.push(id);
+      };
+      if (asked !== "") {
+        for (const token of asked.split(",")) take(token.trim());
+      } else if (ticked.length > 0) {
+        for (const id of ticked) take(id);
+      } else if (wantsAll) {
+        for (const entry of Object.values(listInbox(username)).flat()) take(entry.id);
+      }
+
+      const found = ids
+        .map((id) => findInboxFile(username, id))
+        .filter((one): one is NonNullable<typeof one> => one !== null);
+      const bytes = found.reduce((total, one) => total + one.entry.bytes, 0);
+
+      return {
+        ...(found.length === 0 ? { refuse: "agent.tool.discardFileNone" } : {}),
+        sentence:
+          found.length === 0
+            ? ""
+            : found.length === 1
+              ? say("agent.tool.discardFile", { filename: found[0].entry.filename })
+              : say("agent.tool.discardFileMany", {
+                  count: String(found.length),
+                  size: formatBytes(bytes),
+                }),
+        accept: say("agent.tool.discardFileAccept"),
+        done: say(found.length > 1 ? "agent.tool.discardFileManyDone" : "agent.tool.discardFileDone"),
+        fields: [{ name: "file", value: found.map((one) => one.entry.id).join(","), fixed: true }],
+      };
+    },
+  },
+  {
+    /**
+     * A phone's own address book, read and reported into the conversation —
+     * B1394, the second half.
+     *
+     * The read (`POST /api/v2/<user>/import`, kind `contacts`) and the write
+     * (`POST /api/v2/<user>/contacts/import`) were both built and both stay
+     * correctly separated: the write takes only the rows it is given, and
+     * nothing here or anywhere else lets a model pick which of somebody's
+     * contacts are actually contacts of this journal. What was missing is
+     * the surface that gives the write its rows at all — this tool, and the
+     * card it draws.
+     *
+     * **A card, not a page.** The alternative — `/agent/<user>/inbox`, the
+     * way a bank statement or a location export are read today — was
+     * rejected: a vCard is somebody's whole address book, and taking a
+     * person out of the conversation to tick names on a separate screen is
+     * a worse answer than a card right where they are already talking.
+     * `HelperAsk`'s own proposal engine already draws a sentence and a
+     * button; this only adds one shape of field to it (`checkbox`,
+     * `lib/helper/blocks.ts`) rather than a screen of its own.
+     *
+     * **Nothing here writes.** `propose` reads the staged file and reports
+     * what is on it; the press posts to `/api/helper/<user>/contacts/import`,
+     * which calls the same `importContactRows` the documented v1 route does
+     * — every agreed row lands `pending`, with its own confirmation mail,
+     * exactly as `approveContact` requires.
+     */
+    name: "import_contacts",
+    kind: "write",
+    renders: "form",
+    describe: "Propose vCard contacts.",
+    properties: {},
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/contacts/import`,
+    propose: async (username, _args, say, _today, selected) => {
+      const unavailable = !isEnabled("contacts", username);
+      const card = unavailable ? "none" : findCard(username, selected);
+
+      if (unavailable || card === "none" || card === "ambiguous") {
+        return {
+          sentence: "",
+          accept: "",
+          done: "",
+          fields: [],
+          refuse: unavailable
+            ? "agent.tool.contactsUnavailable"
+            : card === "ambiguous"
+              ? "agent.tool.contactsImportAmbiguous"
+              : "agent.tool.contactsImportNone",
+        };
+      }
+
+      const found = findInboxFile(username, card.id);
+      const text = found ? fs.readFileSync(found.file, "utf8") : "";
+      const read = readContactsFile(text, card.filename);
+      if ("refusal" in read) {
+        return {
+          sentence: "",
+          accept: "",
+          done: "",
+          fields: [],
+          refuse: "agent.tool.contactsImportUnreadable",
+        };
+      }
+
+      const selectable = read.people.filter((person) => person.email).slice(0, MAX_VCARD_ROWS);
+      const skipped = read.people.length - selectable.length;
+      if (selectable.length === 0) {
+        return {
+          sentence: "",
+          accept: "",
+          done: "",
+          fields: [],
+          refuse: "agent.tool.contactsImportNoEmail",
+        };
+      }
+
+      const known = new Set((await listContacts(username)).map((contact) => normaliseEmail(contact.email)));
+
+      return {
+        sentence: say(
+          skipped > 0 ? "agent.tool.contactsImportFoundSome" : "agent.tool.contactsImportFound",
+          { count: String(selectable.length), skipped: String(skipped) },
+        ),
+        accept: say("agent.tool.contactsImportAccept"),
+        done: say("agent.tool.contactsImportDone"),
+        fields: [
+          // The rows themselves, resolved here and never retyped by a model
+          // — B1107's rule applied to a whole list rather than one id. Every
+          // `sel_<n>` checkbox below is index-aligned to this array, which
+          // is what the write route reconstructs against.
+          {
+            name: "vcard_rows",
+            value: JSON.stringify(
+              selectable.map((person) => ({ name: person.name, email: person.email, tel: person.tel ?? "" })),
+            ),
+            fixed: true,
+          },
+          ...selectable.map((person, index) => ({
+            name: `sel_${index}`,
+            value: "1",
+            checkbox: true as const,
+            label: person.name,
+            detail: known.has(normaliseEmail(person.email as string))
+              ? say("agent.tool.contactsImportKnown")
+              : undefined,
+          })),
+        ],
+      };
+    },
+  },
+  {
+    /**
+     * A shared contact, waiting in the inbox, invited as a guest on
+     * request — B1074's successor. The invite used to happen automatically
+     * the moment a contact card arrived; now it is a press like any other
+     * write in this family, same as `attach_files` never uploads and never
+     * decides on its own which files move.
+     */
+    name: "invite_contact",
+    kind: "write",
+    renders: "confirm",
+    describe: "Propose inviting a waiting contact as a guest. Needs an email; say so if it has none.",
+    properties: {
+      contact: { type: "string", description: "Its inbox id or name." },
+    },
+    endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/invite-contact`,
+    propose: async (username, args, say, _today, selected) => {
+      const asked = (args.contact ?? "").trim();
+      const ticked = selected
+        .filter((id) => id.startsWith("inbox:"))
+        .map((id) => id.slice("inbox:".length));
+      const staged =
+        (asked !== "" ? findInboxFile(username, asked)?.entry : undefined) ??
+        Object.values(listInbox(username))
+          .flat()
+          .find(
+            (e) =>
+              e.kind === "contact" &&
+              (ticked.includes(e.id) || (asked !== "" && e.filename.toLowerCase().includes(asked.toLowerCase()))),
+          );
+      if (!staged || staged.kind !== "contact") {
+        return { sentence: "", accept: "", done: "", fields: [], refuse: "agent.tool.inviteContactNotFound" };
+      }
+      return {
+        sentence: say("agent.tool.inviteContact", { name: staged.filename.replace(/\.vcf$/, "") }),
+        accept: say("agent.tool.inviteContactAccept"),
+        done: say("agent.tool.inviteContactDone"),
+        preview: [staged.filename],
+        fields: [{ name: "contact", value: staged.id, fixed: true }],
+      };
+    },
+  },
+];

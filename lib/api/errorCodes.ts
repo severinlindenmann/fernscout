@@ -1,0 +1,200 @@
+/**
+ * Every `error` code this API answers with, and what to do about it.
+ *
+ * A refusal used to be `{"error": "unsupported_field"}` and nothing else, on
+ * 139 of the 149 places a code is returned. For somebody reading the source
+ * that is enough; for the only reader this API actually has — an agent over
+ * the network, holding `/openapi.json` and no source at all — it is a word to
+ * guess at. B540 watched one guess.
+ *
+ * So the vocabulary is small (59 codes) and it is published: `Error.error` in
+ * the document carries this list as an `enum`, and each line below says what
+ * the code means **and what to do next**, because "what happened" without
+ * "what now" leaves a weak model to invent a fix.
+ *
+ * `test/openapi-contract.test.ts` fails when a route answers with a code that
+ * is not here, and when a code here is answered by no route — so this cannot
+ * quietly drift in either direction.
+ *
+ * Write each sentence for somebody who cannot read this repository.
+ *
+ * **`as const satisfies` rather than a `Record<string, string>` annotation**,
+ * since B1596. The annotation widened `keyof typeof ERROR_CODES` to `string`,
+ * which meant a helper typed against it — v2's `fail()` is the first — would
+ * accept `"invalid_reqest"` as happily as the real code and answer with a
+ * word no document defines. That is B540's failure exactly one level up: a
+ * transposed letter, no refusal, and a caller told something untrue. The
+ * `satisfies` clause keeps the shape check; dropping the annotation is what
+ * keeps the keys literal.
+ */
+export const ERROR_CODES = {
+  // ── who you are, and what you may touch ────────────────────────────────
+  // Names no version: this refusal is returned by v1, v2 and the auth doors
+  // alike, and the one version it used to name is the one that is gone — B1716.
+  missing_token: "No `Authorization: Bearer` header. Every call to this API needs one; get a token from /api/auth/codes and /api/auth/codes/redeem, both with `\"for\": \"write\"`.",
+  invalid_token: "The token is not one this server issued, or it has expired. Tokens last seven days — ask for a new one the same way.",
+  out_of_scope: "The token is valid, and it belongs to a different journal or a different trip than the one in the URL. Do not retry: ask for a token for this journal.",
+  forbidden: "This call is the journal owner's, and the credential is not theirs. A trip-scoped token cannot do it either.",
+  not_authorised: "This credential cannot do this. Read /documentation.txt on which credential each door takes.",
+  not_signed_in: "This route takes a browser session cookie, not a bearer token. An agent cannot call it.",
+  invalid_handover: "The 20-minute handover credential is spent, expired or not for this journal. The owner makes a new one from their own page.",
+  invalid_code: "The six-digit code is wrong, used, or more than 30 minutes old. Ask for a new one; the newest is the only live one.",
+  too_many_journals: "This address already owns as many journals as this server allows (the refusal names them). Do not sign up again: ask for a write token for the journal it owns, via /api/auth/codes and /api/auth/codes/redeem with `\"for\": \"write\"`.",
+  link_spent: "This single-use link has already been followed. It cannot be followed again — ask for a new one.",
+
+  // ── what you asked about does not exist ────────────────────────────────
+  no_such_journal: "No journal of that name on this server. Check the username; /documentation.txt lists the ones this instance advertises.",
+  unknown_user: "No journal of that name on this instance.",
+  unknown_inbox_file:
+    "One of the `inbox` ids names nothing staged in this journal — or names something that is not a photograph. Nothing was written and nothing was taken out of the inbox; GET the inbox and send the ids it lists.",
+  unknown_trip: "No trip of that id in this journal — or none this token may write to. The two answer alike on purpose, so this cannot be used to ask which trips exist. GET the trips list first.",
+  unknown_day: "No day of that slug in this trip. The slug is made from the title and is in the answer to the call that wrote it; GET the days list to see them.",
+  unknown_invite: "No invite of that id, or it has been revoked.",
+  unknown_contact: "No contact of that id in this journal.",
+  unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
+  unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
+  unknown_payment: "No payment of that id.",
+  invalid_amount:
+    "Not a number of credits this server sells — out of range, not a whole number, or off the " +
+    "step. The refusal names the three bounds.",
+  no_such_device: "No device of that id on this account.",
+  not_found: "Nothing at this address.",
+  gone: "This journal or trip was deleted. Its name stays reserved and its old URLs answer 410 rather than 404, so this is not a typo — it is a thing that used to be here.",
+  deletion_link_used: "This deletion link has already been used. It cannot be used again; the confirmation page names what actually happened.",
+  deletion_link_expired: "This deletion link is older than its own TTL. Ask the owner's page to send the deletion mail again.",
+
+  // ── the body is wrong ──────────────────────────────────────────────────
+  invalid_json: "The body did not parse as JSON. Check the content-type header and the quoting.",
+  invalid_request: "The body is missing something this call needs, or a value is not usable. The `message` says which.",
+  stale_document: "The document you wrote against has moved on — either it changed since you last read it and your `If-Match` no longer covers the current version, or you PUT a client-chosen id that already exists with no `If-Match` at all (a client-chosen-id create refuses to silently overwrite what is already there). `details.current` is the document exactly as it stands now: read it, and send `If-Match` with its ETag if you still mean to write.",
+  bad_request: "The body is not usable. The `message` says why.",
+  invalid_entry: "One or more fields of the day are wrong. `problems` lists every one at once — field, what arrived, what was expected — so fix them all and send once, rather than a round trip each.",
+  invalid_trip: "One or more fields of the trip are wrong; `problems` lists them. A field name that is not a field is refused here rather than dropped, and the hint names the field you probably meant.",
+  invalid_costs: "The budget or a cost line is not usable; `problems` lists each one.",
+  invalid_media: "The upload is not usable — a file this server does not take, one too large, or a `day` that is not a day of this trip. /api/health carries the formats and the limits.",
+  invalid_email: "That is not an address this server can send to.",
+  invalid_listed: "`listed` must be true or false, and it cannot be true on a trip no visibility advertises. A string is refused rather than read as truthy: `\"false\"` would otherwise have advertised the trip.",
+  invalid_teaser:
+    "`teaser` must be true or false, and it cannot be true on a public trip — there is nothing to tease. It names a `guest` or `private` trip on the trips page without opening it.",
+  invalid_test: "`test` must be true or false. A string is refused rather than read as truthy.",
+  invalid_costs_visibility: "`costsVisibility` must be `public` or `guests`.",
+  invalid_title: "The title is not usable — it must be one line. A line break would end the frontmatter block early, so it is refused rather than folded; put the longer version in the prose.",
+  invalid_date: "A date is not a real calendar date, or `end` is before `start`. Dates are `2026-09-01`.",
+  invalid_tagline: "The subtitle is not usable — it must be one line, like the title. Send `\"\"` to remove it entirely.",
+  invalid_cover: "`cover` must be a `src` this trip's own gallery already carries — read GET .../trips/{trip}/media for the list. `null` on a PATCH clears it back to absent.",
+  invalid_plan: "`plan.private.stops` names a stop id that is not in `plan.route` — every key there must be a route stop's own `id`, hand-written or server-assigned.",
+  invalid_accent: "`accent` must be one of the five named colours. `null` or `\"\"` clears it back to no preference.",
+  invalid_intro: "`intro` must be text — the trip's own prose, not a frontmatter line.",
+  invalid_trip_id: "The trip id must be lowercase letters, digits and single hyphens. It is the URL segment and the folder name.",
+  invalid_visibility: "`visibility` must be `private`, `public` or `guest`. An unrecognised value is refused here rather than written, because on the way back in it would read as private and the caller would never know.",
+  invalid_people: "An entry in `people` is not usable — each needs a name and an email, and there may be at most ten. They get write access to the trip, so this is refused rather than trimmed.",
+  invalid_rates: "A rate is not usable. The shape is `{\"EUR\": 0.94}` — units of the journal's base currency for one unit of the keyed one.",
+  invalid_tracks: "A row in `tracks` is not one this server knows, or its value is not true or false. The rows are costs, coordinates and photos.",
+  invalid_translations: "A translation names a locale this journal does not declare, or its shape is wrong. Declare the locale first with PATCH .../config, or drop it.",
+  invalid_declined: "`declined` names a key that is not one of v2's TRIP_DECLINABLES, or gives it a reason under ten characters. A decline is a message to the next reader, not a checkbox — say why, in a real sentence.",
+  invalid_costs_budget: "`costsBudget` is not usable — it needs a positive `total`, and `currency` (if sent) must be a three-letter code. Send `\"none\"` instead to say a budget was not entered.",
+  invalid_figures: "`figuresMode` is not `{\"mode\":\"off\"}`, `{\"mode\":\"journal\"}`, or `{\"mode\":\"custom\",\"figures\":[\"id\", …]}`.",
+  unknown_figure: "`figuresMode.figures` names an id that is not in this journal's figure library. GET /api/v2/{user}/figures for the ones that exist.",
+  invalid_translations_answer: "The new-trip step's `translations` answer is not usable — it must be `\"none\"`, or an object keyed by locale with a `title` per language.",
+  invalid_named_people: "`namedPeople` needs at least one entry, each with a name and a real address.",
+  trip_exists: "A trip with that id is already here. Ids are the URL, so they are unique within a journal — pick another, or edit the one that exists.",
+  day_exists: "A day with that slug is already here (the `details` carry it). This looks like a retried create — if you meant to replace it, GET it first and PUT again with `If-Match` set to its ETag, or PATCH the fields that changed.",
+  figure_referenced: "This figure is still named in the journal's own default figures, or a trip's figures — `message` lists which. Deleting it would leave a dangling reference, so nothing was deleted. Remove it from every set that names it first (PATCH the journal or the trip's figures), then delete it again.",
+  trip_unreadable: "The trip was written and could not be read back, which means it would be invisible on the site. Nothing was kept. This is a bug — report it rather than retrying.",
+  unreadable_zones: "The private-zones file on disk could not be read as JSON. Refusing to answer rather than reporting fewer zones than are really there — an owner's front door on a public map is the wrong direction to fail in. This is a bug — report it rather than retrying.",
+  no_frontmatter: "The file has no frontmatter block, so nothing can be read out of it. This is a fault on disk rather than in your call.",
+  invalid_travellers: "A figure in `travellers` has a key or a value this server does not know. `for` is an address out of the trip's `people:`, not a name. GET /api/v2/{user}/figures/presets for the vocabulary.",
+  unsupported_field: "A field name this call does not take. The `message` lists the ones it does — send only those, and note that publishing is never a field.",
+  expected_urls: "The JSON form of this upload needs `urls`. To send bytes instead, use multipart/form-data.",
+  expected_src: "DELETE .../media needs `src` — one or more photographs, exactly as GET .../days/<slug> hands them back.",
+  unknown_media: "One or more of `src` is not a photograph this day has. `problems` names each one; nothing was removed.",
+  expected_multipart: "This content-type is not one this call takes: multipart/form-data for bytes, application/json for `urls`.",
+  body_too_large: "The request is over this server's limit. /api/health says what it is; send the files in smaller batches.",
+  no_file: "The import call named no file: use `inbox` with an id from the inbox, multipart `file`, or `text` for a few lines inline.",
+  expected_file: "This multipart call wants the export under `file`. One file per call.",
+  invalid_body: "The JSON body was not an object this call understands. The `hint` shows the shape.",
+  storage_full: "This journal has no room left for what you sent, and nothing was written. The message says how much it holds and how much it is allowed. Delete something, or the owner buys more room — an agent cannot.",
+  unknown_kind: "No such kind of data. A kind is what the data *is* (`gps`); a format is who wrote it. GET the import route for the kinds this instance reads.",
+  unreadable: "The importer could not read the file at all. If the format was detected it may be the wrong one — name it explicitly. If you named it, the file is not what you said.",
+  contract: "The file was read and what came out does not hold up: `problems` says what is wrong in words — coordinates the wrong way round, seconds where milliseconds were meant, an export with no positions. Nothing was written.",
+  could_not_fetch: "This server could not fetch one of the `urls`. https only, public hosts only, and it is refused after a redirect to a private address.",
+  nothing_to_draw: "No figure to draw. Send `figure` or `party` as JSON.",
+  expected_photo: "Name one photograph — multipart bytes under `photo`, or `inbox` or `gallery` in a JSON body.",
+  not_this_trip: "That `gallery` src is not a photograph on this trip's own media — either it names a different trip, or it does not exist. Give a src exactly as a day's gallery already carries it.",
+  idempotency_conflict: "That `idempotency_key` was already used for a different call. Nothing was written this time either; send a new key for a new request.",
+  conflict: "That id is already in use for something else — a different amount, or another journal's own purchase. Nothing was written. `details.current` carries the stored document when it is yours to see; pick a different id.",
+
+  // ── the day is not wrong, it is incomplete ─────────────────────────────
+  incomplete_day: "The trip keeps track of something this day says nothing about. `missing` names each one, how to send it, **and how to decline it** — `\"costs\": false` means there was none. Ask the person; never invent a value to get past this.",
+
+  // ── publishing, and things already done ────────────────────────────────
+  already_published: "This day is already on the site. Nothing was changed.",
+  published_day_not_deletable:
+    "This day is on the site, and a published day is not deleted here — destroying something people have already read is not a self-served step. Take it off the site first with the unpublish call (reversible); once it is a draft again it can be deleted.",
+  already_draft:
+    "This day is not on the site, so there was nothing to take down. Nothing was changed — " +
+    "and if somebody asked you to take it down because they are worried about who saw it, " +
+    "say that it has not been up.",
+  not_published: "This day is still a draft. Publish it before sending it to anybody.",
+  test_content: "This is content nobody lived — `test: true`. It cannot be sent to real people, which is the point of the flag.",
+
+  // ── this server cannot do that ─────────────────────────────────────────
+  auth_disabled: "This server has authentication switched off entirely, so there are no tokens to hold. /api/health says what it can do.",
+  signup_disabled: "This server does not take new journals.",
+  signup_not_invited:
+    "This instance is invite-only: only addresses its operator has named can make a journal here. " +
+    "Nothing has been sent to this address. Ask the person who runs it to add you, then start again.",
+  phone_required: "A journal needs a proven telephone number as well as a proven address. POST /api/auth/signup/phone with the signup token, then /api/auth/signup/phone/redeem with the code, and retry.",
+  verification_failed: "The phone code could not be sent. Try again in a minute, or check the number.",
+  contacts_disabled: "This server has contacts off, so invitations and approvals are unavailable.",
+  postcards_disabled: "This server has postcards off.",
+  photobook_disabled: "This journal does not have photobooks switched on. /api/health says which capabilities are on and why.",
+  credits_disabled: "This server has credits off.",
+  mail_disabled: "This server cannot send mail, so anything that would have been mailed has not been.",
+  mail_failed: "The mail could not be sent. Nothing else about the call failed; tell the person, and do not retry in a loop.",
+  whatsapp_disabled: "This server cannot send WhatsApp messages. Ask for the code by mail instead (leave channel out); nothing was issued and any code already held is still live.",
+  whatsapp_failed: "The WhatsApp message could not be sent, so no code is live for that address. Retrying once in a minute is reasonable; a loop is not.",
+  sms_disabled: "This server cannot send SMS. Use the WhatsApp confirmation instead; nothing was issued.",
+  sms_unreachable: "This server's SMS number cannot reach that number's country — the `message` names the restriction. Use the WhatsApp confirmation instead; nothing was sent and nothing was spent.",
+  no_owner_address: "This journal's config.json has no owner address, and this call has to mail somebody. That is an edit to the file.",
+  no_database: "This capability stores data and this server has no database configured.",
+  provider_unavailable:
+    "The provider could not be reached, or refused the request — Stripe for a payment, Gelato for a photobook print. Nothing was charged. Read this response's own `message`: it says whether the failure is transient (retrying is reasonable) or the provider refused this server's own account (retrying will not help; this needs the operator).",
+  no_credits: "This journal has no credits left for that.",
+  not_for_agents:
+    "This spends the owner's money and is done by the owner, from their own page — a token is refused here whatever it is scoped to. Nothing was charged. Report what is needed and let them decide.",
+  bad_token: "The single-use token in the body does not verify.",
+  bad_method: "That payment method is not one this server takes.",
+  too_many_requests: "Too many of these too quickly. `retryAfter` says how long to wait — wait it out rather than retrying immediately.",
+  helper_unavailable: "This journal has no model-backed features switched on. /api/health says which capabilities are on and why.",
+  consent_required: "This journal has not agreed to send photographs to a model. That is asked for on the journal's own page, not by an agent — an owner has to say yes to this themselves.",
+  model_failed: "The model call failed. Nothing was written and any credit charged for it was refunded; retrying is reasonable.",
+  weather_disabled:
+    "`weather: true` asks this server to look the day up in a public archive, and the weather capability is off for this journal — no lookup would happen at all. Nothing was written, rather than storing a request nobody will service. Send the day without the field; /api/health says whether this server provides weather at all. A reading somebody actually took goes in `weather` as an object with its own `source` — never one you believe.",
+  address_lookup_disabled:
+    "This journal does not have place lookup switched on, so this server will not geocode a place name for it. /api/health says whether `addressLookup` is on and why not; ask the person for coordinates directly in the meantime.",
+
+  contact_exists: "This address is already a contact of this journal — or it is blocked, and re-adding it that way is refused. GET the contacts list to see the existing row.",
+  not_confirmed: "This address has not proved it can be read yet, so approving it would let somebody in nobody has confirmed. It has to redeem its own invite or ask itself first.",
+  self_authored: "This row was written by its own address, through the traveller self-registration door, and the owner cannot rewrite it — only revoke or delete it.",
+  capability_unavailable: "This server does not offer that capability, so a journal cannot switch it on. /api/health says what is missing; switching it off is always allowed.",
+
+  // ── v2 only ─────────────────────────────────────────────────────────────
+  contact_blocked: "This address was blocked by the owner (revoked, not merely never confirmed), and a grant cannot silently re-approve it. GET the contacts list to see the blocked row; the owner has to unblock it first.",
+  already_exists: "A day already lives at the destination date and trip. Pick a different date, or move the other day out of the way first. Nothing was written.",
+  trip_id_taken: "This journal already has a trip at that id. Pick a different one. Nothing was written.",
+  title_required: "The second half of a split needs a real title — it becomes that half's own slug. Nothing was written.",
+  slug_taken: "The title given to the second half of a split makes a slug this trip already uses on that date. Pick a different title. Nothing was written.",
+  cross_trip: "Merge only joins two updates on the same trip — move one of them first if they need to end up together. Nothing was written.",
+  incomplete: "The document is missing an answer to something this journal keeps track of. `details.missing` lists every open section at once — each with why it is asked, a schema excerpt of what to send, and how to decline it instead. Ask the person; never invent a value to get past this.",
+  unknown_recipient: "One or more of `recipients` is not a contact id this journal may post to — not an approved contact who asked for a real postcard and left an address. `details.unknown` names which. Nothing was written. GET .../postcards/recipients for the ones that are.",
+  unknown_photo: "That photo is not a file in the named trip's media, and not a photograph staged in this journal's inbox. Give a `src` a trip's own media already carries, or an id GET .../inbox answered with.",
+  unknown_statement: "No media item of that `src`, or it is not a `bank_export` — send the `src` a `POST .../media` upload with `intent.kind: \"bank_export\"` answered with.",
+  unreadable_statement: "The bytes at that `src` could not be read as a bank statement by any known importer. `problems` says what came out and why it does not hold up.",
+  invalid_username: "A username is 2–31 characters of lowercase letters, digits and dashes, starting with a letter or digit. It becomes the address of the journal.",
+  username_taken: "That username already belongs to a journal on this server. Pick another.",
+  reserved_username: "That username would shadow a route this server serves, or the operator has reserved it. Pick another.",
+  deleted_username: "A journal used to live at that name and was deleted; its name is not coming back on this server. Pick another.",
+  invalid_owner: "The owner's name or the name this journal calls them by is missing or empty. Both are asked, and neither is guessed from the other.",
+  tel_taken: "That phone number already proves a different journal. One number, one journal.",
+} as const satisfies Record<string, string>;

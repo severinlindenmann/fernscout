@@ -1,0 +1,128 @@
+"use client";
+
+import { createContext, useContext, useMemo } from "react";
+import type { Trip } from "@/lib/types";
+import type { ReaderLevel } from "@/lib/photos";
+import type { Units } from "@/lib/units";
+
+type Ctx = {
+  trip: Trip;
+  /** True when this trip is shown at the bare URLs. */
+  isCurrent: boolean;
+  /** "/<username>" for the current trip, "/<username>/trips/<id>" otherwise. */
+  base: string;
+  /** "/<username>" — the owner's root, regardless of which trip is in view. */
+  userBase: string;
+  /** Prefixes an in-site path with that base. */
+  href: (path: string) => string;
+  /** Prefixes a user-level path (/trips, /search) with the owner's root. */
+  userHref: (path: string) => string;
+  /**
+   * Whether this reader may put a draft on the site — B327.
+   *
+   * The one piece of viewer state on a context otherwise derived entirely from
+   * the trip, and it is here because the alternative was threading a boolean
+   * through `TripStory` → `StoryPager` → the day card to reach `DraftNotice`,
+   * which is four components that have no other reason to know who is reading.
+   *
+   * It exists because drafts stopped being the owner's alone. Somebody on the
+   * trip now sees them and cannot publish them, so the banner has two things
+   * to say and has to pick — "only you can see this, tell your agent to
+   * publish it" is false to a buddy in both halves.
+   *
+   * **Defaults to false**, so a page that forgets to pass it shows the
+   * narrower copy rather than telling a buddy the day is theirs to publish.
+   */
+  canPublish: boolean;
+  /**
+   * How far this reader has got, on `lib/photos.ts`' scale — B631.
+   *
+   * Same reasoning as `canPublish` beside it: one more piece of viewer state
+   * that a photograph's own marker needs, and the alternative was threading a
+   * second boolean through the same four components that `canPublish` was
+   * added here to avoid threading through.
+   *
+   * Defaults to `"public"`, so a page that forgets to pass it shows no marker
+   * at all rather than one to a reader who has not earned it.
+   */
+  reader: ReaderLevel;
+  /**
+   * Whether the journal is this reader's — B1585.
+   *
+   * The third piece of viewer state here, and it is here for the reason the
+   * two above are: the visibility controls hang off a day's heading, a
+   * photograph's corner and the hero, which is three more components that
+   * would otherwise be threaded a boolean they have no other use for.
+   *
+   * **Not `canPublish`, though they are the same value.** `GalleryGrid`'s own
+   * comment made this argument before this field existed: `canPublish` means
+   * "may you put a draft on the site", and borrowing it for "is this yours"
+   * is how one field ends up answering two questions and then has to stop.
+   * `readFor` returns both, from one `isOwner` call.
+   *
+   * Defaults to false, so a page that forgets it shows a reader's badges
+   * rather than an owner's controls.
+   */
+  owner: boolean;
+  /**
+   * The journal's own `units` — B1592. Defaults to `"metric"`, the same
+   * default `lib/config.ts` gives an unset field, so a page that forgets to
+   * pass it shows the figures every reading is actually stored in rather than
+   * silently converting.
+   */
+  units: Units;
+};
+
+const TripContext = createContext<Ctx | null>(null);
+
+export default function TripProvider({
+  trip,
+  isCurrent,
+  canPublish = false,
+  reader = "public",
+  owner = false,
+  units = "metric",
+  children,
+}: {
+  trip: Trip;
+  isCurrent: boolean;
+  /** See `Ctx.canPublish`. Omitted where the page shows no drafts. */
+  canPublish?: boolean;
+  /** See `Ctx.reader`. Omitted on a page that shows no gallery. */
+  reader?: ReaderLevel;
+  /** See `Ctx.owner`. Omitted on a page that draws no visibility control. */
+  owner?: boolean;
+  /** See `Ctx.units`. Omitted on a page that shows no weather. */
+  units?: Units;
+  children: React.ReactNode;
+}) {
+  const value = useMemo<Ctx>(() => {
+    // Every URL carries the owner now, so the base starts at the user and the
+    // trip segment is added only for a trip that is not the current one.
+    // Without this, every in-site link points at a path that no longer exists.
+    const userBase = `/${trip.username}`;
+    const base = isCurrent ? userBase : `${userBase}/trips/${trip.id}`;
+    return {
+      trip,
+      isCurrent,
+      canPublish,
+      reader,
+      owner,
+      units,
+      base,
+      userBase,
+      // "/" is the story page, whose URL is the base itself — so it must not
+      // pick up a trailing slash.
+      href: (path: string) => (path === "/" ? base || "/" : `${base}${path}`),
+      /** For pages that belong to the user rather than to one trip. */
+      userHref: (path: string) => (path === "/" ? userBase : `${userBase}${path}`),
+    };
+  }, [trip, isCurrent, canPublish, reader, owner, units]);
+
+  return <TripContext.Provider value={value}>{children}</TripContext.Provider>;
+}
+
+/** Null outside a trip page — /trips itself has no single trip. */
+export function useTrip(): Ctx | null {
+  return useContext(TripContext);
+}

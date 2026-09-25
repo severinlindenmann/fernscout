@@ -1,0 +1,1 @@
+this file mentions neither the confirm dialog nor the docs extract link

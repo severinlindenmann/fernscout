@@ -1,0 +1,21 @@
+{
+  "id": "epsilon-2024",
+  "title": "Unlisted one",
+  "dates": {
+    "from": "2024-06-01",
+    "to": "2024-06-05"
+  },
+  "visibility": "unlisted",
+  "listed": true,
+  "people": [
+    {
+      "name": "Test Person",
+      "nickname": "Test"
+    }
+  ],
+  "intro": "Reachable by link.",
+  "declined": {
+    "buddies": "travelling solo",
+    "figures": "uses the journal's own default party"
+  }
+}

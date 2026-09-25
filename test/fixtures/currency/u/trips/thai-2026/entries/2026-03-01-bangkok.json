@@ -1,0 +1,32 @@
+{
+  "title": "Bangkok",
+  "date": "2026-03-01",
+  "location": "Bangkok",
+  "country": "Thailand",
+  "countryCode": "TH",
+  "coordinates": {
+    "lat": 13.7563,
+    "lng": 100.5018
+  },
+  "content": "Three currencies on one day.",
+  "costs": [
+    {
+      "label": "Street food",
+      "amount": 450,
+      "currency": "THB",
+      "category": "food"
+    },
+    {
+      "label": "Hostel",
+      "amount": 20,
+      "currency": "EUR",
+      "category": "accommodation"
+    },
+    {
+      "label": "SIM card",
+      "amount": 15,
+      "category": "other"
+    }
+  ],
+  "status": "published"
+}

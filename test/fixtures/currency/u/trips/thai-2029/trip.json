@@ -1,0 +1,16 @@
+{
+  "id": "thai-2029",
+  "title": "Thailand 2029",
+  "dates": {
+    "from": "2029-03-01",
+    "to": "2029-03-01"
+  },
+  "accent": "green",
+  "rates": {
+    "currencies": ["THB"],
+    "manual": {
+      "THB": 31.213333333333335
+    }
+  },
+  "intro": "The same 450 baht, three years on."
+}

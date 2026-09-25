@@ -1,0 +1,417 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { localeForPath, requestLocale, translateIn } from "@/lib/locales";
+import { PATH_HEADER } from "@/lib/requestKeys";
+import { basemapFor } from "@/lib/basemap";
+import { CODE_TTL_MINUTES } from "@/lib/auth";
+import { getAllMedia, getPlaces, getTripStats } from "@/lib/entries";
+import { frameRoute } from "@/lib/mapFrame";
+import { assignFlagColours, FLAG_FALLBACK } from "@/lib/flagColours";
+import { accentsFor, getMalformedTrips, getTrips } from "@/lib/trips";
+import { listableTrips, readFor, signedInAs } from "@/lib/tripGate";
+import { isOwner } from "@/lib/contacts/session";
+import { getUser } from "@/lib/users";
+import worldCountries from "@/lib/worldCountries.json";
+import TripsIndexContent, { type EmptyJournal } from "./TripsIndexContent";
+import { whatsappSignInOffered } from "@paid/whatsapp/lib/whatsapp/settings";
+
+/**
+ * Two languages on purpose.
+ *
+ * The tab title follows the *reader* — it lands in their history, their
+ * bookmarks and their tab strip, and a German reader on a German journal was
+ * getting "Gallery" there while the page in front of them said "Galerie".
+ * The sharing card follows the *journal*, because the people who see one are
+ * not this reader and their language is not knowable from this request.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const reader = await requestLocale();
+  const journal = localeForPath((await headers()).get(PATH_HEADER));
+  const description = translateIn(journal, "trips.subtitle");
+  const shared = translateIn(journal, "trips.title");
+  return {
+    title: translateIn(reader, "trips.title"),
+    description,
+    alternates: { canonical: "/trips" },
+    openGraph: { type: "website", title: shared, description, url: "/trips" },
+    twitter: { card: "summary_large_image", title: shared, description },
+  };
+}
+
+export default async function TripsPage({ params }: PageProps<"/[user]/trips">) {
+  const { user } = await params;
+  // Filtered by who is asking, not just fetched. The trip switcher in the user
+  // layout has always run `listableTrips`; this page — the one actually called
+  // "Trips" — did not, and listed every restricted trip's title, tagline,
+  // dates, day and country counts, and drew its route on the lifetime map.
+  const all = getTrips(user);
+  const trips = await listableTrips(all);
+
+  /*
+   * Is there anything on this list, and is the person looking at it its
+   * owner?
+   *
+   * Asked of `trips` — the filtered list — not `all`. A journal whose trips
+   * this reader may not see is a full journal behind a silent filter (B44),
+   * not an empty one, and used to be told nothing at all: four zeroes and no
+   * sentence. B264 is why `trips.length` decides it now — a filtered-empty
+   * reader gets told what to do (ask for an invite, or sign in), the same
+   * words a genuinely-empty journal's stranger gets, because a signed-out
+   * reader who could tell the two apart would be reading a fact about
+   * somebody's private journal off the shape of the response. B117 already
+   * refuses that trade for a closed trip's own name; this is the same refusal
+   * for whether one exists at all.
+   *
+   * `isOwner` reads the session cookie, which `listableTrips` has already
+   * read on this request — and this route is dynamic regardless, because both
+   * that call and `generateMetadata`'s `headers()` make it so. There was no
+   * static render to lose. The lookup still only happens on a page that has
+   * nothing to list: `trips.length === 0` is a superset of the old
+   * `all.length === 0`, so a journal with anything visible still pays nothing
+   * for it.
+   *
+   * The owner's address is put in the payload only once `isOwner` has said
+   * yes. A stranger's copy of this page does not contain it.
+   */
+
+  // Trips that are on disk but too broken to render. Read first, and used to
+  // decide whether the owner question is worth asking at all: on a journal
+  // where every trip parses and at least one is visible to this reader —
+  // which is nearly all of them, nearly all the time — this page needs no
+  // session lookup, and the list is already in hand from the same parse
+  // `getTrips` just ran.
+  /**
+   * The closed trips this reader may not open and whose owner has asked for
+   * them to be named anyway — B587.
+   *
+   * `teaser` is only true on a `guest` or `private` trip (the parser refuses
+   * it elsewhere), and this subtracts what `listableTrips` already returned,
+   * so a reader who *may* see the trip gets the real card rather than two.
+   * Nothing beyond the title and the dates goes into the card's payload: no
+   * cover, no tagline, no stats, no accent colour — the card lists below are
+   * built from `trips`, never from this.
+   *
+   * The lifetime map is the one exception, and it is country-level only
+   * (B600): a teasered trip fills the countries it reached and appears in the
+   * map's legend, and contributes **no stops, no route line and no
+   * coordinates** — not even to the frame, which is why `countryCorners`
+   * below reads a country's own outline rather than the trip's places. It
+   * stays out of the four lifetime figures too: those count what this reader
+   * may actually read.
+   */
+  const listedRefs = new Set(trips.map((t) => t.ref));
+  const locked = all.filter((t) => t.teaser && !listedRefs.has(t.ref));
+
+  const broken = getMalformedTrips(user);
+  const owner = trips.length === 0 || broken.length > 0 ? await isOwner(user) : false;
+
+  // Shown to the owner only: a stranger sees a malformed trip as simply
+  // absent, the same as before B83. Decided before the empty state, because a
+  // journal whose only trip is malformed is *not* empty — it must not be told
+  // to hand an agent a prompt when the trip it is missing is one it has
+  // already written.
+  // Folder and reason only. The English `problem` on each is what the log and
+  // the API carry; the page renders the reason translated, so sending the
+  // sentence too would put a second copy of every message in the payload for
+  // the browser to never read.
+  const malformed = owner ? broken.map(({ folder, reason }) => ({ folder, reason })) : [];
+
+  let empty: EmptyJournal | null = null;
+  // A locked card is something to see, so the page is not empty — and the
+  // "ask for an invite" sentence would be redundant beside a card that is
+  // itself a door to the sign-in gate.
+  if (malformed.length === 0 && locked.length === 0) {
+    if (owner) {
+      // Genuine emptiness — unchanged by B264. There is no button here, and a
+      // trip is made by handing an agent the prompt below.
+      if (all.length === 0) {
+        empty = { owner: true };
+      } else if (trips.length === 0) {
+        // B270: a real trip, filtered out from under its own owner.
+        // `listableTrips` refuses a `public, listed: false` trip to
+        // *everyone*, owner included — `listed` is deliberately about
+        // advertising, not about locking the owner out of their own file
+        // (test/access-gate.test.ts asserts this for every viewer, owner
+        // row included). So this is not the "there is no button" moment —
+        // the trip exists and the owner wrote it — it needs its own
+        // sentence instead of the genuinely-empty one above, and neither of
+        // B264's four zeroes nor its stranger message, which would tell an
+        // owner who has a trip that they have none.
+        empty = { owner: true, filtered: true };
+      }
+    } else if (trips.length === 0) {
+      // Whether this journal is truly empty or just filtered to nothing is
+      // exactly what must not reach this reader — see the block comment
+      // above. `signedIn` is safe to tell apart: it is read off this
+      // reader's own cookie, not probed from the journal, and only asked once
+      // we already know there is nothing to show them.
+      //
+      // `ownerName` (B278) is safe to tell apart too: it is the journal's
+      // own constant, read off `config.json`, and does not vary with what this
+      // reader may or may not see. Nickname first — it is the short form the
+      // journal already keeps for exactly this (B20) — and the title when a
+      // journal has none, because a journal written before nicknames existed
+      // must not turn "ask {name}" into "ask ".
+      const journal = getUser(user);
+      empty = {
+        owner: false,
+        signedIn: (await signedInAs(user)) !== null,
+        ownerName: journal?.owner.nickname?.trim() || journal?.title || user,
+      };
+    }
+  }
+  // Upcoming trips have no entries, so they contribute nothing to the map or
+  // the lifetime totals — only a card with a countdown.
+  const travelled = trips.filter((t) => t.status !== "upcoming");
+
+  // Who may see *this* trip's drafts — per trip, never per journal (B327), so
+  // a traveller on one trip does not pull another trip's unfinished days onto
+  // the lifetime map. B336: `getPlaces` used to be called below with no
+  // options at all, always published-only, while the trip-scoped map and the
+  // journal home page had long since widened for the owner and for
+  // travellers — so the same viewer got a different marker count here than on
+  // either of those pages, for the same days.
+  //
+  // B596 rides along: the same call answers which photographs this reader may
+  // see, and the lifetime map's media counts come off these reads.
+  const readByTrip = new Map(
+    await Promise.all(
+      travelled.map(async (t) => [t.ref, (await readFor(t)).read] as const),
+    ),
+  );
+
+  // getPlaces/getTripStats each re-read and re-derive from every entry file,
+  // so each travelled trip is computed once here and reused below, rather
+  // than once per card plus twice more for the lifetime totals.
+  // Keyed and looked up by `ref` — `getPlaces`/`getTripStats` resolve a
+  // directory from `<user>/<tripId>`, and a bare id silently reads nothing,
+  // which showed here as every trip having 0 days, 0 countries and no route.
+  const placesByTrip = new Map(
+    travelled.map((t) => {
+      return [t.ref, getPlaces(t.ref, readByTrip.get(t.ref))] as const;
+    }),
+  );
+  const statsByTrip = new Map(
+    travelled.map((t) => {
+      return [t.ref, getTripStats(t.ref, readByTrip.get(t.ref))] as const;
+    }),
+  );
+
+  /**
+   * One colour per trip for the whole page — B346. The map pins, the map's
+   * legend and the cards below all read from this, so a trip is the same
+   * colour in all three; resolving `trip.accent` independently at each site is
+   * how they come to disagree.
+   */
+  const accents = accentsFor(trips);
+
+  /**
+   * Which countries were reached, and by which trips — B361.
+   *
+   * Counted per *trip*, not per stop: a country is entered once however many
+   * days were spent there, so fifteen days across Thailand is one visit and
+   * two separate trips to the United States is two. That is what the fill
+   * depth means, and counting stops instead would make one long trip look
+   * like a lifetime of them.
+   *
+   * Empty when no day names a country, which is a real journal and not an
+   * edge case — `LifetimeMap` falls back to pins rather than drawing an empty
+   * world.
+   */
+  const visitsByCode = new Map<string, { id: string; title: string }[]>();
+  const countryNames = new Map<string, string>();
+  for (const trip of travelled) {
+    const places = placesByTrip.get(trip.ref) ?? [];
+    for (const p of places) {
+      if (p.countryCode && p.country && !countryNames.has(p.countryCode)) {
+        countryNames.set(p.countryCode, p.country);
+      }
+    }
+    const codes = new Set(
+      places.map((p) => p.countryCode).filter((c): c is string => Boolean(c)),
+    );
+    for (const code of codes) {
+      const list = visitsByCode.get(code) ?? [];
+      list.push({ id: trip.id, title: trip.title });
+      visitsByCode.set(code, list);
+    }
+  }
+  /**
+   * Which countries a teasered trip reached, and nothing else about it — B600.
+   *
+   * Published days only: a draft on a closed trip is doubly not this reader's,
+   * and `getPlaces` would happily hand over both. The `country`/`countryCode`
+   * of those days is all that is read, and only the code and the name ever
+   * leave this function.
+   */
+  const lockedCountries = locked.flatMap((trip) =>
+    getPlaces(trip.ref, { includeDrafts: false })
+      .filter((p) => p.countryCode && p.country)
+      .map((p) => ({ trip, code: p.countryCode!, name: p.country! })),
+  );
+
+  /**
+   * The outline comes from here, on the server, rather than being fetched and
+   * matched in the browser: the fill *is* this map's meaning, so resolving it
+   * client-side left the server render with no countries in it — an empty
+   * frame for the first paint and for anyone without JavaScript. Sending only
+   * the countries actually visited is also a fraction of the 143 KB of all
+   * 177. B361.
+   */
+  /**
+   * The teasered trips' countries, merged into the same map — B600. A country
+   * both a readable and a locked trip reached is one country with two trips
+   * against it, which is what the fill depth already means.
+   */
+  for (const { trip, code, name } of lockedCountries) {
+    if (!countryNames.has(code)) countryNames.set(code, name);
+    const list = visitsByCode.get(code) ?? [];
+    if (!list.some((t) => t.id === trip.id)) list.push({ id: trip.id, title: trip.title });
+    visitsByCode.set(code, list);
+  }
+
+  /**
+   * Flag colours, assigned over a stable order — B370. Sorted by code rather
+   * than taken from the Map's insertion order, which follows whatever order
+   * the trips happened to be read in: the same journal has to colour the same
+   * way on every render.
+   */
+  const flagColours = assignFlagColours([...visitsByCode.keys()].sort());
+
+  const visits = [...visitsByCode]
+    .map(([code, trips]) => {
+      const shape = worldCountries.find((c) => c.code === code);
+      // A country with no shape is one Natural Earth cannot name (Antarctica,
+      // N. Cyprus, Somaliland) or a code nothing matched — dropped rather
+      // than drawn, since there is nothing to draw.
+      return shape
+        ? {
+            code,
+            // The journal's own word for the country, not the shapefile's:
+            // content says "United States", Natural Earth says "United States
+            // of America" and it does not fit anywhere. B370.
+            name: countryNames.get(code) ?? shape.name,
+            path: shape.path,
+            colour: flagColours.get(code) ?? FLAG_FALLBACK,
+            trips,
+          }
+        : null;
+    })
+    .filter((v): v is NonNullable<typeof v> => v !== null);
+
+  const routes = travelled.map((trip) => ({
+    id: trip.id,
+    title: trip.title,
+    accent: accents.get(trip.ref)!,
+    translations: trip.translations,
+    points: placesByTrip
+      .get(trip.ref)!
+      .map((p) => ({ lat: p.lat, lng: p.lng, location: p.location })),
+  }));
+
+  const cards = trips.map((trip) => {
+    const stats = statsByTrip.get(trip.ref);
+    return {
+      id: trip.id,
+      title: trip.title,
+      tagline: trip.tagline,
+      // B1740. A set cover wins here — this is the picture somebody chose for
+      // the trip as a whole — and the trip's newest photograph stands in when
+      // there is none, so a card is never blank while the trip has any. Read
+      // at this reader's own level, so the stand-in is never a photograph they
+      // may not see. The trip page has the opposite precedence, and says so
+      // there: its hero follows the day, not the chosen cover.
+      cover:
+        trip.cover ??
+        getAllMedia(trip.ref, readByTrip.get(trip.ref)).find((m) => m.type === "image")?.src,
+      accent: accents.get(trip.ref)!,
+      status: trip.status,
+      start: trip.start,
+      end: trip.end,
+      translations: trip.translations,
+      // `tripDays`, not `dayCount`: the label says "days on the road", and
+      // that is elapsed time, not the number of days somebody wrote about. A
+      // fortnight with five entries is a fortnight.
+      tripDays: stats?.tripDays ?? 0,
+      countries: stats?.countries ?? 0,
+      totalMedia: stats?.totalMedia ?? 0,
+    };
+  });
+
+  const lockedCards = locked.map((trip) => ({
+    id: trip.id,
+    title: trip.title,
+    start: trip.start,
+    end: trip.end,
+    translations: trip.translations,
+  }));
+
+  const countries = new Set(
+    travelled.flatMap((t) => placesByTrip.get(t.ref)!.map((p) => p.country).filter(Boolean)),
+  );
+
+  /**
+   * Where a teasered trip's countries sit, at country resolution — B600.
+   *
+   * The frame has to include a filled country or the fill is drawn off-screen,
+   * and the honest way to widen it is the country's *own* outline: a bounding
+   * box round the trip's actual stops would put the region somebody stayed in
+   * into a public page, which is exactly what this feature promised not to do.
+   * `project` is `(lng + 180) / 360 * 1000` and `(90 - lat) / 180 * 500`, so
+   * the inverse is two lines and needs no library.
+   */
+  const countryCorners = (path: string) => {
+    const nums = path.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    const xs = nums.filter((_, i) => i % 2 === 0);
+    const ys = nums.filter((_, i) => i % 2 === 1);
+    if (xs.length === 0 || ys.length === 0) return [];
+    const lngs = [Math.min(...xs), Math.max(...xs)].map((x) => (x / 1000) * 360 - 180);
+    const lats = [Math.min(...ys), Math.max(...ys)].map((y) => 90 - (y / 500) * 180);
+    return lats.flatMap((lat) => lngs.map((lng) => ({ lat, lng })));
+  };
+  const lockedFramePoints = [
+    ...new Set(lockedCountries.map((c) => c.code)),
+  ].flatMap((code) => countryCorners(worldCountries.find((c) => c.code === code)?.path ?? ""));
+
+  // The frame the basemap is clipped to: everything the map will draw.
+  const framePoints = [...routes.flatMap((r) => r.points), ...lockedFramePoints];
+  const mapFrame = framePoints.length > 0 ? frameRoute(framePoints) : null;
+
+  return (
+    <TripsIndexContent
+      whatsappSignIn={await whatsappSignInOffered(user)}
+      trips={cards}
+      locked={lockedCards}
+      // Frame only — a teasered trip's countries have to be inside the map or
+      // the fill is drawn off it. Country outlines, never the trip's stops.
+      framePoints={lockedFramePoints}
+      routes={routes}
+      visits={visits}
+      userPath={`/${user}`}
+      // Every trip's points at once: the lifetime map frames all of them, so
+      // the clip has to cover all of them too.
+      //
+      // Guarded on the points the map will actually draw — the routes this
+      // reader may see, plus the outlines of any teasered trip's countries
+      // (B600), which is the same condition the map itself is drawn on
+      // (TripsIndexContent). A journal of trips that were never geotagged
+      // still gets a world map, and a basemap for it. A journal with nothing
+      // but upcoming trips draws no map, and was paying 160 KB of
+      // clipped-to-nothing world for it (B85).
+      basemap={mapFrame ? basemapFor(mapFrame) : null}
+      empty={empty}
+      malformed={malformed}
+      // The code-request form the empty state may show — see EmptyState.
+      // Passed unconditionally, like every other page that offers it: it is
+      // a global constant, not a per-reader or per-journal fact, so handing
+      // it over costs nothing on the pages that never render the form.
+      codeMinutes={CODE_TTL_MINUTES}
+      lifetime={{
+        countries: countries.size,
+        days: travelled.reduce((n, t) => n + statsByTrip.get(t.ref)!.tripDays, 0),
+        photos: travelled.reduce((n, t) => n + statsByTrip.get(t.ref)!.totalMedia, 0),
+        trips: travelled.length,
+      }}
+    />
+  );
+}

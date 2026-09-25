@@ -1,0 +1,813 @@
+/**
+ * The one typed schema, shared by both dialects.
+ *
+ * ## Why the column types look old-fashioned
+ *
+ * Everything here has to mean the same thing in SQLite and in Postgres, and
+ * the two disagree about more than you'd hope. The rules, applied without
+ * exception:
+ *
+ * - **Ids are `text`, generated in application code.** No `serial`, no
+ *   `autoincrement` — SQLite's `INTEGER PRIMARY KEY` and Postgres' `serial`
+ *   are different mechanisms with different reserved names, and neither
+ *   survives a dump/restore across engines.
+ * - **Timestamps are `text`, ISO-8601 in UTC.** SQLite has no date type at
+ *   all; `pg` hands back `Date` objects for `timestamptz`. Storing text means
+ *   a row read on either dialect is the same JavaScript value, which is the
+ *   whole point of this file. ISO-8601 UTC also sorts correctly as a string.
+ * - **Booleans are `integer` 0/1.** SQLite has no boolean, and `pg` returns
+ *   real booleans, so a shared `boolean` column would read back differently
+ *   per dialect. The repository layer converts at the edge.
+ * - **JSON is `text`.** No `jsonb`, no arrays. Callers parse.
+ * - **Floats are `double precision`.** Standard SQL; SQLite gives it REAL
+ *   affinity, and `pg` parses float8 into a plain number. `numeric` would come
+ *   back from `pg` as a string.
+ *
+ * ## Why every table has `owner_id`
+ *
+ * ROADMAP §0.5: there is one user today and adding a tenant column later is
+ * the expensive kind of migration. It costs nothing now. `owner_id` is a
+ * plain column and not a foreign key to `users` — the owner is a tenant
+ * handle that exists before anybody has signed in, and the importer writes
+ * owned rows into a database with no user rows in it at all.
+ */
+
+import type { Generated } from "kysely";
+
+type UsersTable = {
+  id: string;
+  owner_id: string;
+  email: string;
+  name: string | null;
+  /** `owner` | `editor` | `reader`. Text rather than an enum: Postgres enums
+   * need `create type`, SQLite has none, and W08 will want to add values. */
+  role: Generated<string>;
+  locale: string | null;
+  created_at: string;
+  updated_at: string;
+  last_login_at: string | null;
+};
+
+type SessionsTable = {
+  id: string;
+  owner_id: string;
+  user_id: string;
+  /** "guest" (read, long-lived) or "agent" (write, seven days) — decision 24.
+   * Checked at every use, so the two are never interchangeable. Also "signup"
+   * and "handover", which exchange and do nothing else, and "identity" (B410),
+   * which proves an address and authorises nothing. */
+  kind: string;
+  /** A hash of the session token, never the token itself. */
+  token_hash: string | null;
+  scope: string | null;
+  /** The identity session that minted this one, for a session the handshake
+   * derived. Null for everything a code issued. Revoking an identity walks
+   * this column; see `019-identity`. */
+  parent_id: string | null;
+  /** An identity's opaque public name — safe to return in a response body and
+   * to write into a service worker's cache name, never accepted as
+   * authentication. Null on every other kind. */
+  public_id: string | null;
+  created_at: string;
+  expires_at: string;
+  last_seen_at: string | null;
+  revoked_at: string | null;
+  user_agent: string | null;
+  ip: string | null;
+  /**
+   * The E.164 number a `signup` session proved, and when — B1065. Null for
+   * every other kind, and null on a signup session until the phone step
+   * completes: `POST /api/auth/signup/phone/verify` writes both together
+   * on success, and `createJournal` reads them off this row (via
+   * `phoneProofOn`) rather than trusting a number the request body could send
+   * unproven. Not a fifth `SessionKind` — see the top of `lib/phoneVerify/`
+   * for why proving a number opens no session of its own.
+   */
+  phone: string | null;
+  phone_proven_at: string | null;
+  /** How the number was proven — `sms` | `whatsapp-inbound`. Null before
+   * B1316, meaning "whatever mode the server ran at the time". */
+  phone_proven_method: string | null;
+};
+
+type LoginCodesTable = {
+  id: string;
+  owner_id: string;
+  email: string;
+  /** sha-256 of the six-digit code. The code exists only in the email. */
+  code_hash: string;
+  /** sha-256 of the one-click sign-in link's token. Null for agent codes,
+   * which have no link. See `005-signin-link` for why the two credentials are
+   * consumed separately. */
+  link_hash: string | null;
+  kind: string;
+  created_at: string;
+  expires_at: string;
+  /** Set when the *code* is redeemed, which retires the link with it. */
+  consumed_at: string | null;
+  /** Set when the *link* is redeemed. Leaves the code usable, so a mail
+   * scanner that follows the link cannot lock the reader out. */
+  link_consumed_at: string | null;
+  /**
+   * Where redeeming the *link* should land — the page the reader was on when
+   * they asked for the code. A path, never a URL, and always inside
+   * `/<owner_id>/`; null when there is nowhere in particular to go, which is
+   * every agent code and every mail that was not sent from a gate. Stored
+   * rather than carried in the link, and re-checked on the way out by
+   * `safeDestination`. See `009-signin-destination`.
+   */
+  link_dest: string | null;
+  /**
+   * The trip this code was issued for, and therefore the only trip the token
+   * it produces can write to — `write:trip:<trip_id>`. Null for a guest or
+   * signup code, and for an agent code the journal's owner asked for without
+   * naming a trip, which is the one case that still mints the unqualified
+   * `write:content`. Written when the code is issued and never re-supplied at
+   * redemption; see `011-code-trip-binding` and B230.
+   */
+  trip_id: string | null;
+  /**
+   * 1 for the welcome mail's link, which never expires and is not swept away
+   * when a fresh code is issued for the same address. 0 — the default, and
+   * every row written before `006-standing-link` — is a link that dies with
+   * its code. Still single use either way; see that migration.
+   */
+  link_standing: number;
+  attempts: number;
+};
+
+type ContactsTable = {
+  id: string;
+  owner_id: string;
+  /** May hold ciphertext once W10 turns on `CONTACTS_ENCRYPTION_KEY`. */
+  email: string;
+  /** Stable, case-folded lookup key for `email`. Separate from `email` so
+   * encrypting the address later does not break uniqueness or lookup. */
+  email_key: string;
+  name: string | null;
+  /** The one language this person is written to in — ROADMAP §3.1 calls it
+   * `preferred_locale`. It is the same column: the digest, the postcard and
+   * every landing page read it, so a second "preferred" column beside this
+   * one would only be a way for the two to disagree. */
+  locale: string | null;
+  /** `pending` | `active` | `blocked`. */
+  status: Generated<string>;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  /** AES-256-GCM ciphertext of the postal address, or null when they did not
+   * want a postcard. Never readable without `CONTACTS_ENCRYPTION_KEY`; see
+   * `lib/contacts/crypto.ts`. */
+  postal_cipher: string | null;
+  /** 0/1 — the schema has no boolean. Two consents, asked separately. */
+  wants_email_digest: Generated<number>;
+  /** B365. Separate from the digest opt-in on purpose — see migration 015. */
+  wants_whatsapp: Generated<number>;
+  wants_postcard: Generated<number>;
+  /** `invite:<id>` | `open` | `owner` — which link brought them here. */
+  created_via: string | null;
+  /** When the address was proved with a one-time code (double opt-in). */
+  confirmed_at: string | null;
+  /** When the owner approved them. Confirming is not being approved. */
+  approved_at: string | null;
+  last_seen_at: string | null;
+  /** sha-256 of the self-serve edit/unsubscribe token in the mail footer. */
+  manage_token_hash: string | null;
+  /** When `notifyOwnerOfRequest` actually reached the owner, or null while
+   * that mail is still owed — B272. Set only on a successful send, so a
+   * failure leaves it null and a later re-confirmation retries it rather than
+   * the notice being lost for good. See `012-contact-notified`. */
+  notified_at: string | null;
+};
+
+/**
+ * An invitation link — decision 19, as extended by B33.
+ *
+ * It holds a name and a language and no email, because it is an invitation to
+ * *request*, not a grant. Forwarding it can therefore only ever prefill a form
+ * for whoever opens it; identity still comes from confirming an address. That
+ * is true of all three kinds below, and it is what makes a link safe to put in
+ * a group chat.
+ */
+type ContactInvitesTable = {
+  id: string;
+  owner_id: string;
+  /**
+   * `personal` | `guest` | `buddy`.
+   *
+   * `personal` is decision 19's original link, `/{user}/i/<token>`, and every
+   * row written before B33 is one. `guest` is the same door at a name that
+   * says what it opens — `/{user}/invite/guest/<token>` — and leads to being
+   * let into the journal. `buddy` leads to being on one trip: writing to it,
+   * and holding an agent token scoped to it. The open link that had no row at
+   * all, because it carried no secret, was removed in B37.
+   */
+  kind: Generated<string>;
+  token_hash: string;
+  /**
+   * The token itself, AES-256-GCM under `CONTACTS_ENCRYPTION_KEY` — B280, and
+   * `013-invite-token-cipher` for why it is here and what it costs.
+   *
+   * Null on every row written before that migration, and on any row created
+   * while the key is unset. Redemption never reads it: that is `token_hash`,
+   * which is indexed. This is only ever decrypted to show an owner the link
+   * they already sent.
+   */
+  token_cipher: string | null;
+  name: string | null;
+  locale: string | null;
+  /** The trip a `buddy` link is a link to join. Null for every other kind.
+   * See `010-invite-links` for why this column exists again after 007. */
+  trip_id: string | null;
+  created_at: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  uses: Generated<number>;
+  /**
+   * The address this invite was mailed to, case-folded — B319 and
+   * `014-invite-preapproval`. Null for every link an owner still copies by
+   * hand. Compared against a confirming contact's own `email` (also
+   * case-folded) to decide whether the owner's typing the address in counts as
+   * having vouched for it: a match skips the owner's queue, a mismatch — the
+   * link forwarded to somebody else — does not.
+   */
+  email_key: string | null;
+};
+
+/**
+ * One row: this contact may read this journal.
+ *
+ * **Journal-wide, never per-trip.** The table carried a `trip_id` until
+ * `007-journal-wide-grants` — always written `*`, honoured by three readers,
+ * issued by nothing — and the column is gone because a guest is a guest of the
+ * journal, not of a trip (B35, B41). A trip that must be held back from the
+ * people let in is `visibility: private`; that is the whole mechanism, and
+ * there is deliberately no narrower one to reach for.
+ */
+type AccessGrantsTable = {
+  id: string;
+  owner_id: string;
+  contact_id: string;
+  /** `read` | `costs` | … — what the grant unlocks. */
+  scope: Generated<string>;
+  granted_at: string;
+  granted_by: string | null;
+  expires_at: string | null;
+};
+
+/**
+ * One row: this contact was let onto this trip — B33.
+ *
+ * The second source `peopleOf()` reads, beside the `people:` block in
+ * `trip.md`. **Additive, never authoritative**: a hand-written `people:` entry
+ * works exactly as it always has, and nothing here can take one away.
+ *
+ * `granted_at` is the whole distinction. A row with it null is a *request* —
+ * somebody redeemed a buddy link and is waiting — and reads as no access at
+ * all, the same way a `pending` contact does. The owner approving the contact
+ * is what fills it in. Expiry is honoured through `grantIsLive` in
+ * `lib/grants.ts`, so "live" means one thing across this table and
+ * `access_grants`.
+ */
+type TripPeopleTable = {
+  id: string;
+  owner_id: string;
+  trip_id: string;
+  contact_id: string;
+  /** The invite the person came through, when they came through one. */
+  invite_id: string | null;
+  requested_at: string;
+  /** Null while this is only a request. */
+  granted_at: string | null;
+  granted_by: string | null;
+  revoked_at: string | null;
+  expires_at: string | null;
+};
+
+type PushSubscriptionsTable = {
+  id: string;
+  owner_id: string;
+  /** Null until W12 ties a browser to a known reader. */
+  contact_id: string | null;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  user_agent: string | null;
+  created_at: string;
+  last_seen_at: string | null;
+};
+
+type ReactionsTable = {
+  id: string;
+  owner_id: string;
+  trip_id: string;
+  day_slug: string;
+  /** A random string the browser made up. Nothing here identifies a person. */
+  voter_id: string;
+  emoji: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type JobsTable = {
+  id: string;
+  owner_id: string;
+  /** `digest` | `push` | `print` | … */
+  kind: string;
+  /** JSON, as text. */
+  payload: Generated<string>;
+  /** `pending` | `running` | `done` | `failed`. */
+  status: Generated<string>;
+  attempts: Generated<number>;
+  run_at: string;
+  locked_at: string | null;
+  locked_by: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type TrackingPointsTable = {
+  id: string;
+  owner_id: string;
+  trip_id: string | null;
+  device_id: string | null;
+  recorded_at: string;
+  lat: number;
+  lon: number;
+  altitude: number | null;
+  accuracy: number | null;
+  speed: number | null;
+  battery: number | null;
+  /** The provider's original payload, as JSON text, so a parser bug is
+   * recoverable without asking the phone to send it again. */
+  raw: string | null;
+  created_at: string;
+};
+
+type PrintOrdersTable = {
+  id: string;
+  owner_id: string;
+  /** `postcard` | `photobook`. */
+  kind: string;
+  /** `dry-run` | `stannp` | `peecho` | … */
+  provider: string;
+  provider_ref: string | null;
+  contact_id: string | null;
+  trip_id: string | null;
+  /** `draft` | `submitted` | `printed` | `failed`. */
+  status: Generated<string>;
+  /** JSON, as text. */
+  payload: Generated<string>;
+  /** Minor units, so no floating point money. */
+  cost_minor: number | null;
+  currency: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * A mailed "are you sure" for something that cannot be undone — see
+ * `008-deletions`. The token lives in the owner's mailbox and nowhere else;
+ * this row holds its hash, the exact target, and the moment it was spent.
+ */
+type DeletionRequestsTable = {
+  id: string;
+  owner_id: string;
+  /** `journal` | `trip`. */
+  kind: string;
+  /** The trip, when `kind` is `trip`. Null for a journal. */
+  trip_id: string | null;
+  /** The address the link was mailed to, read from the journal's config. */
+  email: string;
+  /** sha-256 of the token in the link. */
+  token_hash: string;
+  created_at: string;
+  expires_at: string;
+  /** Set before anything is deleted, so the link is single-use even if the
+   * deletion itself then fails half way. */
+  consumed_at: string | null;
+  /** The session that asked. Not a foreign key — that row is deleted by the
+   * sweep this request authorises. */
+  requested_by: string | null;
+};
+
+/**
+ * One row per journal, holding the number that decides whether a letter is
+ * sent — B366.
+ *
+ * `owner_id` is the username and the primary key, which is load-bearing
+ * rather than tidy: the debit is a single conditional `UPDATE … WHERE
+ * owner_id = ? AND balance >= ?` and a second row for the same journal would
+ * halve that guard without anything failing. See `016-credits` for why the
+ * balance is a column at all rather than a `SUM()` over the ledger.
+ *
+ * A journal with no row here has a balance of zero, which is what every
+ * journal starts with. Nothing back-fills.
+ */
+type CreditsTable = {
+  owner_id: string;
+  balance: Generated<number>;
+  updated_at: string;
+};
+
+/**
+ * Where every credit came from and went — append-only, never updated, never
+ * deleted except with the journal itself.
+ *
+ * `delta` is signed: positive for a grant or a refund, negative for a spend.
+ * One signed column rather than a kind plus an unsigned amount, so the audit
+ * (`SUM(delta)` against `credits.balance`) cannot be got wrong by forgetting
+ * a sign at one call site.
+ */
+type CreditLedgerTable = {
+  id: string;
+  owner_id: string;
+  delta: number;
+  /** `grant` | `day_mail` | `day_whatsapp` | `digest` | `refund`. */
+  reason: string;
+  /** `<username>/<trip-id>/<slug>` for a spend, null for a grant. */
+  ref: string | null;
+  note: string | null;
+  created_at: string;
+};
+
+/**
+ * One row: this channel has already told readers about this day — B633.
+ * See `022-day-notifications` for why this exists beside `credit_ledger`
+ * rather than being read off it.
+ */
+type DayNotificationsTable = {
+  id: string;
+  owner_id: string;
+  trip_id: string;
+  slug: string;
+  /** "mail" | "whatsapp". */
+  channel: string;
+  sent_at: string;
+};
+
+type PaymentsTable = {
+  id: string;
+  owner_id: string;
+  credits: number;
+  amount_rappen: number;
+  status: Generated<string>;
+  /** "twint" | "card", null until the mock Pay button is pressed. */
+  method: string | null;
+  created_at: string;
+  paid_at: string | null;
+  /** sha-256 of the single-use approval token, mailed to the operator; null
+   * except while awaiting approval — B425. */
+  approve_token_hash: string | null;
+  /** 0/1 — whether credits have been granted for this payment, the guard that
+   * keeps approval from crediting twice. */
+  granted: Generated<number>;
+  requested_at: string | null;
+  /** The latest Stripe checkout session id this payment is being paid through,
+   *  so `.../pay` can reuse an open session rather than opening a rival — B831.
+   *  Null on the manual approval path and before the first Stripe session. */
+  provider_ref: string | null;
+};
+
+/**
+ * One page opened, by one anonymous visitor — B566.
+ *
+ * The narrowest row this schema has, and deliberately: there is no referrer,
+ * no country, no device, no browser and no IP, because every one of those is
+ * either derived from the two values `lib/analytics/visitor.ts` exists in
+ * order not to keep, or — in the referrer's case — a record of where a private
+ * link was pasted.
+ *
+ * `owner_id` is the **username**, per the first convention in
+ * `lib/db/owner.ts`: these rows belong to a person's journal, and the tenant
+ * boundary is the directory name.
+ *
+ * Rows are deleted after `RETENTION_DAYS` (lib/analytics/record.ts), which is
+ * a number `site/legal/*.md` states to readers. If you change it there, change
+ * it here, and the other way round.
+ */
+type AnalyticsEventsTable = {
+  id: string;
+  owner_id: string;
+  /** `journal` | `trip` | `day` | `gallery` | `map` | `photobook`. Text
+   * rather than an enum for the reason every other status column here is —
+   * Postgres enums need `create type` and SQLite has none. The closed list
+   * lives in `VIEW_KINDS` in lib/analytics/record.ts. */
+  kind: string;
+  /** The trip id, unqualified — `owner_id` already carries the journal. Null
+   * for a `journal` view, which is the only kind that belongs to no trip. */
+  trip_id: string | null;
+  /** The day's slug. Null for every kind but `day`. */
+  slug: string | null;
+  /** Sixteen hex characters from `visitorHash()`, and the only thing about a
+   * reader that is ever stored. Unreadable back to a person the day after it
+   * is written, because the salt that made it is gone. */
+  visitor_hash: string;
+  occurred_at: string;
+};
+
+/**
+ * One call to a paid provider, and what it consumed — B746.
+ *
+ * See `023-usage` for why this exists beside `credit_ledger` rather than
+ * being read off it: the ledger records what a journal was *charged*, this
+ * records what the instance was *billed*, and the two are different numbers
+ * in different units.
+ */
+type UsageTable = {
+  id: string;
+  /** The username whose journal the request was made for. */
+  owner_id: string;
+  /** `anthropic` | `deepgram`. The closed list is PROVIDERS in lib/usage.ts. */
+  provider: string;
+  /** The model or product billed — `claude-haiku-4-5`, `nova-3`. */
+  model: string;
+  /** `write_day` | `describe_photos` | `route_ask` | `transcribe`. */
+  operation: string;
+  input_tokens: Generated<number>;
+  output_tokens: Generated<number>;
+  /** Prompt-cache tokens, split out since `036-usage-cache-tokens` (B1757) so
+   *  they can be priced at their own rate instead of the base input price —
+   *  see `priceUsage` in lib/instanceCosts.ts. A row written before that
+   *  migration has both at 0; its cache tokens are already merged into
+   *  `input_tokens` and stay that way. */
+  cache_read_input_tokens: Generated<number>;
+  cache_creation_input_tokens: Generated<number>;
+  /** Audio seconds, as the provider measured them. */
+  seconds: Generated<number>;
+  created_at: string;
+};
+
+/**
+ * What happened in one turn of a conversation, or one press — B976.
+ *
+ * See `026-helper-sessions` for why this is not `usage`: that table is what
+ * the instance was charged, this one is what happened. `said` and `answered` hold
+ * the person's own history and are written for every journal; whether the
+ * **operator** may read them is `operatorMayRead` in lib/helper/sessions.ts.
+ * They are null on a press, which carries no prose at all.
+ */
+type HelperSessionsTable = {
+  id: string;
+  /** The username whose journal the conversation belongs to. */
+  owner_id: string;
+  /** One conversation, for as long as the thread holding it lives. */
+  session_id: string;
+  /** `turn` | `press`. The closed list is SESSION_KINDS in lib/helper/sessions.ts. */
+  kind: string;
+  /** The language the answer was in, which B921 and B972 both changed. */
+  locale: Generated<string>;
+  /** A turn: the read tools that ran, in order, comma-separated. */
+  tools: Generated<string>;
+  /** A turn: the write tools proposed. A press: the one tool pressed. */
+  proposed: Generated<string>;
+  /** Which honesty guard fired, if one did. The list is in lib/helper/model.ts. */
+  guard: Generated<string>;
+  /** Whether the retry after a guard produced an honest answer. */
+  recovered: Generated<number>;
+  /** A press: whether the route took it, and what it said if not. */
+  ok: Generated<number>;
+  error: Generated<string>;
+  /** How many turns the thread held — B957 is why this is worth knowing. */
+  thread_turns: Generated<number>;
+  said: string | null;
+  answered: string | null;
+  created_at: string;
+  /** "web" | "whatsapp" | "" — B1054. Empty for every row written before
+   *  that migration, which nobody marked. */
+  origin: Generated<string>;
+};
+
+/**
+ * One answer already given, so a retry does not do the work again — B718.
+ *
+ * `id` is the caller's own composed key (`<owner> <tool> <supplied>`), not a
+ * generated one: the row is found by what the caller sent. Durable because the
+ * helper's metered routes spend a credit and write nothing to disk, so the
+ * filesystem is no backstop for them and a restart used to mean a second
+ * charge for the same words.
+ */
+type IdempotencyTable = {
+  id: string;
+  /** The journal the call was made for, so the deletion sweep takes it. */
+  owner_id: string;
+  /** What the call was, from `fingerprintOf` — a different one under the same
+   * key is a conflict rather than a replay. */
+  fingerprint: string;
+  /** JSON of the answer handed back the first time. */
+  value: string;
+  created_at: string;
+};
+
+/**
+ * The helper's live conversation, one row per journal — B1054.
+ *
+ * Mutable TTL state beside `helper_sessions`' append-only record — see
+ * `lib/db/migrations/029-helper-threads.ts` for why the two are separate
+ * tables. `turns` is `Turn[]` (`lib/helper/thread.ts`) as JSON, including the
+ * model-only notes `helper_sessions` never stored.
+ */
+type HelperThreadsTable = {
+  owner_id: string;
+  session_id: string;
+  /** "web" | "whatsapp" — the channel that most recently touched this
+   *  thread, which is what its TTL is read against. */
+  channel: Generated<string>;
+  turns: Generated<string>;
+  touched_at: string;
+};
+
+/**
+ * What the operator has said they already know about — B1203.
+ *
+ * One row per *press* on `/admin`'s attention band, not one per entry: the
+ * same backup acknowledged in June and again in August is two rows, and
+ * keeping only the second would leave the history with no history in it. A row
+ * with no `ended_at` is holding, and at most one per `entry_id` is.
+ *
+ * `level` is how bad it was when it was acknowledged, in that entry's own
+ * unit, and the suppression lapses the moment the entry is worse than that —
+ * which is what keeps an acknowledgement from becoming a muzzle over a live
+ * measurement. See `lib/db/migrations/030-admin-acks.ts`.
+ */
+type AdminAcksTable = {
+  /** The press. */
+  id: string;
+  /** Always `NO_JOURNAL` (`"*"`). Instance state, not a journal's — see the
+   *  migration for why the column exists and the value is fixed. */
+  owner_id: string;
+  /** What was pressed: the band entry's own stable id. */
+  entry_id: string;
+  level: Generated<number>;
+  acked_at: string;
+  acked_by: Generated<string>;
+  ended_at: string | null;
+  /** "fixed" when the entry stopped appearing, "unhidden" when the operator
+   *  brought it back. Empty while the row is still holding. */
+  ended_why: Generated<string>;
+};
+
+/**
+ * One SMS, either direction — B1316. See `031-sms-messages` for why one
+ * table holds both, and why `provider_sid`'s UNIQUE constraint is the
+ * inbound dedupe.
+ */
+type SmsMessagesTable = {
+  id: string;
+  /** Always NO_JOURNAL ("*") — the number is the instance's, not a
+   * journal's; see 031-sms-messages. */
+  owner_id: string;
+  /** `in` | `out`. The closed list is DIRECTIONS in lib/sms/store.ts. */
+  direction: string;
+  /** E.164 digits, no `+` — `toE164`'s shape. Empty for a dry-run send. */
+  from_e164: string;
+  to_e164: string;
+  body: string;
+  /** Twilio's message sid; null for a dry-run send. */
+  provider_sid: string | null;
+  created_at: string;
+};
+
+/**
+ * One outbound WhatsApp message per recipient, with the category Meta bills
+ * it under — B1347. The money log `day_notifications` cannot be: that table
+ * dedupes per day announcement and never sees a reminder, a code or a
+ * free-form reply. The closed category list is WHATSAPP_CATEGORIES in
+ * lib/whatsapp/sends.ts.
+ */
+type WhatsappSendsTable = {
+  id: string;
+  /** The journal sent on behalf of, or NO_JOURNAL ("*") when there is none
+   * yet — a signup code, a stranger reply. Same convention as sms_messages. */
+  owner_id: string;
+  /** `marketing` | `utility` | `authentication` | `service`. */
+  category: string;
+  /** The template's approved name, or `reply` for a free-form message. */
+  template: string;
+  sent_at: string;
+};
+
+/**
+ * The owner's own telephone number, one row per journal — B1654, and see
+ * `034-owner-tel` for the shape and why `tel` is nullable rather than the
+ * row being absent.
+ */
+type OwnerTelTable = {
+  owner_id: string;
+  tel: string | null;
+  proven_at: string | null;
+  /** `sms` | `operator` | `whatsapp-inbound` | `agent` — the closed list is
+   * `OWNER_TEL_PROVEN_METHODS` in lib/ownerTel.ts. */
+  proven_method: string | null;
+  updated_at: string;
+};
+
+/**
+ * The invite list an invite-only instance takes signups from — B1693, and see
+ * `035-signup-invites` for why a row is permission to be sent a code rather
+ * than a credential.
+ */
+type SignupInvitesTable = {
+  /** Always `NO_JOURNAL` — an invite is the instance's, not a journal's. */
+  owner_id: string;
+  /** Lowercased and trimmed by `lib/inviteList.ts`; never the raw input. */
+  email: string;
+  added_at: string;
+  added_by: string | null;
+  note: string | null;
+};
+
+/**
+ * The arrangement of one photobook, for one journal and one trip — B1981.
+ *
+ * The composer used to keep this in `localStorage` alone, on the reasoning
+ * that a draft is "one person on one device". That reasoning was written for
+ * a laptop tool: on a phone, clearing site data or switching browser loses an
+ * evening's arrangement with no copy anywhere. `localStorage` stays the
+ * optimistic local copy; this row is the one that survives.
+ *
+ * `(owner_id, trip_id)` is the primary key, so arranging is an upsert and
+ * there is never a second draft for one trip to disagree with the first.
+ * `options` is the same JSON `parseOptions` reads off a request body — stored
+ * rather than columnised for the same reason `print_orders.payload` is: the
+ * fields are the composer's vocabulary, not the database's.
+ *
+ * Lifetime: deleted when the trip is ordered as a book, swept when untouched
+ * for `DRAFT_TTL_DAYS` (`paid/photobook/lib/photobook/drafts.ts`), and taken with the trip
+ * or the journal by `lib/deletions.ts`, which sweeps every table carrying
+ * `owner_id` and `trip_id` without being told about this one.
+ */
+type PhotobookDraftsTable = {
+  owner_id: string;
+  /** `<username>/<trip-id>` — the same `tripRef` shape `print_orders` stores. */
+  trip_id: string;
+  /** JSON, as text: a `BookOptions`. */
+  options: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Database = {
+  users: UsersTable;
+  sessions: SessionsTable;
+  login_codes: LoginCodesTable;
+  contacts: ContactsTable;
+  contact_invites: ContactInvitesTable;
+  access_grants: AccessGrantsTable;
+  trip_people: TripPeopleTable;
+  push_subscriptions: PushSubscriptionsTable;
+  reactions: ReactionsTable;
+  jobs: JobsTable;
+  tracking_points: TrackingPointsTable;
+  print_orders: PrintOrdersTable;
+  deletion_requests: DeletionRequestsTable;
+  credits: CreditsTable;
+  credit_ledger: CreditLedgerTable;
+  payments: PaymentsTable;
+  analytics_events: AnalyticsEventsTable;
+  day_notifications: DayNotificationsTable;
+  usage: UsageTable;
+  helper_sessions: HelperSessionsTable;
+  idempotency: IdempotencyTable;
+  helper_threads: HelperThreadsTable;
+  admin_acks: AdminAcksTable;
+  sms_messages: SmsMessagesTable;
+  whatsapp_sends: WhatsappSendsTable;
+  owner_tel: OwnerTelTable;
+  signup_invites: SignupInvitesTable;
+  photobook_drafts: PhotobookDraftsTable;
+};
+
+/** Every table this schema owns, in dependency order. Used by tests and by
+ * the truncate helper; keeping it next to the type stops the two drifting. */
+export const TABLE_NAMES = [
+  "users",
+  "sessions",
+  "login_codes",
+  "contacts",
+  "contact_invites",
+  "access_grants",
+  "trip_people",
+  "push_subscriptions",
+  "reactions",
+  "jobs",
+  "tracking_points",
+  "print_orders",
+  "deletion_requests",
+  "credits",
+  "credit_ledger",
+  "payments",
+  "analytics_events",
+  "day_notifications",
+  "usage",
+  "helper_sessions",
+  "idempotency",
+  "helper_threads",
+  "admin_acks",
+  "sms_messages",
+  "whatsapp_sends",
+  "owner_tel",
+  "signup_invites",
+  "photobook_drafts",
+] as const satisfies readonly (keyof Database)[];

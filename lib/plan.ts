@@ -1,0 +1,238 @@
+import "server-only";
+import path from "node:path";
+import { getAllEntries, getPlaces, type ReadOptions } from "./entries";
+import { hasHappened } from "./tripTime";
+import { getTrip, parseTripRef, tripDir } from "./trips";
+import { readTripFile } from "./api/v2/store";
+import type { PlanProgress, PlannedStop, PlanPrivateView, PlanReaders, PlanSee } from "./types";
+
+/** How close a real stop has to be to count as having reached a planned one.
+ * Generous on purpose: "Zurich Airport" is 11km from "Zurich", and nobody
+ * writing an entry from a night bus should have to match a name exactly. */
+const REACHED_KM = 75;
+
+function haversineKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+) {
+  const R = 6371;
+  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+  const la1 = (a.lat * Math.PI) / 180;
+  const la2 = (b.lat * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(la1) * Math.cos(la2);
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+type RawStop = Partial<Record<keyof PlannedStop, unknown>>;
+
+/**
+ * The intended route with each stop marked reached or not.
+ *
+ * Returns an empty plan when the trip's `plan` section is absent or
+ * malformed rather than throwing — the plan is a nice-to-have layer on the
+ * map, and a typo in it shouldn't take the map down.
+ *
+ * `{ includeDrafts: true }` additionally folds in future-dated draft entries
+ * (W33): an agent drafting the next few days with coordinates is, in effect,
+ * extending the route by hand — writing the same stop into the trip's own
+ * `plan` too would just be a second place for it to go stale. This is the one path in
+ * the codebase allowed to read draft coordinates into something rendered on
+ * the map, and it must only ever be called with `includeDrafts: true` for
+ * somebody `draftsVisibleTo` has said yes to — callers are responsible for
+ * that check (see the map and countdown pages), because by the time a stop
+ * reaches this function there is nothing left to distinguish "from a draft"
+ * from "hand-written", and a reader must not learn where somebody is going
+ * next.
+ *
+ * That audience was the trip's owner alone until B327 and is now the owner
+ * *or* somebody holding a place on the trip. The sentence above still holds
+ * for the reader it was written about: somebody on the trip is not "a reader"
+ * in that sense, they are on the bus, and where it goes next is not a secret
+ * from them.
+ */
+export function getPlan(tripId: string, options: ReadOptions = {}): PlanProgress {
+  const written = readPlanFile(tripId);
+  const stops = options.includeDrafts
+    ? mergeDraftStops(tripId, written)
+    : written;
+
+  const reachedCount = stops.filter((s) => s.reached).length;
+  return { stops, reachedCount, next: stops.find((s) => !s.reached) };
+}
+
+/**
+ * The `plan` section of `trip.json` — `null` when the trip declined it (or
+ * predates it). Shaped like the old `plan.md`'s gray-matter parse
+ * (`{data, content}`) rather than `Trip.planSection` directly, so the v1 API
+ * routes still reading `parsed.data.route`/`parsed.content` keep working
+ * unchanged — B1606 merged the file, not the shape every existing caller
+ * already agrees on. Exported since B909 so the plan API's `GET` reads back
+ * exactly this, the same object `readPlanFile` below already works from —
+ * mirrors `readCostsFile` (lib/costs.ts, B295).
+ */
+function readPlanFileRaw(tripId: string): { data: { route?: unknown }; content: string } | null {
+  const trip = getTrip(tripId);
+  const section = trip?.planSection;
+  if (!section) return null;
+  return { data: { route: section.route }, content: (section.body ?? "").trim() };
+}
+
+/** The hand-written route from `trip.json`'s `plan` section, each stop
+ * marked reached or not. */
+function readPlanFile(tripId: string): PlannedStop[] {
+  const parsed = readPlanFileRaw(tripId);
+  if (!parsed) return [];
+  const { data } = parsed;
+  const raw = Array.isArray(data.route) ? (data.route as RawStop[]) : [];
+
+  // A `plan` section that parses to nothing is the failure worth naming: the
+  // trip declared one, the author believes there is a route, and the map
+  // silently draws none. Wrong key, wrong shape or wrong field names all
+  // land here.
+  if (raw.length === 0) {
+    console.warn(
+      `[plan] ${tripId} declared a plan with no usable \`route\` list — expected ` +
+        `route: [{ location, lat, lng }]. The planned route will not be drawn.`,
+    );
+  }
+  const visited = getPlaces(tripId).map((p) => ({ lat: p.lat, lng: p.lng }));
+
+  const stops: PlannedStop[] = raw
+    .map((r) => ({
+      id: r.id ? String(r.id) : undefined,
+      location: String(r.location ?? "").trim(),
+      country: String(r.country ?? "").trim(),
+      countryCode: r.countryCode ? String(r.countryCode) : undefined,
+      lat: Number(r.lat),
+      lng: Number(r.lng),
+      note: r.note ? String(r.note) : undefined,
+      nights: typeof r.nights === "number" ? r.nights : undefined,
+      arrive: r.arrive ? String(r.arrive) : undefined,
+      leave: r.leave ? String(r.leave) : undefined,
+      see: parsePlanSee(r.see),
+      reached: false,
+    }))
+    .filter((s) => s.location && Number.isFinite(s.lat) && Number.isFinite(s.lng))
+    .map((s) => ({
+      ...s,
+      reached: visited.some((v) => haversineKm(v, s) <= REACHED_KM),
+    }));
+
+  // The final stop is the flight home, which shares coordinates with the
+  // first — so it would read as "reached" from day one. It only counts once
+  // everything before it has been. Indexes into `stops` alone: this runs
+  // before any draft-derived stops are appended, so "last" still means the
+  // last hand-written one, not whatever a draft happened to add after it.
+  const last = stops.length - 1;
+  if (last > 0 && !stops.slice(0, last).every((s) => s.reached)) {
+    stops[last] = { ...stops[last], reached: false };
+  }
+
+  return stops;
+}
+
+/**
+ * `written` plus one stop per future, coordinate-bearing draft — skipping any
+ * draft within REACHED_KM of a stop already in the list, hand-written or
+ * already-added, so the same place written twice (once by hand, once by an
+ * agent) draws once. Draft stops are sorted by date among themselves and
+ * appended after the hand-written route, which is the only order available
+ * without inventing dates for plan.md's stops too.
+ */
+function mergeDraftStops(tripId: string, written: PlannedStop[]): PlannedStop[] {
+  const visited = getPlaces(tripId).map((p) => ({ lat: p.lat, lng: p.lng }));
+
+  // `reader: "person"` — B632. This is only ever reached for an audience
+  // `draftsVisibleTo` has already said yes to (see the doc comment above),
+  // so a draft that also carries its own `visibility` label must not vanish
+  // from an owner's or a traveller's own plan the way it would for anybody
+  // reading at the closed default.
+  const draftStops: PlannedStop[] = getAllEntries(tripId, { includeDrafts: true, reader: "person" })
+    .filter(
+      (e) => e.draft && Number.isFinite(e.lat) && Number.isFinite(e.lng) && !hasHappened(e.date),
+    )
+    .map((e) => ({
+      location: e.location,
+      country: e.country,
+      countryCode: e.countryCode,
+      lat: e.lat,
+      lng: e.lng,
+      date: e.date,
+      fromDraft: true,
+      reached: visited.some((v) => haversineKm(v, e) <= REACHED_KM),
+    }))
+    .sort((a, b) => a.date!.localeCompare(b.date!));
+
+  const merged = [...written];
+  for (const stop of draftStops) {
+    if (merged.some((s) => haversineKm(s, stop) <= REACHED_KM)) continue;
+    merged.push(stop);
+  }
+  return merged;
+}
+
+/** A stop's `see` list, off the raw route JSON — dropped whole rather than
+ * item-by-item when it does not parse, same reasoning as the route itself:
+ * a half-parsed list of places worth seeing is a worse answer than none. */
+function parsePlanSee(raw: unknown): PlanSee[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const see = (raw as Partial<Record<keyof PlanSee, unknown>>[])
+    .map((s) => ({
+      name: String(s.name ?? "").trim(),
+      lat: Number(s.lat),
+      lng: Number(s.lng),
+    }))
+    .filter((s): s is PlanSee => s.name.length > 0 && Number.isFinite(s.lat) && Number.isFinite(s.lng));
+  return see.length > 0 ? see : undefined;
+}
+
+/**
+ * The `map`-level projection of a trip's stops — B2012.
+ *
+ * `nights`/`arrive`/`leave`/`note`/`see` are the `details` reader level's own
+ * fields. Dropping them here, rather than only skipping their render in
+ * `TripCountdown`, matters for the same reason `plan.private` is never
+ * merely hidden by the UI (see `getPlanPrivate` below): a stop still reaches
+ * the client as a whole serialised object regardless of what a component
+ * chooses to draw from it, so a `map`-level reader's page source would
+ * otherwise carry every note on the trip in the RSC payload, unread but not
+ * absent.
+ */
+export function stopsForReaders(stops: PlannedStop[], readers: PlanReaders): PlannedStop[] {
+  if (readers === "details") return stops;
+  return stops.map((s) => ({
+    id: s.id,
+    location: s.location,
+    country: s.country,
+    countryCode: s.countryCode,
+    lat: s.lat,
+    lng: s.lng,
+    reached: s.reached,
+    date: s.date,
+    fromDraft: s.fromDraft,
+  }));
+}
+
+/**
+ * The stay-and-links layer of a trip's plan — B2012, the reader-level
+ * plumbing `Trip.planSection` deliberately does not carry (see
+ * `dropPlanPrivate` in lib/trips.ts): `Trip` is cached process-wide and
+ * handed to a client component regardless of who is asking, so the private
+ * half can never live on it.
+ *
+ * **The caller is responsible for only ever calling this for a `person`
+ * reader** — exactly the contract `mergeDraftStops` above already carries
+ * for drafts, and for the same reason: by the time this function returns
+ * there is nothing left in its result to say who may see it. The one caller
+ * today is the trip page, gated on `readFor(trip).read.reader === "person"`.
+ */
+export function getPlanPrivate(tripId: string): PlanPrivateView | null {
+  const parsed = parseTripRef(tripId);
+  if (!parsed) return null;
+  const stored = readTripFile(parsed.username, parsed.tripId);
+  const priv = stored?.plan?.private;
+  if (!priv) return null;
+  return { links: priv.links ?? [], stops: priv.stops ?? {} };
+}

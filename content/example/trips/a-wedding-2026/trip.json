@@ -1,0 +1,34 @@
+{
+  "id": "a-wedding-2026",
+  "title": "Sofia and Tom's wedding",
+  "dates": {
+    "from": "2026-05-22",
+    "to": "2026-05-24"
+  },
+  "visibility": "private",
+  "teaser": false,
+  "people": [
+    {
+      "name": "Alex Berger",
+      "nickname": "Alex",
+      "email": "agent@fernscout.ch"
+    },
+    {
+      "name": "Priya Raman",
+      "nickname": "Priya",
+      "email": "priya@example.com"
+    }
+  ],
+  "declined": {
+    "days": "not written up yet — the trip exists so the photographs have somewhere to go",
+    "rates": "one weekend, one currency, and it was the journal's own",
+    "costs": "somebody else was paying for most of it",
+    "plan": "a wedding is somebody else's plan",
+    "accent": "no colour chosen; the default is fine for a closed trip",
+    "cover": "no photograph has been picked out yet",
+    "figures": "nobody has been drawn for this one",
+    "tagline": "the title is the whole of it",
+    "intro": "nothing written yet beyond the title",
+    "translations": "closed to two people who both read English"
+  }
+}

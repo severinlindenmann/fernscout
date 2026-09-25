@@ -1,0 +1,382 @@
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  AgentBlock,
+  AgentDisclosure,
+  Colophon,
+  DocsLink,
+  LandingHero,
+  LandingPitch,
+  LandingSteps,
+  PublicJournals,
+  ReaderInvite,
+  SiteHeader,
+  type PublicJournal,
+} from "@/components/LandingSections";
+import {
+  YourDevices,
+  YourJournals,
+  type HomeDevice,
+  type HomeJournal,
+} from "@/components/HomeJournals";
+import IdentitySignIn from "@/components/IdentitySignIn";
+import { useI18n } from "@/components/LocaleProvider";
+
+export type { PublicJournal };
+
+/**
+ * The root page — two orders of the same sections, B411.
+ *
+ * **Signed out** it is what it has always been: written for the person who is
+ * *not* the audience of the rest of the site. Readers arrive at
+ * `/alex/day/hoi-an` from a link in an email and never see this; whoever lands
+ * on the bare domain is deciding whether to use the thing. So it opens with
+ * what you actually hand over rather than a sales line.
+ *
+ * **Signed in** the order inverts, because the question has. Somebody who owns
+ * a journal here, or has been let into two, does not need to be told what
+ * Fernscout is — they need to know what they can open. So: their journals, the
+ * public ones, then the agent instruction, then their devices. This is also
+ * the installed PWA's first screen, whose `start_url` is `/`; before this it
+ * launched into the pitch.
+ *
+ * ## Why the personal half is fetched rather than rendered
+ *
+ * The page holds no personal data, which is what lets B412 cache it for
+ * everybody and keep the reader's own list in a separate, identity-keyed
+ * cache. Server-rendering the journals into `/` would make the whole document
+ * one reader's and uncacheable — and one mistake in a `Cache-Control` header
+ * away from being served to the next person on a shared phone.
+ */
+
+type Home = {
+  /** The reader's opaque identity id, or `null` for nobody — see the route. */
+  id: string | null;
+  email: string;
+  journals: HomeJournal[];
+  devices: HomeDevice[];
+  /** True when this address runs the instance — B746. Decides whether the
+   *  operator link below is offered, and nothing else: `/admin` asks
+   *  `isInstanceAdmin()` for itself, so a forged `true` reaches a 404. */
+  admin?: boolean;
+};
+
+/**
+ * Whether this browser was signed in last time it looked.
+ *
+ * Not a credential and not trusted as one — the server decides, every time,
+ * and the worst a forged value can do is show a skeleton to a stranger for one
+ * network round trip. What it buys is the absence of a flash: without it, a
+ * signed-in reader sees the marketing hero and then watches it be replaced by
+ * their own journals, every single load.
+ */
+const SEEN_KEY = "fs-home-signed-in";
+
+type Phase = "unknown" | "out" | "in";
+
+export default function Landing({
+  siteName,
+  docUrl,
+  agentUrl,
+  journals,
+  locales,
+  repository,
+  credit,
+  legal,
+  codeMinutes,
+  helperEnabled = false,
+  whatsappNumber,
+  postcardsEnabled = false,
+  photobookEnabled = false,
+  pricing,
+}: {
+  siteName: string;
+  docUrl: string;
+  /** The full guide, with every call. B261: named alongside `docUrl` in the
+   * same instruction so a fetcher that only follows URLs it was handed
+   * directly — never one discovered inside a fetched page — can still reach
+   * it, because both arrived in the sentence the owner pasted. */
+  agentUrl: string;
+  journals: PublicJournal[];
+  /** The interface languages this instance offers. Outside a journal there is
+   * nobody whose list to use, so it is the maintained set — see
+   * `installedLocales()`. */
+  locales?: string[];
+  /** Where the source lives, if this instance says. */
+  repository?: string;
+  /** Whether `/legal` exists on this instance — see lib/legal.ts. */
+  legal?: boolean;
+  /** Who runs it, if this instance says. */
+  credit?: { name: string; url?: string; countryCode?: string };
+  /** How long a sign-in code lasts, from `CODE_TTL_MINUTES` — B426. Passed
+   * because this is a client component and `lib/auth` is server-only. */
+  codeMinutes: string;
+  /** Whether `/agent` can actually write on this instance — B694. Decides
+   * whether the hero's primary door is the hosted wizard or the
+   * bring-your-own instruction box, further down either way. Defaults to
+   * off, which is every instance's answer today. */
+  helperEnabled?: boolean;
+  /**
+   * This instance's own `wa.me` number, resolved server-side —
+   * `whatsappDisplayNumber()`, B1310. Absent means the whole instance has
+   * none configured, and `LandingHero` renders nothing for it.
+   */
+  whatsappNumber?: string;
+  /**
+   * Whether this instance can actually print and post a card, and lay a trip
+   * out as a book — B1711. They are two of the three things the pitch below
+   * the hero is made of, and a card claiming either on an instance that has
+   * the capability switched off is the one kind of untruth this page cannot
+   * afford: its whole audience is people deciding whether to trust it.
+   * Resolved server-side in `app/page.tsx` like every other gate here.
+   */
+  postcardsEnabled?: boolean;
+  photobookEnabled?: boolean;
+  /** The pricing table, rendered by the page and handed over — B840. A server
+   * component (`paid/credits/components/Pricing.tsx`) because every price it prints is
+   * read from the `server-only` module that charges it, which is why it
+   * arrives as an element rather than as data. `null` on an instance with
+   * credits switched off, where nothing costs anything. */
+  pricing?: ReactNode;
+}) {
+  const { t } = useI18n();
+  const [phase, setPhase] = useState<Phase>("unknown");
+  const [home, setHome] = useState<Home | null>(null);
+  /**
+   * Read *after* the first render, not during it — B454.
+   *
+   * This began as a `useState` initialiser, which is a hydration bug: the
+   * server has no `localStorage`, so it renders `false`, and a browser that
+   * was signed in last time renders `true` on its very first pass. React sees
+   * two different trees for the same render and discards the server's HTML —
+   * "Minified React error #418", once per load, for exactly the readers this
+   * flag exists to help.
+   *
+   * The cost of moving it into an effect is one extra paint before the
+   * skeleton appears, which nobody can see. What it buys back is the thing
+   * the flag was *for*: React keeping the server's markup instead of throwing
+   * it away and rebuilding, which is a far bigger flash than the one being
+   * avoided.
+   */
+  const [expected, setExpected] = useState(false);
+  useEffect(() => {
+    // Reading a browser store is exactly the "synchronise with an external
+    // system" case the rule exempts in prose but cannot detect; the same
+    // disable sits on `CurrencyProvider`, which adopts a stored currency the
+    // same way and for the same reason.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpected(window.localStorage.getItem(SEEN_KEY) === "1");
+  }, []);
+  const [signingIn, setSigningIn] = useState(false);
+
+  /**
+   * `?start=1` opens the sign-in card without a click — B1905.
+   *
+   * `ShowcaseBar`'s "Start your journal" button lives on a different page
+   * (a showcase journal, not this one) and cannot reach `setSigningIn`
+   * directly, so it links here instead and this reads the one thing a URL
+   * can carry. Not a new auth path: the form it opens is the exact
+   * `IdentitySignIn` a click on `ReaderInvite` opens too. Harmless if the
+   * reader turns out to already be signed in — this only feeds the branch
+   * below that is itself skipped once `phase` becomes `"in"`.
+   */
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (new URLSearchParams(window.location.search).get("start") === "1") setSigningIn(true);
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    const fetchHome = () =>
+      fetch("/api/v2/me/home", { headers: { accept: "application/json" } }).then(
+        async (res) => (res.ok ? ((await res.json()) as Home) : null),
+      );
+    fetchHome()
+      .then(async (data) => {
+        // `id: null` from a stranger, a switched-off `auth`, or an identity
+        // that was actually revoked stays `id: null` below. But it is also
+        // what a reader signed into a journal before B410 sees: they hold
+        // `fs_session` and no `fs_identity`, and `/me/home` answers from the
+        // identity alone (`lib/auth/handshake.ts`'s own reasoning — a journal
+        // cookie must not answer an instance-wide question by itself). B1493
+        // — the fix already built for a journal's own page (B459's
+        // `IdentityUpgrade`) is the same one this probe needs: mint the
+        // identity a live journal session already earns, once, and re-ask
+        // before concluding nobody is signed in.
+        if (!live || data?.id) return data;
+        const upgraded = await fetch("/api/auth/identity/upgrade", { method: "POST" })
+          .then((res) => (res.ok ? (res.json() as Promise<{ issued?: boolean }>) : null))
+          .catch(() => null);
+        if (!live || !upgraded?.issued) return data;
+        return fetchHome().catch(() => data);
+      })
+      .then((data) => {
+        if (!live) return;
+        if (!data?.id) {
+          window.localStorage.removeItem(SEEN_KEY);
+          setPhase("out");
+          return;
+        }
+        window.localStorage.setItem(SEEN_KEY, "1");
+        setHome(data);
+        setPhase("in");
+      })
+      .catch(() => {
+        // Offline, or the endpoint is unreachable. The landing page is the
+        // honest fallback: it needs nothing from the server and is true for
+        // everybody, where a half-rendered personal view would not be.
+        if (live) setPhase("out");
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  /**
+   * Whether to offer the way in — B426, made prominent by B427.
+   *
+   * Shown once we know nobody is signed in, and *also* while the answer is
+   * still unknown on a browser that was not signed in last time. Waiting for
+   * the fetch in that case would mean a first-time visitor — the whole
+   * audience of this card — gets a beat with no door on it.
+   *
+   * The `expected` guard is what keeps that from flashing at somebody who is
+   * signed in: a browser that was signed in a moment ago waits for the real
+   * answer, which is the same trade the skeleton below makes.
+   */
+  const offerSignIn = phase === "out" || (phase === "unknown" && !expected);
+
+  const header = (
+    <SiteHeader
+      siteName={siteName}
+      locales={locales}
+      admin={home?.admin}
+      // Suppressed once signed in — B1905. `SiteHeader`'s chip opens
+      // sign-in, which has nothing to offer a reader who already has a
+      // session; `YourJournals` below is that reader's own way in now.
+      helperEnabled={helperEnabled && phase !== "in"}
+      onSignIn={() => setSigningIn(true)}
+    />
+  );
+  const publicList = <PublicJournals journals={journals} />;
+  const colophon = <Colophon repository={repository} credit={credit} legal={legal} />;
+
+  if (phase === "in" && home) {
+    return (
+      // Full-bleed paper ground — B733. `cream-100` here, `cream-50` on
+      // every panel inside, so a card reads as a thing sitting on the page
+      // rather than a border on a document. Scoped to this page: nothing
+      // outside `/` and `/agent` changes ground.
+      <div className="min-h-full bg-surface-subtle">
+        <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
+          {header}
+          <YourJournals email={home.email} journals={home.journals} />
+          {publicList}
+          {/*
+            B797: the write call to action, its paragraph, the agent
+            disclosure and the docs link used to sit here for every signed-in
+            reader — a second copy of what the header now carries on every
+            page (`PageHeader`'s Agent and Docs symbols), on the one page
+            whose reader least needs to be sold: they already have a journal.
+            With the helper on, the header's door replaces this outright.
+            With it off there is no header door to replace it — every
+            self-hoster has it off — so the bring-your-own-agent material
+            stays, for exactly the reader B751 wrote it for: one who owns no
+            journal yet.
+          */}
+          {!helperEnabled && !home.journals.some((journal) => journal.role === "owner") && (
+            <div className="mt-12 border-t border-line-quiet pt-8">
+              <AgentBlock docUrl={docUrl} agentUrl={agentUrl} heading={t("home.agentTitle")} />
+            </div>
+          )}
+          <YourDevices
+            devices={home.devices}
+            onRevoke={(id) =>
+              setHome((prev) =>
+                prev ? { ...prev, devices: prev.devices.filter((d) => d.id !== id) } : prev,
+              )
+            }
+          />
+          {colophon}
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-full bg-surface-subtle">
+      <main className="mx-auto max-w-2xl px-6 py-12 sm:py-16">
+        {header}
+        {/*
+          The reader's half of the page, and it comes first — B427.
+
+          Two people arrive at the bare domain and only one of them was ever
+          addressed here. The card names the other one in their own words
+          ("a guest, or you were on the trip yourself") so they can recognise
+          themselves without knowing what a journal, a trip or a grant is, and
+          the form replaces it in place rather than moving them to another page:
+          somebody who has already lost one link should not be asked to follow
+          another.
+        */}
+        {signingIn ? (
+          <IdentitySignIn
+            codeMinutes={codeMinutes}
+            // The cookie is set by the server and this page renders from it, so
+            // a reload rather than a state flip — the same reason `GuestSignIn`
+            // reloads. What comes back is the signed-in order of this page.
+            onDone={() => window.location.reload()}
+          />
+        ) : (
+          offerSignIn && <ReaderInvite onSignIn={() => setSigningIn(true)} />
+        )}
+        {phase === "unknown" && expected ? (
+          /* A browser that was signed in a moment ago, waiting on the fetch.
+             Two grey blocks rather than the hero: showing the pitch here and
+             swapping it out is the flash this exists to prevent. Cream-200
+             against a cream-100 ground, not cream-100 against itself. */
+          <div aria-hidden className="mt-6 animate-pulse space-y-4">
+            <div className="h-9 w-2/3 rounded bg-surface-muted" />
+            <div className="h-24 rounded-xl bg-surface-muted" />
+            <div className="h-24 rounded-xl bg-surface-muted" />
+          </div>
+        ) : (
+          <>
+            <LandingHero
+              helperEnabled={helperEnabled}
+              whatsappNumber={whatsappNumber}
+            />
+            {/* Directly under the hero — B1711. The hero says a day goes in;
+                this says what comes out of it, which is the half of the
+                product the page never mentioned. Signed-out only: somebody
+                who already owns a journal here is not being sold one. */}
+            <LandingPitch postcards={postcardsEnabled} photobook={photobookEnabled} />
+            {/* Only when the helper is on — with it off there is no other
+                door, so this material stays where it is, open, on the first
+                screen (B732). */}
+            {helperEnabled ? (
+              <AgentDisclosure docUrl={docUrl} agentUrl={agentUrl} />
+            ) : (
+              // B751: belongs here unconditionally. With the helper off there
+              // is no other door on this instance at all — this block *is*
+              // the way in, not a second offer beside one.
+              <>
+                <AgentBlock docUrl={docUrl} agentUrl={agentUrl} />
+                <LandingSteps />
+              </>
+            )}
+            {/* Below the pitch and above the journals: what it costs is the
+                second question somebody asks, and the answer belongs before
+                they go looking at other people's holidays. Inside this
+                branch rather than beside it, so it is not sitting under the
+                skeleton while a signed-in reader's own page loads. B840. */}
+            {pricing}
+          </>
+        )}
+        {publicList}
+        <DocsLink />
+        {colophon}
+      </main>
+    </div>
+  );
+}

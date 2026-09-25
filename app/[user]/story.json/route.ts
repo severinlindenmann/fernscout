@@ -1,0 +1,90 @@
+import { storyWindow } from "@/lib/tripView";
+import { currentTripRef, getTrip, parseTripRef, tripRef } from "@/lib/trips";
+import { mayReadTrip, mayViewCosts, readFor } from "@/lib/tripGate";
+import { userExists } from "@/lib/users";
+
+/**
+ * `/<username>/story.json?trip=<id>&from=<n>&to=<n>` — days `from`…`to` of a
+ * trip, in full.
+ *
+ * The story page ships a window of days and fetches its neighbours from here
+ * as the reader moves, so the page's size no longer tracks the length of the
+ * trip. It lives beside the user's other generated documents (`feed.xml`,
+ * `search-index.json`) rather than under `/api`, because it is part of the
+ * reading surface: same owner, same trip gate, same 404s.
+ */
+
+/** Days are small, so a generous slice costs little and a runaway one is
+ * refused rather than served. */
+const MAX_DAYS = 24;
+
+export async function GET(request: Request, { params }: RouteContext<"/[user]/story.json">) {
+  const { user } = await params;
+  if (!userExists(user)) return new Response("Not found", { status: 404 });
+
+  const url = new URL(request.url);
+  const asked = url.searchParams.get("trip");
+
+  // The wire format is the qualified ref, `<username>/<trip-id>`, the same
+  // string the reactions API takes — one shape everywhere beats two. A bare id
+  // is still accepted so an older client keeps working, and either way the
+  // username in the path is what decides: a ref naming somebody else is
+  // refused rather than quietly served.
+  const ref = !asked
+    ? currentTripRef(user)
+    : asked.includes("/")
+      ? asked
+      : tripRef(user, asked);
+  if (!ref) return new Response("Not found", { status: 404 });
+  if (parseTripRef(ref)?.username !== user) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const trip = getTrip(ref);
+  if (!trip) return new Response("Not found", { status: 404 });
+  // The same gate the layouts apply. A locked trip's days are not readable
+  // just because they are asked for as JSON.
+  if (!(await mayReadTrip(trip))) return new Response("Forbidden", { status: 403 });
+
+  const from = Number(url.searchParams.get("from") ?? "0");
+  const to = Number(url.searchParams.get("to") ?? "0");
+  if (!Number.isInteger(from) || !Number.isInteger(to) || from < 0 || to <= from) {
+    return new Response("Bad request", { status: 400 });
+  }
+
+  const start = from;
+  // Costs travel with the day, so the same rule the pages apply has to
+  // apply here: this is the route a reader's own browser calls for the
+  // days it has not been sent yet.
+  //
+  // B327: the owner, or somebody on the trip — the same audience the API's
+  // own days listing has had since B296. This is the route a reader's own
+  // browser calls for days it has not been sent yet, so a buddy paging back
+  // through the story would otherwise hit a hole where their draft is.
+  // B596 put the photographs on the same footing, and through the same call:
+  // a day arriving here carries only the pictures this reader may see, and a
+  // route that forgot to ask would send none rather than all.
+  const { read } = await readFor(trip, request);
+  const days = storyWindow(ref, start, Math.min(to, start + MAX_DAYS), {
+    showCosts: await mayViewCosts(trip),
+    ...read,
+  });
+
+  return new Response(JSON.stringify({ from: start, days }), {
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      // A day's content changes when it is edited, not per reader. Short
+      // enough that a correction shows up, long enough that paging back and
+      // forth over the same stretch costs one request.
+      "Cache-Control": "private, max-age=60, stale-while-revalidate=600",
+      // `private` keeps a shared cache from storing this at all, but the
+      // body still varies by session cookie (drafts, costs — see `readFor`
+      // and `mayViewCosts` above), and the browser's *own* cache is shared
+      // between every session on one device. Without this, signing out and
+      // back in as somebody else on the same tablet can be answered from
+      // what the previous reader was handed, for up to the window above —
+      // B330.
+      Vary: "Cookie",
+    },
+  });
+}

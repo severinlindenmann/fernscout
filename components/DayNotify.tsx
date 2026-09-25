@@ -1,0 +1,250 @@
+"use client";
+
+import { Mail, MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useI18n } from "./LocaleProvider";
+import BusyButton from "@/components/BusyButton";
+import { OWNER_TOOL, OWNER_TOOL_CELL } from "./ownerToolClass";
+import { formatCredits } from "@/lib/creditsFormat";
+
+/** One channel the button would use, and what it would do there — B1024. */
+type Pending = { channel: "mail" | "whatsapp"; count: number; cost: number };
+
+type Status = {
+  ok: true;
+  reachable: boolean;
+  alreadySent: boolean;
+  pending: Pending[];
+  needed: number;
+  balance: number | null;
+  short: boolean;
+};
+
+/**
+ * The button on a day itself, for the owner alone — B633.
+ *
+ * `sendDayLetter` / `sendDayWhatsapp` (`lib/digest/`) already exist behind
+ * `POST …/send-mail` and `…/send-whatsapp`; an agent has always been able to
+ * ask for a send. What did not exist was a way for the person whose journal
+ * it is to do it themselves, see what it costs first, and see afterwards
+ * that it already went — so they never have to remember or ask.
+ *
+ * `app/[user]/trips/[trip]/day/[slug]/notify/route.ts` is the door: the
+ * owner's cookie only, refusing a bearer token outright, the same shape as
+ * the postcard send button beside it.
+ *
+ * The confirmation is a panel in the page rather than `window.confirm` —
+ * B633. A browser dialog arrives in the operating system's own type, with a
+ * generic title bar naming the domain, and it is the one moment this control
+ * is asking somebody to spend real money on real letters: it should look like
+ * the journal it belongs to. It also answers a question `window.confirm`
+ * cannot — what a send costs and what is left afterwards, in the page's own
+ * words.
+ *
+ * Rendered unconditionally by `OwnerTools`, as one cell of its grid — which
+ * is why the states that are a sentence or a panel rather than a tile take
+ * `col-span-full` (B877). It answers `null`
+ * itself when there is nothing to do — a reader who is not the owner gets a
+ * `403` from the route and this renders nothing, so no flash of a button
+ * only to have it vanish.
+ */
+export default function DayNotify({
+  username,
+  tripId,
+  slug,
+}: {
+  username: string;
+  tripId: string;
+  slug: string;
+}) {
+  const { t, tn } = useI18n();
+  const url = `/${username}/trips/${tripId}/day/${slug}/notify`;
+  const [status, setStatus] = useState<Status | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(url)
+      .then((r) => (r.ok ? (r.json() as Promise<Status>) : null))
+      .then((data) => {
+        if (!cancelled && data) setStatus(data);
+      })
+      .catch(() => {
+        // Not signed in as the owner, offline, or the route refused — either
+        // way there is nothing to offer, so this stays silent rather than
+        // showing an error nobody but the owner would ever see.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+
+  if (!status || !status.reachable) return null;
+
+  if (status.alreadySent) {
+    return (
+      <p className="col-span-full text-xs text-ink-secondary">{t("notify.sent")}</p>
+    );
+  }
+
+  if (status.short) {
+    return (
+      <p className="col-span-full text-xs text-coral-600">
+        {tn("notify.short", status.needed, {
+          needed: String(status.needed),
+          balance: formatCredits(status.balance ?? 0),
+        })}{" "}
+        <a className="font-semibold underline" href={`/${username}/me`}>
+          {t("photobook.getCredits")}
+        </a>
+      </p>
+    );
+  }
+
+  // A channel is configured but nobody is on it — `reachable` only asks
+  // whether a channel exists, not whether anybody subscribed. Offering the
+  // confirmation here would let the owner press a button that sends to
+  // nobody and reports success — B1027.
+  if (status.pending.every(({ count }) => count === 0)) {
+    return (
+      <p className="col-span-full text-xs text-ink-secondary">
+        {t("notify.nobody")}
+      </p>
+    );
+  }
+
+  const send = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(url, { method: "POST" });
+      if (!res.ok) {
+        setError(t("notify.failed"));
+        return;
+      }
+      setStatus({ ...status, alreadySent: true, pending: [] });
+      setAsking(false);
+    } catch {
+      setError(t("notify.failed"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (asking) {
+    return (
+      // A panel in the flow of the day, not a modal over it: the question is
+      // about the day being read and covering it up to ask would take more
+      // than the question is worth — the same call `PushPrompt` makes.
+      <div
+        role="dialog"
+        aria-modal="false"
+        aria-label={t("notify.button")}
+        className="col-span-full rounded-2xl border border-line-quiet bg-surface-raised p-4 shadow-sm"
+      >
+        <p className="text-sm font-semibold leading-6 text-ink-strong">
+          {t("notify.question")}
+        </p>
+
+        {/* Who it goes to, one row per channel — B1024.
+
+            The panel used to say only what it cost, which answered a question
+            nobody was asking at the one moment something leaves the house on
+            the owner's behalf. The counts were always a return value away:
+            `mailWouldReach` and `whatsappWouldReach` come off the same
+            narrowed recipient lists the send itself uses.
+
+            Names are deliberately not here. These are contacts with addresses
+            and a confirmation is not where an address list opens; a count and
+            a channel are what the decision turns on. */}
+        <ul className="mt-2">
+          {/* A channel nobody is on is not drawn. `pending` is the send loop's
+              list and has to keep every switched-on channel — dropping one
+              server-side would make it look already-sent — but "0 WhatsApp
+              messages" on the screen is noise at best and alarming at worst.
+              The all-zero case is handled above, before this panel opens. */}
+          {status.pending
+            .filter(({ count }) => count > 0)
+            .map(({ channel, count, cost }) => (
+              <li
+                key={channel}
+                className="flex items-center gap-2.5 border-t border-line-quiet py-1.5 text-sm text-ink-strong first:border-t-0"
+              >
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-surface-subtle text-ink-body">
+                  {channel === "mail" ? (
+                    <Mail className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <MessageCircle className="h-4 w-4" aria-hidden />
+                  )}
+                </span>
+                <span className="min-w-[1.4em] text-right font-bold tabular-nums">
+                  {count}
+                </span>
+                <span className="min-w-0 flex-1">
+                  {tn(
+                    channel === "mail" ? "notify.viaMail" : "notify.viaWhatsapp",
+                    count,
+                  )}
+                </span>
+                {/* Where the cost actually falls. That a letter is free and a
+                    WhatsApp is not used to disappear into one sum. */}
+                <span className="shrink-0 text-xs text-ink-secondary">
+                  {cost === 0
+                    ? t("notify.free")
+                    : tn("notify.costCredits", cost, { credits: String(cost) })}
+                </span>
+              </li>
+            ))}
+        </ul>
+
+        {/* Only when there is something to pay. The zero-credit sentence this
+            replaces was reached whenever credits were merely *switched on* —
+            the old branch asked `balance === null` rather than
+            `needed === 0`, so a journal with credits that sends only letters
+            was told its send cost "0 Credit(s)" and quoted a balance. */}
+        {status.needed > 0 && (
+          <p className="mt-2 border-t border-line-quiet pt-2 text-xs text-ink-body">
+            {t("notify.total", {
+              needed: String(status.needed),
+              rest: formatCredits((status.balance ?? 0) - status.needed),
+            })}
+          </p>
+        )}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <BusyButton
+            busy={busy}
+            type="button"
+            onClick={send}
+            className="min-h-11 rounded-full bg-yellow-400 px-4 text-xs font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-50"
+          >
+            {t("notify.sendNow")}
+          </BusyButton>
+          <BusyButton
+            busy={busy}
+            type="button"
+            onClick={() => setAsking(false)}
+            className="min-h-11 rounded-full border border-line-strong px-4 text-xs font-semibold text-ink-body transition-colors hover:bg-surface-subtle disabled:opacity-50"
+          >
+            {t("notify.cancel")}
+          </BusyButton>
+        </div>
+        {error && <p className="mt-2 text-xs text-coral-600">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className={OWNER_TOOL_CELL}>
+      <button
+        type="button"
+        onClick={() => setAsking(true)}
+        className={OWNER_TOOL}
+      >
+        {t("notify.button")}
+      </button>
+      {error && <p className="text-xs text-coral-600">{error}</p>}
+    </div>
+  );
+}

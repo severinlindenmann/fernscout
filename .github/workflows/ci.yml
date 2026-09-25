@@ -1,0 +1,258 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same PR/branch should cancel the previous run rather
+# than queue behind it.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned to an exact patch, not "24". A floating major silently changes
+  # the bundled npm underneath us: 24.20.0 shipped npm 11.19.0, which expands
+  # bundled/optional wasm deps that older npm did not, and rejected a
+  # lockfile every local `npm install` reported as up to date. Bump this
+  # deliberately, and regenerate package-lock.json with the matching npm.
+  #
+  # 24.21.0 since B1710, to follow the VPS: an unattended-upgrades run moved
+  # nodejs there, and an exact pin the box has passed refuses every deploy at
+  # the build guard. This bump carried no lockfile change because 24.21.0
+  # ships npm 11.19.0 too — check `npm -v` before assuming that of the next one.
+  NODE_VERSION: "24.21.0"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx eslint .
+
+  # "Is anything here for nothing" — the question none of the other four jobs
+  # asks. A file that stops being imported keeps compiling and keeps passing,
+  # and this codebase is written to be read, so a comment explaining a design
+  # in a file nothing calls any more is worse than no comment. B24.
+  #
+  # Fails on an unreachable file, an unused dependency or an import of
+  # something undeclared. Unused *exports* are printed and do not fail; there
+  # are 130 of them and they are B235's. See knip.jsonc, which carries the
+  # entry points and the reasoning for the split.
+  unused:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run unused
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # tsc needs .next/types (route typing), which only next build/dev
+      # generate — see next.config.ts and app/layout.tsx's LayoutProps<"/">.
+      - run: npx next build
+      - run: npx tsc --noEmit
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # docs/plans/W06-data-layer.md: SQLite in dev, Postgres in prod,
+        # chosen by DATABASE_URL. Both dialects run the same suite here so a
+        # test that only passes against one of them fails CI, not a reader's
+        # production deploy. The postgres leg gets a real service container;
+        # DATABASE_URL is otherwise inert until the data layer lands.
+        include:
+          - dialect: sqlite
+            database_url: "sqlite:./test.db"
+            postgres_test_url: ""
+          - dialect: postgres
+            database_url: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
+            postgres_test_url: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
+    services:
+      postgres:
+        image: postgres:17-alpine
+        # Only actually used by the postgres leg, but starting it
+        # unconditionally per-matrix-entry is simpler than conditional
+        # services, and idle Postgres in CI is cheap.
+        env:
+          POSTGRES_USER: fernscout
+          POSTGRES_PASSWORD: fernscout
+          POSTGRES_DB: fernscout_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fernscout"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: ${{ matrix.database_url }}
+      # The suite opts into Postgres on POSTGRES_TEST_URL, not DATABASE_URL.
+      # Setting only the latter meant the "postgres" leg quietly ran the SQLite
+      # path against a Postgres URL and tested nothing extra at all.
+      POSTGRES_TEST_URL: ${{ matrix.postgres_test_url }}
+      # Pinned the same way RESTIC_VERSION is below: this suite reads Caddy's
+      # own `adapt` output byte for byte (test/check-caddy.test.ts), so CI and
+      # a laptop need to be running the same release. The checksum is from
+      # the release's own `_checksums.txt` (sha512, not sha256 — that is the
+      # algorithm Caddy publishes).
+      CADDY_VERSION: "2.11.4"
+      CADDY_SHA512: "8220d1f013b6f27510247b2360c9e0ca9f018feebd82515f07635318b34ff9777ccc8fd0b6e6f2486ce3a33fe389fbb7db12d05baa474f4587509fb4f5ebf1c9"
+    steps:
+      # B1705. `scripts/agent-context.mjs` finds a task's files with
+      # `git log --all --grep=<id>`, and `test/agent-efficiency-tools.test.ts`
+      # asserts what it finds. The default `fetch-depth: 1` leaves that history
+      # off the runner, so the tool returns nothing and the keeper fails here
+      # while passing everywhere else. This job is the only one that needs it.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      # B226. `test/systemd-units.test.ts`'s `systemd-analyze verify` half —
+      # the authority on the B203 defect — is `skipIf(!HAS_ANALYZE)` and was
+      # never confirmed to run in CI. `ubuntu-latest` is a full systemd VM,
+      # not a container, so the binary ships in the base image; this asserts
+      # that rather than trusting it, so a runner-image change that ever
+      # drops it fails loudly here instead of the keeper going quiet again.
+      - name: systemd-analyze must be on this runner, or the B203 keeper silently stops running
+        run: systemd-analyze --version
+      # B226. `test/check-caddy.test.ts`'s fixture keeper —
+      # `skipIf(!HAS_CADDY)` — ran on a maintainer's laptop and nowhere else,
+      # which is exactly the shape B180 and B195 were filed about. A single
+      # static binary, installed the same way `backup-drill` below installs
+      # restic.
+      - name: Install Caddy
+        run: |
+          set -euo pipefail
+          url="https://github.com/caddyserver/caddy/releases/download/v${CADDY_VERSION}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL "$url" -o caddy.tar.gz
+          echo "${CADDY_SHA512}  caddy.tar.gz" | sha512sum -c -
+          tar -xzf caddy.tar.gz caddy
+          sudo install -m 0755 caddy /usr/local/bin/caddy
+          rm -f caddy.tar.gz caddy
+      - run: npm ci
+      - run: npx vitest run
+
+  # B181. `test/backup-script.test.ts` is the restore drill, and the `test` job
+  # above has never run a line of it: the whole file is `describe.runIf(RESTIC)`
+  # and nothing in CI installed restic. Its last test — the one that proves the
+  # dump the VPS takes each night is one `pg_restore` can read — additionally
+  # wants a real Postgres and the two client binaries. Three preconditions that
+  # exist together nowhere else, so they get their own job rather than more
+  # conditionals inside the test matrix. This is the only environment where
+  # that test runs at all; on a laptop it skips and says what to start.
+  backup-drill:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: fernscout
+          POSTGRES_PASSWORD: fernscout
+          POSTGRES_DB: fernscout_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fernscout"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # Same image, credentials and database name as the recipe the skip
+      # message prints (test/support/dialects.ts), so a developer reproducing a
+      # failure here is talking to the same Postgres this job was.
+      POSTGRES_TEST_URL: "postgres://fernscout:fernscout@localhost:5432/fernscout_test"
+      # Pinned to the version `brew install restic` currently gives, rather
+      # than taken from apt, because this suite reads restic's own behaviour
+      # and not just its exit codes: `restoreLatest()` matches its "Restored"
+      # summary, and scripts/backup.sh:252 classifies a missing repository by
+      # the structured exit status restic only grew in 0.17 — Ubuntu 24.04
+      # packages 0.16.4, which takes the message-reading fallback instead. That
+      # is a different code path from the one a developer and the VPS exercise.
+      # Pin it so CI and a laptop are testing the same program. Bump both lines
+      # together; the checksum is from the release's SHA256SUMS.
+      RESTIC_VERSION: "0.19.1"
+      RESTIC_SHA256: "f415415624dcc452f2a02b8c33641791a8c6d6d3b65bbb3543fcf9a25151585c"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - name: Install restic
+        run: |
+          set -euo pipefail
+          url="https://github.com/restic/restic/releases/download/v${RESTIC_VERSION}/restic_${RESTIC_VERSION}_linux_amd64.bz2"
+          curl -fsSL "$url" -o restic.bz2
+          echo "${RESTIC_SHA256}  restic.bz2" | sha256sum -c -
+          bunzip2 restic.bz2
+          sudo install -m 0755 restic /usr/local/bin/restic
+          rm -f restic
+      - name: Install a pg_dump that can dump this server
+        # The runner image ships PostgreSQL 16 and the service container above
+        # is 17. pg_dump refuses to dump a server newer than itself — "aborting
+        # because of server version mismatch" — so the drill would fail on the
+        # tooling rather than on the backup. Take the matching client from
+        # PGDG and put its bin directory first on PATH: /usr/bin/pg_dump is
+        # postgresql-common's version-dispatching wrapper, and this leaves it
+        # nothing to guess. The repo may already be configured on the runner,
+        # which is why adding it is allowed to fail; the install that follows
+        # is the step that has to succeed.
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y || true
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
+      - name: The drill is only worth running with the right binaries
+        # A skip here is silent by construction, so assert the preconditions
+        # instead of hoping. Without this the job could go green having run
+        # nothing at all, which is exactly the failure B181 exists to end.
+        run: |
+          set -euo pipefail
+          restic version
+          pg_dump --version
+          pg_restore --version
+          pg_dump --version | grep -qE ' 17(\.|$)' \
+            || { echo "pg_dump is not 17 and cannot dump the postgres:17 service"; exit 1; }
+      - run: npm ci
+      # B1705. `test/backup-script.test.ts` was split into these five; naming
+      # the old path made vitest exit "No test files found" and the drill stopped
+      # running. Keep this in step with `test/backup-script-*.test.ts`.
+      - run: npx vitest run test/backup-script-content.test.ts test/backup-script-database.test.ts test/backup-script-monitoring.test.ts test/backup-script-recovery.test.ts test/backup-script-repository.test.ts
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, backup-drill]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build

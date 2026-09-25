@@ -1,0 +1,11 @@
+{
+  "source": "European Central Bank euro foreign exchange reference rates",
+  "base": "EUR",
+  "date": "2026-08-28",
+  "note": "Fixture. Units of each currency for one euro.",
+  "rates": {
+    "CHF": 0.9364,
+    "THB": 38.37,
+    "USD": 1.1643
+  }
+}

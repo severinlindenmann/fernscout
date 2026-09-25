@@ -1,0 +1,229 @@
+"use client";
+
+import Link from "next/link";
+import { Eye, Images, Users } from "lucide-react";
+import { useI18n } from "@/components/LocaleProvider";
+import type { VisitorReport } from "@/lib/analytics/report";
+
+/**
+ * The owner's view of their readers — B566, moved whole from
+ * `/[user]/me/analytics` to `/[user]/studio/visitors` by B2017 so the
+ * journal's own administration lives in the studio; `/[user]/me/analytics`
+ * is now a permanent redirect here.
+ *
+ * ## Two numbers, never one
+ *
+ * Every figure here is a pair: **opens** and **people**. One alone always
+ * misleads. Opens on their own turn one person refreshing into an audience;
+ * people on their own hide that somebody sat down and read the whole trip.
+ *
+ * ## The paragraph at the bottom is not boilerplate
+ *
+ * A "visitor" here is one day of one internet address, and the owner is going
+ * to be asked by their family what this page is. Printing the method next to
+ * the number is what makes the number usable: somebody who knows uniques are a
+ * floor will not read a flat week as indifference. A figure whose limits are
+ * hidden is a figure that gets over-read, and this one is about people the
+ * owner knows personally.
+ */
+
+export default function VisitorsContent({
+  report,
+  base,
+  windows,
+  retentionDays,
+}: {
+  report: VisitorReport;
+  base: string;
+  windows: number[];
+  retentionDays: number;
+}) {
+  const { t, tn, locale, formatLongDate } = useI18n();
+  // B2139 — numbers in the reader's own format, dates as words, never ISO.
+  const n = (x: number) => new Intl.NumberFormat(locale).format(x);
+  const day = (iso: string) => formatLongDate(iso, { year: true });
+
+  const gallery = report.kinds.find((k) => k.kind === "gallery");
+  // The busiest day sets the height of every bar, so the shape is comparable
+  // across the row. `|| 1` keeps an empty window from dividing by zero.
+  const peak = Math.max(1, ...report.perDay.map((d) => d.opens));
+
+  return (
+    <>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          {windows.map((d) => (
+            <Link
+              key={d}
+              href={`${base}/studio/visitors?days=${d}`}
+              aria-current={d === report.days ? "page" : undefined}
+              className={
+                d === report.days
+                  ? "inline-flex min-h-11 items-center rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action"
+                  : "inline-flex min-h-11 items-center rounded-full border border-line-quiet bg-surface-raised px-4 text-sm font-semibold text-ink-body transition-colors hover:border-line-prominent"
+              }
+            >
+              {tn("visitors.lastDays", d, { days: String(d) })}
+            </Link>
+          ))}
+        </div>
+
+        {report.opens === 0 ? (
+          /* Nothing yet is a sentence, not a grid of zeroes — B76. A journal
+             the day after this is switched on has no readers *recorded*,
+             which is a different claim from having no readers. */
+          <p className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-6 text-base text-ink-body">
+            {t("visitors.empty")}
+          </p>
+        ) : (
+          <>
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <Stat Icon={Eye} label={t("visitors.opens")} value={n(report.opens)} />
+              <Stat Icon={Users} label={t("visitors.people")} value={n(report.visitors)} />
+              <Stat
+                Icon={Images}
+                label={t("visitors.galleryOpens")}
+                value={n(gallery?.opens ?? 0)}
+              />
+            </div>
+
+            <section className="mt-8">
+              <h2 className="font-display text-lg font-semibold text-ink-strong">
+                {t("visitors.overTime")}
+              </h2>
+              {/* A row of bars rather than a charting library: this is one
+                  series of at most ninety integers, and `div` with a height
+                  is the whole implementation. The table below it is what a
+                  screen reader gets — the bars are aria-hidden. */}
+              {/* B2095 — under three days a line of bars says nothing the
+                  table beside it does not; the table alone carries it. */}
+              {report.perDay.length >= 3 && (
+                <ol
+                  data-testid="visitors-chart"
+                  aria-hidden
+                  className="mt-3 flex h-32 items-end gap-[2px] overflow-x-auto rounded-2xl border border-line-quiet bg-surface-raised p-3"
+                >
+                  {report.perDay.map((d) => (
+                    <li
+                      key={d.day}
+                      title={`${day(d.day)} — ${n(d.opens)}`}
+                      style={{ height: `${Math.max(4, (d.opens / peak) * 100)}%` }}
+                      className="w-2 shrink-0 rounded-t bg-yellow-400"
+                    />
+                  ))}
+                </ol>
+              )}
+              <Table
+                caption={t("visitors.overTime")}
+                head={[t("visitors.day"), t("visitors.opens"), t("visitors.people")]}
+                rows={report.perDay.map((d) => [day(d.day), n(d.opens), n(d.visitors)])}
+              />
+            </section>
+
+            {report.trips.length > 0 && (
+              <section className="mt-8">
+                <h2 className="font-display text-lg font-semibold text-ink-strong">
+                  {t("visitors.byTrip")}
+                </h2>
+                <Table
+                  head={[t("visitors.trip"), t("visitors.opens"), t("visitors.people")]}
+                  rows={report.trips.map((r) => [r.label, n(r.opens), n(r.visitors)])}
+                />
+              </section>
+            )}
+
+            {report.entries.length > 0 && (
+              <section className="mt-8">
+                <h2 className="font-display text-lg font-semibold text-ink-strong">
+                  {t("visitors.byDay")}
+                </h2>
+                <Table
+                  head={[t("visitors.entry"), t("visitors.opens"), t("visitors.people")]}
+                  rows={report.entries.map((r) => [r.label, n(r.opens), n(r.visitors)])}
+                />
+              </section>
+            )}
+          </>
+        )}
+
+        <section className="mt-10 rounded-2xl border border-line-quiet bg-sky-300/10 p-5 sm:p-6">
+          <h2 className="font-display text-lg font-semibold text-ink-strong">
+            {t("visitors.howTitle")}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-ink-body">{t("visitors.howBody")}</p>
+          <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-6 text-ink-body">
+            <li>{t("visitors.howNoReturning")}</li>
+            <li>{t("visitors.howFloor")}</li>
+            <li>{t("visitors.howExcluded")}</li>
+            <li>{t("visitors.howPages")}</li>
+            <li>{tn("visitors.howRetention", retentionDays, { days: String(retentionDays) })}</li>
+          </ul>
+        </section>
+    </>
+  );
+}
+
+function Stat({
+  Icon,
+  label,
+  value,
+}: {
+  Icon: typeof Eye;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm">
+      <div className="flex items-center gap-2 text-ink-secondary">
+        <Icon className="h-4 w-4" strokeWidth={2.2} aria-hidden />
+        <h2 className="text-sm font-semibold">{label}</h2>
+      </div>
+      <p className="mt-2 font-display text-3xl font-semibold text-ink-strong">{value}</p>
+    </div>
+  );
+}
+
+function Table({
+  caption,
+  head,
+  rows,
+}: {
+  caption?: string;
+  head: string[];
+  rows: string[][];
+}) {
+  return (
+    <div className="mt-3 overflow-x-auto rounded-2xl border border-line-quiet bg-surface-raised">
+      <table className="w-full text-sm">
+        {caption && <caption className="sr-only">{caption}</caption>}
+        <thead>
+          <tr className="border-b border-line-quiet text-left text-ink-secondary">
+            {head.map((h, i) => (
+              <th key={h} scope="col" className={i === 0 ? "px-4 py-2" : "px-4 py-2 text-right"}>
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r[0]} className="border-b border-line-faint last:border-0">
+              {r.map((cell, i) => (
+                <td
+                  key={i}
+                  className={
+                    i === 0
+                      ? "px-4 py-2 text-ink-strong"
+                      : "px-4 py-2 text-right tabular-nums text-ink-body"
+                  }
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

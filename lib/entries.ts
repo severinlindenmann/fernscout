@@ -1,0 +1,802 @@
+import fs from "node:fs";
+import path from "node:path";
+import { clearMatterCache } from "./matterCache";
+import { countryCodeFor } from "./flags";
+import { parseCostItems } from "./costFormat";
+import { loadUserConfig } from "./config";
+import { normalizeCurrency } from "./currency";
+import { getTrip, mediaWithOwner, parseTripRef, tripDir, type TripRef } from "./trips";
+import { hasHappened } from "./tripTime";
+import { firstSentence } from "./narratedCut";
+import { dayFromJson, type DayFile } from "./api/v2/documents";
+import type {
+  Day,
+  Entry,
+  EntryTranslations,
+  GalleryItem,
+  MediaTile,
+  PlaceEntry,
+  TravelSceneVariant,
+} from "./types";
+import { TRAVEL_SCENE_VARIANTS } from "./validate/entry";
+import { parseWeather } from "./weather";
+import type { Track } from "./tracks";
+import { maySeePhoto, mediaKey, parsePhotoVisibility, type ReaderLevel } from "./photos";
+import { parseDescribed } from "./photos/described";
+import { readTripSidecar } from "./sidecar";
+import { defaultLocaleFor, localesFor } from "./locales";
+import { isVideoSrc, resolveMediaFile } from "./media";
+import { kmBetween } from "./mapFrame";
+
+// clearMatterCache re-exported from lib/matterCache.ts: lib/costs.ts,
+// lib/plan.ts, lib/api/entries.ts and this file's own tests all import it
+// from here. See lib/matterCache.ts for what it does and why. B343.
+export { clearMatterCache };
+
+/**
+ * Forgets one trip's parsed entries.
+ *
+ * The cache is keyed by directory and lives for the life of the process, which
+ * is right for a site whose content only changes when somebody edits a file —
+ * and wrong the moment the application itself writes one. It did: a day
+ * deleted through the API left the disk but stayed in this map, so its
+ * permalink went on answering 200 until the server restarted. An owner who
+ * deleted something *because it should not be public* was told it was gone
+ * while it was still being served.
+ *
+ * Every write path calls this. See lib/api/entries.ts.
+ */
+export function forgetEntries(ref: string): void {
+  cache.delete(entriesDir(ref));
+}
+
+/**
+ * True exactly when `file`'s bytes are still `expected` — the guard every
+ * whole-file rewrite of an entry must run immediately before it writes.
+ *
+ * B643: a day was read, costs and a weather reading were written to it by
+ * one call, three photographs by another, and some hours later all of it was
+ * gone — because a *different* writer (a weather lookup landing on the same day, a second
+ * session, the old half of a rolling restart) had read the same file
+ * earlier, computed its own change from that older copy, and written the
+ * whole file back after the newer writes had already landed. Every call
+ * involved answered success, because each one *was* correct in isolation: it
+ * read the file, changed what it meant to change, and wrote the result. What
+ * none of them checked is whether the file was still what they read.
+ *
+ * Every splice in `lib/api/entries.ts` and `lib/api/weather.ts` is already
+ * internally synchronous — read, transform, write, with no `await` in
+ * between — so nothing *inside one Node process* can land between a
+ * splicer's own read and its own write. That stops being true the moment a
+ * second process is reading and writing the same file, which is exactly the
+ * shape a sweep script, a second agent session, or two overlapping deploys
+ * take. This is the check that turns that silent loss into a refusal
+ * instead: call it with the exact string a splicer read at the top of its
+ * own function, right before that splicer writes its result, and treat
+ * `false` as "do not write this — read the file again and redo the edit on
+ * top of what is there now."
+ *
+ * Compares the literal bytes rather than size and mtime: a filesystem's
+ * mtime resolution is not fine enough to promise two writes a millisecond
+ * apart are told apart, and an entry file is never large enough for the
+ * extra read here to be worth avoiding.
+ */
+export function fileUnchangedSince(file: string, expected: string): boolean {
+  try {
+    return fs.readFileSync(file, "utf8") === expected;
+  } catch {
+    return false;
+  }
+}
+
+/** Keyed by the resolved entries directory (which already contains the
+ * content root), so a test pointing CONTENT_DIR elsewhere never gets the
+ * previous directory's entries back. */
+const cache = new Map<string, { signature: string; entries: Entry[] }>();
+
+function entriesDir(ref: string) {
+  return path.join(tripDir(ref), "entries");
+}
+
+/**
+ * `2026-01-11-da-lat.json` → `da-lat`.
+ *
+ * The file name carries the date so a directory listing sorts chronologically;
+ * the slug is what is left, and it is a day's address inside its trip. This is
+ * the one place that rule is written down. It had been three — here, in
+ * `publishDraft`, and in the collision check that did not exist yet — and a
+ * rule about identity that disagrees with itself in one file is how a day ends
+ * up reachable by one code path and not another.
+ */
+export function entrySlugFromFile(file: string): string {
+  return file.replace(/\.json$/, "").replace(/^\d{4}-\d{2}-\d{2}-/, "");
+}
+
+/**
+ * `2026-01-11-da-lat.json` → `2026-01-11`, and `about.md` → `null`.
+ *
+ * The other half of the same rule, and it lives here for the same reason: the
+ * two are one convention read from opposite ends, and splitting them across
+ * files is how they come to disagree. Null rather than a guess for a name that
+ * carries no date — a caller deciding whether two entries collide needs to
+ * know it does not know, not be handed a plausible date.
+ *
+ * The date in the *name* is deliberately what this reads, not the `date:` in
+ * the frontmatter. The name is what decides which file a write lands in; the
+ * frontmatter is what the page displays. Ingest joins an existing day by
+ * building the filename, so the name is the question it is asking.
+ */
+export function entryDateFromFile(file: string): string | null {
+  return /^(\d{4}-\d{2}-\d{2})-/.exec(file)?.[1] ?? null;
+}
+
+function parseTranslations(raw: unknown): EntryTranslations | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const src = raw as Record<string, { title?: string; content?: string } | undefined>;
+  const out: EntryTranslations = {};
+  // Every locale the file offers, not a fixed pair: a journal may be
+  // written in a language this project ships no chrome for.
+  for (const loc of Object.keys(src)) {
+    const v = src[loc];
+    if (v && (v.title || v.content)) {
+      out[loc] = {
+        title: v.title,
+        content: typeof v.content === "string" ? v.content.trim() : undefined,
+      };
+    }
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * `travelScene:` read back — the same fallback `visibility:` gets on a trip.
+ * A value outside `TRAVEL_SCENE_VARIANTS` is not refused at write time (see
+ * `checkTravelScene`), so this is the one place that has to cope with a typo:
+ * it reads as `undefined`, which the page plays as the default, rather than
+ * throwing or drawing a scene nothing asked for.
+ */
+function parseTravelSceneVariant(raw: unknown): TravelSceneVariant | undefined {
+  return typeof raw === "string" && (TRAVEL_SCENE_VARIANTS as readonly string[]).includes(raw)
+    ? (raw as TravelSceneVariant)
+    : undefined;
+}
+
+/**
+ * How much of a trip a caller may see.
+ *
+ * `includeDrafts` is for the owner reading their own journal, and nothing
+ * else: it is resolved from a session by the page, and every public path
+ * leaves it alone. Threaded as an argument rather than kept as request state
+ * because a module-level flag on a server that handles concurrent requests is
+ * how one reader ends up seeing another's answer.
+ */
+export type ReadOptions = {
+  includeDrafts?: boolean;
+  /**
+   * How far this reader has got — B596, and it defaults to `public`.
+   *
+   * The default is the load-bearing part. A photograph may be labelled `guest`
+   * or `private`, and there are some forty-five places that read
+   * `entry.gallery`: the day page, the gallery, `story.json`, the structured
+   * data, the Open Graph image, the narrated cut, the markdown twin, the world
+   * map. Filtering in each of them is how nine get changed and the tenth
+   * leaks, which is exactly what B327 did with drafts. So the filter is here,
+   * once, and a path that says nothing about its reader gets the closed
+   * answer rather than the open one.
+   *
+   * Resolved from the session by `readFor` in lib/tripGate.ts, which is the
+   * only thing that should be computing it.
+   */
+  reader?: ReaderLevel;
+};
+
+/**
+ * What a door that has already checked its caller reads with.
+ *
+ * Every write route under `/api/v1/` passes `mayWriteTrip` first, which
+ * establishes the caller is the owner or somebody on the trip — the same
+ * people `readerLevelFor` calls `person`. So these paths are entitled to the
+ * unfiltered day, and saying so by name is what keeps the closed default from
+ * quietly hiding an agent's own photograph from it.
+ *
+ * Named rather than written out at each of a dozen call sites, so the places
+ * asserting "I have already checked who this is" can be found at once.
+ */
+export const AS_AUTHOR: ReadOptions = { includeDrafts: true, reader: "person" };
+
+/**
+ * Drops drafts unless the caller has asked for them, and photographs this
+ * reader may not see.
+ *
+ * **Fresh objects, never a mutation.** `readAllEntries` caches the parse for
+ * the life of the process and hands the same `Entry` objects to every request;
+ * stripping an item in place would hide that photograph from the owner too,
+ * for as long as the server runs.
+ */
+function visible(entries: Entry[], options?: ReadOptions): Entry[] {
+  const kept = options?.includeDrafts ? entries : entries.filter((e) => !e.draft);
+  const level = options?.reader ?? "public";
+  if (level === "person") return kept;
+  return kept
+    // B632: a whole update held back the same way one photograph on it
+    // already could be — dropped outright rather than merely stripped of
+    // its gallery, since a reader below its level must not see the entry
+    // exists at all.
+    .filter((entry) => maySeePhoto(entry.visibility, level))
+    .map((entry) =>
+      entry.gallery.every((item) => maySeePhoto(item.visibility, level))
+        ? entry
+        : { ...entry, gallery: entry.gallery.filter((item) => maySeePhoto(item.visibility, level)) },
+    );
+}
+
+export function getAllEntries(ref: string, options?: ReadOptions): Entry[] {
+  return visible(readAllEntries(ref), options);
+}
+
+/**
+ * A cheap fingerprint of the entry files, for the same reason as
+ * `tripsSignature` in lib/trips.ts.
+ *
+ * Publishing is a person deleting one line from one file, and the feed, the
+ * sitemap and the search index are built from these entries — so a cache that
+ * outlives the edit means the day a person just published does not appear
+ * until somebody restarts the server. One `stat` per entry.
+ */
+function entriesSignature(dir: string, files: string[]): string {
+  return files
+    .map((file) => {
+      try {
+        const { mtimeMs, size } = fs.statSync(path.join(dir, file));
+        return `${file}:${mtimeMs}:${size}`;
+      } catch {
+        return `${file}:-`;
+      }
+    })
+    .join("|");
+}
+
+/**
+ * v2's `declined` map has one free-text reason per field, not the three-way
+ * `without`/`unrecorded`/has-it v1 used to encode per `Track` (B531/B560) —
+ * decision 4 in `docs/v2-migration/00-decisions.md` collapsed those into one
+ * mechanism everywhere. That reason string is for a person to read, not for
+ * this reader to classify as "nothing happened" versus "figures lost", so a
+ * decline on a trackable field reads as `unrecorded` here — the safer of the
+ * two for `lib/costs.ts`'s averaging (B540): it excludes the day rather than
+ * silently counting it as a $0 day, which is the direction "an empty field
+ * beats a plausible fiction" points on a claim this reader cannot verify.
+ */
+const DECLINABLE_TRACK: Record<string, Track> = {
+  costs: "costs",
+  coordinates: "coordinates",
+  media: "photos",
+  // B1650 (decision a) — the four rows added to `lib/tracks.ts`. Same field
+  // name on both sides, unlike `media`/`photos` above.
+  time: "time",
+  transportMode: "transportMode",
+  tags: "tags",
+  visibility: "visibility",
+};
+
+function declinedTracks(declined: DayFile["declined"]): Track[] {
+  if (!declined) return [];
+  const map = declined as Record<string, string | undefined>;
+  return Object.entries(DECLINABLE_TRACK)
+    .filter(([field]) => map[field] !== undefined)
+    .map(([, track]) => track);
+}
+
+/**
+ * What one photograph shows, for a reader who cannot see it — or `undefined`
+ * when nothing has described it (B1867).
+ *
+ * The text lives in the photograph's own sidecar, written once by the
+ * journal's helper (`described.altText`, B1866) and never typed on a day, so
+ * this is a read of `trips/<trip>/meta/<day>/<file>.meta.json` per gallery
+ * item: a stat and a small JSON parse, on the path `forgetEntries` already
+ * caches. A sidecar that is missing, unparseable or carries a `described`
+ * block in a shape `parseDescribed` refuses reads as "not described" — never
+ * as half a sentence, and never as a thrown error that would take the page
+ * down with it.
+ *
+ * **Which language.** The journal's own default locale, not the reader's UI
+ * locale — the two can differ, and this is server-rendered content shared by
+ * every reader of the page, so the honest choice is the language the journal
+ * is written in. A per-reader switch would need the alt text to travel per
+ * locale to the client; it is deliberately not in this ticket. The fallback
+ * is the first locale that has anything to say, because a description in the
+ * wrong language is still better than silence.
+ */
+export function altTextFor(ref: TripRef, src: string): string | undefined {
+  const owner = parseTripRef(ref)?.username;
+  if (!owner) return undefined;
+  // `/media/<trip>/<rel>` (or `/<owner>/media/<trip>/<rel>`) → `<rel>`: the
+  // trip is the first segment of the key and the sidecar is addressed by
+  // what follows it, the same split `deleteMediaV2` makes.
+  const relPath = mediaKey(src).split("/").slice(1).join("/");
+  if (!relPath) return undefined;
+  try {
+    const described = parseDescribed(readTripSidecar(ref, relPath)?.described, localesFor(owner));
+    if (!described) return undefined;
+    const texts = [described.altText[defaultLocaleFor(owner)], ...Object.values(described.altText)];
+    return texts.find((text) => typeof text === "string" && text.trim() !== "");
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A clip's still frame, whether or not the day document happens to name one
+ * — B1876.
+ *
+ * The media route decides a file's visibility by matching the request against
+ * each gallery item's `src` **or its `poster`**, so a poster frame no item
+ * names carries no label at all. The v2 upload door writes
+ * `<stem>-poster.jpg` beside the clip and records nothing about it
+ * (`storeTripPhoto` in lib/api/v2/media.ts writes the file; `toStoredMedia`
+ * in lib/api/v2/days.ts attaches the src with no `poster`), so the still of a
+ * video marked `private` was served to anybody who asked for it by name —
+ * reproduced, 200 with the bytes, while the clip itself answered 404.
+ *
+ * Derived here rather than taught to the matcher, which is the same choice
+ * B1863 made: a poster is the item's by construction on every reader at once,
+ * including a day somebody wrote by hand and including every day already on
+ * disk. The alternative — one more filename pattern inside `labelOf` — leaves
+ * the gallery still saying the clip has no poster, which is also what makes
+ * the frame fail to render.
+ *
+ * Only `-poster.jpg`, and only when it is really there: ingest and v1's own
+ * upload door both *record* the poster they write, so the one convention that
+ * needs deriving is the one v2 leaves unrecorded. Naming a file that does not
+ * exist would put a 404 into `<video poster>`.
+ */
+function posterFor(
+  item: { src: string; poster?: string },
+  owner: string | undefined,
+): string | undefined {
+  const named = item.poster;
+  if (named) return mediaWithOwner(named, owner);
+  if (!owner || !isVideoSrc(item.src)) return undefined;
+  const beside = item.src.replace(/\.[^.]+$/, "-poster.jpg");
+  const segments = mediaKey(beside).split("/");
+  return resolveMediaFile(owner, segments) ? mediaWithOwner(beside, owner) : undefined;
+}
+
+/** Every entry on disk, drafts included. Cached; callers filter. */
+function readAllEntries(ref: string): Entry[] {
+  const dir = entriesDir(ref);
+
+  if (!fs.existsSync(dir)) {
+    cache.set(dir, { signature: "", entries: [] });
+    return [];
+  }
+
+  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".json"));
+  const signature = entriesSignature(dir, files);
+  const hit = cache.get(dir);
+  if (hit && hit.signature === signature) return hit.entries;
+
+  // A cost with no `currency:` was spent in the site's base currency. Every
+  // entry written before multi-currency existed therefore reads unchanged.
+  const owner = parseTripRef(ref)?.username;
+  const configured = owner ? loadUserConfig(owner).baseCurrency : "CHF";
+  const defaultCurrency = normalizeCurrency(configured, configured.toUpperCase());
+
+  const entries = files.flatMap((file) => {
+    const raw = fs.readFileSync(path.join(dir, file), "utf8");
+    const slug = entrySlugFromFile(file);
+
+    // One file that will not parse must not take the rest of the trip down
+    // with it — the same failure `readTrip` in lib/trips.ts guards against
+    // for a malformed `trip.json`. Skipped and logged rather than thrown, so
+    // `getAllEntries` and everything built on it (the trip page, the feed,
+    // the sitemap, the search index) keep serving every other day. B236.
+    let day: DayFile;
+    try {
+      day = dayFromJson(slug, raw);
+    } catch (err) {
+      const why = err instanceof Error ? err.message.split("\n")[0] : String(err);
+      console.warn(`[entries] ${ref}/entries/${file}: could not be parsed: ${why}`);
+      return [];
+    }
+
+    const country = day.country ?? "";
+
+    return [{
+      slug,
+      title: day.title,
+      date: day.date,
+      time: day.time,
+      timezone: day.timezone,
+      location: day.location ?? "",
+      country,
+      countryCode: countryCodeFor(country, day.countryCode),
+      // Missing stays missing rather than becoming `Number(undefined)` —
+      // `NaN`, which is what B265 actually found reaching the page: not the
+      // `undefined` a missing field ought to produce, but a number that
+      // fails every `typeof` check meant to catch "not written", and that
+      // serialises into the page's own hydration payload as the literal
+      // text "NaN" no SVG-level guard can catch. `Entry.lat` stays typed
+      // `number` regardless — this file has always been the one place that
+      // type is a promise rather than a guarantee, and every reader of it
+      // already has to cope with a coordinate that quietly isn't one.
+      lat: (day.coordinates === undefined ? undefined : Number(day.coordinates.lat)) as number,
+      lng: (day.coordinates === undefined ? undefined : Number(day.coordinates.lng)) as number,
+      transport: day.transportMode
+        ? {
+            mode: day.transportMode,
+            from: day.transportFrom ?? "",
+            to: day.transportTo ?? "",
+          }
+        : undefined,
+      travelScene: parseTravelSceneVariant(day.travelScene),
+      // v2's `dayWrite` has no per-day `cover:` of its own — only a trip has
+      // one — so this is always absent now. `lib/narratedCut.ts`'s own
+      // fallback (the gallery's first photograph) already covers a day that
+      // never had one, which was already most of them.
+      cover: undefined,
+      gallery: (day.media ?? []).map((item) => ({
+        src: mediaWithOwner(item.src, owner),
+        type: item.type,
+        caption: item.caption,
+        alt: altTextFor(ref, item.src),
+        width: item.width,
+        height: item.height,
+        // A video's poster is trip-relative too, and used to be left that
+        // way — the one media path in the file that never got the owner
+        // prefixed onto it, so every ingested clip's still was a 404. And
+        // a clip whose day names no poster still has one on disk: see
+        // `posterFor` for why deriving it here is a visibility fix (B1876).
+        poster: posterFor(item, owner),
+        from: item.from,
+        // Fail-closed, like `visibility:` on a trip: a word this code does
+        // not know reads as `private` rather than as no label at all. B596.
+        visibility: parsePhotoVisibility(item.visibility),
+      } satisfies GalleryItem)),
+      tags: day.tags ?? [],
+      costs: parseCostItems(day.costs, defaultCurrency),
+      content: day.content.trim(),
+      // Fail-closed, the same rule `item.visibility` gets a few lines up —
+      // B632. A word this code does not know is not "no label"; it is a
+      // typo, and a typo must not publish something somebody meant held
+      // back.
+      visibility: parsePhotoVisibility(day.visibility),
+      translations: parseTranslations(day.translations),
+      // Kept rather than dropped: `getAllEntries` filters on the way out, so
+      // one cache serves both the public site and the owner's own view.
+      draft: day.status === "draft" || undefined,
+      // `true` and nothing else — see the note on `Entry.test`. A day that
+      // records something that happened must not be able to acquire a banner
+      // saying it did not because somebody wrote `test: no`.
+      test: day.test === true || undefined,
+      // B325. `parseWeather` drops anything missing a source or a timestamp,
+      // which is the same rule the API applies on the way in — a file edited
+      // by hand into a shape the door would have refused must not render as
+      // though the door had accepted it. v2 keeps the pending literal `true`
+      // and the reading in the one `weather:` key; `parseWeather` already
+      // reads `true` as "not an object" and drops it, so it needs no help
+      // telling the two apart.
+      weather: parseWeather(day.weather),
+      weatherAsked: day.weather !== undefined || undefined,
+      // What this day says it deliberately does not have — see
+      // `declinedTracks` above for why every decline on a trackable field
+      // reads as `unrecorded` rather than `without` under v2.
+      without: [],
+      unrecorded: declinedTracks(day.declined),
+    } satisfies Entry];
+  });
+
+  // Date first, then time — so several updates within one day stay in order.
+  entries.sort((a, b) => {
+    const byDate = a.date.localeCompare(b.date);
+    if (byDate !== 0) return byDate;
+    return (a.time ?? "").localeCompare(b.time ?? "");
+  });
+
+  cache.set(dir, { signature, entries });
+  return entries;
+}
+
+/**
+ * Whether an entry is a draft.
+ *
+ * An agent writes a day as a draft and publishes it in a second call once the
+ * person has said so (ROADMAP G7, and decision 28 for why publishing is not a
+ * file edit any more). This is the line between "an agent wrote something" and
+ * "it is on the site". It
+ * is enforced in `getAllEntries`, which every reading path goes through, so a
+ * new page cannot accidentally render one.
+ */
+export function isDraft(data: Record<string, unknown>): boolean {
+  return String(data.status ?? "").toLowerCase() === "draft";
+}
+
+/** Entries grouped into calendar days. A day may hold several updates. */
+export function getDays(ref: string, options?: ReadOptions): Day[] {
+  const days: Day[] = [];
+  for (const entry of getAllEntries(ref, options)) {
+    const last = days.at(-1);
+    if (last && last.date === entry.date) {
+      last.entries.push(entry);
+      continue;
+    }
+    days.push({ date: entry.date, entries: [entry], lead: entry });
+  }
+  return days;
+}
+
+export function getEntryBySlug(
+  ref: string,
+  slug: string,
+  options?: ReadOptions,
+): Entry | undefined {
+  return getAllEntries(ref, options).find((e) => e.slug === slug);
+}
+
+/**
+ * The day a media *folder* belongs to, under either spelling of its name —
+ * B1884.
+ *
+ * A trip's media directory has one subfolder per day, and the two writers
+ * name it differently. v1's ingest uses `Entry.slug`, the filename stem with
+ * the date stripped (`over-the-susten`); v2's upload door uses the day id a
+ * client addresses (`storeTripPhoto`, lib/api/v2/media.ts), which is the
+ * whole stem (`2024-09-12-over-the-susten`). `getEntryBySlug` knows only the
+ * first, so every caller going from a folder name to a day silently found
+ * nothing for a v2 upload — and in the media route that meant a draft day's
+ * photographs were not treated as a draft's.
+ *
+ * Both spellings asked of the entry itself, not stripped off the request: a
+ * prefix-stripping regex has to assume the part before the first date-shaped
+ * segment is a date, and the entry already carries its own `date` and `slug`
+ * to compare against. Same rule as `entrySlugFromFile` above, read from the
+ * other end.
+ *
+ * **And matched the way the folder is actually reached, not byte for byte —
+ * B1893.** The media route resolves the file itself case-folded and
+ * NFC-normalised (by APFS on a Mac, by `foldedWalk` in `lib/media.ts`
+ * elsewhere) and matches a gallery item's `src` the same way (`pathKey`),
+ * while this lookup compared bytes. So `/ana/media/open-2026/UNFINISHED/01.jpg`
+ * found no day, the route's draft gate read "not a draft", and an unpublished
+ * day's photographs were served to anybody — publicly cacheable — while the
+ * correctly spelled URL 404'd.
+ *
+ * The fold belongs here rather than at the one gate that noticed: this
+ * function is the single answer to "which day is this folder", so every gate
+ * keyed on a media folder — the draft gate today, whatever is added next —
+ * asks a question the filesystem cannot answer differently. Folding can only
+ * ever find *more* days, which is the safe direction for a gate: a day found
+ * that should not have been holds a file back, a day missed serves one that
+ * was being held. Two folders in one trip differing only in case cannot both
+ * exist on the volumes this matters for.
+ */
+/** Case- and NFC-folded, the comparison `lib/media.ts` and the media route
+ *  already use for a path (`foldedName`, `pathKey`) — B1893. */
+function folded(name: string): string {
+  return name.normalize("NFC").toLowerCase();
+}
+
+export function getEntryByFolder(
+  ref: string,
+  folder: string | undefined,
+  options?: ReadOptions,
+): Entry | undefined {
+  if (!folder) return undefined;
+  const wanted = folded(folder);
+  return getAllEntries(ref, options).find(
+    (e) => folded(e.slug) === wanted || folded(`${e.date}-${e.slug}`) === wanted,
+  );
+}
+
+/**
+ * The day to land on when no specific day is requested: the most recent one
+ * that isn't in the future.
+ *
+ * "In the future" is judged in the earliest calendar in use anywhere, not in
+ * UTC. Entry dates are the author's local dates, so an author east of UTC —
+ * which is most of Asia, i.e. most of this trip — publishes on a date UTC has
+ * not reached yet, and a UTC comparison hid their newest day for up to seven
+ * hours after they wrote it. See lib/tripTime.ts for why erring early is the
+ * cheap direction here.
+ */
+export function getDefaultDay(ref: string, options?: ReadOptions): Day | undefined {
+  const days = getDays(ref, options);
+  if (days.length === 0) return undefined;
+  const notFuture = days.filter((d) => hasHappened(d.date));
+  return notFuture.at(-1) ?? days[0];
+}
+
+/** A place visited on the trip: consecutive days in the same location, with
+ * all their media collected together. Used by the world map. */
+export type Place = {
+  key: string;
+  location: string;
+  country: string;
+  countryCode?: string;
+  lat: number;
+  lng: number;
+  entries: PlaceEntry[];
+  firstDate: string;
+  lastDate: string;
+  nights: number;
+  mediaCount: number;
+};
+
+/** Same fallback as `readAllEntries`'s `owner`/`baseCurrency` lookup above,
+ * for the journal's offered languages rather than its currency. Every locale
+ * the journal reads in, so a reader's locale always finds a `headline` below
+ * without the client having to know the journal's written language to fall
+ * back correctly. */
+function localesOf(ref: string): { writtenLocale: string; locales: string[] } {
+  const owner = parseTripRef(ref)?.username;
+  if (!owner) return { writtenLocale: "en", locales: ["en"] };
+  const config = loadUserConfig(owner);
+  return { writtenLocale: config.defaultLocale, locales: config.locales };
+}
+
+/**
+ * `Entry` narrowed to what a map marker's or a slideshow slide's detail
+ * panel reads — see `PlaceEntry`'s docblock (B309). `headline` is
+ * precomputed here, once, for every locale the journal reads in, rather than
+ * shipping the day's full prose to the client so a locale switch or the
+ * slideshow's narration can extract a sentence from it there.
+ */
+function toPlaceEntry(entry: Entry, languages: { writtenLocale: string; locales: string[] }): PlaceEntry {
+  const { writtenLocale, locales } = languages;
+  const headline: Record<string, string> = {};
+  for (const locale of new Set([writtenLocale, ...locales])) {
+    const tr = locale === writtenLocale ? undefined : entry.translations?.[locale];
+    headline[locale] = firstSentence(tr?.content ?? entry.content) || (tr?.title ?? entry.title);
+  }
+  return {
+    slug: entry.slug,
+    date: entry.date,
+    time: entry.time,
+    timezone: entry.timezone,
+    location: entry.location,
+    country: entry.country,
+    countryCode: entry.countryCode,
+    transport: entry.transport,
+    cover: entry.cover,
+    gallery: entry.gallery,
+    headline,
+    draft: entry.draft,
+  };
+}
+
+/**
+ * How far apart two days sharing a location name may be and still be one stop
+ * — B1871.
+ *
+ * The merge below is by name, and a name is as coarse as whoever wrote it. A
+ * reverse geocode that answers with a canton, a state or a province, or a
+ * person writing one broad name across several days, made a trip that moved
+ * into a single stop — and a route of one stop is not a route, so the trip
+ * printed no map page at all.
+ *
+ * Five kilometres is the width of a stay, not of a region: a hotel, its
+ * neighbourhood, the station and the far side of town are all inside it, so a
+ * genuine stay still merges. A day that moved twelve kilometres under an
+ * unchanged name is not the same stop, and gets its own marker.
+ *
+ * Measured from the *first* day of the stop — the coordinates the marker
+ * actually carries — so the marker never drifts away from the days it claims.
+ */
+const SAME_PLACE_KM = 5;
+
+export function getPlaces(ref: string, options?: ReadOptions): Place[] {
+  const places: Place[] = [];
+  const languages = localesOf(ref);
+
+  for (const day of getDays(ref, options)) {
+    const lead = day.lead;
+    // A day with no coordinates at all cannot be drawn, so it is not a place
+    // — the day somebody spends on a train with nothing to report (B381).
+    // Distinct from B339 below: that is a day that *has* coordinates and an
+    // empty name. This is a day with nothing to plot, full stop.
+    if (!Number.isFinite(lead.lat) || !Number.isFinite(lead.lng)) continue;
+    const entries = day.entries.map((e) => toPlaceEntry(e, languages));
+    const last = places.at(-1);
+    // Merged only when the day actually names where it was. `location:` is
+    // optional, so an unnamed day arrives as `""` — and `"" === ""` held, which
+    // made every unnamed day "the same place as yesterday" and collapsed a
+    // whole trip into one marker carrying the first day's coordinates. Fifteen
+    // days from Bangkok to Hanoi drew a single dot on Bangkok (B339). An empty
+    // location means *unknown*, not *unchanged*: it starts its own place.
+    if (
+      last &&
+      lead.location &&
+      last.location === lead.location &&
+      last.country === lead.country &&
+      kmBetween(last, lead) <= SAME_PLACE_KM
+    ) {
+      last.entries.push(...entries);
+      last.lastDate = day.date;
+      last.mediaCount += day.entries.reduce((n, e) => n + e.gallery.length, 0);
+      continue;
+    }
+    places.push({
+      key: `${lead.location}-${day.date}`,
+      location: lead.location,
+      country: lead.country,
+      countryCode: lead.countryCode,
+      lat: lead.lat,
+      lng: lead.lng,
+      entries,
+      firstDate: day.date,
+      lastDate: day.date,
+      nights: 0,
+      mediaCount: day.entries.reduce((n, e) => n + e.gallery.length, 0),
+    });
+  }
+
+  // Nights = days until the next place begins (or this place's own span).
+  places.forEach((place, i) => {
+    const next = places[i + 1];
+    const endDate = next ? next.firstDate : place.lastDate;
+    const ms =
+      new Date(`${endDate}T00:00:00Z`).getTime() -
+      new Date(`${place.firstDate}T00:00:00Z`).getTime();
+    place.nights = Math.max(0, Math.round(ms / 86_400_000));
+  });
+
+  return places;
+}
+
+/**
+ * Every gallery item across the trip, newest first, projected to a
+ * `MediaTile` — the entry's location, country and date, not the entry
+ * itself. See the type's docblock (B87).
+ */
+export function getAllMedia(ref: string, options?: ReadOptions): MediaTile[] {
+  return getAllEntries(ref, options)
+    .flatMap((entry) =>
+      entry.gallery.map((item) => ({
+        src: item.src,
+        slug: entry.slug,
+        type: item.type,
+        caption: item.caption,
+        alt: item.alt,
+        width: item.width,
+        height: item.height,
+        poster: item.poster,
+        location: entry.location,
+        country: entry.country,
+        countryCode: entry.countryCode,
+        date: entry.date,
+        visibility: item.visibility,
+      })),
+    )
+    .reverse();
+}
+
+/** Headline numbers for the hero and the map page. */
+export function getTripStats(ref: string, options?: ReadOptions) {
+  const entries = getAllEntries(ref, options);
+  const days = getDays(ref, options);
+  const places = getPlaces(ref, options);
+  const trip = getTrip(ref);
+
+  const tripDays =
+    days.length > 1
+      ? Math.round(
+          (new Date(`${days.at(-1)!.date}T00:00:00Z`).getTime() -
+            new Date(`${days[0].date}T00:00:00Z`).getTime()) /
+            86_400_000,
+        ) + 1
+      : days.length;
+
+  return {
+    tripDays,
+    dayCount: days.length,
+    places: places.length,
+    countries: new Set(places.map((p) => p.country)).size,
+    totalMedia: entries.reduce((n, e) => n + e.gallery.length, 0),
+    // The trip's own declared dates — not the span of days actually written.
+    // A trip in progress, or one told through a single day, otherwise
+    // advertised a shorter span than it has, or "5 Sep – 5 Sep". B1259.
+    firstDate: trip?.start,
+    lastDate: trip?.end,
+  };
+}

@@ -1,0 +1,250 @@
+"use client";
+
+import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
+import { useI18n } from "@/components/LocaleProvider";
+
+/**
+ * The way back in, for somebody who has been here before.
+ *
+ * Until this existed there was none. A guest arrives through a token in an
+ * email — `/{user}/i/<token>` or the manage link in a footer — and if that
+ * email is gone, so is their access. The one page that exists to answer "what
+ * can I see?" sent them to the guestbook to sign up again as though they were
+ * a stranger, and on a journal with the guestbook switched off it sent them to
+ * a 404. That is the reader this whole area was written for: the grandmother
+ * who opens the site once a month and has lost the email.
+ *
+ * The endpoints were already here. Only the form was missing.
+ *
+ * Two steps, because the code arrives out of band. The first answers the same
+ * way for every address — an address that has access and one that does not are
+ * indistinguishable from out here, which is what stops this being a way to ask
+ * who reads somebody's journal. Proving you own an address gets you a session;
+ * what that session can *see* is decided separately, by whether the owner has
+ * approved you.
+ */
+export default function GuestSignIn({
+  username,
+  codeMinutes,
+  destination,
+  whatsappSignIn,
+}: {
+  username: string;
+  /** How long the code lasts, from `CODE_TTL_MINUTES`. Passed rather than
+   * imported: this is a client component and `lib/auth` is server-only. */
+  codeMinutes: string;
+  /**
+   * Where the *button in the mail* should land, when this form is standing in
+   * front of a particular page. The trip gate passes the path the reader
+   * asked for; `/<user>/me` passes nothing, because the journal is already
+   * where somebody signing in there wants to be.
+   *
+   * Only the link needs it. Typing the six digits never leaves this page —
+   * see `submitCode` — so the code has nothing to carry the destination
+   * across, and giving `/api/auth/codes/redeem` a redirect target would add a
+   * second attacker-controlled one for no reader at all.
+   */
+  destination?: string;
+  /** Offer the WhatsApp button — true only when this journal can actually
+   * deliver one (`whatsappSignInOffered`, lib/whatsapp/settings). */
+  whatsappSignIn?: boolean;
+}) {
+  const { t } = useI18n();
+  const [step, setStep] = useState<"email" | "code">("email");
+  /** How the code was asked to travel — B1222. Email is the default; the
+   * second submit button asks for WhatsApp instead, which delivers only for
+   * the owner's own address and proven number (the server says nothing
+   * either way, by design). */
+  const [channel, setChannel] = useState<"email" | "whatsapp">("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [wrong, setWrong] = useState(false);
+
+  async function requestCode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // Read what the field actually holds rather than trusting `email` to
+    // have followed autofill — see IdentitySignIn's own `requestCode` (B787).
+    const value = String(new FormData(event.currentTarget).get("email") ?? "");
+    // Which button submitted decides the channel — the native submitter,
+    // because React state set in an onClick can lag the submit it races.
+    const submitter = (event.nativeEvent as SubmitEvent).submitter;
+    const via =
+      submitter instanceof HTMLButtonElement && submitter.name === "whatsapp"
+        ? "whatsapp"
+        : "email";
+    setChannel(via);
+    setEmail(value);
+    setBusy(true);
+    await fetch("/api/auth/codes", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        for: "read",
+        user: username,
+        email: value,
+        destination,
+        ...(via === "whatsapp" ? { channel: via } : {}),
+      }),
+    }).catch(() => {});
+    setBusy(false);
+    // Always forward, whatever came back. Stopping here for an address we do
+    // not know would answer the question the uniform 202 exists to refuse.
+    setStep("code");
+  }
+
+  async function submitCode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const value = String(new FormData(event.currentTarget).get("code") ?? "").replace(
+      /\D/g,
+      "",
+    );
+    setCode(value);
+    setBusy(true);
+    setWrong(false);
+    const response = await fetch("/api/auth/codes/redeem", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ for: "read", user: username, email, code: value }),
+    }).catch(() => null);
+
+    if (response?.ok) {
+      // The session is a cookie the server set, and this page is rendered from
+      // it — so a reload, not a router refresh. And a reload is why the code
+      // path needs no destination: the reader never left the page they were
+      // trying to open, so it re-renders as the thing they came for.
+      window.location.reload();
+      return;
+    }
+    setBusy(false);
+    setWrong(true);
+    setCode("");
+  }
+
+  const field =
+    "mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-base text-ink-strong";
+  const button =
+    "mt-4 min-h-12 w-full rounded-xl bg-action-strong px-4 py-3 text-lg font-medium text-on-action disabled:opacity-50";
+
+  return (
+    <section className="mt-6 rounded-2xl border border-line-quiet bg-surface-raised p-5 sm:p-6">
+      <h2 className="font-display text-xl font-semibold text-ink-strong">
+        {t("me.signInTitle")}
+      </h2>
+
+      {step === "email" ? (
+        <form onSubmit={requestCode}>
+          <p className="mt-2 text-base leading-7 text-ink-body">
+            {t("me.signInBody")}
+          </p>
+          <label
+            htmlFor="signin-email"
+            className="mt-4 block text-base font-medium text-ink-body"
+          >
+            {t("me.signInEmail")}
+          </label>
+          <input
+            id="signin-email"
+            type="email"
+            name="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={field}
+          />
+          {/* No `disabled={email === ""}` — B787. That React state can be
+              stale when autofill sets the field without firing `onChange`,
+              leaving the button dead with a real address already in it.
+              `required` on the field below is what refuses a genuinely
+              empty submit, natively and with the browser's own message. */}
+          <BusyButton
+            busy={busy}
+            type="submit"
+            className={button}
+            busyLabel={t("me.signInSending")}
+          >
+            {t("me.signInSend")}
+          </BusyButton>
+          {/* B1222 — the same code, delivered over WhatsApp instead. It only
+              ever arrives for the owner's own address with a number proven
+              at signup; for anybody else the server answers exactly as it
+              does by mail, which is to say nothing. */}
+          {whatsappSignIn && <button
+            type="submit"
+            name="whatsapp"
+            disabled={busy}
+            className="mt-3 min-h-12 w-full rounded-xl border border-line-strong bg-surface-raised px-4 py-3 text-lg font-medium text-ink-strong disabled:opacity-50"
+          >
+            {t("me.signInWhatsapp")}
+          </button>}
+        </form>
+      ) : (
+        <form onSubmit={submitCode}>
+          {/* The number comes from CODE_TTL_MS, not from the sentence — see
+              CODE_TTL_MINUTES. This is a client component, so it is passed in
+              rather than imported. */}
+          <p className="mt-2 text-base leading-7 text-ink-body">
+            {channel === "whatsapp"
+              ? t("me.signInSentWhatsapp", { minutes: codeMinutes })
+              : t("me.signInSent", { minutes: codeMinutes })}
+          </p>
+          <label
+            htmlFor="signin-code"
+            className="mt-4 block text-base font-medium text-ink-body"
+          >
+            {t("me.signInCode")}
+          </label>
+          <input
+            id="signin-code"
+            name="code"
+            // `one-time-code` is what lets a phone offer the code from the
+            // message without the reader typing it out.
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            // `minLength` makes "fewer than 6 digits" a submit the browser
+            // itself refuses (B787) rather than one gated on React state
+            // that autofill can bypass.
+            minLength={6}
+            maxLength={6}
+            autoFocus
+            required
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            aria-describedby={wrong ? "signin-error" : undefined}
+            aria-invalid={wrong ? true : undefined}
+            className={`${field} font-mono text-2xl tracking-[0.3em]`}
+          />
+          <p
+            id="signin-error"
+            role="alert"
+            className="mt-3 text-base text-coral-600 empty:mt-0"
+          >
+            {wrong ? t("me.signInWrong") : ""}
+          </p>
+          <BusyButton
+            busy={busy}
+            type="submit"
+            className={button}
+            busyLabel={t("me.signInSending")}
+          >
+            {t("me.signInSubmit")}
+          </BusyButton>
+          <button
+            type="button"
+            onClick={() => {
+              setStep("email");
+              setCode("");
+              setWrong(false);
+            }}
+            className="mt-3 min-h-11 text-base text-ink-secondary underline underline-offset-4"
+          >
+            {t("me.signInAgain")}
+          </button>
+        </form>
+      )}
+    </section>
+  );
+}

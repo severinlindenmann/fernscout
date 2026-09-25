@@ -1,0 +1,438 @@
+"use client";
+
+import { useState } from "react";
+import BusyButton from "@/components/BusyButton";
+import AddressLookupField from "./AddressLookupField";
+import CountryField from "./CountryField";
+import TelField, { joinTel, splitTel } from "./TelField";
+import { LOCALE_LABEL, translate, type TranslationKey } from "@/lib/i18n";
+import type { Locale } from "@/lib/types";
+
+/**
+ * "Your details" — the page every mail footer points at (C13).
+ *
+ * No login. The token in the URL is the whole credential, and everything on the
+ * page acts on one row. It is also the delete path the data-protection sections
+ * of the roadmap ask for, which is why "delete me completely" is a plain button
+ * and not something you have to write an email about.
+ *
+ * Rendered in the reader's own language, taken from their record rather than
+ * from the browser.
+ */
+
+export type ManageAddress = {
+  name: string;
+  line1: string;
+  line2: string;
+  postcode: string;
+  city: string;
+  country: string;
+  tel: string;
+};
+
+export type ManageContact = {
+  name: string;
+  email: string;
+  locale: Locale;
+  status: "pending" | "active" | "blocked";
+  wantsEmailDigest: boolean;
+  wantsPostcard: boolean;
+  wantsWhatsapp: boolean;
+  address: ManageAddress;
+};
+
+// No local focus ring: the global one in globals.css is blue-500, chosen
+// because it is the single palette colour that clears 3:1 against every
+// surface a control sits on. sky-500 is 2.73:1 on white and 2.63:1 on cream,
+// so as a focus indicator it failed everywhere it was drawn.
+const FIELD =
+  "mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg text-ink-strong";
+const LABEL = "block text-base font-medium text-ink-body";
+
+const STATUS_KEY: Record<ManageContact["status"], TranslationKey> = {
+  pending: "contact.statusPending",
+  active: "contact.statusActive",
+  blocked: "contact.statusBlocked",
+};
+
+const PAGE_CLASS = "mx-auto w-full max-w-xl px-6 py-12 sm:py-16";
+
+export default function ContactManage({
+  username,
+  token,
+  contact,
+  locales,
+  dictionary,
+  className = PAGE_CLASS,
+  defaultCountryCode,
+  addressLookupEnabled = false,
+  isOwner = false,
+}: {
+  username: string;
+  /** The languages this journal offers, from its config. */
+  locales: string[];
+  dictionary: Record<string, string>;
+  /**
+   * The manage token, or `""` — B1395. Empty means there is no row yet to
+   * hold one: a person on a trip's `people:` block with write access and no
+   * contacts row (`app/[user]/me/page.tsx`'s `isTraveller` branch). This
+   * form still renders, empty, and posts through `/api/contacts/self`
+   * instead of `/api/contacts/manage`, which is keyed on a token that would
+   * not exist to look up.
+   */
+  token: string;
+  contact: ManageContact;
+  /** B385: `whatsappCountryCode()` — seeds the dialling code only when this
+   * reader has never given a number at all; an existing one is always
+   * parsed back (see `splitTel`), never overridden. */
+  defaultCountryCode?: string;
+  /** B399: `isEnabled("addressLookup", username)`, from the page. */
+  addressLookupEnabled?: boolean;
+  /**
+   * Whether the person filling this in owns the journal — B619.
+   *
+   * Only the two buttons at the foot care, and both say something that is
+   * false to this one reader. "Stop all emails" cannot: `recipientsFor` in
+   * `lib/digest/dayLetter.ts` sends the owner their own copy of a day
+   * whatever this row says, because it is their record that it went. And
+   * "delete me completely" offers to remove "your access", which for the
+   * owner lives in `config.json` and would still be there — it would quietly
+   * throw away their address and change nothing else.
+   *
+   * So they are absent rather than disabled: a button that cannot do what it
+   * says is worse than no button, and there is nothing behind them the owner
+   * needs that the form above does not already give them.
+   */
+  isOwner?: boolean;
+  /**
+   * The outer element's spacing and width. Defaults to a page's own centred
+   * column — the standalone `/c/<token>` page every mail footer points at.
+   * `/me` renders this inline, already inside its own padded column, and
+   * passes something narrower so the two boxes don't nest.
+   */
+  className?: string;
+}) {
+  const [locale, setLocale] = useState<Locale>(contact.locale);
+  const [name, setName] = useState(contact.name);
+  // `address.tel` holds only the national digits once this loads — the
+  // dialling code is split out into its own state below (B385), so
+  // `address.tel` is never the whole stored string here. `joinTel` puts the
+  // two back together at save time.
+  const [address, setAddress] = useState<ManageAddress>(() => ({
+    ...contact.address,
+    tel: splitTel(contact.address.tel).national,
+  }));
+  // The dialling code, held apart from `address.tel` for the same reason
+  // `ContactForm` keeps its own `cc` state — re-deriving it on every render
+  // would lose the selection the moment the digits are cleared.
+  // `defaultCountryCode` only seeds a reader who has never given a number at
+  // all; an existing (even unparseable) one is never overridden.
+  const [cc, setCc] = useState(() => {
+    const parsed = splitTel(contact.address.tel);
+    return (
+      parsed.cc ||
+      (contact.address.tel.trim() === "" ? (defaultCountryCode ?? "") : "")
+    );
+  });
+  const [wantsDigest, setWantsDigest] = useState(contact.wantsEmailDigest);
+  const [wantsPostcard, setWantsPostcard] = useState(contact.wantsPostcard);
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(contact.wantsWhatsapp);
+  const [note, setNote] = useState<TranslationKey | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [deleted, setDeleted] = useState(false);
+
+  // No row yet — see the note on `token` above. There is nothing here to
+  // unsubscribe from or delete, and saving is a different door.
+  const selfManaged = token === "";
+
+  const t = (key: TranslationKey, vars?: Record<string, string>) =>
+    translate(dictionary, key, vars);
+
+  async function post(body: Record<string, unknown>, done: TranslationKey) {
+    setBusy(true);
+    const response = await fetch(
+      selfManaged ? "/api/contacts/self" : "/api/contacts/manage",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(
+          selfManaged ? { user: username, ...body } : { user: username, token, ...body },
+        ),
+      },
+    ).catch(() => null);
+    setBusy(false);
+    setNote(response?.ok ? done : "contact.error");
+    return Boolean(response?.ok);
+  }
+
+  if (deleted) {
+    return (
+      <div className={className} lang={locale}>
+        <h1 className="font-display text-3xl text-ink-strong">
+          {t("contact.deleted")}
+        </h1>
+      </div>
+    );
+  }
+
+  return (
+    <div className={className} lang={locale}>
+      <h1 className="font-display text-3xl leading-tight text-ink-strong sm:text-4xl">
+        {t("contact.manageTitle")}
+      </h1>
+      <p className="mt-3 text-lg leading-relaxed text-ink-body">
+        {t("contact.manageIntro")}
+      </p>
+      <p className="mt-2 text-base text-ink-secondary">
+        {`${contact.email} — ${t(STATUS_KEY[contact.status])}`}
+      </p>
+      <p className="mt-2 text-sm text-ink-muted">
+        {t("contact.manageLinkCaption")}
+      </p>
+
+      <form
+        className="mt-8"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          await post(
+            {
+              action: "update",
+              name,
+              locale,
+              // Rejoined here — see the note on `address` above.
+              address: { ...address, tel: joinTel(cc, address.tel) },
+              wantsEmailDigest: wantsDigest,
+              wantsPostcard,
+              wantsWhatsapp,
+            },
+            "contact.saved",
+          );
+        }}
+      >
+        <label className={LABEL} htmlFor="manage-name">
+          {t("contact.name")}
+        </label>
+        <input
+          id="manage-name"
+          className={FIELD}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <div className="mt-6">
+          <label className={LABEL} htmlFor="manage-locale">
+            {t("contact.language")}
+          </label>
+          <select
+            id="manage-locale"
+            className={FIELD}
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+          >
+            {locales.map((option: string) => (
+              <option key={option} value={option}>
+                {LOCALE_LABEL[option]}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mt-6">
+          <label className={LABEL} htmlFor="manage-tel">
+            {`${t("contact.tel")} (${t("contact.optional")})`}
+          </label>
+          <TelField
+            id="manage-tel"
+            cc={cc}
+            national={address.tel}
+            onChange={(newCc, national) => {
+              setCc(newCc);
+              setAddress((previous) => ({ ...previous, tel: national }));
+            }}
+            labelCountry={t("contact.telCountry")}
+            searchPlaceholder={t("contact.telSearchPlaceholder")}
+            noMatches={t("contact.telNoMatches")}
+            locale={locale}
+          />
+          <p className="mt-2 text-base text-ink-secondary">{t("contact.telHint")}</p>
+        </div>
+
+        <fieldset className="mt-8 rounded-2xl border border-line-quiet bg-surface-subtle p-5">
+          <legend className="px-2 font-display text-xl text-ink-strong">
+            {t("contact.address")}
+          </legend>
+          <p className="text-base text-ink-body">{t("contact.addressHint")}</p>
+          <div className="mt-4">
+            <label className={LABEL} htmlFor="manage-name">
+              {t("contact.addrName")}
+            </label>
+            <input
+              id="manage-name"
+              className={FIELD}
+              value={address.name}
+              onChange={(e) =>
+                setAddress((previous) => ({
+                  ...previous,
+                  name: e.target.value,
+                }))
+              }
+            />
+          </div>
+          <div className="mt-4">
+            <label className={LABEL} htmlFor="manage-line1">
+              {t("contact.addrLine1")}
+            </label>
+            <AddressLookupField
+              id="manage-line1"
+              className={FIELD}
+              value={address.line1}
+              onChange={(value) =>
+                setAddress((previous) => ({ ...previous, line1: value }))
+              }
+              onPick={(suggestion) =>
+                setAddress((previous) => ({
+                  ...previous,
+                  line1: suggestion.line1,
+                  postcode: suggestion.postcode,
+                  city: suggestion.city,
+                  country: suggestion.country,
+                }))
+              }
+              enabled={addressLookupEnabled}
+              username={username}
+              locale={locale}
+              label={t("contact.addrLine1")}
+              attribution={t("contact.addressLookupAttribution")}
+              unavailable={t("contact.addressLookupUnavailable")}
+            />
+          </div>
+          {(
+            [
+              ["line2", "contact.addrLine2"],
+              ["postcode", "contact.addrPostcode"],
+              ["city", "contact.addrCity"],
+            ] as [keyof ManageAddress, TranslationKey][]
+          ).map(([field, key]) => (
+            <div className="mt-4" key={field}>
+              <label className={LABEL} htmlFor={`manage-${field}`}>
+                {t(key)}
+              </label>
+              <input
+                id={`manage-${field}`}
+                className={FIELD}
+                value={address[field]}
+                onChange={(e) =>
+                  setAddress((previous) => ({
+                    ...previous,
+                    [field]: e.target.value,
+                  }))
+                }
+              />
+            </div>
+          ))}
+          <div className="mt-4">
+            <label className={LABEL} htmlFor="manage-country">
+              {t("contact.addrCountry")}
+            </label>
+            <CountryField
+              id="manage-country"
+              value={address.country}
+              locales={locales}
+              onChange={(code) =>
+                setAddress((previous) => ({ ...previous, country: code }))
+              }
+              label={t("contact.addrCountry")}
+              searchPlaceholder={t("contact.addrCountrySearchPlaceholder")}
+              noMatches={t("contact.addrCountryNoMatches")}
+              locale={locale}
+            />
+          </div>
+        </fieldset>
+
+        <div className="mt-8 space-y-4">
+          <label className="flex items-start gap-3 text-lg text-ink-strong">
+            <input
+              type="checkbox"
+              className="mt-1.5 size-5"
+              checked={wantsDigest}
+              onChange={(e) => setWantsDigest(e.target.checked)}
+            />
+            <span>{t("contact.wantsDigest")}</span>
+          </label>
+          <label className="flex items-start gap-3 text-lg text-ink-strong">
+            <input
+              type="checkbox"
+              className="mt-1.5 size-5"
+              checked={wantsPostcard}
+              onChange={(e) => setWantsPostcard(e.target.checked)}
+            />
+            <span>{t("contact.wantsPostcard")}</span>
+          </label>
+          <label className="flex items-start gap-3 text-lg text-ink-strong">
+            <input
+              type="checkbox"
+              className="mt-1.5 size-5"
+              checked={wantsWhatsapp}
+              onChange={(e) => setWantsWhatsapp(e.target.checked)}
+            />
+            <span>{t("contact.wantsWhatsapp")}</span>
+          </label>
+        </div>
+
+        {note && (
+          <p role="status" className="mt-6 text-base text-ink-body">
+            {t(note)}
+          </p>
+        )}
+
+        <BusyButton
+          busy={busy}
+          type="submit"
+          className="mt-8 w-full rounded-xl bg-action-strong px-4 py-4 text-lg font-medium text-on-action disabled:opacity-50"
+          busyLabel={t("contact.working")}
+        >
+          {t("contact.save")}
+        </BusyButton>
+      </form>
+
+      {!isOwner && !selfManaged && (
+        <>
+          <hr className="my-10 border-line-quiet" />
+
+          <BusyButton
+            busy={busy}
+            type="button"
+            onClick={async () => {
+              const ok = await post(
+                { action: "unsubscribe" },
+                "contact.unsubscribed",
+              );
+              if (ok) {
+                setWantsDigest(false);
+                setWantsPostcard(false);
+              }
+            }}
+            className="w-full rounded-xl border border-line-quiet px-4 py-3 text-lg text-ink-strong"
+          >
+            {t("contact.unsubscribe")}
+          </BusyButton>
+
+          <p className="mt-8 text-base text-ink-secondary">
+            {t("contact.deleteHint")}
+          </p>
+          <BusyButton
+            busy={busy}
+            type="button"
+            onClick={async () => {
+              const ok = await post({ action: "delete" }, "contact.deleted");
+              if (ok) setDeleted(true);
+            }}
+            className="mt-3 w-full rounded-xl border border-coral-400 px-4 py-3 text-lg text-coral-600"
+          >
+            {t("contact.deleteMe")}
+          </BusyButton>
+        </>
+      )}
+    </div>
+  );
+}

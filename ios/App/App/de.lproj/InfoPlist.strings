@@ -1,0 +1,3 @@
+/* B2196 — route recording's usage strings. */
+"NSLocationWhenInUseUsageDescription" = "Fernscout zeichnet auf, wohin du während einer Reise gehst, für die du die Aufzeichnung eingeschaltet hast, damit dein Journal eine echte Karte der zurückgelegten Wege erhält.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "Fernscout zeichnet auf, wohin du während einer Reise gehst, für die du die Aufzeichnung eingeschaltet hast, auch während die App im Hintergrund läuft, damit dein Journal eine echte Karte der zurückgelegten Wege erhält.";

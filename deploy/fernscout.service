@@ -1,0 +1,62 @@
+# The Fernscout web server.
+#
+# Installed and reloaded by scripts/deploy.sh (B138). Enabling is still the
+# operator's, once, on a new machine — a deploy installs definitions and does
+# not decide what runs:
+#
+#   sudo systemctl enable --now fernscout
+#
+# Postgres is listed as a soft dependency on purpose: running with no database
+# at all is a supported deployment (ROADMAP §2.2), and the unit must still
+# start cleanly on a machine where postgresql was never installed.
+[Unit]
+Description=Fernscout
+Documentation=https://github.com/severinlindenmann/travel
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fernscout
+Group=fernscout
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/env
+# Bind to loopback: Caddy is the only way in, and `next start` otherwise
+# listens on 0.0.0.0 — which puts an untrusted, TLS-less copy of the site on
+# port 3000 the moment a firewall rule changes. A deployment that genuinely
+# wants the port reachable (a load balancer on another host) drops the flag.
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1
+Restart=always
+RestartSec=5
+
+# Bound the stop (B520). Without TimeoutStopSec, a restart during an upload
+# waits out systemd's 90s default before SIGKILL — `next start` drains
+# in-flight requests on SIGTERM rather than exiting, and a multi-megabyte
+# photo upload can still be decoding when the signal arrives. 20s is a
+# trade, not a measurement: long enough for a request already in flight to
+# finish, short enough that a restart is not itself a multi-minute outage.
+# An upload still running past it is retried by the agent that sent it; a
+# 90-second 502 is not retried by a reader. KillMode=mixed sends SIGTERM to
+# the main process only (Next gets its chance) and SIGKILL to the rest of
+# the cgroup at the timeout (the npm/sh wrapper is not left holding the
+# group open) — the right split for `npm → sh → next-server`.
+#
+# scripts/deploy.sh's health poll must stay longer than this timeout, or a
+# stop that is still draining looks identical to a failed deploy.
+TimeoutStopSec=20
+KillMode=mixed
+
+# The app writes only to the content folder and DATA_DIR. Everything else on
+# the filesystem can be read-only as far as it is concerned.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/fernscout /var/lib/fernscout
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout
+
+[Install]
+WantedBy=multi-user.target

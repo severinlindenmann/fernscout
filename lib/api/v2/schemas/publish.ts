@@ -1,0 +1,33 @@
+// The publish/send request bodies — B1612 (phase 2 step 3, parcel B).
+//
+// Neither is a field on the day document: both are a decision about THIS
+// publish or THIS send, never stored, so each is its own small schema rather
+// than living on `dayWrite`/`dayDoc`.
+import { z } from "zod";
+import { CHANNEL_NAMES } from "./social";
+import { DAY_DECLINABLE_KEYS } from "./day";
+
+/**
+ * `POST .../days/{slug}/publish` — content.md §1. `declineTracked` names
+ * trip-tracked facts this day genuinely has none of (written into the day's
+ * own `declined` map before the completeness check runs, same as v1). Only a
+ * field the day has neither filled in nor already declined may be named —
+ * anything else refuses the whole call, `details.refused` (B2225).
+ * `sendMail`/`sendWhatsapp` default to absent — publishing fifteen days must
+ * never default to fifteen letters.
+ */
+export const publishRequest = z.strictObject({
+  declineTracked: z.array(z.enum(DAY_DECLINABLE_KEYS)).optional(),
+  sendMail: z.boolean().optional(),
+  sendWhatsapp: z.boolean().optional(),
+});
+export type PublishRequest = z.infer<typeof publishRequest>;
+
+/**
+ * `POST .../days/{slug}/send` — S1, the one send door. `send-mail` and
+ * `send-whatsapp` die into this.
+ */
+export const sendRequest = z.strictObject({
+  channels: z.array(z.enum(CHANNEL_NAMES)).min(1),
+});
+export type SendRequest = z.infer<typeof sendRequest>;

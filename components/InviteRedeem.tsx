@@ -1,0 +1,674 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import BusyButton from "@/components/BusyButton";
+import { codeConfirmErrorKey } from "@/lib/contacts/codeConfirmError";
+import { redeemOutcome } from "@/lib/contacts/redeemOutcome";
+import {
+  LOCALE_LABEL,
+  telHintKey,
+  translate,
+  type TranslationKey,
+} from "@/lib/i18n";
+import type { Locale } from "@/lib/types";
+import AddressLookupField from "./AddressLookupField";
+import CountryField from "./CountryField";
+import TelField, { joinTel, splitTel } from "./TelField";
+
+/**
+ * Redeeming a guest or a buddy link — B33.
+ *
+ * Two things it always needs — **a name, and an address it can prove** —
+ * because being let into somebody's journal needs nothing else, and a
+ * redemption must never quietly rewrite a choice an already-known reader
+ * already made: no digest tick, and no postal address either. **That is the
+ * returning reader's rule and not the whole story** — B273 gave a brand-new
+ * reader the address and the phone number, and B315 the digest tick, on the
+ * reasoning that somebody with no existing choice has nothing to overwrite,
+ * only a first one to make. Both are on the "form" step alone.
+ * Those still belong on the reader's own manage page, `/{username}/c/<token>`,
+ * where they can be added, corrected or removed in the open — never here,
+ * for somebody who is signed in already or whose email this journal already
+ * knows.
+ *
+ * A **brand-new** reader sees more, since B273: a postal address and a phone
+ * number, both optional, on the same "form" step as the name and the email —
+ * the same fields the guestbook (`ContactForm`) has always asked for. There is
+ * no existing choice on this screen to overwrite, only a first one to make, so
+ * offering the two together here saves a second trip to the manage page for
+ * whoever wants to give an address at all.
+ *
+ * Each of the two identity fields is skipped when it is already known:
+ *
+ * - Signed in to this journal already, and the address is proved. The whole
+ *   screen collapses to one button — no email box, no six digits, no second
+ *   mail, and (for the same reason) no address fields either. Somebody who
+ *   already has a journal on this instance and is reading this one is the
+ *   expected case, not the edge case.
+ * - Known here already, and the name on file stands. It is shown, and it can
+ *   be corrected, and leaving it alone changes nothing.
+ *
+ * What it never does is tell somebody they are in. Redeeming is asking; the
+ * last screen says so in those words, because a form that appears to succeed
+ * and then goes quiet leaves people waiting for a reply that never comes.
+ *
+ * **The email field prefills, but only from a mailed invite — B338.** When
+ * `invitedEmail` is set, the address is already the one the owner asked to
+ * have this link mailed to, and typing over it means falling out of B319's
+ * pre-approval into the ordinary queue with no explanation on the owner's
+ * side. `invite.emailPrefilledHint`, shown beside the field exactly when it
+ * was prefilled, is that explanation. See `invitedEmail`'s own doc comment
+ * below, and the one on `RedeemPage`, for why prefilling is judged safe
+ * against "safe to forward" and why the value shown is the case-folded
+ * `email_key` rather than a second stored copy of the address as typed.
+ */
+
+type Step = "form" | "confirm" | "code" | "waiting" | "in";
+
+const FIELD =
+  "mt-2 w-full rounded-xl border border-line-quiet bg-surface-raised px-4 py-3 text-lg text-ink-strong";
+const LABEL = "block text-base font-medium text-ink-body";
+const BUTTON =
+  "mt-8 inline-flex min-h-12 w-full items-center justify-center rounded-full bg-yellow-400 px-6 text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300 disabled:opacity-60 sm:w-auto";
+
+export default function InviteRedeem({
+  username,
+  journalTitle,
+  kind,
+  tripTitle,
+  token,
+  initialLocale,
+  locales,
+  dictionaries,
+  knownEmail,
+  initialName,
+  invitedEmail,
+  initialAddress,
+  initialWantsPostcard = false,
+  alreadyIn,
+  postcardsEnabled = true,
+  whatsappEnabled = true,
+  defaultCountryCode,
+  addressLookupEnabled = false,
+}: {
+  username: string;
+  journalTitle: string;
+  kind: "guest" | "buddy";
+  /** The trip a buddy link joins, for saying which one they are being asked
+   * onto. Null for a guest link, which is journal-wide by design. */
+  tripTitle: string | null;
+  token: string;
+  initialLocale: Locale;
+  locales: string[];
+  dictionaries: Record<string, Record<string, string>>;
+  /** The address on a session **for this journal**. Its presence is what turns
+   * the form into a single button; it is never sent to the server, which reads
+   * the session itself. */
+  knownEmail: string | null;
+  initialName: string;
+  /**
+   * The address this invite was mailed to — B338. Null for a link the owner
+   * copied by hand, which prefills nothing here, unchanged from before this
+   * ticket. Only ever reaches this component when there is no `knownEmail`
+   * already (a signed-in reader is shown the "confirm" step instead, which
+   * has no email field to prefill).
+   */
+  invitedEmail: string | null;
+  /**
+   * The postal address this journal already holds for her, if this invite
+   * names an address to look one up by — B1282. Null for a hand-copied link
+   * (no named address to look up), for a genuinely brand-new address, or
+   * where a stored address has nothing in it. Prefill, same as `initialName`
+   * above: shown so a real address is never overwritten by a blank the form
+   * never asked about, and still hers to correct or clear on this same
+   * screen.
+   */
+  initialAddress?: {
+    name: string;
+    line1: string;
+    line2: string;
+    postcode: string;
+    city: string;
+    country: string;
+    tel: string;
+  } | null;
+  /** Whether the address above came with a standing postcard request. */
+  initialWantsPostcard?: boolean;
+  /** They already hold everything this link leads to. */
+  alreadyIn: boolean;
+  /** B360: whether this server can act on a postcard request at all —
+   * `isEnabled("postcards", username)`, from the page. Defaults to shown, so
+   * a test rendering this component with no opinion on the capability keeps
+   * seeing the fieldset it may already assert against. */
+  postcardsEnabled?: boolean;
+  /** B376: whether this server can act on a WhatsApp update at all —
+   * `isEnabled("whatsapp", username)`. Changes the phone hint's wording, and
+   * — since B378 — gates the checkbox itself: offering it on a journal where
+   * nothing will ever send there tells a brand-new reader something untrue. */
+  whatsappEnabled?: boolean;
+  /** B385: `whatsappCountryCode()` — the operator's own configured fallback,
+   * used only to pre-select the dialling code on this always-blank field
+   * (the "form" step is shown only to a brand-new reader — see the class
+   * doc comment). */
+  defaultCountryCode?: string;
+  /** B399: `isEnabled("addressLookup", username)`, from the page. */
+  addressLookupEnabled?: boolean;
+}) {
+  const [locale, setLocale] = useState<Locale>(initialLocale);
+  const [step, setStep] = useState<Step>(
+    alreadyIn ? "in" : knownEmail ? "confirm" : "form",
+  );
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<TranslationKey | null>(null);
+  const [name, setName] = useState(initialName);
+  const [email, setEmail] = useState(invitedEmail ?? "");
+  const [code, setCode] = useState("");
+  // Only offered on the "form" step — a brand-new reader, never asked before
+  // (B273). Untouched on "confirm": an already-known reader is never shown
+  // these, and the request body below reflects that by leaving them out
+  // entirely rather than sending them empty.
+  //
+  // The digest starts ticked and the postcard does not — B315, and the same
+  // split `ContactForm` has always had. A travel journal's guest expects to be
+  // told when there is a new day; a postcard is the rarer, more involved
+  // thing, and it asks for a street address. Ticking by default is safe here
+  // in a way it would not be on a form that could itself cause mail: nothing
+  // is sent on the strength of this box. The address still has to be
+  // confirmed by code and then approved by the owner before a single digest
+  // goes out, and every digest carries a one-click unsubscribe.
+  const [wantsDigest, setWantsDigest] = useState(true);
+  // B1282: a stored consent she already gave the owner is not overwritten by
+  // a form that never showed it — see `initialAddress` above.
+  const [wantsPostcard, setWantsPostcard] = useState(initialWantsPostcard);
+  const [wantsWhatsapp, setWantsWhatsapp] = useState(false);
+  const [address, setAddress] = useState({
+    name: initialAddress?.name ?? "",
+    line1: initialAddress?.line1 ?? "",
+    line2: initialAddress?.line2 ?? "",
+    postcode: initialAddress?.postcode ?? "",
+    city: initialAddress?.city ?? "",
+    country: initialAddress?.country ?? "",
+    tel: initialAddress?.tel ?? "",
+  });
+  // The dialling code — see `ContactForm`'s own note on the same pattern
+  // (B385). Read back from a prefilled number if there is one (B1282),
+  // otherwise the operator's own configured fallback.
+  const [cc, setCc] = useState(
+    initialAddress?.tel ? splitTel(initialAddress.tel).cc : (defaultCountryCode ?? ""),
+  );
+
+  const t = (key: TranslationKey, vars?: Record<string, string>) =>
+    translate(dictionaries[locale] ?? dictionaries.en ?? {}, key, vars);
+
+  const what = kind === "buddy" ? (tripTitle ?? journalTitle) : journalTitle;
+  // B351: `invitedEmail` is the same signal the prefill and its hint already
+  // key off — this link was mailed to a named address, so proving it here
+  // skips the owner's queue entirely (B319/B333). The three strings below
+  // spoke the queue's language regardless, contradicting that hint on the
+  // same screen.
+  const preapproved = Boolean(invitedEmail);
+
+  function setAddressField(field: keyof typeof address, value: string) {
+    setAddress((previous) => ({ ...previous, [field]: value }));
+    // Typing a street plainly means they want the postcard; ticking the box
+    // for them saves a step, and it stays a box they can untick — the same
+    // behaviour `ContactForm` uses for the same reason.
+    if (value.trim() !== "") setWantsPostcard(true);
+  }
+
+  // A phone number is not a postal address, and giving one is not asking for
+  // a postcard — unlike `setAddressField` above, typing a `tel` must never
+  // tick that box for them.
+  function setTel(newCc: string, national: string) {
+    setCc(newCc);
+    setAddress((previous) => ({ ...previous, tel: joinTel(newCc, national) }));
+  }
+
+  async function redeem(event?: React.FormEvent) {
+    event?.preventDefault();
+    setError(null);
+    if (!knownEmail) {
+      if (name.trim() === "") return setError("contact.needName");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+        return setError("contact.needEmail");
+      }
+      if (
+        wantsPostcard &&
+        (address.line1.trim() === "" ||
+          address.city.trim() === "" ||
+          address.country.trim() === "")
+      ) {
+        return setError("contact.needAddress");
+      }
+    }
+
+    setBusy(true);
+    const response = await fetch("/api/contacts/redeem", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        user: username,
+        token,
+        kind,
+        name,
+        locale,
+        // No email when the session carries one: the server reads it off the
+        // cookie, and a body that could name an address would be a way of
+        // confirming somebody else's. The address and the postcard consent
+        // are the same story: sent only on the "form" step, where they were
+        // actually asked for — the confirm step must never answer for an
+        // already-known reader (B273's doc comment above explains why).
+        ...(knownEmail
+          ? {}
+          : {
+              email,
+              address,
+              wantsPostcard,
+              wantsWhatsapp,
+              wantsEmailDigest: wantsDigest,
+            }),
+      }),
+    }).catch(() => null);
+    setBusy(false);
+
+    if (!response) return setError("contact.error");
+    const body = (await response.json().catch(() => ({}))) as {
+      error?: string;
+      status?: string;
+    };
+    // B406: every refusal this endpoint can return has to reach the reader —
+    // `redeemOutcome` is the one place that decides how, shared with the test
+    // that checks each one does.
+    const outcome = redeemOutcome(response, body);
+    if (outcome.kind === "error") return setError(outcome.error);
+    setStep(outcome.step);
+  }
+
+  /** The same six digits and the same endpoint the guestbook uses — one code
+   * mechanism for the whole site. */
+  async function submitCode(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    setBusy(true);
+    const response = await fetch("/api/contacts/confirm", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user: username, email, code }),
+    }).catch(() => null);
+    setBusy(false);
+
+    if (!response) return setError("contact.error");
+    if (response.status === 429) return setError("contact.tooMany");
+    if (!response.ok) {
+      // Only a rejected code (401) is worth retyping — see codeConfirmError.ts.
+      if (response.status === 401) setCode("");
+      return setError(codeConfirmErrorKey(response.status));
+    }
+    const body = (await response.json()) as { status?: string };
+    setStep(body.status === "active" ? "in" : "waiting");
+  }
+
+  // B1410: a reader who lands on "confirm" already has everything this call
+  // needs — a proven address (session or identity) and a name on file. There
+  // is nothing left to type, so waiting for a press turned "you are already
+  // known here" into an invisible dead end: closing the tab at that point
+  // left no contact row, no invite use and no signal to the owner. Fires once,
+  // from the initial render only — `knownEmail`/`alreadyIn` never change
+  // after mount, so re-running on every state change would just resend the
+  // same request. The button stays in the JSX below as the retry path for the
+  // one case this cannot cover: the request itself failing.
+  useEffect(() => {
+    // `redeem()` sets `error`/`busy` before its first `await`, same as every
+    // other fetch-on-mount effect in this codebase (TripCountdown, HelperRoom, …).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!alreadyIn && knownEmail) void redeem();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <main className="mx-auto w-full max-w-xl px-6 py-12 sm:py-16" lang={locale}>
+      <h1 className="font-display text-3xl leading-tight text-ink-strong sm:text-4xl">
+        {step === "in"
+          ? t("invite.inTitle")
+          : step === "waiting"
+            ? t("invite.waitingTitle")
+            : step === "code"
+              ? t("contact.codeTitle")
+              : kind === "buddy"
+                ? t("invite.buddyTitle", { what })
+                : t("invite.guestTitle", { title: journalTitle })}
+      </h1>
+
+      {(step === "form" || step === "confirm") && (
+        <form onSubmit={redeem} noValidate>
+          <p className="mt-3 text-lg leading-relaxed text-ink-body">
+            {kind === "buddy"
+              ? t(
+                  preapproved
+                    ? "invite.buddyIntroPreapproved"
+                    : "invite.buddyIntro",
+                  {
+                    what,
+                    title: journalTitle,
+                  },
+                )
+              : t(
+                  preapproved
+                    ? "invite.guestIntroPreapproved"
+                    : "invite.guestIntro",
+                  {
+                    title: journalTitle,
+                  },
+                )}
+          </p>
+
+          {step === "confirm" ? (
+            <p className="mt-6 rounded-2xl border border-line-quiet bg-surface-subtle p-5 text-lg text-ink-strong">
+              {t("invite.confirmAs", { email: knownEmail ?? "" })}
+            </p>
+          ) : (
+            <>
+              <div className="mt-8">
+                <label className={LABEL} htmlFor="invite-name">
+                  {t("contact.name")}
+                </label>
+                <input
+                  id="invite-name"
+                  className={FIELD}
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+
+              <div className="mt-6">
+                <label className={LABEL} htmlFor="invite-email">
+                  {t("contact.email")}
+                </label>
+                <input
+                  id="invite-email"
+                  className={FIELD}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <p className="mt-2 text-base text-ink-secondary">
+                  {t("contact.emailHint")}
+                </p>
+                {/* B338 — the sentence that matters more than the prefill
+                    itself. Shown whenever this link carried an address to
+                    prefill, regardless of whether the reader has since
+                    edited the field: the point is to say, before they
+                    submit, what changing it costs — falling out of
+                    pre-approval and into the owner's queue with no
+                    explanation there. Never shown for a hand-copied link,
+                    which never prefilled anything to begin with. */}
+                {invitedEmail && (
+                  <p className="mt-2 text-base text-ink-secondary">
+                    {t("invite.emailPrefilledHint", { email: invitedEmail })}
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-6">
+                <label className={LABEL} htmlFor="invite-locale">
+                  {t("contact.language")}
+                </label>
+                <select
+                  id="invite-locale"
+                  className={FIELD}
+                  value={locale}
+                  onChange={(e) => setLocale(e.target.value as Locale)}
+                >
+                  {locales.map((option: string) => (
+                    <option key={option} value={option}>
+                      {LOCALE_LABEL[option]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Both optional, and both new since B273 — a brand-new reader
+                  is the only one ever shown these (the "confirm" branch above
+                  never renders this far). No existing choice for this screen
+                  to overwrite, only a first one to make. */}
+              <div className="mt-6">
+                <label className={LABEL} htmlFor="invite-tel">
+                  {`${t("contact.tel")} (${t("contact.optional")})`}
+                </label>
+                <TelField
+                  id="invite-tel"
+                  cc={cc}
+                  national={splitTel(address.tel).national}
+                  onChange={setTel}
+                  labelCountry={t("contact.telCountry")}
+                  searchPlaceholder={t("contact.telSearchPlaceholder")}
+                  noMatches={t("contact.telNoMatches")}
+                  locale={locale}
+                />
+                <p className="mt-2 text-base text-ink-secondary">
+                  {t(telHintKey("reader", postcardsEnabled, whatsappEnabled))}
+                </p>
+              </div>
+
+              {postcardsEnabled && (
+                <fieldset className="mt-10 rounded-2xl border border-line-quiet bg-surface-subtle p-5">
+                  <legend className="px-2 font-display text-xl text-ink-strong">
+                    {t("contact.address")}
+                  </legend>
+                  <p className="text-base text-ink-body">
+                    {t("contact.addressHint")}
+                  </p>
+
+                  <div className="mt-4">
+                    <label className={LABEL} htmlFor="invite-addr-name">
+                      {t("contact.addrName")}
+                    </label>
+                    <input
+                      id="invite-addr-name"
+                      className={FIELD}
+                      value={address.name}
+                      onChange={(e) => setAddressField("name", e.target.value)}
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <label className={LABEL} htmlFor="invite-addr-line1">
+                      {t("contact.addrLine1")}
+                    </label>
+                    <AddressLookupField
+                      id="invite-addr-line1"
+                      className={FIELD}
+                      autoComplete="address-line1"
+                      value={address.line1}
+                      onChange={(value) => setAddressField("line1", value)}
+                      onPick={(suggestion) => {
+                        setAddress((previous) => ({
+                          ...previous,
+                          line1: suggestion.line1,
+                          postcode: suggestion.postcode,
+                          city: suggestion.city,
+                          country: suggestion.country,
+                        }));
+                        setWantsPostcard(true);
+                      }}
+                      enabled={addressLookupEnabled}
+                      username={username}
+                      locale={locale}
+                      label={t("contact.addrLine1")}
+                      attribution={t("contact.addressLookupAttribution")}
+                      unavailable={t("contact.addressLookupUnavailable")}
+                    />
+                  </div>
+                  <div className="mt-4">
+                    <label className={LABEL} htmlFor="invite-addr-line2">
+                      {`${t("contact.addrLine2")} (${t("contact.optional")})`}
+                    </label>
+                    <input
+                      id="invite-addr-line2"
+                      className={FIELD}
+                      autoComplete="address-line2"
+                      value={address.line2}
+                      onChange={(e) => setAddressField("line2", e.target.value)}
+                    />
+                  </div>
+                  <div className="mt-4 flex gap-4">
+                    <div className="w-1/3">
+                      <label className={LABEL} htmlFor="invite-addr-postcode">
+                        {t("contact.addrPostcode")}
+                      </label>
+                      <input
+                        id="invite-addr-postcode"
+                        className={FIELD}
+                        autoComplete="postal-code"
+                        value={address.postcode}
+                        onChange={(e) =>
+                          setAddressField("postcode", e.target.value)
+                        }
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className={LABEL} htmlFor="invite-addr-city">
+                        {t("contact.addrCity")}
+                      </label>
+                      <input
+                        id="invite-addr-city"
+                        className={FIELD}
+                        autoComplete="address-level2"
+                        value={address.city}
+                        onChange={(e) =>
+                          setAddressField("city", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className={LABEL} htmlFor="invite-addr-country">
+                      {t("contact.addrCountry")}
+                    </label>
+                    <CountryField
+                      id="invite-addr-country"
+                      value={address.country}
+                      locales={locales}
+                      onChange={(code) => setAddressField("country", code)}
+                      label={t("contact.addrCountry")}
+                      searchPlaceholder={t(
+                        "contact.addrCountrySearchPlaceholder",
+                      )}
+                      noMatches={t("contact.addrCountryNoMatches")}
+                      locale={locale}
+                    />
+                  </div>
+                </fieldset>
+              )}
+
+              {/* Two questions, two boxes. "Write to me" and "post me
+                  something" have different consequences and are never
+                  answered at once — the same block, in the same order, as
+                  `ContactForm`: one contacts table should not be filled by two
+                  forms that disagree about what was asked. B315. */}
+              <div className="mt-8 space-y-4">
+                <label className="flex items-start gap-3 text-lg text-ink-strong">
+                  <input
+                    type="checkbox"
+                    className="mt-1.5 size-5"
+                    checked={wantsDigest}
+                    onChange={(e) => setWantsDigest(e.target.checked)}
+                  />
+                  <span>{t("contact.wantsDigest")}</span>
+                </label>
+                {postcardsEnabled && (
+                  <label className="flex items-start gap-3 text-lg text-ink-strong">
+                    <input
+                      type="checkbox"
+                      className="mt-1.5 size-5"
+                      checked={wantsPostcard}
+                      onChange={(e) => setWantsPostcard(e.target.checked)}
+                    />
+                    <span>{t("contact.wantsPostcard")}</span>
+                  </label>
+                )}
+                {whatsappEnabled && (
+                  <label className="flex items-start gap-3 text-lg text-ink-strong">
+                    <input
+                      type="checkbox"
+                      className="mt-1.5 size-5"
+                      checked={wantsWhatsapp}
+                      onChange={(e) => setWantsWhatsapp(e.target.checked)}
+                    />
+                    <span>{t("contact.wantsWhatsapp")}</span>
+                  </label>
+                )}
+              </div>
+            </>
+          )}
+
+          <p className="mt-6 text-base leading-relaxed text-ink-secondary">
+            {t(preapproved ? "invite.notYetPreapproved" : "invite.notYet")}
+          </p>
+
+          {error && (
+            <p role="alert" className="mt-6 text-lg text-coral-600">
+              {t(error)}
+            </p>
+          )}
+          <BusyButton busy={busy} className={BUTTON} type="submit">
+            {step === "confirm"
+              ? t("invite.confirmSubmit")
+              : t(preapproved ? "invite.submitPreapproved" : "invite.submit")}
+          </BusyButton>
+        </form>
+      )}
+
+      {step === "code" && (
+        <form onSubmit={submitCode} noValidate>
+          <p className="mt-3 text-lg leading-relaxed text-ink-body">
+            {t("contact.codeIntro", { email })}
+          </p>
+          <div className="mt-8">
+            <label className={LABEL} htmlFor="invite-code">
+              {t("contact.code")}
+            </label>
+            <input
+              id="invite-code"
+              className={`${FIELD} tracking-[0.4em]`}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+          </div>
+          {error && (
+            <p role="alert" className="mt-6 text-lg text-coral-600">
+              {t(error)}
+            </p>
+          )}
+          <BusyButton busy={busy} className={BUTTON} type="submit">
+            {t("contact.codeSubmit")}
+          </BusyButton>
+        </form>
+      )}
+
+      {step === "waiting" && (
+        <p className="mt-5 text-xl leading-8 text-ink-body">
+          {t("invite.waitingBody", { title: journalTitle })}
+        </p>
+      )}
+
+      {step === "in" && (
+        <>
+          <p className="mt-5 text-xl leading-8 text-ink-body">
+            {t("invite.inBody", { title: journalTitle })}
+          </p>
+          <a
+            className="mt-9 inline-flex min-h-12 items-center justify-center rounded-full bg-yellow-400 px-6 text-lg font-semibold text-yellow-950 transition-colors hover:bg-yellow-300"
+            href={`/${username}`}
+          >
+            {t("err.goToJournal", { title: journalTitle })}
+          </a>
+        </>
+      )}
+    </main>
+  );
+}

@@ -1,0 +1,63 @@
+# One backup run. Driven by fernscout-backup.timer, not enabled directly.
+[Unit]
+Description=Fernscout backup
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+# The failure is told to somebody. Without this the unit simply sits in
+# `failed` until a person thinks to ask — which on this server meant three
+# aborted nights in a row that only a human tailing journalctl noticed (B64).
+# %n is this unit's full name, so the handler needs nothing hardcoded.
+#
+# In [Unit], and not in [Service] where it sat from B64 until B203: systemd
+# reads OnFailure= only here, and a copy in [Service] is logged once as
+# "Unknown key" and then ignored for the life of the unit. The file looked
+# right, `systemctl show -p OnFailure` was empty, and the backup could not
+# report its own failure for weeks.
+OnFailure=fernscout-alert@%n.service
+
+# **The good night is no longer mailed** (B1085). It used to be: `OnSuccess=`
+# pointed at the same handler, on B458's argument that "a quiet mailbox is
+# otherwise indistinguishable from a broken alarm" — which had already happened
+# here, when fernscout-alert@.service was never copied to the server and nobody
+# noticed for two days, because an alarm that works and an alarm that is absent
+# send the same number of messages (B138).
+#
+# That argument is answered rather than dismissed, and the answer is a page.
+# `/admin` shows when the last backup succeeded and how old that is against the
+# ceiling, so silence is no longer ambiguous: there is somewhere to look that
+# tells "nothing to report" apart from "nothing is running". A mail a night,
+# forever, was the cheapest way to prove liveness and not the only one.
+#
+# What did NOT change, and is the thing to check before touching this again:
+# the success stamp `/admin` reads is written by `scripts/backup.sh` itself, on
+# its last line, not by the alert handler. Removing the handler removes a mail
+# and nothing else. If a future change moves that stamp into `scripts/alert.sh`,
+# this deletion silently blanks the page.
+#
+# `scripts/alert.sh` keeps its success path, so the rehearsal in
+# deploy/fernscout-alert@.service's comment still works by hand.
+#
+# Removing OnSuccess= also ends the "multiple trigger source candidates" line
+# B462 catalogued: it was systemd declining to attribute an exit status when
+# two identical triggers named the same handler, and there is only one now.
+
+[Service]
+Type=oneshot
+User=fernscout
+Group=fernscout
+WorkingDirectory=/srv/fernscout
+EnvironmentFile=/etc/fernscout/env
+ExecStart=/srv/fernscout/scripts/backup.sh
+# A backup that hangs must not block the next one forever.
+TimeoutStartSec=30min
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/srv/fernscout /var/lib/fernscout /var/backups/fernscout
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fernscout-backup

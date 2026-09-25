@@ -1,0 +1,270 @@
+import "server-only";
+import { createHash } from "node:crypto";
+
+/**
+ * A crude in-memory rate limit, used only to stop a script hammering the
+ * reaction endpoint.
+ *
+ * Deliberately *not* an identity check. Everyone in one house — or on one
+ * hostel wifi — shares an address, and on a family travel blog that is exactly
+ * the group most likely to react to the same day within a minute of each
+ * other. The limit is set well above what a household could produce by hand.
+ */
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_IN_WINDOW = 60;
+
+/**
+ * One address's hits in one bucket, and the window they are counted over.
+ *
+ * The window is stored rather than looked up because eviction has to know it.
+ * Every bucket on this server shares one map, and they do not share a window:
+ * nine of the namespaced ones run fifteen minutes and two run an hour, against
+ * the default's ten. A sweep that judged all of them by the default's window
+ * deleted the longer ones while they were still counting — which is not
+ * housekeeping, it is resetting a limit. B222.
+ */
+type Bucket = { times: number[]; windowMs: number };
+
+const hits = new Map<string, Bucket>();
+
+/** Above this many buckets, eviction runs. */
+const MAX_BUCKETS = 5000;
+
+/**
+ * At most one full scan per second.
+ *
+ * Without it, a map held above the threshold by live traffic re-scans every
+ * key on every request — so the moment the counters are under load is the
+ * moment each request costs an extra five thousand comparisons. The map can
+ * grow by one second's worth of new addresses between scans, which is the
+ * trade.
+ */
+const SWEEP_INTERVAL_MS = 1000;
+let lastSweep = 0;
+
+/**
+ * Drop buckets whose own window has closed.
+ *
+ * Called by `take()`, which is the single door both public functions go
+ * through — the point of B04. It used to live inside `rateLimit()`, below an
+ * early return, so it ran only for the default bucket and only when that
+ * bucket said yes. The twelve namespaced callers wrote into this same map and
+ * never swept it, and the one caller certain to be hammering an endpoint — the
+ * one being refused — was the one that never pruned.
+ */
+function sweep(now: number) {
+  if (hits.size <= MAX_BUCKETS) return;
+  if (now - lastSweep < SWEEP_INTERVAL_MS) return;
+  lastSweep = now;
+  for (const [key, bucket] of hits) {
+    if (bucket.times.every((t) => now - t >= bucket.windowMs)) hits.delete(key);
+  }
+}
+
+/** The hits still inside the window, oldest first. */
+function within(key: string, windowMs: number, now: number): number[] {
+  return (hits.get(key)?.times ?? []).filter((t) => now - t < windowMs);
+}
+
+/**
+ * Whether a bucket would accept one more — **without taking it**.
+ *
+ * The counting half of a limit and the deciding half are not always the same
+ * moment. `POST /api/v1/journals` has to know, before it does any work, that
+ * it is allowed to proceed, and then count the *outcome* rather than the
+ * attempt: a refused creation and a successful one belong in different
+ * buckets, and which one it is is not knowable at the top of the route. B217.
+ *
+ * Writes nothing, including no sweep: a bucket that is only read has added
+ * nothing to evict.
+ */
+function look(key: string, max: number, windowMs: number): { ok: boolean; retryAfter: number } {
+  const now = Date.now();
+  const recent = within(key, windowMs, now);
+  if (recent.length >= max) {
+    return { ok: false, retryAfter: Math.ceil((windowMs - (now - recent[0])) / 1000) };
+  }
+  return { ok: true, retryAfter: 0 };
+}
+
+/**
+ * One attempt against one bucket.
+ *
+ * Both `rateLimit` and `rateLimitFor` are this function with different
+ * arguments. They were two copies of the same seven lines, and the copies had
+ * already drifted: only one of them swept.
+ */
+function take(
+  key: string,
+  max: number,
+  windowMs: number,
+): { ok: boolean; retryAfter: number } {
+  const now = Date.now();
+  const recent = within(key, windowMs, now);
+
+  if (recent.length >= max) {
+    const retryAfter = Math.ceil((windowMs - (now - recent[0])) / 1000);
+    hits.set(key, { times: recent, windowMs });
+    sweep(now);
+    return { ok: false, retryAfter };
+  }
+
+  recent.push(now);
+  hits.set(key, { times: recent, windowMs });
+  sweep(now);
+  return { ok: true, retryAfter: 0 };
+}
+
+/**
+ * How many buckets are being tracked.
+ *
+ * Exists so the eviction below can be asserted rather than reasoned about: a
+ * sweep is a thing that stops happening silently, and "the map does not grow"
+ * is not observable from any response. Read-only, and nothing in the
+ * application calls it.
+ */
+export function trackedBuckets(): number {
+  return hits.size;
+}
+
+/**
+ * Every path that sends mail on an unauthenticated or cookie-only request,
+ * with the bucket that limits it — B1491's sweep. The question each of these
+ * answers is not "does this route have a limit" but "which mail can a
+ * stranger, or an owner's own cookie session run wild, make this server
+ * send": every one below mails somebody who did not themselves make the
+ * call that triggered it.
+ *
+ * | Bucket | Keyed on | Caller |
+ * | --- | --- | --- |
+ * | `email-code-address` / `email-code-instance` | address / instance | `emailCodeAllowed` — every mailed sign-in, identity and signup code |
+ * | `contact-resend` | contact id | resending an invite or a buddy link |
+ * | `export-request` | requester's IP | `/[user]/me/export` — a copy of the journal |
+ * | `deletion-request` | owner's address | `requestDeletion` — journal DELETE, trip DELETE, `/[user]/me/delete` |
+ * | `deletion-confirm` | requester's IP | opening the confirmation link itself |
+ * | `owner-tel-verify-number` / `-owner` / `phone-verify-instance` | phone / owner / instance | phone verification codes |
+ * | `journals-create*` | requester's IP | the welcome mail a new journal gets |
+ * | `storage-<level>` | username | a storage-ceiling warning |
+ * | `trip-people-notify` | outgoing address | `notifyNewPeople` — mailing someone newly added to `people:` |
+ *
+ * `trip-people-notify` is a different shape from the rest of this table: the
+ * caller already holds write access to the trip, so the risk is not a
+ * stranger but a write token toggling one address on and off `people:` to
+ * resend mail to it as fast as writes allow (B1689).
+ */
+
+/** Hashed so raw addresses never sit in memory or in a log line. */
+function key(ip: string) {
+  return createHash("sha256").update(ip).digest("hex").slice(0, 16);
+}
+
+/**
+ * Test-only: drop every bucket.
+ *
+ * The map is module-level and outlives a single test, which is fine for a
+ * file whose subject *is* the limiter — see `journals-rate-limit.test.ts` —
+ * but a fixture-heavy suite that reuses one address across many unrelated
+ * cases (`test/deletions.test.ts`'s `OWNER`) would otherwise trip a bucket it
+ * never meant to exercise. Nothing in the application calls this.
+ */
+export function resetRateLimitsForTests(): void {
+  hits.clear();
+}
+
+/**
+ * A named bucket with its own limits.
+ *
+ * The default bucket is deliberately generous (see above). Asking for a
+ * sign-in code is the opposite situation: a reader needs one or two, and
+ * anything beyond that is somebody working through a list of addresses.
+ */
+export function rateLimitFor(
+  namespace: string,
+  ip: string,
+  options: { max: number; windowMs: number },
+): { ok: boolean; retryAfter: number } {
+  return take(`${namespace}:${key(ip)}`, options.max, options.windowMs);
+}
+
+/**
+ * What `rateLimitFor` would answer, without spending anything.
+ *
+ * For a caller that counts what happened rather than that it was asked — see
+ * `look` above, and `POST /api/v1/journals`, which is the only caller today.
+ * Anything that both checks and consumes should still use `rateLimitFor`: two
+ * calls where one would do is a way of forgetting the second.
+ */
+export function rateLimitStatus(
+  namespace: string,
+  ip: string,
+  options: { max: number; windowMs: number },
+): { ok: boolean; retryAfter: number } {
+  return look(`${namespace}:${key(ip)}`, options.max, options.windowMs);
+}
+
+export function rateLimit(ip: string): { ok: boolean; retryAfter: number } {
+  return take(key(ip), MAX_IN_WINDOW, WINDOW_MS);
+}
+
+/**
+ * The address every limit on this server is keyed by.
+ *
+ * **Reading the first value here is only safe because the proxy overwrites the
+ * header.** `deploy/Caddyfile` sets `header_up X-Forwarded-For {remote_host}`,
+ * which replaces whatever the client sent rather than appending to it — which
+ * is Caddy's default and was the bug. Without that line a client sends
+ * `X-Forwarded-For: 203.0.113.9`, that value lands in first position, and it
+ * is what comes back from here: rotate the header per request and every limit
+ * keyed on this resets.
+ *
+ * So the two halves are one mechanism and neither works alone. If this app is
+ * ever put behind a different proxy, that proxy must overwrite the header too,
+ * or this function has to stop trusting it.
+ *
+ * Reading the *last* value instead would also defeat a forged prefix, but only
+ * while exactly one proxy sits in front; overwriting at the edge survives a
+ * second one being added.
+ *
+ * The docstring here used to say "as seen through nginx", from before Caddy,
+ * which is most of why nobody re-checked it.
+ */
+/**
+ * `Headers` as well as `Request` since B566: a server component has
+ * `await headers()` and no Request at all, and the alternative was a second
+ * copy of the two lines below — which is a second place for the trust
+ * decision documented above to be got wrong.
+ */
+export function clientIp(req: Request | Headers): string {
+  const headers = req instanceof Headers ? req : req.headers;
+  const fwd = headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return headers.get("x-real-ip") ?? "unknown";
+}
+
+/**
+ * The two ceilings the per-IP bucket on every mailed-code route (auth,
+ * identity, signup) cannot enforce, mirroring the ones the WhatsApp channel
+ * already has (`whatsapp-code-number`, `whatsapp-code-instance`) — B1552. The
+ * per-IP bucket is no ceiling against a distributed caller: a botnet or an
+ * IPv6 /64 rotating addresses can still mail codes to one victim address, or
+ * across many addresses, without bound.
+ *
+ * Per address, 10/day, matching the WhatsApp per-number bucket. Per
+ * instance, 500/day, **shared across all three routes** under one bucket
+ * name — one address' worth of spend and one instance's worth are the same
+ * concern regardless of which door a caller used to reach it.
+ *
+ * Quietly `false` when exceeded, never a distinguishable status: every one of
+ * these routes answers a uniform 202 regardless, so a caller must not be able
+ * to tell a rate-limited request from a sent one.
+ */
+export function emailCodeAllowed(email: string): boolean {
+  const day = 24 * 60 * 60 * 1000;
+  const perAddress = rateLimitFor("email-code-address", email.trim().toLowerCase(), {
+    max: 10,
+    windowMs: day,
+  });
+  if (!perAddress.ok) return false;
+  const perInstance = rateLimitFor("email-code-instance", "*", { max: 500, windowMs: day });
+  return perInstance.ok;
+}

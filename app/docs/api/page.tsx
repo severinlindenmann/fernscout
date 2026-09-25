@@ -1,0 +1,184 @@
+import type { Metadata } from "next";
+import DocsNav from "@/components/DocsNav";
+import { openApiDocumentV2 } from "@/lib/api/v2/openapi";
+import EntryContent from "@/components/EntryContent";
+import { docsNavEntries } from "@/lib/docs";
+import { requestLocale } from "@/lib/locales";
+
+export const metadata: Metadata = { title: "API" };
+
+/** Badge classes per verb — all pairs already used elsewhere in the codebase, so none of them are a new contrast bet. */
+const METHOD_STYLE: Record<string, string> = {
+  get: "bg-action-strong text-on-action",
+  post: "bg-yellow-400 text-yellow-950",
+  patch: "border border-line-ink text-ink-strong",
+  delete: "bg-coral-600 text-on-deep",
+};
+
+type Operation = {
+  summary?: string;
+  description?: string;
+  security?: unknown[];
+  parameters?: { name: string; in: string; required?: boolean; schema?: { type?: string } }[];
+  requestBody?: { required?: boolean; content: Record<string, { schema?: unknown }> };
+  responses?: Record<string, { description?: string }>;
+};
+
+const METHOD_ORDER = ["get", "post", "patch", "delete", "put"];
+
+/**
+ * `/docs/api` renders the same document `/api/v2/openapi.json` serves — see
+ * `openApiDocumentV2` for why they share one source. A person reading the API
+ * gets a page instead of a JSON blob; an agent still wants the raw file.
+ * Moved here from `/api/docs` (B305), beside the rest of the guide —
+ * `/api/docs` still answers, as a redirect.
+ *
+ * **It renders v2, and B1675 is why that is written down.** It rendered
+ * `lib/api/openapi.ts` — the v1 document — for the whole of the migration and
+ * after it, so the one page a person reads to learn this API described doors
+ * that had been deleted. `lib/api/openapi.ts` is gone now too (B1734): the
+ * sign-in doors and the two v1 routes that outlived v1 (`track`,
+ * `deletions/{token}`) all moved into this v2 document, and `/openapi.json`
+ * itself answers 410.
+ *
+ * No client JS: `<details>` does the collapsing, and this is a reading
+ * surface rather than a request sender (see B299) — nothing here needs a
+ * request to run.
+ */
+export default async function ApiDocsPage() {
+  const locale = await requestLocale();
+  const doc = openApiDocumentV2();
+  const paths = Object.entries(doc.paths) as [string, Record<string, Operation>][];
+
+  return (
+    <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
+      {/* The link back to `/docs` is gone: the shell's header carries the way
+          out now, and two of them is the duplication B470 exists to remove.
+          The two agent-facing documents stay, because they are what somebody
+          reading an API reference actually wants next. */}
+      <p className="text-sm font-semibold text-ink-muted">
+        <a
+          href="/documentation.txt"
+          className="underline decoration-line-quiet hover:decoration-line-prominent"
+        >
+          /documentation.txt
+        </a>{" "}
+        · <a href="/api/v2/openapi.json" className="underline decoration-line-quiet hover:decoration-line-prominent">
+          /api/v2/openapi.json
+        </a>
+      </p>
+      <h1 className="mt-2 font-display text-3xl font-semibold text-ink-strong">{doc.info.title}</h1>
+      <div className="mt-3">
+        <EntryContent markdown={doc.info.description} />
+      </div>
+
+      <div className="mt-6">
+        <DocsNav locale={locale} entries={docsNavEntries()} current="/docs/api" />
+      </div>
+
+      <nav className="mt-8 rounded-2xl border border-line-quiet bg-surface-raised p-4" aria-label="Endpoints">
+        <ul className="grid gap-1 font-mono text-sm text-ink-body sm:grid-cols-2">
+          {paths.map(([path]) => (
+            // `min-w-0`: a grid item's default `min-width: auto` refuses to
+            // shrink below its content, and a route path is one unbreakable
+            // string — same failure mode as the `min-w-0` on `<body>` in
+            // `app/layout.tsx` (B431), one level down. `break-all` on the
+            // link is what actually wraps it once the item can shrink.
+            <li key={path} className="min-w-0">
+              <a href={`#${anchorFor(path)}`} className="break-all hover:text-ink-strong hover:underline">
+                {path}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <div className="mt-10 space-y-8">
+        {paths.map(([path, methods]) => (
+          <section key={path} id={anchorFor(path)} className="scroll-mt-6">
+            <h2 className="break-all font-mono text-lg font-semibold text-ink-strong">{path}</h2>
+            <div className="mt-2 space-y-3">
+              {METHOD_ORDER.filter((m) => methods[m]).map((method) => (
+                <Endpoint key={method} method={method} op={methods[method]} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+function Endpoint({ method, op }: { method: string; op: Operation }) {
+  const responses = Object.entries(op.responses ?? {});
+  const bodyContent = op.requestBody ? Object.entries(op.requestBody.content) : [];
+
+  return (
+    <details className="group rounded-2xl border border-line-quiet bg-surface-raised open:pb-4">
+      <summary className="flex cursor-pointer list-none items-center gap-3 px-4 py-3">
+        <span
+          className={`rounded-md px-2 py-0.5 text-xs font-bold uppercase ${METHOD_STYLE[method] ?? "bg-surface-selected text-ink-strong"}`}
+        >
+          {method}
+        </span>
+        <span className="text-sm font-semibold text-ink-strong">{op.summary}</span>
+        {op.security?.length === 0 && (
+          <span className="ml-auto shrink-0 text-xs font-semibold text-ink-muted">no token</span>
+        )}
+      </summary>
+
+      <div className="space-y-4 px-4 text-sm">
+        {op.description && <EntryContent markdown={op.description} />}
+
+        {op.parameters && op.parameters.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold uppercase text-ink-muted">Parameters</h3>
+            <ul className="mt-1 space-y-0.5 font-mono text-ink-body">
+              {op.parameters.map((p) => (
+                <li key={p.name}>
+                  {p.name} <span className="text-ink-muted">({p.in}{p.required ? ", required" : ""})</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {bodyContent.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold uppercase text-ink-muted">
+              Request body{op.requestBody?.required ? "" : " (optional)"}
+            </h3>
+            {bodyContent.map(([contentType, { schema }]) => (
+              <div key={contentType} className="mt-1">
+                <p className="font-mono text-xs text-ink-muted">{contentType}</p>
+                <pre className="mt-1 overflow-x-auto rounded-lg bg-surface-subtle p-3 text-xs text-ink-body">
+                  {JSON.stringify(schema, null, 2)}
+                </pre>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {responses.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold uppercase text-ink-muted">Responses</h3>
+            <dl className="mt-1 space-y-2">
+              {responses.map(([status, r]) => (
+                <div key={status} className="flex gap-3">
+                  <dt className="shrink-0 font-mono font-semibold text-ink-strong">{status}</dt>
+                  <dd className="text-ink-body">
+                    {r.description && <EntryContent markdown={r.description} />}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+      </div>
+    </details>
+  );
+}
+
+function anchorFor(path: string): string {
+  return path.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+}

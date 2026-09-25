@@ -1,0 +1,346 @@
+import "server-only";
+import { isEnabled } from "./capabilities";
+import { analyticsAvailable } from "./analytics";
+import { loadServerConfig, type UserConfig } from "./config";
+import { getUser } from "./users";
+import type { Figure } from "./travellers/vocabulary";
+import type { Trip, TripPerson } from "./types";
+
+/**
+ * Site identity.
+ *
+ * There are two of them now. The *server* has a name and a URL and belongs to
+ * whoever runs the instance; a *user* has a title, travellers and a language
+ * and belongs to a person. Keeping them apart is what lets one instance carry
+ * several unrelated travel blogs.
+ *
+ * Server-only on purpose: both reach the filesystem. Client components get the
+ * values through `SiteProvider`, seeded once per request — the same reasoning
+ * the root layout already documents for `getTrips()`.
+ */
+
+export function serverSite() {
+  const config = loadServerConfig();
+  return {
+    name: config.site.name,
+    /** NEXT_PUBLIC_SITE_URL wins on the server, so one build serves any host. */
+    url: process.env.NEXT_PUBLIC_SITE_URL ?? config.site.url,
+    defaultUser: config.site.defaultUser,
+    repository: config.site.repository,
+    credit: config.site.credit,
+  };
+}
+
+/**
+ * The public page with the full wording of every map-data source a
+ * photobook's colophon might credit — B2260. Built from this instance's own
+ * configured origin, the same way `siteUrl` on a `BookSource` is
+ * (`paid/photobook/lib/photobook/source.ts`), so a printed URL never hard-codes
+ * fernscout.ch. One function rather than the path typed out at each call
+ * site, so the route and the printed URL cannot drift apart.
+ */
+/** @public open core: paid/ uses this (tagged by open-core/split). */
+export function mapCreditUrl(): string {
+  return `${serverSite().url}/map-credits`;
+}
+
+/**
+ * The landing-page notice in the reader's language, or nothing.
+ *
+ * The operator writes it themselves — `site.banner.text`, plus whatever
+ * `site.banner.translations` they could manage — so this is a pick, not a
+ * lookup in a dictionary. `text` is the one every reader is guaranteed, which
+ * makes it the fallback: a reader whose language the operator did not write in
+ * gets the notice anyway, in the wrong language, because a beta warning nobody
+ * sees is worse than one somebody has to translate in their head.
+ *
+ * `de-CH` takes `de` when the operator wrote only `de`, since a region is a
+ * dialect of a language the notice is already in. B660.
+ */
+export function bannerFor(locale: string): string | undefined {
+  const banner = loadServerConfig().site.banner;
+  if (!banner) return undefined;
+  const translations = banner.translations ?? {};
+  return (
+    translations[locale] ??
+    translations[locale.split("-")[0]] ??
+    banner.text
+  );
+}
+
+/**
+ * Who a trip is credited to, owner first.
+ *
+ * The same owner-first union `peopleOf()` computes for write access, so the
+ * credit on a trip and the right to edit it cannot disagree. De-duplicated on
+ * the address, because an owner who also lists themselves in `people:` is one
+ * person, not two.
+ */
+export function travellersOf(user: UserConfig, trip: Trip): TripPerson[] {
+  const owner: TripPerson = {
+    name: user.owner.name,
+    email: user.owner.email ?? "",
+    nickname: user.owner.nickname,
+  };
+  const out = [owner];
+  const seen = new Set([owner.email.trim().toLowerCase()]);
+  for (const person of trip.people) {
+    const email = person.email.trim().toLowerCase();
+    if (seen.has(email)) continue;
+    seen.add(email);
+    out.push(person);
+  }
+  return out;
+}
+
+/**
+ * What to call the person whose journal this is, in one word — B20.
+ *
+ * `nickname` is the short form a journal already keeps for exactly this, and
+ * `lib/journals.ts` requires it rather than deriving one, because a first-word
+ * guess is wrong for plenty of names. This is the fallback for a journal
+ * written before that or edited by hand: the first word of `name`, which is
+ * wrong less often than a full "Firstname Lastname" where a first name was
+ * meant.
+ *
+ * Undefined when the config names nobody, so a caller has to have a sentence
+ * for that case rather than rendering "Ask ." — an owner block with no name in
+ * it is a malformed config, not a reason to print a blank.
+ *
+ * **Nothing else about the owner comes out of here.** `owner.email` sits in
+ * the same object and is the one field on it that must never reach a browser;
+ * the point of a function that returns a single string is that a component
+ * cannot be handed the object and pick wrong later.
+ */
+export function ownerShortName(user: UserConfig): string | undefined {
+  const nickname = user.owner.nickname?.trim();
+  if (nickname) return nickname;
+  const first = user.owner.name?.trim().split(/\s+/)[0];
+  return first || undefined;
+}
+
+/** Short forms joined with "+", as a journal refers to the people on a trip. */
+export function travellerNamesOf(user: UserConfig, trip: Trip): string {
+  return travellersOf(user, trip)
+    .map((p) => p.nickname || p.name)
+    .join(" + ");
+}
+
+/** Full names joined with "&", for credits and metadata. */
+export function travellerFullNamesOf(user: UserConfig, trip: Trip): string {
+  return travellersOf(user, trip)
+    .map((p) => p.name)
+    .join(" & ");
+}
+
+/**
+ * The serialisable subset handed to client components.
+ *
+ * Deliberately no traveller names. Who was on a trip is a per-trip fact
+ * (`travellersOf`), and this summary is seeded once per request by a layout
+ * that has no trip in hand — a journal-wide answer here is how every trip
+ * came to be credited to the same two people.
+ */
+export type SiteSummary = {
+  username: string;
+  title: string;
+  /**
+   * The instance's own name — `site.name` from config, "Fernscout" here.
+   *
+   * Journal-wide and viewer-independent, like `canSignIn` below it. The
+   * breadcrumb needs it (B1728): the crumb for `/` says "Your journals" to a
+   * reader holding an identity and names the instance to everybody else, and
+   * a client component in the header has no other way to ask.
+   */
+  name: string;
+  tagline: string;
+  url: string;
+  startLocation: string;
+  baseCurrency: string;
+  /** The languages this journal offers, in config order. */
+  locales: string[];
+  /** Always "/<username>": that is the canonical form (W22). */
+  base: string;
+  /**
+   * The journal's default party — how its travellers are **drawn** on a trip
+   * that does not say for itself. See lib/travellers/.
+   *
+   * `travellerFigures` rather than `travellers`, because `travellersOf` above
+   * is in this same file and answers a different question: *who is credited*
+   * with a trip, as names. Two meanings of one word in one module is how a
+   * caller reaches for the wrong one, so the drawings say so in their name.
+   *
+   * Here rather than fetched, because the components that draw them are client
+   * components rendered deep inside the story, and a journal-wide default is
+   * exactly the kind of thing this summary already carries.
+   */
+  travellerFigures: Figure[];
+  /**
+   * Whether this reader holds a guest session on this journal.
+   *
+   * It once decided whether the access panel was offered at all, and that was
+   * a closed loop — the panel exists for the reader who lost the mail she was
+   * let in with, so requiring a session meant only a reader who still had it
+   * could reach it. The entry is now offered to everyone (components/SiteNav),
+   * and this decides how it is *drawn*: a stranger is shown a door, somebody
+   * who is already in is shown the panel's own name. See app/[user]/me.
+   */
+  signedIn: boolean;
+  /**
+   * Whether this journal can issue a sign-in code at all — `features.auth`,
+   * resolved for this user by `isEnabled`.
+   *
+   * The header needs it (B44): the way back in is a door marked in words, and
+   * a door is only drawn where there is a form behind it. On a journal with
+   * `auth` off, `/<user>/me` has nothing to press and says so, and a control
+   * promising otherwise is the bug recorded at app/[user]/me/MePageContent.tsx.
+   *
+   * Deliberately journal-wide and viewer-independent: it comes from config and
+   * from nothing the reader is or is not allowed to see.
+   */
+  canSignIn: boolean;
+  /**
+   * Whether this reader holds an instance-wide identity — B433.
+   *
+   * The header's way back out of a journal, and the only thing that decides
+   * whether it is drawn. It is **not** `signedIn`: that is a guest session on
+   * *this* journal, and a reader can hold one without holding an identity —
+   * every session issued before B410, and every one issued by a journal's own
+   * `/<user>/me` form. Sending those readers to `/` would land them on the
+   * public landing page having promised them "your journals".
+   *
+   * Deliberately not "does this reader have more than one journal". That would
+   * be `journalsFor()` — a walk of every journal on the instance with two
+   * indexed queries each — on every page render of every journal, to decide
+   * whether to draw one link. The link is honest either way: somebody with one
+   * journal who follows it gets that journal and the page that lists it, which
+   * is where the way to the rest of the instance is.
+   */
+  hasIdentity: boolean;
+  /**
+   * Whether this journal's Analytics tab has anything behind it — any one
+   * analysis whose capability is on *and* which has data somewhere in the
+   * journal (`analyticsAvailable` in lib/analytics.ts).
+   *
+   * It was `costsEnabled` until B557, when costs stopped being the only thing
+   * a trip could be added up into. The name moved with the tab deliberately:
+   * a field called `costsEnabled` deciding whether a tab called Analytics is
+   * drawn is a fact kept in two words that disagree, and the next analysis
+   * added would have been gated on whether the journal does spending.
+   *
+   * The nav needs it (B165, B267): with a capability off its pages answer
+   * 404, and a tab that links at one is the same bug the sign-in door above
+   * records — a control promising something that is not there. Absent rather
+   * than broken. The capability check alone was not enough: `costs` is on by
+   * default at trip creation (lib/journals.ts), so a journal that never wrote
+   * a budget still got the tab, leading to a page with nothing on it — the
+   * same failure with an extra step. B267 added the second half, and B557
+   * kept it for weather.
+   *
+   * Journal-wide and viewer-independent, exactly like `canSignIn`, and for the
+   * same reason: it comes from config and from nothing the reader is or is not
+   * allowed to see. It is not `costsVisibility`, which is per trip and per
+   * reader and is decided by `mayViewCosts` on the server.
+   */
+  analyticsEnabled: boolean;
+  /**
+   * Whether `/agent` can actually write on this instance — `features.helper`,
+   * resolved for this user by `isEnabled`. B797.
+   *
+   * The header needs it for the same reason `canSignIn` and
+   * `analyticsEnabled` do: with the capability off there is no `/agent` worth
+   * sending a reader to, and a call-to-action pointing at nothing is the same
+   * bug those two fields already guard against. Journal-wide and
+   * viewer-independent — it comes from config, not from who is reading.
+   */
+  helperEnabled: boolean;
+  /**
+   * Whether this reader is the owner of this journal — B821.
+   *
+   * The nav needs it for the credits-and-storage destination: a page with
+   * nothing behind it for anybody else, so the row itself must be absent
+   * rather than lead to a 404 (the same rule `canSignIn` and `helperEnabled`
+   * follow). Resolved the same way `signedIn` and `hasIdentity` are —
+   * per-viewer, from the layout's own `resolveAccess` — and **not**
+   * `signedIn`: a stranger with no session at all is obviously not the
+   * owner, but so is a reader signed in as somebody else's guest.
+   */
+  isOwner: boolean;
+  /**
+   * Whether `/<user>/studio` — the studio — exists on this instance for this
+   * journal — `features.extract`, resolved for this user by `isEnabled`.
+   * B1797, renamed to the studio's own gate by B1825: the capability id kept
+   * its name (nothing outside this file and `lib/capabilities.ts` reads it),
+   * but the URL and field's *meaning* moved with the hub.
+   *
+   * The same reasoning as `helperEnabled`: the nav's studio entry is
+   * owner-only *and* capability-gated, and a row pointing at a page that
+   * answers `notFound()` is the bug `helperEnabled` and `analyticsEnabled`
+   * already guard against. Journal-wide and viewer-independent.
+   */
+  extractEnabled: boolean;
+};
+
+/**
+ * A figure with its `for:` address removed.
+ *
+ * `SiteSummary` is serialised into the HTML of **every** page under
+ * `/<username>` — `app/[user]/layout.tsx` wraps the lot, including the sign-in
+ * gate an uninvited reader meets. A journal whose `config.json` names its
+ * default party by address would therefore hand those addresses to anyone who
+ * loaded the gate, on a page that deliberately does not even name the trip
+ * (B117).
+ *
+ * Nothing is lost: `for:` ties a figure to an entry in a *trip's* `people:`
+ * block, the renderer never reads it, and at journal level it means nothing at
+ * all. The drawing is the only part the browser needs.
+ */
+function withoutAddress(figure: Figure): Figure {
+  const { for: _address, ...rest } = figure;
+  return rest;
+}
+
+export function siteSummaryFor(
+  user: UserConfig,
+  isDefaultUser: boolean,
+  signedIn = false,
+  hasIdentity = false,
+  isOwner = false,
+): SiteSummary {
+  return {
+    username: user.username,
+    title: user.title,
+    name: serverSite().name,
+    tagline: user.tagline,
+    url: serverSite().url,
+    startLocation: user.startLocation,
+    baseCurrency: user.baseCurrency,
+    locales: user.locales,
+    base: `/${user.username}`,
+    travellerFigures: user.travellers.map(withoutAddress),
+    signedIn,
+    hasIdentity,
+    isOwner,
+    // Asked here rather than threaded through as a fourth positional boolean:
+    // it is a property of the journal, so every caller would compute the same
+    // answer, and one of them would eventually forget to.
+    canSignIn: isEnabled("auth", user.username),
+    analyticsEnabled: analyticsAvailable(user.username),
+    helperEnabled: isEnabled("helper", user.username),
+    extractEnabled: isEnabled("extract", user.username),
+  };
+}
+
+/** Convenience for routes that already know the username. */
+export function siteSummary(
+  username: string,
+  isDefaultUser: boolean,
+  signedIn = false,
+  hasIdentity = false,
+  isOwner = false,
+): SiteSummary | null {
+  const user = getUser(username);
+  return user
+    ? siteSummaryFor(user, isDefaultUser, signedIn, hasIdentity, isOwner)
+    : null;
+}
