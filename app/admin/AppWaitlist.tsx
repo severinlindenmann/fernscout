@@ -19,7 +19,7 @@ export default function AppWaitlist({ entries }: { entries: WaitlistEntry[] }) {
         landing page switches to a link and stops collecting more.
       </p>
       {entries.length === 0 ? (
-        <p className="mt-3 text-sm text-ink-muted">Nobody is waiting yet.</p>
+        <p className="mt-3 text-sm text-ink-body">Nobody is waiting yet.</p>
       ) : (
         <ul className="mt-3 divide-y divide-line-quiet rounded-lg border border-line-quiet">
           {entries.map((entry) => (
@@ -27,7 +27,7 @@ export default function AppWaitlist({ entries }: { entries: WaitlistEntry[] }) {
               <span className="w-full min-w-0 break-words text-sm text-ink-strong sm:w-auto sm:flex-1">
                 {entry.email}
               </span>
-              <span className="text-xs text-ink-muted">
+              <span className="text-xs text-ink-body">
                 {entry.createdAt.slice(0, 10)}
                 {entry.locale ? ` · ${entry.locale}` : ""}
               </span>
