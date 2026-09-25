@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { isAdminEmail } from "../admin";
 import { isJournalWideScope, resolveSession } from "../auth";
 import { resolveAccess } from "../auth/handshake";
@@ -132,7 +133,22 @@ export type JournalReader = {
  * place, which is precisely the bug B41 is closing — so both ask for a live
  * grant, and `lib/grants.ts` is where "live" is defined.
  */
-export async function journalReader(username: string): Promise<JournalReader> {
+export const journalReader = cache(lookUpJournalReader);
+
+/**
+ * `journalReader`, uncached.
+ *
+ * Wrapped in `cache()` above for the reason `resolveSession` is (the long
+ * note in lib/auth/index.ts): a gated trip page asks this from the layout's
+ * gate, from `mayReadTrip`, from `readFor`'s reader level, from
+ * `mayViewCosts` and from the switcher's `listableTrips` — two queries each
+ * time (`getContactByEmail`, then `hasReadGrant`) for one answer that cannot
+ * change during the render. Per request only, a pass-through outside one, so
+ * the routes that approve, revoke or redeem and then ask again
+ * (`app/api/contacts/**`) still read the row they just wrote; and keyed on the
+ * username alone because `resolveAccess` underneath is itself per request.
+ */
+async function lookUpJournalReader(username: string): Promise<JournalReader> {
   // B410: the address may arrive on this journal's session or on an
   // instance-wide identity, and being a guest here is a question about the
   // address. Everything below is unchanged — an identity opens nothing on its

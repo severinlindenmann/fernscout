@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import MiniSearch from "minisearch";
 import { buildSearchIndex, buildSearchIndexJson } from "@/lib/search";
@@ -155,6 +157,42 @@ describe("the served JSON round-trips through MiniSearch.loadJSON", () => {
     expect(hits).toHaveLength(1);
     expect(hits[0].title).toBe("A Public Day");
     expect(hits[0].url).toBe("/creator/trips/public-2026/day/somewhere");
+  });
+});
+
+/**
+ * The public index is reused while the rows it was built from are unchanged —
+ * and only then. The direction that matters is the second test: a trip closed
+ * after the index was first built must leave it on the very next request, not
+ * whenever the process restarts.
+ */
+describe("the reused public index", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-search-memo-"));
+    fs.cpSync(FIXTURES, dir, { recursive: true });
+    process.env.CONTENT_DIR = dir;
+  });
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  const tripFile = () => path.join(dir, "creator", "trips", "private-2026", "trip.json");
+  const setVisibility = (visibility: string) => {
+    const trip = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
+    fs.writeFileSync(tripFile(), JSON.stringify({ ...trip, visibility }, null, 2));
+  };
+
+  test("is the same answer twice over unchanged content", () => {
+    expect(buildSearchIndexJson("creator")).toBe(buildSearchIndexJson("creator"));
+  });
+
+  test("follows a trip opened, and closed again, between two requests", () => {
+    expect(buildSearchIndexJson("creator")).not.toContain("Secretville");
+    setVisibility("public");
+    expect(buildSearchIndexJson("creator")).toContain("Secretville");
+    setVisibility("private");
+    expect(buildSearchIndexJson("creator")).not.toContain("Secretville");
   });
 });
 

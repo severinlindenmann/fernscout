@@ -5,30 +5,14 @@ import { notFound, redirect } from "next/navigation";
 import CostsPageContent from "@/app/[user]/(trip)/costs/CostsPageContent";
 import CostsPrivate from "@/components/CostsPrivate";
 import { getCostSummary, hasCostsData } from "@/lib/costs";
-import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
+import { getTrip, tripRef } from "@/lib/trips";
 import { getDays } from "@/lib/entries";
 import { hasBegun } from "@/lib/tripTime";
 import type { TranslationKey } from "@/lib/i18n";
-import { getUser, getUsernames } from "@/lib/users";
+import { getUser } from "@/lib/users";
 import { isEnabled } from "@/lib/capabilities";
 import TripProvider from "@/components/TripProvider";
 import { travellerNamesOf } from "@/lib/site";
-
-export function generateStaticParams() {
-  return getUsernames().flatMap((user) => {
-    // A journal with spending switched off has no costs pages to prerender.
-    // B165.
-    if (!isEnabled("costs", user)) return [];
-    const current = getCurrentTrip(user)?.id;
-    return getTrips(user)
-      .filter((t) => t.id !== current && t.status !== "upcoming")
-      // And a trip that never got a `costs.md` has no page of its own to
-      // prerender either — the capability being on says nothing about this
-      // one trip. B267.
-      .filter((t) => hasCostsData(tripRef(user, t.id)))
-      .map((t) => ({ user, trip: t.id }));
-  });
-}
 
 export async function generateMetadata({
   params,

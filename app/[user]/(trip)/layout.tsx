@@ -27,17 +27,25 @@ export default async function TripPagesLayout({
 
   const current = getCurrentTrip(username);
   if (current && !(await mayReadTrip(current))) {
+    // Four reads about the reader in front of the gate, none depending on
+    // another — asked together rather than in the order the props list them.
+    const [who, whatsappSignIn, guestBlockedByPrivate, waiting] = await Promise.all([
+      signedInAs(username),
+      whatsappSignInOffered(username),
+      guestBlockedByPrivateTrip(current),
+      awaitingApproval(username),
+    ]);
     return (
       <TripGate
         username={username}
         journalTitle={getUser(username)?.title ?? username}
         ownerName={getUser(username)?.owner?.nickname?.trim() || getUser(username)?.title || username}
-        signedInAs={await signedInAs(username)}
+        signedInAs={who}
         canSignIn={isEnabled("auth", username)}
         codeMinutes={CODE_TTL_MINUTES}
-        whatsappSignIn={await whatsappSignInOffered(username)}
-        guestBlockedByPrivate={await guestBlockedByPrivateTrip(current)}
-        waiting={await awaitingApproval(username)}
+        whatsappSignIn={whatsappSignIn}
+        guestBlockedByPrivate={guestBlockedByPrivate}
+        waiting={waiting}
       />
     );
   }

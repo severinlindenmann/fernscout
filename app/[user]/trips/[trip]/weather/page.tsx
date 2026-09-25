@@ -6,22 +6,9 @@ import { isEnabled } from "@/lib/capabilities";
 import { getDays } from "@/lib/entries";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { readFor, mayReadTrip } from "@/lib/tripGate";
-import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
-import { getUser, getUsernames } from "@/lib/users";
+import { getTrip, tripRef } from "@/lib/trips";
+import { getUser } from "@/lib/users";
 import { hasWeather, summariseWeather, weatherDays } from "@/lib/weatherStats";
-
-export function generateStaticParams() {
-  return getUsernames().flatMap((user) => {
-    // A journal with the weather capability off has no weather pages to
-    // prerender. B165.
-    if (!isEnabled("weather", user)) return [];
-    const current = getCurrentTrip(user)?.id;
-    return getTrips(user)
-      .filter((t) => t.id !== current && t.status !== "upcoming")
-      .filter((t) => hasWeather(weatherDays(getDays(tripRef(user, t.id)))))
-      .map((t) => ({ user, trip: t.id }));
-  });
-}
 
 export async function generateMetadata({
   params,
