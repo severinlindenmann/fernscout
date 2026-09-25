@@ -57,6 +57,10 @@
     // `components/extract/` imports either of them.
     "components/extract/PhotoStrip.tsx",
     "components/extract/PhotoViewer.tsx",
+    // Open core: the WhatsApp message types are imported by paid/ (its own
+    // repository, outside knip's graph) and by the stub that stands in for it,
+    // so from inside this repository nothing seems to use them.
+    "lib/whatsappTypes.ts",
     // The suite, and the fixtures it reaches for.
     "test/**/*.test.{ts,tsx}",
     "test/fixtures/**/*.{ts,tsx}",

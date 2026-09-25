@@ -54,7 +54,7 @@ export type SendGuestCodeResult =
  * contact has nothing to prove there. A number counts only while it is the
  * one this contact is found by — see `phoneColumns` in `./index.ts`.
  */
-export async function guestSubject(
+async function guestSubject(
   owner: string,
   contact: ContactRecord,
   channel: GuestCodeChannel,

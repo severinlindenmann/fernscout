@@ -22,7 +22,6 @@ import {
   type PostalAddress,
 } from "./crypto";
 
-export { subjectLookup };
 import { countInviteUse, preapprovedEmailFor } from "./invites";
 import { approveTripPlaces, revokeTripPlaces } from "../tripPeople";
 import { parseLocale, pickLocale } from "./locale";

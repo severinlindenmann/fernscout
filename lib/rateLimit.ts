@@ -277,7 +277,7 @@ export function emailCodeAllowed(email: string): boolean {
  * somebody's pocket, so the per-number bucket is the narrowest of all the
  * code buckets. Quietly `false`, like `emailCodeAllowed`.
  */
-export const SMS_CODE_LIMITS = {
+const SMS_CODE_LIMITS = {
   number: { max: 3, windowMs: 60 * 60 * 1000 },
   ip: { max: 10, windowMs: 60 * 60 * 1000 },
   instance: { max: 200, windowMs: 24 * 60 * 60 * 1000 },
