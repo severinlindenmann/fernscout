@@ -631,6 +631,7 @@
   "contact.adminNoGuestTrip": "Wer du freigibst, kommt ins Tagebuch — aber noch keine deiner Reisen ist für Gäste geöffnet, also gibt es dort nichts zu lesen. Öffne eine: auf „Dein Zugang“ steht neben jeder Reise ein Stift, und dort wählst du, wer mitlesen darf.",
   "contact.adminNone": "Noch niemand.",
   "contact.adminNotConfirmed": "Hat die Adresse noch nicht bestätigt.",
+  "contact.adminNotInvited": "Noch nicht eingeladen",
   "contact.adminOther": "Nicht freigegeben",
   "contact.adminPending": "Wartet auf deine Antwort",
   "contact.adminPendingTripCount": "Möchte auch Schreibzugriff auf {trips} — Genehmigen öffnet sie.",

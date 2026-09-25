@@ -751,6 +751,7 @@ export type TranslationKey =
   | "contact.adminNoGuestTrip"
   | "contact.adminNone"
   | "contact.adminNotConfirmed"
+  | "contact.adminNotInvited"
   | "contact.adminOther"
   | "contact.adminPending"
   | "contact.adminPendingTripCount"

@@ -632,6 +632,7 @@
   "contact.adminNoGuestTrip": "Akit jóváhagysz, bekerül a naplóba — de egyetlen utad sincs még megnyitva a vendégek előtt, így nincs mit olvasniuk. Nyiss meg egyet: a „Hozzáférésed” oldalon minden út mellett van egy ceruza, ott választhatod ki, ki olvashatja.",
   "contact.adminNone": "Még senki.",
   "contact.adminNotConfirmed": "Még nem erősítette meg a címét.",
+  "contact.adminNotInvited": "Még nincs meghívva",
   "contact.adminOther": "Nincs jóváhagyva",
   "contact.adminPending": "A válaszodra vár",
   "contact.adminPendingTripCount": "Írási jogot szeretne ezekhez is: {trips} — a jóváhagyás megnyitja őket.",

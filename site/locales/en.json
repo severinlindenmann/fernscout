@@ -631,6 +631,7 @@
   "contact.adminNoGuestTrip": "Whoever you approve is let into the journal — but none of your trips is open to guests yet, so there is nothing there for them to read. Open one: on “Your access” there is a pencil beside each trip, and that is where you choose who may read it.",
   "contact.adminNone": "Nobody yet.",
   "contact.adminNotConfirmed": "Has not confirmed their address yet.",
+  "contact.adminNotInvited": "Not invited yet",
   "contact.adminOther": "Not approved",
   "contact.adminPending": "Waiting for your answer",
   "contact.adminPendingTripCount": "Also asking to write to {trips} — approving opens them.",

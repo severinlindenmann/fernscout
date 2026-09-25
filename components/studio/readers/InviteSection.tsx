@@ -13,6 +13,7 @@ import type { TripPreview } from "@/lib/studio/audiencePreview";
 /** The section each state is listed under on this page — the same words,
  * so the invite's "already here" note and the lists below cannot disagree. */
 const SECTION: Record<ReaderState, TranslationKey> = {
+  notInvited: "contact.adminNotInvited",
   waitingOnYou: "contact.adminPending",
   waitingOnThem: "contact.adminWaitingOnThem",
   readingNow: "contact.adminReadingNow",
