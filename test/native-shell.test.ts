@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest";
-import { GPS_TOKEN_REFRESH_BEFORE_MS, isNativeShell, needsGpsTokenRefresh, pickedToFile } from "@/components/nativeShell";
+import { GPS_TOKEN_REFRESH_BEFORE_MS, haptic, isNativeShell, needsGpsTokenRefresh, pickedToFile } from "@/components/nativeShell";
 
 /**
  * The two pure halves of the iPhone shell's photo door — B2113. The picker
@@ -31,6 +31,25 @@ describe("isNativeShell", () => {
     expect(isNativeShell()).toBe(true);
     g.window = { Capacitor: { isNativePlatform: () => false } };
     expect(isNativeShell()).toBe(false);
+  });
+});
+
+describe("haptic — B2324", () => {
+  const g = globalThis as { window?: unknown };
+  const before = g.window;
+  afterEach(() => {
+    if (before === undefined) delete g.window;
+    else g.window = before;
+  });
+
+  test("no bridge — no throw, and no plugin import", async () => {
+    g.window = {};
+    await expect(haptic("light")).resolves.toBeUndefined();
+  });
+
+  test("no window at all — same, no throw", async () => {
+    delete g.window;
+    await expect(haptic("selection")).resolves.toBeUndefined();
   });
 });
 
