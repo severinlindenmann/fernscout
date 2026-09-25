@@ -88,6 +88,8 @@ export default function Landing({
   codeMinutes,
   helperEnabled = false,
   whatsappNumber,
+  appStoreUrl,
+  appWaitlistAvailable = false,
   postcardsEnabled = false,
   photobookEnabled = false,
   pricing,
@@ -124,6 +126,10 @@ export default function Landing({
    * none configured, and `LandingHero` renders nothing for it.
    */
   whatsappNumber?: string;
+  /** B2341. Both resolved server-side in `app/page.tsx` and handed straight
+   *  to `LandingHero`'s own `AppWaitlistDoor`. */
+  appStoreUrl?: string;
+  appWaitlistAvailable?: boolean;
   /**
    * Whether this instance can actually print and post a card, and lay a trip
    * out as a book — B1711. They are two of the three things the pitch below
@@ -348,6 +354,8 @@ export default function Landing({
             <LandingHero
               helperEnabled={helperEnabled}
               whatsappNumber={whatsappNumber}
+              appStoreUrl={appStoreUrl}
+              appWaitlistAvailable={appWaitlistAvailable}
             />
             {/* Directly under the hero — B1711. The hero says a day goes in;
                 this says what comes out of it, which is the half of the
