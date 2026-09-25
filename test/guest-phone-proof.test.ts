@@ -457,10 +457,17 @@ describe("a typed number is not a credential", () => {
     // Saving the page as it stands keeps the owner's number as a credential.
     await updateContactSelf(OWNER, token, { address: { tel: "+41 79 666 00 02" } });
     expect((await getContactByEmail(OWNER, "+41796660002"))?.id).toBe(reader.id);
-    // A different number typed there is stored, and is not a way in.
+    // A different number typed there is not a way in — and, since the
+    // re-review (NEW-A), does not replace the one that signs in either.
     await updateContactSelf(OWNER, token, { address: { tel: "+41 79 666 00 03" } });
     expect(await getContactByEmail(OWNER, "+41796660003")).toBeNull();
-    expect(await getContactByEmail(OWNER, "+41796660002")).toBeNull();
+    expect((await getContactByEmail(OWNER, "+41796660002"))?.id).toBe(reader.id);
+
+    // On a contact with no sign-in number, the manage link stores what is
+    // typed — for the card, never as a credential.
+    const plain = await addApproved({ name: "Vic", email: "vic@example.test" });
+    await updateContactSelf(OWNER, manageTokenFor(OWNER, plain.id), { address: { tel: "+41 79 666 00 09" } });
+    expect(await getContactByEmail(OWNER, "+41796660009")).toBeNull();
   });
 
   test("MEDIUM-3: proving a number never confirms an email address, and a phone subject never becomes a row", async () => {
@@ -562,5 +569,85 @@ describe("proving a number in-session and as a first channel", () => {
     });
     const { readerState } = await import("@/lib/readers/split");
     expect(readerState(proved!.contact)).toBe("waitingOnYou");
+  });
+});
+
+describe("re-review: a planted or anonymous number never moves a credential", () => {
+  test("NEW-B: an owner editing the postal address does not key a number somebody else planted", async () => {
+    const reader = await addApproved({ name: "Nora", email: "nora@example.test" });
+    const { getContact, getContactByEmail, requestContact, updateContactByOwner } = await import("@/lib/contacts");
+    await requestContact(OWNER, {
+      name: "Nora",
+      email: "nora@example.test",
+      locale: "en",
+      address: { tel: "+41 79 777 00 01" },
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      createdVia: "open",
+    });
+    const stored = (await getContact(OWNER, reader.id))!.postalAddress!;
+    // The admin form re-sends the whole address, number included.
+    await updateContactByOwner(OWNER, reader.id, {
+      address: { ...stored, line1: "Weg 2", city: "Thun", country: "CH" },
+    });
+    expect(await getContactByEmail(OWNER, "+41797770001")).toBeNull();
+    // The owner typing a *new* number does key it.
+    await updateContactByOwner(OWNER, reader.id, {
+      address: { ...stored, line1: "Weg 2", city: "Thun", country: "CH", tel: "+41 79 777 00 02" },
+    });
+    expect((await getContactByEmail(OWNER, "+41797770002"))?.id).toBe(reader.id);
+  });
+
+  test("NEW-A: an anonymous form and the manage link never replace or clear a keyed number", async () => {
+    const reader = await addApproved({ name: "Olga", email: "olga@example.test", phone: "+41 79 777 00 03" });
+    const { getContact, getContactByEmail, manageTokenFor, requestContact, updateContactSelf } = await import(
+      "@/lib/contacts"
+    );
+    await requestContact(OWNER, {
+      name: "Olga",
+      email: "olga@example.test",
+      locale: "en",
+      address: { tel: "+41 79 777 00 04" },
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      createdVia: "open",
+    });
+    expect((await getContactByEmail(OWNER, "+41797770003"))?.id).toBe(reader.id);
+    expect((await getContact(OWNER, reader.id))?.phone).toBe("+41 79 777 00 03");
+    await updateContactSelf(OWNER, manageTokenFor(OWNER, reader.id), { address: { tel: "" } });
+    expect((await getContactByEmail(OWNER, "+41797770003"))?.id).toBe(reader.id);
+  });
+
+  test("confirmPhoneProof takes only a code sendPhoneProof issued for that very contact", async () => {
+    const a = await addApproved({ name: "Paul", email: "paul@example.test" });
+    const b = await addApproved({ name: "Quin", email: "quin@example.test" });
+    const { sendPhoneProof, confirmPhoneProof, sendGuestCode } = await import("@/lib/contacts/guestCode");
+    await sendPhoneProof(OWNER, a.id, "+41 79 777 00 05", { ip: "198.51.100.90" });
+    const code = lastCode("41797770005");
+    // Contact b cannot spend a's proof …
+    expect(await confirmPhoneProof(OWNER, b.id, "+41 79 777 00 05", code)).toBe(false);
+    // … nor can an ordinary sign-in code to the number stand in for one.
+    const owned = await addApproved({ name: "Rita", phone: "+41 79 777 00 06" });
+    await sendGuestCode(OWNER, owned.id, "sms", { ip: "198.51.100.91" });
+    expect(await confirmPhoneProof(OWNER, b.id, "+41 79 777 00 06", lastCode("41797770006"))).toBe(false);
+    expect(await confirmPhoneProof(OWNER, a.id, "+41 79 777 00 05", code)).toBe(true);
+  });
+
+  test("confirmPhoneProof refuses a blocked contact, and never takes a number another contact proved", async () => {
+    const { sendPhoneProof, confirmPhoneProof } = await import("@/lib/contacts/guestCode");
+    const holder = await addApproved({ name: "Sam", phone: "+41 79 777 00 07" });
+    await signInBySms(holder.id, "41797770007"); // proven now
+    const other = await addApproved({ name: "Tom", email: "tom@example.test" });
+    await sendPhoneProof(OWNER, other.id, "+41 79 777 00 07", { ip: "198.51.100.92" });
+    expect(await confirmPhoneProof(OWNER, other.id, "+41 79 777 00 07", lastCode("41797770007"))).toBe(false);
+    const { getContactByEmail, revokeContact } = await import("@/lib/contacts");
+    expect((await getContactByEmail(OWNER, "+41797770007"))?.id).toBe(holder.id);
+
+    const gone = await addApproved({ name: "Uma", email: "uma@example.test" });
+    await sendPhoneProof(OWNER, gone.id, "+41 79 777 00 08", { ip: "198.51.100.93" });
+    const code = lastCode("41797770008");
+    await revokeContact(OWNER, gone.id);
+    expect(await confirmPhoneProof(OWNER, gone.id, "+41 79 777 00 08", code)).toBe(false);
+    expect(await confirmPhoneProof(OWNER, "no-such-contact", "+41 79 777 00 08", code)).toBe(false);
   });
 });

@@ -190,16 +190,17 @@ function toRecord(owner: string, row: ContactRow): ContactRecord {
  *
  * - `self` — typed into a self-service or anonymous door (the join form,
  *   the manage link, a guestbook). Stored for the card and for postcards,
- *   **never** a way in: the key is kept only when it is the very number this
- *   contact already signs in with (a page re-saved as it stood), and is
- *   otherwise null. Anyone who knows a reader's address can reach the join
- *   form, and anyone holding a forwarded digest reaches the manage page — a
- *   link never carries access.
- * - `owner` — the journal's owner typed it (owner-cookie doors only). Takes
- *   the key from another contact that holds it unproven; never from one that
- *   proved it.
+ *   **never** a way in: the key stays null. And such a door never replaces or
+ *   clears a number that already signs in — it is ignored instead.
+ * - `owner` — the journal's owner typed a **new** number (owner-cookie doors
+ *   only). Takes the key from a contact that holds it unproven, never from
+ *   one that proved it.
  * - `proven` — an SMS code to this number was just redeemed for this
- *   contact. Takes the key from whoever held it, and stamps it proven.
+ *   contact. Takes the key the same way, and stamps it proven.
+ *
+ * Whatever the trust, the number that is already stored, re-sent unchanged,
+ * keeps exactly the state it had: a form re-sending a whole address is
+ * nobody vouching for its number anew.
  *
  * `phone_proven_at` survives only while the number is the one proved.
  */
@@ -210,18 +211,53 @@ async function phoneColumns(
   id: string,
   tel: string,
   trust: PhoneTrust,
+  /** False for a row about to be inserted: nothing stored to compare with. */
+  exists = true,
 ): Promise<Pick<ContactRow, "phone_cipher" | "phone_key" | "phone_proven_at">> {
   const typed = tel.trim();
+  const digits = typed ? toE164(typed, whatsappCountryCode()) : null;
+  const { db } = await getDatabase();
+  const current = exists
+    ? await db
+        .selectFrom("contacts")
+        .select(["phone_cipher", "phone_key", "phone_proven_at", "postal_cipher"])
+        .where("owner_id", "=", owner)
+        .where("id", "=", id)
+        .executeTakeFirst()
+    : undefined;
+  const kept = {
+    phone_cipher: current?.phone_cipher ?? null,
+    phone_key: current?.phone_key ?? null,
+    phone_proven_at: current?.phone_proven_at ?? null,
+  };
+  // A row `038-contact-phone` could not move still has its number in the blob.
+  const stored = current
+    ? (decryptString(current.phone_cipher, phoneAad(owner, id), "phone") ??
+      (decryptAddress(current.postal_cipher, addressAad(owner, id))?.tel || null))
+    : null;
+  const storedDigits = stored ? toE164(stored, whatsappCountryCode()) : null;
+
+  // The same number again leaves it exactly as it was, keyed or not — a form
+  // that re-sends the whole address (the owner fixing a street, a reader
+  // re-saving their page) is not anybody vouching for the number anew.
+  // Without this, an owner's postcard edit would key a number a stranger
+  // planted through the join form (B2294 re-review, NEW-B).
+  const same = typed === "" ? stored === null : digits ? digits === storedDigits : typed === stored;
+  // (A proof is the exception: it is exactly what keys an unkeyed number.)
+  if (current && same && trust !== "proven") return kept;
+  // A self-service or anonymous door never replaces or clears a number that
+  // signs in (NEW-A): whoever knows a reader's address could otherwise take
+  // their SMS sign-in away. Changing it is the signed-in proof (`./guestCode`
+  // `confirmPhoneProof`) or the owner's.
+  if (trust === "self" && kept.phone_key) return kept;
   if (typed === "") return { phone_cipher: null, phone_key: null, phone_proven_at: null };
-  const digits = toE164(typed, whatsappCountryCode());
+
   const key = digits ? phoneKey(digits) : null;
   const holder = key ? await phoneKeyHolder(owner, key) : null;
-  const mine = holder?.id === id;
-  const takes =
-    key !== null &&
-    (mine || trust === "proven" || (trust === "owner" && (!holder || !holder.phone_proven_at)));
-  if (takes && holder && !mine) {
-    const { db } = await getDatabase();
+  // Never from a contact that proved the number — only from nobody, or from
+  // a holder whose key was owner-typed and never proved (LOW-7).
+  const takes = key !== null && trust !== "self" && (!holder || !holder.phone_proven_at);
+  if (takes && holder && holder.id !== id) {
     await db
       .updateTable("contacts")
       .set({ phone_key: null, phone_proven_at: null, updated_at: nowIso() })
@@ -231,7 +267,7 @@ async function phoneColumns(
   return {
     phone_cipher: encryptString(typed, phoneAad(owner, id)),
     phone_key: takes ? key : null,
-    phone_proven_at: trust === "proven" ? nowIso() : mine ? holder.phone_proven_at : null,
+    phone_proven_at: takes && trust === "proven" ? nowIso() : null,
   };
 }
 
@@ -258,10 +294,11 @@ async function addressColumns(
   id: string,
   address: PostalAddress | null,
   trust: PhoneTrust,
+  exists = true,
 ) {
   return {
     postal_cipher: address ? postalCipherFor(owner, id, address) : null,
-    ...(await phoneColumns(owner, id, address?.tel ?? "", trust)),
+    ...(await phoneColumns(owner, id, address?.tel ?? "", trust, exists)),
   };
 }
 
@@ -386,7 +423,7 @@ export async function requestContact(
   // existing tel to carry forward there is truly nothing left to store.
   const stored = untouched
     ? null
-    : await addressColumns(owner, id, hasAnyDetail(mergedAddress) ? mergedAddress : null, "self");
+    : await addressColumns(owner, id, hasAnyDetail(mergedAddress) ? mergedAddress : null, "self", Boolean(existing));
 
   if (existing) {
     await db
@@ -1392,7 +1429,7 @@ async function saveContact(
   const id = existing?.id ?? newId();
   const now = nowIso();
   const name = input.name.trim().slice(0, 120) || null;
-  const phone = tel ? await phoneColumns(owner, id, tel, trust) : null;
+  const phone = tel ? await phoneColumns(owner, id, tel, trust, Boolean(existing)) : null;
 
   if (existing) {
     await db

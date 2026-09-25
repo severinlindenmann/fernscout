@@ -1,5 +1,5 @@
 import "server-only";
-import { CODE_TTL_MINUTES, issueCode, resolveSession, revokeCodes, revokeSession, verifyCode } from "../auth";
+import { CODE_TTL_MINUTES, issueCode, revokeCodes, spendCode, verifyCode } from "../auth";
 import { isEnabled } from "../capabilities";
 import { whatsappCountryCode } from "../contactNumber";
 import { translateIn } from "../locales";
@@ -139,8 +139,8 @@ async function textCode(
   digits: string,
   locale: string,
   destination?: string | null,
+  subject: string = phoneSubject(digits),
 ): Promise<boolean> {
-  const subject = phoneSubject(digits);
   const { code } = await issueCode(owner, subject, "guest", { destination: destination ?? null });
   try {
     await sendSms({
@@ -168,11 +168,23 @@ function textableNumber(raw: string): { digits: string } | { reason: "invalid_ph
 }
 
 /**
- * B2294 (b): a **signed-in** contact adds a mobile number by proving it.
+ * The subject a number-proof code is issued under: bound to the one contact
+ * it was sent for, and never a sign-in subject, so no sign-in door
+ * (`/api/auth/codes/redeem`, `verifyGuestCode`) can spend it, and a sign-in
+ * code to the same number cannot stand in for it.
+ */
+function proofSubject(contactId: string, digits: string): string {
+  return `proof:${contactId}:${phoneSubject(digits)}`;
+}
+
+/**
+ * B2294 (b): a **signed-in** contact adds or changes their mobile number by
+ * proving it.
  *
- * `contactId` must come from the caller's own session (`journalReader`),
- * never from a request body — that is what makes the proved number theirs.
- * Texts the typed number a code; `confirmPhoneProof` redeems it.
+ * **`contactId` MUST come from `journalReader(username)` — the caller's own
+ * session — and never from a request body, a link or a form field.** That is
+ * the whole of what makes the proved number theirs. Texts the typed number a
+ * code bound to that contact; `confirmPhoneProof` redeems it.
  */
 export async function sendPhoneProof(
   owner: string,
@@ -187,14 +199,21 @@ export async function sendPhoneProof(
   if (!("digits" in number)) return { ok: false, reason: number.reason };
   if (!smsCodeAllowed(number.digits, options.ip)) return { ok: false, reason: "rate_limited" };
   const locale = pickLocale(options.locale ?? contact.locale, user.defaultLocale);
-  if (!(await textCode(owner, user.title, number.digits, locale))) return { ok: false, reason: "send_failed" };
+  const sent = await textCode(owner, user.title, number.digits, locale, null, proofSubject(contact.id, number.digits));
+  if (!sent) return { ok: false, reason: "send_failed" };
   return { ok: true, to: maskNumber(number.digits) };
 }
 
 /**
- * Redeem the code `sendPhoneProof` texted, and make the number this
- * contact's sign-in number, proved. The session `verifyCode` opens for the
- * number is revoked: the caller is already signed in. False on any failure.
+ * Redeem the code `sendPhoneProof` texted **for this contact**, and make the
+ * number their sign-in number, proved. False on any failure, alike: an
+ * unknown or blocked contact, a code issued for another contact or for
+ * signing in, a wrong or spent code — or a number another contact has
+ * already proved, which a proof never takes (only the owner, or that
+ * contact, can let go of it).
+ *
+ * **`contactId` MUST come from `journalReader(username)`**, as for
+ * `sendPhoneProof`. Opens no session: the caller is already signed in.
  */
 export async function confirmPhoneProof(
   owner: string,
@@ -204,11 +223,13 @@ export async function confirmPhoneProof(
 ): Promise<boolean> {
   const digits = toE164(phone, whatsappCountryCode());
   if (!digits) return false;
-  const result = await verifyCode(owner, phoneSubject(digits), code, "guest");
-  if (!result.ok) return false;
-  const session = await resolveSession(result.token, "guest");
-  if (session) await revokeSession(session.id);
-  await setProvenPhone(owner, contactId, phone.trim());
+  const contact = await getContact(owner, contactId);
+  if (!contact || !textable(contact)) return false;
+  const holder = await getContactByEmail(owner, phoneSubject(digits));
+  if (holder && holder.id !== contact.id && holder.phoneProvenAt) return false;
+  const spent = await spendCode(owner, proofSubject(contact.id, digits), code, "guest");
+  if (!spent.ok) return false;
+  await setProvenPhone(owner, contact.id, phone.trim());
   return true;
 }
 
