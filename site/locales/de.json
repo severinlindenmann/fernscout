@@ -4313,5 +4313,12 @@
   "notifyStep.error.generic": "Das hat nicht geklappt. Es wurde nichts gesendet.",
   "notifyStep.blocked.linkLost": "Dieser Link wurde einmal angezeigt; dieser Server kann ihn nicht erneut anzeigen",
   "notifyStep.error.dailyLimit": "Dieses Tagebuch hat heute schon 50 Willkommensnachrichten verschickt. Versuch es morgen wieder — es wurde nichts abgebucht.",
-  "notifyStep.linkLost": "Dieser Server speichert vom Willkommenslink für {name} nur einen Fingerabdruck — er kann weder angezeigt noch erneut gesendet werden. Es wurde nichts gesendet."
+  "notifyStep.linkLost": "Dieser Server speichert vom Willkommenslink für {name} nur einen Fingerabdruck — er kann weder angezeigt noch erneut gesendet werden. Es wurde nichts gesendet.",
+  "studio.outbox.offline": "Offline",
+  "studio.outbox.offlineWaiting": "Offline · {n} wartend",
+  "studio.outbox.syncing": "Wird gesendet …",
+  "studio.outbox.waiting": "Online · {n} wartend",
+  "studio.outbox.confirmSignOut": "{n} Änderungen wurden noch nicht gesendet. Beim Abmelden gehen sie verloren.",
+  "studio.outbox.confirmSignOut.one": "{n} Änderung wurde noch nicht gesendet. Beim Abmelden geht sie verloren.",
+  "studio.outbox.signOutAnyway": "Trotzdem abmelden"
 }

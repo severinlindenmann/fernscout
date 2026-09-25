@@ -4313,5 +4313,12 @@
   "notifyStep.error.generic": "That did not work. Nothing was sent.",
   "notifyStep.blocked.linkLost": "This link was shown once and this server cannot show it again",
   "notifyStep.error.dailyLimit": "This journal has sent 50 welcome messages today. Try again tomorrow — nothing was charged.",
-  "notifyStep.linkLost": "This server keeps only a fingerprint of {name}’s welcome link, so it cannot be shown or sent again. Nothing was sent."
+  "notifyStep.linkLost": "This server keeps only a fingerprint of {name}’s welcome link, so it cannot be shown or sent again. Nothing was sent.",
+  "studio.outbox.offline": "Offline",
+  "studio.outbox.offlineWaiting": "Offline · {n} waiting",
+  "studio.outbox.syncing": "Syncing",
+  "studio.outbox.waiting": "Online · {n} waiting",
+  "studio.outbox.confirmSignOut": "{n} changes have not been sent yet. Signing out now loses them.",
+  "studio.outbox.confirmSignOut.one": "{n} change has not been sent yet. Signing out now loses it.",
+  "studio.outbox.signOutAnyway": "Sign out anyway"
 }
