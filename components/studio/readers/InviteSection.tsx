@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useI18n } from "@/components/LocaleProvider";
+import DoneScreen from "@/components/studio/DoneScreen";
 import NotifyStep from "@/components/studio/readers/NotifyStep";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
@@ -53,7 +54,8 @@ export default function InviteSection({
   const [busy, setBusy] = useState(false);
   const [writeError, setWriteError] = useState<string | null>(null);
   /** B2292 — the person just added, whose step 2 (how they hear) is showing. */
-  const [addedId, setAddedId] = useState<string | null>(null);
+  const [added, setAdded] = useState<{ id: string; name: string } | null>(null);
+  const [done, setDone] = useState(false);
 
   const openTrips = preview.filter((p) => p.opens);
   const closedTrips = preview.filter((p) => !p.opens);
@@ -81,7 +83,8 @@ export default function InviteSection({
         setWriteError(failed);
         return;
       }
-      setAddedId(json.contact.id);
+      setAdded({ id: json.contact.id, name: name.trim() });
+      setDone(false);
       setName("");
       setEmail("");
       setPhone("");
@@ -98,8 +101,22 @@ export default function InviteSection({
   return (
     <section id="invite" className="mt-6 scroll-mt-6">
       <h2 className="font-display text-lg font-semibold text-ink-strong">{t("studio.readers.invite.heading")}</h2>
-      {addedId ? (
-        <NotifyStep key={addedId} username={username} contactId={addedId} onLater={() => setAddedId(null)} />
+      {added && !done ? (
+        <NotifyStep key={added.id} username={username} contactId={added.id} onLater={() => setDone(true)} />
+      ) : added ? (
+        <>
+          <DoneScreen
+            username={username}
+            done={`${t("studio.invite.done.banner", { email: added.name })} ${t("studio.invite.done.accessExists")}`}
+          />
+          <button
+            type="button"
+            onClick={() => setAdded(null)}
+            className="mt-3 text-sm font-semibold text-ink-strong underline underline-offset-2"
+          >
+            {t("studio.invite.done.inviteAnother")}
+          </button>
+        </>
       ) : (
         <>
           <p className="mt-1 text-sm text-ink-body">
@@ -127,7 +144,7 @@ export default function InviteSection({
               autoComplete="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+41 79 123 45 67"
+              placeholder="+41 76 000 00 00"
               className={FIELD}
             />
           </label>

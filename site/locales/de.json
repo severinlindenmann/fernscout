@@ -3550,7 +3550,7 @@
   "studio.invite.preview.privateTrips.one": "1 private Reise",
   "studio.invite.preview.money": "was die Reisen gekostet haben",
   "studio.invite.done.banner": "Der Zugang für {email} ist offen.",
-  "studio.invite.done.accessExists": "Sie können es jetzt lesen. Eine Mail ist unterwegs, die sie darüber informiert — mit einer Möglichkeit, alles abzulehnen.",
+  "studio.invite.done.accessExists": "Lesen können sie, sobald sie den Code bestätigen, den wir an die eingegebene Adresse oder Nummer schicken.",
   "studio.invite.done.inviteAnother": "Jemand anderen einladen",
   "studio.invite.writeFailed.banner": "Das konnte nicht gewährt werden.",
   "studio.invite.writeFailed.message": "Beim Gewähren des Zugangs ist etwas schiefgelaufen. Es wurde nichts geändert.",

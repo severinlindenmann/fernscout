@@ -3550,7 +3550,7 @@
   "studio.invite.preview.privateTrips.one": "1 private trip",
   "studio.invite.preview.money": "what the trips cost",
   "studio.invite.done.banner": "Access is open to {email}.",
-  "studio.invite.done.accessExists": "They can read it now. A mail is on its way telling them, with a way to decline everything.",
+  "studio.invite.done.accessExists": "They can read it as soon as they confirm the code we send to the address or number you typed.",
   "studio.invite.done.inviteAnother": "Invite somebody else",
   "studio.invite.writeFailed.banner": "This could not be granted.",
   "studio.invite.writeFailed.message": "Something went wrong granting access. Nothing was changed.",
