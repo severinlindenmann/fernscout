@@ -8,6 +8,9 @@ export function reminderTemplate(): { name: string; language: string } | null {
 export function authTemplateFor(_locale: string): { name: string; language: string } {
   throw new Error("WhatsApp is not included in this build");
 }
+export function inviteTemplateFor(_locale: string): { name: string; language: string } {
+  throw new Error("WhatsApp is not included in this build");
+}
 export async function whatsappSignInOffered(_username: string): Promise<boolean> {
   return false;
 }

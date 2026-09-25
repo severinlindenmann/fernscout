@@ -1010,6 +1010,8 @@ function JournalPanel({
 const REASON_LABEL: Record<string, string> = {
   day_mail: "Announcing a day by email",
   day_whatsapp: "Announcing a day on WhatsApp",
+  day_sms: "Announcing a day by SMS",
+  invite: "Welcome messages (WhatsApp / SMS)",
   digest: "A digest",
   postcard: "Printed postcards",
   photobook: "Photobooks",

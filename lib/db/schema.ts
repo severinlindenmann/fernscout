@@ -186,6 +186,17 @@ type ContactsTable = {
   phone_key: string | null;
   /** When an SMS code proved the number. Null until then. */
   phone_proven_at: string | null;
+  /** B2292. 0/1 — new days by SMS, its own consent. See `040-welcome-links`. */
+  wants_sms: Generated<number>;
+  /** sha-256 of the `/w/<code>` welcome code, unique across the instance. */
+  welcome_code_hash: string | null;
+  /** The same code, AES-256-GCM (`welcomeAad`), so the owner can show it again. */
+  welcome_code_cipher: string | null;
+  /** `email` | `whatsapp` | `sms` | `self` — the last channel the owner chose. */
+  invited_via: string | null;
+  invited_at: string | null;
+  /** When the welcome link was first opened. */
+  welcome_opened_at: string | null;
 };
 
 /**

@@ -2,8 +2,8 @@ import "server-only";
 import { hasSwitchedOff, isEnabled } from "../capabilities";
 import { getDatabaseOrNull, newId, nowIso } from "../db";
 
-/** The two channels a day can be announced on — B345, B365. */
-export type NotifyChannel = "mail" | "whatsapp";
+/** The channels a day can be announced on — B345, B365, and SMS since B2292. */
+export type NotifyChannel = "mail" | "whatsapp" | "sms";
 
 /**
  * Record that this channel has told readers about this day — B633.

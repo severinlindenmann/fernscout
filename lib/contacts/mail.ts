@@ -259,6 +259,42 @@ export async function sendInviteMail(
 }
 
 /**
+ * The welcome link, by email — B2292. The owner pressed "Email" in step 2 of
+ * Add a person (or "Resend by email" on the card), naming the address
+ * themselves: the same exception `sendInviteMail` is to B334, since a person
+ * the owner added may not have proved anything yet.
+ *
+ * Not best effort: the caller reports what happened on the button the owner
+ * pressed, so a throw is its to catch, and `null` means mail is off.
+ */
+export async function sendWelcomeMail(
+  username: string,
+  user: UserConfig,
+  contact: ContactRecord,
+  message: { locale: Locale; url: string; text: string; subject: string },
+): Promise<SendResult | null> {
+  if (!mayMailContact(contact, { allowUnconfirmed: true })) return null;
+  const token = manageTokenFor(username, contact.id);
+  return sendMail(
+    renderMail(
+      contact.email,
+      message.subject,
+      {
+        preheader: message.text,
+        title: message.subject,
+        blocks: [
+          { kind: "paragraph", text: message.text },
+          { kind: "button", text: translateIn(message.locale, "welcomeLink.mailButton"), href: message.url },
+        ],
+        footer: footerFor(message.locale, user),
+        unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
+      },
+      username,
+    ),
+  );
+}
+
+/**
  * "Do you want anything from this journal?" — B2055, the one mail an address
  * the owner imported from a contact card receives.
  *
