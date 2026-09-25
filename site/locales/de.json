@@ -1545,6 +1545,8 @@
   "guides.creator.lede": "Dein eigenes Reisetagebuch: wie du über einen Agenten hineinschreibst, wer was sieht und wie du andere hineinlässt.",
   "guides.creator.title": "Für Tagebuch-Besitzer",
   "guides.guest.lede": "Jemand hat ein Reisetagebuch mit dir geteilt: wie du dich anmeldest, wie du von neuen Tagen erfährst und wie du deine Angaben korrigierst.",
+  "guides.gps.lede": "Wohin dein Standort geht: was aufgezeichnet wird, was veröffentlicht wird, was dein eigenes Verzeichnis nie verlässt, und wie du ihn exportierst oder löschst.",
+  "guides.gps.title": "Wohin dein GPS geht",
   "guides.guest.title": "Für Lesende",
   "guides.inEnglish": "Diese Anleitung gibt es noch nicht in deiner Sprache, du liest gerade die englische Fassung.",
   "guides.lede": "Für Menschen geschrieben, nicht für Agenten: was du hier tun kannst, je nachdem, wer du bist.",

@@ -1139,6 +1139,8 @@ export type TranslationKey =
   | "guides.buddy.title"
   | "guides.creator.lede"
   | "guides.creator.title"
+  | "guides.gps.lede"
+  | "guides.gps.title"
   | "guides.guest.lede"
   | "guides.guest.title"
   | "guides.inEnglish"
