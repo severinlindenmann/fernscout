@@ -841,3 +841,77 @@ docs and error texts. For each one there is a suggested answer.
 - **Say "hosted-only" in one consistent place.** Give each doc that
   mentions a paid feature a short marker ("hosted edition only; absent
   here").
+
+---
+
+## Decisions (answered 2026-09-25)
+
+Answers to Part D, in order. These are the rules for the rewrite.
+
+1. **Story**: studio first. You write in your studio; an agent (yours) or
+   this instance's assistant is an optional second way. ROADMAP decision 24
+   ("no editing UI") is formally superseded.
+2. **Helper**: the separate MIT tool keeps the name **Fernscout Helper**. This
+   instance's built-in model is the **assistant** (web and, hosted, WhatsApp).
+   "agent" means only an external client holding a key. `/api/helper/**` is a
+   code name only.
+3. **Credential**: **key** in all UI, mails and guides. **token** only in the
+   API reference and skills, for the bearer token. The 20-minute handover
+   credential is the **handover code**.
+4. **Guest**: **reader** is the person. "guest" is used only for the trip and
+   photo gate. Journal visibility becomes listed/unlisted ("advertised"). The
+   guide id becomes `reader`. Fix the costs `"guests"` spelling.
+5. **Owner**: **owner** everywhere. The guide id `creator` becomes `owner`.
+   "traveller" is retired as a synonym; drawings are always **figures**.
+6. **Buddy**: **buddy** in all prose and UI. `people` stays the API field
+   ("trip people"). The studio "People" page becomes "People in your days".
+   DE uses only "Mitreisende".
+7. **Day**: readers and writers see **day**. When one date has several, each
+   is an **update** (DE and HU re-translated to match). "entry" is a
+   storage and code word only.
+8. **Publish**: **Publish / Take down** on every button, mail, doc and skill.
+   "share" is reserved for giving access.
+9. **Operator**: **operator** in all prose and UI ("the operator of this
+   server"). Code keeps its admin names; docs say "the operator, set via
+   `FERNSCOUT_ADMIN_EMAIL`". Rename the `contact.admin*` and
+   `home.adminSection*` locale keys, which mean the owner.
+10. **Site**: the installation is **this server** / **instance**, and
+    per-journal settings are **journal**. Drop "site" from prose; the
+    `site/` folder keeps its name.
+11. **Config file**: always "the server config (`FERNSCOUT_CONFIG`, default
+    `site/config.json`)" and "the journal config
+    (`content/<user>/config.json`)".
+12. **Format**: "JSON documents and photographs" everywhere. Fix the ingest
+    CLI message and the stale "frontmatter" and "markdown" code comments too.
+13. **GPS**: **GPS history** is the raw private data, including recording.
+    **track** is the derived public line. **route** is used only for the
+    planned route. Studio "Your route" becomes "Your GPS history".
+14. **Editions**: **open edition** / **hosted edition** / **the private
+    repository**. Label features "hosted edition only". Credits are open;
+    buying credits is hosted.
+15. **Voice**: open strings are instance-neutral. Use `{site}`, "the operator
+    of this server", and config values for the contact email, SMS prefixes
+    and hosting region. fernscout.ch-specific copy and legal text move to
+    the private repository. Add `site/locales` to the depersonalised test.
+16. **Money words**: "costs" / "spent" mean trip money only. Credits "use N
+    credits" and have a "price". The operator side is "running costs".
+17. **Features**: say **feature** (matching `features.*`). Label each one
+    **server-wide** or **per journal**, and separately **hosted edition
+    only**. Generate `capabilities.md` from code.
+18. **Licensing**: brand assets are outside the Apache grant, under
+    BRAND-LICENSE. Fix TRADEMARK L25 and every "see LICENSE" pointer. Use
+    British "licence" in prose and `LICENSE` as the filename.
+19. **German**: **Reisetagebuch** (short form "Tagebuch"), `ß`, and `„…“`
+    quotes. "Credits" for credits; "Guthaben" only for the balance.
+20. **Decisions**: replace v2-migration citations with a one-line inline
+    reason. Give each ROADMAP decision a status (upheld, superseded or
+    reversed); mark 24 and 5 superseded, naming what replaced them. Move
+    the stale backlog out of ROADMAP.
+21. **Hosted docs**: move the hosted-only testing flows, and the hosted-only
+    sections of helper.md and similar, to the private repository. The open
+    docs keep one-line "hosted edition only" markers.
+22. **Deletes**: narrow the rule. Deleting a journal or trip through the API
+    needs the emailed confirmation. Smaller items (draft days, photos,
+    invites, …) delete directly. The studio trip delete keeps the
+    ConfirmPanel. Fix AGENTS.md, the skills and the legal page to say
+    exactly this.
