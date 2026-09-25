@@ -222,7 +222,7 @@ async function analyse(source: SourceFile): Promise<Analysed> {
   // Read once and shared below: probing is the only way to get a video's
   // capture time when the container has no EXIF-equivalent, and it is also
   // the only way to get its duration for the length check.
-  const probe = source.kind === "video" ? probeVideo(source.file) : null;
+  const probe = source.kind === "video" ? await probeVideo(source.file) : null;
 
   // A file with no capture time still has to land somewhere sensible. mtime is
   // usually close enough for anything straight off a card, and always beats
@@ -366,7 +366,7 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
   say(`Found ${media.length} file(s).`);
 
   const hasVideo = media.some((m) => m.kind === "video");
-  const canVideo = hasVideo && videoToolsAvailable();
+  const canVideo = hasVideo && (await videoToolsAvailable());
   if (hasVideo && !canVideo) warnings.push(FFMPEG_MISSING_MESSAGE);
 
   const ledger = readLedger(username, tripId);
@@ -569,7 +569,7 @@ export async function ingest(options: IngestOptions): Promise<IngestResult> {
             });
           } else {
             fs.mkdirSync(folder, { recursive: true });
-            const clip = transcodeVideo(item.file, path.join(mediaOut, relative), {
+            const clip = await transcodeVideo(item.file, path.join(mediaOut, relative), {
               maxSeconds: options.maxVideoSeconds ?? MAX_SECONDS,
             });
             fs.writeFileSync(path.join(mediaOut, posterRelative), clip.poster);

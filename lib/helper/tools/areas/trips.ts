@@ -19,13 +19,11 @@ import { readVCard } from "../../../vcard";
  * A contact card waiting in the inbox, resolved to the name and address it
  * carries — B1737.
  *
- * `invite_contact` (`./files.ts`) already finds a staged card this way; this
- * is the same lookup for `trip_people`, which needs an email before it can
- * propose anything at all. **The read happens here, on the server**, so the
+ * `trip_people` needs an email before it can propose anything at all, and
+ * this is that lookup. **The read happens here, on the server**, so the
  * address goes straight into the proposal's own field, where the owner can
  * see and correct it before pressing, and never through a prompt — the rule
- * `app/api/helper/[user]/invite-contact/route.ts` states and
- * `describeWaiting` follows.
+ * `describeWaiting` (`lib/helper/server.ts`) states for the same reason.
  *
  * Returns nothing for an id or name that matches no card, which the caller
  * reads as "they did not mean a card" rather than as an error.

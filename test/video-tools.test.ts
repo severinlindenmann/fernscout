@@ -56,25 +56,25 @@ describe("videoToolsAvailable", () => {
     shim("ffmpeg", true);
     shim("ffprobe", true);
     const { videoToolsAvailable } = await freshVideoTools();
-    expect(videoToolsAvailable()).toBe(true);
+    expect(await videoToolsAvailable()).toBe(true);
   });
 
   test("is false when they are not on PATH at all", async () => {
     const { videoToolsAvailable } = await freshVideoTools();
-    expect(videoToolsAvailable()).toBe(false);
+    expect(await videoToolsAvailable()).toBe(false);
   });
 
   test("does not spawn again once it has a real answer", async () => {
     shim("ffmpeg", true);
     shim("ffprobe", true);
     const { videoToolsAvailable } = await freshVideoTools();
-    expect(videoToolsAvailable()).toBe(true);
+    expect(await videoToolsAvailable()).toBe(true);
 
     // Take the tools away. A cached "yes" must survive, or every upload pays
     // for two more spawns.
     fs.rmSync(path.join(dir, "ffmpeg"));
     fs.rmSync(path.join(dir, "ffprobe"));
-    expect(videoToolsAvailable()).toBe(true);
+    expect(await videoToolsAvailable()).toBe(true);
   });
 
   test("asks again after a check that could not finish", async () => {
@@ -85,22 +85,22 @@ describe("videoToolsAvailable", () => {
     shim("ffmpeg", false);
     shim("ffprobe", false);
     const { videoToolsAvailable } = await freshVideoTools();
-    expect(videoToolsAvailable()).toBe(false);
+    expect(await videoToolsAvailable()).toBe(false);
 
     // The machine recovers. Nothing else happens — no restart, no reset.
     fs.chmodSync(path.join(dir, "ffmpeg"), 0o755);
     fs.chmodSync(path.join(dir, "ffprobe"), 0o755);
-    expect(videoToolsAvailable()).toBe(true);
+    expect(await videoToolsAvailable()).toBe(true);
   });
 
   test("remembers a genuine absence rather than asking forever", async () => {
     const { videoToolsAvailable } = await freshVideoTools();
-    expect(videoToolsAvailable()).toBe(false);
+    expect(await videoToolsAvailable()).toBe(false);
 
     // ffmpeg turning up mid-process is not a case worth paying two spawns per
     // upload to notice; ENOENT is a fact, and facts are cached.
     shim("ffmpeg", true);
     shim("ffprobe", true);
-    expect(videoToolsAvailable()).toBe(false);
+    expect(await videoToolsAvailable()).toBe(false);
   });
 });

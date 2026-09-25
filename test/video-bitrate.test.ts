@@ -55,8 +55,8 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test("a served clip is held under the bitrate ceiling", () => {
-  if (!videoToolsAvailable()) return; // No ffmpeg here; nothing to measure.
+test("a served clip is held under the bitrate ceiling", async () => {
+  if (!(await videoToolsAvailable())) return; // No ffmpeg here; nothing to measure.
 
   const source = path.join(dir, "noise.mp4");
   if (!noiseClip(source, 3)) throw new Error("could not make a test clip");
@@ -65,11 +65,11 @@ test("a served clip is held under the bitrate ceiling", () => {
   // a quality target and nothing else — it goes well past the ceiling. If this
   // ever stops being true the test below has stopped proving anything.
   const unbounded = path.join(dir, "unbounded.mp4");
-  transcodeVideo(source, unbounded, { maxBitrate: 100_000_000 });
+  await transcodeVideo(source, unbounded, { maxBitrate: 100_000_000 });
   expect(bitrateOf(unbounded)).toBeGreaterThan(MAX_VIDEO_BITRATE * 2);
 
   const served = path.join(dir, "served.mp4");
-  transcodeVideo(source, served);
+  await transcodeVideo(source, served);
 
   // A little over the video ceiling is expected and correct: `-maxrate` bounds
   // the video, and the file also carries audio and container overhead.

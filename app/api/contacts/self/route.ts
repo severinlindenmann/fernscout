@@ -10,17 +10,23 @@ import { resolveViewer } from "@/lib/viewer";
 export const dynamic = "force-dynamic";
 
 /**
- * A person named in a trip's own `people:` block giving or correcting their
- * address — B1395.
+ * A traveller giving or correcting their address without a manage token —
+ * B1395.
  *
- * **The gap this closes.** Write access to a trip comes from two places:
- * `trip.md`'s hand-written `people:` block, or a redeemed buddy link
- * (`lib/tripPeople.ts`, `isPersonOnWith`). Only the second ever creates a
- * contacts row — a buddy link is redeemed through `/api/contacts/redeem`,
- * which writes one. Somebody the owner simply typed into `people:` has write
- * access and no row anywhere, so `/<user>/me` had nothing to offer them: no
- * manage token exists to reach `/api/contacts/manage`, and `/<user>/contacts`
- * is the owner's own page.
+ * **The gap this closed, historically.** Before D3 (B2297), write access to a
+ * trip came from two places: `trip.md`'s hand-written `people:` block, or a
+ * redeemed buddy link. Only the second ever created a contacts row, so
+ * somebody the owner simply typed into `people:` had write access and no row
+ * anywhere for `/<user>/me` to offer a manage token for.
+ *
+ * **Since D3, `people:` grants nothing** (`lib/tripPeople.ts`'s file banner):
+ * `isPersonOnWith`/`through === "traveller"` now means the owner or somebody
+ * holding a granted `trip_people` place, and a granted place always has a
+ * `contact_id` already — `claimTripPlace` requires one. So the gap this
+ * route was built for no longer exists: every real traveller already has a
+ * row. It is kept, refusing correctly, rather than removed outright, because
+ * removing it and its `/<user>/me` wiring is a larger call than this
+ * correction asked for; see the ticket for the follow-up this leaves open.
  *
  * **Why this is a separate door, and not `/api/contacts/manage` with an empty
  * token.** That route is keyed on a manage token, which is minted only once a

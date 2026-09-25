@@ -282,12 +282,14 @@ const LISTED_DECLINABLE: Declinable = {
 /**
  * Exported (D9, 06-contract-deltas.md) so the shared write path's T6 decline
  * retraction (`lib/api/v2/write.ts`) can clear a stored decline of `listed`
- * or `buddies` too — both are decline-able (the schema's `declined` map
- * accepts them) even though neither is in `TRIP_DECLINABLES`, since each is
- * asked by a bespoke `superRefine` check rather than
- * `checkRequiredOrDeclined`. No change to any accepted document.
+ * too — decline-able (the schema's `declined` map accepts it) even though it
+ * is not in `TRIP_DECLINABLES`, since it is asked by a bespoke `superRefine`
+ * check (`reconcileVisibility`) rather than `checkRequiredOrDeclined`. No
+ * change to any accepted document. `buddies` used to be the other one here —
+ * B2297 removed the whole question: whether somebody may write to a trip is
+ * never asked at trip-creation time any more.
  */
-export const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "figures", "tagline", "intro", "listed", "buddies"] as const;
+export const DECLINABLE_KEYS = ["rates", "costs", "plan", "days", "translations", "accent", "cover", "figures", "tagline", "intro", "listed"] as const;
 
 /**
  * Creating a trip: the whole document at once. Every declinable section is
@@ -312,14 +314,12 @@ const tripBase = z
      * somebody's trip. Unrecognised reads as private on disk; here it is
      * refused outright. */
     visibility: z.enum(VISIBILITIES),
-    /** Who is on the trip — the owner plus any buddies, each name + email.
-     * Everyone listed may write to the trip; the access only materialises
-     * when that person proves the address through the sign-in code, so a
-     * wrong email grants nothing. The server mails every newly added
-     * non-owner: a "you are on trip X" note if the address is already known
-     * to this journal, an onboarding invite if it is not — and the echo's
-     * `notifications` says which went out. A trip with only the owner on it
-     * declines `buddies` instead ("travelling solo"). */
+    /** Who was on the trip — the owner plus anyone else, each name + email.
+     * B2297 (one door for readers, B2291/B2295): this is the byline only.
+     * It grants nothing and mails nobody, whatever it says — write access to
+     * a trip comes only from a buddy the owner granted at
+     * `/<user>/studio/readers`, a fact that lives in `trip_people`, not
+     * here. */
     people: z.array(person).min(1).max(MAX_TRIP_PEOPLE),
     /** Required on a closed trip (guest/private): may the trip's existence
      * show as a locked card? A boolean is its own answer, so there is no
@@ -384,36 +384,10 @@ const refineTripCreate = (doc: z.infer<typeof tripBase>, ctx: z.RefinementCtx) =
     const declinables =
       doc.visibility === "public" ? [...TRIP_DECLINABLES, LISTED_DECLINABLE] : TRIP_DECLINABLES;
     checkRequiredOrDeclined(doc, declinables, ctx);
-    // buddies: a solo trip says so; a trip with buddies has answered.
-    if (doc.people !== undefined) {
-      const solo = doc.people.length <= 1;
-      const buddiesDeclined = doc.declined?.buddies !== undefined;
-      if (solo && !buddiesDeclined) {
-        ctx.addIssue({
-          code: "custom",
-          // `buddies` — not `people` — because `incompleteFrom` keys the
-          // 422 row by `issue.path[0]` and a caller resolves any other row
-          // by sending `declined.<field>` built from that same field. On
-          // `people` the row read `declined.people`, which is not a
-          // DECLINABLE_KEYS entry at all and would earn a fresh, unrelated
-          // refusal (B1601, moderate finding 3); `to_provide` would also
-          // have shown the `people` array's own shape, which says nothing
-          // about the buddies question being asked.
-          path: ["buddies"],
-          message:
-            "only one person is on this trip — add the buddies who were there (name + email; the server mails them), or decline: declined.buddies (e.g. travelling solo)",
-          params: { v2: "missing", toDecline: "declined.buddies: <reason>" },
-        });
-      }
-      if (!solo && buddiesDeclined) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["people"],
-          message: "buddies are both listed in people and declined — remove one",
-          params: { v2: "conflict" },
-        });
-      }
-    }
+    // B2297 removed the `buddies` required-or-declined question that used
+    // to live here (`people.length > 1` and a matching `declined.buddies`):
+    // `people:` is the byline only, so a trip with one name or several
+    // answers nothing about who may write to it either way.
     // listed: a public trip's question only.
     if (doc.visibility !== "public" && (doc.listed !== undefined || doc.declined?.listed !== undefined)) {
       ctx.addIssue({
@@ -467,7 +441,7 @@ export const tripCreateStored = tripBase.superRefine(refineTripCreate);
  * `plan`, `rates`, `figures`, `translations`, …) keeps the `declined` map as
  * its only way to say "not answered" — a `null` spelling there would be a
  * second way to say one thing, which is the drift this row exists to avoid.
- * Derived/conditional fields (`listed`, `teaser`, `buddies`) keep B1616's
+ * Derived/conditional fields (`listed`, `teaser`) keep B1616's
  * reconciliation and gain no `null` spelling either.
  */
 const NULLABLE_ON_PATCH = {

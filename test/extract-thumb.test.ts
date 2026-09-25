@@ -33,6 +33,9 @@ vi.mock("@/lib/capabilities", () => ({ isEnabled: (name: string) => name === "ex
 
 const { GET } = await import("@/app/api/helper/[user]/studio/thumb/[run]/[id]/route");
 
+/** Asked once, at load: which external HEIC decoder this machine has. */
+const heifDecoder = await heifDecoderName();
+
 let dir: string;
 let dataDir: string;
 
@@ -100,7 +103,7 @@ describe("the owner asking for their own staged photograph", () => {
     expect(response.status).toBe(404);
   });
 
-  test.runIf(heifDecoderName() !== null)("HEIC and HEIF originals produce cached WebP previews without changing their bytes", async () => {
+  test.runIf(heifDecoder !== null)("HEIC and HEIF originals produce cached WebP previews without changing their bytes", async () => {
     const original = fs.readFileSync(path.join(process.cwd(), "test/fixtures/ingest/phone.heic"));
     for (const extension of ["HEIC", "heif"]) {
       const stored = putStagedFile("alex", "run-1", `phone.${extension}`, original);

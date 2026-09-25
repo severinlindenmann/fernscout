@@ -125,17 +125,6 @@ afterAll(async () => {
 
 type Body = { error?: string; message?: string };
 
-async function invites(user: string, token?: string): Promise<{ status: number; body: Body }> {
-  const { GET } = await import("@/app/api/v2/[user]/invites/route");
-  const response = await GET(
-    new Request(`https://example.test/api/v2/${user}/invites`, {
-      headers: headers(token ? { authorization: `Bearer ${token}` } : {}),
-    }),
-    { params: Promise.resolve({ user }) },
-  );
-  return { status: response.status, body: (await response.json()) as Body };
-}
-
 async function keys(user: string, token?: string): Promise<{ status: number; body: Body }> {
   const { GET } = await import("@/app/api/auth/[user]/keys/route");
   const response = await GET(
@@ -147,47 +136,11 @@ async function keys(user: string, token?: string): Promise<{ status: number; bod
   return { status: response.status, body: (await response.json()) as Body };
 }
 
-describe("invites: ownership is checked before the capability", () => {
-  test("the owner, with contacts off, is told the real reason", async () => {
-    writeServerConfig({ auth: { enabled: true }, contacts: { enabled: false } });
-    await clearCaches();
-    try {
-      const result = await invites(OWNER, await ownerToken());
-      expect(result.status).toBe(409);
-      expect(result.body.error).toBe("contacts_disabled");
-    } finally {
-      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
-      await clearCaches();
-    }
-  });
-
-  test("a journal with contacts off answers a non-owner exactly as one that does not exist", async () => {
-    writeServerConfig({ auth: { enabled: true }, contacts: { enabled: false } });
-    await clearCaches();
-    try {
-      // v2's bearer gate (`requireJournalOwner`) refuses a missing token
-      // before it ever asks whether the journal exists — a stricter version
-      // of the same "no second oracle" property v1's `isOwner`-first guard
-      // had, and the reason `noToken` and `fakeJournal` still have to match.
-      const noToken = await invites(OWNER);
-      const fakeJournal = await invites("no-such-journal");
-      expect(noToken.status).toBe(401);
-      expect(noToken.body.error).toBe("missing_token");
-      expect(noToken).toEqual(fakeJournal);
-    } finally {
-      writeServerConfig({ auth: { enabled: true }, contacts: { enabled: true } });
-      await clearCaches();
-    }
-  });
-
-  test("a real journal with contacts on still answers a missing token the same as a fake journal — no second oracle", async () => {
-    const real = await invites(OWNER);
-    const fake = await invites("no-such-journal");
-    expect(real.status).toBe(401);
-    expect(real).toEqual(fake);
-  });
-});
-
+// `describe("invites: ownership is checked before the capability", …)` used
+// to live here, against `GET /api/v2/[user]/invites` — removed along with
+// the route (B2295, one door for readers, B2291). `keys` below tests the
+// same "ownership before capability" property (B340) against a route that
+// is still an agent bearer door, so it stays.
 describe("keys: the same order", () => {
   test("the owner, with auth off, is told the real reason", async () => {
     const token = await ownerToken();

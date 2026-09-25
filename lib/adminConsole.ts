@@ -379,9 +379,19 @@ export async function signupsByWeek(weeks: number): Promise<Week[]> {
 }
 
 /**
+ * A day file, by its name: dated, and in either format. B1598 moved days from
+ * `.md` to `.json` and these counters kept looking for `.md` only, so every
+ * journal written since read as never started. `.md` is still counted, for a
+ * folder that has not been converted yet.
+ */
+function isDayFile(name: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}.*\.(json|md)$/.test(name);
+}
+
+/**
  * Days written, week by week — B996 (X3).
  *
- * From the filenames alone. Every entry is `YYYY-MM-DD-slug.md`, so the whole
+ * From the filenames alone. Every entry is `YYYY-MM-DD-slug.json`, so the whole
  * series is one `readdir` per trip and not a single file read; `collectStatus`
  * parses every day and is cached for that reason, and this needs none of what
  * parsing would give.
@@ -409,7 +419,7 @@ export function daysByWeek(weeks: number): Week[] {
         continue;
       }
       for (const file of files) {
-        if (!file.endsWith(".md")) continue;
+        if (!isDayFile(file)) continue;
         put(buckets, file.slice(0, 10));
       }
     }
@@ -533,6 +543,13 @@ export type Health = {
    * bad one by exception.
    */
   backup: BackupStatus;
+  /**
+   * Every capability, in `resolveCapabilities`' own order, with the reason it
+   * gives — for the grid on the Instance section. `fault` is one that was
+   * asked for and refused, the same judgement that puts it in `wrong` above;
+   * `off` is off by choice.
+   */
+  capabilities: { name: string; state: "on" | "off" | "fault"; reason: string }[];
 };
 
 /** The phrase `resolveCapabilities` uses for "the operator did not ask for
@@ -630,6 +647,7 @@ export function backupWrongs(backup: BackupStatus): Wrong[] {
 export async function health(): Promise<Health> {
   const wrong: Wrong[] = [];
   const offByChoice: string[] = [];
+  const capabilities: Health["capabilities"] = [];
 
   const backup = readBackupStatus();
   wrong.push(...backupWrongs(backup));
@@ -641,11 +659,16 @@ export async function health(): Promise<Health> {
   if (basemap) wrong.push({ id: "basemap", title: "The map data cannot be read", detail: basemap });
 
   for (const state of Object.values(resolveCapabilities())) {
-    if (state.enabled) continue;
-    if (state.reason === OFF_BY_CHOICE) {
-      offByChoice.push(state.name);
+    if (state.enabled) {
+      capabilities.push({ name: state.name, state: "on", reason: state.note ?? "" });
       continue;
     }
+    if (state.reason === OFF_BY_CHOICE) {
+      offByChoice.push(state.name);
+      capabilities.push({ name: state.name, state: "off", reason: state.reason });
+      continue;
+    }
+    capabilities.push({ name: state.name, state: "fault", reason: state.reason });
     wrong.push({
       id: `capability:${state.name}`,
       title: `${state.name} was asked for and is off`,
@@ -660,6 +683,7 @@ export async function health(): Promise<Health> {
     offByChoice,
     backupAgeHours: backup.ageHours,
     backup,
+    capabilities,
   };
 }
 
@@ -764,7 +788,7 @@ export function journalActivity(since: string): Record<string, Activity> {
         continue;
       }
       for (const file of files) {
-        if (!file.endsWith(".md")) continue;
+        if (!isDayFile(file)) continue;
         row.days += 1;
         const day = file.slice(0, 10);
         if (day >= from) row.recentDays += 1;

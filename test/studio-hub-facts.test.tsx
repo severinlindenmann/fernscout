@@ -123,7 +123,7 @@ describe("the Half done strip", () => {
       resumableImports: [
         { runId: "r1", createdAt: "2026-09-01T00:00:00.000Z", expiresAt: "2026-09-05T00:00:00.000Z", livePhotoCount: 4, daysLeftToTell: 1, stagedBytes: 12_000_000 },
       ],
-      postcardSuggestion: { dayTitle: "Zermatt", dayHref: "/alex/trips/alps/day/zermatt" },
+      postcardSuggestion: { dayTitle: "Zermatt", dayDate: "2026-09-12", tripTitle: "Alps", dayHref: "/alex/trips/alps/day/zermatt" },
     });
     const s = strip(el)!;
     expect(s).not.toBeNull();
@@ -143,6 +143,20 @@ describe("the Half done strip", () => {
     const hero = el.querySelector("a[data-hero]")!;
     expect(hero.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(s.compareDocumentPosition(el.querySelector("section[data-group]")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  // A day not yet named has `title: ""`, and the card used to print „“ for
+  // it. It names the day by its date and trip instead, never by an empty
+  // quote or a slug.
+  test("names an untitled day by its date and trip, with no empty quotes", async () => {
+    const el = await render({
+      ...FULL,
+      postcardSuggestion: { dayTitle: null, dayDate: "2026-07-14", tripTitle: "Hungary 2026", dayHref: "/alex/trips/hu/day/2026-07-14" },
+    });
+    const s = strip(el)!;
+    expect(s.textContent).toContain("14 July");
+    expect(s.textContent).toContain('"Hungary 2026"');
+    expect(s.textContent).not.toContain('""');
   });
 });
 

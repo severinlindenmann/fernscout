@@ -79,24 +79,13 @@ export const CONTACT_STATUSES = ["pending", "active", "blocked"] as const;
  * ever read back here — `hasPostalAddress` survives as the one bit that
  * says whether something is on file without saying what it is, matching how
  * `GET .../postcards/recipients` already answers with a name, a town and a
- * country and never the address itself. `email` IS still accepted on write
- * (`contactCreate`/`contactPatch`) — it is how the owner names who to mail —
- * but it is echoed back to nobody; see this ticket's report for the full
- * reasoning, since this narrows the design doc rather than following it.
+ * country and never the address itself.
+ *
+ * `contactCreate`/`contactPatch` — the write side an agent used to reach
+ * this shape through — are gone (B2295, one door for readers, B2291): an
+ * agent no longer creates, corrects, approves or revokes a contact at all,
+ * so this is a read-only document now, backing only `contacts/self`.
  */
-export const contactCreate = z.strictObject({
-  name: z.string().trim().min(1).max(120),
-  email: z.email(),
-  locale: z.string().optional(),
-});
-
-/** Owner corrections — every field optional, `PATCH`'s whole contract. */
-export const contactPatch = z.strictObject({
-  name: z.string().trim().min(1).max(120).optional(),
-  email: z.email().optional(),
-  locale: z.string().optional(),
-});
-
 export const contactDoc = z.strictObject({
   id: z.string(),
   name: z.string().nullable(),

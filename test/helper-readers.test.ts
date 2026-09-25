@@ -6,21 +6,20 @@ import { clearConfigCache } from "@/lib/config";
 import { clearUserCache, getUser } from "@/lib/users";
 import { closeDatabase, getDatabase } from "@/lib/db";
 import { migrateToLatest } from "@/lib/db/migrate";
-import { createInvite } from "@/lib/contacts/invites";
 import { runTool } from "@/lib/helper/tools";
 import type { Say } from "@/lib/helper/intents";
 import { writeTripFixture } from "./fixtures/content";
 import { WEB_CALLER } from "./support/callers";
 
 /**
- * Four capabilities let onto the wizard's own door — B1051.
- *
- * `invites` and `revoke_invite` are the missing other half of `invite_guest`:
- * a link the owner cannot see again is one they cannot take back either.
+ * Two capabilities let onto the wizard's own door — B1051. `invite_guest`,
+ * `invites` and `revoke_invite` used to live here too; B2295 (one door for
+ * readers, B2291) removed them — the owner decided `/<user>/studio/readers`
+ * is the only place a person is let in or an invite link is made or revoked.
  * `tell_readers` is one tool for the two routes that announce a published
  * day, because a person says "tell them" and not which transport. `channels`
  * is the two switches that decide whether either one can send anything at
- * all. None of the four is `approveContact` — nothing here creates a grant.
+ * all. Neither is `approveContact` — nothing here creates a grant.
  */
 
 const OWNER_EMAIL = "alex@example.test";
@@ -37,7 +36,6 @@ vi.mock("next/headers", () => ({
 
 const { POST: writeDay } = await import("@/app/api/helper/[user]/day/route");
 const { POST: publishDay } = await import("@/app/api/helper/[user]/day/publish/route");
-const { POST: revokeInviteRoute } = await import("@/app/api/helper/[user]/invite/revoke/route");
 const { POST: tellReadersRoute } = await import("@/app/api/helper/[user]/day/tell-readers/route");
 const { POST: channelsRoute } = await import("@/app/api/helper/[user]/channels/route");
 
@@ -170,84 +168,13 @@ async function writeAndPublishADay(): Promise<{ trip: string; slug: string }> {
   return { trip: "reise", slug: body.slug };
 }
 
-describe("invites — never the token", () => {
-  test("an empty journal has nothing to choose from", async () => {
-    const ran = await runTool("alex", "invites", {}, say, "2026-09-07", [], "", WEB_CALLER);
+describe("invite_to_read — the one door", () => {
+  test("hands over Studio › Readers and nothing else", async () => {
+    const ran = await runTool("alex", "invite_to_read", {}, say, "2026-09-07", [], "", WEB_CALLER);
     expect(ran.ok).toBe(true);
-    expect(ran.blocks).toEqual([]);
-  });
-
-  test("what exists is listed, and the live token never appears in it", async () => {
-    const made = await createInvite("alex", { kind: "guest", name: "Mara", tripId: null });
-
-    const ran = await runTool("alex", "invites", {}, say, "2026-09-07", [], "", WEB_CALLER);
-    const dumped = JSON.stringify(ran);
-
-    // The security property: whatever this tool hands back, the bearer
-    // credential a redemption needs is not in it, in any form.
-    expect(dumped).not.toContain(made.token);
-    expect(dumped).not.toContain("fs_inv_");
-    expect(dumped).not.toMatch(/"url"/);
-
-    // And the facts a person would actually ask for are there.
-    expect(dumped).toContain("Mara");
-    expect(dumped).toContain("guest");
-
-    const block = ran.blocks.find((b) => b.shape === "choose");
-    expect(block?.shape === "choose" && block.options[0]?.value).toBe(made.id);
-  });
-
-  test("with contacts switched off, there is nothing to show", async () => {
-    // Decision 5 (docs/v2-migration/00-decisions.md, B1666) made `contacts`
-    // instance-only: no v2 door ever lets a journal opt out of it any more,
-    // so the switch this test pulls is the server's own.
-    fs.writeFileSync(
-      path.join(dir, "config.json"),
-      JSON.stringify({
-        site: { name: "T", url: "https://t.test" },
-        features: {
-          auth: { enabled: true },
-          helper: { enabled: true },
-          contacts: { enabled: false },
-          mail: { enabled: true },
-          credits: { enabled: true },
-        },
-      }),
-    );
-    clearConfigCache();
-    clearUserCache();
-    await createInvite("alex", { kind: "guest", tripId: null });
-
-    const ran = await runTool("alex", "invites", {}, say, "2026-09-07", [], "", WEB_CALLER);
-    expect(ran.blocks).toEqual([]);
-  });
-});
-
-describe("revoke_invite", () => {
-  test("an id nobody recognises is refused, not proposed", async () => {
-    const ran = await runTool("alex", "revoke_invite", { invite: "nope" }, say, "2026-09-07", [], "", WEB_CALLER);
     expect(ran.proposal).toBeUndefined();
-    expect(JSON.stringify(ran.blocks)).toContain("agent.tool.noInvite");
-  });
-
-  test("a real one proposes, and the press revokes it — everybody approved stays put", async () => {
-    const made = await createInvite("alex", { kind: "buddy", tripId: "reise" });
-
-    const ran = await runTool("alex", "revoke_invite", { invite: made.id }, say, "2026-09-07", [], "", WEB_CALLER);
-    expect(ran.proposal).toBeDefined();
-    expect(ran.proposal?.sentence).toContain("agent.tool.revokeInvite");
-    expect(ran.proposal?.sentence).toContain("buddy");
-
-    const answered = await post(
-      revokeInviteRoute,
-      "https://t.test/api/helper/alex/invite/revoke",
-      pressed(ran.proposal!),
-    );
-    expect(answered.status).toBe(200);
-    expect((await answered.json()).revoked).toBe(true);
-
-    const after = await runTool("alex", "invites", {}, say, "2026-09-07", [], "", WEB_CALLER);
-    expect(JSON.stringify(after)).toContain("agent.block.invitesRevoked");
+    const block = ran.blocks.find((b) => b.shape === "link");
+    expect(block && block.shape === "link" && block.href).toBe("/alex/studio/readers");
   });
 });
 

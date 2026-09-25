@@ -76,7 +76,6 @@ function fullTrip(): Record<string, unknown> {
       figures: "no walking figures drawn",
       tagline: "no subtitle written",
       intro: "no opening prose written",
-      buddies: "travelling solo",
     },
   };
 }

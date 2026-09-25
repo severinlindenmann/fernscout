@@ -98,7 +98,7 @@ export default function ConfirmPanel({
       onKeyDown={(event) => {
         if (event.key === "Escape" && !busy) onCancel();
       }}
-      className="max-w-md rounded-2xl border border-line-quiet bg-surface-base p-4 focus:outline-none"
+      className="fs-pop max-w-md origin-top-left rounded-2xl border border-line-quiet bg-surface-base p-4 focus:outline-none"
     >
       <p className="text-sm leading-6 text-ink-body">{question}</p>
       {details && <Why>{details}</Why>}

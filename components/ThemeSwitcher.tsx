@@ -107,7 +107,7 @@ export default function ThemeSwitcher({ subtle = false }: { subtle?: boolean } =
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-40 mt-1.5 min-w-[9rem] overflow-hidden rounded-xl border border-line-quiet bg-surface-raised py-1 shadow-lg"
+          className="fs-pop absolute right-0 top-full z-40 mt-1.5 origin-top-right min-w-[9rem] overflow-hidden rounded-xl border border-line-quiet bg-surface-raised py-1 shadow-lg"
         >
           {THEME_CHOICES.map((item) => (
             <button

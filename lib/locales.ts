@@ -248,6 +248,19 @@ export function dictionaryFor(code: string): Dictionary {
 }
 
 /**
+ * Only the words the welcome guide and the join flow use — B2293. Those two
+ * pages are the first thing a stranger holding a link loads, on a phone, so
+ * they carry a few dozen strings rather than the whole dictionary.
+ */
+export function guideWords(code: string): Dictionary {
+  return Object.fromEntries(
+    Object.entries(dictionaryFor(code)).filter(
+      ([key]) => key.startsWith("guide.") || key.startsWith("join.") || key === "notifyStep.loading",
+    ),
+  );
+}
+
+/**
  * Test seam — drops every memoised dictionary.
  *
  * Still here after B59 gave the cache a staleness check, because a test that
