@@ -460,24 +460,34 @@ export default function TripHero({
         </section>
       )}
 
-      {/* Time per country */}
+      {/* Time per country — days, not money: spend per country already has
+          its own card on the costs page. B2308. */}
       {stats.byCountry && stats.byCountry.length > 0 && (
         <section className="rounded-2xl border border-line-quiet bg-surface-raised p-5 shadow-sm sm:p-6">
           <h2 className="mb-3 font-display text-base font-semibold text-ink-strong">
             {t("hero.timePerCountry")}
           </h2>
-          <BarList
-            rows={stats.byCountry.map((c) => ({
-              key: c.country,
-              label: `${flagFor(c.country, c.countryCode)} ${c.country}`,
-              value: c.nights,
-              sub: money(c.amount),
-            }))}
-            format={(n) =>
-              `${n} ${n === 1 ? t("stay.night") : t("stay.nights")}`
-            }
-            accent={CATEGORY_STYLE.accommodation.color}
-          />
+          {stats.byCountry.length === 1 ? (
+            // One country drawn as a bar at 100% of one says nothing — a
+            // single line instead of an empty-looking track.
+            <p className="text-sm font-medium text-ink-strong">
+              {`${flagFor(stats.byCountry[0].country, stats.byCountry[0].countryCode)} ${stats.byCountry[0].country} · ${stats.byCountry[0].nights} ${
+                stats.byCountry[0].nights === 1 ? t("stay.day") : t("stay.days")
+              }`}
+            </p>
+          ) : (
+            <BarList
+              rows={[...stats.byCountry]
+                .sort((a, b) => b.nights - a.nights)
+                .map((c) => ({
+                  key: c.country,
+                  label: `${flagFor(c.country, c.countryCode)} ${c.country}`,
+                  value: c.nights,
+                }))}
+              format={(n) => `${n} ${n === 1 ? t("stay.day") : t("stay.days")}`}
+              accent={CATEGORY_STYLE.accommodation.color}
+            />
+          )}
         </section>
       )}
     </div>

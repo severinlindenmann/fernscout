@@ -2574,6 +2574,8 @@ export type TranslationKey =
   | "signupPage.haveOne"
   | "signupPage.metaTitle"
   | "signupPage.title"
+  | "stay.day"
+  | "stay.days"
   | "stay.night"
   | "stay.nights"
   | "stay.sameDay"
