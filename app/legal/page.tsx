@@ -73,7 +73,7 @@ export default async function LegalPage() {
           {translateIn(locale, "legal.lede")}
         </p>
         {updated && (
-          <p className="mt-2 text-sm text-ink-muted">{translateIn(locale, "legal.updated", { date: updated })}</p>
+          <p className="mt-2 text-sm text-ink-secondary">{translateIn(locale, "legal.updated", { date: updated })}</p>
         )}
 
         {/* Said out loud when the reader asked for a language this instance has
@@ -91,7 +91,7 @@ export default async function LegalPage() {
             <h2 className="font-display text-lg font-semibold text-ink-strong">
               {translateIn(locale, "legal.inShort")}
             </h2>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-body marker:text-ink-muted">
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-body marker:text-ink-secondary">
               {legal.summary.map((line) => (
                 <li key={line}>{line}</li>
               ))}
@@ -101,7 +101,7 @@ export default async function LegalPage() {
 
         {sections.length > 1 && (
           <nav aria-labelledby="legal-contents" className="mt-8">
-            <h2 id="legal-contents" className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+            <h2 id="legal-contents" className="text-sm font-semibold uppercase tracking-wide text-ink-secondary">
               {translateIn(locale, "legal.contents")}
             </h2>
             <ul className="mt-2 flex flex-wrap gap-x-5 gap-y-1">

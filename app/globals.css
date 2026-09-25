@@ -1027,12 +1027,12 @@ select:disabled {
   --tw-prose-lead: var(--ink-secondary);
   --tw-prose-links: var(--ink-strong);
   --tw-prose-bold: var(--ink-strong);
-  --tw-prose-counters: var(--ink-muted);
+  --tw-prose-counters: var(--ink-secondary);
   --tw-prose-bullets: var(--line-strong);
   --tw-prose-hr: var(--line-quiet);
   --tw-prose-quotes: var(--ink-secondary);
   --tw-prose-quote-borders: var(--line-strong);
-  --tw-prose-captions: var(--ink-muted);
+  --tw-prose-captions: var(--ink-secondary);
   --tw-prose-kbd: var(--ink-strong);
   --tw-prose-code: var(--ink-strong);
   --tw-prose-th-borders: var(--line-strong);
