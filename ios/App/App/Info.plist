@@ -24,6 +24,8 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Fernscout uses the microphone only while you are recording, so you can tell the helper about your day instead of typing it.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Fernscout imports the photographs you choose into your travel journal and keeps the originals.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
