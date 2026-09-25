@@ -3428,7 +3428,6 @@ export type TranslationKey =
   | "studio.inbox.type.transcript"
   | "studio.inbox.type.video"
   | "studio.inbox.viewContact"
-  | "studio.invite.preview.button"
   | "studio.invite.preview.days"
   | "studio.invite.preview.days.one"
   | "studio.invite.preview.money"

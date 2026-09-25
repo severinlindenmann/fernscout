@@ -3557,7 +3557,6 @@
   "studio.invite.preview.tripSummary": "{days} · {photos}",
   "studio.invite.preview.yes": "yes",
   "studio.invite.preview.no": "no",
-  "studio.invite.preview.button": "Let {name} read it",
   "studio.invite.preview.days": "{count} days",
   "studio.invite.preview.days.one": "1 day",
   "studio.invite.preview.privateTrips": "{count} private trips",
