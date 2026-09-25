@@ -2694,6 +2694,8 @@
   "signin.identityWorking": "Signing in…",
   "signin.title": "Open your journal",
   "signin.working": "Opening…",
+  "stay.day": "day",
+  "stay.days": "days",
   "stay.night": "night",
   "stay.nights": "nights",
   "stay.sameDay": "same day",

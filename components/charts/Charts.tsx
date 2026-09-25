@@ -38,15 +38,19 @@ function Tooltip({ tip, width }: { tip: { x: number; y: number; text: string }; 
   );
 }
 
-/** Part-to-whole: one horizontal stacked bar plus a labelled legend. */
+/** Part-to-whole: one horizontal stacked bar plus a legend. */
 /**
- * The props that make something grow into place when it is scrolled to.
+ * The props that make something grow into place on mount.
  *
- * `whileInView` is a *trigger*, not just an animation: until the observer
- * fires, the element sits at `initial` forever. So for a reader who has asked
- * their system for less movement, dropping the duration is not enough — the
- * gate has to go too, or they get a permanently empty chart instead of a still
- * one.
+ * This used to be `whileInView`, gated on an IntersectionObserver — but that
+ * is a *trigger*, not just an animation: until the observer fires, the
+ * element sits at `initial` (scale 0) forever. A card below the fold, never
+ * scrolled to, stayed empty in every screenshot taken of it — B2308, found
+ * on the very first "days per country" card a reader was likely to load
+ * straight into rather than scroll down for. Growing on `animate` instead
+ * fires as soon as the component mounts, whatever is or isn't in view, so
+ * the bar is filled within one short transition of first paint rather than
+ * conditional on a scroll that may never happen.
  *
  * `animate`, not only `initial: false`. `useReducedMotion` cannot know the
  * answer while the HTML is being made, so the first client render — the one
@@ -61,7 +65,7 @@ function useGrow() {
   return (from: Record<string, number>, to: Record<string, number>, transition: object) =>
     still
       ? ({ initial: false, animate: to } as const)
-      : ({ initial: from, whileInView: to, viewport: { once: true }, transition } as const);
+      : ({ initial: from, animate: to, transition } as const);
 }
 
 /**

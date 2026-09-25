@@ -289,6 +289,10 @@ export function getCostSummary(
     countryNights.set(c, (countryNights.get(c) ?? 0) + 1);
     if (!countryCode.has(c)) countryCode.set(c, day.lead.countryCode);
   }
+  // A country with nothing spent in it still gets visited — the trip hero's
+  // time-per-country card is about days, not money, so it keeps every
+  // country here. Money-only readers (the costs page) filter `amount > 0`
+  // themselves rather than this shared list losing a country to it (B2308).
   const byCountry = Array.from(countryNights.keys())
     .map((country) => {
       const amount = sumBase(items.filter((i) => i.country === country));
@@ -301,7 +305,6 @@ export function getCostSummary(
         perDay: nights > 0 ? amount / nights : 0,
       };
     })
-    .filter((c) => c.amount > 0)
     .sort((a, b) => b.amount - a.amount);
 
   // Per day, with a running total seeded from the preparation spend.
