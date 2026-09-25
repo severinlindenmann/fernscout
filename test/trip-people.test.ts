@@ -14,12 +14,13 @@ import {
 } from "@/lib/tripPeople";
 
 /**
- * Who took the trip, and therefore who may write it up.
- *
- * The list decides write access, so it fails **closed**: one malformed line
- * drops the whole block rather than silently admitting or excluding one
- * person. A half-parsed list of people is a half-parsed list of who may write
- * to somebody's journal.
+ * Who took the trip — read access and byline credit, both unchanged by
+ * B2297. The list still fails **closed**: one malformed line drops the whole
+ * block rather than silently admitting or excluding one person. A
+ * half-parsed list of people is a half-parsed answer to who may read a
+ * closed trip. (Write access is a different, narrower question since
+ * B2297 — `peopleOf`/`tripWriteVerdict`, grant-only — see
+ * `test/trip-write-verdict.test.ts`.)
  */
 
 let dir: string;
@@ -83,11 +84,11 @@ const trip = (id: string) => getTrip(tripRef("alex", id))!;
 
 describe("the people block", () => {
   /**
-   * No `DATABASE_URL` in this file, deliberately. `peopleOf` reads the
-   * frontmatter *and* the redeemed places (B33), and the property that matters
-   * here is that the first half stands entirely on its own: with no database
-   * at all — a supported way to run this site — a hand-written `people:` block
-   * behaves exactly as it did before any of that existed.
+   * No `DATABASE_URL` in this file, deliberately. `peopleOf` is the owner
+   * plus the redeemed places (B33; `people:` is the byline only since
+   * B2297), and the property that matters here is that the owner's own half
+   * stands entirely on its own: with no database at all — a supported way to
+   * run this site — the owner still writes their own trip.
    */
   test("a solo trip names nobody, and the owner is still on it", async () => {
     writeTrip("solo-2026", []);
@@ -213,7 +214,11 @@ describe("a narrow request", () => {
     writeTrip("honeymoon-2027", []);
     const t = trip("vietnam-2026");
 
-    // Both addresses may write here; either may ask for this trip alone.
+    // Both addresses read/are named here — `isPersonOn` is the byline-and-
+    // reading check, unaffected by B2297; either may ask for this trip
+    // alone. (Whether "robin@e.com" could actually *write* through that
+    // scope is `tripWriteVerdict`'s question, grant-only since B2297 —
+    // `test/trip-write-verdict.test.ts`'s coverage.)
     for (const email of ["alex@example.com", "robin@e.com"]) {
       expect(await isPersonOn(t, email), email).toBe(true);
     }

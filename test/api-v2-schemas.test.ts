@@ -44,7 +44,6 @@ const fullTrip = {
   tagline: "Six passes in seven days",
   intro: "A week on the narrow-gauge lines.",
   declined: {
-    buddies: "travelling solo this time",
     figures: "owner has not designed figures yet",
     days: "trip has not started yet",
     translations: "owner writes this journal in English only for now",
@@ -109,11 +108,7 @@ describe("required-or-declined", () => {
     expect(r.success).toBe(false);
     const missing = r.error!.issues.filter((i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing");
     expect(missing.map((i) => i.path[0]).sort()).toEqual([
-      // "buddies", not "people": the solo-trip question is answered under
-      // `declined.buddies` (B1601 moderate finding 3 — the row has to name a
-      // real DECLINABLE_KEYS entry, or a caller building `declined.<field>`
-      // from it lands on a field that does not exist).
-      "accent", "buddies", "costs", "days", "figures", "intro", "plan", "rates", "tagline", "translations",
+      "accent", "costs", "days", "figures", "intro", "plan", "rates", "tagline", "translations",
     ]);
     // Each carries how to decline, so the refusal is the documentation.
     for (const issue of missing) {
@@ -160,40 +155,11 @@ describe("required-or-declined", () => {
     ).toBe(false);
   });
 
-  it("asks the buddy question: a solo trip says so, a crewed trip has answered", () => {
-    const decl = { ...fullTrip.declined } as Record<string, string>;
-    delete decl.buddies;
-    // Solo without the decline: refused, with the decline instruction.
-    const r = tripCreate.safeParse({ ...fullTrip, declined: decl });
-    expect(r.success).toBe(false);
-    // Two people: the question is answered by the list itself…
-    const two = [...people, { name: "Anna Example", email: "anna@example.com" }];
-    expect(tripCreate.safeParse({ ...fullTrip, people: two, declined: decl }).success).toBe(true);
-    // …and declining on top of a crew is a conflict.
-    expect(tripCreate.safeParse({ ...fullTrip, people: two }).success).toBe(false);
-  });
-
-  it("raises the solo-trip question on path `buddies`, not `people` (B1601)", () => {
-    const decl = { ...fullTrip.declined } as Record<string, string>;
-    delete decl.buddies;
-    const r = tripCreate.safeParse({ ...fullTrip, declined: decl });
-    expect(r.success).toBe(false);
-    const missingIssue = r.error!.issues.find(
-      (i) => "params" in i && (i as { params?: { v2?: string } }).params?.v2 === "missing",
-    )!;
-    // `declined.<field>` built from the row must name a real declinable —
-    // `declined.people` is not one, and would earn an unrelated refusal.
-    expect(missingIssue.path).toEqual(["buddies"]);
-    // Confirm it: `declined.buddies` on top of this same body is accepted…
-    expect(
-      tripCreate.safeParse({ ...fullTrip, declined: { ...decl, buddies: "travelling solo this time" } }).success,
-    ).toBe(true);
-    // …while `declined.people` (the old, wrong field) is not recognised and
-    // the trip is still refused as incomplete.
-    expect(
-      tripCreate.safeParse({ ...fullTrip, declined: { ...decl, people: "travelling solo this time" } }).success,
-    ).toBe(false);
-  });
+  // `it("asks the buddy question…")` and `it("raises the solo-trip question
+  // on path buddies…")` used to live here — B2297 (one door for readers,
+  // B2291/B2295) removed the whole required-or-declined `buddies` question:
+  // `people:` is the byline only, and whether somebody may write to a trip
+  // is never asked at trip-creation time any more.
 
   it("refuses a section both brought and declined", () => {
     const r = tripCreate.safeParse({

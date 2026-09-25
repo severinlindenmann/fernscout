@@ -66,7 +66,6 @@ function fullTrip(id: string, overrides: Record<string, unknown> = {}): Record<s
       figures: "no walking figures drawn for this trip",
       tagline: "no one-line subtitle written for this trip",
       intro: "no opening prose written for this trip yet",
-      buddies: "travelling solo, nobody else was on this trip",
     },
     ...overrides,
   };

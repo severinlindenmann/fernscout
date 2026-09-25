@@ -459,10 +459,14 @@ describe("what the v2 guides have to tell an agent", () => {
     expect(guide).toMatch(/asked, or declined/i);
   });
 
-  test("the add-a-trip guide says buddies are their own question", () => {
+  // B2297 (one door for readers, B2291/B2295) removed the whole "buddies
+  // are their own question" section this used to check: a trip's `people`
+  // is the byline only, and write access is granted only from Studio ›
+  // Readers, never asked or answered at trip-creation time.
+  test("the add-a-trip guide says people is the byline, and points at Studio › Readers for a buddy", () => {
     const guide = skillDoc("add-a-trip");
-    expect(guide.toLowerCase()).toContain("buddies");
-    expect(guide).toMatch(/travelling solo/i);
+    expect(guide.toLowerCase()).toContain("byline");
+    expect(guide).toMatch(/studio.*readers/i);
   });
 
   test("every document defines journal visibility with the same words", () => {

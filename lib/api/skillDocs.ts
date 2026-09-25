@@ -233,7 +233,7 @@ function addATrip(): string {
         title: "what the trip is called",
         dates: "`{from, to}`, both `YYYY-MM-DD` — required, never guessed",
         visibility: '`private`, `public` or `guest` — an explicit choice, never a guessed default',
-        people: "who was on it — `[{name, email, nickname?}]`, 1 to ten. Write access **and** the byline",
+        people: "who was on it — `[{name, email, nickname?}]`, 1 to ten. The byline only — it grants no write access and mails nobody; a buddy is added and granted from Studio › Readers, in the owner's own browser",
         teaser: "required on a closed trip only: may its existence show as a locked card nobody may open?",
         rates: '`{currencies: ["JPY"], manual?: {"JPY": 148.2}}` — manual rates are units per 1 EUR — or decline it',
         costs: "a budget and preparation spend, or decline it (see /skill/costs.md)",
@@ -256,12 +256,6 @@ function addATrip(): string {
       "neither is refused with `422 incomplete`, naming exactly which sections are missing and " +
       "what to send for each. **Never invent a value to get past this** — decline it, or go " +
       "and ask.",
-    "**Buddies are their own question.** A trip with only the owner in `people` must decline " +
-      "`buddies` (e.g. `\"travelling solo\"`); a trip with more than one person in `people` must " +
-      "not decline it. Everyone added is mailed — either \"you are on trip X\" if this journal " +
-      "already knows their address, or an onboarding invite if it does not — and the echo's " +
-      "`notifications` says which went out. **That mail is not access**: it materialises only " +
-      "once that person proves the address through their own sign-in code.",
     "**`teaser` and `listed` are conditional on `visibility`.** A closed trip (`private`/`guest`) " +
       "must answer `teaser` and must not send `listed`; a `public` trip must answer `listed` " +
       "(declinable) and must not send `teaser`. Sending the wrong one for the trip's own " +
