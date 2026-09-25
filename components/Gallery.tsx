@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import Image from "next/image";
 import { Trash2 } from "lucide-react";
-import { mediaLoader } from "./mediaLoader";
+import { mediaLoader, posterSrc } from "./mediaLoader";
+import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import { motion } from "motion/react";
 import { useI18n } from "./LocaleProvider";
 import FullPhoto from "./FullPhoto";
@@ -73,7 +74,7 @@ export default function Gallery({
                 // small rectangles.
                 <video
                   src={item.src}
-                  poster={item.poster}
+                  poster={posterSrc(item.poster, POSTER_WIDTH.GRID)}
                   preload={item.poster ? "none" : "metadata"}
                   className="h-full w-full object-cover"
                   muted

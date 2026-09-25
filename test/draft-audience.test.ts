@@ -339,7 +339,7 @@ describe("a draft day's photographs", () => {
    * day up byte for byte, while the file itself was resolved case-folded (by
    * APFS here, by `foldedWalk` on a case-sensitive volume) and the gallery
    * item matched the same way. B1884 closed the folder-*name* half of this
-   * mismatch (`getEntryByFolder`) and left the case half; folding that one
+   * mismatch (`entryForFolder`) and left the case half; folding that one
    * lookup closes it for every gate keyed on a media folder.
    *
    * **What a published day does is pinned deliberately: it still serves,

@@ -35,7 +35,9 @@ import {
 } from "../../ingest/video";
 import { loadUserConfig } from "../../config";
 import { getTrip, tripRef } from "../../trips";
-import { mediaUrl, resolveMediaFile, tripMediaDir, tripOriginalsDir, tripSidecarPath } from "../../media";
+import { mediaUrl, resolveMediaFile, tripMediaDir, tripOriginalsDir, tripSidecarPath, warmDerivatives } from "../../media";
+import { POSTER_WIDTH, WARM_WIDTHS } from "../../mediaSizes";
+import { afterResponse } from "../../afterResponse";
 import { moveSidecar, readTripSidecar, removeTripSidecar, writeTripSidecar, type Sidecar } from "../../sidecar";
 import { listDaySlugs, readDayFile } from "./store";
 import { measureImage, type ImageFacts } from "../../ingest/imageFacts";
@@ -424,6 +426,14 @@ async function storeTripPhoto(
       }
     });
     if (!guard.ok) return { ok: false, error: "storage_full", problem: guard.problem };
+
+    // The sizes the grids will ask for, made now rather than by whoever opens
+    // the gallery first — the same warm-up v1's `storeUploads` does.
+    afterResponse("media-warm", () =>
+      posterName
+        ? warmDerivatives(username, [frontmatterSrc(tripId, path.join(subdir, posterName))], [POSTER_WIDTH.GRID])
+        : warmDerivatives(username, [src], WARM_WIDTHS),
+    );
 
     // Read back what actually landed — a carried inbox sidecar (EXIF read at
     // that earlier door) was merged over `sidecar` above rather than held in

@@ -13,7 +13,9 @@ import {
 } from "../ingest/image.ts";
 import { AS_AUTHOR, getAllEntries, getEntryBySlug } from "../entries";
 import { frontmatterSrc } from "../ingest/paths.ts";
-import { resolveMediaFile, tripMediaDir, tripMetaDir, tripOriginalsDir, tripSidecarPath } from "../media";
+import { resolveMediaFile, tripMediaDir, tripMetaDir, tripOriginalsDir, tripSidecarPath, warmDerivatives } from "../media";
+import { POSTER_WIDTH, WARM_WIDTHS } from "../mediaSizes";
+import { afterResponse } from "../afterResponse";
 import { moveSidecar, removeTripSidecar, writeTripSidecar, type Sidecar } from "../sidecar";
 import { measureImage } from "../ingest/imageFacts";
 import { getTrips, parseTripRef, tripDir, tripRef } from "../trips";
@@ -479,6 +481,17 @@ export async function storeUploads(
   );
   if (!guard.ok) {
     return { ok: false, problems: [{ field: "media", got: "no room left in this journal", expected: guard.problem }] };
+  }
+  if (guard.value.ok) {
+    // The sizes the grids will ask for, made now rather than by whoever
+    // opens the gallery first — a photograph at each of `WARM_WIDTHS`, and a
+    // clip's still frame at the one width a tile's `poster` asks for.
+    const { items } = guard.value;
+    const username = parseTripRef(ref)!.username;
+    afterResponse("media-warm", async () => {
+      await warmDerivatives(username, items.filter((i) => i.type === "image").map((i) => i.src), WARM_WIDTHS);
+      await warmDerivatives(username, items.flatMap((i) => (i.poster ? [i.poster] : [])), [POSTER_WIDTH.GRID]);
+    });
   }
   return guard.value;
 }

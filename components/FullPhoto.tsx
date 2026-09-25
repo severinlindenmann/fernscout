@@ -1,6 +1,7 @@
 "use client";
 
-import { MEDIA_WIDTHS } from "@/lib/mediaSizes";
+import { MEDIA_WIDTHS, POSTER_WIDTH } from "@/lib/mediaSizes";
+import { posterSrc } from "./mediaLoader";
 import type { GalleryItem } from "@/lib/types";
 
 /**
@@ -32,8 +33,17 @@ import type { GalleryItem } from "@/lib/types";
  */
 export default function FullPhoto({ item }: { item: GalleryItem }) {
   if (item.type === "video") {
+    // The still frame, sized, holds the viewer until the clip's first frame
+    // paints — the same frame the grid tile showed, rather than a black box.
     return (
-      <video src={item.src} className="max-h-[78vh] w-full rounded-lg" controls autoPlay />
+      <video
+        src={item.src}
+        poster={posterSrc(item.poster, POSTER_WIDTH.FULL)}
+        preload="metadata"
+        className="max-h-[78vh] w-full rounded-lg"
+        controls
+        autoPlay
+      />
     );
   }
 
@@ -45,6 +55,12 @@ export default function FullPhoto({ item }: { item: GalleryItem }) {
   // cannot see it (B1867) — and nothing else on the page says it.
   const alt = item.alt ?? "";
 
+  // The photograph's own proportions where ingest measured them, so the
+  // viewer reserves the frame before the bytes arrive instead of opening at
+  // nothing and jumping — the caption underneath stays where it first drew.
+  // Only proportions: the CSS above still decides the size.
+  const box = item.width && item.height ? { width: item.width, height: item.height } : {};
+
   // **`draggable={false}` is load-bearing.** A picture in a browser is a drag
   // source by default: a mouse-down on one starts the browser's own
   // drag-and-drop, which swallows every pointer event after it, so the swipe
@@ -54,7 +70,7 @@ export default function FullPhoto({ item }: { item: GalleryItem }) {
 
   if (!resizable(item.src)) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={item.src} alt={alt} className={className} draggable={false} />;
+    return <img src={item.src} alt={alt} {...box} decoding="async" className={className} draggable={false} />;
   }
 
   return (
@@ -72,7 +88,7 @@ export default function FullPhoto({ item }: { item: GalleryItem }) {
           eslint exception needed for this one: `no-img-element` is about
           reaching for `<img>` instead of `next/image`, and an `<img>` inside a
           `<picture>` is the only thing that element can contain. */}
-      <img src={item.src} alt={alt} className={className} draggable={false} />
+      <img src={item.src} alt={alt} {...box} decoding="async" className={className} draggable={false} />
     </picture>
   );
 }

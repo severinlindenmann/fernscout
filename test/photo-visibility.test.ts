@@ -564,7 +564,7 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
      * The same folder-name lookup the draft gate does, and it was missing the
      * same way: a v2-spelled folder matched no day, so `isDraftDay` said no
      * and an unpublished day's photographs were public. Both lookups go
-     * through `getEntryByFolder` (lib/entries.ts) now, which knows both
+     * through `entryForFolder` (lib/entries.ts) now, which knows both
      * spellings because it matches the entry's own date and slug rather than
      * stripping a prefix off the request.
      */
