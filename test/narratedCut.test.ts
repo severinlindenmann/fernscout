@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildNarratedCut, firstSentence } from "@/lib/narratedCut";
+import { buildNarratedCut, firstSentence, slideNeedsTravelInterlude } from "@/lib/narratedCut";
 import type { PlaceEntry } from "@/lib/types";
 
 function entry(overrides: Partial<PlaceEntry>): PlaceEntry {
@@ -152,5 +152,29 @@ describe("firstSentence", () => {
 
   test("a heading with no punctuation is returned whole", () => {
     expect(firstSentence("# Day one\n\nIt began early")).toBe("Day one It began early");
+  });
+});
+
+describe("slideNeedsTravelInterlude", () => {
+  test("no interlude before the first slide", () => {
+    expect(slideNeedsTravelInterlude([0, 1], 0)).toBe(false);
+  });
+
+  test("no interlude between two days at the same place", () => {
+    expect(slideNeedsTravelInterlude([0, 0, 1], 1)).toBe(false);
+  });
+
+  test("an interlude when the place index changes", () => {
+    expect(slideNeedsTravelInterlude([0, 0, 1], 2)).toBe(true);
+  });
+
+  test("no interlude when either side is unmatched", () => {
+    expect(slideNeedsTravelInterlude([0, undefined, 1], 1)).toBe(false);
+    expect(slideNeedsTravelInterlude([0, undefined, 1], 2)).toBe(false);
+  });
+
+  test("out of range indexes never need one", () => {
+    expect(slideNeedsTravelInterlude([0, 1], -1)).toBe(false);
+    expect(slideNeedsTravelInterlude([0, 1], 2)).toBe(false);
   });
 });
