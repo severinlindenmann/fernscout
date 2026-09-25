@@ -109,13 +109,16 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
             : t("readers.role.wantsToRead")
           : t("readers.role.reader");
 
+  // `phone` from the page; a fixture or an older answer may carry it only in
+  // the address blob, which is where it lived before B2294.
+  const phone = contact.phone ?? (contact.postalAddress?.tel || null);
   const reach = [
     hasEmail ? t("readers.reach.email") : null,
     // The number itself — and, when no message could reach it, why (B389).
-    contact.phone
-      ? isMessageable(contact.phone, env.defaultCountryCode)
-        ? contact.phone
-        : `${contact.phone} (${t("contact.telNotMessageable")})`
+    phone
+      ? isMessageable(phone, env.defaultCountryCode)
+        ? phone
+        : `${phone} (${t("contact.telNotMessageable")})`
       : null,
     contact.postalAddress?.line1 ? t("readers.reach.postal") : null,
     // Their own language — what every message to them is written in (B469).

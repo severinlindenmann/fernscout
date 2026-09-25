@@ -66,6 +66,7 @@ function invite(over: Partial<AdminInvite>): AdminInvite {
     revokedAt: null,
     uses: 1,
     url: null,
+    live: true,
     ...over,
   };
 }

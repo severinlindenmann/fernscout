@@ -188,7 +188,7 @@ export default function ReadersAdmin({
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <AddPersonDoor username={username} locale={locale} locales={locales} trips={trips} t={t} onDone={refresh} />
-        <InviteLinkDoor username={username} locale={locale} trips={trips} t={t} onCreated={refresh} />
+        <InviteLinkDoor username={username} locale={locale} trips={trips} t={t} tn={tn} onCreated={refresh} />
       </div>
       {preview.length > 0 && <ReaderPreview preview={preview} t={t} tn={tn} />}
 
@@ -203,7 +203,7 @@ export default function ReadersAdmin({
         empty={t("readers.group.readingEmpty")}
       />
 
-      <LinksList username={username} locale={locale} invites={invites} trips={trips} t={t} onStopped={refresh} />
+      <LinksList username={username} locale={locale} invites={invites} trips={trips} t={t} tn={tn} onStopped={refresh} />
 
       {split.revoked.length > 0 && (
         <details className="mt-10">

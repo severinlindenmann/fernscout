@@ -4,7 +4,7 @@ import { useState } from "react";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import type { Locale } from "@/lib/types";
 import ShareLink from "./ShareLink";
-import { tripLabel, type AdminInvite, type Translate } from "./shared";
+import { tripLabel, type AdminInvite, type Count, type Translate } from "./shared";
 
 /**
  * "Links you've shared" — B2291. Every group link still working: what it is
@@ -18,6 +18,7 @@ export default function LinksList({
   invites,
   trips,
   t,
+  tn,
   onStopped,
 }: {
   username: string;
@@ -25,6 +26,7 @@ export default function LinksList({
   invites: AdminInvite[];
   trips: { id: string; title: string }[];
   t: Translate;
+  tn: Count;
   onStopped: () => void;
 }) {
   const [asking, setAsking] = useState<string | null>(null);
@@ -67,7 +69,7 @@ export default function LinksList({
               : t("readers.link.kind.guest");
           const url = invite.joinUrl ?? invite.url;
           const facts = [
-            invite.uses === 1 ? t("readers.link.usedOnce") : t("readers.link.used", { count: String(invite.uses) }),
+            tn("readers.link.used", invite.uses, { count: String(invite.uses) }),
             invite.expiresAt ? t("readers.link.worksUntil", { date: until(invite.expiresAt) }) : null,
           ].filter(Boolean);
           return (

@@ -5,7 +5,7 @@ import BusyButton from "@/components/BusyButton";
 import type { Locale } from "@/lib/types";
 import { DOOR_PRIMARY, DOOR_SECONDARY } from "./AddPersonDoor";
 import ShareLink from "./ShareLink";
-import type { Translate } from "./shared";
+import type { Count, Translate } from "./shared";
 
 const FIELD =
   "mt-1 min-h-11 w-full rounded-xl border border-line-strong bg-surface-raised px-3 text-base text-ink-strong";
@@ -30,12 +30,14 @@ export default function InviteLinkDoor({
   locale,
   trips,
   t,
+  tn,
   onCreated,
 }: {
   username: string;
   locale: Locale;
   trips: { id: string; title: string }[];
   t: Translate;
+  tn: Count;
   onCreated: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -174,7 +176,7 @@ export default function InviteLinkDoor({
               <select className={FIELD} value={days} onChange={(e) => setDays(Number(e.target.value) as (typeof DAYS)[number])}>
                 {DAYS.map((value) => (
                   <option key={value} value={value}>
-                    {t("readers.link.days", { count: String(value) })}
+                    {tn("readers.link.days", value, { count: String(value) })}
                   </option>
                 ))}
               </select>
