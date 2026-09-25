@@ -1414,6 +1414,263 @@ select:disabled {
     filter: brightness(0.86);
   }
 }
+/*
+ * Calm arrivals — photographs, menus, and a page that is on its way.
+ *
+ * Five small movements, each one the answer to "did anything happen?" rather
+ * than decoration, and all on the motion tokens above:
+ *
+ * - `.fs-photo` — a tile's frame shimmers while its photograph is still on
+ *   the way, and the photograph fades in over it once it has arrived, instead
+ *   of a grey square snapping into a picture. `usePhotoReveal`
+ *   (components/PhotoFrame.tsx) sets `data-loading` only on a picture that
+ *   had not already loaded by hydration, so a cached photograph, and every
+ *   photograph with JavaScript off, is simply there.
+ * - `.fs-pop` — a dropdown or a confirm card grows out of the control that
+ *   opened it. The origin is the element's own `origin-*` utility: this file
+ *   is unlayered (B752), so setting `transform-origin` here would beat it.
+ * - `.fs-sheet-up` — the phone's bottom sheet rises from the edge it sits on.
+ * - `.fs-menu-rows` — the phone menu's rows arrive a beat apart, top first.
+ * - `.fs-nav-progress` — the thin bar along the top while the next page is
+ *   being fetched (components/NavProgress.tsx). It waits 150ms before it
+ *   shows, so a prefetched page, which arrives at once, never flashes it.
+ *
+ * Reduced motion: every one of them rests in place and fully visible. Only
+ * the progress bar keeps a gentle pulse, for BusyButton's reason: a screen
+ * that is working has to show it is still working.
+ */
+@keyframes fs-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fs-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+}
+@keyframes fs-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes fs-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+@keyframes fs-shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+.fs-photo[data-loading] img {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  /* `transform` rides along because this rule is unlayered and would
+     otherwise replace GalleryGrid's own `transition-transform` hover zoom. */
+  .fs-photo img {
+    transition:
+      opacity 320ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+      transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .fs-photo[data-loading] {
+    background-image: linear-gradient(
+      100deg,
+      transparent 30%,
+      color-mix(in srgb, var(--color-surface-raised, #fff) 55%, transparent) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: fs-shimmer 1.4s ease-in-out infinite;
+  }
+
+  .fs-fade-in {
+    animation: fs-fade-in 180ms ease-out both;
+  }
+  .fs-pop {
+    animation: fs-pop-in 160ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+  .fs-sheet-up {
+    animation: fs-sheet-up 320ms var(--ease-ios, cubic-bezier(0.32, 0.72, 0, 1)) both;
+  }
+  .fs-menu-rows > * {
+    animation: fs-row-in 220ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+  .fs-menu-rows > :nth-child(2) { animation-delay: 25ms; }
+  .fs-menu-rows > :nth-child(3) { animation-delay: 50ms; }
+  .fs-menu-rows > :nth-child(4) { animation-delay: 75ms; }
+  .fs-menu-rows > :nth-child(5) { animation-delay: 100ms; }
+  .fs-menu-rows > :nth-child(6) { animation-delay: 125ms; }
+  .fs-menu-rows > :nth-child(n + 7) { animation-delay: 150ms; }
+}
+
+.fs-nav-progress {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 70;
+  height: 3px;
+  pointer-events: none;
+  background: var(--color-yellow-400);
+  transform-origin: left;
+  transform: scaleX(0);
+  opacity: 0;
+}
+/* Crawls fast at first and ever more slowly toward 90%; it never claims to
+   have arrived before the page has. */
+.fs-nav-progress[data-state="loading"] {
+  transform: scaleX(0.9);
+  opacity: 1;
+  transition:
+    transform 8s cubic-bezier(0.08, 0.82, 0.17, 1) 150ms,
+    opacity 0s linear 150ms;
+}
+.fs-nav-progress[data-state="done"] {
+  transform: scaleX(1);
+  opacity: 0;
+  transition:
+    transform 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity 200ms ease-out 160ms;
+}
+@keyframes fs-nav-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-nav-progress[data-state="loading"] {
+    transform: none;
+    transition: opacity 0s linear 150ms;
+    animation: fs-nav-pulse 1.6s ease-in-out 150ms infinite;
+  }
+  .fs-nav-progress[data-state="done"] {
+    transform: none;
+    transition: opacity 200ms ease-out;
+  }
+}
+
+/* The open photograph in the viewer (components/FullPhoto.tsx): no shimmer
+   band on the dark backdrop, but room and a small spinner in the middle of
+   it until the picture is there. Reduced motion keeps the spinner still —
+   a ring that says "on its way" is information, not movement. */
+.fs-photo-full[data-loading] {
+  min-height: 40vh;
+}
+.fs-photo-full[data-loading]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  margin: -14px 0 0 -14px;
+  border-radius: 9999px;
+  border: 2.5px solid color-mix(in srgb, var(--color-overlay-ink, #fff) 25%, transparent);
+  border-top-color: var(--color-overlay-ink, #fff);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fs-photo-full[data-loading] {
+    background-image: none;
+    animation: none;
+  }
+  .fs-photo-full[data-loading]::after {
+    /* Held invisible for its first 200ms, so a photograph that arrives at
+       once never flashes a spinner on the way. */
+    animation:
+      fs-fade-in 200ms ease-out 200ms both,
+      fs-spin 0.8s linear infinite;
+  }
+}
+@keyframes fs-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* The phone menu's ☰ and ✕ — PageHeader keys the span on the state, so
+   each swap remounts it and the new glyph turns in from a quarter turn. */
+@keyframes fs-icon-turn {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.8);
+  }
+}
+.fs-icon-turn {
+  display: inline-flex;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fs-icon-turn {
+    animation: fs-icon-turn 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+}
+
+/*
+ * B2325 — a studio save's own arrival, and a list's. Motion study drafts 5–6
+ * (https://claude.ai/artifact/QHpBEgpa2GK5jXT8JJn18h): `BusyButton` used to
+ * show its spinner while a save ran, then just stop — nothing said "saved"
+ * at the place the finger was. A hub card or inbox row appeared all at once
+ * on load, which read as a jump rather than an arrival.
+ *
+ * `.fs-check` — the path `BusyButton` draws for its `done` state. Its own
+ * `stroke-dasharray`/`stroke-dashoffset` are unconditional (a `pathLength="1"`
+ * path with no motion still needs to render fully drawn); only the animation
+ * that reveals it is gated on motion preference, below.
+ *
+ * `.fs-shake` — the same button on a failed submit. `SubmitError` renders
+ * with no hooks on purpose (a server page renders it too), so the caller
+ * fires this itself once the error it is about to show changes.
+ *
+ * `.fs-arrive` — one hub card or inbox row, staggered by its own `--i` (its
+ * index, set inline by the caller), capped at 8 so a long list is not still
+ * animating once the eye has moved on. Applied once, at mount, the same
+ * "a new element animates once; a re-render of the same element does not"
+ * rule B2094's `StepBody` uses — nothing here removes or re-adds the class.
+ */
+.fs-check {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fs-check {
+    animation: fs-check-draw 380ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  }
+  .fs-shake {
+    animation: fs-shake 300ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
+  }
+  .fs-arrive {
+    animation: fs-arrive 300ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+    animation-delay: calc(min(var(--i), 8) * 35ms);
+  }
+}
+@keyframes fs-check-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes fs-shake {
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+@keyframes fs-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
 /* Reduced motion: no slide, a 200ms crossfade of the whole page. */
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*) {

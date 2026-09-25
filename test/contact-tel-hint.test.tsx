@@ -1,6 +1,5 @@
 import { describe, expect, test } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import ContactForm from "@/components/ContactForm";
 import ContactManage from "@/components/ContactManage";
 import { GuestForm } from "@/components/studio/readers/GuestForm";
 import { dictionaryFor } from "@/lib/locales";
@@ -22,21 +21,6 @@ import { dictionaryFor } from "@/lib/locales";
 const en = dictionaryFor("en");
 
 describe("the phone field says what it is for, everywhere it is asked", () => {
-  test("the guestbook (ContactForm)", () => {
-    const html = renderToStaticMarkup(
-      <ContactForm
-        username="ana"
-        journalTitle="Ana's journal"
-        initialLocale="en"
-        locales={["en"]}
-        dictionaries={{ en }}
-        inviteToken="tok"
-      />,
-    );
-    expect(html).toContain('id="contact-tel"');
-    expect(html).toContain(en["contact.telHint"]);
-  });
-
   test("the reader's own manage page (ContactManage)", () => {
     const html = renderToStaticMarkup(
       <ContactManage

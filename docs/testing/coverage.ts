@@ -120,4 +120,7 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   mapRelief: {
     todo: "B2217. The capability alone — no persona flow drives the photobook's route-map switch yet.",
   },
+  iosApp: {
+    todo: "B2341. test/app-waitlist.test.ts covers the route; no persona flow drives the landing page's waitlist door yet.",
+  },
 };

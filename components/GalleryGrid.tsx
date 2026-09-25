@@ -8,6 +8,7 @@ import type { MediaTile, PostcardEntry } from "@/lib/types";
 import { flagFor } from "@/lib/flags";
 import { useI18n } from "./LocaleProvider";
 import FullPhoto from "./FullPhoto";
+import { PhotoFrame } from "./PhotoFrame";
 import Lightbox from "./Lightbox";
 import { PhotoBadge } from "./Visibility";
 import PostcardSheet from "@paid/postcard/components/PostcardSheet";
@@ -139,42 +140,47 @@ export default function GalleryGrid({
             whileHover={{ y: -3 }}
             className="group relative overflow-hidden rounded-xl border border-line-quiet bg-surface-muted shadow-sm"
           >
-            <span className="relative block aspect-square">
-              {tile.type === "video" ? (
-                // A still if there is one, and there almost always is —
-                // ingest writes a poster frame for every clip. The grid used
-                // to load the clip itself to show a thumbnail of it, which on
-                // a page of a dozen is a dozen videos fetched to draw twelve
-                // small rectangles.
-                <video
-                  src={tile.src}
-                  poster={tile.poster}
-                  preload={tile.poster ? "none" : "metadata"}
-                  className="h-full w-full object-cover"
-                  muted
-                />
-              ) : (
-                <Image
-                  src={tile.src}
-                  loader={mediaLoader}
-                  // The caption where there is one — it is the only thing said
-                  // about this particular photograph. Without one the alt stays
-                  // empty: the tile prints the location and the date over the
-                  // picture, and repeating those would make the button's
-                  // accessible name say the same words twice (B522).
-                  alt={tile.alt ?? tile.caption ?? ""}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+            <PhotoFrame className="relative block aspect-square">
+              {(img) => (
+                <>
+                  {tile.type === "video" ? (
+                    // A still if there is one, and there almost always is —
+                    // ingest writes a poster frame for every clip. The grid used
+                    // to load the clip itself to show a thumbnail of it, which on
+                    // a page of a dozen is a dozen videos fetched to draw twelve
+                    // small rectangles.
+                    <video
+                      src={tile.src}
+                      poster={tile.poster}
+                      preload={tile.poster ? "none" : "metadata"}
+                      className="h-full w-full object-cover"
+                      muted
+                    />
+                  ) : (
+                    <Image
+                      {...img}
+                      src={tile.src}
+                      loader={mediaLoader}
+                      // The caption where there is one — it is the only thing said
+                      // about this particular photograph. Without one the alt stays
+                      // empty: the tile prints the location and the date over the
+                      // picture, and repeating those would make the button's
+                      // accessible name say the same words twice (B522).
+                      alt={tile.alt ?? tile.caption ?? ""}
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                  )}
+                  {tile.type === "video" && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl text-overlay-ink">
+                      ▶
+                    </span>
+                  )}
+                  <PhotoBadge own={tile.visibility} />
+                </>
               )}
-              {tile.type === "video" && (
-                <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl text-overlay-ink">
-                  ▶
-                </span>
-              )}
-              <PhotoBadge own={tile.visibility} />
-            </span>
+            </PhotoFrame>
             <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-overlay-strong/80 to-transparent px-2.5 py-2 text-left">
               {/* `aria-hidden` because the image's alt already carries it — see
                   the alt above. A caption written today used to be invisible

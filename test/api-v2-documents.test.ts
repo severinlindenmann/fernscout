@@ -352,7 +352,6 @@ const minimalTrip: TripFile = {
     figures: "not drawn",
     tagline: "no subtitle",
     intro: "nothing to say yet",
-    buddies: "travelling solo",
   },
 };
 

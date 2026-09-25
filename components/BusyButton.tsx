@@ -57,6 +57,21 @@ type Props = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
   busy?: boolean;
   /** Shown in place of `children` while busy. Omit to keep the label. */
   busyLabel?: ReactNode;
+  /**
+   * B2325 — set by the caller only after a 2xx response, never on tap: the
+   * button turns to the success colour and draws a check instead of its
+   * label. The caller holds it true for ~900ms (its own `setTimeout`) before
+   * its normal continuation runs, and never sets it for a flow whose next
+   * screen is itself the confirmation (a `DoneScreen`).
+   */
+  done?: boolean;
+  /**
+   * B2325 — any value; the button shakes once whenever this changes to a
+   * new truthy one (a caller's error message is the natural value, since it
+   * is cleared to `null`/`undefined` at the start of each attempt). Never
+   * read otherwise — `SubmitError` itself stays hook-free.
+   */
+  shake?: unknown;
   /** Forwarded. React 19 takes `ref` as an ordinary prop, but this component
    *  needs one of its own to find its form, so the two are merged below
    *  rather than the caller's being dropped — `IdentitySignIn` focuses this
@@ -102,21 +117,61 @@ function Spinner() {
   );
 }
 
+/**
+ * B2325's check — an SVG `path` with `pathLength="1"`, so `stroke-dasharray`/
+ * `stroke-dashoffset` mean "the whole path" / "none of it" regardless of the
+ * icon's actual size. `.fs-check` in `app/globals.css` holds the base
+ * (fully drawn, no motion) and the draw-in animation, gated there on motion
+ * preference rather than here.
+ */
+function Check() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" className="size-4 shrink-0">
+      <path
+        d="M3 8.5l3.2 3.2L13 4.8"
+        pathLength="1"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="fs-check"
+      />
+    </svg>
+  );
+}
+
 export default function BusyButton({
   busy,
   busyLabel,
+  done,
+  shake,
   children,
   className,
   // Pulled out of `rest` deliberately. Spreading `rest` after computing
   // `disabled` would let a caller's own `disabled={false}` overwrite the busy
   // one and hand back the double press this component exists to stop.
   disabled,
+  style,
   ref: forwarded,
   ...rest
 }: Props) {
   const ref = useRef<HTMLButtonElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const watching = busy === undefined;
+
+  // B2325 — shakes once each time `shake` changes to a new truthy value.
+  // Callers clear their error to `null`/`undefined` at the start of every
+  // attempt (every write flow in this app already does), so even a repeat of
+  // the exact same message passes through that falsy gap and retriggers this.
+  const [shaking, setShaking] = useState(false);
+  useEffect(() => {
+    if (!shake) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- this effect exists to react to `shake` (an external, caller-owned value) changing; there is no non-effect place to catch that.
+    setShaking(true);
+    const id = setTimeout(() => setShaking(false), 300);
+    return () => clearTimeout(id);
+  }, [shake]);
 
   useEffect(() => {
     if (!watching) return;
@@ -151,7 +206,7 @@ export default function BusyButton({
       }}
       // `disabled` is what stops the second press; `aria-busy` is what says
       // why, to somebody who cannot see the spinner turning.
-      disabled={working || disabled}
+      disabled={working || disabled || done}
       aria-busy={working || undefined}
       // `aria-busy:opacity-100!` undoes the caller's own `disabled:opacity-50`
       // for the busy case only, and it is not cosmetic: nearly every button
@@ -159,11 +214,17 @@ export default function BusyButton({
       // button that had already dimmed — a working control looking exactly as
       // dead as an unavailable one. Busy and unavailable are different states
       // and must not look the same. A plain `disabled` still fades.
-      className={`inline-flex items-center justify-center gap-2 aria-busy:opacity-100!${className ? ` ${className}` : ""}`}
+      className={`inline-flex items-center justify-center gap-2 aria-busy:opacity-100!${shaking ? " fs-shake" : ""}${className ? ` ${className}` : ""}`}
+      // Inline, not a class: a caller's own tone class (`bg-action-strong`,
+      // `bg-yellow-400`, …) and this one both set `background-color`, and
+      // which utility wins is decided by generation order in the compiled
+      // stylesheet, not by position in `className` — inline style is the
+      // only way this reliably beats every tone this component is handed.
+      style={done ? { ...style, backgroundColor: "var(--color-green-700)", color: "var(--color-on-deep)" } : style}
       {...rest}
     >
-      {working ? <Spinner /> : null}
-      {working && busyLabel !== undefined ? busyLabel : children}
+      {done ? <Check /> : working ? <Spinner /> : null}
+      {done ? null : working && busyLabel !== undefined ? busyLabel : children}
     </button>
   );
 }

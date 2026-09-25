@@ -10,11 +10,15 @@ import { issueCode, verifyCode } from "@/lib/auth";
 
 // `isOwner` (`lib/contacts/session.ts`) reads the guest cookie via
 // `next/headers`'s `cookies()`, which throws outside a real Next.js request
-// scope. The admin route tests below authenticate with an agent bearer token
-// instead — a header on the `Request` they build by hand — so this stub only
-// needs to hand back an empty jar and let that path through.
+// scope. A mutable jar, so the admin route's own describe block below can
+// sign in as the owner over a cookie — `/api/contacts/admin` refuses any
+// `Authorization` header outright since the security review (F5, B2295), so
+// a bearer token is no longer a door onto it at all.
+const jar = vi.hoisted(() => ({ cookies: {} as Record<string, string> }));
 vi.mock("next/headers", () => ({
-  cookies: async () => ({ get: () => undefined }),
+  cookies: async () => ({
+    get: (name: string) => (jar.cookies[name] === undefined ? undefined : { value: jar.cookies[name] }),
+  }),
 }));
 import {
   approveContact,
@@ -268,498 +272,6 @@ describe("a telephone number", () => {
       aad,
     );
     expect(decryptAddress(legacy, aad)?.tel).toBe("");
-  });
-});
-
-/**
- * Task 10 — an optional phone number on the invite form.
- *
- * The trap this guards against: both `ContactForm.tsx` and this route used to
- * drop the whole submitted address — `tel` included — unless `wantsPostcard`
- * was ticked. A guest who gave a phone number without wanting a postcard had
- * it silently discarded. `tel` must survive that path; the postal address
- * must still only be stored with the tick.
- */
-describe("a guest's phone number, given through the invite form", () => {
-  let inviteToken: string;
-
-  beforeEach(async () => {
-    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, "ana", "config.json"),
-      JSON.stringify({
-        title: "Ana's journal",
-        tagline: "t",
-        owner: { name: "Ana B", nickname: "Ana" },
-        startLocation: "X",
-        defaultLocale: "en",
-        locales: ["en"],
-        baseCurrency: "CHF",
-        displayCurrencies: ["CHF"],
-        units: "metric",
-        features: { contacts: { enabled: true } },
-      }),
-    );
-    fs.writeFileSync(
-      path.join(dir, "config.json"),
-      JSON.stringify({
-        site: { name: "R", url: "https://example.test", defaultUser: "ana" },
-        users: { reserved: [] },
-        // B938: contacts needs auth. Everything it does ends in somebody
-        // being let in, and being let in is a session.
-        features: { auth: { enabled: true }, contacts: { enabled: true } },
-      }),
-    );
-    clearConfigCache();
-    clearUserCache();
-
-    // Since B37 the route refuses a submission with no live invite token, so
-    // every post below carries one. It is the owner's act of issuing this that
-    // opens the door at all; approval is still separate and still by hand.
-    inviteToken = (await createInvite("ana", { name: "A Reader", locale: "en" })).token;
-  });
-
-  // A distinct `x-forwarded-for` so this describe's calls land in their own
-  // rate-limit bucket (`lib/rateLimit.ts` is a module-level, in-memory map
-  // shared for the life of the test file) rather than sharing "unknown" —
-  // the IP every other test in this file gets by not sending the header —
-  // and tripping the 5-per-window cap the "digest preference's name" tests
-  // below rely on having to themselves.
-  async function post(body: Record<string, unknown>) {
-    const { POST } = await import("@/app/api/contacts/request/route");
-    const response = await POST(
-      new Request("https://example.test/api/contacts/request", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-forwarded-for": "203.0.113.7",
-        },
-        body: JSON.stringify({
-          user: "ana",
-          name: "A Reader",
-          locale: "en",
-          invite: inviteToken,
-          ...body,
-        }),
-      }),
-    );
-    // Since B159 the row, the code and the mail happen *after* the response —
-    // the endpoint's `202` promises nothing about them, and waiting for them
-    // was what let a caller time the difference between a live token and a
-    // dead one. Everything below asserts on what the route caused, so it has
-    // to wait for what the route no longer waits for.
-    await flushAfterResponse();
-    return response;
-  }
-
-  test("a tel with no postcard is stored, and the contact is not postable", async () => {
-    const response = await post({
-      email: "tel-no-postcard@example.test",
-      wantsPostcard: false,
-      address: { tel: "+41 79 555 00 00" },
-    });
-    expect(response.status).toBe(202);
-
-    const [contact] = (await listContacts("ana")).filter(
-      (c) => c.email === "tel-no-postcard@example.test",
-    );
-    expect(contact.postalAddress?.tel).toBe("+41 79 555 00 00");
-    expect(isPostable(contact.postalAddress!)).toBe(false);
-    expect(contact.wantsPostcard).toBe(false);
-  });
-
-  test("a tel with a full postcard address stores both", async () => {
-    const response = await post({
-      email: "tel-and-postcard@example.test",
-      wantsPostcard: true,
-      address: {
-        line1: "Bahnhofstrasse 1",
-        city: "Zurich",
-        country: "Switzerland",
-        tel: "+41 79 555 11 11",
-      },
-    });
-    expect(response.status).toBe(202);
-
-    const [contact] = (await listContacts("ana")).filter(
-      (c) => c.email === "tel-and-postcard@example.test",
-    );
-    expect(contact.postalAddress?.tel).toBe("+41 79 555 11 11");
-    expect(contact.postalAddress?.line1).toBe("Bahnhofstrasse 1");
-    expect(contact.wantsPostcard).toBe(true);
-  });
-
-  test("ticking the postcard box with no address still 400s, tel or not", async () => {
-    const response = await post({
-      email: "tel-no-address@example.test",
-      wantsPostcard: true,
-      address: { tel: "+41 79 555 22 22" },
-    });
-    expect(response.status).toBe(400);
-    expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
-  });
-
-  /**
-   * Task 11 — the same defect returns because the join form has no
-   * prefill. `updateContactSelf` reads a submitted-but-empty `tel` as a
-   * deliberate clear, because that form's guest can see the number before
-   * removing it. This form never shows a returning guest what is on file —
-   * every box starts blank — so an empty `tel` here can only mean "I did
-   * not say", never "delete it". These use their own `x-forwarded-for` so
-   * they don't share the outer describe's rate-limit bucket, which is
-   * already spent down to 2 of its 5 by the tests above.
-   */
-  describe("a returning guest's blank tel must not erase a recorded number", () => {
-    async function postReturning(body: Record<string, unknown>) {
-      const { POST } = await import("@/app/api/contacts/request/route");
-      const response = await POST(
-        new Request("https://example.test/api/contacts/request", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-forwarded-for": "203.0.113.42",
-          },
-          body: JSON.stringify({
-            user: "ana",
-            name: "A Reader",
-            locale: "en",
-            invite: inviteToken,
-            ...body,
-          }),
-        }),
-      );
-      await flushAfterResponse();
-      return response;
-    }
-
-    test("no postcard, blank tel: the owner's recorded tel survives and the contact stays unpostable", async () => {
-      const { contactId } = await requestContact("ana", {
-        name: "Oma",
-        email: "returning-1@example.test",
-        locale: "en",
-        address: { tel: "+41 79 000 11 22" },
-        wantsEmailDigest: false,
-        wantsPostcard: false,
-        createdVia: "owner",
-      });
-
-      const response = await postReturning({
-        email: "returning-1@example.test",
-        wantsPostcard: false,
-      });
-      expect(response.status).toBe(202);
-
-      const contact = await getContact("ana", contactId!);
-      expect(contact?.postalAddress?.tel).toBe("+41 79 000 11 22");
-      expect(isPostable(contact!.postalAddress!)).toBe(false);
-    });
-
-    test("a full postal address with a blank tel keeps both the new address and the recorded tel", async () => {
-      const { contactId } = await requestContact("ana", {
-        name: "Oma",
-        email: "returning-2@example.test",
-        locale: "en",
-        address: { tel: "+41 79 000 33 44" },
-        wantsEmailDigest: false,
-        wantsPostcard: false,
-        createdVia: "owner",
-      });
-
-      const response = await postReturning({
-        email: "returning-2@example.test",
-        wantsPostcard: true,
-        address: { line1: "Bahnhofstrasse 1", city: "Zurich", country: "Switzerland" },
-      });
-      expect(response.status).toBe(202);
-
-      const contact = await getContact("ana", contactId!);
-      expect(contact?.postalAddress?.tel).toBe("+41 79 000 33 44");
-      expect(contact?.postalAddress?.line1).toBe("Bahnhofstrasse 1");
-      expect(isPostable(contact!.postalAddress!)).toBe(true);
-    });
-
-    test("a submission with a new tel replaces the stored one", async () => {
-      const { contactId } = await requestContact("ana", {
-        name: "Oma",
-        email: "returning-3@example.test",
-        locale: "en",
-        address: { tel: "+41 79 000 55 66" },
-        wantsEmailDigest: false,
-        wantsPostcard: false,
-        createdVia: "owner",
-      });
-
-      const response = await postReturning({
-        email: "returning-3@example.test",
-        wantsPostcard: false,
-        address: { tel: "+41 79 000 77 88" },
-      });
-      expect(response.status).toBe(202);
-
-      const contact = await getContact("ana", contactId!);
-      expect(contact?.postalAddress?.tel).toBe("+41 79 000 77 88");
-    });
-
-    test("a first-ever submission with nothing at all still stores no blob", async () => {
-      const response = await postReturning({
-        email: "returning-4@example.test",
-        wantsPostcard: false,
-      });
-      expect(response.status).toBe(202);
-
-      const { db } = await getDatabase();
-      const row = await db
-        .selectFrom("contacts")
-        .selectAll()
-        .where("email_key", "=", "returning-4@example.test")
-        .executeTakeFirst();
-      expect(row?.postal_cipher).toBeNull();
-    });
-
-    test("the postal address's delete-on-clear behaviour is unchanged: unticking clears the address but keeps the tel", async () => {
-      const { contactId } = await requestContact("ana", {
-        name: "Oma",
-        email: "returning-5@example.test",
-        locale: "en",
-        address: {
-          line1: "Bahnhofstrasse 1",
-          city: "Zurich",
-          country: "Switzerland",
-          tel: "+41 79 000 99 00",
-        },
-        wantsEmailDigest: false,
-        wantsPostcard: true,
-        createdVia: "owner",
-      });
-      expect((await getContact("ana", contactId!))?.hasPostalAddress).toBe(true);
-
-      const response = await postReturning({
-        email: "returning-5@example.test",
-        wantsPostcard: false,
-      });
-      expect(response.status).toBe(202);
-
-      const contact = await getContact("ana", contactId!);
-      expect(contact?.postalAddress?.line1).toBe("");
-      expect(isPostable(contact!.postalAddress!)).toBe(false);
-      expect(contact?.postalAddress?.tel).toBe("+41 79 000 99 00");
-    });
-  });
-});
-
-/**
- * B37 — the door, not the signpost.
- *
- * `/{user}/join` was removed, but a page is only the sign above a door. The
- * request endpoint used to treat the invite token as optional and record
- * `createdVia: "open"` when there was none, so anybody who had watched the
- * form submit once could keep putting strangers on the owner's queue for as
- * long as the journal existed. These are the tests that say the endpoint
- * itself is shut.
- *
- * The second property is as important as the first: a bad token must be
- * answered exactly like a good one. Anything else — a 400, a different body, a
- * different status — turns this route into a way of asking whether somebody's
- * link is still live.
- */
-describe("the request endpoint, with no invitation", () => {
-  let inviteId: string;
-  let inviteToken: string;
-
-  beforeEach(async () => {
-    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, "ana", "config.json"),
-      JSON.stringify({
-        title: "Ana's journal",
-        tagline: "t",
-        owner: { name: "Ana B", nickname: "Ana" },
-        startLocation: "X",
-        defaultLocale: "en",
-        locales: ["en"],
-        baseCurrency: "CHF",
-        displayCurrencies: ["CHF"],
-        units: "metric",
-        features: { contacts: { enabled: true } },
-      }),
-    );
-    fs.writeFileSync(
-      path.join(dir, "config.json"),
-      JSON.stringify({
-        site: { name: "R", url: "https://example.test", defaultUser: "ana" },
-        users: { reserved: [] },
-        features: { auth: { enabled: true }, contacts: { enabled: true } },
-      }),
-    );
-    clearConfigCache();
-    clearUserCache();
-
-    const created = await createInvite("ana", { name: "Oma", locale: "en" });
-    inviteId = created.id;
-    inviteToken = created.token;
-  });
-
-  /** One IP per call: `lib/rateLimit.ts` is a module-level map shared for the
-   * life of the file, and five submissions per quarter of an hour is not many
-   * when a describe posts a dozen times. */
-  let ip = 0;
-  async function post(body: Record<string, unknown>) {
-    const { POST } = await import("@/app/api/contacts/request/route");
-    const response = await POST(
-      new Request("https://example.test/api/contacts/request", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-forwarded-for": `198.51.100.${(ip += 1)}`,
-        },
-        body: JSON.stringify({ user: "ana", name: "A Reader", locale: "en", ...body }),
-      }),
-    );
-    await flushAfterResponse();
-    return response;
-  }
-
-  async function contactCount() {
-    return (await listContacts("ana")).length;
-  }
-
-  async function codeCount() {
-    const { db } = await getDatabase();
-    return (await db.selectFrom("login_codes").selectAll().execute()).length;
-  }
-
-  test("a live invitation still writes a pending row, and only a pending row", async () => {
-    const response = await post({ email: "invited@example.test", invite: inviteToken });
-    expect(response.status).toBe(202);
-
-    const [contact] = await listContacts("ana");
-    expect(contact.email).toBe("invited@example.test");
-    expect(contact.status).toBe("pending");
-    expect(contact.createdVia).toBe(`invite:${inviteId}`);
-
-    // The endpoint grants nothing. `approveContact` is still the only thing
-    // that does, and it still refuses an unconfirmed address.
-    const { db } = await getDatabase();
-    expect(await db.selectFrom("access_grants").selectAll().execute()).toHaveLength(0);
-    expect(await approveContact("ana", contact.id)).toBeNull();
-    expect((await listContacts("ana"))[0].status).toBe("pending");
-  });
-
-  for (const [what, token] of [
-    ["an invented token", "fs_inv_invented"],
-  ] as const) {
-    test(`${what} creates no contact and sends no code`, async () => {
-      const response = await post({ email: "stranger@example.test", invite: token });
-      expect(response.status).toBe(202);
-      expect(await response.json()).toEqual({ status: "accepted" });
-      expect(await contactCount()).toBe(0);
-      expect(await codeCount()).toBe(0);
-    });
-  }
-
-  // B801: a missing or empty `invite` is a malformed request, not a wrong
-  // guess — refused by name, unlike an invented token above, because
-  // refusing tells the caller nothing about any token: they already know
-  // they sent none.
-  for (const [what, token] of [
-    ["no token at all", undefined],
-    ["an empty token", ""],
-  ] as const) {
-    test(`${what} is refused as a missing field, writes nothing`, async () => {
-      const response = await post({ email: "stranger@example.test", invite: token });
-      expect(response.status).toBe(400);
-      expect(((await response.json()) as { error?: string }).error).toBe("invalid_invite");
-      expect(await contactCount()).toBe(0);
-      expect(await codeCount()).toBe(0);
-    });
-  }
-
-  test("a revoked token creates no contact, and is answered like a live one", async () => {
-    const good = await post({ email: "invited@example.test", invite: inviteToken });
-    const goodBody = await good.json();
-    expect(await contactCount()).toBe(1);
-
-    await revokeInvite("ana", inviteId);
-
-    const revoked = await post({ email: "stranger@example.test", invite: inviteToken });
-    expect(revoked.status).toBe(good.status);
-    expect(await revoked.json()).toEqual(goodBody);
-
-    // Nothing was written, and nothing distinguishes the two answers — so the
-    // route cannot be used to ask whether a link is still live.
-    expect(await contactCount()).toBe(1);
-    expect((await listContacts("ana"))[0].email).toBe("invited@example.test");
-  });
-
-  test("an expired token creates no contact", async () => {
-    const { token } = await createInvite("ana", {
-      name: "Oma",
-      expiresAt: new Date(Date.now() - 1000).toISOString(),
-    });
-    const response = await post({ email: "stranger@example.test", invite: token });
-    expect(response.status).toBe(202);
-    expect(await contactCount()).toBe(0);
-    expect(await codeCount()).toBe(0);
-  });
-
-  test("another journal's token is not a token here", async () => {
-    const { token } = await createInvite("bea", { name: "Oma", locale: "en" });
-    const response = await post({ email: "stranger@example.test", invite: token });
-    expect(response.status).toBe(202);
-    expect(await contactCount()).toBe(0);
-  });
-
-  test("an uninvited submission does not count as a use of anybody's link", async () => {
-    await post({ email: "stranger@example.test" });
-    expect((await listInvites("ana"))[0].uses).toBe(0);
-  });
-});
-
-/**
- * The link people already pasted into a group chat.
- *
- * It has to keep answering. A 404 reads as "the journal is gone" to the person
- * who was sent it, which is the same reasoning `/{user}/s/<token>` gives for
- * never landing an expired sign-in link on one.
- */
-describe("the address the open guestbook used to have", () => {
-  beforeEach(() => {
-    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, "ana", "config.json"),
-      JSON.stringify({
-        title: "Ana's journal",
-        tagline: "t",
-        owner: { name: "Ana B", nickname: "Ana" },
-        startLocation: "X",
-        defaultLocale: "en",
-        locales: ["en"],
-        baseCurrency: "CHF",
-        displayCurrencies: ["CHF"],
-        units: "metric",
-        features: { contacts: { enabled: true } },
-      }),
-    );
-    clearConfigCache();
-    clearUserCache();
-  });
-
-  async function get(username: string) {
-    const { GET } = await import("@/app/[user]/join/route");
-    return GET(new Request(`https://example.test/${username}/join`), {
-      params: Promise.resolve({ user: username }),
-    });
-  }
-
-  test("redirects to the access panel rather than serving a form", async () => {
-    const response = await get("ana");
-    expect(response.status).toBe(308);
-    expect(response.headers.get("location")).toBe("/ana/me");
-    expect(await response.text()).not.toContain("<form");
-  });
-
-  test("still 404s for a journal that does not exist", async () => {
-    expect((await get("nobody")).status).toBe(404);
   });
 });
 
@@ -1550,82 +1062,12 @@ describe("choosing a language", () => {
   });
 });
 
-/**
- * One name on the wire.
- *
- * The join endpoint took `wantsDigest` while the record, the admin API, the
- * manage page and every response said `wantsEmailDigest` — so anything that
- * read a contact back and posted the same field name got a reader silently
- * opted out of the digest, with nothing to notice. Both are read now; the
- * canonical one wins.
- */
-describe("the digest preference's name", () => {
-  let inviteToken: string;
-
-  // The route checks the journal exists and has contacts switched on; the
-  // library calls above do not, which is why these tests build a real one.
-  beforeEach(async () => {
-    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
-    fs.writeFileSync(
-      path.join(dir, "ana", "config.json"),
-      JSON.stringify({
-        title: "Ana's journal",
-        tagline: "t",
-        owner: { name: "Ana B", nickname: "Ana" },
-        startLocation: "X",
-        defaultLocale: "de",
-        locales: ["de"],
-        baseCurrency: "CHF",
-        displayCurrencies: ["CHF"],
-        units: "metric",
-        features: { contacts: { enabled: true } },
-      }),
-    );
-    fs.writeFileSync(
-      path.join(dir, "config.json"),
-      JSON.stringify({
-        site: { name: "R", url: "https://example.test", defaultUser: "ana" },
-        users: { reserved: [] },
-        features: { auth: { enabled: true }, contacts: { enabled: true } },
-      }),
-    );
-    clearConfigCache();
-    clearUserCache();
-
-    // The route refuses anything without a live invite since B37.
-    inviteToken = (await createInvite("ana", { name: "A Reader", locale: "de" })).token;
-  });
-
-  async function post(body: Record<string, unknown>) {
-    const { POST } = await import("@/app/api/contacts/request/route");
-    const response = await POST(
-      new Request("https://example.test/api/contacts/request", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ user: "ana", name: "A Reader", invite: inviteToken, ...body }),
-      }),
-    );
-    expect(response.status).toBe(202);
-    await flushAfterResponse();
-    const [contact] = (await listContacts("ana")).filter((c) => c.email === body.email);
-    return contact;
-  }
-
-  test("wantsEmailDigest is read, as everything else spells it", async () => {
-    const contact = await post({ email: "canonical@example.test", wantsEmailDigest: true });
-    expect(contact.wantsEmailDigest).toBe(true);
-  });
-
-  test("wantsDigest still works, for the links and scripts already sending it", async () => {
-    const contact = await post({ email: "legacy@example.test", wantsDigest: true });
-    expect(contact.wantsEmailDigest).toBe(true);
-  });
-
-  test("neither means no", async () => {
-    const contact = await post({ email: "quiet@example.test" });
-    expect(contact.wantsEmailDigest).toBe(false);
-  });
-});
+// `describe("the digest preference's name", …)` used to live here, testing
+// `app/api/contacts/request/route.ts`'s own `wantsDigest`/`wantsEmailDigest`
+// aliasing — that route's own body-parsing logic, not `requestContact`
+// itself. B2295 (one door for readers, B2291) removed the route along with
+// the guestbook it served; no other door parses that legacy field name, so
+// there is nothing left here to test.
 
 /**
  * The admin route's own validation on `update`.
@@ -1671,34 +1113,32 @@ describe("the admin route's update validation", () => {
   });
 
   /**
-   * A real agent bearer token for Ana's own address — the credential
-   * `isOwner` accepts from a script — minted the way `/api/auth/verify` does,
-   * without the HTTP round trip: `issueCode` then `verifyCode`, the same pair
-   * `signUpAndConfirm` above uses for a guest session.
+   * Ana's own guest-cookie session — `/api/contacts/admin` refuses any
+   * `Authorization` header outright since the security review (F5, B2295),
+   * so this is the only door onto it now. Minted the way `/api/auth/verify`
+   * does, without the HTTP round trip: `issueCode` then `verifyCode`, the
+   * same pair `signUpAndConfirm` above uses.
    */
-  async function ownerToken(): Promise<string> {
-    const { code } = await issueCode("ana", OWNER_EMAIL, "agent");
-    const verified = await verifyCode("ana", OWNER_EMAIL, code, "agent");
+  async function signInOwner(): Promise<void> {
+    const { code } = await issueCode("ana", OWNER_EMAIL, "guest");
+    const verified = await verifyCode("ana", OWNER_EMAIL, code, "guest");
     if (!verified.ok) throw new Error("expected the code to verify");
-    return verified.token;
+    jar.cookies.fs_session = verified.token;
   }
 
-  async function postAdmin(body: Record<string, unknown>, token: string) {
+  async function postAdmin(body: Record<string, unknown>) {
+    await signInOwner();
     const { POST } = await import("@/app/api/contacts/admin/route");
     return POST(
       new Request("https://example.test/api/contacts/admin", {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-          authorization: `Bearer ${token}`,
-        },
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({ user: "ana", ...body }),
       }),
     );
   }
 
   test("rejects a malformed address rather than writing it", async () => {
-    const token = await ownerToken();
     const { contactId } = await requestContact("ana", {
       name: "Gran", email: "gran@example.test", locale: "en",
       wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
@@ -1706,7 +1146,6 @@ describe("the admin route's update validation", () => {
 
     const response = await postAdmin(
       { action: "update", id: contactId, email: "not-an-address" },
-      token,
     );
 
     expect(response.status).toBe(400);
@@ -1715,7 +1154,6 @@ describe("the admin route's update validation", () => {
   });
 
   test("refuses to give a contact the address a different contact already holds", async () => {
-    const token = await ownerToken();
     await requestContact("ana", {
       name: "Gran", email: "taken@example.test", locale: "en",
       wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
@@ -1727,7 +1165,6 @@ describe("the admin route's update validation", () => {
 
     const response = await postAdmin(
       { action: "update", id: contactId, email: "taken@example.test" },
-      token,
     );
 
     expect(response.status).toBe(409);
@@ -1750,7 +1187,6 @@ describe("the admin route's update validation", () => {
    * used for a blocked address.
    */
   test("create refuses an address already on the list, and leaves it untouched", async () => {
-    const token = await ownerToken();
     const { contact: existing } = await signUpAndConfirm("ana", "existing@example.test", {
       name: "Existing Guest",
       address: ADDRESS,
@@ -1770,7 +1206,6 @@ describe("the admin route's update validation", () => {
 
     const response = await postAdmin(
       { action: "create", name: "Somebody New", email: "existing@example.test", locale: "en" },
-      token,
     );
 
     expect(response.status).toBe(409);
@@ -1800,7 +1235,6 @@ describe("the admin route's update validation", () => {
    * mistake. `update` now refuses the same way.
    */
   test("update refuses a postcard consent with nowhere to send it, same as create", async () => {
-    const token = await ownerToken();
     const { contactId } = await requestContact("ana", {
       name: "Gran", email: "no-address@example.test", locale: "en",
       wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
@@ -1808,7 +1242,6 @@ describe("the admin route's update validation", () => {
 
     const response = await postAdmin(
       { action: "update", id: contactId, wantsPostcard: true },
-      token,
     );
 
     expect(response.status).toBe(400);
@@ -1825,7 +1258,6 @@ describe("the admin route's update validation", () => {
    * name-only one that never touched the address or the postcard preference.
    */
   test("a name-only edit succeeds on a contact with wants_postcard set and no readable address", async () => {
-    const token = await ownerToken();
     const { contactId } = await requestContact("ana", {
       name: "Gran", email: "legacy-postcard@example.test", locale: "en",
       wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
@@ -1839,7 +1271,7 @@ describe("the admin route's update validation", () => {
       .where("id", "=", contactId!)
       .execute();
 
-    const response = await postAdmin({ action: "update", id: contactId, name: "Grandma" }, token);
+    const response = await postAdmin({ action: "update", id: contactId, name: "Grandma" });
 
     expect(response.status).toBe(200);
     const after = await getContact("ana", contactId!);
@@ -1856,7 +1288,6 @@ describe("the admin route's update validation", () => {
    * nothing.
    */
   test("still refuses to turn wantsPostcard on when the stored address won't decrypt", async () => {
-    const token = await ownerToken();
     const { contactId } = await requestContact("ana", {
       name: "Gran", email: "legacy-postcard-2@example.test", locale: "en",
       wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
@@ -1870,7 +1301,6 @@ describe("the admin route's update validation", () => {
 
     const response = await postAdmin(
       { action: "update", id: contactId, wantsPostcard: true },
-      token,
     );
 
     expect(response.status).toBe(400);
@@ -1890,7 +1320,6 @@ describe("the admin route's update validation", () => {
    * only the name actually different.
    */
   test("a save that re-posts the legacy row's own values unchanged succeeds, as the real form does", async () => {
-    const token = await ownerToken();
     const { contactId } = await requestContact("ana", {
       name: "Gran", email: "legacy-repost@example.test", locale: "en",
       wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
@@ -1913,7 +1342,6 @@ describe("the admin route's update validation", () => {
           name: "", line1: "", line2: "", postcode: "", city: "", country: "", tel: "",
         },
       },
-      token,
     );
 
     expect(response.status).toBe(200);
@@ -1923,7 +1351,6 @@ describe("the admin route's update validation", () => {
   });
 
   test("submitting a non-empty but non-postable address still 400s, whatever wantsPostcard says", async () => {
-    const token = await ownerToken();
     const { contactId } = await requestContact("ana", {
       name: "Gran", email: "partial-address@example.test", locale: "en",
       wantsEmailDigest: false, wantsPostcard: false, createdVia: "owner",
@@ -1937,11 +1364,101 @@ describe("the admin route's update validation", () => {
           name: "Gran", line1: "", line2: "", postcode: "", city: "Zurich", country: "", tel: "",
         },
       },
-      token,
     );
 
     expect(response.status).toBe(400);
     expect(((await response.json()) as { error?: string }).error).toBe("invalid_address");
     expect((await getContact("ana", contactId!))?.postalAddress).toBeNull();
+  });
+});
+
+/**
+ * Security review, F5 (D3/B2295) — an agent bearer token used to reach
+ * `/api/contacts/admin` at all, because `guard` passed the whole `Request`
+ * to `isOwner`, which accepts a bearer as well as a cookie (that acceptance
+ * is correct for the callers D1 leaves an agent door for — just not this
+ * one). The owner decided letting somebody read this journal, or changing a
+ * reader's row, happens only from Studio › Readers in the owner's own
+ * browser: an agent — even the owner's own, valid, agent token — must never
+ * reach this route at all.
+ */
+describe("the admin route refuses an agent outright (F5, security review)", () => {
+  beforeEach(() => {
+    fs.mkdirSync(path.join(dir, "ana", "trips"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "ana", "config.json"),
+      JSON.stringify({
+        title: "Ana's journal",
+        tagline: "t",
+        owner: { name: "Ana B", nickname: "Ana", email: "ana@example.test" },
+        startLocation: "X",
+        defaultLocale: "en",
+        locales: ["en"],
+        baseCurrency: "CHF",
+        displayCurrencies: ["CHF"],
+        units: "metric",
+        features: { contacts: { enabled: true } },
+      }),
+    );
+    fs.writeFileSync(
+      path.join(dir, "config.json"),
+      JSON.stringify({
+        site: { name: "R", url: "https://example.test", defaultUser: "ana" },
+        users: { reserved: [] },
+        features: { auth: { enabled: true }, contacts: { enabled: true } },
+      }),
+    );
+    clearConfigCache();
+    clearUserCache();
+  });
+
+  test("a valid agent bearer token for the owner's own address is refused, not honoured", async () => {
+    const { code } = await issueCode("ana", "ana@example.test", "agent");
+    const verified = await verifyCode("ana", "ana@example.test", code, "agent");
+    if (!verified.ok) throw new Error("expected the code to verify");
+
+    const { POST, GET } = await import("@/app/api/contacts/admin/route");
+    const post = await POST(
+      new Request("https://example.test/api/contacts/admin", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${verified.token}` },
+        body: JSON.stringify({ user: "ana", action: "create", name: "Stranger", email: "stranger@example.test" }),
+      }),
+    );
+    expect(post.status).toBe(403);
+    expect(((await post.json()) as { error?: string }).error).toBe("not_for_agents");
+
+    const get = await GET(
+      new Request("https://example.test/api/contacts/admin?user=ana", {
+        headers: { authorization: `Bearer ${verified.token}` },
+      }),
+    );
+    expect(get.status).toBe(403);
+    expect(((await get.json()) as { error?: string }).error).toBe("not_for_agents");
+
+    const { listContacts } = await import("@/lib/contacts");
+    expect(await listContacts("ana")).toHaveLength(0);
+  });
+
+  test("a mismatched Origin is refused before anything is written", async () => {
+    jar.cookies = {};
+    const { code } = await issueCode("ana", "ana@example.test", "guest");
+    const verified = await verifyCode("ana", "ana@example.test", code, "guest");
+    if (!verified.ok) throw new Error("expected the code to verify");
+    jar.cookies.fs_session = verified.token;
+
+    const { POST } = await import("@/app/api/contacts/admin/route");
+    const response = await POST(
+      new Request("https://example.test/api/contacts/admin", {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "https://evil.example" },
+        body: JSON.stringify({ user: "ana", action: "create", name: "Stranger", email: "stranger@example.test" }),
+      }),
+    );
+    expect(response.status).toBe(403);
+    expect(((await response.json()) as { error?: string }).error).toBe("foreign_origin");
+
+    const { listContacts } = await import("@/lib/contacts");
+    expect(await listContacts("ana")).toHaveLength(0);
   });
 });

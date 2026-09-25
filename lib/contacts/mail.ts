@@ -34,9 +34,10 @@ import { pickLocale } from "./locale";
  * `sendInviteMail` is the owner directly handing somebody a link — both pass
  * `{ allowUnconfirmed: true }` rather than being quietly exempted by some rule
  * about "transactional" mail, so a reader can grep for the exceptions
- * instead of having to trust a comment that they are the only ones. The third,
- * since B2055, is `sendImportedMail`: the one question an owner-imported
- * address is asked before it receives anything else.
+ * instead of having to trust a comment that they are the only ones.
+ * `sendImportedMail` (B2055) used to be a third, sent the moment "who was on
+ * the trip" was imported; B2296 removed it — importing sends no mail, and an
+ * imported row shows up on Studio › Readers under "Not invited yet" instead.
  *
  * Owner mail — the welcome mail, the deletion link, `notifyOwnerOfRequest` —
  * does not call this at all: it is not addressed to a *contact*, there is no
@@ -295,111 +296,6 @@ export async function sendWelcomeMail(
 }
 
 /**
- * "Do you want anything from this journal?" — B2055, the one mail an address
- * the owner imported from a contact card receives.
- *
- * The studio's people step promises exactly this letter; the import used to
- * send the sign-in passcode instead, a code for a page the recipient had never
- * opened. It grants nothing and asks nothing to be typed back: the button and
- * the decline item both open the person's own page (`manageUrl`, the same
- * self-serve link every contact mail carries), where they say what they want
- * or delete the row and everything with it (`deleteContactSelf`). No new
- * token — the manage token already exists from the moment the row does.
- *
- * Best effort, like every letter in this family: the row is already filed.
- */
-export async function sendImportedMail(
-  username: string,
-  user: UserConfig,
-  contact: { id: string; email: string; locale: Locale },
-): Promise<SendResult | null> {
-  // The third named exception (B334): this is the question an imported,
-  // unproven address is asked before anything else is sent to it.
-  if (!mayMailContact({ email: contact.email, confirmedAt: null }, { allowUnconfirmed: true })) return null;
-  const locale = contact.locale;
-  const vars = { title: user.title, nickname: user.owner.nickname };
-  try {
-    const token = manageTokenFor(username, contact.id);
-    const manage = manageUrl(baseUrl(), username, token);
-    return await sendMail(
-      renderMail(
-        contact.email,
-        translateIn(locale, "contact.mailImportedSubject", vars),
-        {
-          preheader: translateIn(locale, "contact.mailImportedBody", vars),
-          title: translateIn(locale, "contact.mailImportedTitle", vars),
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "contact.mailImportedBody", vars) },
-            { kind: "button", text: translateIn(locale, "contact.mailImportedButton"), href: manage },
-            {
-              kind: "item",
-              title: translateIn(locale, "contact.mailGrantedDeclineButton"),
-              meta: translateIn(locale, "contact.mailImportedDeclineCaption"),
-              href: manage,
-            },
-          ],
-          footer: footerFor(locale, user),
-          unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
-        },
-        username,
-      ),
-    );
-  } catch (err) {
-    console.error(`[contacts] import mail to ${contact.email} failed:`, err);
-    return null;
-  }
-}
-
-/**
- * "We have your details, the owner will let you in." Carries the manage link
- * — the first mail that can, because the address has just been proved.
- *
- * Best effort (B272). By the time this is called, `confirmContact` has
- * already succeeded and the reader has proved their code was right — an SMTP
- * hiccup here must not turn that into a 500 the UI renders as "that code
- * didn't work". Failure is logged and swallowed; there is no state to retry
- * from because this letter carries nothing the reader cannot get again from
- * `/{user}/c/manage` once they are approved.
- */
-export async function sendConfirmedMail(
-  username: string,
-  user: UserConfig,
-  contact: ContactRecord,
-  manageToken: string,
-): Promise<SendResult | null> {
-  if (!mayMailContact(contact)) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
-  const manage = manageUrl(baseUrl(), username, manageToken);
-  try {
-    return await sendMail(
-      renderMail(
-        contact.email,
-        translateIn(locale, "contact.doneTitle"),
-        {
-          preheader: translateIn(locale, "contact.doneBody", { title: user.title }),
-          title: translateIn(locale, "contact.doneTitle"),
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "contact.doneBody", { title: user.title }) },
-            {
-              kind: "button",
-              text: translateIn(locale, "contact.mailManageButton"),
-              href: manage,
-            },
-            { kind: "meta", text: translateIn(locale, "contact.mailManageCaption") },
-          ],
-          footer: footerFor(locale, user),
-          unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, manageToken),
-        },
-        username,
-      ),
-    );
-  } catch (err) {
-    console.error(`[contacts] confirmation mail to ${contact.email} failed:`, err);
-    return null;
-  }
-}
-
-/**
  * C16 — the owner hears about it.
  *
  * Sent the moment somebody confirms, not on a schedule, because the failure
@@ -543,65 +439,6 @@ export async function notifyOwnerOfRequest(
  * anyone to retry from. A failure here must log and return `null`, never
  * surface as a 500 to a reader who did everything right.
  */
-/**
- * "You can read it." D11's own mail (spec §8, §7.5) — a notification, never
- * a question. Sent the moment `grantContactAccess` returns, so the button in
- * it opens straight onto trips this address can already read.
- *
- * Structurally this is `sendApprovedMail` with its tense changed: the same
- * standing sign-in link (`issueStandingLink`/`signInUrl`), the same manage
- * link in the footer — which is the "way to decline everything" D11 requires
- * (`deleteContactSelf`, reachable from that page, removes the row and every
- * grant with it; `unsubscribeContact` alone only stops mail, which is why the
- * button here is worded as declining *access*, not merely mail). What
- * differs is the copy: nothing here asks the reader to confirm anything —
- * there is nothing left for them to confirm — and it says plainly that
- * access already exists.
- */
-export async function sendGrantedMail(
-  username: string,
-  user: UserConfig,
-  contact: ContactRecord,
-): Promise<SendResult | null> {
-  if (!mayMailContact(contact)) return null;
-  const locale = pickLocale(contact.locale, user.defaultLocale);
-  try {
-    const token = manageTokenFor(username, contact.id);
-    const openUrl = signInUrl(
-      baseUrl(),
-      username,
-      await issueStandingLink(username, contact.email),
-      locale,
-    );
-    return await sendMail(
-      renderMail(
-        contact.email,
-        translateIn(locale, "contact.mailGrantedSubject", { title: user.title }),
-        {
-          preheader: translateIn(locale, "contact.mailGrantedBody", { title: user.title }),
-          title: translateIn(locale, "contact.mailGrantedTitle", { title: user.title }),
-          blocks: [
-            { kind: "paragraph", text: translateIn(locale, "contact.mailGrantedBody", { title: user.title }) },
-            { kind: "button", text: translateIn(locale, "contact.mailGrantedButton", { title: user.title }), href: openUrl },
-            {
-              kind: "item",
-              title: translateIn(locale, "contact.mailGrantedDeclineButton"),
-              meta: translateIn(locale, "contact.mailGrantedDeclineCaption"),
-              href: manageUrl(baseUrl(), username, token),
-            },
-          ],
-          footer: footerFor(locale, user),
-          unsubscribeUrl: unsubscribeUrlFor(baseUrl(), username, token),
-        },
-        username,
-      ),
-    );
-  } catch (err) {
-    console.error(`[contacts] grant mail to ${contact.email} failed:`, err);
-    return null;
-  }
-}
-
 export async function sendApprovedMail(
   username: string,
   user: UserConfig,

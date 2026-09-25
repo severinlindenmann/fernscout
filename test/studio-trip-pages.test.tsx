@@ -34,8 +34,9 @@ const { default: LocaleProvider } = await import("@/components/LocaleProvider");
 const { default: StudioBarProvider } = await import("@/components/studio/StudioBar");
 const { dictionaryFor } = await import("@/lib/locales");
 const { default: TripVisibilityFlow } = await import("@/components/studio/trip/TripVisibilityFlow");
-// B2133 — the invite flow is a section of /studio/readers now.
-const { default: InviteSection } = await import("@/components/studio/readers/InviteSection");
+// B2291 — the preview of what a reader sees sits once under the two doors.
+const { default: ReaderPreview } = await import("@/components/studio/readers/ReaderPreview");
+const { plural, translate } = await import("@/lib/i18n");
 const { default: TripEditFlow } = await import("@/components/studio/trip/TripEditFlow");
 const { default: TripPicker } = await import("@/components/studio/trip/TripPicker");
 const { default: PlanReadersPage } = await import("@/app/[user]/studio/trip/plan-readers/page");
@@ -118,7 +119,14 @@ describe("What the audience does not see — B2130, B2132", () => {
 
   // No steps since B2133: one section, the preview in a <details>.
   const invite = (p: typeof preview) => {
-    return render(<InviteSection username="alex" existing={[]} preview={[p, { ...p, id: "c", title: "Closed", opens: false, publishedDays: 0, draftDays: 0, heldBackDays: 0, costsVisible: false }] as never} />);
+    const dict = dictionaryFor("en");
+    return render(
+      <ReaderPreview
+        t={(key, vars) => translate(dict, key, vars)}
+        tn={(key, count, vars) => plural(dict, key, count, vars)}
+        preview={[p, { ...p, id: "c", title: "Closed", opens: false, publishedDays: 0, draftDays: 0, heldBackDays: 0, costsVisible: false }] as never}
+      />,
+    );
   };
 
   test("the invite promise follows whether a guest sees any costs", () => {

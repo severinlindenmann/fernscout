@@ -19,8 +19,8 @@ import { whatsappCountryCode } from "../contactNumber";
 import { sendWhatsapp } from "@paid/whatsapp/lib/whatsapp/index";
 import { inviteTemplateFor } from "@paid/whatsapp/lib/whatsapp/settings";
 import { decryptString, encryptString, hasContactsKey } from "./crypto";
-import { getContact, type ContactRecord } from "./index";
-import { pickLocale } from "./locale";
+import { approveContact, confirmContactByOwner, getContact, type ContactRecord } from "./index";
+import { parseLocale, pickLocale } from "./locale";
 import { sendWelcomeMail } from "./mail";
 
 /**
@@ -137,6 +137,122 @@ export async function markWelcomeOpened(owner: string, contactId: string): Promi
     .execute();
 }
 
+// ─── Join codes (B2293) ────────────────────────────────────────────────────
+
+/** Its own prefix, so a welcome cipher can never be read as a join one. */
+function joinAad(owner: string, inviteId: string): string {
+  return `join:${owner}:${inviteId}`;
+}
+
+export function joinUrl(code: string): string {
+  return `${serverSite().url.replace(/\/$/, "")}/j/${code}`;
+}
+
+/**
+ * A group link's `/j/<code>` — the stored one, or, only when there has never
+ * been one, a fresh one; the same rules as `welcomeCodeFor`. Null for a code
+ * that exists but cannot be read back (no contacts key), and for an unknown
+ * invite.
+ */
+export async function joinCodeFor(owner: string, inviteId: string): Promise<string | null> {
+  const { db } = await getDatabase();
+  const read = () =>
+    db
+      .selectFrom("contact_invites")
+      .select(["join_code_hash", "join_code_cipher"])
+      .where("owner_id", "=", owner)
+      .where("id", "=", inviteId)
+      .executeTakeFirst();
+  const kept = (row: Awaited<ReturnType<typeof read>>) =>
+    row?.join_code_cipher ? decryptString(row.join_code_cipher, joinAad(owner, inviteId), "invite token") : null;
+
+  const row = await read();
+  if (!row) return null;
+  if (row.join_code_hash) return kept(row);
+  const code = newCode();
+  const minted = await db
+    .updateTable("contact_invites")
+    .set({
+      join_code_hash: hashSecret(code),
+      join_code_cipher: hasContactsKey() ? encryptString(code, joinAad(owner, inviteId)) : null,
+    })
+    .where("owner_id", "=", owner)
+    .where("id", "=", inviteId)
+    .where("join_code_hash", "is", null)
+    .executeTakeFirst();
+  if (Number(minted.numUpdatedRows ?? 0) === 1) return code;
+  return kept(await read());
+}
+
+/**
+ * Each of the owner's links with its short `/j/` address and whether it still
+ * works — B2291's "Links you've shared". Mints a code on first read for a
+ * link made before there were any; a stopped or expired link gets none.
+ */
+export async function withJoinUrls<T extends { id: string; revokedAt: string | null; expiresAt: string | null }>(
+  owner: string,
+  invites: T[],
+): Promise<(T & { live: boolean; joinUrl: string | null })[]> {
+  const now = Date.now();
+  return Promise.all(
+    invites.map(async (invite) => {
+      const live = !invite.revokedAt && !(invite.expiresAt && new Date(invite.expiresAt).getTime() < now);
+      const code = live ? await joinCodeFor(owner, invite.id) : null;
+      return { ...invite, live, joinUrl: code ? joinUrl(code) : null };
+    }),
+  );
+}
+
+export type JoinInvite = {
+  owner: string;
+  id: string;
+  kind: "guest" | "buddy" | "personal";
+  tripId: string | null;
+  locale: Locale | null;
+  /** The address a mailed invite named (B319) — pre-approval, compared
+   * against a proved address, never shown. */
+  emailKey: string | null;
+};
+
+/**
+ * Which live group link a join code names — nothing more. Null for an
+ * unknown, revoked or expired link, alike. The caller renders a form; the
+ * link itself grants nothing.
+ */
+export async function resolveJoinCode(code: string): Promise<JoinInvite | null> {
+  if (!WELCOME_CODE_RE.test(code)) return null;
+  const handle = await getDatabaseOrNull();
+  if (!handle) return null;
+  const row = await handle.db
+    .selectFrom("contact_invites")
+    .select(["owner_id", "id", "kind", "trip_id", "locale", "revoked_at", "expires_at", "email_key"])
+    .where("join_code_hash", "=", hashSecret(code))
+    .executeTakeFirst();
+  if (!row || row.revoked_at) return null;
+  if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) return null;
+  const kind = row.kind === "guest" || row.kind === "buddy" ? row.kind : "personal";
+  return {
+    owner: row.owner_id,
+    id: row.id,
+    kind,
+    tripId: kind === "buddy" ? row.trip_id : null,
+    locale: parseLocale(row.locale),
+    emailKey: row.email_key,
+  };
+}
+
+/** The guide runs once (B2293). Leaves an earlier stamp alone. */
+export async function markOnboarded(owner: string, contactId: string): Promise<void> {
+  const { db } = await getDatabase();
+  await db
+    .updateTable("contacts")
+    .set({ onboarded_at: nowIso() })
+    .where("owner_id", "=", owner)
+    .where("id", "=", contactId)
+    .where("onboarded_at", "is", null)
+    .execute();
+}
+
 // ─── Channels ──────────────────────────────────────────────────────────────
 
 export type InviteChannel = "email" | "whatsapp" | "sms" | "self";
@@ -156,7 +272,7 @@ type ChannelBlock =
   | "link_lost";
 
 /** The trip a buddy was added to — the newest place they hold or asked for. */
-async function buddyTripTitle(owner: string, contactId: string): Promise<string | null> {
+export async function buddyTripOf(owner: string, contactId: string): Promise<{ id: string; title: string } | null> {
   const { db } = await getDatabase();
   const row = await db
     .selectFrom("trip_people")
@@ -166,8 +282,12 @@ async function buddyTripTitle(owner: string, contactId: string): Promise<string 
     .where("revoked_at", "is", null)
     .orderBy("requested_at", "desc")
     .executeTakeFirst();
-  if (!row) return null;
-  return getTrip(tripRef(owner, row.trip_id))?.title ?? null;
+  const trip = row ? getTrip(tripRef(owner, row.trip_id)) : null;
+  return trip ? { id: trip.id, title: trip.title } : null;
+}
+
+async function buddyTripTitle(owner: string, contactId: string): Promise<string | null> {
+  return (await buddyTripOf(owner, contactId))?.title ?? null;
 }
 
 function firstName(name: string | null): string {
@@ -271,13 +391,13 @@ export type InviteOptions = {
   opened: boolean;
 };
 
-function maskEmail(email: string): string | null {
+export function maskEmail(email: string): string | null {
   if (!email.includes("@")) return null;
   const [local, domain] = email.split("@");
   return `${local.slice(0, 2)}•••@${domain}`;
 }
 
-function maskMobile(phone: string | null): string | null {
+export function maskMobile(phone: string | null): string | null {
   const digits = phone?.replace(/\D/g, "") ?? "";
   if (digits.length < 4) return null;
   return `+${digits.slice(0, 2)} ${"•".repeat(Math.max(1, digits.length - 4))} ${digits.slice(-2)}`;
@@ -290,7 +410,7 @@ function maskMobile(phone: string | null): string | null {
  */
 export async function inviteOptions(owner: string, contactId: string): Promise<InviteOptions | null> {
   const contact = await getContact(owner, contactId);
-  if (!contact || contact.status !== "active") return null;
+  if (!contact || !invitable(contact)) return null;
   const code = await welcomeCodeFor(owner, contactId);
   const message = code ? await messageFor(owner, contact, code) : null;
   if (code && !message) return null;
@@ -358,13 +478,14 @@ export async function sendInvite(
   channel: InviteChannel,
 ): Promise<InviteSendResult> {
   const contact = await getContact(owner, contactId);
-  if (!contact || contact.status !== "active") return { ok: false, reason: "no_contact" };
+  if (!contact || !invitable(contact)) return { ok: false, reason: "no_contact" };
   const code = await welcomeCodeFor(owner, contactId);
   if (!code) return { ok: false, reason: "link_lost" };
   const message = await messageFor(owner, contact, code);
   if (!message) return { ok: false, reason: "no_contact" };
 
   if (channel === "self") {
+    await letInImported(owner, contact);
     await recordInvited(owner, contactId, "self");
     return { ok: true, channel, url: message.url, backend: null, charged: 0, balance: await balanceOf(owner) };
   }
@@ -394,8 +515,33 @@ export async function sendInvite(
     return { ok: false, reason: "send_failed", balance: await balanceOf(owner) };
   }
 
+  await letInImported(owner, contact);
   await recordInvited(owner, contactId, channel);
   return { ok: true, channel, url: message.url, backend, charged: cost, balance: await balanceOf(owner) };
+}
+
+/**
+ * Who step 2 may be offered for: somebody the owner let in (`active`), or —
+ * B2291 D2 — a person an import filed under "Not invited yet", who has not
+ * asked anything and been asked nothing. A request somebody made through a
+ * link (`pending`, not imported) is never here: that is the owner's Let in /
+ * Decline, not an invitation to send.
+ */
+function invitable(contact: ContactRecord): boolean {
+  return contact.status === "active" || (contact.status === "pending" && contact.createdVia === "owner-import");
+}
+
+/**
+ * Inviting an imported person is the owner pre-approving them — B2291 D2,
+ * the same chain `addPersonByOwner` runs: vouch for the channel, then
+ * approve with **no** trip place (an imported name is a byline, never write
+ * access). Only after something was actually sent (or the owner took the
+ * link to share it), so a failed send leaves them where they were.
+ */
+async function letInImported(owner: string, contact: ContactRecord): Promise<void> {
+  if (contact.status !== "pending") return;
+  await confirmContactByOwner(owner, contact.id);
+  await approveContact(owner, contact.id, { onlyTrip: null });
 }
 
 /** The send itself. The backend's name, or null when the channel turned out
@@ -437,4 +583,41 @@ async function recordInvited(owner: string, contactId: string, channel: InviteCh
     .where("owner_id", "=", owner)
     .where("id", "=", contactId)
     .execute();
+}
+
+/**
+ * The owner let this person in (B2291 "Group-link visitor"): tell them on the
+ * channel they proved — email when their address is confirmed, otherwise an
+ * SMS to a number they proved. Free either way (a transactional note, like a
+ * code; D4). The message carries their welcome link. Returns the channel that
+ * took it, or null when there was nothing to send on — never throws: the
+ * approval already stands.
+ */
+export async function tellLetIn(owner: string, contact: ContactRecord): Promise<"email" | "sms" | null> {
+  const user = getUser(owner);
+  const code = user ? await welcomeCodeFor(owner, contact.id) : null;
+  if (!user || !code) return null;
+  const locale = pickLocale(contact.locale, user.defaultLocale);
+  const url = welcomeUrl(code);
+  const vars = {
+    name: capText(firstName(contact.name), 40),
+    owner: capText(ownerShortName(user), 40),
+    title: capText(user.title, 60),
+    url,
+  };
+  const text = translateIn(locale, "welcomeLink.letInText", vars);
+  try {
+    if (contact.email.includes("@") && contact.confirmedAt && !mailDisabledReason(owner)) {
+      const subject = translateIn(locale, "welcomeLink.letInSubject", vars);
+      if (await sendWelcomeMail(owner, user, contact, { locale, url, text, subject })) return "email";
+    }
+    const digits = contact.phoneProvenAt ? smsDigits(contact) : null;
+    if (digits && isEnabled("sms") && !smsUnreachable(digits)) {
+      await sendSms({ to: digits, body: text });
+      return "sms";
+    }
+  } catch (err) {
+    console.error(`[invite] telling contact ${contact.id} they are in failed:`, err instanceof Error ? err.message : err);
+  }
+  return null;
 }

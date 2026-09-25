@@ -58,12 +58,15 @@ export type Ack = {
   /** Null while it is holding. */
   endedAt: string | null;
   endedWhy: string;
+  /** When a snooze stops holding. Null for a plain acknowledgement. */
+  until: string | null;
 };
 
 /** Why an acknowledgement stopped holding. `fixed` is the entry no longer
  *  being in the band at all, `unhidden` is the operator asking for it back,
- *  and `superseded` is them pressing acknowledge on it again. */
-export type EndedWhy = "fixed" | "unhidden" | "superseded";
+ *  `superseded` is them pressing acknowledge on it again, and `woke` is a
+ *  snooze whose time ran out. */
+export type EndedWhy = "fixed" | "unhidden" | "superseded" | "woke";
 
 /** Every acknowledgement, newest first — the history the page shows. Bounded,
  *  because this is a disclosure under a band and not an audit log; the table
@@ -86,6 +89,7 @@ export async function listAcks(limit = 50): Promise<Ack[]> {
       ackedBy: row.acked_by ?? "",
       endedAt: row.ended_at,
       endedWhy: row.ended_why ?? "",
+      until: row.until ?? null,
     }));
   } catch {
     return [];
@@ -105,7 +109,13 @@ export async function listAcks(limit = 50): Promise<Ack[]> {
  * happened, and the second one is how the history says "still, and now at this
  * size".
  */
-export async function ack(entry: Attend, by: string, now = new Date()): Promise<void> {
+export async function ack(
+  entry: Attend,
+  by: string,
+  now = new Date(),
+  /** A snooze's end. Absent for a plain acknowledgement. */
+  until?: Date,
+): Promise<void> {
   const handle = await getDatabaseOrNull();
   if (!handle) return;
   try {
@@ -125,6 +135,7 @@ export async function ack(entry: Attend, by: string, now = new Date()): Promise<
         acked_by: by,
         ended_at: null,
         ended_why: "",
+        until: until ? until.toISOString() : null,
       })
       .execute();
   } catch {
@@ -162,7 +173,18 @@ export async function sweepAcks(present: Attend[], acks: Ack[], now = new Date()
   const ids = new Set(present.map((one) => one.id));
   const gone = acks.filter((one) => one.endedAt === null && !ids.has(one.entryId));
   for (const one of gone) await endAck(one.entryId, "fixed", now);
-  return gone.length;
+  // A snooze whose time is up ends as `woke` rather than lingering as a live
+  // row `applyAcks` ignores — the history should say it came back, and when.
+  const woke = acks.filter(
+    (one) => one.endedAt === null && ids.has(one.entryId) && expired(one, now),
+  );
+  for (const one of woke) await endAck(one.entryId, "woke", now);
+  return gone.length + woke.length;
+}
+
+/** A snooze past its time. A plain acknowledgement never expires. */
+function expired(one: Ack, now: Date): boolean {
+  return one.until !== null && one.until <= now.toISOString();
 }
 
 /**
@@ -175,8 +197,15 @@ export async function sweepAcks(present: Attend[], acks: Ack[], now = new Date()
 export function applyAcks(
   items: Attend[],
   acks: Ack[],
+  now = new Date(),
 ): { shown: Attend[]; hidden: Attend[] } {
-  const live = new Map(acks.filter((one) => one.endedAt === null).map((one) => [one.entryId, one]));
+  // A snooze whose time is up is not holding, whether or not a sweep has
+  // closed its row yet — the clock decides, not the bookkeeping.
+  const live = new Map(
+    acks
+      .filter((one) => one.endedAt === null && !expired(one, now))
+      .map((one) => [one.entryId, one]),
+  );
   const shown: Attend[] = [];
   const hidden: Attend[] = [];
   for (const item of items) {

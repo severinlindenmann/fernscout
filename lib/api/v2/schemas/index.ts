@@ -63,8 +63,6 @@ export {
   inviteWrite,
   inviteDoc,
   CONTACT_STATUSES,
-  contactCreate,
-  contactPatch,
   contactDoc,
   CHANNEL_NAMES,
   channelsPatch,

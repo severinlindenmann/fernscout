@@ -19,8 +19,10 @@ import { GUEST_COOKIE, IDENTITY_COOKIE, resolveSession, type Session } from "./i
  * address, not a permission.** Everything that decides what an address may
  * actually do is unchanged and still runs per request — `journalReader` asks
  * `hasReadGrant`, `isOwner` reads `owner.email` out of `config.json`,
- * `isPersonOnWith` reads the trip's `people:`. A year-old identity therefore
- * opens exactly what its holder is entitled to *today*.
+ * `isPersonOnWith` asks whether this address holds a granted `trip_people`
+ * place (a bare `people:` entry is a byline and grants nothing since D3,
+ * B2297). A year-old identity therefore opens exactly what its holder is
+ * entitled to *today*.
  *
  * ## Why there is no session minted here
  *

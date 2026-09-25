@@ -256,6 +256,10 @@ beforeAll(async () => {
   // code out of the person's inbox, which is what makes it the reproduction
   // from the report rather than an approximation of it.
   process.env.AUTH_DEV_CODE = CODE;
+  // B2297: Robin's own write access on `alps-2026` is a granted
+  // `trip_people` place now, not the bare `people:` entry below — needs the
+  // contacts machinery on.
+  process.env.CONTACTS_ENCRYPTION_KEY = "88".repeat(32);
 
   fs.writeFileSync(
     path.join(dir, "config.json"),
@@ -297,12 +301,22 @@ beforeAll(async () => {
   const { migrateToLatest } = await import("@/lib/db/migrate");
   const { getDatabase } = await import("@/lib/db");
   await migrateToLatest(await getDatabase());
+
+  // B2297: grant Robin a real `trip_people` place on `alps-2026` — the
+  // `people:` entry above is the byline only and no longer opens the write
+  // door by itself.
+  const { grantContactAccess } = await import("@/lib/contacts");
+  const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+  const granted = await grantContactAccess(OWNER, { name: "Robin", email: ROBIN, locale: "en" });
+  if (!granted.ok) throw new Error("could not grant Robin a place");
+  await claimTripPlace(OWNER, "alps-2026", granted.contact.id, null);
+  await approveTripPlaces(OWNER, granted.contact.id);
 });
 
 afterAll(async () => {
   const { closeDatabase } = await import("@/lib/db");
   await closeDatabase();
-  for (const key of ["CONTENT_DIR", "DATABASE_URL", "SESSION_SECRET", "AUTH_DEV_CODE"]) {
+  for (const key of ["CONTENT_DIR", "DATABASE_URL", "SESSION_SECRET", "AUTH_DEV_CODE", "CONTACTS_ENCRYPTION_KEY"]) {
     delete process.env[key];
   }
   fs.rmSync(dir, { recursive: true, force: true });

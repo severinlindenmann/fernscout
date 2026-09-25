@@ -55,6 +55,7 @@ vi.mock("@/lib/contacts", () => ({
   // token for it. Neither matters to the question here — which language the
   // chrome is in — but the module has to answer.
   normaliseEmail: (email: string) => email.trim().toLowerCase(),
+  contactKey: (c: { id: string; email: string }) => (c.email ? c.email.trim().toLowerCase() : `no-email:${c.id}`),
   manageTokenFor: () => "fs_manage_test",
   listContacts: async () => [
     {

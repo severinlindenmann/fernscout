@@ -572,24 +572,24 @@ describe("a sentence saying somebody can read it", () => {
   });
 
   /**
-   * The turn that carries the invitation is left alone — and what it proposes
-   * is a link to send, not access. Nothing here creates a contact, a grant or
-   * an invite row: `runTool` on a write tool has nothing to execute.
+   * B2295 (one door for readers, B2291) took away every tool that could ever
+   * make "she can read it" true. `invite_to_read` only hands over Studio ›
+   * Readers — a `link` block, not a proposal — and a sentence that says only
+   * that (never that access exists) is left alone.
    */
-  test("a turn that proposes the invitation may say she can be let in", async () => {
+  test("a turn that points at Studio › Readers is left alone, and claims nothing", async () => {
     create
-      .mockResolvedValueOnce(calls("invite_guest", { name: "meine Tochter" }))
+      .mockResolvedValueOnce(calls("invite_to_read"))
       .mockResolvedValueOnce(
-        says("Schick ihr diesen Link, dann kann deine Tochter um Zugang bitten."),
+        says("Füge sie unter Studio › Leser:innen hinzu, um sie einzuladen."),
       );
     const answered = await read(await ask("nur meine tochter soll das lesen können"));
 
     expect(create).toHaveBeenCalledTimes(2);
-    const proposals = answered.body.proposals as { tool: string; endpoint: string }[];
-    expect(proposals).toHaveLength(1);
-    expect(proposals[0].tool).toBe("invite_guest");
-    expect(proposals[0].endpoint).toBe("/api/helper/alex/invite");
-    expect(String(answered.body.answer)).toContain("um Zugang bitten");
+    expect(answered.body.proposals).toEqual([]);
+    const blocks = answered.body.blocks as { shape: string; href?: string }[];
+    expect(blocks.some((b) => b.shape === "link" && b.href === "/alex/studio/readers")).toBe(true);
+    expect(String(answered.body.answer)).toContain("Studio");
   });
 });
 
