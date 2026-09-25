@@ -72,7 +72,19 @@ export function runProcess(command: string, args: string[], options: RunOptions 
       resolve({ status, stdout: Buffer.concat(out), stderr: Buffer.concat(err), ...(error ? { error } : {}) });
     };
 
-    const child = spawn(command, args, { stdio });
+    // `spawn` usually reports a process that cannot start through `error`
+    // below, but not always: on macOS a binary for the wrong architecture
+    // throws `spawn Unknown system error -86` from the call itself.
+    // `spawnSync` returned that as `error` too, and "never rejects" has to
+    // cover it.
+    let child: ReturnType<typeof spawn>;
+    try {
+      child = spawn(command, args, { stdio });
+    } catch (spawnError) {
+      error = spawnError as NodeJS.ErrnoException;
+      finish(null);
+      return;
+    }
     const kill = (reason: NodeJS.ErrnoException) => {
       // The first reason is the one reported: a timeout that then also
       // overflows is still a timeout.

@@ -133,3 +133,39 @@ describe("runProcess keeps spawnSync's answer", () => {
     expect(run.status).toBe(0);
   });
 });
+
+describe("a spawn that throws instead of emitting error", () => {
+  // macOS answers a binary for the wrong architecture with
+  // `spawn Unknown system error -86` thrown from `spawn()` itself, not as an
+  // `error` event. `spawnSync` returned that as `error`; so must this.
+  function spawnThrows() {
+    vi.doMock("node:child_process", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("node:child_process")>()),
+      spawn: () => {
+        const error: NodeJS.ErrnoException = new Error("spawn Unknown system error -86");
+        error.code = "Unknown system error -86";
+        error.errno = -86;
+        throw error;
+      },
+    }));
+  }
+
+  afterEach(() => {
+    vi.doUnmock("node:child_process");
+  });
+
+  test("resolves with the error rather than rejecting", async () => {
+    spawnThrows();
+    const { runProcess: run } = await import("@/lib/ingest/run");
+    const result = await run("ffmpeg", ["-version"], { stdout: "pipe" });
+    expect(result.status).toBeNull();
+    expect(result.error?.message).toContain("-86");
+    expect(result.stdout.length).toBe(0);
+  });
+
+  test("the video tools read as absent", async () => {
+    spawnThrows();
+    const { videoToolsAvailable } = await import("@/lib/ingest/video");
+    await expect(videoToolsAvailable()).resolves.toBe(false);
+  });
+});
