@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ChevronUp, ChevronDown, LayoutDashboard, Plus } from "lucide-react";
 import GamePath from "@/components/GamePath";
-import OwnerTools from "@/components/OwnerTools";
 import LatestDayButton from "@/components/LatestDayButton";
 import MobileDaySheet from "@/components/MobileDaySheet";
 import PageHeader from "@/components/PageHeader";
@@ -28,12 +28,17 @@ import {
   visitMarkKey,
   whatsNew,
 } from "@/lib/whatsNew";
-import type { Day, DaySummary, PhotobookEntry } from "@/lib/types";
+import type { DaySummary, PhotobookEntry } from "@/lib/types";
+import type { StoryDay } from "@/lib/prose";
 import type { HeroStats } from "@/components/TripHero";
 
 /** How many days either side of the one on screen are kept loaded. Mirrors
  * `STORY_WINDOW` on the server; the client asks for the same shape. */
 const WINDOW = 2;
+
+/** Owner-only, so its own chunk — the same split, and the same reasons, as
+ * the day card's copy in `components/StoryPager.tsx`. */
+const OwnerTools = dynamic(() => import("@/components/OwnerTools"), { loading: () => null });
 
 /** `#day-<slug>` — a shareable link straight to one day. */
 function hashForDay(day: DaySummary) {
@@ -55,8 +60,9 @@ export default function TripStory({
 }: {
   /** Every day of the trip, cheaply. */
   index: DaySummary[];
-  /** Full days for the window the page was rendered around. */
-  days: Day[];
+  /** Full days for the window the page was rendered around, their prose
+   * already rendered on the server — see lib/prose.ts. */
+  days: StoryDay[];
   /** Where `days[0]` sits in `index`. */
   windowStart: number;
   /** The day the story lands on when no day was asked for: today while the
@@ -89,7 +95,7 @@ export default function TripStory({
    */
   dayTrack?: [number, number][][];
 }) {
-  const { t, formatLongDate, localizedTrip } = useI18n();
+  const { t, formatLongDate, localizedTrip, locale } = useI18n();
   // TripStory is always rendered inside TripProvider (both the current-trip
   // and /trips/<id> pages mount it there), so this is null only in the
   // unexpected case where that ever stops being true — reactions degrade to
@@ -103,7 +109,7 @@ export default function TripStory({
    * `index`. Seeded with what the server sent and filled in as the reader
    * moves — see the loader effect below.
    */
-  const [loaded, setLoaded] = useState<Record<number, Day>>(() =>
+  const [loaded, setLoaded] = useState<Record<number, StoryDay>>(() =>
     Object.fromEntries(days.map((d, i) => [windowStart + i, d])),
   );
   /** Windows already requested, so paging back and forth doesn't refetch —
@@ -248,14 +254,16 @@ export default function TripStory({
     const { start, end } = want;
     windows.claim(want);
 
-    const url = `${trip.userHref("/story.json")}?trip=${encodeURIComponent(trip.trip.ref)}&from=${start}&to=${end}`;
+    // `lang`: the days come back with their prose rendered on the server in
+    // the language this page is showing — see lib/prose.ts.
+    const url = `${trip.userHref("/story.json")}?trip=${encodeURIComponent(trip.trip.ref)}&from=${start}&to=${end}&lang=${encodeURIComponent(locale)}`;
     const abort = new AbortController();
     // Whether this request ever got an answer, and so whether the claim above
     // still stands when the effect is torn down.
     let settled = false;
     fetch(url, { signal: abort.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
-      .then((data: { from: number; days: Day[] }) => {
+      .then((data: { from: number; days: StoryDay[] }) => {
         settled = true;
         setLoaded((prev) => {
           const next = { ...prev };
@@ -284,7 +292,7 @@ export default function TripStory({
       // has already been set up again and found nothing missing.
       if (!settled) windows.release(want);
     };
-  }, [activeIndex, index.length, loaded, trip]);
+  }, [activeIndex, index.length, loaded, trip, locale]);
 
   useEffect(() => {
     const s = steps[stepIndex];

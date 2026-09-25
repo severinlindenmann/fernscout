@@ -5,7 +5,8 @@ import { getDefaultUsername, listedUsernames, USERNAME_RE } from "../../users";
 import { ERROR_CODES } from "../errorCodes";
 import { V2_ONLY_CODES } from "./route";
 import { JSON_BODY_MAX_BYTES } from "../jsonBody";
-import { REMINDER_CHANNELS, ID_RE } from "../../tripWrite";
+import { ID_RE } from "../../tripWrite";
+import { CHANNEL_NAMES } from "./schemas/social";
 import type { Declinable } from "./schemas/shared";
 import {
   dayDoc,
@@ -414,7 +415,12 @@ const dayPublished = z.strictObject({
   whatsapp: z.record(z.string(), z.unknown()).optional(),
   notify: z
     .strictObject({
-      channels: z.array(z.strictObject({ channel: z.enum(REMINDER_CHANNELS), url: z.string() })),
+      // The day-announcement channels (mail/whatsapp) — `CHANNEL_NAMES`, the
+      // same enum `sendRequest` validates against. A day's own notify
+      // prompt has nothing to do with a trip's evening reminder
+      // (`REMINDER_CHANNELS`, mail-only since B2339); the two used to share
+      // one enum only because both happened to list the same two values.
+      channels: z.array(z.strictObject({ channel: z.enum(CHANNEL_NAMES), url: z.string() })),
       ask: z.string(),
     })
     .optional(),
@@ -1830,7 +1836,6 @@ function buildPaths(): Record<string, PathItem> {
           ref("signup_disabled", 404),
           ref("auth_disabled", 404),
           ref("mail_disabled", 503, "nothing issued; any code already held is still live"),
-          ref("whatsapp_disabled", 503),
           ref("sms_disabled", 503, "`phone` asked for, and this server sends no SMS"),
           ref("sms_unreachable", 400, "`phone` in a country this server's SMS number cannot reach"),
           ref("mail_failed", 503),

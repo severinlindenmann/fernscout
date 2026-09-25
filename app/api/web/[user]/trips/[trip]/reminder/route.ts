@@ -4,16 +4,17 @@
 // The switch in Journal settings (`/[user]/studio/journal`) writes through
 // here now the chat room it used to live in (`set_reminder`, whose own door
 // is `/api/helper/{user}/trip/reminder`) is retired. Same writer as that
-// door — `patchTripReminder`, which refuses a WhatsApp channel that could
-// never send and reads its own write back — so the two cannot disagree.
+// door — `patchTripReminder`, which reads its own write back so the two
+// cannot disagree.
 //
 // The family of `../visibility/route.ts`: `isOwner` on the cookie only, any
 // `Authorization` header refused outright, no token minted. Owner only, not
 // a trip-scoped token: a nudge about the trip going quiet is the owner's own
 // question.
 //
-// Body: `{"enabled": true|false, "channel"?: "mail"|"whatsapp"}`. GET reads
-// back `{enabled, channel}` — the same shape PATCH answers with.
+// Body: `{"enabled": true|false, "channel"?: "mail"}` — WhatsApp retired as
+// a reminder channel, B2339. GET reads back `{enabled, channel}` — the same
+// shape PATCH answers with.
 import { patchTripReminder, readTripReminder } from "@/lib/api/tripReminder";
 import { isOwner } from "@/lib/contacts/session";
 import { tripRef } from "@/lib/trips";

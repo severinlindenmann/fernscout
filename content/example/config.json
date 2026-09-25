@@ -9,7 +9,9 @@
   "locales": [
     "en",
     "de",
-    "hu"
+    "hu",
+    "fr",
+    "it"
   ],
   "baseCurrency": "CHF",
   "displayCurrencies": [

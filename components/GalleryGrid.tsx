@@ -2,7 +2,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
-import { mediaLoader } from "./mediaLoader";
+import { mediaLoader, posterSrc } from "./mediaLoader";
+import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import { motion } from "motion/react";
 import type { MediaTile, PostcardEntry } from "@/lib/types";
 import { flagFor } from "@/lib/flags";
@@ -23,6 +24,10 @@ import { Send } from "lucide-react";
  * `motion.button` and every `<video>` on first paint (B87).
  */
 const BATCH = 60;
+
+/** The widest row the grid draws (`lg:grid-cols-4`), for the tiles that load
+ *  eagerly — see the `loading` prop below. */
+const FIRST_ROW = 4;
 
 /**
  * `postcard` is absent for everybody except the journal's owner on a journal
@@ -151,7 +156,7 @@ export default function GalleryGrid({
                     // small rectangles.
                     <video
                       src={tile.src}
-                      poster={tile.poster}
+                      poster={posterSrc(tile.poster, POSTER_WIDTH.GRID)}
                       preload={tile.poster ? "none" : "metadata"}
                       className="h-full w-full object-cover"
                       muted
@@ -169,6 +174,12 @@ export default function GalleryGrid({
                       alt={tile.alt ?? tile.caption ?? ""}
                       fill
                       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      // The first row is on screen the moment the page is: fetched
+                      // at once rather than when the lazy loader notices it, and
+                      // the first tile ahead of everything — it is the page's
+                      // largest paint. Four covers a row at every breakpoint.
+                      loading={i < FIRST_ROW ? "eager" : undefined}
+                      fetchPriority={i === 0 ? "high" : undefined}
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   )}

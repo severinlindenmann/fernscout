@@ -3,6 +3,7 @@ import { recordTripView } from "@/lib/analytics/record";
 import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
 import { getAllEntries } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
+import { requestLocale } from "@/lib/locales";
 import { buildStoryProps } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
@@ -28,14 +29,24 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   // `/<user>` renders whichever trip is current — so it is the number the
   // owner means by "was it opened at all". The trip id rides along so the
   // per-trip table still counts it.
-  await recordTripView(current, "journal");
-
+  //
   // B327: the owner, or somebody on the trip. `canPublish` travels with it
   // because the draft banner has to say which of the two is reading.
-  const { read, canPublish, owner } = await readFor(current);
+  //
+  // Together rather than one after another: the view is written whatever the
+  // other two answer, and neither of them reads what it writes, so the only
+  // thing the order bought was three round trips where one will do.
+  const [, { read, canPublish, owner }, showCosts] = await Promise.all([
+    recordTripView(current, "journal"),
+    readFor(current),
+    mayViewCosts(current),
+  ]);
   const { trip, index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
-    showCosts: await mayViewCosts(current),
+    showCosts,
     ...read,
+    // The window's prose is rendered here, in this reader's language — see
+    // lib/prose.ts.
+    locale: await requestLocale(),
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();

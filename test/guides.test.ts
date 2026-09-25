@@ -4,7 +4,9 @@ import path from "node:path";
 import { GUIDES, isGuide, readGuide } from "@/lib/docs";
 
 /**
- * B445 — the three reader guides.
+ * B445 — the reader guides; today only `gps` (B2343). The guest, creator and
+ * buddy guides were retired (`lib/docs.ts`), and with them the checks on
+ * their figures and on what each had to cover.
  *
  * The content is prose and nothing here judges it. What is worth pinning is
  * the shape around it: that every guide exists in every language the site
@@ -45,7 +47,7 @@ describe("the guides exist", () => {
    * presenting English as though it were the translation.
    */
   test("an unknown language falls back to English, and says which it got", () => {
-    const { markdown, locale } = readGuide("guest", "fr");
+    const { markdown, locale } = readGuide("gps", "fr");
     expect(locale).toBe("en");
     expect(markdown.length).toBeGreaterThan(1500);
   });
@@ -57,10 +59,12 @@ describe("the guides exist", () => {
   });
 });
 
-describe("the route only accepts the three", () => {
+describe("the route only accepts the whitelist", () => {
   test("isGuide is the whitelist", () => {
     for (const guide of GUIDES) expect(isGuide(guide)).toBe(true);
     expect(isGuide("api")).toBe(false);
+    // Retired, and redirected to the hub by `next.config.ts`.
+    for (const retired of ["guest", "creator", "buddy"]) expect(isGuide(retired), retired).toBe(false);
     expect(isGuide("../../etc/passwd")).toBe(false);
     expect(isGuide("")).toBe(false);
   });
@@ -75,7 +79,7 @@ describe("the route only accepts the three", () => {
     // Refused before it reaches `path.join`, rather than merely failing to
     // find a file — see the guard in `readGuide`.
     for (const bad of ["../../../etc", "en/../../..", "", "eng", "E N"]) {
-      expect(readGuide("guest", bad).locale, bad).toBe("en");
+      expect(readGuide("gps", bad).locale, bad).toBe("en");
     }
   });
 });
@@ -83,10 +87,9 @@ describe("the route only accepts the three", () => {
 /**
  * B449 — a translation that quietly loses a paragraph.
  *
- * The Hungarian guides were translated from the German rather than from the
- * English, and inherited what the German had already dropped: the
- * "Send me a code" button in step 2 of the sign-in, and the two screenshots
- * either side of it. Nothing failed. Every existing check here is per-file —
+ * The Hungarian guides were once translated from the German rather than from
+ * the English, and inherited what the German had already dropped. Nothing
+ * failed. Every existing check here is per-file —
  * a figure that is never referenced is never looked for — so the missing
  * content was invisible to the suite and to everybody who does not read
  * Hungarian.
@@ -128,155 +131,3 @@ describe("the guides sit in the shared shell", () => {
   });
 });
 
-describe("the figures", () => {
-  const FIGURES = "docs/guides/figures";
-
-  test("every image a guide references is actually on disk", () => {
-    for (const locale of LOCALES) {
-      for (const guide of GUIDES) {
-        const text = fs.readFileSync(
-          path.join(process.cwd(), `docs/guides/${locale}/${guide}.md`),
-          "utf8",
-        );
-        for (const [, src] of text.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)) {
-          expect(src, `${locale}/${guide}`).toMatch(/^\/docs\/guides\/figures\//);
-          const file = src.replace("/docs/guides/figures/", "");
-          expect(
-            fs.existsSync(path.join(process.cwd(), FIGURES, file)),
-            `${locale}/${guide} references ${file}`,
-          ).toBe(true);
-        }
-      }
-    }
-  });
-
-  /** Every figure carries alt text. These pages are read by people who are
-   * already unsure; an unlabelled picture is one more thing to puzzle over,
-   * and for a screen-reader it is nothing at all. */
-  test("no figure is unlabelled", () => {
-    for (const locale of LOCALES) {
-      for (const guide of GUIDES) {
-        const text = fs.readFileSync(
-          path.join(process.cwd(), `docs/guides/${locale}/${guide}.md`),
-          "utf8",
-        );
-        for (const [, alt] of text.matchAll(/!\[([^\]]*)\]\([^)]+\)/g)) {
-          expect(alt.length, `${locale}/${guide}`).toBeGreaterThan(20);
-        }
-      }
-    }
-  });
-
-  /**
-   * A screenshot committed at retina resolution bloats every clone of this
-   * repository for ever — `docs/screenshots/README.md` sets that rule for the
-   * four it owns, and these are held to the same one.
-   */
-  /**
-   * B477 — the two pictures of iOS itself.
-   *
-   * Apple only allows notifications from an installed app, so the Home Screen
-   * step is the one instruction without which the whole feature is unreachable
-   * on an iPhone — and it was the only step with no picture, because it is
-   * system UI that no browser automation here can reach. These came from a
-   * real phone.
-   *
-   * They carry no language suffix on purpose: the words in them belong to the
-   * phone, not to us, so every guide shows the same English capture and says
-   * so in its own caption.
-   */
-  test("every guest guide shows the iOS Home Screen steps", () => {
-    for (const locale of LOCALES) {
-      const text = read(locale, "guest");
-      expect(text, locale).toContain("ios-share.webp");
-      expect(text, locale).toContain("ios-add-home.webp");
-    }
-  });
-
-  test("the translated guides say the iOS pictures are in English", () => {
-    // English needs no such note; the other two would otherwise show a reader
-    // a menu whose words do not match their own phone, with no explanation.
-    expect(read("de", "guest")).toMatch(/auf Englisch eingestellt/);
-    expect(read("hu", "guest")).toMatch(/angol nyelvű iPhone/);
-  });
-
-  test("the figures stay inside their byte budget", () => {
-    const dir = path.join(process.cwd(), FIGURES);
-    const total = fs
-      .readdirSync(dir)
-      .filter((f) => f.endsWith(".webp"))
-      .reduce((sum, f) => sum + fs.statSync(path.join(dir, f)).size, 0);
-    expect(total).toBeLessThan(200 * 1024);
-  });
-
-  /** Hungarian has no captures of its own, so it borrows the English ones —
-   * and must say so rather than showing a reader a language they did not ask
-   * for with no explanation. */
-  test("the Hungarian guide warns that its screenshots are in English", () => {
-    const text = fs.readFileSync(path.join(process.cwd(), "docs/guides/hu/guest.md"), "utf8");
-    expect(text).toMatch(/angol nyelv/i);
-  });
-});
-
-describe("what the guides have to cover", () => {
-  /**
-   * The iOS Home Screen step is the one instruction without which the whole
-   * notification feature is unreachable on an iPhone — Apple allows push only
-   * from an installed app. A guest guide that omits it is a guest guide that
-   * does not work.
-   */
-  test("every guest guide explains the iOS Home Screen step", () => {
-    for (const locale of LOCALES) {
-      const text = read(locale, "guest");
-      expect(text, locale).toMatch(/Safari/);
-      expect(text, locale).toMatch(/Home Screen|Home-Bildschirm|Főképernyőhöz|kezdőképernyő/i);
-    }
-  });
-
-  test("every guest guide explains how to correct an address", () => {
-    for (const locale of LOCALES) {
-      expect(read(locale, "guest"), locale).toMatch(
-        /your details|deinen Angaben|deine Angaben|adataidhoz|adataid/i,
-      );
-    }
-  });
-
-  /** The one thing a buddy is most likely to get wrong, in every language. */
-  test("every buddy guide says a buddy cannot publish", () => {
-    for (const locale of LOCALES) {
-      expect(read(locale, "buddy"), locale).toMatch(
-        /cannot publish|nicht veröffentlichen|nem tudsz közzétenni/i,
-      );
-    }
-  });
-
-  /**
-   * The one thing "How to Use" said that lives nowhere else — B470. The rest
-   * of that section (hand this to your agent) is on the landing page in the
-   * dashed box and in this guide's own opening, which is why the section
-   * could be retired rather than moved.
-   */
-  test("every creator guide explains that photographs need a timestamp", () => {
-    for (const locale of LOCALES) {
-      expect(read(locale, "creator"), locale).toMatch(/timestamp|Zeitstempel|időbélyeg/i);
-    }
-  });
-
-  /**
-   * The creator guide's whole premise, and the project's decision 24 — there
-   * is still no CMS. The German file was reworded for B694, which is also
-   * why it has its own arm here rather than sharing the others': it now says
-   * "kein Formular" (no form) rather than naming the old "Bearbeitungsoberfläche"
-   * directly, since that phrase used to read as a promise this instance now
-   * breaks by hosting `/agent`.
-   */
-  test("every creator guide says there is no editing screen", () => {
-    for (const locale of LOCALES) {
-      const pattern =
-        locale === "de"
-          ? /kein Formular|kein CMS/i
-          : /no editing screen|nincs szerkesztőfelület/i;
-      expect(read(locale, "creator"), locale).toMatch(pattern);
-    }
-  });
-});

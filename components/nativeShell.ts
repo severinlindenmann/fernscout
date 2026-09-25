@@ -15,6 +15,7 @@
 
 import { registerPlugin } from "@capacitor/core";
 import { useSyncExternalStore } from "react";
+import type { OutboxStore } from "@/lib/outbox";
 
 type Bridge = { isNativePlatform?: () => boolean };
 
@@ -144,6 +145,86 @@ const ShareInbox = registerPlugin<ShareInboxPlugin>("ShareInbox");
 
 export function shareInboxStatus(): Promise<ShareInboxStatus> {
   return ShareInbox.status();
+}
+
+/**
+ * The outbox's own native door — B2330. `MediaUpload` is a second small
+ * plugin (`ios/App/App/MediaUploadPlugin.swift`), reusing the same
+ * credential the share extension already mints and refreshes
+ * (`ShareCredentialStore`) and the same background `URLSession` pattern
+ * (B2175) so a queued photograph keeps uploading with the studio tab
+ * suspended or the app closed outright. Bytes cross the bridge as base64,
+ * the same trade `pickNativePhotos` above already makes for a few
+ * megabytes at a time; a background upload from a file path on disk is the
+ * upgrade if that turns out to matter for a bigger original.
+ */
+type MediaUploadPlugin = {
+  enqueue(options: { id: string; base64: string; filename: string; mimeType: string }): Promise<{ handedOff: boolean }>;
+  drainCompleted(): Promise<{ completed: { id: string; realId: string }[]; failed: string[] }>;
+};
+const MediaUpload = registerPlugin<MediaUploadPlugin>("MediaUpload");
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("could not read the blob"));
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * `runOutbox`'s `nativeUpload` argument — outside the shell, or with no
+ * share-inbox credential connected (never opened the app once to mint one),
+ * this resolves `false` and the caller falls back to the ordinary web
+ * `fetch` path unchanged. Errors from the plugin itself are the same "not
+ * handed off" rather than a thrown exception, so one bad handoff never
+ * takes the rest of a replay pass down with it.
+ */
+export async function nativeMediaHandoff(id: string, blob: Blob, filename: string): Promise<boolean> {
+  if (!isNativeShell()) return false;
+  try {
+    const status = await ShareInbox.status();
+    if (!status.connected) return false;
+    const base64 = await blobToBase64(blob);
+    const { handedOff } = await MediaUpload.enqueue({ id, base64, filename, mimeType: blob.type || "application/octet-stream" });
+    return handedOff;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Reconciles whatever the native uploader finished since the last check —
+ * called before each `runOutbox` pass, in `useOutbox.ts`. A finished upload
+ * is resolved exactly the way a successful web replay resolves one
+ * (`lib/outbox.ts`'s own `remapMediaId` then `remove`): the day queued
+ * behind it, still naming the phone-chosen placeholder, is rewritten to the
+ * server's real id and the `media.upload` intent itself is dropped. A
+ * failure hands the intent back to the ordinary queue — its `blob` never
+ * left IndexedDB — by clearing `nativeUpload`, so the next pass retries it
+ * over the web path instead of asking native forever.
+ */
+export async function drainNativeUploads(store: OutboxStore, user: string): Promise<void> {
+  if (!isNativeShell()) return;
+  let result: { completed: { id: string; realId: string }[]; failed: string[] };
+  try {
+    result = await MediaUpload.drainCompleted();
+  } catch {
+    return;
+  }
+  if (result.completed.length === 0 && result.failed.length === 0) return;
+  const rows = await store.list(user);
+  for (const { id, realId } of result.completed) {
+    const intent = rows.find((r) => r.id === id && r.kind === "media.upload");
+    const placeholderId = (intent?.body as { placeholderId?: string } | null)?.placeholderId;
+    if (!intent || !placeholderId) continue;
+    await store.remapMediaId(user, placeholderId, realId);
+    await store.remove(id);
+  }
+  for (const id of result.failed) {
+    await store.markNativeUpload(id, false);
+  }
 }
 
 /**

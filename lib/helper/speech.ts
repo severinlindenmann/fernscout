@@ -20,10 +20,11 @@
 /**
  * The languages this instance will transcribe, as Deepgram's own codes.
  *
- * The four B686 names. Adding one is adding a row here and a label in
- * `site/locales/`; nothing else reads this list.
+ * The four B686 names, plus French and Italian — both explicit Nova-3 codes,
+ * added with those interface languages. Adding one is adding a row here and a
+ * label in `site/locales/`; nothing else reads this list.
  */
-export const SPEECH_LANGUAGES = ["en", "de", "de-CH", "hu"] as const;
+export const SPEECH_LANGUAGES = ["en", "de", "de-CH", "hu", "fr", "it"] as const;
 export type SpeechLanguage = (typeof SPEECH_LANGUAGES)[number];
 
 /**
@@ -31,13 +32,15 @@ export type SpeechLanguage = (typeof SPEECH_LANGUAGES)[number];
  * convention `LOCALE_LABEL` in lib/i18n.ts uses for a list of languages.
  * Shared by `RecordButton`'s per-recording select and `TripModeStep`'s
  * once-before-the-first-recording question (B1803 Task 4.1) so the two
- * cannot drift into naming the same four languages differently.
+ * cannot drift into naming the same languages differently.
  */
 export const SPEECH_LANGUAGE_LABEL: Record<SpeechLanguage, string> = {
   en: "English",
   de: "Deutsch",
   "de-CH": "Schwiizerdütsch",
   hu: "Magyar",
+  fr: "Français",
+  it: "Italiano",
 };
 
 /**

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import MiniSearch from "minisearch";
 import { buildSearchIndex, buildSearchIndexJson } from "@/lib/search";
@@ -66,14 +68,14 @@ describe("buildSearchIndex", () => {
     // The one public entry, plus its trip's own row — which is the Story
     // destination, so there is no separate row for that (B890) — plus
     // Gallery and Map (B823; no Analytics, no costs and no weather, since
-    // this fixture carries none), the ten documentation rows (eight pages —
+    // this fixture carries none), the seven documentation rows (five pages —
     // B1797 added and B1826 removed `/docs/extract`; B2248 retired
-    // `/docs/roadmap`; B2343 added the `gps` guide — the hub and the
-    // imprint — B903), and `/trips`, the one journal-scoped destination this
-    // fixture offers a stranger: `auth` is off here, so there is no sign-in
-    // door to find. Nothing from the closed trips contributes any kind of
-    // document.
-    expect(index.documentCount).toBe(1 + 1 + 2 + 10 + 1);
+    // `/docs/roadmap`; B2343 added the `gps` guide; the guest, creator and
+    // buddy guides were retired — the hub and the imprint — B903), and
+    // `/trips`, the one journal-scoped destination this fixture offers a
+    // stranger: `auth` is off here, so there is no sign-in door to find.
+    // Nothing from the closed trips contributes any kind of document.
+    expect(index.documentCount).toBe(1 + 1 + 2 + 7 + 1);
   });
 
   test("an unlisted trip's content is not indexed at all", () => {
@@ -105,19 +107,22 @@ describe("everything else this site renders — B890", () => {
     expect([...ids].filter((id) => id.startsWith("trip:"))).toEqual(["trip:public-2026"]);
   });
 
-  test("a guide is found by a word that only appears in its own markdown", () => {
+  test("the GPS guide is found by a word that only appears in its own markdown", () => {
     const index = buildSearchIndex("creator")!;
-    const hits = index.search("notifications", { prefix: true }).filter((h) => h.kind === "doc");
-    expect(hits.length).toBeGreaterThan(0);
-    expect(hits.map((h) => h.url)).toContain("/docs/guide/guest");
+    const hits = index.search("Polarsteps", { prefix: true }).filter((h) => h.kind === "doc");
+    expect(hits.map((h) => h.url)).toContain("/docs/guide/gps");
+  });
+
+  test("somebody asking for help lands on the hub, not on Hosting", () => {
+    const index = buildSearchIndex("creator")!;
+    const hits = index.search("help", { prefix: true }).filter((h) => h.kind === "doc");
+    expect(hits[0]?.url).toBe("/docs");
   });
 
   test("the documentation is public — a stranger's index carries every docs page, the hub and the imprint", () => {
     const json = buildSearchIndexJson("creator")!;
     for (const url of [
-      "/docs/guide/guest",
-      "/docs/guide/creator",
-      "/docs/guide/buddy",
+      "/docs/guide/gps",
       "/docs/hosting",
       "/docs/contributing",
       "/docs/api",
@@ -155,6 +160,42 @@ describe("the served JSON round-trips through MiniSearch.loadJSON", () => {
     expect(hits).toHaveLength(1);
     expect(hits[0].title).toBe("A Public Day");
     expect(hits[0].url).toBe("/creator/trips/public-2026/day/somewhere");
+  });
+});
+
+/**
+ * The public index is reused while the rows it was built from are unchanged —
+ * and only then. The direction that matters is the second test: a trip closed
+ * after the index was first built must leave it on the very next request, not
+ * whenever the process restarts.
+ */
+describe("the reused public index", () => {
+  let dir: string;
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-search-memo-"));
+    fs.cpSync(FIXTURES, dir, { recursive: true });
+    process.env.CONTENT_DIR = dir;
+  });
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  const tripFile = () => path.join(dir, "creator", "trips", "private-2026", "trip.json");
+  const setVisibility = (visibility: string) => {
+    const trip = JSON.parse(fs.readFileSync(tripFile(), "utf8"));
+    fs.writeFileSync(tripFile(), JSON.stringify({ ...trip, visibility }, null, 2));
+  };
+
+  test("is the same answer twice over unchanged content", () => {
+    expect(buildSearchIndexJson("creator")).toBe(buildSearchIndexJson("creator"));
+  });
+
+  test("follows a trip opened, and closed again, between two requests", () => {
+    expect(buildSearchIndexJson("creator")).not.toContain("Secretville");
+    setVisibility("public");
+    expect(buildSearchIndexJson("creator")).toContain("Secretville");
+    setVisibility("private");
+    expect(buildSearchIndexJson("creator")).not.toContain("Secretville");
   });
 });
 

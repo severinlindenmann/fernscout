@@ -56,7 +56,7 @@ function locale(name: string): Record<string, string> {
 const en = locale("en");
 
 describe("No translation drops an interpolation token English has — B1957", () => {
-  for (const code of ["de", "hu"] as const) {
+  for (const code of ["de", "hu", "fr", "it"] as const) {
     test(code, () => {
       const dict = locale(code);
       const dropped: { key: string; missing: string[] }[] = [];

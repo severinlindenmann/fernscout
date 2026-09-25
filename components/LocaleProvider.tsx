@@ -6,6 +6,7 @@ import {
   translate,
   plural,
   monthNames,
+  shortMonthName,
   weekdayNames,
   localizedTripTitle,
   localizedEntryTitle,
@@ -99,13 +100,17 @@ export default function LocaleProvider({
       const year = options?.year && d.getUTCFullYear() !== new Date().getUTCFullYear() ? d.getUTCFullYear() : null;
       if (locale === "de") return `${weekday}, ${day}. ${month}${year ? ` ${year}` : ""}`;
       if (locale === "hu") return `${year ? `${year}. ` : ""}${month} ${day}., ${weekday}`;
+      // "lundi 1er septembre" / "lunedì 1 settembre": no comma, and French
+      // writes the first of the month as an ordinal.
+      if (locale === "fr") return `${weekday} ${day === 1 ? "1er" : day} ${month}${year ? ` ${year}` : ""}`;
+      if (locale === "it") return `${weekday} ${day} ${month}${year ? ` ${year}` : ""}`;
       return `${weekday}, ${day} ${month}${year ? ` ${year}` : ""}`;
     };
 
     const formatShortDate = (date: string) => {
       const d = parseUTC(date);
       const day = d.getUTCDate();
-      const month = months[d.getUTCMonth()].slice(0, 3);
+      const month = shortMonthName(locale, d.getUTCMonth());
       if (locale === "de") return `${day}. ${month}`;
       if (locale === "hu") return `${month} ${day}.`;
       return `${day} ${month}`;

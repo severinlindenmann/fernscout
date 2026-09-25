@@ -8,7 +8,6 @@
 // The cookie-lifecycle doors (`identity/upgrade`, `logout`) and handover/keys
 // are unchanged in shape and carry no schema here.
 import { z } from "zod";
-import { CHANNEL_NAMES } from "./social";
 import type { SessionKind } from "../../../auth";
 
 /**
@@ -57,7 +56,12 @@ export const codesRequest = z.strictObject({
   for: z.enum(CREDENTIAL_FOR),
   user: z.string().optional(),
   scope: tripScope.optional(),
-  channel: z.enum(CHANNEL_NAMES).optional(),
+  /** `"mail"` is the only channel a code can travel on (B2335 retired the
+   * WhatsApp one — Meta never approved its template, and the owner dropped
+   * this door rather than fix it). Kept as an enum of one, not a boolean,
+   * so a caller reads the accepted set from the schema rather than guessing
+   * what "false" would have meant. */
+  channel: z.enum(["mail"]).optional(),
   destination: z.string().optional(),
   locale: z.string().optional(),
 });
