@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
 import { useOnline } from "@/components/studio/useOnline";
 import { COST_CATEGORIES, type CostCategory } from "@/lib/costFormat";
-import { PIN_NEAR_KM, looksLikeStay, nearestStopIndex, nearestStopWithin, sequenceContext } from "@/lib/planner/schedule";
-import type { ParsedThing, PendingPin, PlaceCandidate, PlanStop } from "@/lib/planner/types";
+import { looksLikeStay, nearestStopIndex, nearestStopWithin, sequenceContext } from "@/lib/planner/schedule";
+import type { ParsedThing, PlaceCandidate, PlanStop } from "@/lib/planner/types";
 import type { TranslationKey } from "@/lib/i18n";
 
 const KINDS = ["place", "coordinates", "link", "cost"] as const;
@@ -21,9 +21,6 @@ type Resolved = {
   /** The full lookup label ("Matsuyama, Ehime Prefecture, Japan") when the
    * name is its first segment — shown under the name, never stored. */
   label?: string;
-  /** Set when this place came from a WhatsApp pin, so a successful commit
-   * knows which inbox entry to discard — B2014. */
-  pinId?: string;
 };
 
 export type StopOutcome =
@@ -68,8 +65,6 @@ export default function Composer({
   lastCurrency,
   currencies,
   onCommit,
-  pins,
-  onIgnorePin,
 }: {
   username: string;
   route: PlanStop[];
@@ -77,8 +72,6 @@ export default function Composer({
   /** The journal's currencies, base first — the only codes offered (B2143). */
   currencies: string[];
   onCommit: (outcome: StopOutcome) => void;
-  pins: PendingPin[];
-  onIgnorePin: (id: string) => void;
 }) {
   const { t, tn } = useI18n();
   const online = useOnline();
@@ -88,7 +81,6 @@ export default function Composer({
   const [overrideKind, setOverrideKind] = useState<Kind | null>(null);
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
   const [pasteHint, setPasteHint] = useState(false);
-  const [pinsOpen, setPinsOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Composer-local fields, reset whenever the text changes meaningfully.
@@ -198,12 +190,6 @@ export default function Composer({
       setInsertAt(idx === null ? route.length : idx + 1);
       setNights(1);
     }
-  }
-
-  function choosePin(pin: PendingPin) {
-    const name = pin.name ?? pin.town ?? t("studio.plan.composer.pins.untitled");
-    setPinsOpen(false);
-    startConfirm({ name, lat: pin.lat, lng: pin.lng, source: "pin", pinId: pin.id }, PIN_NEAR_KM);
   }
 
   function reset() {
@@ -321,69 +307,6 @@ export default function Composer({
           </div>
           <p className="mt-2 text-xs text-ink-secondary">{t("studio.plan.composer.hint")}</p>
           </>
-          )}
-
-          {pins.length > 0 && !pinsOpen && (
-            <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-line-strong bg-surface-subtle p-3 text-sm">
-              <span>{tn("studio.plan.composer.pins.card", pins.length, { count: String(pins.length) })}</span>
-              <button
-                type="button"
-                onClick={() => setPinsOpen(true)}
-                className="min-h-11 rounded-full border border-line-strong px-4 text-sm font-semibold"
-              >
-                {t("studio.plan.composer.pins.look")}
-              </button>
-            </div>
-          )}
-
-          {pinsOpen && (
-            <div className="mt-3 rounded-xl border border-line-strong p-3">
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-display text-base font-semibold text-ink-strong">
-                  {t("studio.plan.composer.pins.title")}
-                </p>
-                <button type="button" onClick={() => setPinsOpen(false)} className="min-h-11 text-sm underline">
-                  {t("studio.plan.composer.pins.close")}
-                </button>
-              </div>
-              <ul className="mt-2 flex flex-col gap-3">
-                {pins.map((pin) => {
-                  const near = nearestStopWithin(route, { lat: pin.lat, lng: pin.lng }, PIN_NEAR_KM);
-                  return (
-                    <li key={pin.id} className="rounded-lg border border-line-faint p-2">
-                      <p className="font-semibold text-ink-strong">
-                        {pin.name ?? t("studio.plan.composer.pins.untitled")}
-                      </p>
-                      <p className="font-mono text-xs text-ink-secondary">
-                        {pin.lat.toFixed(4)}, {pin.lng.toFixed(4)}
-                        {pin.town ? ` · ${pin.town}` : ""} · {new Date(pin.receivedAt).toLocaleString()}
-                      </p>
-                      {near && (
-                        <p className="mt-1 text-xs text-ink-secondary">
-                          {t("studio.plan.composer.pins.near", { stop: near.location })}
-                        </p>
-                      )}
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => choosePin(pin)}
-                          className="min-h-11 rounded-full bg-action-strong px-4 text-sm font-semibold text-on-action"
-                        >
-                          {t("studio.plan.composer.pins.use")}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onIgnorePin(pin.id)}
-                          className="min-h-11 rounded-full border border-line-strong px-4 text-sm"
-                        >
-                          {t("studio.plan.composer.pins.ignore")}
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
           )}
 
           {parsed && overrideKind && (
@@ -597,7 +520,7 @@ export default function Composer({
           )}
           <p className="font-mono text-xs text-ink-secondary">
             {confirming.lat.toFixed(4)}, {confirming.lng.toFixed(4)}
-            {confirming.country ? ` · ${confirming.country}` : ""} · {t(`studio.plan.composer.source.${confirming.source === "typed" ? "place-query" : confirming.source === "coordinates" ? "coordinates" : confirming.source === "pin" ? "pin" : "place"}` as TranslationKey)}
+            {confirming.country ? ` · ${confirming.country}` : ""} · {t(`studio.plan.composer.source.${confirming.source === "typed" ? "place-query" : confirming.source === "coordinates" ? "coordinates" : "place"}` as TranslationKey)}
           </p>
           <svg
             aria-hidden

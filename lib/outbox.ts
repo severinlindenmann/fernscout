@@ -60,6 +60,15 @@ export interface OutboxIntent {
    *  Unknown shape here on purpose — read only by the screen for the one
    *  kind that produced it (`pendingConflicts`, `pendingVoiceTranscripts`). */
   details?: unknown;
+  /** B2330 — set once the iPhone shell has handed this `media.upload`'s
+   *  bytes to its own native background upload (same credential and route
+   *  as the share extension, B2175) so it keeps going with the app
+   *  suspended or closed. While this is `true`, `runOutbox` never sends it
+   *  over `fetch` too — the native side is the only one uploading it — and
+   *  waits for `drainNativeUploads` (`components/nativeShell.ts`) to report
+   *  it finished before touching anything queued behind it. Web-only
+   *  outboxes never set this. */
+  nativeUpload?: boolean;
 }
 
 export type NewIntent = Omit<OutboxIntent, "id" | "createdAt" | "state">;
@@ -157,6 +166,10 @@ export interface OutboxStore {
    *  that still names the placeholder, in place, so a later replay sends
    *  the id the server actually knows. */
   remapMediaId(user: string, placeholderId: string, realId: string): Promise<void>;
+  /** B2330 — flip `nativeUpload` on one intent: `true` right after the shell
+   *  hands its bytes to the native uploader, `false` to hand it back to the
+   *  ordinary web path (a native failure, or no credential connected). */
+  markNativeUpload(id: string, on: boolean): Promise<void>;
 }
 
 /** `body.mediaInboxIds` with one id swapped, or the same array reference
@@ -201,6 +214,13 @@ export async function runOutbox(
   store: OutboxStore,
   user: string,
   fetchImpl: typeof fetch = fetch,
+  /** B2330 — the iPhone shell's own way to hand a `media.upload`'s bytes to
+   *  a native background upload instead of `fetch`. Returns `true` once the
+   *  native side has taken it (nothing sent over `fetch` for it this pass);
+   *  `false` — no shell, no connected credential, or the handoff itself
+   *  failed — and the ordinary `fetch` path below runs as it always has.
+   *  Never called for anything but `media.upload`. Undefined on the web. */
+  nativeUpload?: (intent: OutboxIntent) => Promise<boolean>,
 ): Promise<RunOutcome> {
   const outcome: RunOutcome = { done: 0, conflicts: 0, paused: false, stoppedForRetry: false };
   const intents = (await store.list(user)).filter((i) => i.state === "pending");
@@ -221,6 +241,20 @@ export async function runOutbox(
       // this folds it into the plain JSON body instead of sending its own
       // form, the one difference from `media.upload`'s own branch below.
       const isVoiceNote = intent.kind === "voice.note" && intent.blob;
+      if (isUpload && intent.nativeUpload) {
+        // Already handed to the native uploader on an earlier pass.
+        // `drainNativeUploads` runs before this and removes the intent the
+        // moment native reports it finished, so still finding it here means
+        // still waiting — never re-sent over `fetch`, and nothing queued
+        // behind it (a day naming this photo) goes out either.
+        outcome.stoppedForRetry = true;
+        break;
+      }
+      if (isUpload && nativeUpload && (await nativeUpload(intent))) {
+        await store.markNativeUpload(intent.id, true);
+        outcome.stoppedForRetry = true;
+        break;
+      }
       let requestBody: BodyInit | undefined;
       let headers: Record<string, string> | undefined;
       if (isUpload) {
@@ -390,6 +424,18 @@ export function openOutboxStore(): OutboxStore {
       const keys = await promisify(index.getAllKeys(IDBKeyRange.only(user)));
       const store = tx.objectStore(STORE_NAME);
       for (const key of keys) store.delete(key);
+      await new Promise<void>((resolve) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+      db.close();
+    },
+    async markNativeUpload(id, on) {
+      const db = await openDB();
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const existing = await promisify(store.get(id));
+      if (existing) store.put({ ...(existing as OutboxIntent), nativeUpload: on });
       await new Promise<void>((resolve) => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => resolve();

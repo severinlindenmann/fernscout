@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { cache as reactCache } from "react";
 import { contentRoot } from "./contentRoot";
 import { calendarStatus, earliestTodayISO } from "./tripTime";
 import { getUsernames } from "./users";
@@ -835,8 +836,18 @@ function tripsSignature(root: string, folders: string[]): string {
  * together. `getTrips` and `getMalformedTrips` are both views onto this, so a
  * malformed trip is discovered on the same parse that builds the good ones
  * rather than re-reading every file a second time to find it.
+ *
+ * And once per request on top of that, through React's `cache()` — the same
+ * reasoning as `readAllEntries` in lib/entries.ts. `cache` above only spares
+ * the parse; the signature it is checked against is a `readdir` and a `stat`
+ * per trip, and one page render asks for this journal's trips from the
+ * layouts, the gate, the switcher, `getTrip` and `getCurrentTrip` alike.
+ * Per request, a pass-through outside a render (scripts, route handlers,
+ * server actions, tests), and keyed on the username, a string.
  */
-function loadTrips(username: string): { trips: Trip[]; malformed: MalformedTrip[] } {
+const loadTrips = reactCache(loadTripsFromDisk);
+
+function loadTripsFromDisk(username: string): { trips: Trip[]; malformed: MalformedTrip[] } {
   const root = tripsDir(username);
 
   let folders: string[] = [];

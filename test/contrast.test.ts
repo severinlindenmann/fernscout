@@ -153,9 +153,10 @@ describe("accents are fills, not words", () => {
 
   test("the light badge fills these two hues sit on clear 4.5:1 too (B1841)", () => {
     // OrderDocket, RecordButton's role="alert", CheckWording,
-    // AccountPageContent, extract's DayBoard/PhotoTile/AskCard/UploadStep and
-    // LandingSections all pair text-green-700 with bg-green-100, or
-    // text-coral-600 with bg-coral-100, in light mode. Both fills failed
+    // AccountPageContent and extract's DayBoard/PhotoTile/AskCard/UploadStep
+    // pair text-green-700 with bg-green-100, or text-coral-600 with
+    // bg-coral-100, in light mode (LandingSections did too, until B2338
+    // retired the WhatsApp button that carried it). Both fills failed
     // (4.30:1 and 4.26:1) before this test was written — the same trap
     // B1798 closed in dark mode, one theme earlier.
     expect(at(token("green-700"), token("green-100"))).toBeGreaterThanOrEqual(4.5);
@@ -318,7 +319,6 @@ describe("no role ink under 7:1 carries small text (B2063)", () => {
     "components/ContactManage.tsx": 1,
     "components/EditDay.tsx": 1,
     "components/HelperConsentList.tsx": 2,
-    "components/LandingSections.tsx": 1,
     "components/PushInstallOnboarding.tsx": 1,
     "components/PushOptIn.tsx": 2,
     "components/PushPrompt.tsx": 1,

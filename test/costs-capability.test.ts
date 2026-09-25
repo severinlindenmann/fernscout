@@ -161,15 +161,20 @@ describe("the costs pages when the capability is off", () => {
     ).toEqual({});
   });
 
-  /** And no costs page is prerendered for a journal that has none. */
-  test("generateStaticParams offers no costs page for a journal with it off", async () => {
-    enabled.mockImplementation((name) => name !== "costs");
-    const { generateStaticParams } = await import("@/app/[user]/trips/[trip]/costs/page");
-    expect(generateStaticParams()).toEqual([]);
-  });
-
-  test("and offers one for a journal that has it on", async () => {
-    const { generateStaticParams } = await import("@/app/[user]/trips/[trip]/costs/page");
-    expect(generateStaticParams()).toContainEqual({ user: "alex", trip: "asia-2023" });
+  /**
+   * And no costs page is prerendered, for any journal.
+   *
+   * This used to ask `generateStaticParams` for the list of costs pages to
+   * prerender — none for a journal with the capability off, one per costed
+   * trip otherwise. The trip layout's `force-dynamic` already meant that list
+   * prerendered nothing (the prerender manifest never named one of them), so
+   * the function is gone, and the capability is enforced where it always
+   * really was: per request, by the 404 the tests above pin. What is worth
+   * pinning now is that it stays gone — a costs page built at build time
+   * would be one reader's answer served to the next.
+   */
+  test("the per-trip page is never prerendered", async () => {
+    const perTrip = await import("@/app/[user]/trips/[trip]/costs/page");
+    expect("generateStaticParams" in perTrip).toBe(false);
   });
 });

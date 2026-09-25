@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { hasOutbox, openOutboxStore, runOutbox, type OutboxStore } from "@/lib/outbox";
+import { hasOutbox, openOutboxStore, runOutbox, type OutboxIntent, type OutboxStore } from "@/lib/outbox";
+import { drainNativeUploads, isNativeShell, nativeMediaHandoff } from "@/components/nativeShell";
 
 /** 30s — "every 30 s while open and online" (B2329). */
 const SYNC_INTERVAL_MS = 30_000;
@@ -73,10 +74,22 @@ export function useOutbox(user: string): OutboxCounts {
       }
     };
 
+    // B2330 — the iPhone shell's own upload for a queued `media.upload`:
+    // a native background `URLSession` instead of `fetch`, so it keeps
+    // going with this tab suspended or the app closed. `undefined` outside
+    // the shell, so `runOutbox`'s ordinary web path is exactly what it was.
+    const nativeUpload = isNativeShell()
+      ? (intent: OutboxIntent) =>
+          intent.blob
+            ? nativeMediaHandoff(intent.id, intent.blob, (intent.body as { filename?: string } | null)?.filename ?? "photo")
+            : Promise.resolve(false)
+      : undefined;
+
     const sync = async () => {
       if (!(await probe())) return;
       setSyncing(true);
-      await runOutbox(storeRef.current!, user).catch(() => undefined);
+      if (isNativeShell()) await drainNativeUploads(storeRef.current!, user).catch(() => undefined);
+      await runOutbox(storeRef.current!, user, fetch, nativeUpload).catch(() => undefined);
       if (!cancelled) await refreshCounts();
       if (!cancelled) setSyncing(false);
     };

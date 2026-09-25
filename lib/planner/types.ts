@@ -80,18 +80,9 @@ export type PlaceCandidate = {
   type?: string;
 };
 
-/**
- * One WhatsApp pin waiting in the inbox, as the planner offers it — B2014.
- * `town` is a best-effort reverse lookup done server-side (page.tsx), absent
- * when address lookup is off or the lookup failed; never invented client-side.
- * Mirrors `WaitingPin` (`lib/inbox.ts`) with `lon` renamed to `lng` to match
- * every other coordinate on this page.
- */
-export type PendingPin = {
-  id: string;
-  lat: number;
-  lng: number;
-  receivedAt: string;
-  name?: string;
-  town?: string;
-};
+// B2338 retired `PendingPin` (was: one WhatsApp pin waiting in the inbox, as
+// the planner offered it — B2014) along with the Composer card that showed
+// it. `WaitingPin`/`listWaitingPins`/`removeWaitingPin` (`lib/inbox.ts`) stay
+// — B2013's own tests still exercise them, and the write side
+// (`handleLocationPin`, `paid/whatsapp/lib/whatsapp/dispatch.ts`) is dormant
+// rather than deleted, same as the rest of that ticket's code.

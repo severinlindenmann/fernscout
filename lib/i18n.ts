@@ -2,7 +2,7 @@ import type { Entry, Locale, Trip } from "./types";
 
 /** The locales we maintain chrome translations for. A journal may offer
  * others; their chrome falls back to English (ROADMAP §1.2). */
-export const MAINTAINED_LOCALES = ["en", "de", "hu"] as const;
+export const MAINTAINED_LOCALES = ["en", "de", "hu", "fr", "it"] as const;
 
 /**
  * A constraint on writing a `{name}` string, not on reading one: Hungarian
@@ -28,6 +28,8 @@ export const LOCALE_LABEL: Record<string, string> = {
   en: "English",
   de: "Deutsch",
   hu: "Magyar",
+  fr: "Français",
+  it: "Italiano",
 };
 
 /** A language named in `locale`'s own words ("Englisch" on a German page),
@@ -46,6 +48,8 @@ export const LOCALE_SHORT: Record<string, string> = {
   en: "EN",
   de: "DE",
   hu: "HU",
+  fr: "FR",
+  it: "IT",
 };
 
 /** What `localizedTripTitle` needs — a full `Trip` satisfies this, but so
@@ -295,7 +299,6 @@ export type TranslationKey =
   | "agent.nothingHappened"
   | "agent.onTheDay"
   | "agent.onTheDay.one"
-  | "agent.open.whatsappGreeting"
   | "agent.ownerNameHint"
   | "agent.ownerNameLabel"
   | "agent.ownerNicknameHint"
@@ -1043,20 +1046,40 @@ export type TranslationKey =
   | "digest.footer"
   | "digest.greeting"
   | "digest.preferences"
+  | "docs.agentsGroup"
+  | "docs.api.blurb"
+  | "docs.api.card"
+  | "docs.api.cta"
+  | "docs.api.eyebrow"
   | "docs.api.title"
   | "docs.backToSite"
-  | "docs.benchesGroup"
-  | "docs.benchesGroupNote"
+  | "docs.contributing.blurb"
   | "docs.contributing.title"
-  | "docs.guidesGroup"
-  | "docs.guidesGroupNote"
+  | "docs.documentationTxt"
+  | "docs.helper.blurb"
   | "docs.helper.title"
+  | "docs.hosting.blurb"
+  | "docs.hosting.card"
+  | "docs.hosting.cta"
+  | "docs.hosting.eyebrow"
   | "docs.hosting.title"
   | "docs.lede"
+  | "docs.moreGroup"
   | "docs.navLabel"
-  | "docs.technicalGroup"
-  | "docs.technicalGroupNote"
+  | "docs.openapi"
+  | "docs.start.body"
+  | "docs.start.cta"
+  | "docs.start.eyebrow"
+  | "docs.start.title"
   | "docs.title"
+  | "docs.ways.agent.body"
+  | "docs.ways.agent.title"
+  | "docs.ways.lede"
+  | "docs.ways.studio.body"
+  | "docs.ways.studio.title"
+  | "docs.ways.title"
+  | "docs.ways.whatsapp.body"
+  | "docs.ways.whatsapp.title"
   | "draft.badge"
   | "draft.body"
   | "draft.bodyShared"
@@ -1131,7 +1154,9 @@ export type TranslationKey =
   | "exp.subject"
   | "exp.title"
   | "fallback.writtenIn.de"
+  | "fallback.writtenIn.fr"
   | "fallback.writtenIn.hu"
+  | "fallback.writtenIn.it"
   | "gallery.all"
   | "gallery.description"
   | "gallery.loadMore"
@@ -1237,20 +1262,9 @@ export type TranslationKey =
   | "guide.what.readerTitle"
   | "guide.what.write"
   | "guide.what.writeBody"
-  | "guides.backToDocs"
-  | "guides.buddy.lede"
-  | "guides.buddy.title"
-  | "guides.creator.lede"
-  | "guides.creator.title"
   | "guides.gps.lede"
   | "guides.gps.title"
-  | "guides.guest.lede"
-  | "guides.guest.title"
   | "guides.inEnglish"
-  | "guides.lede"
-  | "guides.navLabel"
-  | "guides.readMore"
-  | "guides.title"
   | "hero.currentlyIn"
   | "hero.endedIn"
   | "hero.newSince"
@@ -1422,7 +1436,6 @@ export type TranslationKey =
   | "landing.trips.one"
   | "landing.vignetteCaption"
   | "landing.vignetteDay"
-  | "landing.whatsappCta"
   | "lang.label"
   | "legal.contents"
   | "legal.inShort"
@@ -1692,10 +1705,8 @@ export type TranslationKey =
   | "me.signInSend"
   | "me.signInSending"
   | "me.signInSent"
-  | "me.signInSentWhatsapp"
   | "me.signInSubmit"
   | "me.signInTitle"
-  | "me.signInWhatsapp"
   | "me.signInWrong"
   | "me.signOut"
   | "me.signOutBody"
@@ -1805,7 +1816,6 @@ export type TranslationKey =
   | "notifyStep.blocked.noMobile"
   | "notifyStep.blocked.smsOff"
   | "notifyStep.blocked.unreachable"
-  | "notifyStep.blocked.whatsappOff"
   | "notifyStep.charged"
   | "notifyStep.copied"
   | "notifyStep.copy"
@@ -1838,7 +1848,6 @@ export type TranslationKey =
   | "notifyStep.send.email"
   | "notifyStep.send.self"
   | "notifyStep.send.sms"
-  | "notifyStep.send.whatsapp"
   | "notifyStep.sentTitle"
   | "notifyStep.sms"
   | "notifyStep.step"
@@ -3397,7 +3406,6 @@ export type TranslationKey =
   | "studio.inbox.chip.all"
   | "studio.inbox.clearSelection"
   | "studio.inbox.closeDetails"
-  | "studio.inbox.contactSource"
   | "studio.inbox.createPerson"
   | "studio.inbox.deleteConfirm"
   | "studio.inbox.deleteLabel"
@@ -3616,7 +3624,6 @@ export type TranslationKey =
   | "studio.newTrip.done.readAlong.body"
   | "studio.newTrip.done.readAlong.cta"
   | "studio.newTrip.done.readAlong.title"
-  | "studio.newTrip.done.whatsappHint"
   | "studio.newTrip.fromPhotos.link"
   | "studio.newTrip.fromPhotos.summary"
   | "studio.newTrip.fromPhotos.summary.one"
@@ -4076,21 +4083,11 @@ export type TranslationKey =
   | "studio.plan.composer.offline"
   | "studio.plan.composer.paste"
   | "studio.plan.composer.pasteHint"
-  | "studio.plan.composer.pins.card"
-  | "studio.plan.composer.pins.card.one"
-  | "studio.plan.composer.pins.close"
-  | "studio.plan.composer.pins.ignore"
-  | "studio.plan.composer.pins.look"
-  | "studio.plan.composer.pins.near"
-  | "studio.plan.composer.pins.title"
-  | "studio.plan.composer.pins.untitled"
-  | "studio.plan.composer.pins.use"
   | "studio.plan.composer.placeholder"
   | "studio.plan.composer.searching"
   | "studio.plan.composer.source.coordinates"
   | "studio.plan.composer.source.cost"
   | "studio.plan.composer.source.link"
-  | "studio.plan.composer.source.pin"
   | "studio.plan.composer.source.place"
   | "studio.plan.composer.source.place-query"
   | "studio.plan.composer.typeLabel"
@@ -4565,9 +4562,8 @@ export type TranslationKey =
   | "visitors.title"
   | "visitors.trip"
   | "wa.acknowledged"
+  | "wa.appMovedReply"
   | "wa.balanceRefusal"
-  | "wa.channelOffOptIn"
-  | "wa.channelOnConfirmed"
   | "wa.consentReminder"
   | "wa.contactSaved"
   | "wa.declineButton"
@@ -4648,7 +4644,6 @@ export type TranslationKey =
   | "wa.speechConsentGranted"
   | "wa.stickerNotSupported"
   | "wa.stopReply"
-  | "wa.strangerReply"
   | "wa.teachRung1"
   | "wa.teachRung2"
   | "wa.transcriptEcho"
@@ -4812,6 +4807,34 @@ const MONTHS: Record<string, string[]> = {
     "november",
     "december",
   ],
+  fr: [
+    "janvier",
+    "février",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "août",
+    "septembre",
+    "octobre",
+    "novembre",
+    "décembre",
+  ],
+  it: [
+    "gennaio",
+    "febbraio",
+    "marzo",
+    "aprile",
+    "maggio",
+    "giugno",
+    "luglio",
+    "agosto",
+    "settembre",
+    "ottobre",
+    "novembre",
+    "dicembre",
+  ],
 };
 
 const WEEKDAYS: Record<string, string[]> = {
@@ -4834,6 +4857,8 @@ const WEEKDAYS: Record<string, string[]> = {
     "Samstag",
   ],
   hu: ["vasárnap", "hétfő", "kedd", "szerda", "csütörtök", "péntek", "szombat"],
+  fr: ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"],
+  it: ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"],
 };
 
 /** Dates stay deterministic — never `toLocaleDateString`, which differs
@@ -4844,6 +4869,16 @@ export function monthNames(locale: string) {
 }
 export function weekdayNames(locale: string) {
   return WEEKDAYS[locale] ?? WEEKDAYS.en;
+}
+
+/** French abbreviates by convention rather than by cutting at three letters —
+ *  "juin" and "juillet" would both read "jui". */
+const SHORT_MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+
+/** A month's short form for a date chip: `Sep`, `Sep` (de), `sept.` (fr). */
+export function shortMonthName(locale: string, index: number): string {
+  if (locale === "fr") return SHORT_MONTHS_FR[index];
+  return monthNames(locale)[index].slice(0, 3);
 }
 
 /**

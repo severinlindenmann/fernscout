@@ -74,7 +74,7 @@ afterEach(() => {
 
 describe("which languages exist", () => {
   test("the maintained set is what we ship chrome for", () => {
-    expect(installedLocales().sort()).toEqual(["de", "en", "hu"]);
+    expect(installedLocales().sort()).toEqual(["de", "en", "fr", "hu", "it"]);
   });
 
   test("a journal's languages come from its own config", () => {

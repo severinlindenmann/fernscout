@@ -12,10 +12,11 @@ export const dynamic = "force-dynamic";
  * what it costs, the balance, and the exact message the person would get.
  * Sends nothing.
  *
- * `POST { contactId, channel: "email" | "whatsapp" | "sms" | "self" }` sends
- * on that one channel. WhatsApp and SMS take one credit on this press and
- * give it back when the send fails; a short balance is refused (402) with
- * nothing charged. `self` sends nothing and answers the link.
+ * `POST { contactId, channel: "email" | "sms" | "self" }` sends on that one
+ * channel. SMS takes one credit on this press and gives it back when the
+ * send fails; a short balance is refused (402) with nothing charged. `self`
+ * sends nothing and answers the link. WhatsApp retired as an invite
+ * channel, B2339.
  */
 export async function GET(request: Request, { params }: RouteContext<"/api/web/[user]/readers/notify">) {
   const { user } = await params;
@@ -45,8 +46,18 @@ export async function POST(request: Request, { params }: RouteContext<"/api/web/
   const body = jsonBody.value as Record<string, unknown> | null;
   const contactId = typeof body?.contactId === "string" ? body.contactId : "";
   const channel = body?.channel as InviteChannel;
-  if (!contactId || !INVITE_CHANNELS.includes(channel)) {
-    return Response.json({ error: "invalid_request" }, { status: 400 });
+  if (!contactId) {
+    return Response.json({ error: "invalid_request", message: "contactId is required." }, { status: 400 });
+  }
+  if (!INVITE_CHANNELS.includes(channel)) {
+    // B2339 — WhatsApp is retired as an invite channel; naming the accepted
+    // set rather than a bare "invalid_request" is what lets a caller that
+    // still asks for it (an old client, or an agent guessing) learn why
+    // without reading source.
+    return Response.json(
+      { error: "invalid_request", message: `channel "${String(channel)}" is not one of: ${INVITE_CHANNELS.join(", ")}.` },
+      { status: 400 },
+    );
   }
 
   const result = await sendInvite(user, contactId, channel);

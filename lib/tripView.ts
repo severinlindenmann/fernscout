@@ -3,7 +3,10 @@ import { basemapFor, basemapForRoute, localBasemaps, type Basemap } from "./base
 import { getAllEntries, getDays, getDefaultDay, getTripStats, type ReadOptions } from "./entries";
 import { costForDay, costLocalForDay, getCostSummary } from "./costs";
 import { geodataAvailable, reverseGeocode } from "./ingest/geo";
-import { getTrip } from "./trips";
+import { defaultLocaleFor } from "./locales";
+import type { StoryDay } from "./prose";
+import { withProse } from "./proseTree";
+import { getTrip, parseTripRef } from "./trips";
 import type { Day, DaySummary, Trip } from "./types";
 import type { HeroStats } from "@/components/TripHero";
 
@@ -24,8 +27,9 @@ export type StoryProps = {
    * tracking the length of the trip.
    */
   index: DaySummary[];
-  /** Full days — only those in the window around `windowStart`. */
-  days: Day[];
+  /** Full days — only those in the window around `windowStart`, with their
+   * prose already drawn when a `locale` was asked for (`lib/prose.ts`). */
+  days: StoryDay[];
   /** Where `days[0]` sits in `index`. */
   windowStart: number;
   /** The day the pager treats as "today" for this trip. */
@@ -129,12 +133,24 @@ export function storyWindow(
   ref: string,
   from: number,
   to: number,
-  viewer: Pick<ViewerOptions, "showCosts" | "includeDrafts" | "reader"> = {},
-): Day[] {
+  viewer: Pick<ViewerOptions, "showCosts" | "includeDrafts" | "reader" | "locale"> = {},
+): StoryDay[] {
   const { showCosts = true, includeDrafts = false, reader } = viewer;
   const days = getDays(ref, { includeDrafts, reader });
   const window = days.slice(Math.max(0, from), Math.min(days.length, to));
-  return showCosts ? window : window.map(withoutCosts);
+  return proseFor(ref, showCosts ? window : window.map(withoutCosts), viewer.locale);
+}
+
+/**
+ * The window's days with each update's prose rendered on the server, in the
+ * reader's language — so the story page never has to parse markdown in the
+ * browser. See `lib/prose.ts`. Without a `locale` the days go as they are,
+ * and `DayCard` falls back to rendering the markdown itself.
+ */
+function proseFor(ref: string, days: Day[], locale: string | undefined): StoryDay[] {
+  if (!locale) return days;
+  const username = parseTripRef(ref)?.username;
+  return withProse(days, locale, username ? defaultLocaleFor(username) : locale);
 }
 
 /**
@@ -178,6 +194,12 @@ export type ViewerOptions = ReadOptions & {
   /** The day the reader arrived on, from a `/day/<slug>` route. */
   openAt?: string;
   /**
+   * The language this reader reads in — `requestLocale()`, the same answer
+   * the layout's `LocaleProvider` was given. The window's prose is rendered
+   * in it on the server; see `proseFor`.
+   */
+  locale?: string;
+  /**
    * False for a trip whose `costsVisibility` keeps its numbers from this
    * viewer. See `maySeeCosts` — resolved by the page, which is the only layer
    * that can read a cookie.
@@ -186,7 +208,7 @@ export type ViewerOptions = ReadOptions & {
 };
 
 export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): StoryProps {
-  const { openAt, showCosts = true, includeDrafts = false, reader } = viewer;
+  const { openAt, showCosts = true, includeDrafts = false, reader, locale } = viewer;
   const read = { includeDrafts, reader };
   const trip = getTrip(tripId);
   if (!trip) throw new Error(`Unknown trip: ${tripId}`);
@@ -217,7 +239,11 @@ export function buildStoryProps(tripId: string, viewer: ViewerOptions = {}): Sto
     // (B85). `basemapFor` stays in the type above as the shape of the result.
     basemap: basemapForRoute(index),
     locals: localBasemaps(index),
-    days: showCosts ? days.slice(from, to) : days.slice(from, to).map(withoutCosts),
+    days: proseFor(
+      tripId,
+      showCosts ? days.slice(from, to) : days.slice(from, to).map(withoutCosts),
+      locale,
+    ),
     windowStart: from,
     initialDate,
     openAtDate: openAt,

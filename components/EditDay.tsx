@@ -8,6 +8,7 @@ import PreviewNotice from "@/components/studio/PreviewNotice";
 import DecideList from "@/components/studio/DecideList";
 import DeclineScreen from "@/components/studio/day/DeclineScreen";
 import StepPrimary from "@/components/studio/StepPrimary";
+import { mediaLoader } from "@/components/mediaLoader";
 import {
   hasOutbox,
   newIntent,
@@ -973,14 +974,19 @@ export default function EditDay({
                   key={item.src}
                   className={`mt-2 flex gap-2 rounded-lg border border-line-quiet p-2 ${going ? "opacity-50" : ""}`}
                 >
-                  {/* The derivative the page already draws, at thumbnail
-                        size. `img` rather than `next/image`: this is one
-                        already-sized file behind an owner-only panel, and the
-                        loader would buy nothing. */}
+                  {/* A 64px square. `img` rather than `next/image`: one
+                        fixed size behind an owner-only panel wants no
+                        `srcset` — but it does want a sized copy through the
+                        media route's resize, not the stored 2000px photograph
+                        (or clip still) it used to be handed. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={item.poster ?? item.src}
+                    src={mediaLoader({ src: item.poster ?? item.src, width: 128 })}
                     alt={item.alt ?? item.caption ?? ""}
+                    width={64}
+                    height={64}
+                    loading="lazy"
+                    decoding="async"
                     className="h-16 w-16 shrink-0 rounded object-cover"
                   />
                   <div className="min-w-0 flex-1">

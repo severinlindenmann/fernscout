@@ -21,7 +21,7 @@ const STORAGE_KEY = "fs.locale";
  * This page renders when the root layout itself failed, so it can reach
  * neither LocaleProvider nor the content folder. Its handful of strings are
  * inline by necessity — a crash page that crashes looking up a translation is
- * worse than one that is only in three languages.
+ * worse than one that is only in five languages.
  */
 const STRINGS: Record<string, Record<string, string>> = {
   en: {
@@ -41,6 +41,18 @@ const STRINGS: Record<string, Record<string, string>> = {
     "err.crashBody": "Az oldalt nem sikerült megjeleníteni. Az újratöltés általában segít.",
     "err.retry": "Újra",
     "err.reference": "Hivatkozás: {id}",
+  },
+  fr: {
+    "err.crashTitle": "Un problème est survenu",
+    "err.crashBody": "La page n’a pas pu s’afficher. Recharger la page suffit généralement.",
+    "err.retry": "Réessayer",
+    "err.reference": "Référence : {id}",
+  },
+  it: {
+    "err.crashTitle": "Qualcosa è andato storto",
+    "err.crashBody": "Non è stato possibile mostrare la pagina. Di solito basta ricaricarla.",
+    "err.retry": "Riprova",
+    "err.reference": "Riferimento: {id}",
   },
 };
 

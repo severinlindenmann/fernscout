@@ -73,7 +73,7 @@ function writeTrip(
   id: string,
   start: string,
   end: string,
-  reminder?: "mail" | "whatsapp",
+  reminder?: "mail",
 ) {
   writeTripFixture(username, {
     id,
@@ -143,11 +143,14 @@ describe("the on/off switch (lib/api/tripReminder.ts)", () => {
     expect(onDisk).not.toContain("reminder");
   });
 
-  test("refuses whatsapp on an instance with no reminder template configured", async () => {
+  // B2339 — WhatsApp retired as a reminder channel: the write is refused as
+  // an ordinary invalid_channel now, the same as any other made-up name,
+  // rather than the old channel_unavailable ("could work, does not here").
+  test("refuses whatsapp — it is not a channel this door accepts any more", async () => {
     writeJournal("ana");
     writeTrip("ana", "spain", YESTERDAY, TOMORROW);
     const result = await patchTripReminder("ana/spain", { enabled: true, channel: "whatsapp" });
-    expect(result).toMatchObject({ ok: false, error: "channel_unavailable" });
+    expect(result).toMatchObject({ ok: false, error: "invalid_channel" });
     expect(readTripReminder("ana/spain")).toEqual({ enabled: false, channel: null });
   });
 

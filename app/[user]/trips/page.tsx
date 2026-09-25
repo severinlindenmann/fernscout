@@ -13,7 +13,6 @@ import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
 import worldCountries from "@/lib/worldCountries.json";
 import TripsIndexContent, { type EmptyJournal } from "./TripsIndexContent";
-import { whatsappSignInOffered } from "@paid/whatsapp/lib/whatsapp/settings";
 
 /**
  * Two languages on purpose.
@@ -379,7 +378,6 @@ export default async function TripsPage({ params }: PageProps<"/[user]/trips">) 
 
   return (
     <TripsIndexContent
-      whatsappSignIn={await whatsappSignInOffered(user)}
       trips={cards}
       locked={lockedCards}
       // Frame only — a teasered trip's countries have to be inside the map or

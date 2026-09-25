@@ -34,6 +34,10 @@ function memoryStore(seed: OutboxIntent[]): OutboxStore & { rows: OutboxIntent[]
       const i = rows.findIndex((r) => r.id === id);
       if (i >= 0) rows.splice(i, 1);
     },
+    async markNativeUpload(id, on) {
+      const row = rows.find((r) => r.id === id);
+      if (row) row.nativeUpload = on;
+    },
     async setState(id, state, details) {
       const row = rows.find((r) => r.id === id);
       if (row) {

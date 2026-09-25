@@ -122,7 +122,6 @@ describe("NewTripFlow — trip/new's opening screen announces its title once", (
           visibilities={["guest", "public", "private"]}
           accents={["sky"]}
           existingTrips={[]}
-          whatsappAvailable={false}
           otherLocales={[]}
           defaultLocale="en"
           baseCurrency="CHF"

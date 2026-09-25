@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { mediaLoader } from "./mediaLoader";
+import { mediaLoader, posterSrc } from "./mediaLoader";
+import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Plus, Minus, Maximize2 } from "lucide-react";
 import { frameRoute, frameSpanKm, isPlottable, place as placeIn, type Frame } from "@/lib/mapFrame";
@@ -674,7 +675,15 @@ export default function WorldMap({
                         className="relative block h-14 w-14 shrink-0 overflow-hidden rounded-md border border-line-quiet bg-surface-muted"
                       >
                         {m.type === "video" ? (
-                          <video src={m.src} className="h-full w-full object-cover" muted />
+                          // The still frame where there is one, sized — not the
+                          // clip itself fetched to draw a 56px square.
+                          <video
+                            src={m.src}
+                            poster={posterSrc(m.poster, POSTER_WIDTH.GRID)}
+                            preload={m.poster ? "none" : "metadata"}
+                            className="h-full w-full object-cover"
+                            muted
+                          />
                         ) : (
                           <Image
                             src={m.src}

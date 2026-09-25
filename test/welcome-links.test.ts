@@ -8,9 +8,9 @@ import { writeTripFixture } from "./fixtures/content";
  * B2292 — "Add a person" step 2: a per-person welcome link, and the owner's
  * choice of how the person hears about it.
  *
- * Here with credits and WhatsApp off, which is every open-edition instance:
- * email and SMS go out free, WhatsApp is absent with its reason, and the
- * welcome link grants nothing. The credit side is `paid/test/invite-
+ * Here with credits off, which is every open-edition instance: email and SMS
+ * go out free, and the welcome link grants nothing. WhatsApp retired as an
+ * invite channel, B2339. The credit side is `paid/test/invite-
  * channels.test.ts`.
  */
 
@@ -226,7 +226,7 @@ describe("adding a person — the owner's cookie only", () => {
 });
 
 describe("step 2 — telling them", () => {
-  test("the options: the exact message, and WhatsApp absent with its reason where it is off", async () => {
+  test("the options: the exact message, WhatsApp gone entirely — B2339", async () => {
     const id = await addedId({ name: "Nora Hill", email: "nora@example.test" });
     const { GET } = await import("@/app/api/web/[user]/readers/notify/route");
     const res = await GET(new Request(`https://example.test/api/web/${OWNER}/readers/notify?contactId=${id}`), {
@@ -244,11 +244,23 @@ describe("step 2 — telling them", () => {
     expect(by.email.preview).toBe(
       `Hello Nora - Ana has invited you to read "Two Backpacks", a travel journal. Start here: ${options.url}`,
     );
-    expect(by.whatsapp.blocked).toBe("whatsapp_off");
+    expect(by.whatsapp).toBeUndefined();
     expect(by.sms.blocked).toBe("no_mobile");
     expect(by.self).toMatchObject({ blocked: null, cost: 0, preview: options.url });
     // Credits are off here: nothing costs anything.
     expect(options.channels.every((c) => c.cost === 0)).toBe(true);
+  });
+
+  // B2339 — the accepted-channel refusal test the ticket asks for.
+  test("a WhatsApp invite is refused with a 400 naming the accepted channels", async () => {
+    const id = await addedId({ name: "Priya", email: "priya@example.test" });
+    const res = await notify(id, "whatsapp");
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string; message?: string };
+    expect(body.error).toBe("invalid_request");
+    expect(body.message).toContain("email");
+    expect(body.message).toContain("sms");
+    expect(body.message).toContain("self");
   });
 
   test("email: exactly one mail carrying the /w/ link, and the ledger untouched", async () => {

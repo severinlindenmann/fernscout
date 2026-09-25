@@ -4,13 +4,13 @@ import { recordTripView } from "@/lib/analytics/record";
 import { notFound, redirect } from "next/navigation";
 import { basemapForRoute } from "@/lib/basemap";
 import { getAllEntries } from "@/lib/entries";
-import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
+import { getTrip, tripRef } from "@/lib/trips";
 import { buildStoryProps, showsCountdown } from "@/lib/tripView";
 import { getPlan, getPlanPrivate, stopsForReaders } from "@/lib/plan";
 import { getBudgetInBase } from "@/lib/costs";
 import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { BlogStructuredData } from "@/components/StructuredData";
-import { getUser, getUsernames } from "@/lib/users";
+import { getUser } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
 import { siteSummary, travellerNamesOf, travellersOf } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
@@ -19,15 +19,6 @@ import TripStory from "@/app/TripStory";
 import { requestLocale } from "@/lib/locales";
 import { localizedTripTitle } from "@/lib/i18n";
 import type { Trip } from "@/lib/types";
-
-export function generateStaticParams() {
-  return getUsernames().flatMap((user) => {
-    const current = getCurrentTrip(user)?.id;
-    return getTrips(user)
-    .filter((t) => t.id !== current)
-      .map((t) => ({ user, trip: t.id }));
-  });
-}
 
 export async function generateMetadata({
   params,
@@ -75,11 +66,18 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   // itself there, so everything reaching this route is somebody choosing a
   // past trip out of the switcher — which is the more interesting number of
   // the two, and would be lost if both URLs recorded the same kind.
-  await recordTripView(trip, "trip");
-
+  //
   // B327: who may see this trip's unpublished days, and whether putting one
   // on the site is theirs. Owner, or somebody on the trip.
-  const { read, canPublish, owner } = await readFor(trip);
+  //
+  // And whether this reader sees the money, which both branches below ask.
+  // All three together: the view is written whatever the other two answer,
+  // and neither of them reads what it writes.
+  const [, { read, canPublish, owner }, showCosts] = await Promise.all([
+    recordTripView(trip, "trip"),
+    readFor(trip),
+    mayViewCosts(trip),
+  ]);
 
   // Not `status === "upcoming"` alone: see `showsCountdown` for why a
   // published day settles it whatever the status says (B72).
@@ -125,7 +123,7 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
           // Costs are their own visibility question — B2012 wires the
           // budget total into it, same as the story page below already
           // does for its own spend block.
-          budget={(await mayViewCosts(trip)) ? getBudgetInBase(trip.ref) : undefined}
+          budget={showCosts ? getBudgetInBase(trip.ref) : undefined}
           // No stops, no map (TripCountdown draws one only when there are),
           // and therefore no basemap — see basemapForRoute, and B85.
           basemap={basemapForRoute(plan.stops)}
@@ -135,8 +133,11 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
   }
 
   const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
-    showCosts: await mayViewCosts(trip),
+    showCosts,
     ...read,
+    // The window's prose is rendered here, in this reader's language — see
+    // lib/prose.ts.
+    locale: await requestLocale(),
   });
   const userConfig = getUser(user);
   if (!userConfig) notFound();

@@ -6,18 +6,8 @@ import GalleryPageContent from "@/app/[user]/(trip)/gallery/GalleryPageContent";
 import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { postcardEntryFor } from "@paid/postcard/lib/postcard/entry";
 import { getAllMedia } from "@/lib/entries";
-import { getCurrentTrip, getTrip, getTrips, tripRef } from "@/lib/trips";
-import { getUsernames } from "@/lib/users";
+import { getTrip, tripRef } from "@/lib/trips";
 import TripProvider from "@/components/TripProvider";
-
-export function generateStaticParams() {
-  return getUsernames().flatMap((user) => {
-    const current = getCurrentTrip(user)?.id;
-    return getTrips(user)
-      .filter((t) => t.id !== current && t.status !== "upcoming")
-      .map((t) => ({ user, trip: t.id }));
-  });
-}
 
 export async function generateMetadata({
   params,

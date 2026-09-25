@@ -46,7 +46,15 @@ export default function WaitingDays({ username, model, canWrite }: { username: s
         {cards.map((card, i) => (
           <li key={card.date} data-day-card={card.date} className="flex flex-wrap items-center gap-3 px-1 py-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element -- an owner-only route, not an optimisable asset */}
-            <img src={thumb(card.photoIds[0])} alt="" className="size-14 flex-none rounded-lg bg-surface-subtle object-cover" />
+            <img
+              src={thumb(card.photoIds[0])}
+              alt=""
+              width={56}
+              height={56}
+              loading="lazy"
+              decoding="async"
+              className="size-14 flex-none rounded-lg bg-surface-subtle object-cover"
+            />
             <span className="min-w-0 flex-1 basis-40">
               <span className="block text-[15px] font-semibold leading-tight text-ink-strong">{formatLongDate(card.date, { year: true })}</span>
               <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-secondary">

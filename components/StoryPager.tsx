@@ -1,26 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useTrip } from "@/components/TripProvider";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Clapperboard } from "lucide-react";
 import DayReactions from "./DayReactions";
 import DualTime from "./DualTime";
-import EditDay from "./EditDay";
-import OwnerTools from "./OwnerTools";
 import DayWeather from "./DayWeather";
 import DraftNotice from "./DraftNotice";
 import TestNotice from "./TestNotice";
-import EntryContent from "./EntryContent";
+import Prose from "./Prose";
 import { EntryVisibility } from "./Visibility";
 import Gallery from "./Gallery";
-import TravelScene from "./TravelScene";
 import { useI18n } from "./LocaleProvider";
 import { flagFor } from "@/lib/flags";
 import { useMoney } from "./CurrencyProvider";
-import type { Day, DaySummary, Entry } from "@/lib/types";
+import type { DaySummary, Entry } from "@/lib/types";
+import type { ProseNode, StoryDay } from "@/lib/prose";
 import {
   SOURCE_CREDIT,
   weatherGroup,
@@ -40,7 +39,77 @@ import {
  * the trip's `index` for navigation and asks `dayAt` for the day it is
  * actually about to draw. Days outside the loaded window simply aren't here
  * yet — see the loader in `app/TripStory.tsx`.
+ *
+ * Several things the pager can draw are not needed to draw the page a reader
+ * lands on, so they are not in its JavaScript: a travel leg (never the first
+ * step — a page opens on the overview or on a day), the owner's own tools and
+ * correction panel, and a markdown parser. Each arrives as its own chunk when
+ * it is wanted; see `preloadLater` for why the leg is fetched ahead anyway.
  */
+
+/**
+ * The owner's block under a day — drawn for nobody else, so nobody else
+ * downloads it. On an owner's page it is server-rendered like everything
+ * else, and the page names its chunk, so it is there before hydration.
+ * `loading` gives it a Suspense boundary of its own: without one, the wait
+ * for a chunk would reach whatever boundary sits above the pager.
+ */
+const OwnerTools = dynamic(() => import("./OwnerTools"), { loading: () => null });
+
+/**
+ * The owner's correction panel — 1,000 lines no reader ever opens. Fetched
+ * the moment an owner's day card mounts (see `DayCard`), so pressing
+ * "Correct this day" does not wait on it.
+ */
+const EditDay = dynamic(() => import("./EditDay"), { loading: () => null });
+
+/**
+ * A travel leg. No `loading` of its own: the pager wraps it in a boundary
+ * that holds the scene's box open at the height it draws at, which only the
+ * pager knows (`LegBox`). In practice it has long since arrived, because the
+ * pager fetches it once the page is idle.
+ */
+const TravelScene = dynamic(() => import("./TravelScene"));
+
+/** `TravelScene`'s own box, empty — the two heights it draws at. */
+function LegBox({ leg }: { leg: DaySummary }) {
+  return (
+    <div
+      aria-hidden
+      className={`w-full rounded-2xl border border-line-quiet bg-surface-neutral shadow-sm ${
+        leg.travelScene === "quick" ? "h-[110px]" : "h-[280px] sm:h-[340px]"
+      }`}
+    />
+  );
+}
+
+/**
+ * Markdown rendered in the browser, for a day that arrives without its prose
+ * already drawn (`lib/prose.ts`). Every story page's days carry it; this is
+ * for anything else that renders a `DayCard` from a bare `Day`, which then
+ * pays for the parser only when it actually draws one.
+ */
+const EntryContent = dynamic(() => import("./EntryContent"), { loading: () => null });
+
+/**
+ * Fetch a split-off chunk once the page has settled, so the reader never
+ * waits on it later.
+ *
+ * Not only for speed. A trip kept for reading offline (B2158, `public/sw.js`)
+ * keeps the scripts its pages name in their HTML, and a chunk that is only
+ * ever `import()`ed is named by none of them — the first travel leg on a
+ * plane would be a leg that never loads. Fetched here, it is in the worker's
+ * cache from the first online visit on.
+ */
+function preloadLater(load: () => Promise<unknown>): () => void {
+  const run = () => void load().catch(() => undefined);
+  if (typeof window.requestIdleCallback === "function") {
+    const id = window.requestIdleCallback(run, { timeout: 4000 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = window.setTimeout(run, 2000);
+  return () => window.clearTimeout(id);
+}
 
 export type Step =
   | { kind: "hero" }
@@ -75,7 +144,7 @@ export default function StoryPager({
 }: {
   index: DaySummary[];
   /** The full day at that position, once it has arrived. */
-  dayAt: (dayIndex: number) => Day | undefined;
+  dayAt: (dayIndex: number) => StoryDay | undefined;
   /** True when the last neighbour fetch failed — offline, most likely. */
   loadFailed?: boolean;
   steps: Step[];
@@ -104,6 +173,12 @@ export default function StoryPager({
     },
     [stepIndex, steps.length, onStepChange],
   );
+
+  // A trip with a travel leg in it will play one; fetch it ahead.
+  const hasLegs = steps.some((s) => s.kind === "travel");
+  useEffect(() => {
+    if (hasLegs) return preloadLater(() => import("./TravelScene"));
+  }, [hasLegs]);
 
   // Every step starts at the top of its own screen.
   useEffect(() => {
@@ -148,11 +223,14 @@ export default function StoryPager({
                 distance it just crossed. */}
           {step.kind === "travel" && (
             <div className="py-4">
-              <TravelScene
-                leg={index[step.dayIndex]}
-                from={index[step.dayIndex - 1]}
-                onDone={onLegDone}
-              />
+              {/* The scene's own box, held open while its chunk lands. */}
+              <Suspense fallback={<LegBox leg={index[step.dayIndex]} />}>
+                <TravelScene
+                  leg={index[step.dayIndex]}
+                  from={index[step.dayIndex - 1]}
+                  onDone={onLegDone}
+                />
+              </Suspense>
             </div>
           )}
 
@@ -232,7 +310,10 @@ export function DayCard({
   tripTest,
   hasPlaces = false,
 }: {
-  day: Day;
+  /** With its prose already drawn on the server, on the story page — see
+   *  `lib/prose.ts`. A bare `Day` still renders: its markdown is parsed
+   *  here instead, at the cost of fetching the parser. */
+  day: StoryDay;
   summary: DaySummary;
   dayIndex: number;
   /** Passed straight through to `DraftNotice` — B1257. Every public caller
@@ -260,6 +341,12 @@ export function DayCard({
   // `EditDay` so it opens already marked to go, and cleared when the panel
   // closes so a later, ordinary "Correct this day" starts from nothing.
   const [removing, setRemoving] = useState<string | undefined>(undefined);
+  // The owner's panel is its own chunk (see `EditDay` above); an owner is
+  // the one reader who may press for it, so theirs is fetched now.
+  const owner = trip?.canPublish === true;
+  useEffect(() => {
+    if (owner) void import("./EditDay").catch(() => undefined);
+  }, [owner]);
   const lead = day.lead;
   const multi = day.entries.length > 1;
   const cost = summary.cost;
@@ -386,6 +473,7 @@ export function DayCard({
           <UpdateBlock
             key={entry.slug}
             entry={entry}
+            prose={day.prose?.[entry.slug]}
             branched={multi}
             first={i === 0}
             last={i === day.entries.length - 1}
@@ -495,12 +583,16 @@ function weatherLabels(
 
 function UpdateBlock({
   entry,
+  prose,
   branched,
   first,
   last,
   onRemovePhoto,
 }: {
   entry: Entry;
+  /** The prose, already rendered in this reader's language — see
+   *  `lib/prose.ts`. Absent, the markdown is rendered here instead. */
+  prose?: ProseNode;
   branched: boolean;
   first: boolean;
   /** The last stop of the day — draws a dot and no rail below it. */
@@ -570,7 +662,7 @@ function UpdateBlock({
         <p className="mb-4 text-xs italic text-ink-muted">{t(fallbackNotice)}</p>
       )}
 
-      <EntryContent markdown={content} />
+      {prose !== undefined ? <Prose tree={prose} /> : <EntryContent markdown={content} />}
 
       {entry.gallery.length > 0 && (
         <div className="mt-7">
