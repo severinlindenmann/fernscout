@@ -58,10 +58,6 @@ const MARKDOWN_LINK = /!?\[[^\]]*\]\(\s*([^)\s]+)(?:\s+"[^"]*")?\s*\)/g;
  */
 const RECORDS = [path.join("docs", "tasks"), path.join("docs", "plans")];
 
-/** The one served URL prefix backed by committed files — see the note in the
- * link loop below. */
-const SERVED_FIGURES = "/docs/guides/figures/";
-
 /**
  * These top-level `docs/` directories are process material moving to the
  * private harness (B2251, `open-core/harness-move.md`), not the app.
@@ -130,21 +126,11 @@ describe("relative links in markdown resolve", () => {
        * A root-relative href is a **URL on this site**, not a path on disk,
        * so resolving it against the file's directory would check the wrong
        * thing — and `path.resolve` would happily walk out of the repository
-       * to do it.
-       *
-       * One of them is still worth checking, because it is the only case
-       * where a served URL is backed by a committed file: the reader guides
-       * embed their screenshots as `/docs/guides/figures/…`, which
-       * `app/docs/guides/figures/[file]/route.ts` serves out of
-       * `docs/guides/figures/`. Mapping it back is what keeps a renamed
-       * screenshot from becoming a broken image in three languages at once.
-       * Every other absolute URL is a route, and a route is not this test's
+       * to do it. Such a URL is a route, and a route is not this test's
        * business.
        */
       const resolved = target.startsWith("/")
-        ? target.startsWith(SERVED_FIGURES)
-          ? path.join(ROOT, "docs/guides/figures", target.slice(SERVED_FIGURES.length))
-          : null
+        ? null
         : path.resolve(path.dirname(path.join(ROOT, file)), target);
       if (resolved && !fs.existsSync(resolved) && !pointsIntoAbsentHarnessDir(path.relative(ROOT, resolved))) {
         broken.push(href);

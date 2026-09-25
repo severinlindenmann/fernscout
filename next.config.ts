@@ -214,10 +214,13 @@ const nextConfig: NextConfig = {
    * location flows their own address to carry that guidance in place —
    * spec.md §4, the self-sufficiency rule. `/docs/*` is not user-scoped, so
    * this converges on the surviving `/docs/helper` rather than on any one
-   * journal's studio. `/docs/guide/buddy` and `/docs/guide/creator` are
-   * **not** redirected here — B1826 found a live page still depends on them
-   * (`lib/docs.ts`'s own doc comment on `GUIDES` says which, and why they
-   * were kept rather than deleted).
+   * journal's studio.
+   *
+   * The guest, creator and buddy guides under `/docs/guide/` were retired
+   * once the screens they described carried their own guidance (`lib/docs.ts`,
+   * above `DOCS_PAGES`). Old links — in emails, bookmarks, chats — land on the
+   * hub rather than on a 404. `/docs/guide/gps` (B2343) is live and is not
+   * matched.
    */
   async redirects() {
     return [
@@ -228,6 +231,7 @@ const nextConfig: NextConfig = {
       { source: "/:user/studio/contacts", destination: "/:user/studio/people", statusCode: 301 },
       { source: "/:user/extract/costs", destination: "/:user/studio/statement", statusCode: 301 },
       { source: "/docs/extract", destination: "/docs/helper", statusCode: 301 },
+      { source: "/docs/guide/:guide(guest|creator|buddy)", destination: "/docs", statusCode: 301 },
     ];
   },
   async rewrites() {
