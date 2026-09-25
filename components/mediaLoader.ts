@@ -21,3 +21,17 @@ export function mediaLoader({ src, width }: { src: string; width: number }): str
   if (/^https?:/.test(src) || src.endsWith(".svg")) return src;
   return `${src}?w=${nearestWidth(width)}`;
 }
+
+/**
+ * A clip's still frame, at one of the widths the route makes.
+ *
+ * `poster` takes a single URL — no `srcset`, no `sizes` — so it was handed
+ * the stored frame as it is: the full 2000px JPEG ingest writes, once per
+ * clip in a grid of tiles a couple of hundred pixels wide. One width per
+ * place it is drawn (`POSTER_WIDTH`) is what a single URL can do, and the
+ * same two widths `keep.json` lists, so a trip kept for offline reading
+ * already holds exactly these.
+ */
+export function posterSrc(poster: string | undefined, width: number): string | undefined {
+  return poster ? mediaLoader({ src: poster, width }) : undefined;
+}

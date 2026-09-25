@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { tripWriteScope } from "./auth";
 import { getDatabaseOrNull, newId, nowIso } from "./db";
 import { grantIsLive } from "./grants";
@@ -191,11 +192,22 @@ export async function namesOnTrip(trip: Trip): Promise<string[]> {
  * One query for a whole page, rather than `isPersonOn` per trip. `resolveViewer`
  * and `listableTrips` both render a list of every trip in a journal, and both
  * are on the path of an ordinary page view.
+ *
+ * And once per request: `isPersonOn` asks the same question per trip from
+ * `mayReadTrip`, `readFor` and the costs gate, so a page that renders the
+ * switcher and a gated trip ran this query three or four times with one
+ * answer. React's `cache()`, as `resolveSession` uses it (lib/auth/index.ts):
+ * per request only and a pass-through outside a render, so a route that
+ * redeems a buddy link and then checks still reads its own write. Both
+ * arguments are primitives, so every call site asking about one address
+ * shares one entry — and the answer is a `ReadonlySet` because it is shared.
  */
-export async function redeemedTripsFor(
+export const redeemedTripsFor = cache(lookUpRedeemedTrips);
+
+async function lookUpRedeemedTrips(
   username: string,
   email: string | undefined | null,
-): Promise<Set<string>> {
+): Promise<ReadonlySet<string>> {
   if (!email) return new Set();
   const handle = await getDatabaseOrNull();
   if (!handle) return new Set();
@@ -230,7 +242,7 @@ export async function redeemedTripsFor(
 export function isPersonOnWith(
   trip: Trip,
   email: string | undefined | null,
-  redeemed: Set<string>,
+  redeemed: ReadonlySet<string>,
 ): boolean {
   if (!email) return false;
   const rawOwner = getUser(trip.username)?.owner.email;

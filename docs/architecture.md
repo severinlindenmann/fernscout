@@ -38,7 +38,7 @@ serves any trip at the explicit one. Both render the same components.
 | `/<user>/studio` | the owner's control room — journal settings, agent keys, export, delete, and every trip's own edit page (`/studio/trip?trip=<id>`); credits and storage (`/studio/account`) and visitor analytics (`/studio/visitors`) moved in whole from `/account` and `/me/analytics`, which are now permanent redirects (B2016–B2019) |
 | `/invite/guest/<token>` · `/invite/buddy/<token>` · `/c/<token>` · `/u/<token>` | guest and buddy invites; confirm; unsubscribe. A guest link leads to reading every `guest` trip in the journal once approved; a buddy link names one trip and leads to write access to it, plus the same read access a guest gets. `/<user>/studio/readers` is the only place either kind is made, approved or revoked (B2295) — `/<user>/i/<token>` and `/<user>/join` are gone |
 | `/<user>/feed.xml` · `/search-index.json` · `/story.json` · `/export.zip` | generated |
-| `/<user>/media/<path>` | media, resized on demand and cached |
+| `/<user>/media/<path>` | media, resized on demand (the grid widths ahead of time, after an upload) and cached |
 | `/<user>/postcards/<id>` | a proposed printed postcard, for the owner to look at and send |
 | `/agent` | a guided web helper — a face on an agent, not a second way in: it writes through the same `/api/v2/…` calls the `/skill/*.md` guides describe, for somebody with no agent of their own (B681/B682) |
 | `/admin` | what the instance costs to run. Owner-of-the-instance only, gated on `FERNSCOUT_ADMIN_EMAIL`, cookie session only — see "Three credentials", below |
@@ -104,7 +104,9 @@ phone (B283).
 
 Only a window of days around the current one is passed into the client tree;
 the rest arrive from `story.json` on demand. That is deliberate — serialising a
-five-month trip into one tree was measured at ~2 MB of HTML.
+five-month trip into one tree was measured at ~2 MB of HTML. Each day arrives
+with its prose already rendered on the server, in the reader's language
+(`lib/prose.ts`), so the browser never downloads a markdown parser.
 
 ## Languages
 

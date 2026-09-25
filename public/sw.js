@@ -462,10 +462,12 @@ async function matchPersonalStudio(request, options) {
 /**
  * A kept copy for the current identity (or public), or undefined.
  *
- * `ignoreVary`: the media route answers `Vary: Accept` (a JPEG for a browser
- * that cannot show WebP), and the Cache API honours it — a copy the worker
- * fetched with a plain `Accept` never matched the `<img>` asking with
- * `Accept: image/webp,…`, and a kept day rendered every frame empty. The
+ * `ignoreVary`: the media route used to answer `Vary: Accept`, and the Cache
+ * API honours it — a copy the worker fetched with a plain `Accept` never
+ * matched the `<img>` asking with `Accept: image/webp,…`, and a kept day
+ * rendered every frame empty. The route no longer sends it (the bytes never
+ * depended on `Accept`), but a trip kept before that still holds copies that
+ * say otherwise, and Next adds a `Vary` of its own to every response. The
  * copy was fetched with the image Accept below, so ignoring Vary here hands
  * back exactly what the page would have been given.
  */

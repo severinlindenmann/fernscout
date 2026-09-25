@@ -8,6 +8,8 @@ import PreviewNotice from "@/components/studio/PreviewNotice";
 import DecideList from "@/components/studio/DecideList";
 import DeclineScreen from "@/components/studio/day/DeclineScreen";
 import StepPrimary from "@/components/studio/StepPrimary";
+import { mediaLoader } from "@/components/mediaLoader";
+import { hasOutbox, newIntent, openOutboxStore } from "@/lib/outbox";
 import { useI18n } from "./LocaleProvider";
 import type { Day, Entry } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n";
@@ -136,6 +138,7 @@ export default function EditDay({
   confirmBeforeSave = false,
   inStudioBar = false,
   saved = false,
+  queued = false,
   onSaved,
   calendar,
   currencies,
@@ -174,7 +177,13 @@ export default function EditDay({
    */
   inStudioBar?: boolean;
   saved?: boolean;
-  onSaved?: () => void;
+  /** B2330 — a save queued for the outbox rather than confirmed by the
+   *  server (no connection): `onSaved` still fires, but with `queued: true`,
+   *  so the caller can say "Saved on this phone" instead of "Saved." — the
+   *  document has not actually moved yet, and saying otherwise would be the
+   *  kind of invented success AGENTS.md refuses. */
+  queued?: boolean;
+  onSaved?: (info?: { queued?: boolean }) => void;
   /** B2167 — the trip's span and told/draft days for the date field, when
    *  the caller already has them ("Change a day" does; StoryPager does not). */
   calendar?: TripCalendar;
@@ -399,25 +408,58 @@ export default function EditDay({
       }
     }
 
+    // B2330 — a network error (offline), not a rejection the server actually
+    // sent, is queued for replay rather than lost. Only when this save has
+    // somewhere to say so: `onSaved` is the studio's own "Change a day"
+    // (`EditDayFlow.tsx`), which shows "Saved on this phone" for exactly
+    // this. `StoryPager`'s in-place panel (no `onSaved`) keeps its old
+    // failure banner rather than a silent queue nobody there is shown.
+    let queuedOffline = false;
     for (const [at, entry] of day.entries.entries()) {
       const patch = changesFor(at, dropping, reasons[at]);
       if (Object.keys(patch).length === 0) continue;
       const version = versions[entry.slug];
-      const response = await fetch(dayApiUrl(entry.slug), {
-        method: "PATCH",
-        headers: {
-          "content-type": "application/json",
-          ...(version ? { "if-match": version } : {}),
-        },
-        body: JSON.stringify(patch),
-      }).catch(() => null);
+      let response: Response;
+      try {
+        response = await fetch(dayApiUrl(entry.slug), {
+          method: "PATCH",
+          headers: {
+            "content-type": "application/json",
+            ...(version ? { "if-match": version } : {}),
+          },
+          body: JSON.stringify(patch),
+        });
+      } catch {
+        if (onSaved && hasOutbox()) {
+          const store = openOutboxStore();
+          await store.add(
+            newIntent({
+              user: username,
+              kind: "day.edit",
+              method: "PATCH",
+              url: dayApiUrl(entry.slug),
+              body: patch,
+              // The version this panel read, so a stale replay is refused
+              // (409, a conflict) rather than applied over what moved
+              // underneath while this sat in the queue — same `If-Match`
+              // contract the route already enforces for a live save.
+              headers: version ? { "if-match": version } : undefined,
+            }),
+          );
+          queuedOffline = true;
+          continue;
+        }
+        setBusy(false);
+        setFailed(entry.slug);
+        return;
+      }
       // D12 — refused, not applied over. `applyDayPatch` answers 409
       // `stale_document` with the document as it now stands
       // (`lib/api/v2/route.ts`'s own `ifMatchStale`); this names, per field,
       // what moved underneath the read this panel started from, rather than
       // folding into the generic `failed` banner every other write error
       // above already uses.
-      if (response?.status === 409) {
+      if (response.status === 409) {
         const body = (await response.json().catch(() => null)) as { details?: Record<string, unknown> } | null;
         setBusy(false);
         // `previewOpen` must not survive this — it is checked before
@@ -431,11 +473,17 @@ export default function EditDay({
         setStaleConflict({ slug: entry.slug, changed: changedFieldsAgainst(day.entries[at], body?.details) });
         return;
       }
-      if (!response?.ok) {
+      if (!response.ok) {
         setBusy(false);
         setFailed(entry.slug);
         return;
       }
+    }
+
+    if (queuedOffline) {
+      setBusy(false);
+      onSaved?.({ queued: true });
+      return;
     }
 
     // B2073 — the studio page re-reads itself on the server (`onSaved`), so
@@ -832,14 +880,19 @@ export default function EditDay({
                   key={item.src}
                   className={`mt-2 flex gap-2 rounded-lg border border-line-quiet p-2 ${going ? "opacity-50" : ""}`}
                 >
-                  {/* The derivative the page already draws, at thumbnail
-                        size. `img` rather than `next/image`: this is one
-                        already-sized file behind an owner-only panel, and the
-                        loader would buy nothing. */}
+                  {/* A 64px square. `img` rather than `next/image`: one
+                        fixed size behind an owner-only panel wants no
+                        `srcset` — but it does want a sized copy through the
+                        media route's resize, not the stored 2000px photograph
+                        (or clip still) it used to be handed. */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={item.poster ?? item.src}
+                    src={mediaLoader({ src: item.poster ?? item.src, width: 128 })}
                     alt={item.alt ?? item.caption ?? ""}
+                    width={64}
+                    height={64}
+                    loading="lazy"
+                    decoding="async"
                     className="h-16 w-16 shrink-0 rounded object-cover"
                   />
                   <div className="min-w-0 flex-1">
@@ -1018,7 +1071,12 @@ export default function EditDay({
           {t("edit.failed")}
         </p>
       )}
-      {saved && rows.length === 0 && (
+      {queued && (
+        <p role="status" className="mt-2 text-sm text-ink-secondary">
+          {t("studio.day.queued.done")} — {t("studio.day.queued.detail")}
+        </p>
+      )}
+      {!queued && saved && rows.length === 0 && (
         <p role="status" className="mt-2 text-sm text-ink-secondary">
           {t("edit.saved")}
         </p>

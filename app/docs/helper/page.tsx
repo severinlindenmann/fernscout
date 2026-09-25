@@ -6,18 +6,19 @@ import { docsNavEntries, readRepoFile, section } from "@/lib/docs";
 import { requestLocale } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
 
-export const metadata: Metadata = { title: "Making content" };
+export const metadata: Metadata = { title: "Your own agent" };
 
 const HELPER_REPO = "https://github.com/severinlindenmann/fernscout-helper";
 
 /**
- * Where content comes from, when there is no CMS.
+ * For somebody who would rather have their own agent do the sorting.
  *
- * Decision 24 says there is no web form and no CMS, and every other page here
- * states that as a property of the software. It is also the first thing a
- * person hits: they have a folder of holiday photographs and this project
- * offers them a content model. The answer is a separate repository of agent
- * tools, and until now it was written down nowhere a reader would find it.
+ * Most people write in the studio now, and this page says so first. It used
+ * to open with "there is no CMS, and there will not be one" — true of the
+ * old Decision 24, and flatly contradicted by the studio a click away. What
+ * is left for this page is the other door: a folder of holiday photographs
+ * and bank statements, an agent the person runs themselves, and the separate
+ * repository of tools that gives that agent something to run.
  *
  * Read from `docs/helper.md` at request time rather than repeated, the same
  * argument B23 makes about the rest of `docs/` — a reference kept in two
@@ -42,7 +43,7 @@ export default async function HelperPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 py-10 sm:py-16">
       <h1 className="font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
-        Making content
+        Your own agent
       </h1>
       {/*
         Used to point at `/agent`, the hosted room — B1905. That door is on
@@ -54,15 +55,15 @@ export default async function HelperPage() {
         somebody who already has one signs in from there.
       */}
       <p className="mt-3 text-lg leading-relaxed text-ink-body">
-        There is still no CMS, and there will not be one. Photographs and words
-        arrive through an agent — start a journal and{" "}
+        Days are written in{" "}
         <Link
           href="/welcome"
           className="underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"
         >
           the studio
-        </Link>{" "}
-        walks you through it, or, if you would rather run your own,{" "}
+        </Link>
+        , which walks you through photographs, places and costs. If you would
+        rather hand a folder to an agent you run yourself,{" "}
         <a
           href={HELPER_REPO}
           className="underline decoration-blue-500 decoration-2 underline-offset-2 hover:decoration-coral-600"

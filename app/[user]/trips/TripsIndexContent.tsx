@@ -153,7 +153,6 @@ export default function TripsIndexContent({
   empty = null,
   malformed = [],
   codeMinutes,
-  whatsappSignIn,
 }: {
   trips: TripCardData[];
   /** Closed trips advertised as locked cards — see `LockedTripData`. */
@@ -178,8 +177,6 @@ export default function TripsIndexContent({
   /** How long a requested code lasts, from `CODE_TTL_MINUTES` — passed down
    * to the code-request form the empty state may offer. See `EmptyState`. */
   codeMinutes: string;
-  /** See `whatsappSignInOffered` — lib/whatsapp/settings. */
-  whatsappSignIn?: boolean;
 }) {
   const { t, tn, localizedTrip } = useI18n();
 
@@ -193,6 +190,10 @@ export default function TripsIndexContent({
    */
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? trips : trips.slice(0, TRIPS_SHOWN);
+  // The card drawn first, whichever group it lands in — its cover is the
+  // largest picture near the top of the page, so it is fetched at once
+  // rather than when the lazy loader gets round to it.
+  const firstCard = GROUPS.map(({ status }) => shown.find((tr) => tr.status === status)).find(Boolean)?.id;
 
   // The map and its legend want each route's title already resolved to the
   // active locale — LifetimeMap itself just renders what it's handed.
@@ -251,7 +252,7 @@ export default function TripsIndexContent({
           empty, so the empty state would be a second untruth.
         */}
         {empty ? (
-          <EmptyState empty={empty} codeMinutes={codeMinutes} whatsappSignIn={whatsappSignIn} />
+          <EmptyState empty={empty} codeMinutes={codeMinutes} />
         ) : trips.length === 0 && (malformed.length > 0 || locked.length > 0) ? (
           // Nothing to total and no cards to group, but a teasered trip's
           // countries are still worth drawing — see `map`.
@@ -281,7 +282,7 @@ export default function TripsIndexContent({
                   <h2 className="font-display text-xl font-semibold text-ink-strong">{t(key)}</h2>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     {group.map((trip) => (
-                      <TripCard key={trip.id} trip={trip} />
+                      <TripCard key={trip.id} trip={trip} first={trip.id === firstCard} />
                     ))}
                   </div>
                 </section>
@@ -383,7 +384,7 @@ function MalformedNotice({ malformed }: { malformed: BrokenFolder[] }) {
  * fact B264 closed off (whether there is anything to actually read). Nothing
  * here asks that question.
  */
-function EmptyState({ empty, codeMinutes, whatsappSignIn }: { empty: EmptyJournal; codeMinutes: string; whatsappSignIn?: boolean }) {
+function EmptyState({ empty, codeMinutes }: { empty: EmptyJournal; codeMinutes: string }) {
   const { t } = useI18n();
   const { username, canSignIn } = useSite();
   const title = empty.owner
@@ -422,7 +423,7 @@ function EmptyState({ empty, codeMinutes, whatsappSignIn }: { empty: EmptyJourna
           cannot issue codes at all (`canSignIn`); `me`'s panel makes the
           same call, for the same journal-wide reason. */}
       {!empty.owner && !empty.signedIn && canSignIn && (
-        <GuestSignIn username={username} codeMinutes={codeMinutes} whatsappSignIn={whatsappSignIn} />
+        <GuestSignIn username={username} codeMinutes={codeMinutes} />
       )}
     </>
   );
@@ -486,7 +487,7 @@ function LockedTrips({ trips }: { trips: LockedTripData[] }) {
   );
 }
 
-function TripCard({ trip }: { trip: TripCardData }) {
+function TripCard({ trip, first = false }: { trip: TripCardData; first?: boolean }) {
   const { tn, formatLongDate, localizedTrip } = useI18n();
   const { base } = useSite();
   const { title, tagline } = localizedTrip(trip);
@@ -510,6 +511,12 @@ function TripCard({ trip }: { trip: TripCardData }) {
             alt={title}
             fill
             sizes="(min-width: 640px) 50vw, 100vw"
+            // `loading`/`fetchPriority` rather than `preload`: Next 16's docs
+            // steer away from a `<link rel=preload>` for an image whose
+            // place on the screen depends on the viewport, and this one sits
+            // under the map — near the fold on a phone, above it on a laptop.
+            loading={first ? "eager" : undefined}
+            fetchPriority={first ? "high" : undefined}
             className="object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </span>

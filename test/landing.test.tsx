@@ -175,32 +175,19 @@ describe("the landing page", () => {
   });
 
   /**
-   * B1310 — a secondary WhatsApp door beside "Start writing", gated on
-   * nothing but this instance having a number configured at all. On or off,
-   * regardless of `helperEnabled`: the channel is answered by whatever
-   * agent the owner put behind it, not by this instance's own `/agent`.
+   * B2338 retired the WhatsApp door B1310/B1314 drew here (the button and
+   * its `wa.me` lookup, and the `OrDivider` beside it) — WhatsApp is no
+   * longer a way to write a trip, so neither shows even when the app's own
+   * `page.tsx` would once have had a number to pass down. The headline
+   * variant that used to sit above the button is untouched (see "leads with
+   * the WhatsApp headline only when a number is configured" below) — a
+   * later ticket's job, per B2338's own scope note.
    */
-  test("offers a WhatsApp link when this instance has a number configured", () => {
+  test("never offers a WhatsApp link, whatever a number prop says", () => {
     const html = renderLanding("en", false, "41780000000");
-    expect(html).toContain("https://wa.me/41780000000");
-    expect(html).toContain("Start using WhatsApp");
-  });
-
-  /**
-   * B1712 — the divider between "Start writing" and the WhatsApp button
-   * (B1314) separates two doors, so it only belongs when both exist. With
-   * the helper off — every self-hosted instance, and B1314's default — the
-   * WhatsApp button is the only door, and a leading "or" with nothing before
-   * it is not a divider, it is a rendering bug.
-   */
-  test("shows the or-divider only alongside the helper's own button", () => {
-    const helperOff = renderLanding("en", false, "41780000000");
-    expect(helperOff).not.toContain('role="separator"');
-    expect(helperOff).not.toContain(">or<");
-
-    const helperOn = renderLanding("en", true, "41780000000");
-    expect(helperOn).toContain('role="separator"');
-    expect(helperOn).toContain(">or<");
+    expect(html).not.toContain("wa.me");
+    expect(html).not.toContain("Start using WhatsApp");
+    expect(html).not.toContain('role="separator"');
   });
 
   /**
@@ -453,13 +440,12 @@ describe("the landing page", () => {
  *
  * The landing page linked `/docs`, `/docs/api` and `/docs/guide/guest`, so a
  * visitor met the documentation at three different depths depending on which
- * one they happened to press.
+ * one they happened to press. The guest guide link outlived the other two
+ * until the reader guides were retired; the sign-in card it sat under
+ * explains itself.
  */
-test("the landing page has one door to the docs, plus the aimed guide link", () => {
+test("the landing page has one door to the docs", () => {
   const html = renderLanding();
   const hrefs = [...html.matchAll(/href="(\/docs[^"]*)"/g)].map((m) => m[1]);
-  // The guest guide stays because it is *aimed*: it is addressed to one person
-  // at the moment they are confused, where a docs link is addressed to nobody
-  // in particular.
-  expect(new Set(hrefs)).toEqual(new Set(["/docs", "/docs/guide/guest"]));
+  expect(new Set(hrefs)).toEqual(new Set(["/docs"]));
 });

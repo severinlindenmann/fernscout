@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { cache as reactCache } from "react";
 import { clearMatterCache } from "./matterCache";
 import { countryCodeFor } from "./flags";
 import { parseCostItems } from "./costFormat";
@@ -363,8 +364,29 @@ function posterFor(
   return resolveMediaFile(owner, segments) ? mediaWithOwner(beside, owner) : undefined;
 }
 
-/** Every entry on disk, drafts included. Cached; callers filter. */
-function readAllEntries(ref: string): Entry[] {
+/**
+ * Every entry on disk, drafts included. Cached; callers filter.
+ *
+ * Two caches, answering two different questions. `cache` above keeps the
+ * *parse* for the life of the process and is checked against
+ * `entriesSignature` — a `readdir` and one `stat` per day — on every call.
+ * React's `cache()` is what stops that check being paid a dozen times over
+ * in one page render: `buildStoryProps` alone reaches this through
+ * `getDays`, `getDefaultDay`, `getTripStats` and `getCostSummary`, and the
+ * page asks again for its structured data, so `/<user>/trips/asia-2023`
+ * re-listed and re-stat'ed the same directory on every one of them.
+ *
+ * Safe because of what `cache()` is and is not (the long note on
+ * `resolveSession` in lib/auth/index.ts): per request and never longer, and a
+ * pass-through outside a render — a script, a route handler, a server
+ * action, the test suite — so every write path, which calls `forgetEntries`
+ * and then reads back, still sees the disk. Nothing renders a page and
+ * writes an entry in the same render. Keyed on `ref`, a string, so two call
+ * sites asking about one trip share an answer.
+ */
+const readAllEntries = reactCache(readAllEntriesFromDisk);
+
+function readAllEntriesFromDisk(ref: string): Entry[] {
   const dir = entriesDir(ref);
 
   if (!fs.existsSync(dir)) {
@@ -577,16 +599,21 @@ function folded(name: string): string {
   return name.normalize("NFC").toLowerCase();
 }
 
-export function getEntryByFolder(
-  ref: string,
-  folder: string | undefined,
-  options?: ReadOptions,
-): Entry | undefined {
+/**
+ * The day a media folder belongs to, among entries the caller has already
+ * read — this was `getEntryByFolder(ref, folder)`, which read them itself.
+ *
+ * The media route is its one caller, and it needs this answer and a second
+ * one (the photograph's own label) from the same trip on every request:
+ * reading the entries once and asking both questions of that one list halves
+ * the directory listing and the stat per entry file each thumbnail costs,
+ * and the two gates can never be answered from two different states of the
+ * folder. The rule itself stays written in one place — here.
+ */
+export function entryForFolder(entries: readonly Entry[], folder: string | undefined): Entry | undefined {
   if (!folder) return undefined;
   const wanted = folded(folder);
-  return getAllEntries(ref, options).find(
-    (e) => folded(e.slug) === wanted || folded(`${e.date}-${e.slug}`) === wanted,
-  );
+  return entries.find((e) => folded(e.slug) === wanted || folded(`${e.date}-${e.slug}`) === wanted);
 }
 
 /**

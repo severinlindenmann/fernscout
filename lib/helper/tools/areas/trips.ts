@@ -6,10 +6,7 @@ import { isEnabled } from "../../../capabilities";
 import { listContacts } from "../../../contacts";
 import { ALL_TRACKED, TRACKS, type Track } from "../../../tracks";
 import { VISIBILITIES } from "../../../tripWrite";
-import { REMINDER_CHANNELS } from "../../../tripWrite";
 import { getUser } from "../../../users";
-import { getOwnerTel } from "../../../ownerTel";
-import { reminderTemplate } from "@paid/whatsapp/lib/whatsapp/settings";
 import { flatten, noTrip, resolveTrip } from "../resolve";
 import fs from "node:fs";
 import { findInboxFile, listInbox } from "../../../inbox";
@@ -492,11 +489,12 @@ export const TRIPS_TOOLS: readonly Tool[] = [
     name: "set_reminder",
     kind: "write",
     renders: "form",
-    describe: "Turn this trip's evening reminder on or off, and pick mail or WhatsApp.",
+    // B2339 — WhatsApp retired as a reminder channel; "mail" is the only
+    // one REMINDER_CHANNELS names now, so the tool no longer asks for one.
+    describe: "Turn this trip's evening reminder on or off.",
     properties: {
       ...TRIP_ARG,
       enabled: { type: "string", description: "on or off, as they said it." },
-      channel: { type: "string", description: "mail or whatsapp. Omit unless they said." },
     },
     endpoint: (username) => `/api/helper/${encodeURIComponent(username)}/trip/reminder`,
     method: "PATCH",
@@ -507,17 +505,6 @@ export const TRIPS_TOOLS: readonly Tool[] = [
       const on = /on|ein|bekapcsol|start|enable/.test(said);
       const current = trip?.reminder;
       const enabled = off ? false : on ? true : Boolean(current);
-      const requested = REMINDER_CHANNELS.includes(args.channel as never)
-        ? (args.channel as (typeof REMINDER_CHANNELS)[number])
-        : (current?.channel ?? "mail");
-
-      // Whatsapp is offered as an option regardless — a form is read before
-      // it is pressed either way — but proposing it as though it would work
-      // when it plainly cannot is the same mistake B944 already found once:
-      // a sentence that is false about somebody's own journal.
-      const whatsappReady =
-        isEnabled("whatsapp", username) && Boolean((await getOwnerTel(username))?.tel) && reminderTemplate() !== null;
-      const channel = requested === "whatsapp" && !whatsappReady ? "mail" : requested;
 
       return {
         sentence: say(enabled ? "agent.tool.setReminderOn" : "agent.tool.setReminderOff", {
@@ -535,14 +522,7 @@ export const TRIPS_TOOLS: readonly Tool[] = [
               { value: "off", label: say("agent.tool.channelOff") },
             ],
           },
-          {
-            name: "channel",
-            value: channel,
-            options: [
-              { value: "mail", label: say("agent.tool.channelMail") },
-              ...(whatsappReady ? [{ value: "whatsapp", label: say("agent.tool.channelWhatsapp") }] : []),
-            ],
-          },
+          { name: "channel", value: "mail", fixed: true },
         ],
       };
     },

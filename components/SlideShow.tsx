@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { mediaLoader } from "./mediaLoader";
+import { mediaLoader, posterSrc } from "./mediaLoader";
+import { POSTER_WIDTH } from "@/lib/mediaSizes";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import {
   X,
@@ -677,6 +678,9 @@ export default function SlideShow({
                     <video
                       ref={videoRef}
                       src={fullStep.item.src}
+                      // The still frame holds the slide until the clip's first
+                      // frame paints, rather than an empty box.
+                      poster={posterSrc(fullStep.item.poster, POSTER_WIDTH.FULL)}
                       className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
                       autoPlay
                       muted={videoMuted}
@@ -1148,7 +1152,11 @@ function PresentedPhoto({
         loader={mediaLoader}
         alt=""
         fill
-        sizes="100vw"
+        // Blurred forty pixels and dimmed, so it only has to carry colour: a
+        // 160px copy stretched across the screen looks exactly like the
+        // full-width one did, which was a second full-size download of the
+        // same photograph for every portrait-framed landscape slide.
+        sizes="64px"
         aria-hidden
         className="scale-110 object-cover opacity-60 blur-2xl"
       />

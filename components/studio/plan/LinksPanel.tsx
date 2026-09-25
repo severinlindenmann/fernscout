@@ -19,7 +19,7 @@ export default function LinksPanel({
   onSave: (next: PlanDoc) => void;
   onBack: () => void;
   onAddLink: () => void;
-  saveStatus: "idle" | "saving" | "saved" | "failed";
+  saveStatus: "idle" | "saving" | "saved" | "failed" | "queued";
 }) {
   const { t } = useI18n();
   const tripLinks = plan.private?.links ?? [];
@@ -91,6 +91,7 @@ export default function LinksPanel({
         <p role="status" className="mt-3 text-sm text-action-strong">
           {saveStatus === "saving" && t("studio.plan.saving")}
           {saveStatus === "saved" && t("studio.plan.saved")}
+          {saveStatus === "queued" && t("studio.plan.queued")}
         </p>
       )}
     </div>

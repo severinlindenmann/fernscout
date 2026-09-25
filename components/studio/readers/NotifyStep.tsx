@@ -6,8 +6,8 @@ import { useI18n } from "@/components/LocaleProvider";
 import type { TranslationKey } from "@/lib/i18n";
 import { formatCredits } from "@/lib/creditsFormat";
 
-type Channel = "email" | "whatsapp" | "sms" | "self";
-type Block = "no_email" | "no_mobile" | "mail_off" | "whatsapp_off" | "sms_off" | "unreachable" | "link_lost";
+type Channel = "email" | "sms" | "self";
+type Block = "no_email" | "no_mobile" | "mail_off" | "sms_off" | "unreachable" | "link_lost";
 
 /** `GET /api/web/<user>/readers/notify` — `InviteOptions` in lib/contacts/welcome.ts. */
 type Options = {
@@ -24,13 +24,11 @@ type Sent = { channel: Channel; url: string; backend: string | null; charged: nu
 
 const LABEL: Record<Channel, TranslationKey> = {
   email: "notifyStep.email",
-  whatsapp: "notifyStep.whatsapp",
   sms: "notifyStep.sms",
   self: "notifyStep.self",
 };
 const SEND: Record<Channel, TranslationKey> = {
   email: "notifyStep.send.email",
-  whatsapp: "notifyStep.send.whatsapp",
   sms: "notifyStep.send.sms",
   self: "notifyStep.send.self",
 };
@@ -38,7 +36,6 @@ const BLOCK: Record<Block, TranslationKey> = {
   no_email: "notifyStep.blocked.noEmail",
   no_mobile: "notifyStep.blocked.noMobile",
   mail_off: "notifyStep.blocked.mailOff",
-  whatsapp_off: "notifyStep.blocked.whatsappOff",
   sms_off: "notifyStep.blocked.smsOff",
   unreachable: "notifyStep.blocked.unreachable",
   link_lost: "notifyStep.blocked.linkLost",

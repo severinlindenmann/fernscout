@@ -775,6 +775,8 @@ export default function AddDayFlow({
           <img
             src={pendingUrl ?? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(item.id)}/thumbnail?w=200`}
             alt=""
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
           />
           {pendingUrl && (

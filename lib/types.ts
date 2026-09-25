@@ -490,10 +490,11 @@ export type TripVisibility = "private" | "public" | "guest";
  * they get their own switch rather than riding on the trip's. */
 export type CostsVisibility = "public" | "guests";
 
-/** Where an evening reminder goes — B1219, D46. `lib/api/tripReminder.ts`
- *  owns the write side and its own validated list; this is only the shape a
+/** Where an evening reminder goes — B1219, D46; WhatsApp retired by B2339.
+ *  `lib/api/tripReminder.ts` owns the write side and its own validated list
+ *  (`REMINDER_CHANNELS`, `lib/tripWrite.ts`); this is only the shape a
  *  reader sees. */
-export type ReminderChannel = "mail" | "whatsapp";
+export type ReminderChannel = "mail";
 
 /**
  * Somebody who took the trip.

@@ -5,6 +5,7 @@ import ConfirmPanel from "@/components/ConfirmPanel";
 import { DeleteDayConfirm } from "@/components/DeleteDay";
 import { useI18n } from "@/components/LocaleProvider";
 import DoneScreen from "@/components/studio/DoneScreen";
+import { useOnline } from "@/components/studio/useOnline";
 import type { TranslationKey } from "@/lib/i18n";
 import type { PublishRow } from "@/lib/studio/publishDay";
 
@@ -71,6 +72,7 @@ export default function PublishDayFlow({
   readers?: string[] | null;
 }) {
   const { t, tn, formatLongDate, locale } = useI18n();
+  const online = useOnline();
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -192,40 +194,61 @@ export default function PublishDayFlow({
         )}
 
         <div className="mt-4">
-          <ConfirmPanel
-            label={t(takeDown ? "edit.takeDown" : "studio.publish.confirm")}
-            question={t(takeDown ? "edit.takeDownQuestion" : "studio.publish.question", { title: nameOf(chosen) })}
-            confirmLabel={t(takeDown ? "edit.takeDownConfirm" : "studio.publish.confirm")}
-            busyLabel={t(takeDown ? "studio.publish.busyDown" : "studio.publish.busy")}
-            tone={takeDown ? "destructive" : "commit"}
-            busy={busy}
-            error={error}
-            onConfirm={() => void commit(chosen)}
-            onCancel={() => window.location.assign(listHref)}
-            cancelLabel={takeDown ? undefined : t("studio.publish.cancel")}
-          >
-            {!takeDown && blank.length > 0 && (
-              <div data-blank={blank.join(" ")} className="mt-2 space-y-1 text-sm leading-6 text-ink-body">
-                <p>{t("studio.publish.blank", { fields: list(sentence) })}</p>
-                <details>
-                  <summary className="cursor-pointer font-semibold underline underline-offset-2">{t("studio.publish.showAll")}</summary>
-                  <ul className="mt-1 space-y-1">
-                    {blank.map((field) => (
-                      <li key={field} data-blank-field={field} className="flex flex-wrap items-baseline justify-between gap-x-3">
-                        <span>{label(field)}</span>
-                        {FILLABLE_IN_CHANGE_A_DAY.has(field) && (
-                          <a href={editHref} className="font-semibold underline underline-offset-2">
-                            {t("studio.publish.fillNow")}
-                          </a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-1 text-ink-secondary">{t("studio.publish.fillLater")}</p>
-                </details>
-              </div>
-            )}
-          </ConfirmPanel>
+          {/* B2330 — publishing is never queued: it is the moment a draft
+              becomes visible to whoever it names, and that promise has to be
+              kept the moment it is made, not replayed later from a queue
+              nobody watched fire. Greyed out with one line why, the same
+              stance `PolishText` already takes for its own live model call. */}
+          {!online ? (
+            <div className="rounded-2xl border border-line-strong p-4 opacity-60">
+              <p className="text-sm leading-6 text-ink-body">
+                {t(takeDown ? "edit.takeDownQuestion" : "studio.publish.question", { title: nameOf(chosen) })}
+              </p>
+              <button
+                type="button"
+                disabled
+                className="mt-3 min-h-11 cursor-not-allowed rounded-full bg-surface-neutral-strong px-5 text-base font-semibold text-ink-secondary"
+              >
+                {t(takeDown ? "edit.takeDownConfirm" : "studio.publish.confirm")}
+              </button>
+              <p className="mt-2 text-sm text-ink-secondary">{t("studio.publish.offline")}</p>
+            </div>
+          ) : (
+            <ConfirmPanel
+              label={t(takeDown ? "edit.takeDown" : "studio.publish.confirm")}
+              question={t(takeDown ? "edit.takeDownQuestion" : "studio.publish.question", { title: nameOf(chosen) })}
+              confirmLabel={t(takeDown ? "edit.takeDownConfirm" : "studio.publish.confirm")}
+              busyLabel={t(takeDown ? "studio.publish.busyDown" : "studio.publish.busy")}
+              tone={takeDown ? "destructive" : "commit"}
+              busy={busy}
+              error={error}
+              onConfirm={() => void commit(chosen)}
+              onCancel={() => window.location.assign(listHref)}
+              cancelLabel={takeDown ? undefined : t("studio.publish.cancel")}
+            >
+              {!takeDown && blank.length > 0 && (
+                <div data-blank={blank.join(" ")} className="mt-2 space-y-1 text-sm leading-6 text-ink-body">
+                  <p>{t("studio.publish.blank", { fields: list(sentence) })}</p>
+                  <details>
+                    <summary className="cursor-pointer font-semibold underline underline-offset-2">{t("studio.publish.showAll")}</summary>
+                    <ul className="mt-1 space-y-1">
+                      {blank.map((field) => (
+                        <li key={field} data-blank-field={field} className="flex flex-wrap items-baseline justify-between gap-x-3">
+                          <span>{label(field)}</span>
+                          {FILLABLE_IN_CHANGE_A_DAY.has(field) && (
+                            <a href={editHref} className="font-semibold underline underline-offset-2">
+                              {t("studio.publish.fillNow")}
+                            </a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-ink-secondary">{t("studio.publish.fillLater")}</p>
+                  </details>
+                </div>
+              )}
+            </ConfirmPanel>
+          )}
         </div>
       </>
     );

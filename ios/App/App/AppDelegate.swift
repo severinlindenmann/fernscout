@@ -29,7 +29,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // `userNotificationCenter(_:didReceive:withCompletionHandler:)`
         // below.
         UNUserNotificationCenter.current().delegate = self
+        // B2330 — reattach to whatever `MediaUploadSession` still has running
+        // from before this launch. `handleEventsForBackgroundURLSession`
+        // below covers a relaunch iOS does purely to report finished
+        // uploads; this covers an ordinary launch (icon tap) while some are
+        // still in flight.
+        MediaUploadSession.shared.rejoin()
         return true
+    }
+
+    /// iOS relaunches the app in the background purely to say this session's
+    /// tasks have news — B2330. Recreating `MediaUploadSession` (same fixed
+    /// identifier) reattaches its delegate to them; once every event is
+    /// delivered, `urlSessionDidFinishEvents` calls the completion handler
+    /// this hands it, which is the system's own signal that it is safe to
+    /// suspend the app again.
+    func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void) {
+        guard identifier == MediaUploadSession.identifier else {
+            completionHandler()
+            return
+        }
+        MediaUploadSession.shared.backgroundCompletion = completionHandler
+        MediaUploadSession.shared.rejoin()
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

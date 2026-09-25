@@ -10,7 +10,6 @@ import { awaitingApproval, guestBlockedByPrivateTrip, mayReadTrip, signedInAs } 
 import { getTrip, tripRef } from "@/lib/trips";
 import { resolveRenamedTripId } from "@/lib/tripRename";
 import { getUser } from "@/lib/users";
-import { whatsappSignInOffered } from "@paid/whatsapp/lib/whatsapp/settings";
 
 /**
  * Rendered per request, not prerendered.
@@ -28,6 +27,15 @@ import { whatsappSignInOffered } from "@paid/whatsapp/lib/whatsapp/settings";
  * Verified: at HEAD, `next build && next start` then GET
  * `/example/trips/example-trip` → 500. With this line → 307 to `/example`, and
  * an unknown trip renders the not-found page instead of an error.
+ *
+ * The pages' own `generateStaticParams` then outlived their purpose and are
+ * gone. With this line in place they prerendered nothing — the prerender
+ * manifest listed none of their URLs, and the costs and weather pages, whose
+ * lists came back empty, showed `●` in the build's route table while being
+ * served exactly like their `ƒ` siblings — and all they still did was make
+ * every `next build` read every journal's trips and days to compute lists
+ * that were thrown away. Do not bring one back without removing this line
+ * and reading the paragraph above first.
  */
 export const dynamic = "force-dynamic";
 
@@ -89,7 +97,6 @@ export default async function TripLayout({
       signedInAs={await signedInAs(user)}
       canSignIn={isEnabled("auth", user)}
       codeMinutes={CODE_TTL_MINUTES}
-      whatsappSignIn={await whatsappSignInOffered(user)}
       guestBlockedByPrivate={await guestBlockedByPrivateTrip(trip)}
       waiting={await awaitingApproval(user)}
     />

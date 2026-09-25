@@ -66,7 +66,6 @@ export default function TripGate({
   signedInAs,
   canSignIn,
   codeMinutes,
-  whatsappSignIn,
   guestBlockedByPrivate,
   waiting,
 }: {
@@ -85,8 +84,6 @@ export default function TripGate({
   canSignIn: boolean;
   /** How long a code lasts, from `CODE_TTL_MINUTES` — see GuestSignIn. */
   codeMinutes: string;
-  /** See `whatsappSignInOffered` — lib/whatsapp/settings. */
-  whatsappSignIn?: boolean;
   /**
    * True only when the viewer is an approved guest of this journal, refused
    * this one trip because it is `private` — never anything a viewer who is
@@ -194,7 +191,6 @@ export default function TripGate({
             username={username}
             codeMinutes={codeMinutes}
             destination={here ?? undefined}
-            whatsappSignIn={whatsappSignIn}
           />
         </>
       ) : (

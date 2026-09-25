@@ -32,6 +32,10 @@ function memoryStore(seed: OutboxIntent[]): OutboxStore & { rows: OutboxIntent[]
     async clear(user) {
       for (let i = rows.length - 1; i >= 0; i--) if (rows[i].user === user) rows.splice(i, 1);
     },
+    async markNativeUpload(id, on) {
+      const row = rows.find((r) => r.id === id);
+      if (row) row.nativeUpload = on;
+    },
     async remapMediaId(user, placeholderId, realId) {
       for (const row of rows) {
         if (row.user !== user || !row.body || typeof row.body !== "object") continue;
@@ -248,6 +252,207 @@ describe("a day queued with its photographs (B2330)", () => {
     expect(outcome.done).toBe(0);
     // Both still pending, in their original order — the day never jumped ahead.
     expect(store.rows.map((r) => r.id)).toEqual(["up1", "day1"]);
+  });
+});
+
+/** B2330 — the iPhone shell's `nativeUpload` handoff, `runOutbox`'s fourth
+ *  argument. `useOutbox.ts` wires this to `components/nativeShell.ts`'s
+ *  `nativeMediaHandoff`; here it is a fake so the resolution logic — skip
+ *  `fetch` once handed off, wait rather than resend, fall back when the
+ *  shell declines — is exercised with no IndexedDB and no Capacitor bridge. */
+describe("the iPhone shell's native upload handoff (B2330)", () => {
+  it("a handed-off upload is marked, never sent over fetch, and stops the pass for whatever is queued behind it", async () => {
+    const photo = uploadIntent({ id: "up1", createdAt: "2026-01-01T00:00:00.000Z" });
+    const day = dayIntent({
+      id: "day1",
+      createdAt: "2026-01-01T00:00:01.000Z",
+      body: { trip: "japan-2026", date: "2026-04-02", mediaInboxIds: ["pending-1"] },
+    });
+    const store = memoryStore([photo, day]);
+    const fetchImpl = async (): Promise<Response> => {
+      throw new Error("fetch must not be called once native took it");
+    };
+    const nativeUpload = async () => true;
+    const outcome = await runOutbox(store, "severin", fetchImpl, nativeUpload);
+    expect(outcome).toEqual({ done: 0, conflicts: 0, paused: false, stoppedForRetry: true });
+    expect(store.rows.map((r) => r.id)).toEqual(["up1", "day1"]);
+    expect(store.rows[0].nativeUpload).toBe(true);
+    expect(store.rows[0].state).toBe("pending");
+  });
+
+  it("an already handed-off upload is left alone on the next pass, still waiting for the drain", async () => {
+    const photo = uploadIntent({ id: "up1", nativeUpload: true });
+    const store = memoryStore([photo]);
+    let handoffCalls = 0;
+    const nativeUpload = async () => {
+      handoffCalls += 1;
+      return true;
+    };
+    const outcome = await runOutbox(store, "severin", () => Promise.reject(new Error("no fetch")), nativeUpload);
+    expect(outcome.stoppedForRetry).toBe(true);
+    expect(handoffCalls).toBe(0); // not handed off a second time
+    expect(store.rows).toHaveLength(1);
+  });
+
+  it("no shell, or no credential connected — nativeUpload resolves false and the ordinary fetch path is unchanged", async () => {
+    const photo = uploadIntent({ id: "up1" });
+    const store = memoryStore([photo]);
+    const fetchImpl = async (): Promise<Response> => ({ status: 201, json: async () => ({ ok: true, items: [{ id: "real-1" }] }) }) as Response;
+    const nativeUpload = async () => false;
+    const outcome = await runOutbox(store, "severin", fetchImpl, nativeUpload);
+    expect(outcome).toEqual({ done: 1, conflicts: 0, paused: false, stoppedForRetry: false });
+    expect(store.rows).toHaveLength(0);
+  });
+
+  it("with no nativeUpload argument at all (the web), behaviour is exactly the pre-B2330 fetch path", async () => {
+    const photo = uploadIntent({ id: "up1" });
+    const store = memoryStore([photo]);
+    const fetchImpl = async (): Promise<Response> => ({ status: 201, json: async () => ({ ok: true, items: [{ id: "real-1" }] }) }) as Response;
+    const outcome = await runOutbox(store, "severin", fetchImpl);
+    expect(outcome.done).toBe(1);
+    expect(store.rows).toHaveLength(0);
+  });
+});
+
+function editIntent(over: Partial<OutboxIntent> = {}): OutboxIntent {
+  return {
+    ...newIntent({
+      user: "severin",
+      kind: "day.edit",
+      method: "PATCH",
+      url: "/api/web/severin/trips/japan-2026/days/2026-04-02-kyoto",
+      body: { content: "A new paragraph." },
+      headers: { "if-match": "v1" },
+      ...over,
+    }),
+    ...(over.id ? { id: over.id } : {}),
+    ...(over.createdAt ? { createdAt: over.createdAt } : {}),
+  };
+}
+
+/** B2330 wave 2 — "Change a day" queues a `day.edit` intent (`EditDay.tsx`)
+ *  when its PATCH cannot reach the server, carrying the version it read as
+ *  `headers["if-match"]`. Unlike `day.new`, no kind-specific "same as sent"
+ *  exists here: any 409 this route answers (`stale_document`, the document
+ *  really did move underneath the queued read) is a `conflict`, never
+ *  silently applied and never quietly dropped. */
+describe("day.edit (B2330 wave 2 — 'Change a day' offline)", () => {
+  it("2xx is done, same as any other intent", () => {
+    expect(decideReplay(200, { ok: true }, editIntent()).action).toBe("done");
+  });
+
+  it("409 stale_document is always a conflict — day.edit has no dedupe shape", () => {
+    const body = { error: "stale_document", details: { title: { was: "Kyoto", now: "Kyoto (renamed)" } } };
+    expect(decideReplay(409, body, editIntent()).action).toBe("conflict");
+  });
+
+  it("replays with the read version as If-Match, and drops the intent once the server accepts it", async () => {
+    const intent = editIntent();
+    const store = memoryStore([intent]);
+    const calls: { url: string; headers: Record<string, string> }[] = [];
+    const fetchImpl = async (url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      calls.push({ url: String(url), headers: (init?.headers as Record<string, string>) ?? {} });
+      return { status: 200, json: async () => ({ ok: true }) } as Response;
+    };
+    const outcome = await runOutbox(store, "severin", fetchImpl);
+    expect(outcome).toEqual({ done: 1, conflicts: 0, paused: false, stoppedForRetry: false });
+    expect(calls[0].url).toBe(intent.url);
+    expect(calls[0].headers["if-match"]).toBe("v1");
+    expect(calls[0].headers["content-type"]).toBe("application/json");
+  });
+
+  it("a stale replay is kept as a conflict, not applied over what moved underneath it", async () => {
+    const store = memoryStore([editIntent()]);
+    const fetchImpl = scriptedFetch([{ status: 409, body: { error: "stale_document" } }]);
+    const outcome = await runOutbox(store, "severin", fetchImpl);
+    expect(outcome.conflicts).toBe(1);
+    expect(store.rows).toHaveLength(1);
+    expect(store.rows[0].state).toBe("conflict");
+  });
+
+  it("an intent queued with no version (a route with nothing to read) sends no If-Match at all", async () => {
+    const intent = editIntent({ headers: undefined });
+    const store = memoryStore([intent]);
+    const calls: RequestInit[] = [];
+    const fetchImpl = async (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      calls.push(init ?? {});
+      return { status: 200, json: async () => ({ ok: true }) } as Response;
+    };
+    await runOutbox(store, "severin", fetchImpl);
+    expect((calls[0].headers as Record<string, string>)["if-match"]).toBeUndefined();
+  });
+});
+
+function planIntent(over: Partial<OutboxIntent> = {}): OutboxIntent {
+  return {
+    ...newIntent({
+      user: "severin",
+      kind: "plan.patch",
+      method: "PATCH",
+      url: "/api/web/severin/trips/japan-2026/plan",
+      body: { plan: { route: [{ id: "kyoto", location: "Kyoto" }] } },
+      ...over,
+    }),
+    ...(over.id ? { id: over.id } : {}),
+    ...(over.createdAt ? { createdAt: over.createdAt } : {}),
+  };
+}
+
+/** B2330 wave 2 — the planner and its costs share one PATCH
+ *  (`PlannerFlow.tsx`'s own `save`), and that route carries no `If-Match` of
+ *  its own — the planner never reads a version before writing, online or
+ *  queued. So a queued `plan.patch` is last-write-wins the same way a live
+ *  one already is: nothing here changes that contract, only that a write
+ *  made with no connection is not lost. */
+describe("plan.patch (B2330 wave 2 — planner and costs offline)", () => {
+  it("2xx is done", () => {
+    expect(decideReplay(200, { plan: {}, costs: {} }, planIntent()).action).toBe("done");
+  });
+
+  it("replays as a plain PATCH with no If-Match", async () => {
+    const store = memoryStore([planIntent()]);
+    const calls: RequestInit[] = [];
+    const fetchImpl = async (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+      calls.push(init ?? {});
+      return { status: 200, json: async () => ({ plan: {}, costs: {} }) } as Response;
+    };
+    const outcome = await runOutbox(store, "severin", fetchImpl);
+    expect(outcome.done).toBe(1);
+    expect(calls[0].method).toBe("PATCH");
+    expect((calls[0].headers as Record<string, string>)["if-match"]).toBeUndefined();
+  });
+});
+
+function tripIntent(over: Partial<OutboxIntent> = {}): OutboxIntent {
+  return {
+    ...newIntent({
+      user: "severin",
+      kind: "trip.new",
+      method: "POST",
+      url: "/api/helper/severin/trip",
+      body: { title: "Japan", start: "2026-04-01", end: "2026-04-10" },
+      ...over,
+    }),
+    ...(over.id ? { id: over.id } : {}),
+    ...(over.createdAt ? { createdAt: over.createdAt } : {}),
+  };
+}
+
+/** B2330 wave 2 — "A new trip" (`NewTripFlow.tsx`) queues a `trip.new`
+ *  intent when its POST cannot reach the server. That route always answers
+ *  2xx (an id collision is suffixed, `-2`/`-3`, never refused with a 409), so
+ *  there is nothing here for `decideReplay`'s dedupe to key off — the only
+ *  case that matters in practice, and the only one this suite proves. */
+describe("trip.new (B2330 wave 2 — a new trip offline)", () => {
+  it("2xx is done", () => {
+    expect(decideReplay(201, { ok: true, id: "japan-2026" }, tripIntent()).action).toBe("done");
+  });
+
+  it("replays as a plain POST, dropped once the server accepts it", async () => {
+    const store = memoryStore([tripIntent()]);
+    const outcome = await runOutbox(store, "severin", scriptedFetch([{ status: 201, body: { ok: true, id: "japan-2026" } }]));
+    expect(outcome).toEqual({ done: 1, conflicts: 0, paused: false, stoppedForRetry: false });
+    expect(store.rows).toHaveLength(0);
   });
 });
 
