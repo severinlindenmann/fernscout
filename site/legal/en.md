@@ -213,12 +213,17 @@ The app shows this same site, so everything above applies to it. What it adds:
   before recording starts. Positions go only to your own journal. Recording
   stops by itself the day after the trip ends, unless you chose to keep it
   running, and you can stop it at any time on the trip's page.
+- **The microphone**, only while you are recording something to tell the
+  helper, and only after you allowed it. The recording goes to the
+  transcription service as described in [AI and voice](#ai) and is never
+  stored.
 - **Notifications**, only if you allow them, delivered through Apple.
 - **Sharing into Fernscout** from another app uses a sign-in kept in the
   phone's Keychain, valid for seven days.
 
 **Everything works if you say no.** Without location, a trip's map has no
-recorded route; without notifications, you get none. There is no tracking, no
+recorded route; without the microphone, you type instead of speaking; without
+notifications, you get none. There is no tracking, no
 advertising identifier and no third-party analytics in the app.
 
 ## Deleting {#deleting}

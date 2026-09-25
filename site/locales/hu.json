@@ -4291,5 +4291,12 @@
   "notifyStep.error.generic": "Ez nem sikerült. Semmit nem küldtünk el.",
   "notifyStep.blocked.linkLost": "Ezt a linket egyszer már megmutattuk, ez a szerver nem tudja újra megmutatni",
   "notifyStep.error.dailyLimit": "Ez a napló ma már 50 meghívó üzenetet küldött. Próbáld holnap — semmit nem vontunk le.",
-  "notifyStep.linkLost": "Ez a szerver {name} meghívó linkjéből csak egy ujjlenyomatot őriz, ezért nem tudja újra megmutatni vagy elküldeni. Semmit nem küldtünk el."
+  "notifyStep.linkLost": "Ez a szerver {name} meghívó linkjéből csak egy ujjlenyomatot őriz, ezért nem tudja újra megmutatni vagy elküldeni. Semmit nem küldtünk el.",
+  "studio.outbox.offline": "Nincs kapcsolat",
+  "studio.outbox.offlineWaiting": "Nincs kapcsolat · {n} várakozik",
+  "studio.outbox.syncing": "Küldés…",
+  "studio.outbox.waiting": "Online · {n} várakozik",
+  "studio.outbox.confirmSignOut": "{n} változtatást még nem küldtünk el. Kijelentkezéskor ezek elvesznek.",
+  "studio.outbox.confirmSignOut.one": "{n} változtatást még nem küldtünk el. Kijelentkezéskor ez elvész.",
+  "studio.outbox.signOutAnyway": "Kijelentkezés mégis"
 }
