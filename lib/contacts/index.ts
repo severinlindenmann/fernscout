@@ -94,6 +94,8 @@ export type ContactRecord = {
   invitedAt: string | null;
   /** B2292. When their welcome link (`/w/<code>`) was first opened. */
   welcomeOpenedAt: string | null;
+  /** B2293. When they finished the welcome guide — it runs once. */
+  onboardedAt: string | null;
   createdVia: string | null;
   createdAt: string;
   confirmedAt: string | null;
@@ -167,6 +169,7 @@ type ContactRow = {
   invited_via: string | null;
   invited_at: string | null;
   welcome_opened_at: string | null;
+  onboarded_at: string | null;
 };
 
 function toRecord(owner: string, row: ContactRow): ContactRecord {
@@ -191,6 +194,7 @@ function toRecord(owner: string, row: ContactRow): ContactRecord {
     invitedVia: row.invited_via,
     invitedAt: row.invited_at,
     welcomeOpenedAt: row.welcome_opened_at,
+    onboardedAt: row.onboarded_at,
     createdVia: row.created_via,
     createdAt: row.created_at,
     confirmedAt: row.confirmed_at,
@@ -988,17 +992,23 @@ export async function getContact(owner: string, id: string): Promise<ContactReco
  * only appears on success, so `approveContact(...)` staying `null` on
  * refusal is unchanged for every caller that only checks that.
  */
-export async function approveContact(
-  owner: string,
-  id: string,
-  /**
-   * B2292 — which trip places this approval opens. Absent: every place the
-   * contact asked for (the owner approving a request). `{ onlyTrip: null }`:
-   * none — "Add a person" as a reader must never turn an old buddy request
-   * or a revoked place into write access. `{ onlyTrip: id }`: that one trip.
-   */
-  places?: { onlyTrip: string | null },
-): Promise<{ contact: ContactRecord; tripsOpened: string[] } | null> {
+
+/**
+ * The narrower half of `approveContact` — flips `status` to `active` and
+ * nothing else, never touching `access_grants`. Refused on the same two
+ * grounds `approveContact` itself is: no row, or an address that has proved
+ * neither its email nor its phone.
+ *
+ * Exported for `scripts/migrate-trip-people.mts` (D3/B2297's F2, security
+ * review): a bare `people:` entry never opened the journal's `guest` trips
+ * before, only the one trip it named, so the migration that turns it into a
+ * granted `trip_people` place must not go through `approveContact` — that
+ * always writes the journal-wide read grant, which would be a new door the
+ * migration itself is not supposed to open. `redeemedTripsFor`/`isPersonOn`
+ * still require `status: "active"` to read a `trip_people` row at all, which
+ * is the only reason this exists rather than leaving the row `pending`.
+ */
+export async function activateContactStatus(owner: string, id: string): Promise<ContactRecord | null> {
   const contact = await getContact(owner, id);
   if (!contact) return null;
   // Either channel proved counts (B2294): an address confirmed by its code, or
@@ -1013,6 +1023,25 @@ export async function approveContact(
     .where("owner_id", "=", owner)
     .where("id", "=", id)
     .execute();
+  return getContact(owner, id);
+}
+
+export async function approveContact(
+  owner: string,
+  id: string,
+  /**
+   * B2292 — which trip places this approval opens. Absent: every place the
+   * contact asked for (the owner approving a request). `{ onlyTrip: null }`:
+   * none — "Add a person" as a reader must never turn an old buddy request
+   * or a revoked place into write access. `{ onlyTrip: id }`: that one trip.
+   */
+  places?: { onlyTrip: string | null },
+): Promise<{ contact: ContactRecord; tripsOpened: string[] } | null> {
+  const activated = await activateContactStatus(owner, id);
+  if (!activated) return null;
+
+  const { db } = await getDatabase();
+  const now = nowIso();
 
   // **A row is not a grant; a live row is** — B130. Asking only whether the
   // row exists is the test `lib/push.ts` carried until B82, in the other
@@ -1112,12 +1141,11 @@ export type GrantAccessResult =
 /**
  * D11 — "an owner grants a named address direct access" (spec §8, and see
  * `AGENTS.md`'s own amended sentence). The address can read the journal the
- * moment this call returns; the mail that follows (`sendGrantedMail`,
- * `lib/contacts/mail.ts`) tells the person rather than asking them, and
- * carries the same self-serve manage link every other contact mail does —
- * D11 is explicit that this must "carry a way for that person to decline
- * everything", and `deleteContactSelf`/that page's own delete button already
- * are that way; nothing new needed inventing for it.
+ * moment this call returns. The route that used to mail this event
+ * (`sendGrantedMail`, `/api/helper/[user]/reader/grant`) is gone since B2295
+ * (one door for readers, B2291/B2292): `/<user>/studio/readers`'s own "add a
+ * person" flow is the one door now, and it sends its own mail
+ * (`sendWelcomeMail`) at the moment the owner presses a channel, not here.
  *
  * **What does not change.** A *link* still grants nothing — this writes a
  * real `access_grants` row from the server, never from a token somebody
@@ -1548,10 +1576,45 @@ async function saveContact(
   return { ok: true, outcome: existing ? "updated" : "created", contact };
 }
 
+/**
+ * An email address a code just proved for an existing contact that had none
+ * — B2293, the welcome guide's "Is this right?" screen (the email twin of
+ * `setProvenPhone`). Refuses (false) when another contact of this journal
+ * already holds the address, and never replaces an address a contact already
+ * has: changing one is `updateContactByOwner`'s, which takes access with it.
+ * The caller has redeemed the code (`confirmEmailProof`).
+ */
+export async function setProvenEmail(owner: string, contactId: string, raw: string): Promise<boolean> {
+  const email = normaliseEmail(raw);
+  if (!isEmail(email)) return false;
+  const holder = await getContactByEmail(owner, email);
+  if (holder && holder.id !== contactId) return false;
+  const { db } = await getDatabase();
+  const now = nowIso();
+  const result = await db
+    .updateTable("contacts")
+    .set({ email, email_key: email, updated_at: now })
+    .where("owner_id", "=", owner)
+    .where("id", "=", contactId)
+    .where("email", "=", "")
+    .executeTakeFirst();
+  return Number(result.numUpdatedRows ?? 0) === 1 || holder?.id === contactId;
+}
+
 /** The `email_key` of a contact with no address: unique, and never equal to
  * a case-folded address, which always has an `@`. */
 function noEmailKey(id: string): string {
   return `no-email:${id}`;
+}
+
+/**
+ * The key a contact is stored under — its address, or for a phone-only
+ * contact the placeholder above. What `peopleOf` answers with, so a caller
+ * matching a contact against a trip's people must match on this, not on
+ * `email` (B2291: a buddy added by mobile only read as a reader).
+ */
+export function contactKey(contact: { id: string; email: string }): string {
+  return contact.email ? normaliseEmail(contact.email) : noEmailKey(contact.id);
 }
 
 /**

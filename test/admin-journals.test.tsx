@@ -105,3 +105,40 @@ describe("how a journal reads", () => {
     expect(whenWords(daysAgo(120), now)).toBe("wrote 4 months ago");
   });
 });
+
+describe("the filters and the export", () => {
+  const now = Date.parse("2026-09-25T00:00:00.000Z");
+  const rows: JournalView[] = [
+    { ...journal("fresh", 0, 50, "2026-09-24T00:00:00.000Z"), granted: 100 },
+    { ...journal("low", 0, 5, "2026-07-01T00:00:00.000Z"), granted: 100 },
+    { ...journal("never", 0, 0, null), granted: 0 },
+    { ...journal("full, \"quoted\"", 1234, null, "2026-01-01T00:00:00.000Z"), full: 0.9 },
+  ];
+
+  test("each state filter keeps its own rows", async () => {
+    const { matches } = await import("@/app/admin/Journals");
+    const names = (filter: Parameters<typeof matches>[1]) =>
+      rows.filter((row) => matches(row, filter, now)).map((row) => row.username);
+    expect(names("writing")).toEqual(["fresh"]);
+    expect(names("quiet")).toEqual(["low"]);
+    expect(names("never")).toEqual(["never"]);
+    expect(names("all")).toHaveLength(4);
+  });
+
+  test("needs a look is a low balance or a full disk, and never 'was never granted any'", async () => {
+    const { matches } = await import("@/app/admin/Journals");
+    expect(rows.filter((row) => matches(row, "look", now)).map((row) => row.username)).toEqual([
+      "low",
+      'full, "quoted"',
+    ]);
+  });
+
+  test("the CSV has a header, one line per row, and quotes what needs it", async () => {
+    const { toCsv } = await import("@/app/admin/Journals");
+    const csv = toCsv(rows, 30, now).trim().split("\n");
+    expect(csv[0]).toContain("metered_chf_30d");
+    expect(csv).toHaveLength(5);
+    expect(csv[4].startsWith('"full, ""quoted"""')).toBe(true);
+    expect(csv[4].endsWith(",12.34")).toBe(true);
+  });
+});

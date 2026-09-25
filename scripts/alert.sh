@@ -104,6 +104,9 @@ if [[ "$OUTCOME" == "failure" && "$UNIT" == fernscout-backup* && -n "${DATA_DIR:
       printf '%s\n' "$NOW"
       printf '%s\n' "$SUMMARY"
     } > "$DATA_DIR/.backup-last-failure" && STAMPED=1
+    # The same night in /admin's fortnight of squares — see record_history in
+    # scripts/backup.sh for the format. Never fatal.
+    printf '%s primary failed\n' "$NOW" >> "$DATA_DIR/.backup-history" 2>/dev/null || true
   fi
   if (( STAMPED )); then
     log "recorded the failure in $DATA_DIR/.backup-last-failure — /api/health will report it"

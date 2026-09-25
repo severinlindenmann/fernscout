@@ -64,7 +64,7 @@ describe("a server that cannot convert a clip", () => {
     vi.resetModules();
     // What `register()` does at boot, and the only thing that may spawn.
     const { videoToolsAvailable } = await import("@/lib/ingest/video");
-    videoToolsAvailable();
+    await videoToolsAvailable();
     const { GET } = await import("@/app/api/health/route");
     const body = (await (await GET(new Request("https://t.test/api/health"))).json()) as {
       media: { videoFormats: string[]; video?: { reason: string } };
@@ -78,7 +78,7 @@ describe("a server that cannot convert a clip", () => {
     hideVideoTools();
     vi.resetModules();
     const { videoToolsAvailable } = await import("@/lib/ingest/video");
-    videoToolsAvailable();
+    await videoToolsAvailable();
     const { skillDoc } = await import("@/lib/api/skillDocs");
     const row = skillDoc("ingest-photos")
       .split("\n")
@@ -96,7 +96,7 @@ describe("a server that cannot convert a clip", () => {
     // has no ffmpeg either — there the case above is the only one there is.
     vi.resetModules();
     const { videoToolsAvailable } = await import("@/lib/ingest/video");
-    if (!videoToolsAvailable()) return;
+    if (!(await videoToolsAvailable())) return;
 
     const { skillDoc } = await import("@/lib/api/skillDocs");
     const row = skillDoc("ingest-photos")
@@ -150,7 +150,7 @@ describe("a server that cannot convert a clip", () => {
     // And the shims really would have left one, so the assertion above is
     // about the callers and not about a broken fixture.
     const { videoToolsAvailable } = await import("@/lib/ingest/video");
-    videoToolsAvailable();
+    await videoToolsAvailable();
     expect(fs.existsSync(trace)).toBe(true);
   });
 

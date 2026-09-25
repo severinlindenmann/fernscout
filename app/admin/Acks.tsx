@@ -32,6 +32,12 @@ export function UnhideButton({ id }: { id: string }) {
   return <Press id={id} action="unhide" label="Unhide" subtle />;
 }
 
+/** Hide an entry for a day. The route fixes the length; it still comes back
+ *  early the moment the entry gets worse. */
+export function SnoozeButton({ id }: { id: string }) {
+  return <Press id={id} action="snooze" label="Snooze a day" />;
+}
+
 function Press({
   id,
   action,
@@ -39,7 +45,7 @@ function Press({
   subtle,
 }: {
   id: string;
-  action: "acknowledge" | "unhide";
+  action: "acknowledge" | "unhide" | "snooze";
   label: string;
   subtle?: boolean;
 }) {
@@ -83,7 +89,7 @@ function Press({
         className={
           subtle
             ? "rounded-full border border-line-quiet bg-surface-raised px-2.5 py-1 text-xs font-semibold text-ink-body hover:bg-surface-subtle"
-            : "rounded-full border border-line-quiet bg-surface-raised px-3 py-1 text-xs font-semibold text-ink-body hover:bg-surface-subtle"
+            : "min-h-10 rounded-xl border border-line-quiet bg-surface-raised px-3 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
         }
       >
         {label}

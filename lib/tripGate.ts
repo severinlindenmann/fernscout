@@ -37,9 +37,10 @@ export async function mayReadTrip(trip: Trip): Promise<boolean> {
    * make true by proving an inbox.
    *
    * A journal's own owner already passed further down, through
-   * `isTravellerOn` — `peopleNamedIn` puts them at the head of every trip's
-   * list. The admin is not on any trip and deliberately never will be (the
-   * digest reads that list), so the question has to be asked here instead.
+   * `isTravellerOn` — `peopleOf` puts them at the head of every trip's
+   * access list. The admin is not on any trip and deliberately never will be
+   * (the digest reads that list), so the question has to be asked here
+   * instead.
    */
   if (await isOwner(trip.username)) return true;
 
@@ -373,8 +374,8 @@ export async function listableTrips(trips: Trip[]): Promise<Trip[]> {
   /**
    * B584. `mayReadTrip` opens every trip in a journal to the journal's owner
    * *and*, since B480, to the instance's admin address; this list knew only
-   * about the first, and only by accident — `peopleNamedIn` puts the owner's
-   * own address at the head of every trip's `people:`, and nothing put the
+   * about the first, and only by accident — `isPersonOnWith` treats the
+   * owner's own address as always on every trip, and nothing put the
    * admin's anywhere. So the admin signed into a journal saw an empty trips
    * page, and `app/[user]/trips/page.tsx` then explained it as `listed:
    * false`, which was not what had happened.

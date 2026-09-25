@@ -30,11 +30,13 @@ export async function register() {
    * so none of them may spawn per request. Asked at boot the answer is
    * cached for the life of the process and each of them reads it for free.
    *
-   * Not fatal and not awaited for its result: no video is a supported way to
-   * run, and this is only about *when* the question gets asked.
+   * Not fatal, and its result is not used here: no video is a supported way
+   * to run, and this is only about *when* the question gets asked. Awaited
+   * only so the answer is in place before the first request, as it was when
+   * the check was a synchronous spawn.
    */
   const { videoToolsAvailable } = await import("./lib/ingest/video");
-  videoToolsAvailable();
+  await videoToolsAvailable();
 
   // A `passwordHash:` left in a trip.md is a line that no longer does
   // anything, on a trip whose owner still believes it is locked.

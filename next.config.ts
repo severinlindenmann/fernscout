@@ -343,6 +343,14 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "private, no-store" },
         ],
       },
+      // B2293. The group link's join code, on the same terms.
+      {
+        source: "/j/:code*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
       // B1087: every /api/v1 route is authenticated and `force-dynamic`, and the
       // auth flows carry codes and session state — none of it belongs in any
       // cache. Pinned here (not just relied on from `force-dynamic`) so a shared

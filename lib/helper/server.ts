@@ -502,10 +502,9 @@ function flat(text: string): string {
  * **Names, never contents.** A contact card is named by its filename — which
  * `handleContactCard` derives from the contact's own name — and nothing
  * else. The email, phone and address inside it stay on disk and are read
- * server-side by the tools that need them (`invite_contact`'s route, and
- * `trip_people`'s `contact` argument), exactly as
- * `app/api/helper/[user]/invite-contact/route.ts`'s own comment insists:
- * an address in the conversation's memory is an address in a prompt.
+ * server-side by the one tool that still addresses a staged card
+ * (`trip_people`'s `contact` argument): an address in the conversation's
+ * memory is an address in a prompt.
  *
  * Empty when the inbox is empty, which is the ordinary case and adds nothing.
  */
@@ -520,9 +519,9 @@ export function describeWaiting(username: string): string {
   const pins = staged.location.length;
   if (pins > 0) parts.push(`${pins} location pin(s)`);
 
-  // Named and with their ids, unlike the counts above: these are what
-  // `invite_contact` and `trip_people` address, and an id the model invents
-  // resolves to nothing here and again in the route.
+  // Named and with their ids, unlike the counts above: this is what
+  // `trip_people` addresses, and an id the model invents resolves to nothing
+  // here and again in the route.
   const contacts = staged.contact.map(
     (entry) => `"${flat(entry.filename.replace(/\.vcf$/i, ""))}" (id ${flat(entry.id)})`,
   );
@@ -531,10 +530,11 @@ export function describeWaiting(username: string): string {
   if (parts.length === 0) return "";
   return (
     `[waiting in this journal's inbox, put there by them and not yet used: ${parts.join("; ")}. ` +
-    `This is what is on disk, not something they said. A contact card can be invited to read the ` +
-    `journal with invite_contact, or added to a trip's byline with trip_people's contact argument — ` +
-    `either reads the address off the card itself, so never ask them to retype what a card already ` +
-    `carries, and never guess at what is inside one.]`
+    `This is what is on disk, not something they said. A contact card can be named on a trip's ` +
+    `byline with trip_people's contact argument, which reads the address off the card itself — ` +
+    `never ask them to retype what a card already carries, and never guess at what is inside one. ` +
+    `Letting somebody read this journal is not something you can do at all: point them to Studio › ` +
+    `Readers with invite_to_read.]`
   );
 }
 

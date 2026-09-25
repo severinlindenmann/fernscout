@@ -29,25 +29,11 @@ function v2Params(issue: unknown): { v2?: unknown; toDecline?: unknown } {
   return ((issue as { params?: unknown }).params ?? {}) as { v2?: unknown; toDecline?: unknown };
 }
 
-/**
- * B1649 — a declinable that names no real property of the document at all.
- * `buddies` is the only one today: there is no `buddies` field on a trip to
- * bring inline (a buddy is added through `POST .../invites`), so `field in
- * shape` below is false for it and `to_provide` was simply absent — which
- * read exactly like every OTHER row, where an absent `to_provide` means
- * only "this field's shape could not be generated", not "this is not a
- * field at all, go somewhere else". This is the one thing the missing-list
- * can say about a section like that: which door actually answers it,
- * filling the same `to_provide` slot every other row uses rather than
- * inventing a second one the schema (frozen) does not describe.
- */
-const ANSWERED_ELSEWHERE: Record<string, { method: string; path: string; body: Record<string, unknown> }> = {
-  buddies: {
-    method: "POST",
-    path: "/api/v2/{user}/invites",
-    body: { kind: "buddy", trip: "<this trip's id>", name: "<full name>", email: "<email>" },
-  },
-};
+// B1649 built `ANSWERED_ELSEWHERE` here for one declinable that named no
+// real property of the document — `buddies`, added through the agent bearer
+// invites door. B2297 (with B2295) retired both: `people:` is the byline
+// only, a buddy is granted only from Studio › Readers, and there is nothing
+// left for a "which door answers this section" pointer to name.
 
 /**
  * Every issue `checkRequiredOrDeclined` raised (`params.v2 === "missing"`),
@@ -94,8 +80,6 @@ export function incompleteFrom(
     };
     if (field in shape) {
       row.to_provide = z.toJSONSchema(shape[field], { io: "input", unrepresentable: "any" });
-    } else if (field in ANSWERED_ELSEWHERE) {
-      row.to_provide = ANSWERED_ELSEWHERE[field];
     }
     missing.push(row);
   }

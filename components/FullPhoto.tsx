@@ -3,6 +3,7 @@
 import { MEDIA_WIDTHS, POSTER_WIDTH } from "@/lib/mediaSizes";
 import { posterSrc } from "./mediaLoader";
 import type { GalleryItem } from "@/lib/types";
+import { usePhotoReveal } from "./PhotoFrame";
 
 /**
  * The picture inside an open viewer, at whatever size the browser wants.
@@ -32,6 +33,10 @@ import type { GalleryItem } from "@/lib/types";
  * the demo content ships would be rasterised for nothing.
  */
 export default function FullPhoto({ item }: { item: GalleryItem }) {
+  // Called before the video return below, so both branches keep one hook
+  // order; the video simply never spreads it.
+  const { frame, img } = usePhotoReveal();
+
   if (item.type === "video") {
     // The still frame, sized, holds the viewer until the clip's first frame
     // paints — the same frame the grid tile showed, rather than a black box.
@@ -68,28 +73,40 @@ export default function FullPhoto({ item }: { item: GalleryItem }) {
   // real browser to see, because it is invisible on a phone — there is no
   // native drag from a finger — and it is the whole gesture on a laptop.
 
+  // The original can be several megabytes on a phone, and until it arrives
+  // the viewer was an empty dark screen. The frame holds a little height and
+  // a spinner while `data-loading` is set (`.fs-photo-full`), and the picture
+  // fades in over it — `usePhotoReveal` in PhotoFrame.tsx says when. The
+  // Lightbox remounts this per photograph (`key={index}`), so each one starts
+  // its own wait.
   if (!resizable(item.src)) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={item.src} alt={alt} {...box} decoding="async" className={className} draggable={false} />;
+    return (
+      <span className="fs-photo fs-photo-full relative block" {...frame}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img {...img} src={item.src} alt={alt} {...box} decoding="async" className={className} draggable={false} />
+      </span>
+    );
   }
 
   return (
-    <picture>
-      <source
-        type="image/webp"
-        srcSet={MEDIA_WIDTHS.map((w) => `${item.src}?w=${w} ${w}w`).join(", ")}
-        // The frame is `w-full max-w-4xl` inside a viewer padded by 4 — 896px
-        // at the widest, the viewport below that. The browser multiplies by
-        // its own pixel ratio before it picks.
-        sizes="(max-width: 896px) 100vw, 896px"
-      />
-      {/* The original, for a browser with no WebP — and the element every
-          other attribute hangs off, since a `<source>` renders nothing. No
-          eslint exception needed for this one: `no-img-element` is about
-          reaching for `<img>` instead of `next/image`, and an `<img>` inside a
-          `<picture>` is the only thing that element can contain. */}
-      <img src={item.src} alt={alt} {...box} decoding="async" className={className} draggable={false} />
-    </picture>
+    <span className="fs-photo fs-photo-full relative block" {...frame}>
+      <picture>
+        <source
+          type="image/webp"
+          srcSet={MEDIA_WIDTHS.map((w) => `${item.src}?w=${w} ${w}w`).join(", ")}
+          // The frame is `w-full max-w-4xl` inside a viewer padded by 4 — 896px
+          // at the widest, the viewport below that. The browser multiplies by
+          // its own pixel ratio before it picks.
+          sizes="(max-width: 896px) 100vw, 896px"
+        />
+        {/* The original, for a browser with no WebP — and the element every
+            other attribute hangs off, since a `<source>` renders nothing. No
+            eslint exception needed for this one: `no-img-element` is about
+            reaching for `<img>` instead of `next/image`, and an `<img>` inside a
+            `<picture>` is the only thing that element can contain. */}
+        <img {...img} src={item.src} alt={alt} {...box} decoding="async" className={className} draggable={false} />
+      </picture>
+    </span>
   );
 }
 

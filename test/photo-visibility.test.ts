@@ -288,6 +288,32 @@ async function addApprovedContact(email: string) {
   await approveContact(OWNER, contact.id);
 }
 
+/** Grants a real `trip_people` place — the only thing that puts a closed
+ *  trip's photographs on an address since D3 (B2297); a bare `people:`
+ *  entry (unavoidably still on every trip here, for the byline) grants
+ *  nothing. */
+async function addTripPlace(email: string, tripId: string) {
+  const { approveContact, confirmContactByOwner, listContacts, requestContact } = await import(
+    "@/lib/contacts"
+  );
+  const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+  await requestContact(OWNER, {
+    name: "Robin",
+    email,
+    locale: "en",
+    address: null,
+    wantsEmailDigest: false,
+    wantsPostcard: false,
+    createdVia: "owner-grant",
+  });
+  const contact = (await listContacts(OWNER)).find((c) => c.email === email);
+  if (!contact) throw new Error(`no contact for ${email}`);
+  await confirmContactByOwner(OWNER, contact.id);
+  await approveContact(OWNER, contact.id);
+  await claimTripPlace(OWNER, tripId, contact.id, null);
+  await approveTripPlaces(OWNER, contact.id);
+}
+
 function as(viewer: string) {
   jar.cookies = {};
   const token = tokens[viewer];
@@ -311,6 +337,9 @@ beforeAll(async () => {
   writeV2FolderTrip();
 
   await addApprovedContact(GUEST);
+  for (const tripId of [...TRIPS.map((t) => t.id), CLIP_TRIP, V2_TRIP]) {
+    await addTripPlace(ROBIN, tripId);
+  }
   tokens.owner = await signIn(OWNER_EMAIL);
   tokens.guest = await signIn(GUEST);
   tokens.traveller = await signIn(ROBIN);

@@ -92,6 +92,7 @@ export default function InboxTile({
   thumbSrc,
   hasThumbFailed,
   onThumbError,
+  arriveIndex,
 }: {
   username: string;
   row: InboxRow;
@@ -104,6 +105,11 @@ export default function InboxTile({
   thumbSrc: (row: InboxRow, width: number) => string;
   hasThumbFailed: boolean;
   onThumbError: () => void;
+  /** B2325 — this row's position in its group on first paint; see
+   *  `GroupCard`'s own doc comment in `StudioHub.tsx` for why re-render is
+   *  safe (`rows` is keyed by `keyOf`, so a move/delete elsewhere does not
+   *  remount the rows that stay). */
+  arriveIndex: number;
 }) {
   const { t, tn, formatShortDate } = useI18n();
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -123,7 +129,10 @@ export default function InboxTile({
   const action = "flex min-h-11 items-center gap-1.5 rounded-lg border border-line-strong px-3 text-sm font-semibold text-ink-strong";
 
   return (
-    <li className="relative rounded-xl border border-line-quiet bg-surface-raised p-3">
+    <li
+      className="fs-arrive relative rounded-xl border border-line-quiet bg-surface-raised p-3"
+      style={{ "--i": arriveIndex } as React.CSSProperties}
+    >
       <label className="flex cursor-pointer items-start gap-3">
         <input
           type="checkbox"

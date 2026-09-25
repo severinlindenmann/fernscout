@@ -437,7 +437,7 @@ export async function storeUploads(
   // Video needs ffmpeg, which is the one thing here that is not an npm
   // dependency. Absent rather than broken: if it is not installed, say so
   // rather than failing at the transcode with a stack trace.
-  if (candidates.some((c) => c.kind === "video") && !videoToolsAvailable()) {
+  if (candidates.some((c) => c.kind === "video") && !(await videoToolsAvailable())) {
     problems.push({
       field: "files",
       got: "a video, on a server with no ffmpeg",
@@ -574,7 +574,7 @@ async function writeUploads(
         // metadata. `transcodeVideo` is the same one ingest uses — h264 in an
         // MP4, faststart, metadata dropped — so both doors produce the same
         // thing.
-        const probe = probeVideo(kept);
+        const probe = await probeVideo(kept);
         if (!probe) {
           return abandon([
             {
@@ -596,7 +596,7 @@ async function writeUploads(
 
         const name = `${stem}.mp4`;
         const poster = `${stem}-poster.jpg`;
-        const result = transcodeVideo(kept, path.join(staging, name), {
+        const result = await transcodeVideo(kept, path.join(staging, name), {
           maxSeconds: limits.videoSeconds,
         });
         fs.writeFileSync(path.join(staging, poster), result.poster);

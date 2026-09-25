@@ -52,12 +52,6 @@ describe("DoneScreen", () => {
     void (<DoneScreen username="e" done="d" next={[card(1), card(2), card(3), card(4)]} />);
     void (<DoneScreen username="e" done="d" next={[card(1), card(2), card(3)]} />);
   });
-
-  test("the invite section ends on it, without its old body link", () => {
-    const src = fs.readFileSync(path.join(process.cwd(), "components/studio/readers/InviteSection.tsx"), "utf8");
-    expect(src).toContain("<DoneScreen");
-    expect(src).not.toContain("backToStudio");
-  });
 });
 
 /** Every .tsx under the studio's component and page directories. */

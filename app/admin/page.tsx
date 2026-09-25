@@ -1,19 +1,21 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AckButton, UnhideButton } from "./Acks";
+import { AckButton, SnoozeButton, UnhideButton } from "./Acks";
 import Invites from "./Invites";
 import AdminGrant from "@paid/credits/routes/admin/AdminGrant";
 import AdminRefund from "@paid/credits/routes/admin/AdminRefund";
-import Console from "./Console";
 import Journals from "./Journals";
+import MessageOwner from "./MessageOwner";
 import ReleaseName from "./ReleaseName";
-import SmsSend from "./SmsSend";
+import Shell, { type Section } from "./Shell";
+import SmsThreads from "./SmsThreads";
 import SpendChart from "./SpendChart";
-import { BarChart, Breakdown, CountBars, Meter, type Week } from "./Charts";
+import { BarChart, Breakdown, CountBars, Meter, Sparkline, type Week } from "./Charts";
+import { activityFeed, type FeedEntry } from "@/lib/adminActivity";
 import { applyAcks, listAcks, sweepAcks, type Ack } from "@/lib/adminAcks";
 import { inviteOnly, listInvites } from "@/lib/inviteList";
 import { isInstanceAdmin } from "@/lib/adminGate";
+import { readBackupHistory, readBackupRuns, type BackupNight, type NightOutcome } from "@/lib/backupStatus";
 import { isEnabled } from "@/lib/capabilities";
 import { listSms } from "@/lib/sms/store";
 import { creditsEnabled } from "@/lib/credits";
@@ -65,25 +67,35 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** How far back the page looks. Thirty days rather than a calendar month
- *  because a bill is read on whatever day somebody wonders, and "the last
- *  thirty days" needs no explanation of what happens on the 31st. */
-const WINDOW_DAYS = 30;
-
-/** What the chart holds, so its 7 · 30 · 90 switch needs no round trip, and
- *  what the tiles compare against — thirty days beside the thirty before. */
-const CHART_DAYS = 90;
+/** The periods the header offers, and the one a bare `/admin` shows. Thirty
+ *  days rather than a calendar month because a bill is read on whatever day
+ *  somebody wonders, and "the last thirty days" needs no explanation of what
+ *  happens on the 31st. Anything else in `?days=` is the default, not an
+ *  error: it is a bookmark, not an API. */
+const PERIODS = [7, 30, 90];
+const DEFAULT_DAYS = 30;
 
 /** How far back the weekly counts look. Twelve is a quarter, which is long
  *  enough for a trend and short enough to draw on a phone. */
 const WEEKS = 12;
+
+/** How far back the funnel cohorts. A quarter, whatever period is showing:
+ *  a week is too short for anybody to have got through. */
+const COHORT_DAYS = 90;
+
+/** How many nights of backups the Instance section draws. */
+const NIGHTS = 14;
+
+/** One card's frame, so every section's cards are the same object. */
+const CARD = "rounded-3xl border border-line-quiet bg-surface-raised p-5";
 
 function ago(days: number): string {
   return new Date(Date.now() - days * 86_400_000).toISOString();
 }
 
 /**
- * The operator's console — B746, rebuilt by B996.
+ * The operator's console — B746, rebuilt by B996, reframed as a sidebar of
+ * seven sections.
  *
  * **404 for everybody who is not the operator, including when there is no
  * operator.** `FERNSCOUT_ADMIN_EMAIL` unset means `isInstanceAdmin` is false
@@ -92,26 +104,26 @@ function ago(days: number): string {
  * makes. `notFound()` rather than a 403: a page that says "forbidden" has told
  * a stranger the operator dashboard is at this address.
  *
- * ## What changed, and why it is not just a rearrangement
+ * ## The shape
  *
- * B746 answered one question — what did this cost — and answered it at length:
- * a total, three charts, and four lists that printed every priced line. An
- * operator opens this on a phone, standing somewhere else, and has three
- * questions rather than one: **is anybody waiting on me**, **what is this
- * costing me**, and **is anything broken**. The third was not on the page at
- * all; `/api/health` has known it since B234 and only the deploy script ever
- * read it.
+ * An operator opens this with three questions — **is anybody waiting on me**,
+ * **what is this costing me**, and **is anything broken** — and B996's three
+ * tabs answered them one each. The page has since grown a fourth and fifth
+ * (who is here, what did the SMS number receive) and a sixth (what happened
+ * lately), so it is a sidebar now (`Shell`), with **Overview** first: the
+ * queue of people waiting, the health of the instance and the money, each at a
+ * glance, and each linking to the section that holds the rest.
  *
- * So: the queue stands above everything and outside the tabs, because it is
- * the only thing here that is a person rather than a number. The rest is three
- * tabs, each one screen. The four printed lists are folded behind the bars that
- * summarise them — nothing is lost and the page is a quarter of the length.
+ * The period (`?days=7|30|90`) is the page's, not a chart's: every figure is
+ * computed for it on the server, and the chart draws the same window.
  *
  * ## Every number is still measured
  *
  * Unpriced usage says *not priced* rather than showing a zero, and the total
  * is a floor rather than an invoice. That rule is `lib/instanceCosts.ts`'s and
- * no chart here is worth breaking it for.
+ * no chart here is worth breaking it for. The activity feed is read back out
+ * of records other things already keep (`lib/adminActivity.ts`) and invents
+ * no event of its own.
  *
  * ## Nothing here grants credits
  *
@@ -119,11 +131,17 @@ function ago(days: number): string {
  * HTTP raises a balance. The grant form in a journal's panel files a request
  * and causes a mail, and the single-use link in that mailbox is what credits.
  */
-export default async function AdminPage() {
+export default async function AdminPage({ searchParams }: PageProps<"/admin">) {
   if (!(await isInstanceAdmin())) notFound();
 
-  const siteName = serverSite().name;
-  const from = ago(WINDOW_DAYS);
+  const asked = Number((await searchParams).days);
+  const days = PERIODS.includes(asked) ? asked : DEFAULT_DAYS;
+  // The chart holds twice the period (at least a quarter), so the tiles can
+  // compare this period with the one before it without a second query.
+  const chartDays = Math.max(COHORT_DAYS, days * 2);
+
+  const site = serverSite();
+  const from = ago(days);
 
   const [
     data,
@@ -132,10 +150,10 @@ export default async function AdminPage() {
     { report, measuredAt },
     healthNow,
     troubleRows,
-    paidTwoMonths,
+    paidTwice,
     byReason,
     purchases,
-    days,
+    weeksOfDays,
     sends,
     signups,
     helper,
@@ -143,12 +161,12 @@ export default async function AdminPage() {
     invites,
   ] = await Promise.all([
     dashboard(from),
-    dailyCosts(ago(CHART_DAYS), CHART_DAYS),
-    journalDaily(from, WINDOW_DAYS),
+    dailyCosts(ago(chartDays), chartDays),
+    journalDaily(from, days),
     snapshot(),
     health(),
     troubles(from),
-    paymentsPaidSince(ago(WINDOW_DAYS * 2)),
+    paymentsPaidSince(ago(days * 2)),
     spendByReasonAll(),
     paymentsByOwner(),
     Promise.resolve(daysByWeek(WEEKS)),
@@ -160,7 +178,8 @@ export default async function AdminPage() {
   ]);
 
   const metered = creditsEnabled();
-  // B1316 — the SMS tab's own reads. `listSms` is empty with no database,
+  const costs = loadServerConfig().costs;
+  // B1316 — the SMS section's own reads. `listSms` is empty with no database,
   // so a checkout with neither capability shows an explained-empty panel.
   const smsOn = isEnabled("sms");
   const smsInboundOn = isEnabled("smsInbound");
@@ -169,6 +188,7 @@ export default async function AdminPage() {
   const stones = allTombstones();
   const byName = new Map(report.journals.map((row) => [row.username, row]));
   const ceiling = loadServerConfig().media.perUserBytes;
+  const nights = readBackupHistory(NIGHTS);
 
   // Who has written what, and when they last touched it — B1181. Outside the
   // five-minute snapshot deliberately: see `journalActivity`.
@@ -177,7 +197,7 @@ export default async function AdminPage() {
     arrivals,
     activity,
     Object.fromEntries(report.journals.map((row) => [row.username, row.days])),
-    CHART_DAYS,
+    COHORT_DAYS,
   );
 
   const raised = attention({
@@ -196,230 +216,290 @@ export default async function AdminPage() {
   await sweepAcks(raised, await listAcks());
   const acks = await listAcks();
   const { shown: needs, hidden } = applyAcks(raised, acks);
-  // The Instance tab's badge counts what is wrong with the instance, so it is
-  // the faults and the backups and not the whole band — and it counts the ones
-  // still standing, since a fault the operator has answered is not a thing to
-  // put a red dot on a tab for.
+  // The Instance badge counts what is wrong with the instance — the faults and
+  // the backups still standing, not the whole band.
   const alerts = needs.filter((one) => one.kind === "fault" || one.kind === "backup").length;
 
+  const feed = activityFeed(
+    {
+      // Only journals that exist: the identity table also holds rows that
+      // belong to no journal (the operator's own sign-in among them).
+      signups: arrivals
+        ? Object.fromEntries(Object.entries(arrivals).filter(([name]) => byName.has(name)))
+        : null,
+      payments: Object.values(purchases).flat(),
+      wrote: Object.fromEntries(Object.entries(activity).map(([name, one]) => [name, one.lastWroteAt])),
+      backups: readBackupRuns() ?? [],
+      acks,
+      troubles: troubleRows,
+      sms: smsMessages,
+      tombstones: stones,
+    },
+    from,
+  );
+
+  const deployed = `${healthNow.commit?.slice(0, 7) ?? "unknown"} · up ${Math.round(healthNow.uptimeSeconds / 3600)}h`;
+  const smsIn = smsMessages.filter((one) => one.direction === "in" && one.createdAt >= from).length;
+
+  const sections: Section[] = [
+    {
+      id: "overview",
+      label: "Overview",
+      icon: "overview",
+      lede: `Who is waiting, whether anything is wrong, and what the last ${days} days cost.`,
+      badge: needs.length,
+      badgeTone: "alert",
+      primary: true,
+      panel: (
+        <>
+          <div className="mt-6 grid gap-5 lg:grid-cols-3">
+            {/* First on the page, above the money, because everything in it
+                is somebody waiting rather than a number to read. B774 put the
+                purchase queue here; B1181 put the other four kinds of waiting
+                beside it. */}
+            <div className="lg:col-span-2">
+              <NeedsYou items={needs} hidden={hidden} acks={acks} health={healthNow} />
+            </div>
+            <HealthSummary health={healthNow} troubles={troubleRows} />
+          </div>
+          <Verdict data={data} daily={daily} paid={paidTwice} days={days} activity={activity} journals={report.journals.length} helper={helper} />
+          <div className="mt-5 grid gap-5 lg:grid-cols-3">
+            <div className={`${CARD} lg:col-span-2`}>
+              <SpendChart days={daily} span={days} alertRappen={costs.alertDailyRappen} />
+              <p className="mt-3 text-sm text-ink-body">
+                The chart is the metered half. The other half is{" "}
+                <span className="font-mono text-ink-strong">
+                  {formatChf(Math.round(fixedRappen(data.fixed) / 30))} a day
+                </span>{" "}
+                fixed — owed whether anybody writes a day or not, counted in the figures above and
+                stated rather than drawn, since drawn it would flatten every real movement.
+                {costs.alertDailyRappen > 0
+                  ? " The dashed line is costs.alertDailyRappen: a day above it is mailed to you the next night."
+                  : " Set costs.alertDailyRappen to draw an alert line and be mailed about a day over it."}
+              </p>
+            </div>
+            <WhereItGoes data={data} />
+          </div>
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <Units data={data} activity={activity} helper={helper} journals={report.journals.length} days={days} />
+            <Feed entries={feed.slice(0, 8)} more={feed.length > 8} />
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "money",
+      label: "Money",
+      icon: "money",
+      lede: `Where the last ${days} days went, and what came in.`,
+      primary: true,
+      panel: (
+        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          <section className={CARD}>
+            <h2 className="font-display text-lg font-semibold text-ink-strong">Where it goes</h2>
+            <p className="mt-1 text-sm text-ink-body">
+              The last {days} days. Open a bar for the lines behind it.
+            </p>
+            <Breakdown
+              groups={[
+                {
+                  label: "Fixed",
+                  lines: data.fixed,
+                  note: "Owed whether anybody writes a day or not.",
+                },
+                {
+                  label: "Models and speech",
+                  lines: data.providers,
+                  note: "Tokens and audio seconds as the providers measured them, priced from costs in site/config.json.",
+                },
+                {
+                  label: "Print",
+                  lines: data.print,
+                  note: "What the printer actually charged, taken from the order itself rather than from a price list.",
+                },
+                {
+                  label: "Sent to readers",
+                  lines: data.sends,
+                  note: "Counted, not priced. WhatsApp is billed by Meta per conversation and per country; email through the mailbox costs nothing per message, and push notifications cost nothing at all.",
+                },
+              ]}
+            />
+          </section>
+          <div className="space-y-5">
+            <div className={CARD}>
+              <SpentOn operations={data.operations} />
+            </div>
+            <div className={CARD}>
+              <TakingsPanel money={money} paid={data.paid} days={days} />
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "journals",
+      label: "Journals",
+      icon: "journals",
+      lede: "Who is writing, who has gone quiet, and what each journal holds.",
+      badge: report.journals.length,
+      badgeTone: "count",
+      primary: true,
+      panel: (
+        <>
+          {!metered ? (
+            <p className="mt-4 text-sm text-ink-body">
+              Credits are switched off on this instance, so there are no balances to show.
+            </p>
+          ) : null}
+          {/* The rows, their search, filters and sort live in `Journals`;
+              what is behind one is rendered here, on the server, and handed
+              over as the panel that opens. Every query that feeds those
+              panels is instance-wide and made once — see `spendByReasonAll`. */}
+          <Journals
+            days={days}
+            rows={data.journals.map((journal) => {
+              const status = byName.get(journal.username);
+              return {
+                username: journal.username,
+                rappen: journal.rappen,
+                balance: journal.balance,
+                spent: journal.spent,
+                granted: journal.granted,
+                series: series[journal.username],
+                lastWroteAt: activity[journal.username]?.lastWroteAt ?? null,
+                disk: `${formatBytes(status?.bytes ?? 0)}${ceiling ? ` of ${formatBytes(ceiling)}` : ""}`,
+                full: ceiling ? (status?.bytes ?? 0) / ceiling : null,
+                trips: status?.trips,
+                days: status?.days,
+                drafts: status?.drafts,
+                readers: status?.contacts,
+                panel: (
+                  <JournalPanel
+                    username={journal.username}
+                    status={status}
+                    ceiling={ceiling}
+                    reasons={byReason[journal.username] ?? []}
+                    payments={purchases[journal.username] ?? []}
+                    helper={helper.find((one) => one.owner === journal.username)}
+                  />
+                ),
+              };
+            })}
+          />
+          <p className="mt-3 text-sm text-ink-body">
+            {formatBytes(report.journals.reduce((sum, row) => sum + row.bytes, 0))} across{" "}
+            {report.journals.length} {report.journals.length === 1 ? "journal" : "journals"} · measured{" "}
+            {new Date(measuredAt).toISOString().slice(11, 16)} UTC. Walking the whole of content/ is the
+            slowest thing this page can do, so it is held for five minutes.
+          </p>
+        </>
+      ),
+    },
+    {
+      // Renamed from `journals` by B1181 and split again: invites, the funnel
+      // and the helper are the question of who arrives and whether they get
+      // anywhere; the list of journals is its own section now.
+      id: "people",
+      label: "People",
+      icon: "people",
+      lede: "Who may sign up, how far the people who arrive get, and how the helper is doing.",
+      panel: (
+        <div className="mt-6 grid gap-5 lg:grid-cols-2">
+          <div className={CARD}>
+            <Invites inviteOnly={inviteOnly()} initial={invites} />
+          </div>
+          <div className={CARD}>
+            <Funnel steps={steps} signups={signups} />
+          </div>
+          <div className={`${CARD} lg:col-span-2`}>
+            <HelperSummary stats={helper} days={days} />
+          </div>
+        </div>
+      ),
+    },
+    {
+      // B1316 — the instance's own SMS number, as conversations now. The
+      // send posts to /api/admin/sms.
+      id: "messages",
+      label: "Messages",
+      icon: "messages",
+      lede: "What arrived at the instance's SMS number, and what was sent from it.",
+      badge: smsIn,
+      badgeTone: "count",
+      panel: (
+        <div className="mt-6">
+          {!smsInboundOn ? (
+            <p className="mb-3 text-sm text-ink-body">
+              Receiving is switched off (features.smsInbound) — /api/health says what it needs.
+              Nothing arriving at the number lands here until it is on and the Twilio webhook points
+              at /api/webhooks/twilio.
+            </p>
+          ) : null}
+          <SmsThreads
+            rows={smsMessages.map((sms) => ({
+              id: sms.id,
+              direction: sms.direction,
+              from: sms.from,
+              to: sms.to,
+              body: sms.body,
+              dryRun: sms.direction === "out" && !sms.providerSid,
+              createdAt: sms.createdAt,
+            }))}
+            canSend={smsOn}
+            sendNote="Sending is switched off (features.sms) — /api/health says what it needs."
+          />
+        </div>
+      ),
+    },
+    {
+      id: "instance",
+      label: "Instance",
+      icon: "instance",
+      lede: "Backups, faults, what is switched on, and what the instance did.",
+      badge: alerts,
+      badgeTone: "alert",
+      primary: true,
+      panel: (
+        <>
+          <div className="mt-6 grid gap-5 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <BackupPanel backup={healthNow.backup} nights={nights} />
+            </div>
+            <Faults health={healthNow} troubles={troubleRows} />
+          </div>
+          <Capabilities health={healthNow} />
+          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+            <div className={CARD}>
+              <WhatItDid days={weeksOfDays} sends={sends} print={data.print} window={days} />
+            </div>
+            <div className={CARD}>
+              <Roster report={report} stones={stones} />
+            </div>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "activity",
+      label: "Activity",
+      icon: "activity",
+      lede: `What happened in the last ${days} days, newest first, read back from the records themselves.`,
+      panel: (
+        <div className="mt-6">
+          <Feed entries={feed} full />
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <main className="mx-auto max-w-4xl px-4 pb-24 pt-10 sm:pb-16 sm:pt-16">
-      {/* The way back. `/admin` is reached from the landing page and is not in
-          any navigation, so without this the only exit is the browser's own
-          back button — and a page opened from a mailed link has no history to
-          go back through. */}
-      <Link href="/" className="text-sm font-semibold text-ink-body underline">
-        ← {siteName}
-      </Link>
-      <h1 className="mt-3 font-display text-3xl font-semibold text-ink-strong sm:text-4xl">
-        Operator
-      </h1>
-
-      {/* First on the page, above the money and outside the tabs, because
-          everything in it is somebody waiting rather than a number to read.
-          B774 put the purchase queue here; B1181 put the other four kinds of
-          waiting beside it, since a queue whose length you cannot see is the
-          thing this position exists to fix. */}
-      <NeedsYou items={needs} hidden={hidden} acks={acks} health={healthNow} />
-
-      <Console
-        tabs={[
-          {
-            id: "money",
-            label: "Money",
-            panel: (
-              <>
-                <Verdict data={data} daily={daily} paid={paidTwoMonths} />
-                <SpendChart days={daily} />
-                <p className="mt-2 text-sm text-ink-body">
-                  The chart is the metered half. The other half is{" "}
-                  <span className="font-mono text-ink-strong">
-                    {formatChf(Math.round(fixedRappen(data.fixed) / 30))} a day
-                  </span>{" "}
-                  fixed — the server, the domain, the mailbox — owed whether anybody writes a day
-                  or not, and counted in the figures above. It is stated rather than drawn: it is
-                  most of this bill and identical every day, so a chart holding it would divide
-                  every real movement into a rounding error.
-                </p>
-                <Units
-                  data={data}
-                  activity={activity}
-                  helper={helper}
-                  journals={report.journals.length}
-                />
-                <section className="mt-8">
-                  <h2 className="font-display text-lg font-semibold text-ink-strong">
-                    Where it goes
-                  </h2>
-                  <p className="mt-1 text-sm text-ink-body">
-                    The last {WINDOW_DAYS} days. Open a bar for the lines behind it.
-                  </p>
-                  <Breakdown
-                    groups={[
-                      {
-                        label: "Fixed",
-                        lines: data.fixed,
-                        note: "Owed whether anybody writes a day or not.",
-                      },
-                      {
-                        label: "Models and speech",
-                        lines: data.providers,
-                        note: "Tokens and audio seconds as the providers measured them, priced from costs in site/config.json.",
-                      },
-                      {
-                        label: "Print",
-                        lines: data.print,
-                        note: "What the printer actually charged, taken from the order itself rather than from a price list.",
-                      },
-                      {
-                        label: "Sent to readers",
-                        lines: data.sends,
-                        note: "Counted, not priced. WhatsApp is billed by Meta per conversation and per country; email through the mailbox costs nothing per message, and push notifications cost nothing at all.",
-                      },
-                    ]}
-                  />
-                </section>
-                <SpentOn operations={data.operations} />
-                <TakingsPanel money={money} paid={data.paid} />
-              </>
-            ),
-          },
-          {
-            // Renamed from `journals` by B1181, hash and all: the tab is no
-            // longer a list of journals but the whole question of who is here
-            // and whether they are getting anywhere. A bookmark to the old
-            // hash lands on the first tab, which is where a bookmark to no
-            // hash has always landed.
-            id: "people",
-            label: "People",
-            panel: (
-              <>
-                <Invites inviteOnly={inviteOnly()} initial={invites} />
-                <Funnel steps={steps} signups={signups} />
-                <HelperSummary stats={helper} />
-                <section className="mt-8">
-                  <h2 className="font-display text-lg font-semibold text-ink-strong">Journals</h2>
-                  <p className="mt-1 text-sm text-ink-body">
-                    When somebody last wrote, from the day file&rsquo;s own timestamp — the only
-                    record of it there is. A restore from backup rewrites every file, so the
-                    morning after a restore drill every journal reads as freshly written.
-                  </p>
-                  {!metered ? (
-                    <p className="mt-1 text-sm text-ink-muted">
-                      Credits are switched off on this instance, so there are no balances to show.
-                    </p>
-                  ) : null}
-                  {/* The rows, their search and their sort live in `Journals`;
-                      what is behind one is rendered here, on the server, and
-                      handed over as the panel that opens. Every query that
-                      feeds those panels is instance-wide and made once — see
-                      `spendByReasonAll` for why. */}
-                  <Journals
-                    rows={data.journals.map((journal) => ({
-                      username: journal.username,
-                      rappen: journal.rappen,
-                      balance: journal.balance,
-                      spent: journal.spent,
-                      granted: journal.granted,
-                      series: series[journal.username],
-                      lastWroteAt: activity[journal.username]?.lastWroteAt ?? null,
-                      disk: `${formatBytes(byName.get(journal.username)?.bytes ?? 0)}${
-                        ceiling ? ` of ${formatBytes(ceiling)}` : ""
-                      }`,
-                      full: ceiling
-                        ? (byName.get(journal.username)?.bytes ?? 0) / ceiling
-                        : null,
-                      panel: (
-                        <JournalPanel
-                          username={journal.username}
-                          status={byName.get(journal.username)}
-                          ceiling={ceiling}
-                          reasons={byReason[journal.username] ?? []}
-                          payments={purchases[journal.username] ?? []}
-                          helper={helper.find((one) => one.owner === journal.username)}
-                        />
-                      ),
-                    }))}
-                  />
-                  <p className="mt-3 text-xs text-ink-muted">
-                    {formatBytes(report.journals.reduce((sum, row) => sum + row.bytes, 0))} across{" "}
-                    {report.journals.length}{" "}
-                    {report.journals.length === 1 ? "journal" : "journals"} · measured{" "}
-                    {new Date(measuredAt).toISOString().slice(11, 16)} UTC. Walking the whole of
-                    content/ is the slowest thing this page can do, so it is held for five
-                    minutes.
-                  </p>
-                </section>
-              </>
-            ),
-          },
-          {
-            // B1316 — the instance's own SMS number: what arrived, what was
-            // sent, and a form to send one. Server-rendered like every other
-            // panel; the send posts to /api/admin/sms.
-            id: "sms",
-            label: "SMS",
-            panel: (
-              <>
-                <section className="mt-2">
-                  <h2 className="font-display text-lg font-semibold text-ink-strong">Messages</h2>
-                  {!smsInboundOn && (
-                    <p className="mt-1 text-sm text-ink-body">
-                      Receiving is switched off (features.smsInbound) — /api/health says what it
-                      needs. Nothing arriving at the number lands here until it is on and the
-                      Twilio webhook points at /api/webhooks/twilio.
-                    </p>
-                  )}
-                  {smsMessages.length === 0 ? (
-                    <p className="mt-2 text-sm text-ink-muted">No messages yet.</p>
-                  ) : (
-                    <ul className="mt-3 space-y-3">
-                      {smsMessages.map((sms) => (
-                        <li key={sms.id} className="rounded-xl border border-line-quiet bg-surface-base p-3">
-                          <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary">
-                            {sms.direction === "in"
-                              ? `from +${sms.from}`
-                              : `from +${sms.from} to +${sms.to}`}{" "}
-                            ·{" "}
-                            {sms.createdAt.slice(0, 16).replace("T", " ")} UTC
-                            {sms.direction === "out" && !sms.providerSid ? " · dry-run" : ""}
-                          </p>
-                          <p className="mt-1 whitespace-pre-wrap break-words text-base leading-7 text-ink-strong">
-                            {sms.body}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-                <section className="mt-8">
-                  <h2 className="font-display text-lg font-semibold text-ink-strong">Send one</h2>
-                  {smsOn ? (
-                    <SmsSend />
-                  ) : (
-                    <p className="mt-1 text-sm text-ink-body">
-                      Sending is switched off (features.sms) — /api/health says what it needs.
-                    </p>
-                  )}
-                </section>
-              </>
-            ),
-          },
-          {
-            id: "instance",
-            label: "Instance",
-            badge: alerts,
-            panel: (
-              <>
-                <HealthCard health={healthNow} troubles={troubleRows} />
-                <WhatItDid days={days} sends={sends} print={data.print} />
-                <Roster report={report} stones={stones} />
-              </>
-            ),
-          },
-        ]}
-      />
-    </main>
+    <Shell
+      sections={sections}
+      days={days}
+      siteName={site.name}
+      deployed={deployed}
+      journals={report.journals.map((row) => row.username)}
+    />
   );
 }
 
@@ -437,24 +517,40 @@ const KIND_LABEL: Record<Attend["kind"], string> = {
 };
 
 /**
- * Everything that wants a person, above the tabs — B1181, over B774.
+ * Where an entry's fix lives on this page, when it lives here at all. An
+ * approval has none on purpose: see `NeedsYou`.
+ */
+function whereFixed(item: Attend): { href: string; label: string } | null {
+  if (item.kind === "approve") return null;
+  if (item.kind === "disk") {
+    const name = item.id.slice("disk:".length);
+    return { href: `#journals/${encodeURIComponent(name)}`, label: "Open journal" };
+  }
+  if (item.kind === "credits") return { href: "#journals", label: "See journals" };
+  return { href: "#instance", label: item.kind === "backup" ? "See backups" : "See instance" };
+}
+
+/**
+ * Everything that wants a person, first on Overview — B1181, over B774.
  *
- * **It shows, and it cannot act.** The purchase half was true of B774's queue
- * and is true of all five kinds now: approval spends a single-use token that
+ * **It shows, and it cannot approve.** Approval spends a single-use token that
  * was mailed to the operator, and `lib/credits.ts`'s property 1 is that
  * nothing reachable over HTTP raises a balance. Rendering that token here
  * would put a balance-raising credential into a browser tab, a screenshot and
  * a scrollback — exactly what B425 avoided by putting it in a mailbox — so it
- * is not selected by the query that feeds this, and there is no button.
+ * is not selected by the query that feeds this, and the entry says where the
+ * link is instead of carrying a button. Every other kind links to the section
+ * where its fix is.
  *
- * Empty is the ordinary state, says so, and carries the quiet facts. A band
+ * **Acknowledge and snooze both hide, and neither fixes anything.** An
+ * acknowledgement holds until the entry gets worse or goes away; a snooze is
+ * the same for a day (`lib/adminAcks.ts`). The history under the card is the
+ * undo, which is why neither asks for confirmation.
+ *
+ * Empty is the ordinary state, says so, and carries the quiet facts. A card
  * that vanished when there was nothing in it would make *nothing needs you*
  * and *this page is broken* look alike, which is the same trap B1085 left
  * behind when the nightly backup mail stopped.
- *
- * This is the only red on the page. What is red behind a tab is red here too —
- * `HealthCard` still lists a fault on the Instance tab, deliberately, because
- * that card is the standing state of the instance and this is a list of jobs.
  */
 function NeedsYou({
   items,
@@ -470,54 +566,72 @@ function NeedsYou({
 }) {
   const body =
     items.length === 0 ? (
-      <section className="mt-5 rounded-2xl border border-green-700 bg-green-100 p-4">
-        <h2 className="font-display text-lg font-semibold text-green-700">
-          {hidden.length === 0 ? "Nothing needs you." : "Nothing new needs you."}
-        </h2>
-        <p className="mt-1 text-sm text-ink-body">
-          {/* An empty band with three things acknowledged behind it is exactly
-              the ambiguity B1203 is about, and the one B1085 left behind when
-              the nightly success mail stopped: silence and a broken alarm
-              sound alike. So the count is on the quiet line, always. */}
-          {hidden.length > 0
-            ? `${hidden.length} acknowledged and still true. `
-            : ""}
-          Commit {health.commit ?? "unknown"} · up {Math.round(health.uptimeSeconds / 3600)}h
-          {health.backupAgeHours !== null
-            ? ` · backed up ${Math.round(health.backupAgeHours)}h ago`
-            : ""}
-          .
-        </p>
+      <section className="flex items-center gap-4 rounded-3xl border border-green-700 bg-green-100 p-5">
+        <span aria-hidden className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-green-700 text-xl text-on-deep">
+          ✓
+        </span>
+        <div>
+          <h2 className="font-display text-lg font-semibold text-green-700">
+            {hidden.length === 0 ? "Nothing needs you." : "Nothing new needs you."}
+          </h2>
+          <p className="mt-1 text-sm text-ink-body">
+            {/* An empty band with three things acknowledged behind it is
+                exactly the ambiguity B1203 is about: silence and a broken
+                alarm sound alike. So the count is on the quiet line, always. */}
+            {hidden.length > 0 ? `${hidden.length} acknowledged or snoozed and still true. ` : ""}
+            Commit {health.commit ?? "unknown"} · up {Math.round(health.uptimeSeconds / 3600)}h
+            {health.backupAgeHours !== null ? ` · backed up ${Math.round(health.backupAgeHours)}h ago` : ""}.
+          </p>
+        </div>
       </section>
     ) : (
-      <section className="mt-5 overflow-hidden rounded-2xl border border-coral-600 bg-surface-raised">
-        <header className="flex items-center gap-2.5 border-b border-coral-100 bg-coral-50 px-4 py-3">
+      <section className="overflow-hidden rounded-3xl border border-coral-600 bg-surface-raised">
+        <header className="flex flex-wrap items-center gap-2.5 border-b border-coral-100 bg-coral-50 px-5 py-3.5">
           <h2 className="font-display text-lg font-semibold text-coral-600">Needs you</h2>
           <span className="rounded-full bg-coral-600 px-2 py-0.5 font-mono text-xs font-semibold text-on-deep">
             {items.length}
           </span>
+          <span className="ml-auto text-sm text-ink-body">Nothing here can raise a balance.</span>
         </header>
         <ul>
-          {items.map((item) => (
-            <li
-              key={item.id}
-              className="flex flex-wrap items-start gap-x-3.5 gap-y-2 border-t border-line-faint px-4 py-3 first:border-t-0"
-            >
-              <span className="mt-0.5 min-w-[5.5rem] rounded-md border border-line-quiet bg-surface-neutral px-1.5 py-0.5 text-center font-mono text-[0.6875rem] font-semibold uppercase tracking-wide text-ink-secondary">
-                {KIND_LABEL[item.kind]}
-              </span>
-              <span className="min-w-0 flex-1 basis-56">
-                <strong className="break-words font-semibold text-ink-strong">{item.title}</strong>
-                <span className="mt-0.5 block text-sm text-ink-body">{item.detail}</span>
-              </span>
-              <span className="flex shrink-0 items-center gap-3">
-                <span className="font-mono text-xs text-ink-muted">{item.age}</span>
-                {/* It hides and it fixes nothing, which is why the word is
-                    "acknowledge" and not "dismiss" or "done". */}
-                <AckButton id={item.id} label="Acknowledge" />
-              </span>
-            </li>
-          ))}
+          {items.map((item) => {
+            const fix = whereFixed(item);
+            return (
+              <li
+                key={item.id}
+                className="flex flex-wrap items-start gap-x-4 gap-y-3 border-t border-line-faint px-5 py-4 first:border-t-0"
+              >
+                <span className="min-w-0 flex-1 basis-64">
+                  <span className="flex items-baseline gap-2.5">
+                    <span className="font-mono text-[11px] font-semibold uppercase tracking-wide text-ink-secondary">
+                      {KIND_LABEL[item.kind]}
+                    </span>
+                    <span className="font-mono text-xs text-ink-secondary">{item.age}</span>
+                  </span>
+                  <strong className="mt-0.5 block break-words font-semibold text-ink-strong">{item.title}</strong>
+                  <span className="mt-0.5 block text-sm text-ink-body">{item.detail}</span>
+                </span>
+                <span className="flex w-full flex-wrap items-start gap-2 sm:w-auto sm:shrink-0">
+                  {fix ? (
+                    <a
+                      href={fix.href}
+                      className="flex min-h-10 items-center rounded-xl bg-action-strong px-3.5 text-sm font-semibold text-on-action"
+                    >
+                      {fix.label}
+                    </a>
+                  ) : (
+                    <span className="flex min-h-10 items-center rounded-xl bg-surface-neutral px-3 text-sm font-semibold text-ink-secondary">
+                      The link is in your mailbox
+                    </span>
+                  )}
+                  <SnoozeButton id={item.id} />
+                  {/* It hides and it fixes nothing, which is why the word is
+                      "acknowledge" and not "dismiss" or "done". */}
+                  <AckButton id={item.id} label="Acknowledge" />
+                </span>
+              </li>
+            );
+          })}
         </ul>
       </section>
     );
@@ -530,11 +644,190 @@ function NeedsYou({
   );
 }
 
+/**
+ * The standing state of the instance in six lines — beside the queue on
+ * Overview, so "is anything broken" is answered without leaving the page. The
+ * Instance section is where each line is in full.
+ */
+function HealthSummary({ health, troubles }: { health: Health; troubles: Trouble[] }) {
+  const on = health.capabilities.filter((one) => one.state === "on").length;
+  const off = health.capabilities.filter((one) => one.state === "off").length;
+  const faults = health.capabilities.filter((one) => one.state === "fault").length;
+  const lines: { label: string; detail: string; tone: "ok" | "bad" | "quiet" }[] = [
+    {
+      label: "Deployed",
+      detail: `${health.commit?.slice(0, 7) ?? "unknown"} · up ${Math.round(health.uptimeSeconds / 3600)}h`,
+      tone: "ok",
+    },
+    {
+      label: "Backup",
+      detail: `${health.backup.state}${health.backup.ageHours !== null ? ` · ${Math.round(health.backup.ageHours)}h ago` : ""}`,
+      tone: health.backup.state === "ok" ? "ok" : health.backup.state === "unknown" ? "quiet" : "bad",
+    },
+    {
+      label: "Off-site copy",
+      detail: `${health.backup.secondary.state}${
+        health.backup.secondary.ageHours !== null ? ` · ${Math.round(health.backup.secondary.ageHours)}h ago` : ""
+      }`,
+      tone:
+        health.backup.secondary.state === "ok" ? "ok" : health.backup.secondary.state === "unknown" ? "quiet" : "bad",
+    },
+    {
+      label: "Faults",
+      detail: String(health.wrong.length + troubles.length),
+      tone: health.wrong.length + troubles.length === 0 ? "ok" : "bad",
+    },
+    {
+      label: "Capabilities",
+      detail: `${on} on · ${off} off by choice${faults ? ` · ${faults} refused` : ""}`,
+      tone: faults ? "bad" : "quiet",
+    },
+  ];
+  const dot = { ok: "bg-green-700", bad: "bg-coral-600", quiet: "border border-line-prominent bg-surface-raised" };
+  return (
+    <section className={CARD}>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">Health</h2>
+      <ul className="mt-2">
+        {lines.map((line) => (
+          <li key={line.label} className="flex min-h-11 items-center gap-3 border-t border-line-faint">
+            <span aria-hidden className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot[line.tone]}`} />
+            <span className="flex-1 text-sm font-semibold text-ink-strong">{line.label}</span>
+            <span className={`text-right font-mono text-xs ${line.tone === "bad" ? "text-coral-600" : "text-ink-body"}`}>
+              {line.detail}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <a href="#instance" className="mt-3 inline-block text-sm font-semibold text-ink-strong underline">
+        Open instance
+      </a>
+    </section>
+  );
+}
+
+/**
+ * The four groups of the bill as bars, for Overview. The lines behind each
+ * one are on Money, where `Breakdown` opens them.
+ */
+function WhereItGoes({ data }: { data: Awaited<ReturnType<typeof dashboard>> }) {
+  const sum = (lines: CostLine[]) => lines.reduce((total, line) => total + line.rappen, 0);
+  const groups = [
+    { label: "Fixed", rappen: sum(data.fixed), note: "server, domain, mailbox" },
+    { label: "Models and speech", rappen: sum(data.providers), note: "as the providers measured them" },
+    { label: "Print", rappen: sum(data.print), note: "what the printer charged" },
+  ];
+  const max = Math.max(...groups.map((one) => one.rappen), 1);
+  const sent = data.sends.reduce((total, line) => total + line.calls, 0);
+  return (
+    <section className={CARD}>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">Where it goes</h2>
+      <ul className="mt-3 space-y-3.5">
+        {groups.map((group) => (
+          <li key={group.label}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm font-semibold text-ink-strong">{group.label}</span>
+              <span className="font-mono text-sm text-ink-strong">{formatChf(group.rappen)}</span>
+            </div>
+            <Meter fraction={group.rappen / max} />
+            <p className="mt-1 text-xs text-ink-body">{group.note}</p>
+          </li>
+        ))}
+        <li>
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-sm font-semibold text-ink-strong">Sent to readers</span>
+            <span className="font-mono text-sm text-ink-strong">{sent} sent</span>
+          </div>
+          <p className="mt-1 text-xs text-ink-body">counted, not priced</p>
+        </li>
+      </ul>
+      <a href="#money" className="mt-4 inline-block text-sm font-semibold text-ink-strong underline">
+        Every line
+      </a>
+    </section>
+  );
+}
+
+/** The dot beside a feed line: bad news in coral, the rest by what it is. */
+const FEED_DOT: Record<FeedEntry["kind"], string> = {
+  signup: "bg-action-strong",
+  purchase: "bg-green-700",
+  wrote: "bg-sky-500",
+  backup: "bg-green-700",
+  ack: "border border-line-prominent bg-surface-raised",
+  trouble: "bg-coral-600",
+  sms: "bg-sky-500",
+  deleted: "bg-yellow-600",
+};
+
+/**
+ * The activity feed — eight lines on Overview, the whole window on Activity.
+ * Grouped by day on the full view, because a column of timestamps is a thing
+ * to decode and "Tuesday" is not.
+ */
+function Feed({ entries, more, full }: { entries: FeedEntry[]; more?: boolean; full?: boolean }) {
+  const days = new Map<string, FeedEntry[]>();
+  for (const one of entries) {
+    const day = one.at.slice(0, 10);
+    days.set(day, [...(days.get(day) ?? []), one]);
+  }
+  return (
+    <section className={CARD}>
+      {!full ? (
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold text-ink-strong">Activity</h2>
+          {more ? (
+            <a href="#activity" className="text-sm font-semibold text-ink-strong underline">
+              Everything
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+      {entries.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-body">Nothing recorded in this period.</p>
+      ) : (
+        <div className={full ? "" : "mt-2"}>
+          {[...days].map(([day, lines]) => (
+            <div key={day}>
+              {full ? (
+                <h3 className="mt-4 font-mono text-xs font-semibold uppercase tracking-wide text-ink-secondary first:mt-0">
+                  {day}
+                </h3>
+              ) : null}
+              <ol>
+                {lines.map((one, at) => (
+                  <li
+                    key={`${one.at}-${one.kind}-${at}`}
+                    className="flex items-start gap-3 border-t border-line-faint py-2"
+                  >
+                    <span className="w-12 shrink-0 font-mono text-xs text-ink-secondary">
+                      {full ? (one.at.length > 10 ? one.at.slice(11, 16) : "") : one.at.slice(5, 10)}
+                    </span>
+                    <span aria-hidden className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${FEED_DOT[one.kind]}`} />
+                    <span className={`text-sm ${one.alert ? "text-coral-600" : "text-ink-strong"}`}>{one.text}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
+        </div>
+      )}
+      {full ? (
+        <p className="mt-4 text-sm text-ink-body">
+          Read back from the records themselves — signups, payments, day files, the backup history,
+          your own acknowledgements, SMS and tombstones. A day file&rsquo;s timestamp says a journal
+          was written to, not what was written. Times are UTC.
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 /** The words for why an acknowledgement stopped holding. */
 const ENDED_WHY: Record<string, string> = {
   fixed: "no longer raised",
   unhidden: "brought back",
   superseded: "acknowledged again",
+  woke: "snooze ran out",
 };
 
 /**
@@ -554,17 +847,18 @@ function AckHistory({ acks }: { acks: Ack[] }) {
   if (acks.length === 0) return null;
   const holding = acks.filter((one) => one.endedAt === null).length;
   return (
-    <details className="mt-2 rounded-2xl border border-line-quiet bg-surface-raised px-4">
+    <details className="mt-2 rounded-3xl border border-line-quiet bg-surface-raised px-5">
       <summary className="cursor-pointer list-none py-3 text-sm font-semibold text-ink-body">
-        Show history · {holding} still hidden of {acks.length} acknowledged
+        Show history · {holding} still hidden of {acks.length} acknowledged or snoozed
       </summary>
       <ul className="divide-y divide-line-faint border-t border-line-faint pb-2">
         {acks.map((one) => (
           <li key={one.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2.5">
             <span className="min-w-0 flex-1 basis-48">
               <span className="break-words font-mono text-sm text-ink-strong">{one.entryId}</span>
-              <span className="mt-0.5 block text-xs text-ink-muted">
-                acknowledged {one.ackedAt.slice(0, 16).replace("T", " ")} UTC
+              <span className="mt-0.5 block text-xs text-ink-body">
+                {one.until ? "snoozed" : "acknowledged"} {one.ackedAt.slice(0, 16).replace("T", " ")} UTC
+                {one.until && one.endedAt === null ? ` until ${one.until.slice(0, 16).replace("T", " ")}` : ""}
                 {one.endedAt
                   ? ` · ended ${one.endedAt.slice(0, 10)}, ${ENDED_WHY[one.endedWhy] ?? one.endedWhy}`
                   : " · still hidden"}
@@ -588,51 +882,63 @@ function fixedRappen(fixed: CostLine[]): number {
 }
 
 /**
- * The subtraction, done — B1181, over B996's four tiles.
+ * The subtraction, done, and the four figures beside it — B1181, over B996's
+ * tiles, laid out as one row on Overview.
  *
- * B996 put Out and In side by side and left the difference to the reader. The
- * page is opened to find out whether this is costing more than it takes, which
- * is one number and was on the page nowhere. The two halves stay beside it,
- * because a net figure with no sides to it cannot say which of them moved.
+ * The page is opened to find out whether this is costing more than it takes,
+ * which is one number, so it leads, on the dark tile. The two halves stay
+ * beside it, because a net figure with no sides to it cannot say which of them
+ * moved; then how many journals were written in, and how many of the helper's
+ * proposals were pressed, because a bill with nobody on the other side of it
+ * is just a bill.
  *
- * The comparison under each half is **metered spend only** and says so: the
- * fixed monthly lines are nine tenths of this instance's bill and identical in
- * both windows, so including them would divide every real movement by ten and
- * report a tenth of it. The delta comes out of the ninety days the chart
- * already holds, which is why there is no second query for a previous period.
- *
- * The two tiles B996 had and this does not — *Waiting* and *Journals* — moved
- * rather than went: the queue is the band above the tabs, in full, and the
- * roster is the first line of the People tab.
+ * The comparison under Paid out is **metered spend only** and says so: the
+ * fixed monthly lines are most of this instance's bill and identical in both
+ * periods, so including them would divide every real movement by ten and
+ * report a tenth of it. The delta comes out of the days the chart already
+ * holds, which is why there is no second query for a previous period.
  */
 function Verdict({
   data,
   daily,
   paid,
+  days,
+  activity,
+  journals,
+  helper,
 }: {
   data: Awaited<ReturnType<typeof dashboard>>;
   daily: DailySpend[];
   paid: Payment[];
+  days: number;
+  activity: Record<string, Activity>;
+  journals: number;
+  helper: SessionStats[];
 }) {
-  const window = daily.slice(-WINDOW_DAYS);
-  const before = daily.slice(-WINDOW_DAYS * 2, -WINDOW_DAYS);
-  const now = window.reduce((sum, day) => sum + day.rappen, 0);
+  const recent = daily.slice(-days);
+  const before = daily.slice(-days * 2, -days);
+  const now = recent.reduce((sum, day) => sum + day.rappen, 0);
   const then = before.reduce((sum, day) => sum + day.rappen, 0);
 
-  const cutoff = ago(WINDOW_DAYS).slice(0, 10);
+  const cutoff = ago(days).slice(0, 10);
   const takenBefore = takings(paid.filter((one) => (one.paidAt ?? "") < cutoff));
 
   const net = data.takenRappen - data.totalRappen;
-  const perDay = Math.round(Math.abs(net) / WINDOW_DAYS);
+  const perDay = Math.round(Math.abs(net) / days);
+
+  const since = ago(days);
+  const active = Object.values(activity).filter((one) => (one.lastWroteAt ?? "") >= since).length;
+  const proposed = helper.reduce((sum, one) => sum + one.proposed, 0);
+  const pressed = helper.reduce((sum, one) => sum + one.pressed, 0);
 
   return (
-    <section className="mt-6 flex flex-wrap items-end gap-x-10 gap-y-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">
-          Net, {WINDOW_DAYS} days
+    <section className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      <div className="col-span-2 rounded-3xl border border-surface-muted bg-surface-subtle p-5 lg:col-span-1">
+        <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-secondary">
+          Net · {days} days
         </p>
         <p
-          className={`font-display text-4xl font-semibold tabular-nums ${
+          className={`mt-1.5 font-display text-3xl font-semibold tabular-nums ${
             net < 0 ? "text-coral-600" : "text-green-700"
           }`}
         >
@@ -641,34 +947,37 @@ function Verdict({
         <p className="mt-1.5 text-sm text-ink-body">
           {net === 0
             ? "In and out came to the same."
-            : `Running at ${net < 0 ? "a loss" : "a surplus"} of about `}
-          {net === 0 ? null : (
-            <>
-              <span className="font-mono text-ink-strong">{formatChf(perDay)}</span> a day.
-            </>
-          )}{" "}
+            : `${net < 0 ? "A loss" : "A surplus"} of about ${formatChf(perDay)} a day.`}{" "}
           {/* A floor, never an invoice: an unpriced line contributes nothing
               to `totalRappen` and is flagged rather than guessed at. */}
-          Out is a floor — anything the price list does not cover is counted and
-          not priced.
+          Out is a floor.
         </p>
       </div>
-      <div className="flex gap-7">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">Taken in</p>
-          <p className="font-mono text-lg font-semibold text-ink-strong">
-            {formatChf(data.takenRappen)}
-          </p>
-          <Delta now={data.takenRappen} then={takenBefore} what="takings" good />
-        </div>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-secondary">Paid out</p>
-          <p className="font-mono text-lg font-semibold text-ink-strong">
-            {formatChf(data.totalRappen)}
-          </p>
-          <Delta now={now} then={then} what="metered spend" />
-        </div>
-      </div>
+      <Tile
+        label="Taken in"
+        value={formatChf(data.takenRappen)}
+        note={<Delta now={data.takenRappen} then={takenBefore} what="takings" good />}
+      />
+      <Tile
+        label="Paid out"
+        value={formatChf(data.totalRappen)}
+        note={<Delta now={now} then={then} what="metered spend" />}
+        spark={recent.map((day) => day.rappen)}
+      />
+      <Tile
+        label="Journals written in"
+        value={String(active)}
+        note={<span className="text-xs text-ink-body">of {journals} on this instance</span>}
+      />
+      <Tile
+        label="Proposals pressed"
+        value={proposed === 0 ? "—" : `${Math.round((pressed / proposed) * 100)}%`}
+        note={
+          <span className="text-xs text-ink-body">
+            {proposed === 0 ? "nothing was proposed" : `${pressed} of ${proposed} from the helper`}
+          </span>
+        }
+      />
     </section>
   );
 }
@@ -695,14 +1004,16 @@ function Units({
   activity,
   helper,
   journals,
+  days,
 }: {
   data: Awaited<ReturnType<typeof dashboard>>;
   activity: Record<string, Activity>;
   helper: SessionStats[];
   journals: number;
+  days: number;
 }) {
   const metered = data.journals.reduce((sum, row) => sum + row.rappen, 0);
-  const since = ago(WINDOW_DAYS);
+  const since = ago(days);
   const active = Object.values(activity).filter(
     (one) => (one.lastWroteAt ?? "") >= since,
   ).length;
@@ -713,46 +1024,40 @@ function Units({
   const per = (total: number, count: number) =>
     count === 0 ? "—" : formatChf(Math.round(total / count));
 
+  const units = [
+    {
+      label: "Per active journal",
+      value: per(metered, active),
+      note: active === 0 ? "nobody wrote in this period" : `${active} wrote something`,
+    },
+    {
+      label: "Per day written",
+      value: per(metered, written),
+      note: written === 0 ? "no day is dated in the period" : `${written} days dated in it`,
+    },
+    {
+      label: "Per conversation",
+      value: per(metered, conversations),
+      note: conversations === 0 ? "no conversations" : `${conversations} with the helper`,
+    },
+    { label: "Fixed, per journal", value: per(fixed, journals), note: `a month, across all ${journals}` },
+  ];
+
   return (
-    <section className="mt-8">
+    <section className={CARD}>
       <h2 className="font-display text-lg font-semibold text-ink-strong">What a journal costs</h2>
       <p className="mt-1 text-sm text-ink-body">
-        Metered spend over the same {WINDOW_DAYS} days, divided. These are the figures that say
-        whether the next thirty journals are affordable.
+        Metered spend over the same {days} days, divided — the figures that say whether the next
+        thirty journals are affordable.
       </p>
-      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <Tile
-          label="Per active journal"
-          value={per(metered, active)}
-          note={
-            <span className="text-xs text-ink-muted">
-              {active === 0 ? "nobody wrote this month" : `${active} wrote something`}
-            </span>
-          }
-        />
-        <Tile
-          label="Per day written"
-          value={per(metered, written)}
-          note={
-            <span className="text-xs text-ink-muted">
-              {written === 0 ? "no day is dated in the window" : `${written} days dated in it`}
-            </span>
-          }
-        />
-        <Tile
-          label="Per conversation"
-          value={per(metered, conversations)}
-          note={
-            <span className="text-xs text-ink-muted">
-              {conversations === 0 ? "no conversations" : `${conversations} with the helper`}
-            </span>
-          }
-        />
-        <Tile
-          label="Fixed, per journal"
-          value={per(fixed, journals)}
-          note={<span className="text-xs text-ink-muted">divided across all {journals}</span>}
-        />
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        {units.map((unit) => (
+          <div key={unit.label} className="rounded-2xl bg-surface-neutral p-3.5">
+            <p className="text-xs font-semibold text-ink-secondary">{unit.label}</p>
+            <p className="mt-0.5 font-display text-xl font-semibold text-ink-strong">{unit.value}</p>
+            <p className="mt-0.5 text-xs text-ink-body">{unit.note}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -763,35 +1068,39 @@ function Tile({
   value,
   note,
   alert,
+  spark,
 }: {
   label: string;
   value: string;
   note: React.ReactNode;
   alert?: boolean;
+  /** A line under the figure, when the figure has a shape worth drawing. */
+  spark?: number[];
 }) {
   return (
     <div
-      className={`rounded-2xl border bg-surface-raised p-3 ${alert ? "border-coral-600" : "border-line-quiet"}`}
+      className={`flex min-w-0 flex-col rounded-3xl border bg-surface-raised p-4 sm:p-5 ${alert ? "border-coral-600" : "border-line-quiet"}`}
     >
       <p
-        className={`text-xs font-semibold uppercase tracking-wide ${alert ? "text-coral-600" : "text-ink-secondary"}`}
+        className={`font-mono text-[11px] font-semibold uppercase tracking-[0.08em] ${alert ? "text-coral-600" : "text-ink-secondary"}`}
       >
         {label}
       </p>
-      <p
-        className={`font-display text-xl font-semibold ${alert ? "text-coral-600" : "text-ink-strong"}`}
-      >
+      <p className={`mt-1.5 font-display text-2xl font-semibold ${alert ? "text-coral-600" : "text-ink-strong"}`}>
         {value}
       </p>
-      <div className="mt-0.5">{note}</div>
+      <div className="mt-auto flex items-end justify-between gap-2 pt-1.5">
+        <div>{note}</div>
+        {spark && spark.some((point) => point > 0) ? <Sparkline points={spark} label={`${label}, day by day`} /> : null}
+      </div>
     </div>
   );
 }
 
 /**
- * The change against the window before, in words rather than an arrow alone.
+ * The change against the period before, in words rather than an arrow alone.
  *
- * A percentage of nothing is not a percentage, so a previous window of zero
+ * A percentage of nothing is not a percentage, so a previous period of zero
  * says "nothing before" instead of dividing by it — which is the ordinary case
  * on an instance where a feature has just been switched on.
  */
@@ -807,16 +1116,16 @@ function Delta({
   good?: boolean;
 }) {
   if (then === 0 && now === 0) {
-    return <span className="text-xs text-ink-muted">no {what} either month</span>;
+    return <span className="text-xs text-ink-body">no {what} either period</span>;
   }
   if (then === 0) {
-    return <span className="text-xs text-ink-muted">no {what} the month before</span>;
+    return <span className="text-xs text-ink-body">no {what} the period before</span>;
   }
   const change = Math.round(((now - then) / then) * 100);
   const rising = change > 0;
   // Rising spend is bad news and rising takings are good news, so the caller
   // says which this is rather than the colour guessing from the sign.
-  const tone = change === 0 ? "text-ink-muted" : rising === Boolean(good) ? "text-green-700" : "text-coral-600";
+  const tone = change === 0 ? "text-ink-body" : rising === Boolean(good) ? "text-green-700" : "text-coral-600";
   return (
     <span className={`text-xs font-semibold ${tone}`}>
       {change > 0 ? "▲" : change < 0 ? "▼" : "="} {Math.abs(change)}% {what}
@@ -840,12 +1149,12 @@ function SpentOn({ operations }: { operations: { operation: string; rappen: numb
 }
 
 /** The other side of the ledger — B996 (X5). */
-function TakingsPanel({ money, paid }: { money: Takings; paid: Payment[] }) {
+function TakingsPanel({ money, paid, days }: { money: Takings; paid: Payment[]; days: number }) {
   return (
-    <section className="mt-8">
+    <section>
       <h2 className="font-display text-lg font-semibold text-ink-strong">Taken</h2>
       <p className="mt-1 text-sm text-ink-body">
-        Purchases settled in the last {WINDOW_DAYS} days, at what the buyer actually paid. A grant
+        Purchases settled in the last {days} days, at what the buyer actually paid. A grant
         made from a journal&rsquo;s panel carries no price and is not takings.
       </p>
       <ul className="mt-3 divide-y divide-line-quiet border-t border-line-quiet">
@@ -876,7 +1185,7 @@ function TakingsPanel({ money, paid }: { money: Takings; paid: Payment[] }) {
         </li>
       </ul>
       {paid.length === 0 ? (
-        <p className="mt-2 text-sm text-ink-muted">Nothing was bought in this period.</p>
+        <p className="mt-2 text-sm text-ink-body">Nothing was bought in this period.</p>
       ) : null}
     </section>
   );
@@ -921,17 +1230,7 @@ function JournalPanel({
   const bought = settled.reduce((sum, one) => sum + one.amountRappen, 0);
 
   return (
-    <div className="border-t border-line-quiet">
-      {status ? (
-        <p className="px-4 pt-3 text-sm text-ink-body">
-          {status.trips} {status.trips === 1 ? "trip" : "trips"} · {status.days}{" "}
-          {status.days === 1 ? "day" : "days"}
-          {status.drafts > 0 ? ` · ${status.drafts} draft` : ""}
-          {status.drafts > 1 ? "s" : ""} · {status.contacts}{" "}
-          {status.contacts === 1 ? "reader" : "readers"}
-        </p>
-      ) : null}
-
+    <div>
       {status && ceiling ? (
         <div className="px-4 pt-3">
           <div className="flex items-baseline justify-between gap-3">
@@ -991,7 +1290,7 @@ function JournalPanel({
           {/* No words, ever — B976. Whether they could be read at all is a
               separate permission, and saying which it is here is the whole of
               what this panel may say about them. */}
-          <p className="mt-0.5 text-xs text-ink-muted">
+          <p className="mt-0.5 text-xs text-ink-body">
             {helper.readable
               ? "No words here. Reading them is a separate permission."
               : "Words not shared by this journal."}
@@ -1001,6 +1300,7 @@ function JournalPanel({
 
       <Purchases username={username} payments={payments} settled={settled.length} bought={bought} />
       <AdminGrant journal={username} />
+      <MessageOwner username={username} />
     </div>
   );
 }
@@ -1067,7 +1367,7 @@ function Purchases({
                 {payment.method === "admin" ? "by hand" : formatChf(payment.amountRappen)}
               </span>
             </div>
-            <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-ink-muted">
+            <p className="mt-0.5 [overflow-wrap:anywhere] font-mono text-xs text-ink-body">
               {payment.status}
               {` · ${(payment.paidAt ?? payment.createdAt).slice(0, 10)}`}
             </p>
@@ -1083,7 +1383,7 @@ function Purchases({
         ))}
       </ul>
       {payments.length > 5 ? (
-        <p className="pb-1 text-xs text-ink-muted">
+        <p className="pb-1 text-xs text-ink-body">
           {payments.length - 5} older, not shown.
         </p>
       ) : null}
@@ -1110,28 +1410,28 @@ function Purchases({
  */
 function Funnel({ steps, signups }: { steps: FunnelStep[] | null; signups: Week[] }) {
   return (
-    <section className="mt-6">
+    <section>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-lg font-semibold text-ink-strong">
           Does anybody get through
         </h2>
-        <span className="font-mono text-sm text-ink-muted">last {CHART_DAYS} days</span>
+        <span className="font-mono text-sm text-ink-body">last {COHORT_DAYS} days</span>
       </div>
       <p className="mt-1 text-sm text-ink-body">
         Every journal started in the window, and how far each one got. Cohorted by when they
         arrived, so a bad first year does not follow the instance around for ever.
       </p>
       {steps === null ? (
-        <p className="mt-3 text-sm text-ink-muted">
+        <p className="mt-3 text-sm text-ink-body">
           There is no database on this instance, so there is no record of who arrived when. The
           journals themselves are below.
         </p>
       ) : steps[0].count === 0 ? (
-        <p className="mt-3 text-sm text-ink-muted">
-          Nobody has started a journal in the last {CHART_DAYS} days.
+        <p className="mt-3 text-sm text-ink-body">
+          Nobody has started a journal in the last {COHORT_DAYS} days.
         </p>
       ) : (
-        <div className="mt-3 rounded-2xl border border-line-quiet bg-surface-raised p-4">
+        <div className="mt-3">
           {steps.map((step, at) => (
             <div key={step.label}>
               {at > 0 && step.lost.startsWith("0 ") ? null : at > 0 ? (
@@ -1183,8 +1483,15 @@ function Funnel({ steps, signups }: { steps: FunnelStep[] | null; signups: Week[
  * where they are about a person rather than a column. **No words, ever**:
  * those are the owner's, and reading them is a separate permission.
  */
-function HelperSummary({ stats }: { stats: SessionStats[] }) {
-  if (stats.length === 0) return null;
+function HelperSummary({ stats, days }: { stats: SessionStats[]; days: number }) {
+  if (stats.length === 0) {
+    return (
+      <section>
+        <h2 className="font-display text-lg font-semibold text-ink-strong">The helper</h2>
+        <p className="mt-1 text-sm text-ink-body">Nobody talked to the helper in the last {days} days.</p>
+      </section>
+    );
+  }
   const proposed = stats.reduce((sum, one) => sum + one.proposed, 0);
   const pressed = stats.reduce((sum, one) => sum + one.pressed, 0);
   const refused = stats.reduce((sum, one) => sum + one.refused, 0);
@@ -1197,10 +1504,10 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
   const total = fires.reduce((sum, [, count]) => sum + count, 0);
 
   return (
-    <section className="mt-8">
+    <section>
       <h2 className="font-display text-lg font-semibold text-ink-strong">The helper</h2>
       <p className="mt-1 text-sm text-ink-body">
-        The last {WINDOW_DAYS} days. A proposal that was never pressed is somebody who described
+        The last {days} days. A proposal that was never pressed is somebody who described
         their day and did not get one.
       </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -1208,7 +1515,7 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
           label="Proposals pressed"
           value={proposed === 0 ? "—" : `${Math.round((pressed / proposed) * 100)}%`}
           note={
-            <span className="text-xs text-ink-muted">
+            <span className="text-xs text-ink-body">
               {proposed === 0 ? "nothing was proposed" : `${pressed} of ${proposed}`}
             </span>
           }
@@ -1217,7 +1524,7 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
           label="Conversations"
           value={String(sessions)}
           note={
-            <span className="text-xs text-ink-muted">
+            <span className="text-xs text-ink-body">
               across {stats.length} {stats.length === 1 ? "journal" : "journals"}
             </span>
           }
@@ -1227,7 +1534,7 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
           value={String(total)}
           alert={total > 0}
           note={
-            <span className="font-mono text-xs text-ink-muted">
+            <span className="font-mono text-xs text-ink-body">
               {fires.length === 0
                 ? "nothing was caught"
                 : fires
@@ -1240,7 +1547,7 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
         <Tile
           label="Refused outright"
           value={String(refused)}
-          note={<span className="text-xs text-ink-muted">a write the server would not make</span>}
+          note={<span className="text-xs text-ink-body">a write the server would not make</span>}
         />
       </div>
     </section>
@@ -1259,44 +1566,39 @@ function HelperSummary({ stats }: { stats: SessionStats[] }) {
  * when the instance is well and grows entries when it is not, so there is
  * nothing to skim on an ordinary day and nothing to miss on a bad one.
  *
- * Capabilities the operator switched off are named on the quiet line rather
- * than listed as faults: *off because nobody asked for it* and *off although
- * somebody did* are opposite facts, and `lib/adminConsole.ts` is where the
- * difference is drawn.
+ * Capabilities the operator switched off are not here: *off because nobody
+ * asked for it* and *off although somebody did* are opposite facts, and the
+ * grid below is where the first kind is listed.
  */
-function HealthCard({ health, troubles }: { health: Health; troubles: Trouble[] }) {
+function Faults({ health, troubles }: { health: Health; troubles: Trouble[] }) {
   const clear = health.wrong.length === 0 && troubles.length === 0;
   return (
-    <section className="mt-6">
-      <h2 className="font-display text-lg font-semibold text-ink-strong">This instance</h2>
+    <section className={CARD}>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">Faults</h2>
       {clear ? (
-        <div className="mt-2 rounded-2xl border border-green-700 bg-green-100 p-4">
+        <div className="mt-3 rounded-2xl bg-green-100 p-4">
           <p className="font-display font-semibold text-green-700">Nothing is wrong.</p>
           <p className="mt-1 text-sm text-ink-body">
-            Commit {health.commit ?? "unknown"} · up{" "}
-            {Math.round(health.uptimeSeconds / 3600)}h
-            {health.backupAgeHours !== null
-              ? ` · backed up ${Math.round(health.backupAgeHours)}h ago`
-              : ""}
+            Commit {health.commit ?? "unknown"} · up {Math.round(health.uptimeSeconds / 3600)}h
             {offSummary(health.offByChoice)}.
           </p>
         </div>
       ) : (
-        <ul className="mt-2 space-y-2">
+        <ul className="mt-3 space-y-2">
           {health.wrong.map((one) => (
-            <li
-              key={one.title}
-              className="rounded-2xl border border-coral-600 bg-surface-raised p-3 [overflow-wrap:anywhere]"
-            >
+            <li key={one.title} className="rounded-2xl bg-coral-50 p-3.5 [overflow-wrap:anywhere]">
               <p className="font-semibold text-coral-600">{one.title}</p>
               <p className="mt-0.5 text-sm text-ink-body">{one.detail}</p>
             </li>
           ))}
           {troubles.map((one) => (
-            <li key={`${one.what}-${one.owner}-${one.when}`} className="rounded-2xl border border-line-quiet bg-surface-raised p-3">
+            <li
+              key={`${one.what}-${one.owner}-${one.when}-${one.ref}`}
+              className="rounded-2xl border border-line-quiet p-3.5"
+            >
               <div className="flex items-baseline justify-between gap-3">
                 <span className="font-semibold text-ink-strong">{one.what}</span>
-                <span className="shrink-0 font-mono text-xs text-ink-muted">{one.when}</span>
+                <span className="shrink-0 font-mono text-xs text-ink-secondary">{one.when}</span>
               </div>
               <p className="mt-0.5 text-sm text-ink-body">
                 {one.owner ? `${one.owner} · ` : ""}
@@ -1304,87 +1606,176 @@ function HealthCard({ health, troubles }: { health: Health; troubles: Trouble[] 
               </p>
             </li>
           ))}
-          <li className="text-xs text-ink-muted">
+          <li className="text-xs text-ink-body">
             Commit {health.commit ?? "unknown"} · up {Math.round(health.uptimeSeconds / 3600)}h
-            {offSummary(health.offByChoice)}
           </li>
         </ul>
       )}
-      <BackupPanel backup={health.backup} />
     </section>
   );
 }
 
 /**
- * When the backup last worked, said positively.
+ * Every capability, as `/api/health` would say it — on, off by choice, or
+ * asked for and refused, each with the reason `resolveCapabilities` gives.
  *
- * B1085 stopped the nightly "it worked" mail on the operator's request. The
- * card above already shouts when a backup is stale, failing or has never been
- * recorded — those are `wrong` entries and they are red. What went away with
- * the mail is the *other* half: the standing evidence that the thing runs at
- * all. An empty fault list is silence, and silence is exactly what a broken
- * alarm also sounds like — this deployment has already spent two days that way
- * (B138), which is why B458 added the success mail in the first place.
- *
- * So this states the good case out loud, with a date on it. It is deliberately
- * always rendered, including when everything is fine: a panel that appears
- * only on trouble is one more thing whose absence means two different things.
- *
- * The state word carries the colour, so it reads at a glance rather than being
- * arithmetic the operator does on a timestamp at 2am.
+ * A grid rather than a list because what is read here is the pattern: which
+ * few are on, and whether any tile is coral. A refused one is also a fault in
+ * the card above; here it is in its place among the rest.
  */
-function BackupPanel({ backup }: { backup: Health["backup"] }) {
-  const tone = stateTone(backup.state);
-  const when = backup.lastSuccessAt
-    ? `${backup.lastSuccessAt.slice(0, 16).replace("T", " ")} UTC`
-    : "never";
-  const offsite = backup.secondary;
-  const offsiteWhen = offsite.lastSuccessAt
-    ? `${offsite.lastSuccessAt.slice(0, 16).replace("T", " ")} UTC`
-    : "never";
+function Capabilities({ health }: { health: Health }) {
+  const tone = {
+    on: { card: "bg-green-100", dot: "bg-green-700", word: "on" },
+    off: { card: "bg-surface-neutral", dot: "border border-line-prominent bg-surface-raised", word: "off by choice" },
+    fault: { card: "bg-coral-50 border border-coral-600", dot: "bg-coral-600", word: "refused" },
+  } as const;
+  const on = health.capabilities.filter((one) => one.state === "on").length;
   return (
-    <div className="mt-3 rounded-2xl border border-line-quiet bg-surface-raised p-4">
+    <section className={`${CARD} mt-5`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-display font-semibold text-ink-strong">Backups</h3>
-        <span
-          className={`rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold ${tone}`}
-        >
-          {backup.state}
+        <h2 className="font-display text-lg font-semibold text-ink-strong">Capabilities</h2>
+        <span className="text-sm text-ink-body">
+          {on} of {health.capabilities.length} on · off by choice is not a fault
         </span>
       </div>
+      <ul className="mt-3 grid items-start gap-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+        {health.capabilities.map((one) => (
+          <li key={one.name} className={`rounded-2xl p-3 ${tone[one.state].card}`}>
+            <p className="flex items-center gap-2">
+              <span aria-hidden className={`h-2 w-2 shrink-0 rounded-full ${tone[one.state].dot}`} />
+              <span className="font-mono text-sm font-semibold text-ink-strong">{one.name}</span>
+              <span className="sr-only">{tone[one.state].word}</span>
+            </p>
+            {one.reason && one.state !== "off" ? (
+              <p className="mt-1 text-xs text-ink-body [overflow-wrap:anywhere]">{one.reason}</p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/**
+ * When the backup last worked, said positively — and, since the redesign, the
+ * last fortnight of nights beside it.
+ *
+ * B1085 stopped the nightly "it worked" mail on the operator's request. The
+ * faults card already shouts when a backup is stale, failing or has never been
+ * recorded. What went away with the mail is the *other* half: the standing
+ * evidence that the thing runs at all. An empty fault list is silence, and
+ * silence is exactly what a broken alarm also sounds like — this deployment
+ * has already spent two days that way (B138).
+ *
+ * So this states the good case out loud, with a date on it, and always
+ * renders. The row of squares is `.backup-history`, which the backup and alert
+ * scripts append to; before it exists the card says so rather than drawing
+ * fourteen empty nights that would read as fourteen nights nothing ran.
+ */
+function BackupPanel({ backup, nights }: { backup: Health["backup"]; nights: BackupNight[] | null }) {
+  const when = (at: string | null) => (at ? `${at.slice(0, 16).replace("T", " ")} UTC` : "never");
+  const offsite = backup.secondary;
+  return (
+    <section className={CARD}>
+      <h2 className="font-display text-lg font-semibold text-ink-strong">Backups</h2>
       <p className="mt-1 text-sm text-ink-body">
-        Last success {when}
-        {backup.ageHours !== null ? ` · ${Math.round(backup.ageHours)}h ago` : ""} · stale past{" "}
-        {backup.maxAgeHours}h
+        A run that works sends no mail; this is where it says so. A run that fails still mails.
       </p>
-      {backup.lastFailure && (
-        <p className="mt-1 text-sm text-coral-600 [overflow-wrap:anywhere]">
-          Last failure {backup.lastFailureAt?.slice(0, 16).replace("T", " ") ?? "unknown"} ·{" "}
-          {backup.lastFailure}
-        </p>
-      )}
-      <div className="mt-3 border-t border-line-faint pt-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h4 className="font-display font-semibold text-ink-strong">Off-site copy</h4>
-          <span
-            className={`rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold ${stateTone(offsite.state)}`}
-          >
-            {offsite.state}
-          </span>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="rounded-2xl border border-line-quiet p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="font-semibold text-ink-strong">Local</h3>
+            <span className={`rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold ${stateTone(backup.state)}`}>
+              {backup.state}
+            </span>
+          </div>
+          <Nights nights={nights} which="primary" />
+          <p className="mt-2 text-sm text-ink-body">
+            Last success {when(backup.lastSuccessAt)}
+            {backup.ageHours !== null ? ` · ${Math.round(backup.ageHours)}h ago` : ""} · stale past{" "}
+            {backup.maxAgeHours}h
+          </p>
+          {backup.lastFailure && (
+            <p className="mt-1 text-sm text-coral-600 [overflow-wrap:anywhere]">
+              Last failure {backup.lastFailureAt?.slice(0, 16).replace("T", " ") ?? "unknown"} ·{" "}
+              {backup.lastFailure}
+            </p>
+          )}
         </div>
-        <p className="mt-1 text-sm text-ink-body">
-          Last success {offsiteWhen}
-          {offsite.ageHours !== null ? ` · ${Math.round(offsite.ageHours)}h ago` : ""} · stale past{" "}
-          {offsite.maxAgeHours}h
-        </p>
-        {offsite.reason && (
-          <p className="mt-1 text-sm text-ink-muted [overflow-wrap:anywhere]">{offsite.reason}</p>
-        )}
+        <div
+          className={`rounded-2xl border p-4 ${offsite.state === "stale" ? "border-coral-600" : "border-line-quiet"}`}
+        >
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="font-semibold text-ink-strong">Off-site copy</h3>
+            <span className={`rounded-full border px-2.5 py-0.5 font-mono text-xs font-semibold ${stateTone(offsite.state)}`}>
+              {offsite.state}
+            </span>
+          </div>
+          <Nights nights={nights} which="secondary" />
+          <p className="mt-2 text-sm text-ink-body">
+            Last success {when(offsite.lastSuccessAt)}
+            {offsite.ageHours !== null ? ` · ${Math.round(offsite.ageHours)}h ago` : ""} · stale past{" "}
+            {offsite.maxAgeHours}h
+          </p>
+          {offsite.reason && (
+            <p className="mt-1 text-sm text-ink-body [overflow-wrap:anywhere]">{offsite.reason}</p>
+          )}
+        </div>
       </div>
-      <p className="mt-2 text-xs text-ink-muted">
-        A run that works no longer sends mail; this is where it says so. A run that fails still
-        mails.
+      {nights ? (
+        <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-body">
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className={`h-3 w-3 rounded ${NIGHT.ok}`} />
+            worked
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className={`h-3 w-3 rounded ${NIGHT.failed}`} />
+            failed
+          </li>
+          <li className="flex items-center gap-1.5">
+            <span aria-hidden className={`h-3 w-3 rounded ${NIGHT.none}`} />
+            nothing recorded
+          </li>
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+const NIGHT: Record<NightOutcome, string> = {
+  ok: "bg-green-700",
+  failed: "bg-coral-600",
+  none: "border border-line-strong bg-surface-raised",
+};
+
+/** One destination's fortnight, oldest on the left. */
+function Nights({ nights, which }: { nights: BackupNight[] | null; which: "primary" | "secondary" }) {
+  if (!nights) {
+    return (
+      <p className="mt-3 text-sm text-ink-body">
+        No nightly history recorded yet — the first run after this update starts it.
       </p>
+    );
+  }
+  return (
+    <div className="mt-3">
+      <ol className="flex gap-1" aria-label={`The last ${nights.length} nights`}>
+        {nights.map((night) => (
+          <li
+            key={night.date}
+            title={`${night.date} — ${night[which] === "none" ? "nothing recorded" : night[which]}`}
+            className={`h-7 flex-1 rounded ${NIGHT[night[which]]}`}
+          >
+            <span className="sr-only">
+              {night.date}: {night[which] === "none" ? "nothing recorded" : night[which]}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-1 flex justify-between font-mono text-[11px] text-ink-secondary">
+        <span>{nights[0]?.date.slice(5)}</span>
+        <span>{nights[nights.length - 1]?.date.slice(5)}</span>
+      </div>
     </div>
   );
 }
@@ -1441,14 +1832,17 @@ function WhatItDid({
   days,
   sends,
   print,
+  window,
 }: {
   days: Week[];
   sends: Week[];
   print: { calls: number }[];
+  /** The page's period, for the printing line. */
+  window: number;
 }) {
   const printed = print.reduce((sum, line) => sum + line.calls, 0);
   return (
-    <section className="mt-8">
+    <section>
       <h2 className="font-display text-lg font-semibold text-ink-strong">What it did</h2>
       <p className="mt-1 text-sm text-ink-body">
         The last {WEEKS} weeks. Days are counted by the day they describe, which is the date the
@@ -1468,8 +1862,8 @@ function WhatItDid({
       />
       <p className="mt-3 text-sm text-ink-body">
         {printed === 0
-          ? "Nothing has been printed in the costing window."
-          : `${printed} ${printed === 1 ? "thing" : "things"} printed in the last ${WINDOW_DAYS} days.`}
+          ? `Nothing has been printed in the last ${window} days.`
+          : `${printed} ${printed === 1 ? "thing" : "things"} printed in the last ${window} days.`}
       </p>
     </section>
   );
@@ -1508,7 +1902,7 @@ function Roster({ report, stones }: { report: { journals: StatusRow[] }; stones:
   const journalStones = stones.filter((stone) => stone.kind === "journal");
   const tripStones = stones.filter((stone) => stone.kind === "trip");
   return (
-    <section className="mt-8">
+    <section>
       <h2 className="font-display text-lg font-semibold text-ink-strong">Roster</h2>
       <ul className="mt-3 divide-y divide-line-quiet border-t border-line-quiet">
         <li className="flex items-baseline justify-between gap-3 py-2">

@@ -21,10 +21,10 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import sharp from "sharp";
 import { DHASH_GRID, dHash } from "./hash.ts";
 import { IMAGE_MAX_PIXELS } from "../validate/media";
+import { runProcess } from "./run.ts";
 /** Longest edge of a served derivative. */
 export const MAX_EDGE = 2000;
 
@@ -91,8 +91,7 @@ const HEIF_DECODERS: { command: string; args: (input: string, output: string) =>
   { command: "ffmpeg", args: (i, o) => ["-v", "error", "-y", "-i", i, o] },
 ];
 
-let heifDecoderChecked = false;
-let heifDecoder: (typeof HEIF_DECODERS)[number] | null = null;
+let heifDecoder: Promise<(typeof HEIF_DECODERS)[number] | null> | null = null;
 
 /**
  * Probed once per process, and cached — including the "none of them" answer.
@@ -101,17 +100,18 @@ let heifDecoder: (typeof HEIF_DECODERS)[number] | null = null;
  * already serving and every request keeps using the decoder that was on PATH
  * at boot, or none at all. **Restart the app after installing a decoder.**
  * `docs/runbook.md` names the package beside ffmpeg for the same reason.
+ *
+ * The promise is what is cached, so two uploads that both need the fallback
+ * on a cold process share one probe rather than racing two.
  */
 function findHeifDecoder() {
-  if (heifDecoderChecked) return heifDecoder;
-  heifDecoderChecked = true;
-  for (const decoder of HEIF_DECODERS) {
-    const probe = spawnSync(decoder.command, ["--help"], { stdio: "ignore" });
-    if (!probe.error) {
-      heifDecoder = decoder;
-      break;
+  heifDecoder ??= (async () => {
+    for (const decoder of HEIF_DECODERS) {
+      const probe = await runProcess(decoder.command, ["--help"]);
+      if (!probe.error) return decoder;
     }
-  }
+    return null;
+  })();
   return heifDecoder;
 }
 
@@ -166,7 +166,7 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
     failure = (err as Error).message.split("\n").pop() ?? String(err);
   }
 
-  const decoder = findHeifDecoder();
+  const decoder = await findHeifDecoder();
   if (!decoder) throw new UndecodableImageError(file, failure);
 
   /**
@@ -200,7 +200,9 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
     fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-ingest-")),
     "decoded.png",
   );
-  const run = spawnSync(decoder.command, decoder.args(file, temp), { stdio: "ignore" });
+  // Awaited rather than `spawnSync`, which held every other request on the
+  // server for as long as the conversion took. See lib/ingest/run.ts.
+  const run = await runProcess(decoder.command, decoder.args(file, temp));
   if (run.status !== 0 || !fs.existsSync(temp)) {
     fs.rmSync(path.dirname(temp), { recursive: true, force: true });
     throw new UndecodableImageError(file, `${failure} (${decoder.command} could not convert it)`);
@@ -252,8 +254,8 @@ export async function decodeSource(file: string): Promise<DecodedSource> {
 }
 
 /** Which external HEIC decoder is available, for the CLI's status line. */
-export function heifDecoderName(): string | null {
-  return findHeifDecoder()?.command ?? null;
+export async function heifDecoderName(): Promise<string | null> {
+  return (await findHeifDecoder())?.command ?? null;
 }
 
 // ---------------------------------------------------------------------------

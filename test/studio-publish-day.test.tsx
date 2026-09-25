@@ -61,7 +61,7 @@ describe("daysToPublish", () => {
     expect(daysToPublish(OWNER, "published").map((r) => r.slug)).toEqual(["up"]);
   });
 
-  test("B2192: the blanks are exactly what publishing would refuse on, and a private day names its people", async () => {
+  test("B2192: the blanks are exactly what publishing would refuse on, and a private day reaches nobody a bare people: entry names (D3, B2297)", async () => {
     writeTripFixture(OWNER, {
       id: "alps",
       title: "Alps",
@@ -93,8 +93,12 @@ describe("daysToPublish", () => {
     });
     const row = daysToPublish(OWNER, "draft")[0];
     expect(blankFieldsOf(OWNER, row).sort()).toEqual(["costs", "tags", "transportMode"]);
-    // The owner is left out; a nickname wins over the full name.
-    expect(await readersOf(OWNER, row)).toEqual(["Hans", "Viki Kovács"]);
+    // Hans and Viki are only named in `people:`, never granted a place —
+    // since D3 (B2297) that reaches nobody, this file runs no database at
+    // all (no `trip_people` to grant a place in anyway), and the owner is
+    // left out regardless. `test/day-mail.test.ts` covers the granted case
+    // with a real database.
+    expect(await readersOf(OWNER, row)).toEqual([]);
     expect(await readersOf(OWNER, { ...row, audience: "public" })).toBeNull();
   });
 });

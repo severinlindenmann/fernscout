@@ -8,6 +8,8 @@ import { PhotoPicker } from "@/components/PhotoPicker";
 import RecordButton from "@/components/RecordButton";
 import PolishText from "@/components/studio/day/PolishText";
 import { useI18n } from "@/components/LocaleProvider";
+import { useOnline } from "@/components/studio/useOnline";
+import { hasOutbox, newIntent, openOutboxStore, pendingDayDates } from "@/lib/outbox";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import DoneScreen from "@/components/studio/DoneScreen";
@@ -29,7 +31,7 @@ import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from
  *  revealed one part at a time for somebody who has no day yet. The one-page
  *  mode never calls `go`, so these steps only ever mean something there. */
 const FIRST_RUN = ["photos", "words", "save"] as const;
-type Outcome = "collision" | "saved" | "writeFailed";
+type Outcome = "collision" | "saved" | "writeFailed" | "queued";
 type Sheet = "date" | "place" | "weather" | null;
 
 /** `Problem` from `lib/validate/media.ts`, read back off the wire — never
@@ -189,6 +191,27 @@ export default function AddDayFlow({
   const [showAllPhotos, setShowAllPhotos] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  // B2330 — a photo picked with no server reachable: queued in the outbox as
+  // its own `media.upload` intent (the original file, kept as a `Blob`,
+  // never re-encoded), shown here with a local object URL rather than the
+  // server's own thumbnail route (which does not know this id yet).
+  const [pendingPhotoUrls, setPendingPhotoUrls] = useState<Record<string, string>>({});
+  const [pendingDates, setPendingDates] = useState<Set<string>>(new Set());
+  const online = useOnline();
+
+  // The "waiting" marker on the day strip (B2330) — every pending `day.new`
+  // write for this owner, re-read whenever the outbox might have changed
+  // (mount, and right after this page queues its own).
+  useEffect(() => {
+    if (!hasOutbox()) return;
+    let cancelled = false;
+    pendingDayDates(openOutboxStore(), username).then((dates) => {
+      if (!cancelled) setPendingDates(dates);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [username, outcome]);
   const [mismatchKept, setMismatchKept] = useState(false);
 
   const [title, setTitle] = useState("");
@@ -332,12 +355,13 @@ export default function AddDayFlow({
    *  meanwhile waits for them (`saveQueued`) rather than leaving them out. */
   async function pickFromDevice(files: FileList | null) {
     if (!files || files.length === 0) return;
-    const n = files.length;
+    const list = Array.from(files);
+    const n = list.length;
     setUploading((u) => u + n);
     setUploadError(null);
     try {
       const form = new FormData();
-      Array.from(files).forEach((f) => form.append("files", f));
+      list.forEach((f) => form.append("files", f));
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/inbox`, { method: "POST", body: form });
       const json = (await res.json().catch(() => null)) as { ok?: boolean; items?: InboxMediaItem[] } | null;
       if (!res.ok || !json?.ok) {
@@ -349,7 +373,36 @@ export default function AddDayFlow({
       setSelectedIds((prev) => [...new Set([...prev, ...items.map((i) => i.id)])]);
       setOwnIds((prev) => [...prev, ...items.map((i) => i.id)]);
     } catch {
-      setUploadError(t("studio.day.photos.uploadError"));
+      // A network error (offline, or the server unreachable) rather than a
+      // rejection the server actually sent — B2330 queues the original file
+      // instead of losing it, kept as its own `media.upload` intent so it
+      // replays and becomes a real inbox item once there is a connection.
+      if (!hasOutbox()) {
+        setUploadError(t("studio.day.photos.uploadError"));
+        return;
+      }
+      const store = openOutboxStore();
+      const placeholders: InboxMediaItem[] = [];
+      const urls: Record<string, string> = {};
+      for (const f of list) {
+        const id = `pending-${crypto.randomUUID()}`;
+        await store.add(
+          newIntent({
+            user: username,
+            kind: "media.upload",
+            method: "POST",
+            url: `/api/helper/${encodeURIComponent(username)}/inbox`,
+            body: { placeholderId: id, filename: f.name },
+            blob: f,
+          }),
+        );
+        placeholders.push({ id, filename: f.name, bytes: f.size, uploadedAt: new Date().toISOString() });
+        urls[id] = URL.createObjectURL(f);
+      }
+      setPendingPhotoUrls((prev) => ({ ...prev, ...urls }));
+      setInboxItems((prev) => mergeById(prev ?? [], placeholders));
+      setSelectedIds((prev) => [...new Set([...prev, ...placeholders.map((i) => i.id)])]);
+      setOwnIds((prev) => [...prev, ...placeholders.map((i) => i.id)]);
     } finally {
       setUploading((u) => u - n);
     }
@@ -458,27 +511,28 @@ export default function AddDayFlow({
   async function commit(secondEntry = confirmedSecondEntry) {
     setBusy(true);
     setWriteError(null);
+    const payload = {
+      trip: tripId,
+      date,
+      time: time || undefined,
+      // Never generated: a blank title stays blank.
+      title,
+      content,
+      location: place.location || undefined,
+      country: place.country || undefined,
+      lat: place.lat,
+      lng: place.lng,
+      weather,
+      mediaInboxIds: chosenPhotos.map((i) => i.id),
+      ...extrasToWrite(extras),
+      declined: {},
+      confirmSecondEntry: secondEntry,
+    };
     try {
       const res = await fetch(`/api/helper/${encodeURIComponent(username)}/day/new`, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          trip: tripId,
-          date,
-          time: time || undefined,
-          // Never generated: a blank title stays blank.
-          title,
-          content,
-          location: place.location || undefined,
-          country: place.country || undefined,
-          lat: place.lat,
-          lng: place.lng,
-          weather,
-          mediaInboxIds: chosenPhotos.map((i) => i.id),
-          ...extrasToWrite(extras),
-          declined: {},
-          confirmSecondEntry: secondEntry,
-        }),
+        body: JSON.stringify(payload),
       });
       const json = (await res.json().catch(() => null)) as
         | { ok: true; slug: string }
@@ -501,6 +555,34 @@ export default function AddDayFlow({
       setOutcome("saved");
       reset();
     } catch {
+      // A network error (not a rejection the server actually sent) — B2330
+      // queues the write itself, in order after any of its own photographs
+      // still queued as `media.upload` (both created through the same
+      // outbox, so replay always sends the photos first). A day queued
+      // offline has no server slug yet, so "saved" (which needs one, for the
+      // publish link) is never shown for it — "queued" instead.
+      if (hasOutbox()) {
+        const store = openOutboxStore();
+        await store.add(
+          newIntent({
+            user: username,
+            kind: "day.new",
+            method: "POST",
+            url: `/api/helper/${encodeURIComponent(username)}/day/new`,
+            body: payload,
+          }),
+        );
+        setOutcome("queued");
+        // Not `reset()` here (unlike the "saved" branch above): it clears the
+        // draft with its own `router.replace`, a soft navigation — offline,
+        // that fetch fails, and this page is itself on the SW's kept
+        // allowlist so the browser can fall back to reloading *this* page
+        // from the personal cache, wiping the "queued" screen the owner was
+        // just shown for one they never asked to leave. The draft is harmless
+        // left behind: this outcome screen replaces the whole form either way,
+        // and `toStudio` below is the only navigation this outcome offers.
+        return;
+      }
       setWriteError({ message: t("studio.day.writeFailed.message") });
       setOutcome("writeFailed");
     } finally {
@@ -544,6 +626,24 @@ export default function AddDayFlow({
   }
 
   // ── rendering ───────────────────────────────────────────────────────
+  // B2330 — offline, "Done" is a hard navigation rather than a soft one: the
+  // worker never serves an RSC fetch from its kept cache (`sw.js`'s own
+  // `_rsc`/`RSC` early-return, so it never risks answering a soft navigation
+  // with a stale build's payload), so a soft `router.push` to a kept page
+  // would simply fail with no connection. A full navigation still opens it,
+  // from the same kept personal cache the initial visit warmed.
+  const toStudio = () => (online ? router.push(`/${username}/studio`) : (window.location.href = `/${username}/studio`));
+
+  if (outcome === "queued") {
+    return (
+      <div className="studio-step">
+        <DoneScreen username={username} done={t("studio.day.queued.done")} />
+        <p className="mt-2 text-sm text-ink-secondary">{t("studio.day.queued.detail")}</p>
+        <StepPrimary onClick={toStudio} label={t("studio.day.saved.done")} />
+      </div>
+    );
+  }
+
   if (outcome === "saved" && createdSlug) {
     const readers = readersByTrip[tripId] ?? [];
     return (
@@ -563,7 +663,7 @@ export default function AddDayFlow({
         >
           {t("studio.day.saved.share")}
         </Link>
-        <StepPrimary onClick={() => router.push(`/${username}/studio`)} label={t("studio.day.saved.done")} />
+        <StepPrimary onClick={toStudio} label={t("studio.day.saved.done")} />
       </div>
     );
   }
@@ -658,24 +758,32 @@ export default function AddDayFlow({
   const shownPhotos = showAllPhotos ? dayPhotos : dayPhotos.slice(0, 8);
   const tile = (item: InboxMediaItem) => {
     const on = selectedIds.includes(item.id);
+    // B2330 — a photo picked while offline has no server thumbnail yet; its
+    // own local object URL (the exact file it will upload) stands in.
+    const pendingUrl = pendingPhotoUrls[item.id];
     return (
       <li key={item.id}>
         <button
           type="button"
           data-photo={item.filename}
           aria-pressed={on}
-          aria-label={item.filename}
+          aria-label={pendingUrl ? `${item.filename} — ${t("studio.day.photos.pendingUpload")}` : item.filename}
           onClick={() => toggleSelected(item.id)}
           className={`relative block aspect-square w-full overflow-hidden rounded-lg border-2 bg-surface-subtle ${on ? "border-action-strong" : "border-transparent opacity-50"}`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- an owner-only route, not an optimisable asset */}
           <img
-            src={`/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(item.id)}/thumbnail?w=200`}
+            src={pendingUrl ?? `/api/helper/${encodeURIComponent(username)}/inbox/${encodeURIComponent(item.id)}/thumbnail?w=200`}
             alt=""
             loading="lazy"
             decoding="async"
             className="h-full w-full object-cover"
           />
+          {pendingUrl && (
+            <span className="absolute inset-x-0 bottom-0 truncate bg-surface-raised/90 px-1 py-0.5 text-[10px] font-semibold text-ink-body">
+              {t("studio.day.photos.pendingUpload")}
+            </span>
+          )}
         </button>
       </li>
     );
@@ -734,7 +842,7 @@ export default function AddDayFlow({
                 </label>
               )}
               <span className={`mt-3 ${LABEL}`}>{t("studio.day.which.dateLabel")}</span>
-              <DayStrip value={date} onChange={pickDate} start={trip?.start ?? todayIso} end={todayIso} writtenDates={written} />
+              <DayStrip value={date} onChange={pickDate} start={trip?.start ?? todayIso} end={todayIso} writtenDates={written} pendingDates={pendingDates} />
               <details className="mt-3">
                 <summary className="cursor-pointer text-sm font-semibold text-ink-body underline underline-offset-2">
                   {t("studio.day.which.anotherDate")}

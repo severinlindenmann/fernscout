@@ -42,7 +42,13 @@ const OWNER = "ana";
 const OWNER_EMAIL = "ana@example.test";
 /** Approved into the journal, and on no trip. */
 const GUEST = "oma@example.test";
-/** Named in one trip's `people:`, and not a contact at all. */
+/**
+ * Named in one trip's `people:`, and holds a real, granted `trip_people`
+ * place on it — since D3 (B2297) a bare byline reads nothing, so this
+ * viewer's access comes from the grant `beforeAll` gives them below, the
+ * same shape `scripts/migrate-trip-people.mts` gives everyone the byline
+ * used to (silently) cover for.
+ */
 const ROBIN = "robin@example.test";
 /** Signed in and nothing else. Anybody at all can be this. */
 const STRANGER = "anyone@example.test";
@@ -176,6 +182,30 @@ async function addApprovedContact(email: string) {
   await approveContact(OWNER, contact.id);
 }
 
+/** Grants a real `trip_people` place — the only thing that puts a closed
+ *  trip's drafts (or reads, or mail) on an address since D3 (B2297). */
+async function addTripPlace(email: string, tripId: string) {
+  const { approveContact, confirmContactByOwner, listContacts, requestContact } = await import(
+    "@/lib/contacts"
+  );
+  const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+  await requestContact(OWNER, {
+    name: "Robin",
+    email,
+    locale: "en",
+    address: null,
+    wantsEmailDigest: false,
+    wantsPostcard: false,
+    createdVia: "owner-grant",
+  });
+  const contact = (await listContacts(OWNER)).find((c) => c.email === email);
+  if (!contact) throw new Error(`no contact for ${email}`);
+  await confirmContactByOwner(OWNER, contact.id);
+  await approveContact(OWNER, contact.id);
+  await claimTripPlace(OWNER, tripId, contact.id, null);
+  await approveTripPlaces(OWNER, contact.id);
+}
+
 function as(viewer: string) {
   jar.cookies = {};
   const token = tokens[viewer];
@@ -197,6 +227,7 @@ beforeAll(async () => {
   for (const spec of TRIPS) writeTrip(spec);
 
   await addApprovedContact(GUEST);
+  await addTripPlace(ROBIN, "robins-2026");
   tokens.owner = await signIn(OWNER_EMAIL);
   tokens.guest = await signIn(GUEST);
   tokens.traveller = await signIn(ROBIN);

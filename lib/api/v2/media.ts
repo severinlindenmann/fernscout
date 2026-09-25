@@ -233,7 +233,7 @@ async function storeTripPhoto(
   const isVideo = isVideoFilename(upload.filename);
   const originalExt = path.extname(upload.filename).toLowerCase();
 
-  if (isVideo && !videoToolsAvailable()) {
+  if (isVideo && !(await videoToolsAvailable())) {
     return {
       ok: false,
       error: "invalid_media",
@@ -327,7 +327,7 @@ async function storeTripPhoto(
     if (isVideo) {
       const outPath = path.join(scratch, "out.mp4");
       try {
-        const result = transcodeVideo(stagedInput, outPath, { maxSeconds: limits.videoSeconds });
+        const result = await transcodeVideo(stagedInput, outPath, { maxSeconds: limits.videoSeconds });
         posterBytes = result.poster;
       } catch (err) {
         return {
