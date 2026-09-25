@@ -46,10 +46,6 @@ import {
   statementRead,
   costsApplyRequest,
   inboxList,
-  inviteWrite,
-  inviteDoc,
-  contactCreate,
-  contactPatch,
   contactDoc,
   channelsPatch,
   channelsDoc,
@@ -460,32 +456,13 @@ const inboxDeleted = z.strictObject({ ok: z.literal(true), id: z.string(), filen
 
 const figureDeleted = z.strictObject({ deleted: z.string(), dryRun: z.boolean().optional() });
 
-const contactActionResult = z.strictObject({
-  ok: z.literal(true),
-  contact: contactDoc,
-  tripsOpened: z.array(z.string()).optional(),
-  dryRun: z.boolean().optional(),
-});
-
-const contactSendResult = z.strictObject({ ok: z.literal(true), sent: z.boolean(), dryRun: z.boolean().optional() });
-
 const contactSelfResult = z.strictObject({ ok: z.literal(true), contact: contactDoc.optional(), dryRun: z.boolean().optional() });
-
-const contactDeleted = z.strictObject({ id: z.string(), deleted: z.literal(true), dryRun: z.boolean().optional() });
 
 const contactImportResult = z.strictObject({
   filed: z.number().int().nonnegative(),
   invalid: z.number().int().nonnegative(),
   results: z.array(z.record(z.string(), z.unknown())),
   next: z.string(),
-});
-
-const inviteRevoked = z.strictObject({ id: z.string(), revoked: z.literal(true), note: z.string().optional(), dryRun: z.boolean().optional() });
-
-const inviteCreated = z.object({
-  ...inviteDoc.shape,
-  url: z.string(),
-  note: z.string().optional(),
 });
 
 /**
@@ -496,8 +473,7 @@ const inviteCreated = z.object({
  * created its first of either is told where the next step is written down
  * rather than left to guess (`app/api/v2/[user]/trips/[trip]/route.ts`,
  * `.../days/[slug]/route.ts`). Documented here as its own response shape,
- * wrapping the frozen document rather than adding an unconditional field to
- * it, the same pattern `inviteCreated` above already uses.
+ * wrapping the frozen document rather than adding an unconditional field to it.
  */
 const tripCreatedFirst = z.object({ ...tripDoc.shape, next: z.string().optional() });
 const dayCreatedFirst = z.object({ ...dayDoc.shape, next: z.string().optional() });
@@ -508,8 +484,6 @@ const dayCreatedFirst = z.object({ ...dayDoc.shape, next: z.string().optional() 
 const tripsList = z.strictObject({ trips: z.array(tripDoc), next_cursor: z.string().optional() });
 const daysList = z.strictObject({ trip: z.string(), days: z.array(dayDoc), next_cursor: z.string().optional() });
 const mediaList = z.strictObject({ items: z.array(mediaItem), next_cursor: z.string().optional() });
-const invitesList = z.strictObject({ invites: z.array(inviteDoc), next_cursor: z.string().optional() });
-const contactsList = z.strictObject({ contacts: z.array(contactDoc), next_cursor: z.string().optional() });
 const purchasesList = z.strictObject({ purchases: z.array(purchaseDoc), next_cursor: z.string().nullable() });
 const ledgerList = z.strictObject({ ledger: z.array(ledgerRow), next_cursor: z.string().nullable() });
 const figuresList = z.strictObject({ figures: z.array(figureDoc), next_cursor: z.string().optional() });
@@ -1639,31 +1613,14 @@ function buildPaths(): Record<string, PathItem> {
   };
 
   // ── contacts, invites, channels ─────────────────────────────────────
-  paths["/api/v2/{user}/contacts"] = {
-    get: {
-      summary: "The contacts queue.",
-      responses: { ...jsonResponse(200, contactsList, "one page of contacts — no address, no consent booleans"), ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409)]) },
-    },
-    post: {
-      summary: "File a pending contact and mail it a confirmation link.",
-      requestBody: jsonBody(contactCreate, "a name and an email"),
-      responses: {
-        ...jsonResponse(201, contactDoc, "pending"),
-        ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("invalid_request", 400), ref("contact_exists", 409)]),
-      },
-    },
-  };
-  paths["/api/v2/{user}/contacts/grant"] = {
-    post: {
-      summary:
-        "D11 — grant a named address direct read access on the spot, no confirmation wait. Widens what a bearer token can do; see the route's own doc comment.",
-      requestBody: jsonBody(contactCreate, "a name and an email"),
-      responses: {
-        ...jsonResponse(201, contactActionResult, "active immediately; a mail was sent"),
-        ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("invalid_request", 400), ref("contact_blocked", 409)]),
-      },
-    },
-  };
+  // `/api/v2/{user}/contacts` (list/create), `/contacts/grant`,
+  // `/contacts/{id}` (read/patch/delete), `/contacts/{id}/approve`,
+  // `/contacts/{id}/revoke` and `/contacts/{id}/resend` are gone — B2295
+  // (one door for readers, B2291). Letting somebody in, approving or
+  // revoking them happens only from `/<user>/studio/readers`, in the
+  // owner's own browser; an agent bearer token reaches neither. `self` and
+  // `import` stay: the owner's own contact record, and importing "who was
+  // there" from a phone's address book.
   paths["/api/v2/{user}/contacts/import"] = {
     post: {
       summary: "File many pending contacts at once, from rows a person already agreed.",
@@ -1683,101 +1640,6 @@ function buildPaths(): Record<string, PathItem> {
       },
     },
   };
-  paths["/api/v2/{user}/contacts/{id}"] = {
-    get: {
-      summary: "One contact.",
-      responses: { ...jsonResponse(200, contactDoc, "the contact"), ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("unknown_contact", 404)]) },
-    },
-    patch: {
-      summary: "Correct a contact's name, email or locale. Never its status.",
-      requestBody: jsonBody(contactPatch, "only the fields being changed"),
-      responses: {
-        ...jsonResponse(200, contactDoc, "the corrected contact"),
-        ...refusalResponses([
-          ...ownerRefusals,
-          ref("contacts_disabled", 409),
-          ref("unknown_contact", 404),
-          ref("invalid_request", 400),
-          ref("self_authored", 409),
-        ]),
-      },
-    },
-    delete: {
-      summary: "Delete a contact.",
-      responses: {
-        ...jsonResponse(200, contactDeleted, "deleted"),
-        ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("unknown_contact", 404)]),
-      },
-    },
-  };
-  paths["/api/v2/{user}/contacts/{id}/approve"] = {
-    post: {
-      summary: "Grant a confirmed contact access — the only thing that writes an access grant.",
-      responses: {
-        ...jsonResponse(200, contactActionResult, "approved; which trips opened"),
-        ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("unknown_contact", 404), ref("not_confirmed", 409)]),
-      },
-    },
-  };
-  paths["/api/v2/{user}/contacts/{id}/revoke"] = {
-    post: {
-      summary: "Revoke a contact's access. Reversible by approving again.",
-      responses: {
-        ...jsonResponse(200, contactActionResult, "revoked"),
-        ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("unknown_contact", 404)]),
-      },
-    },
-  };
-  paths["/api/v2/{user}/contacts/{id}/resend"] = {
-    post: {
-      summary: "Re-mail a pending contact's invite link.",
-      responses: {
-        ...jsonResponse(200, contactSendResult, "resent"),
-        ...refusalResponses([
-          ...ownerRefusals,
-          ref("contacts_disabled", 409),
-          ref("unknown_contact", 404),
-          ref("invalid_request", 409),
-          ref("too_many_requests", 429),
-        ]),
-      },
-    },
-  };
-
-  paths["/api/v2/{user}/invites"] = {
-    get: {
-      summary: "Every invite link this journal has issued, paged.",
-      responses: { ...jsonResponse(200, invitesList, "one page of invites"), ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409)]) },
-    },
-  };
-  paths["/api/v2/{user}/invites/{id}"] = {
-    get: {
-      summary: "One invite.",
-      responses: { ...jsonResponse(200, inviteDoc, "the invite"), ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("not_found", 404)]) },
-    },
-    put: {
-      summary: "Create a guest or buddy link at a client-chosen id. An invite has no update once created.",
-      requestBody: jsonBody(inviteWrite, "the invite to create"),
-      responses: {
-        ...jsonResponse(201, inviteCreated, "created — `url` is the link, present only in this response"),
-        ...refusalResponses([
-          ...ownerRefusals,
-          ref("contacts_disabled", 409),
-          ref("invalid_request", 400),
-          ref("stale_document", 409),
-          ref("unknown_trip", 404),
-        ]),
-      },
-    },
-    delete: {
-      summary: "Revoke an invite link. Does not remove anybody already approved through it.",
-      responses: {
-        ...jsonResponse(200, inviteRevoked, "revoked"),
-        ...refusalResponses([...ownerRefusals, ref("contacts_disabled", 409), ref("not_found", 404)]),
-      },
-    },
-  };
-
   // ── statements & postcards & photobooks ────────────────────────────
   paths["/api/v2/{user}/statements/{src}"] = {
     get: {

@@ -398,15 +398,12 @@ describe("the documents an agent reads (v2, step 6 of the v2 migration)", () => 
   /**
    * B331: an agent holding a valid owner token was asked to invite somebody,
    * found no call, and invented a browser "dashboard" that does not exist.
-   * The instance document names the invites guide in a heading of its own,
-   * and a journal's own document names the v2 door directly.
+   * B2295 (one door for readers, B2291) closed the v2 door this section used
+   * to name — there really is no call any more — so the section now says
+   * exactly that, and points at the one real place: Studio › Readers, in the
+   * owner's own browser.
    */
-  test("a journal's own document names the v2 invites endpoint", () => {
-    const doc = userDocumentation("ana")!;
-    expect(doc).toContain("/api/v2/ana/invites");
-  });
-
-  test("the instance document has its own heading for invites, not only a mention inside onboarding", () => {
+  test("the instance document has its own heading for invites, and says there is no agent door", () => {
     const summary = instanceDocumentation();
     const headingIdx = summary.indexOf("## Letting other people in");
     expect(headingIdx).toBeGreaterThan(-1);
@@ -414,14 +411,7 @@ describe("the documents an agent reads (v2, step 6 of the v2 migration)", () => 
     expect(journalsIdx).toBeGreaterThan(headingIdx);
     const section = summary.slice(headingIdx, journalsIdx);
     expect(section.toLowerCase()).toContain("invite");
-    expect(section).toContain("/skill/invite-someone.md");
-  });
-
-  test("the invite-someone guide names both link kinds and says which grants write access", () => {
-    const guide = skillDoc("invite-someone");
-    expect(guide).toContain("/invite/guest/");
-    expect(guide).toContain("/invite/buddy/");
-    expect(guide.toLowerCase()).toContain("write access");
+    expect(section).toContain("studio/readers");
   });
 });
 
@@ -507,11 +497,9 @@ describe("what the v2 guides have to tell an agent", () => {
     expect(guide).toMatch(/different convention from v1/i);
   });
 
-  test("the invite-someone guide says a link grants nothing by itself", () => {
-    const guide = skillDoc("invite-someone");
-    expect(guide).toMatch(/grants anything by itself/i);
-    expect(guide).toMatch(/never reads back/i);
-  });
+  // `the invite-someone guide says a link grants nothing by itself` used to
+  // live here — B2295 (one door for readers, B2291) removed the guide along
+  // with the route it documented.
 
   test.skipIf(!fs.existsSync(path.join(process.cwd(), "paid")))("the send-postcards guide says the owner presses the button, never the agent", () => {
     const guide = skillDoc("send-postcards");
