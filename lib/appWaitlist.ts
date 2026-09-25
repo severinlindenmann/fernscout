@@ -1,8 +1,8 @@
 import "server-only";
-import { isEmail } from "./auth";
+import { isEmail, NO_JOURNAL } from "./auth";
 import { hasDatabase, isEnabled } from "./capabilities";
 import { loadServerConfig } from "./config";
-import { getDatabaseOrNull, NO_JOURNAL, nowIso } from "./db";
+import { getDatabaseOrNull, nowIso } from "./db";
 import { MAINTAINED_LOCALES } from "./i18n";
 import { sendMail } from "./mail";
 import { renderMail, type MailBlock } from "./mail/template";
