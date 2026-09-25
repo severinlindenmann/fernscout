@@ -104,7 +104,7 @@ export default function NotifyStep({
     };
   }, [url, contactId]);
 
-  if (loadFailed) return <p className="mt-4 text-sm text-coral-600">{t("notifyStep.error.generic")}</p>;
+  if (loadFailed) return <p role="alert" className="mt-4 text-sm text-coral-600">{t("notifyStep.error.generic")}</p>;
   if (!options || !choice) return <p className="mt-4 text-sm text-ink-secondary">{t("notifyStep.loading")}</p>;
 
   const name = options.name?.trim() || t("notifyStep.them");
@@ -263,7 +263,7 @@ export default function NotifyStep({
         </p>
       )}
       {short && (
-        <p className="mt-2 text-sm text-coral-600">
+        <p role="alert" className="mt-2 text-sm text-coral-600">
           {t("notifyStep.error.noCredits", { balance: formatCredits(options.balance ?? 0) })}
         </p>
       )}

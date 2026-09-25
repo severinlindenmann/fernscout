@@ -41,7 +41,7 @@ import { sendWelcomeMail } from "./mail";
 
 const ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
 const CODE_LENGTH = 10;
-export const WELCOME_CODE_RE = new RegExp(`^[${ALPHABET}]{${CODE_LENGTH}}$`);
+const WELCOME_CODE_RE = new RegExp(`^[${ALPHABET}]{${CODE_LENGTH}}$`);
 
 function newCode(): string {
   let out = "";
@@ -54,7 +54,7 @@ function welcomeAad(owner: string, contactId: string): string {
   return `welcome:${owner}:${contactId}`;
 }
 
-export function welcomeUrl(code: string): string {
+function welcomeUrl(code: string): string {
   return `${serverSite().url.replace(/\/$/, "")}/w/${code}`;
 }
 
