@@ -14,7 +14,7 @@ import { listRuns } from "@/lib/staging/manifest";
 import { inboxSummary, waitingDaysFor } from "@/lib/studio/inbox";
 import type { WaitingDays } from "@/lib/studio/dayCards";
 import { getTrips, parseTripRef, tripRef } from "@/lib/trips";
-import { daysUntil } from "@/lib/tripTime";
+import { daysUntil, readerTodayISO } from "@/lib/tripTime";
 
 /**
  * What `/[user]/studio` (B1829) needs to render its three non-default
@@ -76,6 +76,13 @@ export type StudioHubModel =
        *  rendered before this ticket: a generic "Add a day" card naming no
        *  trip. */
       addDayTrip: { id: string; title: string; current: boolean } | null;
+      /** B2304 — whether the reader's own today already has a day written
+       *  on `addDayTrip` (only ever true when `addDayTrip.current`; a
+       *  finished or nameless trip has no "today" to have told). Read from
+       *  the same `days` this function already loads for `facts.drafts`
+       *  and `totalDays`, restricted to the current trip — no second disk
+       *  walk. Drives the calmer hero's "you already told today" wording. */
+      toldToday: boolean;
       /** The nearest trip that has not started yet — B2011's own hub card,
        *  "Plan a trip". `null` hides that card outright rather than showing
        *  it disabled: a journal with nothing upcoming has nothing to plan,
@@ -281,9 +288,15 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
 
   // `AS_AUTHOR` — the owner's own count of days includes drafts, the same
   // way every other owner-facing surface (`app/[user]/me/page.tsx`,
-  // `app/[user]/about/page.tsx`) reads its own content back.
-  const days = trips.flatMap((trip) => getDays(tripRef(username, trip.id), AS_AUTHOR));
+  // `app/[user]/about/page.tsx`) reads its own content back. Kept per trip
+  // so `toldToday` can ask only the current trip's own days, not the whole
+  // journal's, without a second `getDays` call.
+  const daysByTrip = trips.map((trip) => ({ id: trip.id, days: getDays(tripRef(username, trip.id), AS_AUTHOR) }));
+  const days = daysByTrip.flatMap((t) => t.days);
   const totalDays = days.length;
+  const toldToday =
+    current !== undefined &&
+    (daysByTrip.find((t) => t.id === current.id)?.days.some((d) => d.date === readerTodayISO()) ?? false);
   const inbox = inboxSummary(username);
   // B2133 — the readers page's own count (confirmed requests only), not
   // every pending row: one model, so chip and page cannot disagree.
@@ -292,6 +305,7 @@ export async function buildStudioHubModel(username: string): Promise<StudioHubMo
   return {
     kind: "full",
     addDayTrip,
+    toldToday,
     planTrip,
     cannotRun: {
       postcard: !isEnabled("postcards", username),
