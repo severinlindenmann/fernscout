@@ -85,7 +85,9 @@ export function apnsProviderToken(config: ApnsConfig): string {
   const claims = base64url(JSON.stringify({ iss: config.teamId, iat: Math.floor(Date.now() / 1000) }));
   const signingInput = `${header}.${claims}`;
   const signature = crypto.sign("sha256", Buffer.from(signingInput), {
-    key: config.key,
+    // A one-line env file (systemd's EnvironmentFile, .env.example's shape)
+    // carries the PEM's line breaks as a literal backslash-n.
+    key: config.key.replace(/\\n/g, "\n"),
     dsaEncoding: "ieee-p1363",
   });
   return `${signingInput}.${base64url(signature)}`;

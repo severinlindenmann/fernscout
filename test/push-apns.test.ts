@@ -58,6 +58,17 @@ function writeConfig(backend: string) {
 }
 
 describe("apnsProviderToken", () => {
+  test("accepts the key written on one line with literal \\n, as an env file carries it", async () => {
+    const { apnsProviderToken } = await import("@/lib/push/apns");
+    const oneLine = keyPem.trim().split("\n").join("\\n");
+    expect(oneLine).not.toContain("\n");
+    const token = apnsProviderToken({ keyId: "K", teamId: "T", key: oneLine, topic: "ch.fernscout.app", environment: "production" });
+    const [header, claims, signature] = token.split(".");
+    expect(
+      crypto.verify("sha256", Buffer.from(`${header}.${claims}`), { key: publicKey, dsaEncoding: "ieee-p1363" }, Buffer.from(signature, "base64url")),
+    ).toBe(true);
+  });
+
   test("is a three-part JWT the matching public key can verify", async () => {
     const { apnsProviderToken } = await import("@/lib/push/apns");
     const token = apnsProviderToken({
