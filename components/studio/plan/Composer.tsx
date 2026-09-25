@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/components/LocaleProvider";
+import { useOnline } from "@/components/studio/useOnline";
 import { COST_CATEGORIES, type CostCategory } from "@/lib/costFormat";
 import { PIN_NEAR_KM, looksLikeStay, nearestStopIndex, nearestStopWithin, sequenceContext } from "@/lib/planner/schedule";
 import type { ParsedThing, PendingPin, PlaceCandidate, PlanStop } from "@/lib/planner/types";
@@ -80,6 +81,7 @@ export default function Composer({
   onIgnorePin: (id: string) => void;
 }) {
   const { t, tn } = useI18n();
+  const online = useOnline();
   const [text, setText] = useState("");
   const [hintKind, setHintKind] = useState<Kind | null>(null);
   const [parsed, setParsed] = useState<ParsedThing | null>(null);
@@ -105,6 +107,11 @@ export default function Composer({
   const [nights, setNights] = useState(1);
 
   useEffect(() => {
+    // B2330 — reading a pasted place or link, and the place search below,
+    // both need a live lookup; offline they only ever come back empty. The
+    // input itself is greyed out with one line why (see the render below)
+    // rather than left to look like it works and then answer nothing.
+    if (!online) return;
     const trimmed = text.trim();
     if (trimmed === "") {
       // Deferred a tick, same reason `LocationFlow.tsx`'s own `arm` timer
@@ -270,11 +277,12 @@ export default function Composer({
               control before it ("Paste", "or type a place…"), not a
               full-width navy primary. Each kind's own add button below
               stays the screen's one commit. */}
-          <div className="flex gap-2">
+          <div className={`flex gap-2 ${online ? "" : "opacity-60"}`}>
             <button
               type="button"
+              disabled={!online}
               onClick={() => void doPaste()}
-              className="min-h-11 flex-none rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle"
+              className="min-h-11 flex-none rounded-full border border-line-strong px-4 text-sm font-semibold text-ink-strong hover:bg-surface-subtle disabled:pointer-events-none"
             >
               {t("studio.plan.composer.paste")}
             </button>
@@ -282,11 +290,13 @@ export default function Composer({
               ref={inputRef}
               type="text"
               value={text}
+              disabled={!online}
               onChange={(e) => setText(e.target.value)}
               placeholder={t("studio.plan.composer.placeholder")}
-              className="min-h-11 min-w-0 flex-1 rounded-xl border border-line-strong px-3 text-base"
+              className="min-h-11 min-w-0 flex-1 rounded-xl border border-line-strong px-3 text-base disabled:bg-surface-subtle"
             />
           </div>
+          {!online && <p className="mt-1.5 text-sm text-ink-secondary">{t("studio.plan.composer.offline")}</p>}
           {pasteHint && <p role="alert" className="mt-1.5 text-sm text-coral-600">{t("studio.plan.composer.pasteHint")}</p>}
 
           {!parsed && (
