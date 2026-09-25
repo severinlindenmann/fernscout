@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import NoticeShell from "@/components/NoticeShell";
 import { isEnabled } from "@/lib/capabilities";
 import { pickLocale } from "@/lib/contacts/locale";
-import { resolveWelcomeCode } from "@/lib/contacts/welcome";
+import { ownerShortName, resolveWelcomeCode } from "@/lib/contacts/welcome";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 import { getUser } from "@/lib/users";
@@ -35,7 +35,8 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const { code } = await params;
   const allowed = rateLimitFor("welcome-lookup", clientIp(await headers()), LOOKUPS).ok;
   const found = allowed && isEnabled("contacts") ? await resolveWelcomeCode(code) : null;
-  const user = found ? getUser(found.owner) : null;
+  // The journal's own contacts switch too, not only the server's (I3).
+  const user = found && isEnabled("contacts", found.owner) ? getUser(found.owner) : null;
 
   if (!found || !user) {
     const locale = await requestLocale();
@@ -50,7 +51,7 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
   const locale = pickLocale(found.contact.locale, user.defaultLocale);
   const vars = {
     name: (found.contact.name ?? "").trim().split(/\s+/)[0] ?? "",
-    owner: user.owner.nickname || user.owner.name,
+    owner: ownerShortName(user),
     title: user.title,
   };
   return (

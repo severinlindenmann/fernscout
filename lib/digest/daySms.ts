@@ -4,6 +4,7 @@ import { isEnabled } from "../capabilities";
 import { whatsappCountryCode } from "../contactNumber";
 import { listContacts } from "../contacts";
 import { pickLocale } from "../contacts/locale";
+import { capText } from "../contacts/welcome";
 import { balanceOf, refund, spend } from "../credits";
 import { AS_AUTHOR, getEntryBySlug } from "../entries";
 import { contactsWithReadGrant } from "../grants";
@@ -118,7 +119,13 @@ export async function sendDaySms(owner: string, ref: string, slug: string): Prom
   const failed: { to: string; error: string }[] = [];
   let owed = 0;
   for (const recipient of recipients) {
-    const body = translateIn(recipient.locale, "daySms.body", { trip: trip.title, day: entry.title, url });
+    // Capped (security review L2): one credit buys a text of a segment or
+    // two, whatever the titles are.
+    const body = translateIn(recipient.locale, "daySms.body", {
+      trip: capText(trip.title, 60),
+      day: capText(entry.title, 60),
+      url,
+    });
     try {
       await sendSms({ to: recipient.to, body });
       sent.push({ to: recipient.to });

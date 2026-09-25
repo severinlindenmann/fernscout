@@ -4242,8 +4242,8 @@
   "studio.hub.fact.deleted.one": "{count} gelöscht",
   "studio.delete.photobookDraft": "Ein Fotobuch-Entwurf verwendet Fotos dieses Tages; sie fehlen dann darin.",
   "studio.delete.photobookOrder": "Ein bestelltes Fotobuch wird gerade erstellt und verwendet Fotos dieses Tages. Warte, bis es fertig ist; es wurde nichts gelöscht.",
-  "welcomeLink.textReader": "Hallo {name} — {owner} lädt dich ein, „{title}“ zu lesen, ein Reisetagebuch. Hier geht’s los: {url}",
-  "welcomeLink.textBuddy": "Hallo {name} — {owner} hat dich als Reisegefährt:in zu „{title}“ in einem Reisetagebuch hinzugefügt. Hier geht’s los: {url}",
+  "welcomeLink.textReader": "Hallo {name} - {owner} lädt dich ein, \"{title}\" zu lesen, ein Reisetagebuch. Hier geht's los: {url}",
+  "welcomeLink.textBuddy": "Hallo {name} - {owner} hat dich als Reisegefährt:in zu \"{title}\" in einem Reisetagebuch hinzugefügt. Hier geht's los: {url}",
   "welcomeLink.mailSubject": "{owner} lädt dich zu „{title}“ ein",
   "welcomeLink.mailButton": "Willkommen öffnen",
   "welcomeLink.hello": "Hallo {name}",
@@ -4251,7 +4251,7 @@
   "welcomeLink.open": "{title} öffnen",
   "welcomeLink.unknownTitle": "Dieser Link öffnet nichts",
   "welcomeLink.unknownBody": "Vielleicht wurde er falsch abgetippt oder zurückgezogen. Bitte die Person, die ihn geschickt hat, um einen neuen.",
-  "daySms.body": "Neuer Tag bei „{trip}“: {day} — {url}",
+  "daySms.body": "Neuer Tag bei \"{trip}\": {day} - {url}",
   "notify.viaSms": "SMS",
   "notify.viaSms.one": "SMS",
   "contact.wantsSms": "Schickt mir eine SMS, wenn ein neuer Tag online geht",
@@ -4300,5 +4300,8 @@
   "notifyStep.error.noCredits": "Nicht genug Credits — du hast {balance}. Es wurde nichts abgebucht.",
   "notifyStep.error.rateLimited": "Das sind schon drei Nachrichten an {name} in dieser Stunde. Versuch es später wieder — es wurde nichts abgebucht.",
   "notifyStep.error.sendFailed": "Die Nachricht konnte nicht gesendet werden. Es wurde nichts abgebucht.",
-  "notifyStep.error.generic": "Das hat nicht geklappt. Es wurde nichts gesendet."
+  "notifyStep.error.generic": "Das hat nicht geklappt. Es wurde nichts gesendet.",
+  "notifyStep.blocked.linkLost": "Dieser Link wurde einmal angezeigt; dieser Server kann ihn nicht erneut anzeigen",
+  "notifyStep.error.dailyLimit": "Dieses Tagebuch hat heute schon 50 Willkommensnachrichten verschickt. Versuch es morgen wieder — es wurde nichts abgebucht.",
+  "notifyStep.linkLost": "Dieser Server speichert vom Willkommenslink für {name} nur einen Fingerabdruck — er kann weder angezeigt noch erneut gesendet werden. Es wurde nichts gesendet."
 }

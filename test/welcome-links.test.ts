@@ -28,6 +28,7 @@ vi.mock("next/headers", () => ({
 const OWNER = "ana";
 const OWNER_EMAIL = "ana@example.test";
 const TRIP = "hike-2026";
+const OTHER_TRIP = "alps-2025";
 let dir: string;
 
 function writeConfigs() {
@@ -137,6 +138,16 @@ beforeAll(async () => {
     costsVisibility: "guests",
     people: [],
   });
+  writeTripFixture(OWNER, {
+    id: OTHER_TRIP,
+    title: "Alps 2025",
+    start: "2025-08-25",
+    end: "2025-08-26",
+    status: "past",
+    visibility: "private",
+    costsVisibility: "guests",
+    people: [],
+  });
   const { clearConfigCache } = await import("@/lib/config");
   const { clearUserCache } = await import("@/lib/users");
   clearConfigCache();
@@ -231,7 +242,7 @@ describe("step 2 — telling them", () => {
     const by = Object.fromEntries(options.channels.map((c) => [c.channel, c]));
     expect(by.email.blocked).toBeNull();
     expect(by.email.preview).toBe(
-      `Hello Nora — Ana has invited you to read “Two Backpacks”, a travel journal. Start here: ${options.url}`,
+      `Hello Nora - Ana has invited you to read "Two Backpacks", a travel journal. Start here: ${options.url}`,
     );
     expect(by.whatsapp.blocked).toBe("whatsapp_off");
     expect(by.sms.blocked).toBe("no_mobile");
@@ -265,7 +276,7 @@ describe("step 2 — telling them", () => {
     expect(mine).toEqual([
       {
         to: "41765556677",
-        body: `Hallo Pia — Ana lädt dich ein, „Two Backpacks“ zu lesen, ein Reisetagebuch. Hier geht’s los: ${sent.url}`,
+        body: `Hallo Pia - Ana lädt dich ein, "Two Backpacks" zu lesen, ein Reisetagebuch. Hier geht's los: ${sent.url}`,
       },
     ]);
 
@@ -299,9 +310,9 @@ describe("the welcome link grants nothing", () => {
   test("it resolves to a greeting, opens no session, and opening it ends resending", async () => {
     const id = await addedId({ name: "Tom", email: "tom@example.test" });
     const { welcomeCodeFor, resolveWelcomeCode } = await import("@/lib/contacts/welcome");
-    const code = await welcomeCodeFor(OWNER, id);
+    const code = (await welcomeCodeFor(OWNER, id))!;
     expect(await welcomeCodeFor(OWNER, id)).toBe(code);
-    expect((await resolveWelcomeCode(code))?.contact.id).toBe(id);
+    expect((await resolveWelcomeCode(code!))?.contact.id).toBe(id);
     expect(await resolveWelcomeCode("2222222222")).toBeNull();
 
     jar.cookies = {};
@@ -327,5 +338,147 @@ describe("the welcome link grants nothing", () => {
     await signInOwner();
     const resend = await notify(id, "email");
     expect(((await resend.json()) as { error: string }).error).toBe("already_opened");
+  });
+});
+
+describe("security review of B2292", () => {
+  async function tripById(id: string) {
+    const { getTrips } = await import("@/lib/trips");
+    return getTrips(OWNER).find((t) => t.id === id)!;
+  }
+
+  test("M1: adding somebody as a reader never opens a trip place they once asked for", async () => {
+    const { requestContact } = await import("@/lib/contacts");
+    const { claimTripPlace, peopleOf } = await import("@/lib/tripPeople");
+    const asked = await requestContact(OWNER, {
+      name: "Bo",
+      email: "bo@example.test",
+      locale: "en",
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      wantsWhatsapp: false,
+      createdVia: "invite:x",
+    });
+    await claimTripPlace(OWNER, TRIP, asked.contactId!, null);
+    expect(await addedId({ name: "Bo", email: "bo@example.test" })).toBe(asked.contactId);
+    expect(await peopleOf(await tripById(TRIP))).not.toContain("bo@example.test");
+  });
+
+  test("M1: adding a buddy opens that trip only, never another pending or revoked place", async () => {
+    const { requestContact } = await import("@/lib/contacts");
+    const { claimTripPlace, peopleOf } = await import("@/lib/tripPeople");
+    const asked = await requestContact(OWNER, {
+      name: "Cy",
+      email: "cy@example.test",
+      locale: "en",
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      wantsWhatsapp: false,
+      createdVia: "invite:y",
+    });
+    await claimTripPlace(OWNER, OTHER_TRIP, asked.contactId!, null);
+    await addedId({ name: "Cy", email: "cy@example.test", role: "buddy", tripId: TRIP });
+    expect(await peopleOf(await tripById(TRIP))).toContain("cy@example.test");
+    expect(await peopleOf(await tripById(OTHER_TRIP))).not.toContain("cy@example.test");
+  });
+
+  test("L1: a request from a foreign Origin is refused on both doors", async () => {
+    const { POST: addPost } = await import("@/app/api/web/[user]/readers/route");
+    const { POST: notifyPost } = await import("@/app/api/web/[user]/readers/notify/route");
+    const evil = { origin: "https://evil.example" };
+    const a = await addPost(post(`/api/web/${OWNER}/readers`, { name: "E", email: "e@example.test" }, evil), {
+      params: Promise.resolve({ user: OWNER }),
+    });
+    expect(a.status).toBe(403);
+    expect(((await a.json()) as { error: string }).error).toBe("foreign_origin");
+    const n = await notifyPost(post(`/api/web/${OWNER}/readers/notify`, { contactId: "x", channel: "self" }, evil), {
+      params: Promise.resolve({ user: OWNER }),
+    });
+    expect(n.status).toBe(403);
+  });
+
+  test("L2: an ordinary invite is one GSM-7 segment, a long one stays short, and the text is the preview", async () => {
+    const gsm7 = /^[A-Za-z0-9 @£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ!"#¤%&'()*+,\-./:;<=>?¡ÄÖÑÜ§¿äöñüà\n\r]*$/;
+    const id = await addedId({ name: "Ida", phone: "+41 76 123 00 01" });
+    const before = texts().length;
+    expect((await notify(id, "sms")).status).toBe(200);
+    const body = texts()[before].body;
+    expect(body).toMatch(gsm7);
+    expect(body.length).toBeLessThanOrEqual(160);
+
+    const long = await addedId({ name: "Wolfgang".repeat(20), phone: "+41 76 123 00 02" });
+    const { inviteOptions } = await import("@/lib/contacts/welcome");
+    const preview = (await inviteOptions(OWNER, long))!.channels.find((c) => c.channel === "sms")!.preview;
+    expect((await notify(long, "sms")).status).toBe(200);
+    const sent = texts().at(-1)!.body;
+    expect(sent).toBe(preview);
+    expect(sent.length).toBeLessThan(220);
+  });
+
+  test("L3: without a contacts key a sent link is never replaced; a lost one is refused, not rotated", async () => {
+    const id = await addedId({ name: "Jo", email: "jo@example.test" });
+    const { welcomeCodeFor, resolveWelcomeCode, sendInvite } = await import("@/lib/contacts/welcome");
+    const key = process.env.CONTACTS_ENCRYPTION_KEY;
+    delete process.env.CONTACTS_ENCRYPTION_KEY;
+    try {
+      const first = await welcomeCodeFor(OWNER, id);
+      expect(first).toMatch(/^[a-z0-9]{10}$/);
+      expect(await welcomeCodeFor(OWNER, id)).toBeNull();
+      process.env.CONTACTS_ENCRYPTION_KEY = key;
+      expect((await resolveWelcomeCode(first!))?.contact.id).toBe(id);
+      delete process.env.CONTACTS_ENCRYPTION_KEY;
+      expect(await sendInvite(OWNER, id, "self")).toEqual({ ok: false, reason: "link_lost" });
+    } finally {
+      process.env.CONTACTS_ENCRYPTION_KEY = key;
+    }
+  });
+
+  test("L4: a journal sends at most 50 welcome messages a day, across everybody", async () => {
+    const ids: string[] = [];
+    for (let i = 0; i < 17; i++) ids.push(await addedId({ name: `P${i}`, email: `p${i}@example.test` }));
+    let sent = 0;
+    let refused: string | null = null;
+    for (const id of ids) {
+      for (let j = 0; j < 3 && !refused; j++) {
+        const res = await notify(id, "email");
+        if (res.ok) sent++;
+        else refused = ((await res.json()) as { error: string }).error;
+      }
+    }
+    expect(sent).toBe(50);
+    expect(refused).toBe("daily_limit");
+  });
+
+  test("I3: the welcome page names the owner by nickname and is gone when contacts is switched off", async () => {
+    const id = await addedId({ name: "Kai", email: "kai@example.test" });
+    const { welcomeCodeFor } = await import("@/lib/contacts/welcome");
+    const code = (await welcomeCodeFor(OWNER, id))!;
+    const { default: WelcomePage } = await import("@/app/w/[code]/page");
+    const render = async () => JSON.stringify(await WelcomePage({ params: Promise.resolve({ code }) } as never));
+    const page = await render();
+    expect(page).toContain("Ana invited you");
+    expect(page).not.toContain("Ana Meyer");
+    const { ownerShortName } = await import("@/lib/contacts/welcome");
+    expect(ownerShortName({ owner: { name: "Ana Meyer" } })).toBe("Ana");
+
+    // `contacts` is operator-only (lib/config.ts OPERATOR_ONLY_FEATURES): a
+    // journal cannot switch it off itself, so the switch that matters is the
+    // server's, asked for this journal as the Readers page asks it.
+    const file = path.join(dir, "config.json");
+    const original = fs.readFileSync(file, "utf8");
+    const config = JSON.parse(original);
+    config.features.contacts = { enabled: false };
+    fs.writeFileSync(file, JSON.stringify(config));
+    const { clearUserCache } = await import("@/lib/users");
+    const { clearConfigCache } = await import("@/lib/config");
+    clearUserCache();
+    clearConfigCache();
+    try {
+      expect(await render()).not.toContain("Kai");
+    } finally {
+      fs.writeFileSync(file, original);
+      clearUserCache();
+      clearConfigCache();
+    }
   });
 });

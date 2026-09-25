@@ -59,25 +59,35 @@ function welcomeUrl(code: string): string {
 }
 
 /**
- * This contact's welcome code — the stored one, or a fresh one when there is
- * none yet (or it cannot be read back, which without a contacts key is every
- * time: the old link then stops working, and the new one is the only one).
+ * This contact's welcome code: the stored one, or — only when there has never
+ * been one — a fresh one. **A code is never replaced here**: a link already
+ * sent keeps working. Null when a code exists but cannot be read back (no
+ * contacts key, so only its hash was kept): the link was shown once, and the
+ * caller says so rather than silently minting another (security review L3).
+ *
+ * The first mint is a conditional update on `welcome_code_hash is null`, so
+ * two presses at once agree on one code.
  */
-export async function welcomeCodeFor(owner: string, contactId: string): Promise<string> {
+export async function welcomeCodeFor(owner: string, contactId: string): Promise<string | null> {
   const { db } = await getDatabase();
-  const row = await db
-    .selectFrom("contacts")
-    .select(["welcome_code_cipher"])
-    .where("owner_id", "=", owner)
-    .where("id", "=", contactId)
-    .executeTakeFirst();
-  const kept = row?.welcome_code_cipher
-    ? decryptString(row.welcome_code_cipher, welcomeAad(owner, contactId), "invite token")
-    : null;
-  if (kept) return kept;
+  const read = () =>
+    db
+      .selectFrom("contacts")
+      .select(["welcome_code_hash", "welcome_code_cipher"])
+      .where("owner_id", "=", owner)
+      .where("id", "=", contactId)
+      .executeTakeFirst();
+  const kept = (row: Awaited<ReturnType<typeof read>>) =>
+    row?.welcome_code_cipher
+      ? decryptString(row.welcome_code_cipher, welcomeAad(owner, contactId), "invite token")
+      : null;
+
+  const row = await read();
+  if (!row) return null;
+  if (row.welcome_code_hash) return kept(row);
 
   const code = newCode();
-  await db
+  const minted = await db
     .updateTable("contacts")
     .set({
       welcome_code_hash: hashSecret(code),
@@ -86,8 +96,11 @@ export async function welcomeCodeFor(owner: string, contactId: string): Promise<
     })
     .where("owner_id", "=", owner)
     .where("id", "=", contactId)
-    .execute();
-  return code;
+    .where("welcome_code_hash", "is", null)
+    .executeTakeFirst();
+  // bigint on both dialects — `Number()`, as `spend` does.
+  if (Number(minted.numUpdatedRows ?? 0) === 1) return code;
+  return kept(await read());
 }
 
 /**
@@ -130,7 +143,17 @@ export type InviteChannel = "email" | "whatsapp" | "sms" | "self";
 export const INVITE_CHANNELS: readonly InviteChannel[] = ["email", "whatsapp", "sms", "self"];
 
 /** Why a channel cannot be used for this person, or null when it can. */
-type ChannelBlock = "no_email" | "no_mobile" | "mail_off" | "whatsapp_off" | "sms_off" | "unreachable";
+type ChannelBlock =
+  | "no_email"
+  | "no_mobile"
+  | "mail_off"
+  | "whatsapp_off"
+  | "sms_off"
+  | "unreachable"
+  /** The link was shown once and this server kept only its hash (no
+   * contacts key): there is nothing to send or copy, and it is not quietly
+   * replaced (L3). */
+  | "link_lost";
 
 /** The trip a buddy was added to — the newest place they hold or asked for. */
 async function buddyTripTitle(owner: string, contactId: string): Promise<string | null> {
@@ -149,6 +172,23 @@ async function buddyTripTitle(owner: string, contactId: string): Promise<string 
 
 function firstName(name: string | null): string {
   return (name ?? "").trim().split(/\s+/)[0] ?? "";
+}
+
+/**
+ * At most `max` characters, "..." when cut — security review L2. Every
+ * variable in a text message is capped, so one credit buys one message of a
+ * few SMS segments rather than two dozen; ASCII so the ending does not force
+ * a whole text into UCS-2.
+ */
+export function capText(value: string, max: number): string {
+  const flat = value.replace(/\s+/g, " ").trim();
+  return flat.length <= max ? flat : `${flat.slice(0, max - 3).trimEnd()}...`;
+}
+
+/** How the owner is named to somebody else: nickname, or first name — never
+ * the full name (I3). */
+export function ownerShortName(user: { owner: { nickname?: string; name: string } }): string {
+  return user.owner.nickname?.trim() || firstName(user.owner.name);
 }
 
 /** Meta rejects a body parameter with a newline, a tab or four spaces in a row. */
@@ -174,9 +214,9 @@ async function messageFor(owner: string, contact: ContactRecord, code: string): 
   const trip = await buddyTripTitle(owner, contact.id);
   const url = welcomeUrl(code);
   const vars = {
-    name: firstName(contact.name),
-    owner: user.owner.nickname || user.owner.name,
-    title: trip ?? user.title,
+    name: capText(firstName(contact.name), 40),
+    owner: capText(ownerShortName(user), 40),
+    title: capText(trip ?? user.title, 60),
     url,
   };
   return {
@@ -217,7 +257,8 @@ function costOf(channel: InviteChannel): number {
 export type InviteOptions = {
   contactId: string;
   name: string | null;
-  url: string;
+  /** Null when the link cannot be shown again (`link_lost`). */
+  url: string | null;
   /** Masked, for "to +41 •••• 12". */
   to: { email: string | null; mobile: string | null };
   channels: { channel: InviteChannel; cost: number; blocked: ChannelBlock | null; preview: string }[];
@@ -250,18 +291,19 @@ function maskMobile(phone: string | null): string | null {
 export async function inviteOptions(owner: string, contactId: string): Promise<InviteOptions | null> {
   const contact = await getContact(owner, contactId);
   if (!contact || contact.status !== "active") return null;
-  const message = await messageFor(owner, contact, await welcomeCodeFor(owner, contactId));
-  if (!message) return null;
+  const code = await welcomeCodeFor(owner, contactId);
+  const message = code ? await messageFor(owner, contact, code) : null;
+  if (code && !message) return null;
   return {
     contactId,
     name: contact.name,
-    url: message.url,
+    url: message?.url ?? null,
     to: { email: maskEmail(contact.email), mobile: maskMobile(contact.phone) },
     channels: INVITE_CHANNELS.map((channel) => ({
       channel,
       cost: costOf(channel),
-      blocked: blockFor(owner, contact, channel),
-      preview: channel === "self" ? message.url : message.text,
+      blocked: message ? blockFor(owner, contact, channel) : "link_lost",
+      preview: !message ? "" : channel === "self" ? message.url : message.text,
     })),
     balance: await balanceOf(owner),
     creditPrice: creditsInRappen(1) > 0 ? formatChf(creditsInRappen(1)) : null,
@@ -272,6 +314,9 @@ export async function inviteOptions(owner: string, contactId: string): Promise<I
 /** Three sends an hour per person, across every channel — a resend button is
  * not a way to flood somebody's phone. `self` sends nothing and is not counted. */
 const SEND_LIMIT = { max: 3, windowMs: 60 * 60 * 1000 };
+/** And fifty a day per journal, across everybody (L4): a journal is not a
+ * bulk sender, and a stolen owner cookie must not be one either. */
+const DAILY_LIMIT = { max: 50, windowMs: 24 * 60 * 60 * 1000 };
 
 export type InviteSendResult =
   | {
@@ -291,6 +336,7 @@ export type InviteSendResult =
         | "no_contact"
         | "already_opened"
         | "rate_limited"
+        | "daily_limit"
         | "no_credits"
         | "send_failed"
         | ChannelBlock;
@@ -314,6 +360,7 @@ export async function sendInvite(
   const contact = await getContact(owner, contactId);
   if (!contact || contact.status !== "active") return { ok: false, reason: "no_contact" };
   const code = await welcomeCodeFor(owner, contactId);
+  if (!code) return { ok: false, reason: "link_lost" };
   const message = await messageFor(owner, contact, code);
   if (!message) return { ok: false, reason: "no_contact" };
 
@@ -327,6 +374,7 @@ export async function sendInvite(
   if (!rateLimitFor("invite-send", `${owner}:${contactId}`, SEND_LIMIT).ok) {
     return { ok: false, reason: "rate_limited" };
   }
+  if (!rateLimitFor("invite-send-journal", owner, DAILY_LIMIT).ok) return { ok: false, reason: "daily_limit" };
 
   const cost = costOf(channel);
   const ref = `invite/${contactId}/${newId()}`;

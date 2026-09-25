@@ -4244,8 +4244,8 @@
   "studio.hub.fact.deleted.one": "{count} törölt",
   "studio.delete.photobookDraft": "Egy fotókönyv-piszkozat ennek a napnak a fényképeit használja; ezek hiányozni fognak belőle.",
   "studio.delete.photobookOrder": "Egy megrendelt fotókönyved még készül, és ennek a napnak a fényképeit használja. Várd meg, amíg elkészül; semmi sem törlődött.",
-  "welcomeLink.textReader": "Szia {name}! {owner} meghívott, hogy olvasd a(z) „{title}” útinaplót. Itt kezdheted: {url}",
-  "welcomeLink.textBuddy": "Szia {name}! {owner} útitársként hozzáadott a(z) „{title}” úthoz egy útinaplóban. Itt kezdheted: {url}",
+  "welcomeLink.textReader": "Szia {name}! {owner} meghívott, hogy olvasd a(z) \"{title}\" útinaplót. Itt kezdheted: {url}",
+  "welcomeLink.textBuddy": "Szia {name}! {owner} útitársként hozzáadott a(z) \"{title}\" úthoz egy útinaplóban. Itt kezdheted: {url}",
   "welcomeLink.mailSubject": "{owner} meghívott ide: „{title}”",
   "welcomeLink.mailButton": "Megnyitom a meghívót",
   "welcomeLink.hello": "Szia {name}!",
@@ -4253,7 +4253,7 @@
   "welcomeLink.open": "Megnyitom: {title}",
   "welcomeLink.unknownTitle": "Ez a link nem nyit meg semmit",
   "welcomeLink.unknownBody": "Lehet, hogy elgépelték, vagy visszavonták. Kérj újat attól, aki küldte.",
-  "daySms.body": "Új nap: „{trip}” — {day} — {url}",
+  "daySms.body": "Új nap: \"{trip}\" - {day} - {url}",
   "notify.viaSms": "SMS",
   "notify.viaSms.one": "SMS",
   "contact.wantsSms": "Küldjetek SMS-t, ha új nap kerül fel",
@@ -4302,5 +4302,8 @@
   "notifyStep.error.noCredits": "Nincs elég kredit — {balance} van. Semmit nem vontunk le.",
   "notifyStep.error.rateLimited": "Ebben az órában már három üzenet ment neki: {name}. Próbáld később — semmit nem vontunk le.",
   "notifyStep.error.sendFailed": "Az üzenetet nem sikerült elküldeni. Semmit nem vontunk le.",
-  "notifyStep.error.generic": "Ez nem sikerült. Semmit nem küldtünk el."
+  "notifyStep.error.generic": "Ez nem sikerült. Semmit nem küldtünk el.",
+  "notifyStep.blocked.linkLost": "Ezt a linket egyszer már megmutattuk, ez a szerver nem tudja újra megmutatni",
+  "notifyStep.error.dailyLimit": "Ez a napló ma már 50 meghívó üzenetet küldött. Próbáld holnap — semmit nem vontunk le.",
+  "notifyStep.linkLost": "Ez a szerver {name} meghívó linkjéből csak egy ujjlenyomatot őriz, ezért nem tudja újra megmutatni vagy elküldeni. Semmit nem küldtünk el."
 }

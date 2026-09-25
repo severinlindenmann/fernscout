@@ -1,5 +1,6 @@
 import "server-only";
 import { contactsReady } from "@/lib/api/v2/social";
+import { FOREIGN_ORIGIN_REFUSAL, foreignOrigin } from "@/lib/auth/originCheck";
 import { isOwner } from "@/lib/contacts/session";
 
 const NOT_FOR_AGENTS = {
@@ -17,6 +18,9 @@ const NOT_FOR_AGENTS = {
  */
 export async function ownerOnly(request: Request, user: string): Promise<Response | null> {
   if (request.headers.get("authorization")) return Response.json(NOT_FOR_AGENTS, { status: 403 });
+  // Both doors write grants or spend credits: a present, mismatched Origin is
+  // refused (B1559), on top of the cookie's own sameSite.
+  if (foreignOrigin(request)) return Response.json(FOREIGN_ORIGIN_REFUSAL, { status: 403 });
   const ready = await contactsReady(user);
   if (!ready.ok) return ready.response;
   if (!(await isOwner(user))) return Response.json({ error: "forbidden" }, { status: 403 });

@@ -31,6 +31,7 @@ const STATUS: Record<string, number> = {
   no_contact: 404,
   no_credits: 402,
   rate_limited: 429,
+  daily_limit: 429,
   send_failed: 502,
 };
 

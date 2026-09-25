@@ -991,6 +991,13 @@ export async function getContact(owner: string, id: string): Promise<ContactReco
 export async function approveContact(
   owner: string,
   id: string,
+  /**
+   * B2292 — which trip places this approval opens. Absent: every place the
+   * contact asked for (the owner approving a request). `{ onlyTrip: null }`:
+   * none — "Add a person" as a reader must never turn an old buddy request
+   * or a revoked place into write access. `{ onlyTrip: id }`: that one trip.
+   */
+  places?: { onlyTrip: string | null },
 ): Promise<{ contact: ContactRecord; tripsOpened: string[] } | null> {
   const contact = await getContact(owner, id);
   if (!contact) return null;
@@ -1056,7 +1063,11 @@ export async function approveContact(
 
   // Every trip they asked to join, opened by the same click. Returns the ids
   // rather than nothing so a caller can say which trips were opened.
-  const tripsOpened = await approveTripPlaces(owner, id);
+  const tripsOpened = !places
+    ? await approveTripPlaces(owner, id)
+    : places.onlyTrip
+      ? await approveTripPlaces(owner, id, places.onlyTrip)
+      : [];
 
   const updated = await getContact(owner, id);
   // Cannot actually be null — the row was read at the top of this function
@@ -1430,7 +1441,8 @@ export async function addPersonByOwner(
     await claimTripPlace(owner, input.buddyTripId, added.contact.id, null);
   }
   await confirmContactByOwner(owner, added.contact.id);
-  const approved = await approveContact(owner, added.contact.id);
+  // Only the trip named here, never another pending or revoked place (M1).
+  const approved = await approveContact(owner, added.contact.id, { onlyTrip: input.buddyTripId ?? null });
   if (!approved) return { ok: false, error: "not_approved" };
   return { ok: true, outcome: added.outcome, contact: approved.contact };
 }

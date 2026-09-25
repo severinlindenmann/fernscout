@@ -7,12 +7,12 @@ import type { TranslationKey } from "@/lib/i18n";
 import { formatCredits } from "@/lib/creditsFormat";
 
 type Channel = "email" | "whatsapp" | "sms" | "self";
-type Block = "no_email" | "no_mobile" | "mail_off" | "whatsapp_off" | "sms_off" | "unreachable";
+type Block = "no_email" | "no_mobile" | "mail_off" | "whatsapp_off" | "sms_off" | "unreachable" | "link_lost";
 
 /** `GET /api/web/<user>/readers/notify` — `InviteOptions` in lib/contacts/welcome.ts. */
 type Options = {
   name: string | null;
-  url: string;
+  url: string | null;
   to: { email: string | null; mobile: string | null };
   channels: { channel: Channel; cost: number; blocked: Block | null; preview: string }[];
   balance: number | null;
@@ -41,10 +41,13 @@ const BLOCK: Record<Block, TranslationKey> = {
   whatsapp_off: "notifyStep.blocked.whatsappOff",
   sms_off: "notifyStep.blocked.smsOff",
   unreachable: "notifyStep.blocked.unreachable",
+  link_lost: "notifyStep.blocked.linkLost",
 };
 const ERROR: Record<string, TranslationKey> = {
   no_credits: "notifyStep.error.noCredits",
   rate_limited: "notifyStep.error.rateLimited",
+  daily_limit: "notifyStep.error.dailyLimit",
+  link_lost: "notifyStep.linkLost",
   send_failed: "notifyStep.error.sendFailed",
   already_opened: "notifyStep.opened",
 };
@@ -108,6 +111,8 @@ export default function NotifyStep({
   if (!options || !choice) return <p className="mt-4 text-sm text-ink-secondary">{t("notifyStep.loading")}</p>;
 
   const name = options.name?.trim() || t("notifyStep.them");
+  // Shown once already, on a server that kept only its hash: say so, send nothing.
+  if (!options.url) return <p className="mt-4 text-sm text-ink-body">{t("notifyStep.linkLost", { name })}</p>;
   const costText = (cost: number) =>
     cost === 0 ? t("notifyStep.free") : tn("notifyStep.credits", cost, { count: String(cost) });
 
