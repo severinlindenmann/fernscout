@@ -2475,6 +2475,7 @@ export type TranslationKey =
   | "purchase.refund.subject"
   | "purchase.refund.title"
   | "push.blocked"
+  | "push.blockedNative"
   | "push.enable"
   | "push.enabled"
   | "push.failed"

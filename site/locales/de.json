@@ -2599,6 +2599,7 @@
   "purchase.refund.subject": "Rückerstattung — {amount}",
   "purchase.refund.title": "Dein Kauf wurde zurückerstattet",
   "push.blocked": "Benachrichtigungen sind blockiert — bitte in den Browser-Einstellungen wieder erlauben.",
+  "push.blockedNative": "Benachrichtigungen sind für diese App ausgeschaltet — bitte in den Einstellungen wieder erlauben.",
   "push.enable": "Bei neuen Tagen benachrichtigen",
   "push.enabled": "Benachrichtigungen an",
   "push.failed": "Hat nicht geklappt. Bitte gleich nochmal versuchen.",

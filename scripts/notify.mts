@@ -34,6 +34,7 @@ import webpush, { WebPushError } from "web-push";
 import { isOpenToLink, isTestContent } from "../lib/access";
 import { AS_AUTHOR, getAllEntries, getDefaultDay, getEntryBySlug } from "../lib/entries";
 import { isGoneSubscription, removeSubscriptions, subscribersFor } from "../lib/push";
+import { sendApnsNotification } from "../lib/push/apns";
 import { currentTripRef, getTrip, getTripIds } from "../lib/trips";
 import { getDefaultUsername, getUser, getUsernames } from "../lib/users";
 
@@ -145,12 +146,13 @@ if (!entry) {
   );
 }
 
-const payload = JSON.stringify({
+const notice = {
   title: entry.title,
   body: `${entry.location}${entry.country ? `, ${entry.country}` : ""}`,
   url: `${SITE_URL}${dayPath(entry.slug)}`,
   tag: `day-${entry.slug}`,
-});
+};
+const payload = JSON.stringify(notice);
 
 console.log(`\n  → "${entry.title}" (${trip.ref})`);
 console.log(`    ${entry.location}${entry.country ? `, ${entry.country}` : ""} · ${entry.date}`);
@@ -213,6 +215,25 @@ let sent = 0;
 const dead: string[] = [];
 await Promise.all(
   recipients.map(async (sub) => {
+    // B2115: two transports on one subscriber list. `kind` came back from
+    // `subscribersFor` (`lib/push.ts`, `lib/repos/pushDb.ts`) exactly as it
+    // was stored — "web" for every row that predates this and everything a
+    // browser ever subscribed, "apns" only for the iPhone shell.
+    if (sub.kind === "apns") {
+      try {
+        const result = await sendApnsNotification({ token: sub.endpoint, ...notice });
+        if (result.ok) {
+          sent++;
+        } else if (result.gone) {
+          dead.push(sub.endpoint);
+        } else {
+          console.error(`    ! apns ${result.status} ${result.body.slice(0, 120)}`);
+        }
+      } catch (err) {
+        console.error(`    ! apns ${(err as Error).message}`);
+      }
+      return;
+    }
     try {
       await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
       sent++;

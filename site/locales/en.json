@@ -2599,6 +2599,7 @@
   "purchase.refund.subject": "Refunded — {amount}",
   "purchase.refund.title": "Your purchase was refunded",
   "push.blocked": "Notifications are blocked — turn them back on in your browser settings.",
+  "push.blockedNative": "Notifications are turned off for this app — turn them back on in Settings.",
   "push.enable": "Tell me about new days",
   "push.enabled": "Notifications on",
   "push.failed": "That didn’t work. Try again in a moment.",

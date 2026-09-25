@@ -2400,6 +2400,7 @@
   "purchase.refund.subject": "Visszatérítve — {amount}",
   "purchase.refund.title": "A vásárlásodat visszatérítettük",
   "push.blocked": "Az értesítések le vannak tiltva — engedélyezd újra a böngésző beállításaiban.",
+  "push.blockedNative": "Az értesítések ki vannak kapcsolva ehhez az alkalmazáshoz — engedélyezd újra a Beállításokban.",
   "push.enable": "Szólj, ha új nap van",
   "push.enabled": "Értesítések bekapcsolva",
   "push.failed": "Nem sikerült. Próbáld újra kicsit később.",
