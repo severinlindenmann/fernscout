@@ -1,4 +1,7 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
+
+// B2291 — the page re-reads itself with router.refresh(); nothing here navigates.
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
 import { renderToStaticMarkup } from "react-dom/server";
 import ContactsAdmin from "@/components/studio/readers/ReadersAdmin";
 import type { AdminContact, AdminInvite } from "@/components/studio/readers/shared";
@@ -63,6 +66,7 @@ function invite(over: Partial<AdminInvite>): AdminInvite {
     revokedAt: null,
     uses: 1,
     url: null,
+    live: true,
     ...over,
   };
 }
@@ -102,7 +106,7 @@ describe("how a contact row says somebody arrived", () => {
       [contact({ createdVia: "invite:inv-1" })],
       [invite({ id: "inv-1", kind: "guest" })],
     );
-    expect(html).toContain(`>${dict["me.inviteGuestTitle"]}.</p>`);
+    expect(html).toContain(`>${dict["me.inviteGuestTitle"]} · `);
   });
 
   /**
@@ -135,7 +139,7 @@ describe("how a contact row says somebody arrived", () => {
     );
     // In the row, beside the kind — not merely somewhere in the markup, which
     // the invite list below would satisfy on its own.
-    expect(html).toContain(`>${dict["me.inviteBuddyTitle"]} · the trip gone-2019.</p>`);
+    expect(html).toContain(`>${dict["me.inviteBuddyTitle"]} · the trip gone-2019 · `);
   });
 
   /**
@@ -150,13 +154,17 @@ describe("how a contact row says somebody arrived", () => {
   });
 
   test("the owner's own row, and a row from the guestbook B37 removed", () => {
-    expect(render([contact({ createdVia: "owner" })])).toContain(dict["contact.adminViaOwner"]);
+    // Seen once, so "Reading along" rather than "Invited — not opened yet".
+    expect(render([contact({ createdVia: "owner", welcomeOpenedAt: new Date().toISOString() })])).toContain(
+      dict["contact.adminViaOwner"],
+    );
     expect(render([contact({ createdVia: "open" })])).toContain(dict["contact.adminViaOpen"]);
   });
 
-  test("a row with no provenance at all is still a dash, not an empty line", () => {
+  test("a row with no provenance says nothing about it, never a code", () => {
     const html = render([contact({ createdVia: null })]);
-    expect(html).toContain("—");
+    expect(html).not.toContain(">null");
+    expect(html).toContain(`>${dict["readers.reach.email"]} · English`);
   });
 
   /**

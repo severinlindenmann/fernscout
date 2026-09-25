@@ -90,11 +90,8 @@ export const SCOPES = {
   contactPage: { files: ["app/[user]/c/[token]/page.tsx"] },
   // Components that translate from a `dictionary`/`dictionaries` prop.
   contactManage: { files: ["components/ContactManage.tsx"], at: ["app/[user]/me/page.tsx"] },
-  contactForm: {
-    files: ["components/ContactForm.tsx", "components/InviteRedeem.tsx"],
-    at: ["app/[user]/i/[token]/page.tsx", "app/[user]/invite/redeemPage.tsx"],
-  },
   readersAdmin: { files: ["components/studio/readers/ReadersAdmin.tsx"], at: ["app/[user]/studio/readers/page.tsx"] },
+  ownDetails: { files: ["components/studio/readers/OwnDetails.tsx"], at: ["app/[user]/studio/journal/page.tsx"] },
 };
 
 /** The files Next renders for a route segment — never a `route.ts`, which

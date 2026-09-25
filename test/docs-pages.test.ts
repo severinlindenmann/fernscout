@@ -12,16 +12,18 @@ import { dictionaryFor } from "@/lib/locales";
  * navigated and the other scrolled.
  */
 describe("the documentation pages", () => {
-  test("there are seven, in two groups", () => {
+  test("there are eight, in two groups", () => {
     // B1826 removed `/docs/extract` (the guided flows it explained now carry
     // that guidance in place, per spec.md §4) — nine down to eight, six
     // technical pages down to five. `guest`, `creator` and `buddy` all
     // survive: `lib/docs.ts`'s own doc comment on `GUIDES` says why B1826
     // could not delete the last two despite setting out to. B2248 retired
     // `/docs/roadmap` — task bodies published the owner's contact details —
-    // eight down to seven, five technical pages down to four.
-    expect(DOCS_PAGES).toHaveLength(7);
-    expect(DOCS_PAGES.filter((p) => p.group === "guides")).toHaveLength(3);
+    // eight down to seven, five technical pages down to four. B2343 added
+    // `gps`, the fourth reader guide — seven back up to eight, three guide
+    // pages up to four.
+    expect(DOCS_PAGES).toHaveLength(8);
+    expect(DOCS_PAGES.filter((p) => p.group === "guides")).toHaveLength(4);
     expect(DOCS_PAGES.filter((p) => p.group === "technical")).toHaveLength(4);
   });
 
@@ -39,6 +41,6 @@ describe("the documentation pages", () => {
     expect(entries).toHaveLength(DOCS_PAGES.length);
     expect(entries.filter((e) => e.startsGroup)).toHaveLength(1);
     // And it is the first technical page, not an arbitrary one.
-    expect(entries.findIndex((e) => e.startsGroup)).toBe(3);
+    expect(entries.findIndex((e) => e.startsGroup)).toBe(4);
   });
 });

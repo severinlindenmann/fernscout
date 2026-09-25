@@ -1,16 +1,13 @@
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
-import InviteRedeem from "@/components/InviteRedeem";
+import { notFound, redirect } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
 import { isEnabled } from "@/lib/capabilities";
 import { getContactByEmail } from "@/lib/contacts";
 import { resolveInvite } from "@/lib/contacts/invites";
-import { whatsappCountryCode } from "@/lib/contactNumber";
+import { joinCodeFor, welcomeCodeFor } from "@/lib/contacts/welcome";
 import { fromAcceptLanguage, pickLocale } from "@/lib/contacts/locale";
-import { isJournalGuest, isOwner, journalReader } from "@/lib/contacts/session";
-import { dictionariesFor, localesFor, translateIn } from "@/lib/locales";
+import { translateIn } from "@/lib/locales";
 import { getTrip, tripRef } from "@/lib/trips";
-import { isPersonOn } from "@/lib/tripPeople";
 import { getUser } from "@/lib/users";
 
 /**
@@ -22,18 +19,10 @@ import { getUser } from "@/lib/users";
  * else, so the page itself is here: a guest link and a buddy link must not
  * drift into two experiences of being invited.
  *
- * Four things it decides before rendering anything:
- *
- * - **Is the link live?** A dead one says so, in words, and is not a 404 — the
- *   same reasoning `/{user}/i/<token>` gives. People forward these.
- * - **Is it the right kind for this address?** A buddy token at the guest URL
- *   reads as dead. The path is the promise; honouring a token that contradicts
- *   it would make the path meaningless.
- * - **Are they already in?** Somebody who is already an approved guest, or
- *   already on the trip, is told so rather than shown a form that would put a
- *   second request in the owner's queue.
- * - **Is it the owner?** Following your own link is not a way of joining your
- *   own journal, and the form would be a dead end for them.
+ * Since B2293 it renders nothing of its own for a live link: it redirects to
+ * the short link the design gave each (B2291 "Links"). A dead link — or one of
+ * the other kind than its path promises — still says so in words, and is not
+ * a 404: people forwarded these.
  */
 export default async function RedeemPage({
   username,
@@ -71,87 +60,26 @@ export default async function RedeemPage({
     );
   }
 
-  if (await isOwner(username)) {
-    return (
-      <NoticeShell
-        lang={locale}
-        title={translateIn(locale, "invite.ownerTitle")}
-        body={translateIn(locale, "invite.ownerBody")}
-        actions={[home]}
-      />
-    );
+  // B2293 — the page these links used to open is two short links now. A
+  // mailed (pre-approved) invite whose person is already on the page goes to
+  // that person's welcome guide; any other live link goes to its join flow.
+  // Neither grants anything: both end at a code, and the join flow at the
+  // owner's Let in.
+  if (invite.email) {
+    const contact = await getContactByEmail(username, invite.email);
+    const welcome = contact && contact.status !== "blocked" ? await welcomeCodeFor(username, contact.id) : null;
+    if (welcome) redirect(`/w/${welcome}`);
   }
-
-  const reader = await journalReader(username);
-  const alreadyIn =
-    kind === "buddy" && trip
-      ? await isPersonOn(trip, reader.email)
-      : await isJournalGuest(username);
-
-  // B1282 — a stored postal address a session cannot yet prove is still
-  // hers to see and correct, not a blank form pretending nothing is on
-  // file (see the "Decision, 2026-09-11" note on the ticket). Looked up
-  // only when the invite itself names the address (`invite.email`, set
-  // only for a link the owner asked to have *mailed* to somebody named):
-  // that is the same "already read this once, in their own inbox"
-  // reasoning B338 already rests the email prefill on, and it is what makes
-  // showing it back safe against a forwarded link. A hand-copied link
-  // carries no named address to look one up by, and there is no session
-  // either, so nothing is looked up and the form stays exactly as blank as
-  // before this ticket.
-  const known =
-    !reader.email && invite.email ? await getContactByEmail(username, invite.email) : null;
-
+  const join = await joinCodeFor(username, invite.id);
+  if (join) redirect(`/j/${join}`);
+  // A short code shown once on a server that keeps only its hash: there is
+  // nothing to send them to, so say the link does not work, as for a dead one.
   return (
-    <InviteRedeem
-      username={username}
-      journalTitle={user.title}
-      kind={kind}
-      tripTitle={trip?.title ?? null}
-      token={token}
-      initialLocale={locale}
-      locales={localesFor(username)}
-      dictionaries={dictionariesFor(username, "contactForm")}
-      // The address on a session for *this* journal only. A session for
-      // another journal on this instance is not proof here — sessions belong
-      // to one journal, and inventing an instance-wide identity to save one
-      // email would be a new kind of credential nobody asked for.
-      knownEmail={reader.email}
-      // Their own name if this journal knows it, otherwise the one the owner
-      // wrote into the link. Prefill, never identity: whoever is sitting there
-      // can overwrite it, and it is the submitted address that decides who
-      // this is.
-      initialName={reader.contact?.name ?? invite.name ?? ""}
-      // B338 — decision 1, disclosure. `invite.email` is set only when the
-      // owner asked the server to *mail* this link to somebody named
-      // (B319); a link the owner copied and pasted by hand carries no
-      // address and this is null. That split is the whole answer to "a
-      // guest link is safe to forward": whoever holds a mailed link is
-      // expected to be the person it was addressed to — they already read
-      // the address once, in their own inbox, to get here — so showing it
-      // back to them discloses nothing they do not already hold. A
-      // hand-copied link has no such expectation (it may legitimately reach
-      // several people, each proving their own address), so it prefills
-      // nothing, exactly as before this ticket. The field stays visible and
-      // editable either way; nothing here is hidden.
-      invitedEmail={invite.email}
-      // B1282: prefill, never a fresh decision made for her — she can still
-      // clear or correct every field on the "form" step below.
-      initialAddress={known?.postalAddress ?? null}
-      initialWantsPostcard={known?.wantsPostcard ?? false}
-      alreadyIn={alreadyIn}
-      // B360: a server with no postcard provider cannot act on a postal
-      // address, so the form stops asking for one — the same check every
-      // other capability on this site is gated on.
-      postcardsEnabled={isEnabled("postcards", username)}
-      // B376: same reasoning, for the phone hint's own mention of WhatsApp.
-      whatsappEnabled={isEnabled("whatsapp", username)}
-      // B385: same fallback `toE164` itself reads, offered here as the
-      // dialling code's default rather than left for send time to discover.
-      defaultCountryCode={whatsappCountryCode()}
-      // B399: same server-ceiling-and-journal-opt-in check as everywhere
-      // else this capability is read.
-      addressLookupEnabled={isEnabled("addressLookup", username)}
+    <NoticeShell
+      lang={locale}
+      title={translateIn(locale, "err.linkExpiredTitle")}
+      body={translateIn(locale, "err.linkExpiredBody")}
+      actions={[home]}
     />
   );
 }

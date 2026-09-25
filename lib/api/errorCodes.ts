@@ -49,7 +49,6 @@ export const ERROR_CODES = {
     "One of the `inbox` ids names nothing staged in this journal — or names something that is not a photograph. Nothing was written and nothing was taken out of the inbox; GET the inbox and send the ids it lists.",
   unknown_trip: "No trip of that id in this journal — or none this token may write to. The two answer alike on purpose, so this cannot be used to ask which trips exist. GET the trips list first.",
   unknown_day: "No day of that slug in this trip. The slug is made from the title and is in the answer to the call that wrote it; GET the days list to see them.",
-  unknown_invite: "No invite of that id, or it has been revoked.",
   unknown_contact: "No contact of that id in this journal.",
   unknown_key: "No credential of that id. GET the keys list for the ids this journal has.",
   unknown_order: "No order of that id — a postcard order or a photobook order, whichever this route deals in.",
@@ -180,7 +179,6 @@ export const ERROR_CODES = {
   capability_unavailable: "This server does not offer that capability, so a journal cannot switch it on. /api/health says what is missing; switching it off is always allowed.",
 
   // ── v2 only ─────────────────────────────────────────────────────────────
-  contact_blocked: "This address was blocked by the owner (revoked, not merely never confirmed), and a grant cannot silently re-approve it. GET the contacts list to see the blocked row; the owner has to unblock it first.",
   already_exists: "A day already lives at the destination date and trip. Pick a different date, or move the other day out of the way first. Nothing was written.",
   trip_id_taken: "This journal already has a trip at that id. Pick a different one. Nothing was written.",
   title_required: "The second half of a split needs a real title — it becomes that half's own slug. Nothing was written.",

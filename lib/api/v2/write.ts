@@ -177,8 +177,8 @@ export function retractDeclines(
  * there is nothing here that could delete a value the caller just sent;
  * only a value that merely SURVIVED from the stored document, now answered
  * by a fresh decline, is removed. A key `merged` never carried at all (a
- * decline like `buddies`, which names no field of its own — see
- * `DECLINE_ANSWERED_BY` below) is simply not present to delete, so this
+ * decline like `listed`, which names no field of its own — see
+ * `reconcileVisibility` below) is simply not present to delete, so this
  * needs no special case for those.
  *
  * D14 is unaffected: `{accent: null, declined: {accent: "…"}}` already
@@ -196,63 +196,12 @@ export function clearDeclinedSections(
   }
 }
 
-/**
- * B1616 — a decline answered by a DIFFERENT field, not by a field of the
- * same name.
- *
- * T6 above only clears a stored decline when the incoming document supplies
- * a field CALLED that. `buddies` never is one: a solo trip declines it at
- * create (`tripCreate`'s own bespoke check in `trip.ts`, not
- * `checkRequiredOrDeclined`, because there is no `buddies` field to be
- * required-or-declined about), and the fact that answers it is
- * `people.length > 1` on `people`, a field that already exists for its own
- * reason. Supplying `people` is not "supplying `buddies`", so T6 could never
- * see it — a solo trip's `declined.buddies` was permanent: any later PATCH
- * that grew the party kept the stale decline, and `tripCreate`'s own
- * superRefine then refused the merged document as claiming buddies both ways
- * (listed in `people` AND declined).
- *
- * The schema is right to refuse that combination — a decline that no longer
- * describes the document is exactly what T6 exists to prevent everywhere
- * else. What was missing is this doing the same job for the one decline key
- * that is not itself a field. Written as a map, not an `if` in the route,
- * because `buddies` is very unlikely to be the last decline key with this
- * shape — the next one is a row here, not a second special case.
- */
-const DECLINE_ANSWERED_BY: Readonly<Record<string, (doc: Record<string, unknown>) => boolean>> = {
-  buddies: (doc) => Array.isArray(doc.people) && doc.people.length > 1,
-};
-
-/**
- * Applies `DECLINE_ANSWERED_BY` to a document about to be validated —
- * mutates `doc.declined` in place (dropping the key entirely once it is
- * empty), the same "operate on the document you are about to hand the
- * schema" style the route already uses for `days`/`cover` above it.
- *
- * `patch` is the raw body THIS call sent — needed so a caller who explicitly
- * re-declines `buddies` in the very call that also grows `people` past one
- * is still refused for the contradiction, rather than having it silently
- * cleaned up out from under them: only a decline that merely SURVIVED from
- * the stored document is retracted, never one the caller just asked for.
- * Safe to call unconditionally: a document with no matching decline, or no
- * `declined` at all, is left untouched.
- */
-export function retractAnsweredDeclines(doc: Record<string, unknown>, patch: Record<string, unknown>): void {
-  const declined = doc.declined as Record<string, string> | undefined;
-  if (!declined) return;
-  const patchDeclined = (patch.declined as Record<string, string> | undefined) ?? {};
-  let changed = false;
-  const next = { ...declined };
-  for (const [key, answered] of Object.entries(DECLINE_ANSWERED_BY)) {
-    if (next[key] !== undefined && patchDeclined[key] === undefined && answered(doc)) {
-      delete next[key];
-      changed = true;
-    }
-  }
-  if (!changed) return;
-  if (Object.keys(next).length > 0) doc.declined = next;
-  else delete doc.declined;
-}
+// `DECLINE_ANSWERED_BY`/`retractAnsweredDeclines` used to live here — B1616's
+// fix for `buddies`, the one decline answered by a different field
+// (`people.length > 1`) rather than by a field of its own name. B2297
+// removed the whole `buddies` required-or-declined question: `people:` is
+// the byline only now, and whether somebody may write to a trip is never
+// asked or answered at trip-creation time — only Studio › Readers grants it.
 
 /**
  * B1616 — the other dead end. v1's dedicated `.../visibility` route dropped

@@ -5,7 +5,12 @@ import StudioPage from "@/components/studio/StudioPage";
 import { requireStudioOwner } from "@/lib/studio/pageGate";
 import { journalProfile } from "@/lib/journals";
 import { getOwnerTel } from "@/lib/ownerTel";
-import { requestLocale, translateIn } from "@/lib/locales";
+import { dictionaryFor, localesFor, requestLocale, translateIn } from "@/lib/locales";
+import OwnDetails from "@/components/studio/readers/OwnDetails";
+import { getContactByEmail, manageTokenFor } from "@/lib/contacts";
+import { EMPTY_ADDRESS } from "@/lib/contacts/crypto";
+import { pickLocale } from "@/lib/contacts/locale";
+import { whatsappCountryCode } from "@/lib/contactNumber";
 import { getUser } from "@/lib/users";
 import { knownCurrencies } from "@/lib/rates";
 import { getTrips } from "@/lib/trips";
@@ -58,6 +63,14 @@ export default async function StudioJournalPage({ params }: PageProps<"/[user]/s
 
   const locale = await requestLocale();
 
+  // B2291 — the owner's own name, phone and address moved here from Readers:
+  // they are not a reader, and Readers is only about who is let in. Only
+  // where contacts are on, and only for an owner with an address to key it.
+  const ownEmail = journal.owner.email;
+  const ownRow =
+    isEnabled("contacts", user) && ownEmail ? await getContactByEmail(user, ownEmail) : null;
+  const showOwn = isEnabled("contacts", user) && Boolean(ownEmail);
+
   return (
     <StudioPage
       username={user}
@@ -72,6 +85,32 @@ export default async function StudioJournalPage({ params }: PageProps<"/[user]/s
         reminders={reminders}
         tellBy={isEnabled("transcription", user) ? { current: readTellBy(user) } : undefined}
       />
+      {showOwn && (
+        <OwnDetails
+          username={user}
+          locales={localesFor(user)}
+          dictionary={dictionaryFor(pickLocale(locale), "ownDetails")}
+          defaultCountryCode={whatsappCountryCode()}
+          addressLookupEnabled={isEnabled("addressLookup", user)}
+          own={
+            ownRow
+              ? {
+                  token: manageTokenFor(user, ownRow.id),
+                  contact: {
+                    name: ownRow.name ?? "",
+                    email: ownRow.email,
+                    locale: pickLocale(ownRow.locale, journal.defaultLocale),
+                    status: ownRow.status,
+                    wantsEmailDigest: ownRow.wantsEmailDigest,
+                    wantsPostcard: ownRow.wantsPostcard,
+                    wantsWhatsapp: ownRow.wantsWhatsapp,
+                    address: ownRow.postalAddress ?? EMPTY_ADDRESS,
+                  },
+                }
+              : undefined
+          }
+        />
+      )}
     </StudioPage>
   );
 }
