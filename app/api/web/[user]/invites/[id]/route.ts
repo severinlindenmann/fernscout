@@ -1,18 +1,15 @@
 // DELETE /api/web/{user}/invites/{id} — revoke one link, from a cookie —
 // B1595 (v2 migration, web proxies for invites/channels).
 //
-// `isOwner` on the cookie only; any `Authorization` header is refused
-// outright. Then `inviteDeleteResponse`, the exact function
-// `DELETE /api/v2/{user}/invites/{id}` calls after its own bearer check, in
-// process. No bearer token is minted, held, or sent anywhere for this call.
+// B2295 (one door for readers, B2291): the agent bearer equivalent this
+// used to proxy for is gone — revoking an invite link happens only from
+// `/<user>/studio/readers`. `isOwner` on the cookie only; any
+// `Authorization` header is refused outright, not pointed elsewhere.
 //
 // Revoking an invite grants nothing and takes nothing away that was already
 // granted (`lib/contacts/invites.ts`'s own doc comment) — it only stops
 // people who have not used the link yet.
-//
-// Replaces `app/api/v1/[user]/invites/[id]/route.ts`, which answered both
-// bearer and cookie callers from one door.
-import { inviteDeleteResponse } from "@/app/api/v2/[user]/invites/[id]/route";
+import { inviteDeleteResponse } from "@/lib/contacts/invitesResponse";
 import { contactsReady } from "@/lib/api/v2/social";
 import { isOwner } from "@/lib/contacts/session";
 import { getUser } from "@/lib/users";
@@ -22,8 +19,8 @@ export const dynamic = "force-dynamic";
 const NOT_FOR_AGENTS = {
   error: "not_for_agents",
   message:
-    "This is the owner's own door, from a browser. An agent revokes an invite with " +
-    "DELETE /api/v2/{user}/invites/{id}.",
+    "This is the owner's own door, from a browser. Revoking an invite link happens only from " +
+    "Studio › Readers, in the owner's own browser — there is no agent bearer equivalent.",
 };
 
 export async function DELETE(

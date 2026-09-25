@@ -2806,7 +2806,7 @@
   "wa.channelOffOptIn": "Schreiben per WhatsApp ist für dieses Journal noch nicht eingeschaltet. Antworte mit 'ja', um es jetzt einzuschalten.",
   "wa.channelOnConfirmed": "Erledigt — WhatsApp ist eingeschaltet. Schick deine nächste Nachricht, und ich antworte darauf.",
   "wa.consentReminder": "Antworte einfach mit 'ja', um fortzufahren.",
-  "wa.contactSaved": "Erhalten — gespeichert. Sag mir Bescheid, wenn ich sie als Gast einladen soll.",
+  "wa.contactSaved": "Erhalten — gespeichert. Füge sie hinzu, sobald du bereit bist, unter Studio › Leser:innen.",
   "wa.declineButton": "Nein",
   "wa.docBank": "Aufbewahrt — keine Zeilen gelesen, keine Kosten eingetragen. Das Studio liest es, sobald der Kosten-Import gebaut ist: {url}",
   "wa.docContact": "Aufbewahrt — niemand eingeladen. Das Studio liest es, sobald der Einladungs-Ablauf gebaut ist: {url}",

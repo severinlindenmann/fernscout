@@ -2806,7 +2806,7 @@
   "wa.channelOffOptIn": "Writing by WhatsApp isn't switched on for this journal yet. Reply 'yes' to turn it on now.",
   "wa.channelOnConfirmed": "Done — WhatsApp is switched on. Send your next message and I'll answer it.",
   "wa.consentReminder": "Just reply 'yes' to continue.",
-  "wa.contactSaved": "Got it — saved. Ask me to invite them as a guest whenever you're ready.",
+  "wa.contactSaved": "Got it — saved. Add them from Studio › Readers whenever you're ready.",
   "wa.declineButton": "No",
   "wa.docBank": "Kept — no rows read, no costs written. The studio will read it once its costs import is built: {url}",
   "wa.docContact": "Kept — nobody invited. The studio will read it once its invite flow is built: {url}",

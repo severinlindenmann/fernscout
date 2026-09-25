@@ -2607,7 +2607,7 @@
   "wa.channelOffOptIn": "Ehhez a naplóhoz még nincs bekapcsolva a WhatsAppon való írás. Válaszolj 'igen'-nel, hogy most bekapcsold.",
   "wa.channelOnConfirmed": "Kész — a WhatsApp be van kapcsolva. Küldd el a következő üzeneted, és válaszolok rá.",
   "wa.consentReminder": "Csak válaszolj 'igen'-nel a folytatáshoz.",
-  "wa.contactSaved": "Megkaptam — elmentve. Szólj, ha meghívnám vendégként.",
+  "wa.contactSaved": "Megkaptam — elmentve. Add hozzá a Stúdió › Olvasók oldalon, amikor készen állsz.",
   "wa.declineButton": "Nem",
   "wa.docBank": "Elmentve — egy sort sem olvastam ki belőle, költséget nem írtam be. A stúdió beolvassa majd, ha elkészül a költség-import: {url}",
   "wa.docContact": "Elmentve — még senkit nem hívtam meg. A stúdió beolvassa majd, ha elkészül a meghívási folyamat: {url}",
