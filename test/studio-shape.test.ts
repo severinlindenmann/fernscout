@@ -24,6 +24,7 @@ const WIDER: Record<string, { width: "board" | "wide"; reason: string }> = {
   "inbox/page.tsx": { width: "board", reason: "a grid of uploaded files, several tiles a row" },
   "photobook/page.tsx": { width: "board", reason: "the trip chooser's cards read as a board of books, not a form" },
   "visitors/page.tsx": { width: "wide", reason: "a chart: a bar per day over up to 90 days" },
+  "readers/page.tsx": { width: "board", reason: "the two doors side by side, then a card per person (B2291)" },
 };
 
 /** The hub is the studio itself: it has no way back to itself and is not a

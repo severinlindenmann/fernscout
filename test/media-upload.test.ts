@@ -434,13 +434,13 @@ describe("video", () => {
    */
   test("and is refused promptly, rather than waiting on a pipe nobody writes to", async () => {
     const { probeVideo, videoToolsAvailable } = await import("@/lib/ingest/video");
-    if (!videoToolsAvailable()) return; // Nothing to be slow about without ffprobe.
+    if (!(await videoToolsAvailable())) return; // Nothing to be slow about without ffprobe.
 
     const notAVideo = path.join(dir, "clip.mp4");
     fs.writeFileSync(notAVideo, "not really an mp4");
 
     const started = Date.now();
-    expect(probeVideo(notAVideo)).toBeNull();
+    expect(await probeVideo(notAVideo)).toBeNull();
     expect(Date.now() - started).toBeLessThan(2_000);
   }, 30_000);
 
@@ -455,7 +455,7 @@ describe("video", () => {
 
   test("a real clip is transcoded, kept, and given a poster", async () => {
     const { videoToolsAvailable } = await import("@/lib/ingest/video");
-    if (!videoToolsAvailable()) return; // No ffmpeg here; the next test covers that.
+    if (!(await videoToolsAvailable())) return; // No ffmpeg here; the next test covers that.
 
     // A two-second clip, made by ffmpeg so the test does not ship a binary.
     const source = path.join(dir, "source.mp4");
@@ -503,7 +503,7 @@ describe("video", () => {
    */
   test("a clip past the short mark lands whole, with advice", async () => {
     const { videoToolsAvailable } = await import("@/lib/ingest/video");
-    if (!videoToolsAvailable()) return;
+    if (!(await videoToolsAvailable())) return;
 
     const source = path.join(dir, "long.mp4");
     const { spawnSync } = await import("node:child_process");
@@ -524,7 +524,7 @@ describe("video", () => {
 
     // Taken whole: nothing was cut to make it short.
     const { probeVideo } = await import("@/lib/ingest/video");
-    const served = probeVideo(path.join(tripPath(), "media", "day-one", "01.mp4"));
+    const served = await probeVideo(path.join(tripPath(), "media", "day-one", "01.mp4"));
     expect(served!.durationSeconds).toBeGreaterThan(VIDEO_SHORT_SECONDS);
   }, 120_000);
 });

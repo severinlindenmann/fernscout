@@ -107,7 +107,6 @@ const TRIP_SAMPLES: Record<string, unknown> = {
   tagline: "Eine Zeile",
   intro: "Die Einleitung.",
   test: true,
-  declined: { buddies: "travelling solo, nobody else was on this trip" },
 };
 
 const DAY_SAMPLES: Record<string, unknown> = {
@@ -154,6 +153,11 @@ const DAY_SAMPLES: Record<string, unknown> = {
  */
 const TRIP_WRITE_ONLY: Record<string, string> = {
   teaser: "only meaningful on a closed trip (guest/private) — this sample is public, where `listed` is the key that decides (B587)",
+  // This sample answers every declinable directly; `buddies` used to be the
+  // one that could always be declined without displacing a real value
+  // (B2297 removed it — `people:` is the byline only now, so there is no
+  // decline-only field left to carry a sample here).
+  declined: "this sample answers every declinable directly; the decline mechanism is tested elsewhere",
 };
 
 const DAY_WRITE_ONLY: Record<string, string> = {

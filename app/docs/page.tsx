@@ -8,6 +8,7 @@ import {
   FileText,
   GitPullRequest,
   ImageIcon,
+  MapPin,
   MessageCircle,
   PenLine,
   Plus,
@@ -60,6 +61,11 @@ export async function generateMetadata(): Promise<Metadata> {
  * where `auth` is off. Each ends in a draft, and the page says so, because the
  * one thing a reader of this page should not come away believing is that
  * writing publishes.
+ *
+ * The GPS guide (B2343) gets a row of its own under those, for everybody,
+ * signed in or not: it is the one translated guide left, it answers a
+ * question somebody deciding whether to trust this software asks before any
+ * other, and it belongs to none of the doors.
  */
 const MORE: { id: DocsPageId; icon: typeof Bot }[] = [
   { id: "contributing", icon: GitPullRequest },
@@ -221,6 +227,7 @@ export default async function DocsPage() {
   const writing = isEnabled("auth");
   const hosting = page("hosting");
   const api = page("api");
+  const gps = page("gps");
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-16">
@@ -303,6 +310,28 @@ export default async function DocsPage() {
           </ul>
         </section>
       )}
+
+      <Link
+        href={gps.href}
+        className="group mt-14 flex items-start gap-4 rounded-2xl border border-line-quiet bg-surface-raised p-5
+                   transition-colors hover:border-line-ink
+                   focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+      >
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-coral-50 text-coral-600">
+          <MapPin className="h-5 w-5" aria-hidden strokeWidth={2.2} />
+        </span>
+        <span className="flex flex-1 flex-col gap-1">
+          <span className="font-display text-xl font-semibold text-ink-strong">
+            {translateIn(locale, gps.labelKey)}
+          </span>
+          <span className="text-base leading-relaxed text-ink-body">{translateIn(locale, gps.blurbKey)}</span>
+        </span>
+        <ArrowRight
+          className="mt-2 h-5 w-5 shrink-0 text-ink-strong transition-transform group-hover:translate-x-0.5"
+          aria-hidden
+          strokeWidth={2.4}
+        />
+      </Link>
 
       <div className="mt-14 grid gap-10 border-t border-line-quiet pt-8 sm:grid-cols-2">
         <section>

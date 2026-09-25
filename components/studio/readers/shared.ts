@@ -54,6 +54,17 @@ export type AdminContact = {
    * existed still satisfies the type.
    */
   pendingTrips?: string[];
+  /** B2291 — the mobile number as typed, when there is one. Optional so a
+   * fixture built before the rebuild still satisfies the type. */
+  phone?: string | null;
+  /** B2294 — when an SMS code proved that number: a request whose number is
+   * proved is the owner's to answer, like a confirmed address. */
+  phoneProvenAt?: string | null;
+  /** B2292 — the last channel the owner told them on, and when. */
+  invitedVia?: string | null;
+  invitedAt?: string | null;
+  /** B2292 — when their welcome link was first opened. */
+  welcomeOpenedAt?: string | null;
 };
 
 /**
@@ -89,6 +100,12 @@ export type AdminInvite = {
    * dead button explaining that is worse than no button.
    */
   url: string | null;
+  /** B2293 — the short `/j/<code>` for the same link, shown and copied in
+   * place of `url`. Null where it cannot be shown again (no contacts key). */
+  joinUrl?: string | null;
+  /** Still works: not stopped, not expired — decided on the server, where
+   * the clock is (B2291). */
+  live?: boolean;
 };
 
 /**
@@ -100,7 +117,7 @@ export type AdminInvite = {
  * who sent the wrong one is looking for the words they were shown when they
  * sent it.
  */
-export const INVITE_KIND_KEY: Record<AdminInvite["kind"], TranslationKey> = {
+const INVITE_KIND_KEY: Record<AdminInvite["kind"], TranslationKey> = {
   personal: "contact.adminInvitePersonalTitle",
   guest: "me.inviteGuestTitle",
   buddy: "me.inviteBuddyTitle",
@@ -182,27 +199,6 @@ export function viaLabel(
     : kind;
 }
 
-/**
- * Whether a still-unconfirmed row has a live invite behind it to resend —
- * B384. `viaLabel` above already does the same `invite:<id>` lookup, for a
- * sentence rather than an aliveness check; kept separate because the two
- * callers want different things out of one row and neither is a special case
- * of the other.
- */
-export function resendableInvite(
-  createdVia: string | null,
-  invites: AdminInvite[],
-): AdminInvite | null {
-  if (!createdVia?.startsWith("invite:")) return null;
-  const invite = invites.find(
-    (candidate) => candidate.id === createdVia.slice("invite:".length),
-  );
-  if (!invite || invite.revokedAt) return null;
-  if (invite.expiresAt && new Date(invite.expiresAt).getTime() < Date.now())
-    return null;
-  return invite;
-}
-
 export type Translate = (key: TranslationKey, vars?: Record<string, string>) => string;
 /** The same, for a string that has a `<key>.one` beside it. */
 export type Count = (
@@ -211,3 +207,18 @@ export type Count = (
   vars?: Record<string, string>,
 ) => string;
 
+
+/**
+ * "Invited — not opened yet" (B2291): somebody the owner added (or invited
+ * from an import) who has not opened their welcome link or been seen since —
+ * plus the rows a link filed that never proved anything. Everything else
+ * `readingNow` holds is "Reading along".
+ */
+export function notOpenedYet(contact: AdminContact): boolean {
+  return (
+    contact.status === "active" &&
+    (contact.createdVia === "owner" || contact.createdVia === "owner-import") &&
+    !contact.welcomeOpenedAt &&
+    !contact.lastSeenAt
+  );
+}

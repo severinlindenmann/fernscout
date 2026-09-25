@@ -8,6 +8,9 @@ import { clientIp, rateLimitFor } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
+/** How long a snooze holds. One day: "not today" is the only thing it says. */
+const SNOOZE_MS = 24 * 60 * 60 * 1000;
+
 /**
  * The operator says they already know — B1203.
  *
@@ -28,6 +31,12 @@ export const dynamic = "force-dynamic";
  * all — there is nothing to acknowledge — and says so rather than writing a
  * row that would suppress the entry the first time it appears.
  *
+ * **Snooze is an acknowledgement with a clock**. `action: "snooze"`
+ * files the same row with `until` a day ahead; it still lapses the moment the
+ * entry gets worse, and also when the day is up. The length is fixed here,
+ * not sent, for the same reason the level is not: a caller that could name
+ * its own `until` could snooze an alarm for a decade.
+ *
  * Outside `/api/v1/` deliberately, like `/api/web/admin/grants`: it takes the
  * operator's cookie only, there is no bearer-token path to it, and to anybody
  * who is not the operator this route does not exist.
@@ -47,7 +56,8 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
   const id = typeof body.id === "string" ? body.id.trim() : "";
-  const action = body.action === "unhide" ? "unhide" : "acknowledge";
+  const action =
+    body.action === "unhide" ? "unhide" : body.action === "snooze" ? "snooze" : "acknowledge";
   if (!id) return Response.json({ error: "id_required" }, { status: 400 });
 
   if (action === "unhide") {
@@ -63,8 +73,16 @@ export async function POST(request: Request) {
     return Response.json({ error: "not_raised" }, { status: 404 });
   }
 
-  await ack(entry, adminEmail() ?? "");
-  return Response.json({ ok: true, id, action, level: entry.level });
+  const now = new Date();
+  const until = action === "snooze" ? new Date(now.getTime() + SNOOZE_MS) : undefined;
+  await ack(entry, adminEmail() ?? "", now, until);
+  return Response.json({
+    ok: true,
+    id,
+    action,
+    level: entry.level,
+    ...(until ? { until: until.toISOString() } : {}),
+  });
 }
 
 /** Everything the band would show right now, before any suppression.

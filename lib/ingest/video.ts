@@ -15,7 +15,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { runProcess } from "./run.ts";
 import { isoDate, isoTime, type ExifDateTime } from "./exif.ts";
 import { VIDEO_MAX_SECONDS } from "../validate/media.ts";
 
@@ -124,12 +124,12 @@ export function readLocation(
  */
 type Presence = "present" | "absent" | "unknown";
 
-function probe(command: string): Presence {
+async function probe(command: string): Promise<Presence> {
   // Bounded, like every other spawn here. `-version` on a working binary is
   // instant; the only ways it is not are a binary that hangs on start and a
   // machine under enough load that spawning itself is slow, and neither is
   // worth holding a request open indefinitely for.
-  const run = spawnSync(command, ["-version"], { stdio: "ignore", timeout: 5_000 });
+  const run = await runProcess(command, ["-version"], { timeout: 5_000 });
   if (!run.error) return "present";
   // ENOENT is the only one of these that means what it says. A timeout
   // (ETIMEDOUT), a fork that could not get a slot (EAGAIN) or a binary that
@@ -137,14 +137,14 @@ function probe(command: string): Presence {
   return (run.error as NodeJS.ErrnoException).code === "ENOENT" ? "absent" : "unknown";
 }
 
-function has(command: string): Presence {
+async function has(command: string): Promise<Presence> {
   // A second go at an inconclusive check, because some callers get only one.
   // `describe.runIf(videoToolsAvailable())` in test/ingest-run.test.ts is
   // evaluated once as the file loads, and a momentary hiccup there does not
   // fail anything — it quietly runs three fewer tests. Costs nothing on a
   // machine where the first attempt answers, which is every healthy one.
   for (let attempt = 0; attempt < 2; attempt++) {
-    const answer = probe(command);
+    const answer = await probe(command);
     if (answer !== "unknown") return answer;
   }
   return "unknown";
@@ -190,14 +190,26 @@ export function videoToolsKnown(): boolean | null {
   return tools;
 }
 
-export function videoToolsAvailable(): boolean {
-  if (tools !== null) return tools;
-  const ffmpeg = has("ffmpeg");
+/** The check in progress, shared: two uploads arriving together at a cold
+ *  process ask once, not twice. Cleared when it settles, so an inconclusive
+ *  answer is still asked again by the next caller. */
+let checking: Promise<boolean> | null = null;
+
+export function videoToolsAvailable(): Promise<boolean> {
+  if (tools !== null) return Promise.resolve(tools);
+  checking ??= checkVideoTools().finally(() => {
+    checking = null;
+  });
+  return checking;
+}
+
+async function checkVideoTools(): Promise<boolean> {
+  const ffmpeg = await has("ffmpeg");
   // Short-circuited so a machine that cannot spawn is asked twice rather than
   // four times: the worst case here is already several seconds of a held
   // request, and the second tool cannot change the answer.
   if (ffmpeg === "unknown") return false;
-  const ffprobe = has("ffprobe");
+  const ffprobe = await has("ffprobe");
   if (ffprobe === "unknown") return false;
   tools = ffmpeg === "present" && ffprobe === "present";
   return tools;
@@ -208,8 +220,8 @@ export const FFMPEG_MISSING_MESSAGE =
   "  Install them (macOS: brew install ffmpeg · Debian: apt install ffmpeg) and\n" +
   "  re-run ingest on the same folder — the photos already imported are kept.";
 
-export function probeVideo(file: string): VideoProbe | null {
-  const out = spawnSync(
+export async function probeVideo(file: string): Promise<VideoProbe | null> {
+  const out = await runProcess(
     "ffprobe",
     [
       "-v",
@@ -236,11 +248,11 @@ export function probeVideo(file: string): VideoProbe | null {
     //
     // `timeout` is the backstop for the case this reasoning misses. A probe
     // that has not answered in ten seconds is not going to.
-    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 10_000 },
+    { stdout: "pipe", stderr: "pipe", timeout: 10_000 },
   );
   if (out.status !== 0) return null;
   try {
-    const json = JSON.parse(out.stdout) as {
+    const json = JSON.parse(out.stdout.toString("utf8")) as {
       format?: { duration?: string; tags?: Record<string, string> };
       streams?: { width?: number; height?: number }[];
     };
@@ -310,16 +322,16 @@ export class ClipTooLongError extends Error {
  * `-map_metadata -1` is the same privacy rule as photographs: phones write
  * GPS into MOV metadata too, and the served file must not carry it.
  */
-export function transcodeVideo(
+export async function transcodeVideo(
   input: string,
   output: string,
   options: { maxSeconds?: number; maxEdge?: number; crf?: number; maxBitrate?: number } = {},
-): TranscodeResult {
+): Promise<TranscodeResult> {
   const maxSeconds = options.maxSeconds ?? MAX_SECONDS;
   const maxEdge = options.maxEdge ?? MAX_EDGE;
   const maxBitrate = options.maxBitrate ?? MAX_VIDEO_BITRATE;
 
-  const probe = probeVideo(input);
+  const probe = await probeVideo(input);
   if (!probe) throw new Error(`ffprobe could not read ${path.basename(input)}.`);
   if (probe.durationSeconds > maxSeconds + 0.5) {
     throw new ClipTooLongError(input, probe.durationSeconds, maxSeconds);
@@ -332,7 +344,10 @@ export function transcodeVideo(
     `force_original_aspect_ratio=decrease:force_divisible_by=2`;
 
   fs.mkdirSync(path.dirname(output), { recursive: true });
-  const run = spawnSync(
+  // Awaited, never `spawnSync`: this is the longest thing an upload does, and
+  // a synchronous spawn held every other request on the server for as long as
+  // the encode took. See lib/ingest/run.ts.
+  const run = await runProcess(
     "ffmpeg",
     [
       "-v", "error",
@@ -355,18 +370,18 @@ export function transcodeVideo(
       "-ac", "2",
       output,
     ],
-    { stdio: ["ignore", "ignore", "pipe"], encoding: "utf8" },
+    { stderr: "pipe" },
   );
   if (run.status !== 0) {
-    throw new Error(`ffmpeg failed on ${path.basename(input)}:\n${run.stderr?.trim()}`);
+    throw new Error(`ffmpeg failed on ${path.basename(input)}:\n${run.stderr.toString("utf8").trim()}`);
   }
 
-  const transcoded = probeVideo(output) ?? probe;
+  const transcoded = (await probeVideo(output)) ?? probe;
 
   // One second in, or the very first frame for a clip shorter than that —
   // frame zero of a phone video is very often a blurred half-exposure.
   const posterAt = Math.min(1, Math.max(0, probe.durationSeconds - 0.1));
-  const poster = spawnSync(
+  const poster = await runProcess(
     "ffmpeg",
     [
       "-v", "error",
@@ -379,7 +394,7 @@ export function transcodeVideo(
       "pipe:1",
     ],
     // stdin closed for the same reason as the probe above.
-    { maxBuffer: 32 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"], timeout: 120_000 },
+    { maxBuffer: 32 * 1024 * 1024, stdout: "pipe", stderr: "pipe", timeout: 120_000 },
   );
   if (poster.status !== 0 || poster.stdout.length === 0) {
     throw new Error(`ffmpeg could not extract a poster frame from ${path.basename(input)}.`);

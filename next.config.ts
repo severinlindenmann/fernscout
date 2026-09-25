@@ -215,10 +215,11 @@ const nextConfig: NextConfig = {
    * this converges on the surviving `/docs/helper` rather than on any one
    * journal's studio.
    *
-   * The three reader guides under `/docs/guide/` were retired once the
-   * screens they described carried their own guidance (`lib/docs.ts`, above
-   * `DOCS_PAGES`). Old links — in emails, bookmarks, chats — land on the hub
-   * rather than on a 404.
+   * The guest, creator and buddy guides under `/docs/guide/` were retired
+   * once the screens they described carried their own guidance (`lib/docs.ts`,
+   * above `DOCS_PAGES`). Old links — in emails, bookmarks, chats — land on the
+   * hub rather than on a 404. `/docs/guide/gps` (B2343) is live and is not
+   * matched.
    */
   async redirects() {
     return [
@@ -229,7 +230,7 @@ const nextConfig: NextConfig = {
       { source: "/:user/studio/contacts", destination: "/:user/studio/people", statusCode: 301 },
       { source: "/:user/extract/costs", destination: "/:user/studio/statement", statusCode: 301 },
       { source: "/docs/extract", destination: "/docs/helper", statusCode: 301 },
-      { source: "/docs/guide/:guide", destination: "/docs", statusCode: 301 },
+      { source: "/docs/guide/:guide(guest|creator|buddy)", destination: "/docs", statusCode: 301 },
     ];
   },
   async rewrites() {
@@ -340,6 +341,14 @@ const nextConfig: NextConfig = {
       // grants nothing, and it still never leaves in a Referer header.
       {
         source: "/w/:code*",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          { key: "Cache-Control", value: "private, no-store" },
+        ],
+      },
+      // B2293. The group link's join code, on the same terms.
+      {
+        source: "/j/:code*",
         headers: [
           { key: "Referrer-Policy", value: "no-referrer" },
           { key: "Cache-Control", value: "private, no-store" },

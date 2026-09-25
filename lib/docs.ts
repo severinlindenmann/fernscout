@@ -43,6 +43,63 @@ export function section(markdown: string, heading: string): string {
 }
 
 /**
+ * The reader guides that remain — today one, `gps` (B2343).
+ *
+ * Prose for people rather than for agents: exactly what this software does
+ * with a traveller's own location history. Markdown files under
+ * `docs/guides/<locale>/`, read at request time like everything else on this
+ * page, so correcting a sentence is an edit rather than a release.
+ *
+ * **Translated, unlike the rest of `/docs`.** The other pages here are for
+ * somebody deciding whether to self-host or send a patch, and English is a
+ * fair assumption for them. Somebody asking where their location goes is not
+ * that reader, and a privacy answer in a language they do not read is no
+ * answer.
+ *
+ * The three guides this list used to hold — `guest`, `creator` and `buddy` —
+ * are retired: see `DOCS_PAGES` below for why, and `next.config.ts` for the
+ * redirect that keeps their old links landing somewhere.
+ */
+export const GUIDES = ["gps"] as const;
+export type Guide = (typeof GUIDES)[number];
+
+export function isGuide(value: string): value is Guide {
+  return (GUIDES as readonly string[]).includes(value);
+}
+
+/**
+ * One guide, in the best language available.
+ *
+ * Falls back to English rather than failing: a missing translation should cost
+ * a reader the language, never the page. The caller is told which language it
+ * actually got, so it can say so rather than quietly presenting English as
+ * though it were the translation.
+ */
+export function readGuide(guide: Guide, locale: string): { markdown: string; locale: string } {
+  /**
+   * The locale is a path segment, so it is checked rather than trusted.
+   *
+   * Today it can only be two letters — `proxy.ts` matches `LANGUAGE_TAG` and
+   * slices to two before the cookie is ever written — so this guards nothing
+   * that is currently reachable. It is here because the guarantee lives three
+   * files away from the `path.join` that depends on it, and a future caller
+   * passing a header straight through would turn this into a file read of its
+   * choosing. `guide` needs no such guard: it comes from `isGuide`, which is a
+   * whitelist of literals.
+   */
+  const asked = /^[a-z]{2}$/.test(locale) ? locale : "en";
+  for (const code of [asked, "en"]) {
+    try {
+      return { markdown: readRepoFile(`docs/guides/${code}/${guide}.md`), locale: code };
+    } catch {
+      // Next candidate. A guide with no English copy either is a broken
+      // build, and the throw below is the right way to find out.
+    }
+  }
+  throw new Error(`no copy of the "${guide}" guide, in any language`);
+}
+
+/**
  * Every documentation page, once — B470.
  *
  * The hub renders these and the inner pages render them as a nav, and both
@@ -51,23 +108,25 @@ export function section(markdown: string, heading: string): string {
  * exactly how they came to be drawn as the same kind of control while
  * behaving differently — one navigated, one scrolled.
  *
- * **No reader guides any more.** There used to be three — for readers, owners
- * and travel buddies — as translated markdown files. Every one of
+ * **Three reader guides retired.** There used to be guides for readers, owners
+ * and travel buddies, as translated markdown files. Every one of
  * them had been overtaken by the screens it described: the owner's said there
  * was no editing screen and never would be, a week after the studio shipped;
  * the buddy's was a longer copy of what `/<user>/me` already says beside the
  * instructions it explains; and the reader's walked through a sign-in card
  * and an iPhone install sheet that now explain themselves
  * (`PushInstallOnboarding`). The screens carry their own guidance, so the
- * guides were retired rather than rewritten, and `/docs/guide/*` redirects to
- * the hub (`next.config.ts`).
+ * guides were retired rather than rewritten, and their three addresses
+ * redirect to the hub (`next.config.ts`). The `gps` guide (B2343) is a
+ * different kind of page — a privacy answer no screen gives in full — and
+ * stays, translated, at `/docs/guide/gps`.
  *
- * What is left is for somebody deciding whether to self-host, call the API,
- * send a patch or run their own agent — English, because those pages are read
+ * The rest is for somebody deciding whether to self-host, call the API, send
+ * a patch or run their own agent — English, because those pages are read
  * from `README.md`, `CONTRIBUTING.md` and `docs/` at request time (B23). The
  * hub's own words are translated and say so.
  */
-export type DocsPageId = "hosting" | "api" | "contributing" | "helper";
+export type DocsPageId = Guide | "hosting" | "api" | "contributing" | "helper";
 
 export type DocsPage = {
   id: DocsPageId;
@@ -91,6 +150,7 @@ export const DOCS_PAGES: readonly DocsPage[] = [
     blurbKey: "docs.contributing.blurb",
   },
   { id: "helper", href: "/docs/helper", labelKey: "docs.helper.title", blurbKey: "docs.helper.blurb" },
+  { id: "gps", href: "/docs/guide/gps", labelKey: "guides.gps.title", blurbKey: "guides.gps.lede" },
 ];
 
 /**

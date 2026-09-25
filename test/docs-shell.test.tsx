@@ -36,6 +36,7 @@ describe("the docs shell", () => {
       "app/docs/page.tsx",
       "app/docs/api/page.tsx",
       "app/docs/hosting/page.tsx",
+      "app/docs/guide/[guide]/page.tsx",
     ]) {
       expect(read(file), file).not.toContain("LocaleSwitcher");
     }

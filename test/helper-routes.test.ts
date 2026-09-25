@@ -118,19 +118,20 @@ describe("the helper routes", () => {
   // Eighteen since B915 added `day/attach`, which puts a photograph already
   // waiting in the inbox onto a day — the door the files pane presses, with
   // the same cookie and the same owner check as the seventeen above it.
-  // Nineteen since B931 added `invite`, which proposes the guest link that
-  // lets somebody who was not on a trip ask to read it. Same cookie, same
-  // owner check, and it issues a link and never a grant.
-  // Thirty-five, and sixteen of them arrived in one run — the conversation
-  // was given the rest of what the API door already had. A trip's own
-  // settings (`trip/visibility`, `trip/people`, `trip/tracks`, and the `trip`
-  // route's own new PATCH), its money (`trip/rates`, `trip/budget`), who hears
-  // about a day (`invite/revoke`, `day/tell-readers`, `channels`), the journal
-  // itself (`journal`, `storage/cleanup`, `storage`, `keys`), the printed
-  // things (`postcard`, `photobook`), and what is on disk that nobody wants —
-  // `day/remove-photo` and `inbox/discard`. The number is not the point; the
-  // loop below is. Every one is the same cookie and the same owner check as
-  // the nineteen before them.
+  // B931 added `invite`, proposing a guest link; `invite/revoke` and
+  // `invite-contact` followed. B2295 (one door for readers, B2291) removed
+  // all three — letting somebody read the journal happens only from
+  // `/<user>/studio/readers`, never from here.
+  // Thirty-two counted here at the time, and sixteen of them arrived in one
+  // run — the conversation was given the rest of what the API door already
+  // had. A trip's own settings (`trip/visibility`, `trip/people`,
+  // `trip/tracks`, and the `trip` route's own new PATCH), its money
+  // (`trip/rates`, `trip/budget`), who hears about a day (`day/tell-readers`,
+  // `channels`), the journal itself (`journal`, `storage/cleanup`, `storage`,
+  // `keys`), the printed things (`postcard`, `photobook`), and what is on
+  // disk that nobody wants — `day/remove-photo` and `inbox/discard`. The
+  // number is not the point; the loop below is. Every one is the same cookie
+  // and the same owner check as the rest.
   // Thirty-seven. Two arrived at once and neither knew about the other:
   // `inbox/[id]/thumbnail` (B1123) hands back a small derivative of a
   // photograph still waiting in the inbox, so the files pane can show one
@@ -155,10 +156,7 @@ describe("the helper routes", () => {
   // photographs, on demand: the files pane's own trip picker calls it only
   // once a trip is chosen, rather than `filesForRoom` preloading one trip's
   // media on every page load. Same cookie, same owner check as the rest.
-  // Forty-six: `invite-contact` (B1074's successor) — the deliberate press
-  // behind `invite_contact`, the tool that replaces what a shared WhatsApp
-  // contact card used to do automatically. Same cookie, same owner check.
-  // Forty-seven: `assemble-day` (SDD plan: inbox day-assembly Phase 3, Task
+  // `assemble-day` (SDD plan: inbox day-assembly Phase 3, Task
   // 2) — the confirm-side door `assemble_day`'s two proposal shapes both
   // point at: recording an answer to what a date folder was asked, and
   // (Task 3) creating the real entry once nothing is left to ask. Same
@@ -209,15 +207,9 @@ describe("the helper routes", () => {
   // being a dead end that sends somebody to `/agent`. Read-only: it parses a
   // vCard and answers with what it found, and writes nothing. Same cookie,
   // same owner check as the fifty-nine before it.
-  // Sixty-one: `reader/grant` (B1833, D11) — the one route in the studio
-  // that hands somebody else access. An owner names an address and it can
-  // read the journal the moment this returns; the mail that follows tells
-  // that person rather than asking them. It belongs in this census more than
-  // any of the sixty before it, and it is the reason `test/reader-grant-route.test.ts`
-  // exists as well: this file proves the gate is *written*, that one proves
-  // it *refuses*, checked by breaking the gate and watching the refusals
-  // fail. Same cookie, same owner check as the sixty before it, and it mints
-  // no token — a link still grants nothing.
+  // `reader/grant` (B1833, D11) is gone (B2295, one door for readers,
+  // B2291/B2292): Add a person's own flow at `/<user>/studio/readers`
+  // replaced it, and nothing else called it.
   // Sixty-two: `inbox/[id]/move` (B1990) — files a waiting item onto a day,
   // or takes it back off one, the owner-cookie door
   // `moveInboxFileToDay`/`moveInboxFileFromDay` never had before the studio
@@ -252,8 +244,8 @@ describe("the helper routes", () => {
   // Sixty-eight: `search` is gone (B2310) — the owner's word was "just
   // normal type search", and the agent fallback it powered went with the
   // button that asked for it.
-  test("there are sixty-eight of them, and each is guarded", () => {
-    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(68);
+  test("there are sixty-four of them, and each is guarded", () => {
+    expect(fs.readdirSync(dir, { recursive: true, encoding: "utf8" }).filter((file) => file.endsWith("route.ts"))).toHaveLength(64);
     for (const source of sources) {
       expect(source).toContain("isHelperOwner");
     }

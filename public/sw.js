@@ -43,10 +43,10 @@
  * only a guess.
  */
 
-// v7 — B2158. v6 (B1042) cleared the owner-only responses v5 had stored;
-// v7 adds the kept caches below, which activation must leave alone like the
-// personal ones.
-const VERSION = "v7";
+// v8 — B2329. v7 (B2158) added the kept caches; v8 adds the studio's own
+// navigations to the personal cache (`rememberPersonalStudio`) and precaches
+// the offline page's own scripts (B2221) — see both below.
+const VERSION = "v8";
 const SHELL = `shell-${VERSION}`;
 const RUNTIME = `runtime-${VERSION}`;
 
@@ -132,11 +132,38 @@ const RUNTIME_MAX_ENTRIES = 300;
  * you read a day and then lose signal, not the other way round. */
 const PRECACHE = ["/offline"];
 
+/**
+ * B2221 — a cold install's shell cache holds the offline page's HTML
+ * (`PRECACHE`) but not the `/_next/static` chunks it hydrates with; those
+ * normally arrive in the runtime cache on first visit, which a fresh
+ * install with no visit yet does not have. Without them a navigation with no
+ * signal is answered with the offline HTML, hydration fails on the missing
+ * chunks, and the app's own error boundary replaces the one page whose job
+ * is to say "no signal, not broken" with "broken". `assetsOf` is the same
+ * scan `keepTrip` uses for a kept page's own scripts.
+ */
+async function precacheOfflinePageAssets(cache) {
+  const offline = await cache.match("/offline");
+  if (!offline) return;
+  const assets = assetsOf(await offline.clone().text());
+  await Promise.all(
+    assets.map(async (a) => {
+      try {
+        const res = await fetch(a);
+        if (res.ok) await cache.put(a, res);
+      } catch {
+        // Best-effort, same as the precache it rides in on — install must
+        // not fail because one chunk did not fetch.
+      }
+    }),
+  );
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(SHELL)
-      .then((c) => c.addAll(PRECACHE))
+      .then((c) => c.addAll(PRECACHE).then(() => precacheOfflinePageAssets(c)))
       // A failed precache must not block activation — the runtime cache will
       // pick these up on first visit instead.
       .catch(() => undefined)
@@ -243,7 +270,10 @@ async function navigationFallback(request) {
   // from. Only if there is no exact copy do we ignore the query, which is
   // what makes a link arriving with somebody's `?utm_…` on it still work.
   for (const options of [undefined, { ignoreSearch: true }]) {
-    const hit = (await matchShared(request, options)) || (await matchKept(request, options));
+    const hit =
+      (await matchPersonalStudio(request, options)) ||
+      (await matchShared(request, options)) ||
+      (await matchKept(request, options));
     if (isDocument(hit)) return hit;
   }
 
@@ -375,6 +405,58 @@ async function matchShared(request, options) {
     if (hit) return hit;
   }
   return undefined;
+}
+
+/**
+ * The studio pages this wave keeps offline — B2329 kept the hub and "Add a
+ * day"; B2330 (wave 2) widens the same explicit allowlist to the pages
+ * those flows actually navigate between while writing offline — editing a
+ * day, the trip-wide planner and one trip's own plan, and starting a new
+ * trip. Still exact paths only, and still never an order, a delete
+ * confirmation or anything that spends money — the ticket's own line "keep
+ * it an explicit allowlist, never order/delete/payment pages".
+ */
+function isStudioKeepPath(pathname) {
+  return (
+    /^\/[^/]+\/studio$/.test(pathname) ||
+    /^\/[^/]+\/studio\/day\/new$/.test(pathname) ||
+    /^\/[^/]+\/studio\/day\/edit$/.test(pathname) ||
+    /^\/[^/]+\/studio\/plan$/.test(pathname) ||
+    /^\/[^/]+\/studio\/plan\/[^/]+$/.test(pathname) ||
+    /^\/[^/]+\/studio\/trip\/new$/.test(pathname)
+  );
+}
+
+/**
+ * Remember a studio navigation for the signed-in owner — B2329.
+ *
+ * These pages are `force-dynamic` and answer `private, no-store` (every
+ * owner-only route does), so `putRuntime`'s `mayCache` refuses them for the
+ * shared runtime cache — correctly, per B1042: a shared cache must never
+ * hold one reader's private response for the next. This is the personal
+ * arrangement instead, the same `personal-<id>` cache `rememberPersonal`
+ * already keeps the signed-in home payload in, so it is cleared at exactly
+ * the same three moments (sign-out, a 401, a different identity arriving).
+ *
+ * Stores nothing when no identity is known yet (`keptIdentity()` returns
+ * `"public"`) — a page's own visit to `/api/v2/me/home` is what establishes
+ * one, and storing under a shared "public" name would be the exact bug
+ * `rememberPersonal`'s own doc comment warns against.
+ */
+async function rememberPersonalStudio(request, response) {
+  const identity = await keptIdentity();
+  if (identity === "public") return;
+  const cache = await caches.open(`${PERSONAL_PREFIX}${identity}`);
+  await cache.put(request, response);
+}
+
+/** The studio page kept for the current identity, or undefined. */
+async function matchPersonalStudio(request, options) {
+  if (!isStudioKeepPath(new URL(request.url).pathname)) return undefined;
+  const identity = await keptIdentity();
+  if (identity === "public") return undefined;
+  const cache = await caches.open(`${PERSONAL_PREFIX}${identity}`);
+  return (await cache.match(request, options)) || undefined;
 }
 
 /**
@@ -624,6 +706,12 @@ self.addEventListener("fetch", (event) => {
             // point of finishing the round trip is to make the *next* open
             // correct.
             event.waitUntil(putRuntime(request, res.clone()));
+            // The studio hub and "Add a day" are `private, no-store` — B2329 —
+            // so `putRuntime` above refuses them; this is their own personal
+            // arrangement instead. See `rememberPersonalStudio`.
+            if (res.ok && isStudioKeepPath(url.pathname)) {
+              event.waitUntil(rememberPersonalStudio(request, res.clone()));
+            }
             done(res);
           })
           .catch(() => {

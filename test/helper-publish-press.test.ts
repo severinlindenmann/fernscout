@@ -51,6 +51,7 @@ beforeEach(async () => {
   process.env.CONTENT_DIR = dir;
   process.env.DATABASE_URL = `sqlite:${path.join(dir, "test.db")}`;
   process.env.SESSION_SECRET = "helper-publish-press-secret-b929";
+  process.env.CONTACTS_ENCRYPTION_KEY = "33".repeat(32);
   resolveAccess.mockResolvedValue({ email: OWNER_EMAIL });
 
   fs.mkdirSync(path.join(dir, "alex"), { recursive: true });
@@ -88,6 +89,7 @@ afterEach(async () => {
   await closeDatabase();
   delete process.env.CONTENT_DIR;
   delete process.env.DATABASE_URL;
+  delete process.env.CONTACTS_ENCRYPTION_KEY;
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -402,6 +404,27 @@ describe("what the publish card says about who can read it", () => {
     trip.people = [{ name: "Mara", email: "mara@example.test" }];
     fs.writeFileSync(file, JSON.stringify(trip, null, 2) + "\n");
     clearUserCache();
+
+    // A bare `people:` entry grants nothing since D3 (B2297) — Mara needs an
+    // actual granted `trip_people` place to be a real reader here, the same
+    // shape `scripts/migrate-trip-people.mts` gives everyone who had one.
+    const { requestContact, confirmContactByOwner, approveContact } = await import("@/lib/contacts");
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    const requested = await requestContact("alex", {
+      name: "Mara",
+      email: "mara@example.test",
+      locale: "en",
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      wantsWhatsapp: false,
+      createdVia: "owner-grant",
+    });
+    if (requested.contactId) {
+      await confirmContactByOwner("alex", requested.contactId);
+      await approveContact("alex", requested.contactId);
+      await claimTripPlace("alex", "reise", requested.contactId, null);
+      await approveTripPlaces("alex", requested.contactId);
+    }
 
     const started = await propose("start_day");
     await post(writeDay, "", { ...pressed(started.proposal), ...NEW_ROW_DECLINES });

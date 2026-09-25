@@ -1,7 +1,6 @@
 import "server-only";
 import { requestContact } from "./index";
 import { pickLocale } from "./locale";
-import { sendImportedMail } from "./mail";
 import { isEmail } from "../auth";
 import type { UserConfig } from "../config";
 
@@ -13,16 +12,21 @@ import type { UserConfig } from "../config";
  * /api/helper/<user>/contacts/import` (a tick per row on a card in the
  * conversation, B1394's own missing surface). Both hand this the same rows
  * and get the same outcome — one place the "every row lands `pending`, and
- * the mail still goes" rule is written, rather than two that could drift.
+ * imported means nothing is sent unasked" rule is written, rather than two
+ * that could drift.
+ *
+ * B2296 removed `sendImportedMail`: nobody asked this journal to mail a row
+ * it imported. An imported row shows up on Studio › Readers under "Not
+ * invited yet" instead — see `lib/readers/split.ts` — and inviting it from
+ * there is the owner's own, deliberate press.
  */
 
 /**
  * The most rows one call may file.
  *
- * It lives here rather than in a route because **every row sends somebody a
- * confirmation mail**, and that is the bound worth holding: a thousand rows is
- * a thousand letters to a thousand strangers, from a server they have no reason
- * to expect one from.
+ * A batch that big is still worth a bound even with no mail behind it: a
+ * thousand rows is a thousand rows this journal now has to sort through on
+ * Studio › Readers, most of them somebody who never travelled with anyone.
  *
  * `POST /api/v1/<user>/contacts/import` had this number and the helper's own
  * card route, added beside it in B1394, did not — the refactor that gave the two
@@ -91,11 +95,9 @@ export async function importContactRows(
       continue;
     }
 
-    // The consent question the studio's people step promises (B2055), not a
-    // sign-in passcode for a page this person never opened. Best effort, like
-    // every mail in this family: `sendImportedMail` logs and swallows, and
-    // the row is still pending and still correct if only the mail failed.
-    await sendImportedMail(user, config, { id: result.contactId, email, locale });
+    // B2296: no mail. The row lands `pending`, `createdVia: "owner-import"`,
+    // and shows up on Studio › Readers under "Not invited yet" — nobody
+    // asked this journal to write to it yet.
     results.push({ name, email, outcome: result.outcome });
   }
 

@@ -473,9 +473,6 @@ describe("the tools", () => {
       // on the screen that starts a new day.
       "find_day",
       "inbox",
-      // B1051 — the other half of `invite_guest`: what links exist, never
-      // the live token that would let a reader in.
-      "invites",
       // B1042 — the keys that can write here, and this owner's own past
       // conversations (B1022).
       "keys",
@@ -518,11 +515,6 @@ describe("the tools", () => {
       // B1394 — a phone's own address book, read and reported into the
       // conversation, a tick per row.
       "import_contacts",
-      // B1074's successor — the deliberate press behind a shared WhatsApp
-      // contact card, replacing what used to invite automatically.
-      "invite_contact",
-      // B931 — the only way somebody who was not on a trip can ever read it.
-      "invite_guest",
       "journal_settings",
       // B1218 (D48) — the one documented route to a day's weather.
       "look_up_weather",
@@ -532,8 +524,6 @@ describe("the tools", () => {
       "propose_postcards",
       "publish_day",
       "remove_photo",
-      // B1051 — take one link back; everybody already approved stays in.
-      "revoke_invite",
       "revoke_key",
       "set_budget",
       "set_day_words",
@@ -554,7 +544,12 @@ describe("the tools", () => {
       TOOLS.filter((tool) => tool.kind === "link")
         .map((tool) => tool.name)
         .sort(),
-    ).toEqual(["buy_credits"]);
+    ).toEqual([
+      "buy_credits",
+      // B2295 (one door for readers, B2291) — hands over Studio › Readers,
+      // the one place a person is let in; issues nothing itself.
+      "invite_to_read",
+    ]);
   });
 
   /**

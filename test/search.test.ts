@@ -66,14 +66,14 @@ describe("buildSearchIndex", () => {
     // The one public entry, plus its trip's own row — which is the Story
     // destination, so there is no separate row for that (B890) — plus
     // Gallery and Map (B823; no Analytics, no costs and no weather, since
-    // this fixture carries none), the six documentation rows (four pages —
+    // this fixture carries none), the seven documentation rows (five pages —
     // B1797 added and B1826 removed `/docs/extract`; B2248 retired
-    // `/docs/roadmap`; the three reader guides were retired later — the hub
-    // and the imprint — B903), and `/trips`, the
-    // one journal-scoped destination this fixture offers a stranger: `auth`
-    // is off here, so there is no sign-in door to find. Nothing from the
-    // closed trips contributes any kind of document.
-    expect(index.documentCount).toBe(1 + 1 + 2 + 6 + 1);
+    // `/docs/roadmap`; B2343 added the `gps` guide; the guest, creator and
+    // buddy guides were retired — the hub and the imprint — B903), and
+    // `/trips`, the one journal-scoped destination this fixture offers a
+    // stranger: `auth` is off here, so there is no sign-in door to find.
+    // Nothing from the closed trips contributes any kind of document.
+    expect(index.documentCount).toBe(1 + 1 + 2 + 7 + 1);
   });
 
   test("an unlisted trip's content is not indexed at all", () => {
@@ -105,6 +105,12 @@ describe("everything else this site renders — B890", () => {
     expect([...ids].filter((id) => id.startsWith("trip:"))).toEqual(["trip:public-2026"]);
   });
 
+  test("the GPS guide is found by a word that only appears in its own markdown", () => {
+    const index = buildSearchIndex("creator")!;
+    const hits = index.search("Polarsteps", { prefix: true }).filter((h) => h.kind === "doc");
+    expect(hits.map((h) => h.url)).toContain("/docs/guide/gps");
+  });
+
   test("somebody asking for help lands on the hub, not on Hosting", () => {
     const index = buildSearchIndex("creator")!;
     const hits = index.search("help", { prefix: true }).filter((h) => h.kind === "doc");
@@ -114,6 +120,7 @@ describe("everything else this site renders — B890", () => {
   test("the documentation is public — a stranger's index carries every docs page, the hub and the imprint", () => {
     const json = buildSearchIndexJson("creator")!;
     for (const url of [
+      "/docs/guide/gps",
       "/docs/hosting",
       "/docs/contributing",
       "/docs/api",
@@ -171,6 +178,8 @@ describe("payload size", () => {
     // not a tight budget. Raised from 20_000 when `/docs/extract` was still
     // the ninth technical page (B1797); B1826 removed that page but the
     // ceiling was left where it was rather than re-tightened for one row.
-    expect(Buffer.byteLength(json)).toBeLessThan(21_000);
+    // Raised again for B2343's `gps` guide, a real prose page indexed the
+    // same as any other.
+    expect(Buffer.byteLength(json)).toBeLessThan(26_000);
   });
 });

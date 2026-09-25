@@ -13,6 +13,7 @@ in a checkout; this folder is the long form for a person.
 | [architecture.md](architecture.md) | where things live, and why they are shaped that way |
 | [ingest.md](ingest.md) | photographs, EXIF, geodata |
 | [gps.md](gps.md) | where somebody actually went: a private position store, and the line a trip owns |
+| [guides/](guides/) | the reader-facing guide on where a traveller's GPS goes (`gps`), served live at `/docs/guide/gps` in every maintained locale |
 | [statements.md](statements.md) | what a trip cost: reading a bank statement, and why it takes two calls |
 | [helper.md](helper.md) | Fernscout Helper, agent tools that make content for a journal |
 | [currencies.md](currencies.md) | how money is stored, converted and refused |

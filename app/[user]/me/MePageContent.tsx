@@ -7,9 +7,11 @@ import HelperConsentList, { type ConsentRow } from "@/components/HelperConsentLi
 import BuddyHandover from "@/components/BuddyHandover";
 import ContactManage, { type ManageContact } from "@/components/ContactManage";
 import GuestSignIn from "@/components/GuestSignIn";
+import OfflineTrips from "@/components/OfflineTrips";
 import PushOptIn from "@/components/PushOptIn";
 import SignOut from "@/components/SignOut";
 import ThisPhone from "@/components/studio/ThisPhone";
+import ConnectionInfo, { type BuildInfo, type Hosting } from "@/components/ConnectionInfo";
 import PageHeader from "@/components/PageHeader";
 import { useI18n } from "@/components/LocaleProvider";
 import { useSite } from "@/components/SiteProvider";
@@ -170,6 +172,8 @@ export default function MePageContent({
   signinNotice,
   hasAbout = false,
   signupEnabled,
+  build,
+  hosting,
 }: {
   viewer: Viewer;
   username: string;
@@ -235,6 +239,10 @@ export default function MePageContent({
    * the plain guide link regardless.
    */
   signupEnabled: boolean;
+  /** This build's version and commit — see `ConnectionInfo`. */
+  build: BuildInfo;
+  /** `site.hosting` from the server config — see `ConnectionInfo`. */
+  hosting?: Hosting;
 }) {
   const { t } = useI18n();
   const site = useSite();
@@ -542,6 +550,14 @@ export default function MePageContent({
         )}
 
         {/*
+          Which trips this browser keeps for reading offline — moved here from
+          each trip's hero, where "on this phone" named the wrong device on a
+          laptop and sat among the ways into the reading. Every trip this
+          reader may open, owner or not; absent without a service worker.
+        */}
+        <OfflineTrips username={username} trips={viewer.trips.map(({ id, title }) => ({ id, title }))} />
+
+        {/*
           Where notifications are switched on, for a reader who is not standing
           on a trip's landing step — B439.
 
@@ -603,7 +619,8 @@ export default function MePageContent({
         */}
         {/* Owner, on a phone only — B2208. */}
         {viewer.owner && <ThisPhone username={username} />}
-        {viewer.email && <SignOut />}
+        {viewer.email && <SignOut owner={viewer.owner ? username : undefined} />}
+        <ConnectionInfo build={build} hosting={hosting} />
       </main>
     </div>
   );

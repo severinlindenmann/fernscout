@@ -7,6 +7,7 @@ import { mediaLoader } from "./mediaLoader";
 import { motion } from "motion/react";
 import { useI18n } from "./LocaleProvider";
 import FullPhoto from "./FullPhoto";
+import { PhotoFrame } from "./PhotoFrame";
 import Lightbox from "./Lightbox";
 import { PhotoBadge } from "./Visibility";
 import type { GalleryItem } from "@/lib/types";
@@ -64,42 +65,47 @@ export default function Gallery({
             transition={{ duration: 0.35, delay: i * 0.05, ease: "easeOut" }}
             className="group relative rounded-sm border border-line-quiet bg-surface-raised p-2 pb-6 shadow-lg shadow-shadow-color/15"
           >
-            <span className="relative block aspect-[4/3] overflow-hidden bg-surface-muted">
-              {item.type === "video" ? (
-                // A still if there is one, and there almost always is —
-                // ingest writes a poster frame for every clip. The grid used
-                // to load the clip itself to show a thumbnail of it, which on
-                // a page of a dozen is a dozen videos fetched to draw twelve
-                // small rectangles.
-                <video
-                  src={item.src}
-                  poster={item.poster}
-                  preload={item.poster ? "none" : "metadata"}
-                  className="h-full w-full object-cover"
-                  muted
-                />
-              ) : (
-                <Image
-                  src={item.src}
-                  loader={mediaLoader}
-                  // What the photograph shows if anything has described it
-                  // (B1867), else the caption, else empty — the button's
-                  // aria-label covers that last case. The caption drawn below
-                  // is `aria-hidden` so the two do not both reach a screen
-                  // reader; the same rule as the trip gallery's tiles (B522).
-                  alt={item.alt ?? item.caption ?? ""}
-                  fill
-                  sizes="(max-width: 640px) 50vw, 33vw"
-                  className="object-cover"
-                />
+            <PhotoFrame className="relative block aspect-[4/3] overflow-hidden bg-surface-muted">
+              {(img) => (
+                <>
+                  {item.type === "video" ? (
+                    // A still if there is one, and there almost always is —
+                    // ingest writes a poster frame for every clip. The grid used
+                    // to load the clip itself to show a thumbnail of it, which on
+                    // a page of a dozen is a dozen videos fetched to draw twelve
+                    // small rectangles.
+                    <video
+                      src={item.src}
+                      poster={item.poster}
+                      preload={item.poster ? "none" : "metadata"}
+                      className="h-full w-full object-cover"
+                      muted
+                    />
+                  ) : (
+                    <Image
+                      {...img}
+                      src={item.src}
+                      loader={mediaLoader}
+                      // What the photograph shows if anything has described it
+                      // (B1867), else the caption, else empty — the button's
+                      // aria-label covers that last case. The caption drawn below
+                      // is `aria-hidden` so the two do not both reach a screen
+                      // reader; the same rule as the trip gallery's tiles (B522).
+                      alt={item.alt ?? item.caption ?? ""}
+                      fill
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                      className="object-cover"
+                    />
+                  )}
+                  {item.type === "video" && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl text-overlay-ink">
+                      ▶
+                    </span>
+                  )}
+                  <PhotoBadge own={item.visibility} />
+                </>
               )}
-              {item.type === "video" && (
-                <span className="absolute inset-0 flex items-center justify-center bg-black/20 text-2xl text-overlay-ink">
-                  ▶
-                </span>
-              )}
-              <PhotoBadge own={item.visibility} />
-            </span>
+            </PhotoFrame>
             {item.caption && (
               <span
                 aria-hidden

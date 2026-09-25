@@ -12,12 +12,15 @@ import { dictionaryFor } from "@/lib/locales";
  * navigated and the other scrolled.
  */
 describe("the documentation pages", () => {
-  test("there are four, and no reader guides", () => {
-    // B1826 removed `/docs/extract`, B2248 `/docs/roadmap`, and the three
-    // reader guides went once the screens they described carried their own
-    // guidance — see `lib/docs.ts` above `DOCS_PAGES`.
-    expect(DOCS_PAGES.map((p) => p.id)).toEqual(["hosting", "api", "contributing", "helper"]);
-    expect(DOCS_PAGES.some((p) => p.href.startsWith("/docs/guide/"))).toBe(false);
+  test("there are five: four technical pages and the one guide left", () => {
+    // B1826 removed `/docs/extract`, B2248 `/docs/roadmap`, and the guest,
+    // creator and buddy guides went once the screens they described carried
+    // their own guidance — see `lib/docs.ts` above `DOCS_PAGES`. B2343's
+    // `gps` guide is the one reader guide that stays.
+    expect(DOCS_PAGES.map((p) => p.id)).toEqual(["hosting", "api", "contributing", "helper", "gps"]);
+    for (const retired of ["guest", "creator", "buddy"]) {
+      expect(DOCS_PAGES.some((p) => p.href === `/docs/guide/${retired}`), retired).toBe(false);
+    }
   });
 
   test("every page has a real route, and a label and a blurb in every language", () => {
