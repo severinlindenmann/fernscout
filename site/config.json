@@ -17,6 +17,15 @@
         "hu": "Béta – a Fernscout még úton van: néhány funkció talán még nem úgy működik, ahogy kellene."
       }
     },
+    "hosting": {
+      "host": "fernscout.ch",
+      "where": "in Europe",
+      "translations": {
+        "de": "in Europa",
+        "en": "in Europe",
+        "hu": "Európában"
+      }
+    },
     "credit": {
       "name": "[Operator name]",
       "url": "https://the owner's own mail domain",

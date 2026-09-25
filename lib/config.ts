@@ -391,6 +391,22 @@ export type ServerConfig = {
       translations?: Record<string, string>;
     };
     /**
+     * Where the server at `host` stands, in the operator's own words — shown
+     * on `/<user>/me` as "Connected to the secure … web server <host> <where>".
+     *
+     * `where` is a whole phrase ("in Europe") rather than a place name,
+     * because a language inflects it: Hungarian says "Európában", not "in
+     * Európa". It is only ever said about `host` itself — a browser that
+     * reached a different host (every fork that kept this block) is told it
+     * is on a self-hosted server instead, and is told nothing about where.
+     * Absent means the page never names a place.
+     */
+    hosting?: {
+      host: string;
+      where: string;
+      translations?: Record<string, string>;
+    };
+    /**
      * Which journals are shown as demonstrations — B1718.
      *
      * A journal named here gets one thing nobody else's does: a bar offering
@@ -1027,6 +1043,7 @@ export function parseServerConfig(raw: unknown): ServerConfig {
       repository: optionalUrl(site, "repository", "site.repository", problems),
       credit: parseCredit(site.credit, problems),
       banner: parseBanner(site.banner, problems),
+      hosting: parseHosting(site.hosting, problems),
       showcase: parseShowcase(site.showcase, problems),
       operatorEmail:
         typeof site.operatorEmail === "string" &&
@@ -1220,6 +1237,39 @@ function parseBanner(
   return {
     enabled: true,
     text: raw.text.trim(),
+    ...(Object.keys(translations).length > 0 ? { translations } : {}),
+  };
+}
+
+function parseHosting(
+  raw: unknown,
+  problems: string[],
+): ServerConfig["site"]["hosting"] {
+  if (raw === undefined) return undefined;
+  if (
+    !isRecord(raw) ||
+    typeof raw.host !== "string" ||
+    raw.host.trim() === "" ||
+    typeof raw.where !== "string" ||
+    raw.where.trim() === "" ||
+    (raw.translations !== undefined &&
+      (!isRecord(raw.translations) ||
+        Object.values(raw.translations).some((v) => typeof v !== "string")))
+  ) {
+    problems.push(
+      "site.hosting must be { host: string, where: string, translations?: " +
+        "{ [locale]: string } }, or absent",
+    );
+    return undefined;
+  }
+  const translations: Record<string, string> = {};
+  for (const [locale, text] of Object.entries(raw.translations ?? {})) {
+    const trimmed = (text as string).trim();
+    if (trimmed !== "") translations[locale] = trimmed;
+  }
+  return {
+    host: raw.host.trim().toLowerCase(),
+    where: raw.where.trim(),
     ...(Object.keys(translations).length > 0 ? { translations } : {}),
   };
 }
