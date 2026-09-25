@@ -207,6 +207,22 @@ trap 'rm -rf "$STAGING_DIR"' EXIT
 
 log() { printf '[%s] %s\n' "$(date -u +%FT%TZ)" "$*"; }
 
+# One line per outcome in $DATA_DIR/.backup-history — "<ISO> <primary|secondary>
+# <ok|failed>" — so /admin can draw the last fortnight rather than only the
+# newest stamp. The stamps above stay the source of truth for /api/health;
+# this is the record of the nights between them. Kept to its newest 400 lines,
+# which is over six months of two lines a night. Never fatal: a history that
+# could not be written costs a square on a chart, not a backup.
+record_history() {
+  [[ -d "$DATA_DIR" ]] || return 0
+  local file="$DATA_DIR/.backup-history"
+  printf '%s %s %s\n' "$(date -u +%FT%TZ)" "$1" "$2" >> "$file" 2>/dev/null || return 0
+  if [[ $(wc -l < "$file") -gt 400 ]]; then
+    tail -n 400 "$file" > "$file.tmp" 2>/dev/null && mv "$file.tmp" "$file" 2>/dev/null || rm -f "$file.tmp"
+  fi
+  return 0
+}
+
 log "staging in $STAGING_DIR"
 
 # --- Staging a tree when part of it will not read (B114) -------------------
@@ -478,6 +494,17 @@ if (cd "$APP_DIR" && npm run --silent reminders:send); then
   log "reminder sweep done"
 else
   log "WARNING: the reminder sweep failed — tonight's backup is unaffected"
+fi
+
+# --- 0a1. The metered-spend alert ------------------------------------------
+# Same reasoning as the reminder sweep just above. Mails the operator at most
+# once, about yesterday, and only when `costs.alertDailyRappen` is set and the
+# day went over it — see lib/spendAlert.ts. Never fatal.
+log "checking yesterday's metered spend against the alert line"
+if (cd "$APP_DIR" && npm run --silent spend:alert); then
+  log "spend check done"
+else
+  log "WARNING: the spend check failed — tonight's backup is unaffected"
 fi
 
 # --- 0a2. The WhatsApp gap-nudge sweep (B1857) -----------------------------
@@ -1097,6 +1124,7 @@ if [[ -n "$secondary_repo" ]]; then
       # at /api/health while it was in fact arriving every night.
       date -u +%FT%TZ > "$DATA_DIR/.backup-last-success-secondary"
       log "recorded secondary success in $DATA_DIR/.backup-last-success-secondary"
+      record_history secondary ok
 
       keep_days="${BACKUP_SECONDARY_KEEP_DAYS:-7}"
       # A while-read loop rather than `mapfile`: this script is still run by
@@ -1134,12 +1162,14 @@ if [[ -n "$secondary_repo" ]]; then
       if RESTIC_REPOSITORY="$secondary_repo" restic forget --tag fernscout --keep-daily "$BACKUP_KEEP_DAILY" --prune; then
         date -u +%FT%TZ > "$DATA_DIR/.backup-last-success-secondary"
         log "recorded secondary success in $DATA_DIR/.backup-last-success-secondary"
+        record_history secondary ok
       else
         log "WARNING: pruning the secondary repository failed — tonight's copy is still there, and this does not affect the primary or tonight's success"
       fi
     fi
   else
     log "WARNING: copying to the secondary repository at $secondary_repo failed — the primary backup already succeeded and is unaffected; /api/health will report the secondary as stale until a copy gets through"
+    record_history secondary failed
   fi
 fi
 
@@ -1158,6 +1188,7 @@ fi
 if [[ -d "$DATA_DIR" ]]; then
   date -u +%FT%TZ > "$DATA_DIR/.backup-last-success"
   log "recorded success in $DATA_DIR/.backup-last-success"
+  record_history primary ok
 else
   log "WARNING: DATA_DIR ($DATA_DIR) does not exist — cannot record the success stamp /api/health reads"
 fi

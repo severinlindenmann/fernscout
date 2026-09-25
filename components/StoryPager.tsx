@@ -71,6 +71,7 @@ export default function StoryPager({
   onLegDone,
   hero,
   hasPlaces = false,
+  motionKey = stepIndex,
 }: {
   index: DaySummary[];
   /** The full day at that position, once it has arrived. */
@@ -89,6 +90,9 @@ export default function StoryPager({
    * needs (every entry's gallery and headline) just to draw a link to the
    * page that does. */
   hasPlaces?: boolean;
+  /** What the step crossfade is keyed on. `stepIndex` unless the move is
+   * already animated by a view transition — see `moveTo` in TripStory. */
+  motionKey?: number;
 }) {
   const step = steps[stepIndex];
 
@@ -130,7 +134,7 @@ export default function StoryPager({
     <div>
       <AnimatePresence mode="wait">
         <motion.div
-          key={stepIndex}
+          key={motionKey}
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}

@@ -125,7 +125,6 @@ function v2Trip(id: string, opts: { test?: boolean } = {}) {
       tagline: "no subtitle written",
       intro: "no opening prose written",
       listed: "not advertised for this fixture",
-      buddies: "travelling solo",
     },
   });
   const { days: _ignored, ...fields } = parsed;

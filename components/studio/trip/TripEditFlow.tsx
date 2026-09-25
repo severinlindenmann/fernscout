@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ConfirmPanel from "@/components/ConfirmPanel";
 import DeleteTrip from "@/components/DeleteTrip";
+import { haptic } from "@/components/nativeShell";
 import StepPrimary from "@/components/studio/StepPrimary";
 import SubmitError from "@/components/studio/SubmitError";
 import TripPicker from "@/components/studio/trip/TripPicker";
@@ -181,6 +182,10 @@ export default function TripEditFlow({
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  /** B2325 — the button's own ~900ms "saved" hold; this page's after-save
+   *  read (`router.refresh()`) is not a navigation the person watches, so
+   *  the button is the one place the finger was that says anything back. */
+  const [done, setDone] = useState(false);
 
   // Choosing a trip lands at the top of it, not wherever the picker was.
   useEffect(() => {
@@ -202,6 +207,7 @@ export default function TripEditFlow({
     setBusy(true);
     setProblem(null);
     setSaved(false);
+    setDone(false);
     const base = `/api/web/${encodeURIComponent(username)}/trips/${encodeURIComponent(trip.id)}`;
     const patch = (url: string, body: unknown) =>
       fetch(url, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
@@ -214,9 +220,13 @@ export default function TripEditFlow({
     if (failed !== undefined) {
       const said = (await failed?.json().catch(() => null)) as { message?: string } | null;
       setProblem(said?.message ?? t("me.journalFailed"));
+      void haptic("error");
       return;
     }
     setSaved(true);
+    void haptic("success");
+    setDone(true);
+    setTimeout(() => setDone(false), 900);
     router.refresh();
   }
 
@@ -293,6 +303,8 @@ export default function TripEditFlow({
         <StepPrimary
           disabled={!(detailsDirty || readersDirty) || title.trim() === ""}
           busy={busy}
+          done={done}
+          shake={problem}
           onClick={() => void save()}
           label={t("me.journalSave")}
           tone="bg-yellow-400 text-yellow-950 hover:bg-yellow-300"

@@ -34,6 +34,7 @@ function ack(over: Partial<Ack> = {}): Ack {
     ackedBy: "agent@fernscout.ch",
     endedAt: null,
     endedWhy: "",
+    until: null,
     ...over,
   };
 }
@@ -125,5 +126,30 @@ describe("an acknowledged entry", () => {
     // look like a suppression.
     const items = [entry(), entry({ id: "approve", kind: "approve", level: 1 })];
     expect(applyAcks(items, []).shown).toHaveLength(2);
+  });
+});
+
+describe("a snoozed entry", () => {
+  const now = new Date("2026-09-10T12:00:00.000Z");
+
+  test("is hidden until its time is up", () => {
+    const out = applyAcks([entry()], [ack({ until: "2026-09-11T10:00:00.000Z" })], now);
+    expect(out.shown).toEqual([]);
+  });
+
+  test("comes back when its time is up, even before a sweep closes the row", () => {
+    const out = applyAcks([entry()], [ack({ until: "2026-09-10T11:59:59.000Z" })], now);
+    expect(out.shown.map((one) => one.id)).toEqual(["backup:secondary"]);
+  });
+
+  test("still comes back early the moment it is worse", () => {
+    // A snooze is an acknowledgement with a clock, not a stronger one: the
+    // level rule that keeps it from being a muzzle applies unchanged.
+    const out = applyAcks(
+      [entry({ level: 10 })],
+      [ack({ level: 9, until: "2026-09-11T10:00:00.000Z" })],
+      now,
+    );
+    expect(out.shown.map((one) => one.id)).toEqual(["backup:secondary"]);
   });
 });

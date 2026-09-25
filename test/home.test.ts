@@ -24,7 +24,9 @@ const OTHER = "bea";
 const OTHER_EMAIL = "bea@example.test";
 /** Approved into bea's journal, on no trip anywhere. */
 const READER = "oma@example.test";
-/** On one of bea's trips by name, approved into nothing. */
+/** Named on one of bea's trips (byline, D3/B2297) and given a real, granted
+ *  `trip_people` place on it in the "traveller" test below — the place, not
+ *  the name, is what opens it. */
 const BUDDY = "kim@example.test";
 /** Nobody, anywhere. */
 const STRANGER = "nils@example.test";
@@ -137,15 +139,41 @@ describe("journalsFor", { shuffle: false }, () => {
     expect(journals[0].trips.every((t) => t.through === "owner")).toBe(true);
   });
 
-  test("somebody on a trip gets that journal as a traveller, without any grant", async () => {
+  test("somebody on a trip gets that journal as a traveller, with a real place — a bare people: entry alone is not enough (D3, B2297)", async () => {
+    // Named in the file, nothing else: not yet a traveller since D3.
+    expect(await journalsFor(BUDDY)).toEqual([]);
+
+    const { approveContact, confirmContactByOwner, requestContact } = await import(
+      "@/lib/contacts"
+    );
+    const { claimTripPlace, approveTripPlaces } = await import("@/lib/tripPeople");
+    const requested = await requestContact(OTHER, {
+      name: "Kim",
+      email: BUDDY,
+      locale: "en",
+      address: null,
+      wantsEmailDigest: false,
+      wantsPostcard: false,
+      createdVia: "owner-grant",
+    });
+    const contactId = requested.contactId!;
+    await confirmContactByOwner(OTHER, contactId);
+    await approveContact(OTHER, contactId);
+    await claimTripPlace(OTHER, "theirs-2026", contactId, null);
+    await approveTripPlaces(OTHER, contactId);
+
     const journals = await journalsFor(BUDDY);
     expect(journals.map((j) => j.username)).toEqual([OTHER]);
+    // `traveller` still wins the journal's own role (B80's ordering), even
+    // though `approveContact` — the only thing that turns a request into a
+    // place, D3/B2297 — opens the journal's `guest` trips at the same time
+    // as the private one they were actually invited to. There is no door
+    // left that grants only the one trip.
     expect(journals[0].role).toBe("traveller");
-    // The private trip they are named on. Not the `guest` trip: they were
-    // never approved into the journal, and being on one trip is not being a
-    // guest of the whole thing.
-    expect(journals[0].trips.map((t) => t.id)).toEqual(["theirs-2026"]);
-    expect(journals[0].trips[0].through).toBe("traveller");
+    expect(journals[0].trips.map((t) => [t.id, t.through]).sort()).toEqual([
+      ["invited-2026", "guest"],
+      ["theirs-2026", "traveller"],
+    ]);
   });
 
   /**

@@ -40,6 +40,45 @@ export function useNativeShell(): boolean {
   );
 }
 
+/**
+ * A touch the page can feel — B2324. Only these five, the motion study's
+ * whole table: a light tap for a primary press, medium for confirming
+ * something destructive, a plain tick for a chip/toggle selection, and the
+ * two `success`/`error` kinds a sibling ticket (B2325) fires once the
+ * server has actually answered.
+ *
+ * A no-op outside the shell (`isNativeShell()` false) and the plugin is
+ * only ever imported from in here, so a browser's bundle never carries it.
+ * Errors are swallowed — a missed buzz is never worth surfacing.
+ */
+export type HapticKind = "light" | "medium" | "selection" | "success" | "error";
+
+export async function haptic(kind: HapticKind): Promise<void> {
+  if (!isNativeShell()) return;
+  try {
+    const { Haptics, ImpactStyle, NotificationType } = await import("@capacitor/haptics");
+    switch (kind) {
+      case "light":
+        await Haptics.impact({ style: ImpactStyle.Light });
+        break;
+      case "medium":
+        await Haptics.impact({ style: ImpactStyle.Medium });
+        break;
+      case "selection":
+        await Haptics.selectionChanged();
+        break;
+      case "success":
+        await Haptics.notification({ type: NotificationType.Success });
+        break;
+      case "error":
+        await Haptics.notification({ type: NotificationType.Error });
+        break;
+    }
+  } catch {
+    // Felt nothing; the tap or the write still happened.
+  }
+}
+
 /** What the picker hands back per photograph, the part of it this uses. */
 export type PickedPhoto = { name: string; mimeType: string; data?: string; modifiedAt?: number };
 
@@ -347,4 +386,75 @@ export async function refreshGpsToken(username: string): Promise<{ token: string
   const minted = await mintGpsToken(username);
   await LocationRecorder.setToken(minted);
   return minted;
+}
+
+/**
+ * The iPhone app's own version, as its `Info.plist` states it — or nothing
+ * outside the shell. `ViewController.swift` writes `window.FernscoutApp`
+ * before any page script runs; the Capacitor bridge itself carries no
+ * version, and a plugin round trip is more than one pair of strings needs.
+ */
+export type NativeAppVersion = { version: string; build: string };
+
+export function nativeAppVersion(): NativeAppVersion | undefined {
+  if (!isNativeShell()) return undefined;
+  const app = (window as unknown as { FernscoutApp?: Partial<NativeAppVersion> }).FernscoutApp;
+  if (typeof app?.version !== "string" || app.version === "") return undefined;
+  return { version: app.version, build: typeof app.build === "string" ? app.build : "" };
+}
+
+/**
+ * Bring your own server — which Fernscout this app opens.
+ * `ios/App/App/ServerChoicePlugin.swift` keeps the address and restarts the
+ * bridge on it. `choose` checks the address answers as a Fernscout and asks
+ * the owner on a native dialog before anything changes; `{host}` in
+ * `confirmBody` is filled in natively from the address it will really use.
+ * An app built before the plugin existed rejects `status`, and the section
+ * that asks it is simply absent.
+ */
+export type ServerChoiceStatus = { server?: string; host?: string; custom: boolean; defaultServer?: string };
+export type ServerChoiceConfirm = {
+  confirmTitle: string;
+  confirmBody: string;
+  confirmLabel: string;
+  cancelLabel: string;
+};
+/** What the app says at launch if the chosen server stops answering, kept
+ *  natively with the choice because no page can load then. `{host}` is
+ *  filled in natively: the chosen server in the body, the build's own in
+ *  `resetLabel`. */
+export type ServerChoiceUnreachable = {
+  unreachableTitle: string;
+  unreachableBody: string;
+  retryLabel: string;
+  resetLabel: string;
+};
+type ServerChoicePlugin = {
+  status(): Promise<ServerChoiceStatus>;
+  choose(options: { url: string } & ServerChoiceConfirm & ServerChoiceUnreachable): Promise<{ changed: boolean }>;
+  reset(options: ServerChoiceConfirm): Promise<{ changed: boolean }>;
+};
+const ServerChoice = registerPlugin<ServerChoicePlugin>("ServerChoice");
+
+export function serverChoiceStatus(): Promise<ServerChoiceStatus> {
+  return ServerChoice.status();
+}
+
+export function chooseServer(
+  url: string,
+  confirm: ServerChoiceConfirm & ServerChoiceUnreachable,
+): Promise<{ changed: boolean }> {
+  return ServerChoice.choose({ url, ...confirm });
+}
+
+export function resetServer(confirm: ServerChoiceConfirm): Promise<{ changed: boolean }> {
+  return ServerChoice.reset(confirm);
+}
+
+/** Why `choose` refused, from the plugin's reject code — anything it does
+ *  not name is reported as unreachable rather than as a success. */
+export type ServerChoiceError = "invalid" | "notFernscout" | "unreachable" | "recording";
+export function serverChoiceError(error: unknown): ServerChoiceError {
+  const code = (error as { code?: unknown } | null)?.code;
+  return code === "invalid" || code === "notFernscout" || code === "recording" ? code : "unreachable";
 }

@@ -10,8 +10,8 @@ import BusyButton from "@/components/BusyButton";
  * there is one. The list above it is server-rendered, so a sent message
  * appears there on the next load rather than being faked into it here.
  */
-export default function SmsSend() {
-  const [to, setTo] = useState("");
+export default function SmsSend({ initialTo = "" }: { initialTo?: string }) {
+  const [to, setTo] = useState(initialTo);
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<{ ok: boolean; text: string } | null>(null);
@@ -54,7 +54,7 @@ export default function SmsSend() {
     "focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500";
 
   return (
-    <form onSubmit={submit} className="mt-4 max-w-md">
+    <form onSubmit={submit} className="max-w-md">
       <label className="block font-mono text-[11px] uppercase tracking-[0.08em] text-ink-secondary" htmlFor="sms-to">
         To
       </label>

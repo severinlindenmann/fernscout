@@ -65,7 +65,11 @@ const ICON = { public: Eye, guest: Users, private: EyeOff } as const;
 const TONE: Record<Audience, string> = {
   public: "border-line-quiet bg-surface-subtle text-ink-body",
   guest: "border-line-strong bg-surface-muted text-ink-strong",
-  private: "border-coral-600 bg-coral-100 text-on-bright",
+  // `text-coral-600`, not `text-on-bright`: `coral-100` turns dark wine red
+  // in dark mode while `on-bright` stays navy, which left the word at about
+  // 1.2:1. coral-600 on coral-100 is the pair both themes already tune for
+  // (test/contrast.test.ts).
+  private: "border-coral-600 bg-coral-100 text-coral-600",
 };
 
 /** The word alone. `overlay` is the corner of a photograph, `inline` is beside a heading.
@@ -631,7 +635,7 @@ export function TripVisibility() {
     <Link
       href={`/${encodeURIComponent(trip.trip.username)}/studio/trip/visibility?trip=${encodeURIComponent(trip.trip.id)}`}
       prefetch={false}
-      className="mt-1 inline-block align-middle"
+      className="inline-block shrink-0"
     >
       <VisibilityBadge audience={trip.trip.visibility} />
     </Link>
