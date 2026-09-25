@@ -1954,7 +1954,10 @@ function buildPaths(): Record<string, PathItem> {
           "the address owns anything, so this cannot be used to discover which addresses exist — the " +
           'one exception is `for: "write"` to an address that owns nothing and is on no named trip, ' +
           "which answers 403 rather than leaving you waiting for a code that never comes. A new " +
-          "request invalidates the previous code.",
+          "request invalidates the previous code. `phone` instead of `email` (B2294) is a guest's " +
+          'mobile number, any country: `for: "read"` only, no `channel`, delivered by SMS and only ' +
+          "to a number a contact of that journal holds — every other number gets the same 202 and no " +
+          "text. At most 3 texts per number an hour.",
       ),
       responses: {
         ...jsonResponse(202, codesRequestResponse, "accepted — always, whatever the address"),
@@ -1965,6 +1968,8 @@ function buildPaths(): Record<string, PathItem> {
           ref("auth_disabled", 404),
           ref("mail_disabled", 503, "nothing issued; any code already held is still live"),
           ref("whatsapp_disabled", 503),
+          ref("sms_disabled", 503, "`phone` asked for, and this server sends no SMS"),
+          ref("sms_unreachable", 400, "`phone` in a country this server's SMS number cannot reach"),
           ref("mail_failed", 503),
           ref("not_authorised", 403, 'for: "write" to an address that owns nothing and is on no named trip'),
           ref("signup_not_invited", 403),
@@ -1983,7 +1988,8 @@ function buildPaths(): Record<string, PathItem> {
           'cookie and put no token in the body; "write"/"signup" return the token in the body and set ' +
           "no cookie, since the caller is a program with no cookie jar. A wrong code, an expired one, a " +
           'burned one, the wrong `for`, or a `scope.trip` that does not match the code\'s own trip all ' +
-          "answer the identical `invalid_code`.",
+          "answer the identical `invalid_code`. A code texted to a `phone` is redeemed with that " +
+          '`phone` and `for: "read"`.',
       ),
       responses: {
         ...jsonResponse(200, z.union([codesRedeemCookieResponse, codesRedeemTokenResponse]), 'cookie response for "read"/"identity", token response for "write"/"signup"'),

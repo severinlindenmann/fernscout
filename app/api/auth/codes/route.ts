@@ -75,7 +75,12 @@ export async function POST(request: Request) {
     return fail("invalid_request", 'scope is only meaningful when "for" is "write".');
   }
   if (req.phone !== undefined) return handlePhone(request, req);
-  if (req.email === undefined || !isEmail(req.email)) {
+  // Neither field at all is a shape problem, as it was while `email` was
+  // required by the schema; a present but unusable address is `invalid_email`.
+  if (req.email === undefined) {
+    return fail("invalid_request", 'One of "email" or "phone" is required.');
+  }
+  if (!isEmail(req.email)) {
     return fail("invalid_email", ERROR_CODES.invalid_email, undefined, 400);
   }
   const withEmail: EmailCodesRequest = { ...req, email: req.email };
@@ -167,7 +172,7 @@ async function handlePhone(request: Request, req: CodesRequest) {
   if (!digits) {
     return fail(
       "invalid_request",
-      "That is not a mobile number this server can text. Include the country code, e.g. +41 76 123 45 67.",
+      "That is not a mobile number this server can text. Include the country code, e.g. +41 76 000 00 00.",
     );
   }
   const unreachable = smsUnreachable(digits);
