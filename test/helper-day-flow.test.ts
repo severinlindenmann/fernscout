@@ -263,3 +263,76 @@ describe("making a second trip from the wizard", () => {
     expect(wrote.status).toBe(201);
   });
 });
+
+describe("B2370 — a retried new-trip create", () => {
+  test("sending the same trip twice leaves one trip and names it in the second answer", async () => {
+    const { POST: tripRoute } = await import("@/app/api/helper/[user]/trip/route");
+    const payload = { title: "Kyoto week", start: "2026-09-01", end: "2026-09-08" };
+    const first = await read(
+      await tripRoute(
+        new Request("https://t.test/api/helper/alex/trip", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        }),
+        params,
+      ),
+    );
+    expect(first.status).toBe(201);
+    const id = first.body.id as string;
+
+    const retried = await read(
+      await tripRoute(
+        new Request("https://t.test/api/helper/alex/trip", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        }),
+        params,
+      ),
+    );
+    expect(retried.status).toBe(409);
+    expect(retried.body.error).toBe("trip_exists");
+    expect((retried.body.existing as { id?: string }).id).toBe(id);
+
+    const { getTripIds } = await import("@/lib/trips");
+    expect(getTripIds("alex").filter((tripId) => tripId.startsWith("kyoto-week"))).toEqual([id]);
+  });
+
+  test("a different trip that wants the same id still gets suffixed", async () => {
+    const { POST: tripRoute } = await import("@/app/api/helper/[user]/trip/route");
+    const first = await read(
+      await tripRoute(
+        new Request("https://t.test/api/helper/alex/trip", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ title: "Kyoto week", start: "2026-09-01", end: "2026-09-08" }),
+        }),
+        params,
+      ),
+    );
+    expect(first.status).toBe(201);
+
+    const second = await read(
+      await tripRoute(
+        new Request("https://t.test/api/helper/alex/trip", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          // Same title and start (so the same base id), a genuinely
+          // different trip (a different end date) — must not be answered
+          // as the first trip.
+          body: JSON.stringify({ title: "Kyoto week", start: "2026-09-01", end: "2027-09-08" }),
+        }),
+        params,
+      ),
+    );
+    expect(second.status).toBe(201);
+    expect(second.body.id).not.toBe(first.body.id);
+    expect(second.body.id).toBe(`${first.body.id as string}-2`);
+
+    const { getTripIds } = await import("@/lib/trips");
+    expect(getTripIds("alex").filter((tripId) => tripId.startsWith("kyoto-week")).sort()).toEqual(
+      [first.body.id as string, second.body.id as string].sort(),
+    );
+  });
+});

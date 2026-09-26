@@ -81,21 +81,27 @@ export interface ReplayOutcome {
 
 /**
  * `existing` (the day-create route's own 409 body, `lib/studio/createDay.ts`
- * via `app/api/helper/[user]/day/new/route.ts:58`) really is the same day
- * this intent tried to create, rather than a different one somebody else
- * put on the same date in the meantime.
+ * via `app/api/helper/[user]/day/new/route.ts:58`; or, since B2370, the
+ * trip-create route's own `trip_exists` 409,
+ * `app/api/helper/[user]/trip/route.ts`) really is the same thing this
+ * intent tried to create, rather than a different one somebody else made
+ * in the meantime.
  *
- * Deliberately narrow: this wave wires no flow to the outbox, so the only
- * 409 shape worth knowing is the one route the ticket names. A route added
- * later that wants the same treatment adds its own case here rather than
- * this function guessing at a shape it has never seen.
+ * Deliberately narrow: only the two 409 shapes a route actually sends today.
+ * A route added later that wants the same treatment adds its own case here
+ * rather than this function guessing at a shape it has never seen.
  *
- * ponytail: field-by-field comparison of what the owner actually typed
- * (title/time/location), not a hash of the whole body — good enough while
- * one route uses this; widen it if a second route's "same" needs more.
+ * ponytail: field-by-field comparison of what the owner actually typed, not
+ * a hash of the whole body — good enough while two routes use this; widen
+ * it if a third route's "same" needs more.
  */
 function sameAsSent(intent: OutboxIntent, responseBody: unknown): boolean {
-  if (intent.kind !== "day.new") return false;
+  const fieldsByKind: Record<string, readonly string[]> = {
+    "day.new": ["date", "title", "time", "location"],
+    "trip.new": ["title", "start", "end"],
+  };
+  const fields = fieldsByKind[intent.kind];
+  if (!fields) return false;
   if (!responseBody || typeof responseBody !== "object") return false;
   const existing = (responseBody as { existing?: unknown }).existing;
   if (!existing || typeof existing !== "object") return false;
@@ -103,7 +109,6 @@ function sameAsSent(intent: OutboxIntent, responseBody: unknown): boolean {
   if (!sent || typeof sent !== "object") return false;
   const e = existing as Record<string, unknown>;
   const s = sent as Record<string, unknown>;
-  const fields = ["date", "title", "time", "location"] as const;
   return fields.every((f) => s[f] === undefined || s[f] === e[f]);
 }
 

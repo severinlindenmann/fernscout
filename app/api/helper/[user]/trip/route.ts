@@ -55,6 +55,25 @@ function idFrom(username: string, title: string, start: string): string {
 }
 
 /**
+ * B2370 — the trip a retried create is actually asking for, if there is
+ * one. The offline outbox (and a doubled press, online) can send the same
+ * `create_trip` twice; without this, the second POST's `idFrom` finds the
+ * base id taken and silently suffixes `-2`, making a second trip. A day
+ * already answers this shape (`date_has_day`'s `existing`); this is the
+ * trip-side mirror, narrow on purpose: only the base id, and only when the
+ * title and both dates actually match, so a genuinely different trip that
+ * happens to want the same slug still gets suffixed below.
+ */
+function retriedTrip(username: string, title: string, start: string, end: string) {
+  const base = tripIdBase(title, start);
+  const existing = getTrip(tripRef(username, base));
+  if (existing && existing.title === title && existing.start === start && existing.end === end) {
+    return existing;
+  }
+  return undefined;
+}
+
+/**
  * A trip's own title and dates, read back — B1803 Task 3.7.
  *
  * The Preview screen (`PreviewScreen.tsx`) has to name the real trip a run
@@ -104,6 +123,19 @@ export async function POST(request: Request, { params }: RouteContext<"/api/help
   if (!title || !DATE_RE.test(start) || !DATE_RE.test(end)) {
     refused(user, "create_trip", "invalid_trip");
     return Response.json({ error: "invalid_trip" }, { status: 400 });
+  }
+
+  // B2370 — a retried create (the offline outbox replaying a POST whose
+  // answer never arrived, or a doubled press) names the same trip this
+  // journal already has at the id it would derive; answer with that trip
+  // rather than making a second one at `-2`.
+  const retried = retriedTrip(user, title, start, end);
+  if (retried) {
+    refused(user, "create_trip", "trip_exists");
+    return Response.json(
+      { error: "trip_exists", existing: { id: retried.id, title: retried.title, start: retried.start, end: retried.end } },
+      { status: 409 },
+    );
   }
 
   /**
