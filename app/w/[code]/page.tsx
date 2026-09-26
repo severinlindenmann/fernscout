@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import NoticeShell from "@/components/NoticeShell";
+import { isOpenToApprovedGuest } from "@/lib/access";
 import { hasSwitchedOff, isEnabled } from "@/lib/capabilities";
 import { pickLocale } from "@/lib/contacts/locale";
 import { journalReader } from "@/lib/contacts/session";
@@ -9,6 +10,7 @@ import { buddyTripOf, maskEmail, maskMobile, ownerShortName, resolveWelcomeCode 
 import { dictionaryFor, requestLocale, translateIn } from "@/lib/locales";
 import { mailDisabledReason } from "@/lib/mail";
 import { clientIp, rateLimitFor } from "@/lib/rateLimit";
+import { getTrips } from "@/lib/trips";
 import { getUser } from "@/lib/users";
 import WelcomeGuide, { type GuideDetails } from "./WelcomeGuide";
 import WelcomeOpened from "./WelcomeOpened";
@@ -104,6 +106,7 @@ export default async function WelcomePage({ params }: PageProps<"/w/[code]">) {
         firstName={(contact.name ?? "").trim().split(/\s+/)[0] ?? ""}
         kind={trip ? "buddy" : "reader"}
         trip={trip}
+        hasGuestTrip={getTrips(owner).some(isOpenToApprovedGuest)}
         signedIn={signedIn}
         onboarded={Boolean(contact.onboardedAt)}
         joined={(contact.createdVia ?? "").startsWith("invite:")}

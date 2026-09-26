@@ -1260,6 +1260,7 @@ export type TranslationKey =
   | "guide.what.readAllBody"
   | "guide.what.readBody"
   | "guide.what.readerLimits"
+  | "guide.what.readerLimitsCostsVary"
   | "guide.what.readerTitle"
   | "guide.what.write"
   | "guide.what.writeBody"

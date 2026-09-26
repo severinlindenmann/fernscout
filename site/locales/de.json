@@ -4500,6 +4500,7 @@
   "guide.what.postcard": "Eine echte Postkarte bekommen",
   "guide.what.postcardBody": "Gedruckt und von unterwegs verschickt",
   "guide.what.readerLimits": "Entwürfe, Kosten und private Reisen siehst du nicht — und nie den Standortverlauf von irgendwem.",
+  "guide.what.readerLimitsCostsVary": "Entwürfe und private Reisen siehst du nicht — Kosten nur dort, wo {owner} sie teilt — und nie den Standortverlauf von irgendwem.",
   "guide.what.buddyTitle": "Als Reisegefährte kannst du…",
   "guide.what.photos": "Deine Fotos beisteuern",
   "guide.what.photosBody": "Zu den Tagen von {trip}",

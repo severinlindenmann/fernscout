@@ -4500,6 +4500,7 @@
   "guide.what.postcard": "Ricevere una vera cartolina",
   "guide.what.postcardBody": "Stampata e spedita dalla strada",
   "guide.what.readerLimits": "Non vedrai bozze, costi o viaggi privati — e mai la cronologia di posizione di nessuno.",
+  "guide.what.readerLimitsCostsVary": "Non vedrai bozze o viaggi privati — i costi solo dove {owner} li condivide — e mai la cronologia di posizione di nessuno.",
   "guide.what.buddyTitle": "Come compagno di viaggio puoi…",
   "guide.what.photos": "Aggiungere le tue foto",
   "guide.what.photosBody": "Ai giorni di {trip}",

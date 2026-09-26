@@ -4500,6 +4500,7 @@
   "guide.what.postcard": "Get a real postcard",
   "guide.what.postcardBody": "Printed and mailed from the road",
   "guide.what.readerLimits": "You won’t see drafts, costs or private trips — and never anyone’s location history.",
+  "guide.what.readerLimitsCostsVary": "You won’t see drafts or private trips — costs show only where {owner} shares them — and never anyone’s location history.",
   "guide.what.buddyTitle": "As a buddy you can…",
   "guide.what.photos": "Add your photos",
   "guide.what.photosBody": "To the days of {trip}",

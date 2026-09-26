@@ -4501,6 +4501,7 @@
   "guide.what.postcard": "Igazi képeslapot kaphatsz",
   "guide.what.postcardBody": "Nyomtatva, útközben feladva",
   "guide.what.readerLimits": "Piszkozatokat, költségeket és privát utazásokat nem látsz — és soha senkinek a helyelőzményeit.",
+  "guide.what.readerLimitsCostsVary": "Piszkozatokat és privát utazásokat nem látsz — költségeket csak ott, ahol {owner} megosztja őket — és soha senkinek a helyelőzményeit.",
   "guide.what.buddyTitle": "Útitársként…",
   "guide.what.photos": "Hozzáadhatod a fotóidat",
   "guide.what.photosBody": "A(z) {trip} napjaihoz",

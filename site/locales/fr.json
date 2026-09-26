@@ -4500,6 +4500,7 @@
   "guide.what.postcard": "Recevoir une vraie carte postale",
   "guide.what.postcardBody": "Imprimée et postée depuis la route",
   "guide.what.readerLimits": "Tu ne verras ni brouillons, ni coûts, ni voyages privés — et jamais l’historique de position de personne.",
+  "guide.what.readerLimitsCostsVary": "Tu ne verras ni brouillons ni voyages privés — les coûts, seulement là où {owner} les partage — et jamais l’historique de position de personne.",
   "guide.what.buddyTitle": "En tant que compagnon de route tu peux…",
   "guide.what.photos": "Ajouter tes photos",
   "guide.what.photosBody": "Aux journées de {trip}",
