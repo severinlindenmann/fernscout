@@ -26,6 +26,7 @@ import type { TellBy } from "@/lib/studio/speak";
 import { MINUTES_PER_CREDIT } from "@/lib/helper/speech";
 import type { TranslationKey } from "@/lib/i18n";
 import { mostCommon, photoDay, photosInGroup, splitDayPhotos, tripForDate } from "@/lib/studio/dayCards";
+import { slugify } from "@/lib/slug";
 
 /** First-run mode (B2188, owner decision D1 "C inside A"): the same page,
  *  revealed one part at a time for somebody who has no day yet. The one-page
@@ -554,6 +555,15 @@ export default function AddDayFlow({
         setOutcome("collision");
         return;
       }
+      // B2108 — the collision screen already let this through once (a time
+      // was named); the address is still date + title, so a second entry
+      // with the *same* title as the first collides regardless. Stay on the
+      // collision screen rather than the generic write-failed one, so the
+      // title field is right there to fix.
+      if (json && "error" in json && (json.error === "day_exists" || json.error === "slug_taken")) {
+        setOutcome("collision");
+        return;
+      }
       if (!res.ok || !json || !("ok" in json)) {
         const error = json && "error" in json ? json.error : undefined;
         const detail = json && "detail" in json ? json.detail : undefined;
@@ -680,6 +690,12 @@ export default function AddDayFlow({
   }
 
   if (outcome === "collision" && collision) {
+    // B2108 — the address is date + title only (`createDraft`'s own slug
+    // logic, deliberately untouched here). A time never tells two entries
+    // apart on disk; only a different title does, so once this one matches
+    // the day above, offer the title field right here rather than let the
+    // owner answer everything and learn it at the very end.
+    const titleClash = title.trim() !== "" && slugify(title) === collision.slug;
     return (
       <div className="studio-step mt-4">
         <div className="rounded-xl border border-coral-300 bg-coral-50 px-4 py-3 text-sm text-ink-body">
@@ -705,13 +721,28 @@ export default function AddDayFlow({
           </button>
         </div>
         <p className="mt-4 text-sm text-ink-secondary">{t("studio.day.collision.secondEntryHint")}</p>
+        {titleClash && (
+          <p role="alert" className="mt-2 text-sm text-coral-600">{t("studio.day.collision.titleMustDiffer")}</p>
+        )}
+        {titleClash && (
+          <label className={`mt-2 ${LABEL}`}>
+            {t("studio.day.whatHappened.titleLabel")}
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("studio.day.whatHappened.titlePlaceholder")}
+              className={FIELD}
+            />
+          </label>
+        )}
         <label className={`mt-2 ${LABEL}`}>
           {t("studio.day.collision.timeLabel")}
           <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className={FIELD} />
         </label>
         <StepPrimary
           busy={busy}
-          disabled={!time}
+          disabled={!time || titleClash}
           tone="bg-yellow-400 text-yellow-950"
           onClick={() => {
             setConfirmedSecondEntry(true);
