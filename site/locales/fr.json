@@ -4168,5 +4168,12 @@
   "agent.slot.total": "Budget total",
   "agent.slot.transportMode": "Moyen de transport",
   "agent.slot.trip": "Voyage",
-  "agent.slot.visibility": "Qui peut le lire"
+  "agent.slot.visibility": "Qui peut le lire",
+  "agent.slot.cover": "Couverture",
+  "agent.slot.from": "Signé",
+  "agent.slot.locale": "Langue",
+  "agent.slot.message": "Message",
+  "agent.slot.photo": "Photo",
+  "agent.slot.recipients": "Destinataires",
+  "agent.slot.size": "Taille"
 }

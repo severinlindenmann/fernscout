@@ -5,7 +5,6 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import ts from "typescript";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { TOOLS } from "@/lib/helper/tools";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -212,15 +211,14 @@ describe("the studio's locale keys are all in use (B2093, B2112)", () => {
     const paidKeys: string[] = fs.existsSync(path.join(process.cwd(), "paid"))
       ? []
       : (JSON.parse(read(path.join("lib", "paidLocaleKeys.json"))) as string[]);
-    // `agent.slot.<name>` is the one dynamic prefix no static scan can chase:
-    // `test/helper-slot-locales.test.ts` already derives the live set (every
-    // write tool's own argument names) straight from `TOOLS` at run time —
-    // reused here rather than re-listed, so the two never drift apart.
-    const slotKeys = new Set(
-      TOOLS.filter((tool) => tool.kind === "write").flatMap((tool) => Object.keys(tool.properties)),
-    );
+    // `agent.slot.<name>` is the one dynamic prefix no static scan can chase,
+    // and its live set includes the paid tools' argument names, which a
+    // checkout without paid/ cannot see — so the whole prefix is exempt here.
+    // `test/helper-slot-locales.test.ts` guards the direction that matters: a
+    // live slot with no string. (B2112 first derived the set from TOOLS in a
+    // paid-less worktree and deleted seven slots only the paid tools use.)
     const orphans = Object.keys(dictionary("en")).filter(
-      (k) => !used(k) && !paidKeys.includes(k) && !(k.startsWith("agent.slot.") && slotKeys.has(k.slice("agent.slot.".length))),
+      (k) => !used(k) && !paidKeys.includes(k) && !k.startsWith("agent.slot."),
     );
     expect(orphans).toEqual([]);
   });

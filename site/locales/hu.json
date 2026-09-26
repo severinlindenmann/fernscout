@@ -4168,5 +4168,12 @@
   "agent.slot.total": "Teljes költségvetés",
   "agent.slot.transportMode": "Hogyan utaztak",
   "agent.slot.trip": "Utazás",
-  "agent.slot.visibility": "Ki olvashatja"
+  "agent.slot.visibility": "Ki olvashatja",
+  "agent.slot.cover": "Kötés",
+  "agent.slot.from": "Aláírás",
+  "agent.slot.locale": "Nyelv",
+  "agent.slot.message": "Üzenet",
+  "agent.slot.photo": "Fénykép",
+  "agent.slot.recipients": "Címzett",
+  "agent.slot.size": "Méret"
 }

@@ -4167,5 +4167,12 @@
   "agent.slot.total": "Gesamtbudget",
   "agent.slot.transportMode": "Wie es unterwegs war",
   "agent.slot.trip": "Reise",
-  "agent.slot.visibility": "Wer sie lesen darf"
+  "agent.slot.visibility": "Wer sie lesen darf",
+  "agent.slot.cover": "Einband",
+  "agent.slot.from": "Unterschrift",
+  "agent.slot.locale": "Sprache",
+  "agent.slot.message": "Nachricht",
+  "agent.slot.photo": "Foto",
+  "agent.slot.recipients": "Geht an",
+  "agent.slot.size": "Größe"
 }
