@@ -351,3 +351,73 @@ describe("check-caddy: the shipped Caddyfile parses", () => {
     }
   }, 60_000);
 });
+
+/**
+ * B2350: `/api/web/{user}/figures/from-photo` calls `request.formData()`
+ * (an upload up to `IMAGE_MAX_BYTES`) and was in neither @bigbody's `path`
+ * list nor @smallbody's `not path` list, so Caddy's default 10MB cap
+ * truncated it before the app ever saw the request.
+ *
+ * A hand-maintained list of "routes that upload" goes stale the moment a
+ * new one is added and nobody remembers this file — so this derives the
+ * list from the route source itself, every route under app/api (and
+ * paid/**, when the private tree is present) that calls `.formData()`, and
+ * requires each one's Caddy path pattern to appear in both matchers.
+ */
+describe("every formData() route is covered by both Caddy body-size matchers", () => {
+  function findFormDataRoutes(root: string): string[] {
+    const found: string[] = [];
+    const walk = (dir: string) => {
+      if (!fs.existsSync(dir)) return;
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (entry.name === "route.ts" && fs.readFileSync(full, "utf8").includes(".formData()")) {
+          found.push(full);
+        }
+      }
+    };
+    walk(root);
+    return found;
+  }
+
+  // e.g. app/api/web/[user]/figures/from-photo/route.ts becomes the Caddy
+  // path pattern /api/web/*/figures/from-photo.
+  function toCaddyPath(routeFile: string, apiRoot: string): string {
+    const rel = path.relative(apiRoot, path.dirname(routeFile));
+    return (
+      "/api/" +
+      rel
+        .split(path.sep)
+        .map((seg) => (/^\[.+\]$/.test(seg) ? "*" : seg))
+        .join("/")
+    );
+  }
+
+  test("bigbody and smallbody's not-path list both name every route that reads a form body", () => {
+    const apiRoot = path.join(process.cwd(), "app", "api");
+    const routes = findFormDataRoutes(apiRoot).map((f) => toCaddyPath(f, apiRoot));
+
+    // The private features tree, when present, ships its own routes the same
+    // way — best effort, since it does not exist in an open-edition checkout.
+    const paidRoot = path.join(process.cwd(), "paid");
+    if (fs.existsSync(paidRoot)) {
+      for (const dir of fs.readdirSync(paidRoot, { withFileTypes: true })) {
+        if (!dir.isDirectory()) continue;
+        const paidApiRoot = path.join(paidRoot, dir.name, "routes", "api");
+        routes.push(...findFormDataRoutes(paidApiRoot).map((f) => toCaddyPath(f, paidApiRoot)));
+      }
+    }
+
+    expect(routes.length).toBeGreaterThan(0);
+
+    const caddy = fs.readFileSync(SHIPPED_SNIPPET, "utf8");
+    const bigbody = caddy.match(/@bigbody \{([\s\S]*?)\n\t\}/)?.[1] ?? "";
+    const smallbodyNotPath = caddy.match(/@smallbody \{\s*not path (.*)\n\t\}/)?.[1] ?? "";
+
+    for (const urlPath of routes) {
+      expect(bigbody, `${urlPath} missing from @bigbody`).toContain(urlPath);
+      expect(smallbodyNotPath, `${urlPath} missing from @smallbody's not-path list`).toContain(urlPath);
+    }
+  });
+});
