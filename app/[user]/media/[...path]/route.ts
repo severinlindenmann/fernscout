@@ -359,10 +359,13 @@ export async function GET(
    * and a photograph replaced in place under the same name is a thing a
    * person can do with a text editor and `scp`.
    */
+  // B2373: a trip that is not public was refused to somebody by the gate
+  // above, so no shared cache may keep its photographs either. The reader's
+  // own browser still may: the day's long age holds, only `public` goes.
   const cacheControl =
     draft || label
       ? "private, no-store"
-      : "public, max-age=86400, stale-while-revalidate=604800";
+      : `${trip.visibility === "public" ? "public" : "private"}, max-age=86400, stale-while-revalidate=604800`;
 
   /**
    * And the validator itself — B1730.
