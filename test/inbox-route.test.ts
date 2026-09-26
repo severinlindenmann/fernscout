@@ -343,4 +343,51 @@ describe("the whole file, kept in written order", { shuffle: false }, () => {
       expect(response.status).toBe(401);
     });
   });
+
+  /**
+   * B2207 — a photograph filed onto a trip with a declined day
+   * (`intent.trip` set, `intent.day` absent and declined) writes directly
+   * under `trips/<id>/media/` (`storeTripPhoto`), never `content/<user>/
+   * inbox/`. This route's `items.media`/`items.files` only ever read the
+   * latter, so before this ticket such a photograph was answered by no v2
+   * resource at all — this proves the new `tripWaiting` array is the one
+   * that does.
+   */
+  describe("a photograph filed onto a trip with a declined day (B2207)", () => {
+    test("GET /inbox lists it under tripWaiting, distinct from the flat bucket", async () => {
+      const token = await ownerToken();
+      const { POST } = await import("@/app/api/v2/[user]/media/route");
+      const form = new FormData();
+      form.append("file", new File([new Uint8Array(await jpeg(800, 600, 200))], "day-less.jpg", { type: "image/jpeg" }));
+      form.append(
+        "intent",
+        JSON.stringify({
+          kind: "photo",
+          trip: TRIP,
+          declined: { day: "not sorted yet", caption: "not said at upload" },
+        }),
+      );
+      const response = await POST(
+        new Request(`https://example.test/api/v2/${OWNER}/media`, {
+          method: "POST",
+          headers: headers({ authorization: `Bearer ${token}` }),
+          body: form,
+        }),
+        { params: Promise.resolve({ user: OWNER }) },
+      );
+      expect(response.status, JSON.stringify(await response.clone().json())).toBe(201);
+      const body = await response.json();
+      expect(body.trip).toBe(TRIP);
+      expect(body.day).toBeUndefined();
+
+      const listed = await readInbox(token);
+      expect(listed.status).toBe(200);
+      const filename = (body.src as string).split("/").pop();
+      const row = listed.body.tripWaiting.find((r: { file: string }) => r.file === filename);
+      expect(row, JSON.stringify(listed.body.tripWaiting)).toBeDefined();
+      expect(row.trip).toBe(TRIP);
+      // Never counted as though it sat in the flat bucket.
+      expect(listed.body.items.media.some((i: { id: string }) => i.id === filename)).toBe(false);
+    });
+  });
 });

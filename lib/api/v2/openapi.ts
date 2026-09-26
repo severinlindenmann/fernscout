@@ -1495,8 +1495,16 @@ function buildPaths(): Record<string, PathItem> {
   // ── inbox ───────────────────────────────────────────────────────────
   paths["/api/v2/{user}/inbox"] = {
     get: {
-      summary: "Files staged with no trip/day yet.",
-      responses: { ...jsonResponse(200, inboxList, "counts and items, by shelf"), ...refusalResponses(ownerRefusals) },
+      summary:
+        "Files staged with no trip/day yet, plus every photograph filed onto a trip with a declined day.",
+      responses: {
+        ...jsonResponse(
+          200,
+          inboxList,
+          "counts and items with no trip yet, by shelf; tripWaiting for the trip-scoped, still day-less kind",
+        ),
+        ...refusalResponses(ownerRefusals),
+      },
     },
   };
   paths["/api/v2/{user}/inbox/{id}"] = {

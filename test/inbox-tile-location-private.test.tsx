@@ -81,6 +81,7 @@ describe("the inbox's selection bar cannot move a location export — B2082", ()
       dayBounds: { start: "2026-05-01", end: "2026-05-10" },
       writtenDates: [],
       entriesByDate: {},
+      tripWaiting: [],
     };
     container = document.createElement("div");
     document.body.append(container);

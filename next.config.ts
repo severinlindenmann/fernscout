@@ -70,7 +70,7 @@ const isDev = process.env.NODE_ENV === "development";
  * appears here; the one `data:` in `font-src` is for the same reason `img-src`
  * has one — an inline SVG noise texture in globals.css.
  */
-const documentCsp = [
+const documentCspDirectives = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
@@ -94,7 +94,26 @@ const documentCsp = [
   // Only in production: over plain http on localhost this would upgrade the
   // dev server's own subresources to a port nothing is listening on.
   ...(isDev ? [] : ["upgrade-insecure-requests"]),
-].join("; ");
+];
+const documentCsp = documentCspDirectives.join("; ");
+
+/**
+ * The worker's own policy — B2220. `/sw.js`'s response headers set the CSP
+ * for the *worker's own global scope*, not the page's, and `fetch()` inside
+ * that scope honours `upgrade-insecure-requests` on a same-origin redirect
+ * exactly like a document would: a route that 307s to another relative path
+ * (the trip layout does, `/:user/trips/:trip` → `/:user`) gets its `Location`
+ * followed as `https://` instead of the scheme the origin actually answers
+ * on. Fine behind a TLS-terminating proxy, where the origin only ever speaks
+ * https anyway — broken on the self-hoster who has not put one in front yet
+ * (`net::ERR_SSL_PROTOCOL_ERROR`, which the worker's own `.catch` turns into
+ * a plain "offline" 503, `unavailable()` below). Nothing here renders a
+ * document that could carry mixed content in the first place, so the one
+ * directive that changes fetch behaviour rather than only restricting it is
+ * the one this drops; everything else stays, unchanged, to keep constraining
+ * what a compromised worker script could reach.
+ */
+const swCsp = documentCspDirectives.filter((d) => d !== "upgrade-insecure-requests").join("; ");
 
 /**
  * And the policy a file out of somebody's content folder is served under.
@@ -280,6 +299,11 @@ const nextConfig: NextConfig = {
         // After the baseline, so it overrides it. See `mediaCsp`.
         source: "/:user/media/:path*",
         headers: [{ key: "Content-Security-Policy", value: mediaCsp }],
+      },
+      {
+        // After the baseline, so it overrides it. See `swCsp` — B2220.
+        source: "/sw.js",
+        headers: [{ key: "Content-Security-Policy", value: swCsp }],
       },
       {
         // B287: `/:user/contacts` carries decrypted postal addresses and, since

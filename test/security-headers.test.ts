@@ -102,6 +102,45 @@ describe("the baseline headers on a document", () => {
     expect(csp).toContain("default-src 'none'");
     expect(csp).toContain("sandbox");
   });
+
+  /**
+   * B2220 — `/sw.js`'s own response headers set the CSP for the *worker's
+   * own global scope*. `upgrade-insecure-requests` there is not a document
+   * safety net, it is a directive that changes how `fetch()` inside the
+   * worker follows a same-origin redirect: a relative `Location` gets
+   * resolved as `https://` regardless of the scheme the origin actually
+   * answers on. Behind a TLS-terminating proxy that is a no-op; on a
+   * self-hoster who has not put one in front yet it turns a normal 307 (the
+   * trip layout's own redirect, `app/[user]/trips/[trip]/layout.tsx`) into
+   * `net::ERR_SSL_PROTOCOL_ERROR`, which the worker's own `fetchOrKept`
+   * (`public/sw.js`) reports as a plain "offline" 503. Reproduced directly
+   * against a production build in a real browser (`npm run build && npx
+   * next start`, a service worker registered against it, `fetch()` of a
+   * same-origin URL that 307s to another relative path) before this test
+   * was written.
+   */
+  test("the worker's own policy (/sw.js) is declared after the baseline, dropping upgrade-insecure-requests", async () => {
+    const all = await rules();
+    const swPath = (source: string) => source === "/sw.js";
+    const first = all.findIndex((rule) => anyPath(rule.source));
+    const later = all.findIndex((rule) => swPath(rule.source));
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(later).toBeGreaterThan(first);
+    const documentCsp = effective(all, "Content-Security-Policy", anyPath);
+    const swCsp = effective(all, "Content-Security-Policy", swPath);
+    expect(swCsp).toBeDefined();
+    expect(swCsp).not.toContain("upgrade-insecure-requests");
+    // Everything else about the baseline still constrains the worker script.
+    expect(swCsp).toContain("default-src 'self'");
+    expect(swCsp).toContain("connect-src 'self'");
+    expect(swCsp).toContain("worker-src 'self'");
+    // Not a rewrite from scratch — the same directives, minus the one that
+    // changes fetch behaviour.
+    for (const directive of (documentCsp ?? "").split("; ")) {
+      if (directive === "upgrade-insecure-requests") continue;
+      expect(swCsp).toContain(directive);
+    }
+  });
 });
 
 describe("the two pages that carry addresses and credentials (B287)", () => {

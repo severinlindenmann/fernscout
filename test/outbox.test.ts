@@ -439,13 +439,33 @@ function tripIntent(over: Partial<OutboxIntent> = {}): OutboxIntent {
 }
 
 /** B2330 wave 2 — "A new trip" (`NewTripFlow.tsx`) queues a `trip.new`
- *  intent when its POST cannot reach the server. That route always answers
- *  2xx (an id collision is suffixed, `-2`/`-3`, never refused with a 409), so
- *  there is nothing here for `decideReplay`'s dedupe to key off — the only
- *  case that matters in practice, and the only one this suite proves. */
-describe("trip.new (B2330 wave 2 — a new trip offline)", () => {
+ *  intent when its POST cannot reach the server.
+ *
+ *  Since B2370, a retried create that lands on the same id, title and dates
+ *  is answered 409 `trip_exists` rather than suffixed into a second trip,
+ *  and `sameAsSent` (`lib/outbox.ts`) recognises that shape the same way it
+ *  already does `day.new`'s `date_has_day`. */
+describe("trip.new (B2330 wave 2, B2370 — a new trip offline)", () => {
   it("2xx is done", () => {
     expect(decideReplay(201, { ok: true, id: "japan-2026" }, tripIntent()).action).toBe("done");
+  });
+
+  it("409 trip_exists for the same title and dates is done, not a conflict", () => {
+    const outcome = decideReplay(
+      409,
+      { error: "trip_exists", existing: { id: "japan-2026", title: "Japan", start: "2026-04-01", end: "2026-04-10" } },
+      tripIntent(),
+    );
+    expect(outcome.action).toBe("done");
+  });
+
+  it("409 trip_exists for a different trip at the same id is a conflict", () => {
+    const outcome = decideReplay(
+      409,
+      { error: "trip_exists", existing: { id: "japan-2026", title: "Japan", start: "2026-05-01", end: "2026-05-10" } },
+      tripIntent(),
+    );
+    expect(outcome.action).toBe("conflict");
   });
 
   it("replays as a plain POST, dropped once the server accepts it", async () => {

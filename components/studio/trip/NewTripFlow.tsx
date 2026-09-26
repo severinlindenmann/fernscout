@@ -397,14 +397,10 @@ export default function NewTripFlow({
     } catch {
       // A network error (offline), not a rejection the server sent — B2330
       // queues the write itself rather than losing it, same reasoning as
-      // AddDayFlow's day.new. This route has no id collision check to dedupe
-      // a retried success against (unlike day.new's 409 `date_has_day`): a
-      // response genuinely lost after the server had already written the
-      // trip would replay into a second, `-2`-suffixed trip. That is the
-      // same narrow window every intent here shares (the request never left
-      // in the first place, or its answer never arrived) — a gap in this
-      // route's own idempotency, not something the outbox can close without
-      // a server-side change out of this wave's scope.
+      // AddDayFlow's day.new. Since B2370, a response lost after the server
+      // had already written the trip is caught on replay too: the route
+      // answers 409 `trip_exists` for its own base id, and `decideReplay`
+      // treats that as done, the same as day.new's `date_has_day`.
       if (hasOutbox()) {
         const store = openOutboxStore();
         await store.add(newIntent({ user: username, kind: "trip.new", method: "POST", url, body: payload }));
