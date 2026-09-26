@@ -391,6 +391,49 @@ describe("AddDayFlow, one page — B2188", () => {
     expect(text()).not.toContain("Add to that day instead");
   });
 
+  /**
+   * B2108 — the collision screen let a second entry through once a time was
+   * named, but the address on disk is date + title only (createDraft's own
+   * slug logic, untouched here): naming a time never told two same-titled
+   * entries apart, and the person learned that at the very end with a
+   * day_exists 400. This is fixed two ways — caught here separately:
+   *
+   * 1. Client-side: once the collision screen's own title matches the day
+   *    already there, it says so and offers the title field, before a
+   *    server round trip is even made.
+   * 2. Server-side, in case the client-side check ever misses a case
+   *    (accent folding, whitespace): a day_exists/slug_taken answer stays on
+   *    the collision screen rather than falling to the generic
+   *    write-failed one.
+   */
+  test("a same-titled second entry is caught before the round trip: the confirm button is disabled and says why", async () => {
+    dayNew = () => Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
+    await mount();
+    type(container.querySelector('input[name="title"]') as HTMLInputElement, "First");
+    await flush();
+    await click("Save privately");
+    expect(text()).toContain("already has a day");
+    type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
+    await flush();
+    expect(text()).toContain("This title is the same as the day above's.");
+    const confirm = button("Make a second entry on this date");
+    expect(confirm.disabled).toBe(true);
+  });
+
+  test("a day_exists answer from the server keeps the collision screen up, not the generic write-failed one", async () => {
+    dayNew = () =>
+      commitBody?.confirmSecondEntry
+        ? Response.json({ error: "day_exists", detail: { ok: false, code: "day_exists" } }, { status: 400 })
+        : Response.json({ error: "date_has_day", existing: { slug: "first", title: "First", status: "draft" } }, { status: 409 });
+    await mount();
+    await click("Save privately");
+    type(container.querySelector("input[type=time]") as HTMLInputElement, "18:00");
+    await flush();
+    await click("Make a second entry on this date");
+    expect(text()).toContain("already has a day");
+    expect(text()).not.toContain("Nothing at all was written");
+  });
+
   test("Polish my text sits under the box when the page hands it a balance, and is absent on null", async () => {
     const words = "We walked along the river all morning and then ate far too many pastries by the tower.";
     await mount();

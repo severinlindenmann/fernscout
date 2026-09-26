@@ -86,7 +86,23 @@ export type CreateDayInput = {
 
 export type CreateDayResult =
   | { ok: true; tripId: string; slug: string }
-  | { ok: false; error: "unknown_trip" | "invalid_entry" | "day_write_failed" | "invalid_media" | "unknown_inbox_file" | "not_attached"; detail?: unknown };
+  | {
+      ok: false;
+      error:
+        | "unknown_trip"
+        | "invalid_entry"
+        | "day_write_failed"
+        // B2108 — `createDraft`'s own two collision codes, kept distinct
+        // rather than folded into `day_write_failed`: the collision screen
+        // already let a second entry on this date through and needs to say
+        // *why* the title still was not enough, not just that saving failed.
+        | "day_exists"
+        | "slug_taken"
+        | "invalid_media"
+        | "unknown_inbox_file"
+        | "not_attached";
+      detail?: unknown;
+    };
 
 export async function createDayTransactional(username: string, input: CreateDayInput): Promise<CreateDayResult> {
   const ref = tripRef(username, input.tripId);
@@ -126,7 +142,15 @@ export async function createDayTransactional(username: string, input: CreateDayI
   };
 
   const written = createDraft(ref, draftInput);
-  if (!written.ok) return { ok: false, error: "day_write_failed", detail: written };
+  if (!written.ok) {
+    // B2108 — a slug collision is not a generic write failure: the caller
+    // (the collision screen) needs to say why the title it collected was
+    // not enough, and `day_write_failed` said nothing distinguishable.
+    if (written.code === "day_exists" || written.code === "slug_taken") {
+      return { ok: false, error: written.code, detail: written };
+    }
+    return { ok: false, error: "day_write_failed", detail: written };
+  }
 
   const slug = v2Slug(input.date, written.slug);
 

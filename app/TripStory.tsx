@@ -298,10 +298,12 @@ export default function TripStory({
     const s = steps[stepIndex];
     if (!s) return;
     if (s.kind === "hero") {
+      // B2334 — the pathname before this step was often a day's own permalink;
+      // the hero step is the trip's own path, not whatever page opened it.
       history.replaceState(
         null,
         "",
-        window.location.pathname + window.location.search,
+        (trip ? trip.href("/") : window.location.pathname) + window.location.search,
       );
       return;
     }

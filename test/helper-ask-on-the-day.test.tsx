@@ -160,3 +160,21 @@ describe("the day page, since the ask row went — B2309", () => {
     expect(fetched.some((url) => url.includes("/api/helper/alex/ask"))).toBe(false);
   });
 });
+
+/**
+ * B2102 — the notify route answers 409 not_published for a draft, so
+ * `DayNotify`'s own effect logged a failed request on every draft day.
+ * `OwnerTools` already knows `day.published`; it should not ask at all.
+ */
+describe("the notify panel, since B2102", () => {
+  test("a draft day never asks the notify route", async () => {
+    const host = await dayPage(true, true);
+    expect(fetched.some((url) => url.includes("/notify"))).toBe(false);
+    expect(host).toBeTruthy();
+  });
+
+  test("a published day still asks the notify route", async () => {
+    await dayPage(true);
+    expect(fetched.some((url) => url.includes("/notify"))).toBe(true);
+  });
+});

@@ -2914,6 +2914,7 @@ export type TranslationKey =
   | "studio.day.collision.pickAnother"
   | "studio.day.collision.secondEntryHint"
   | "studio.day.collision.timeLabel"
+  | "studio.day.collision.titleMustDiffer"
   | "studio.day.collision.untitled"
   | "studio.day.date.ask"
   | "studio.day.decide.row.trip"

@@ -121,7 +121,9 @@ export default function OwnerTools({
       )}
 
       <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {day && (
+        {/* B2102 — the notify route answers 409 not_published for a draft;
+            OwnerTools already knows day.published, so it never asks. */}
+        {day && day.published && (
           <DayNotify username={username} tripId={day.tripId} slug={day.slug} />
         )}
 
