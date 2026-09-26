@@ -27,6 +27,7 @@ journal.example {
 		path /api/helper/*/day/media
 		path /api/v2/*/import
 		path /api/v2/*/trips/*/travellers/from-photo
+		path /api/web/*/figures/from-photo
 		path /api/helper/*/studio/upload
 		path /api/probe/upload
 	}
@@ -34,7 +35,7 @@ journal.example {
 		path /api/helper/*/transcribe
 	}
 	@smallbody {
-		not path /api/v2/*/media /api/helper/*/inbox /api/helper/*/day/media /api/v2/*/import /api/v2/*/trips/*/travellers/from-photo /api/helper/*/studio/upload /api/probe/upload /api/helper/*/transcribe
+		not path /api/v2/*/media /api/helper/*/inbox /api/helper/*/day/media /api/v2/*/import /api/v2/*/trips/*/travellers/from-photo /api/web/*/figures/from-photo /api/helper/*/studio/upload /api/probe/upload /api/helper/*/transcribe
 	}
 	request_body @bigbody {
 		max_size 520MiB

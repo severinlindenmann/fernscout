@@ -53,6 +53,8 @@ function run(
     active = [] as string[],
     enabled = [] as string[],
     analyze = "" as string | null,
+    paidUnitRoot = undefined as string | undefined,
+    unitSrc = UNIT_SRC,
   } = {},
 ): Run {
   const bin = fs.mkdtempSync(path.join(os.tmpdir(), "fs-units-bin-"));
@@ -95,7 +97,11 @@ function run(
       // A path that does not exist when `analyze` is null, so the script takes
       // its "no verifier here" branch — the machine, not the test, decides.
       SYSTEMD_ANALYZE: analyzePath,
-      UNIT_SRC,
+      UNIT_SRC: unitSrc,
+      // Undefined leaves the script's own default (<repo>/paid), which does
+      // not exist in this open-edition checkout — the tests that care about
+      // paid units point this at a fixture tree instead.
+      ...(paidUnitRoot !== undefined ? { PAID_UNIT_ROOT: paidUnitRoot } : {}),
     },
   });
 
@@ -130,6 +136,38 @@ describe("install-units.sh", () => {
       );
     }
     expect(res.systemctl).toContain("daemon-reload");
+  });
+
+  /** B2349: the private features tree ships its units under its own area,
+   * e.g. `paid/photobook/deploy/fernscout-reconcile.service`, not a single
+   * shared `paid/deploy/`. The script used to install every changed unit
+   * from `"$UNIT_SRC/$name"` regardless of which source it actually came
+   * from, so a paid unit's basename resolved against the open-edition
+   * `deploy/` directory instead — a path that does not exist for a
+   * paid-only unit, which made the whole install fail outright. */
+  test("installs a paid unit from its own area's deploy/, not from UNIT_SRC", () => {
+    const dir = tempSystemdDir();
+    const paidRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fs-units-paid-"));
+    const areaDeploy = path.join(paidRoot, "photobook", "deploy");
+    fs.mkdirSync(areaDeploy, { recursive: true });
+    const unitName = "fernscout-reconcile.service";
+    const unitBody = [
+      "[Unit]",
+      "Description=Paid-tree fixture unit for B2349",
+      "[Service]",
+      "Type=oneshot",
+      "ExecStart=/bin/true",
+    ].join("\n");
+    fs.writeFileSync(path.join(areaDeploy, unitName), unitBody);
+
+    const res = run(dir, { paidUnitRoot: paidRoot });
+
+    expect(res.status).toBe(0);
+    expect(fs.readFileSync(path.join(dir, unitName), "utf8")).toBe(unitBody);
+    // The open-edition units still install too — the paid tree is additive.
+    for (const name of shippedUnits()) {
+      expect(fs.existsSync(path.join(dir, name))).toBe(true);
+    }
   });
 
   test("is a no-op, and reloads nothing, when the units are already current", () => {
@@ -275,19 +313,28 @@ describe("install-units.sh", () => {
     expect(stopped.systemctl.join("\n")).not.toContain(`restart ${timer}`);
   });
 
+  /** B2348: this used to be proven against the real `fernscout-worker.service`
+   * (retired — it ran `npm run worker`, which never existed). A fixture unit
+   * makes the point the same way without depending on a real unit ever being
+   * shipped disabled: a script that enabled every newly installed unit would
+   * take away a decision that is the operator's, not the release's. */
   test("never enables, disables or starts a unit — it only says which are off", () => {
+    const src = fs.mkdtempSync(path.join(os.tmpdir(), "fs-units-src-"));
+    const fixture = "fernscout-fixture.service";
+    fs.writeFileSync(
+      path.join(src, fixture),
+      ["[Unit]", "Description=Fixture for B2348", "[Service]", "ExecStart=/bin/true", "[Install]", "WantedBy=multi-user.target"].join(
+        "\n",
+      ),
+    );
     const dir = tempSystemdDir();
-    const res = run(dir);
+    const res = run(dir, { unitSrc: src });
 
     const verbs = res.systemctl.filter((line) =>
       /^(enable|disable|start|stop|mask)\b/.test(line),
     );
     expect(verbs).toEqual([]);
-    // fernscout-worker.service is the reason. Its own header says to enable it
-    // "when there is something for it to do", and nothing enqueues work yet, so
-    // a deploy that enabled every newly added unit would start a worker against
-    // an empty queue. The operator is told instead.
-    expect(res.stdout).toMatch(/fernscout-worker\.service is installed but not enabled/);
+    expect(res.stdout).toMatch(new RegExp(`${fixture.replace(".", "\\.")} is installed but not enabled`));
   });
 
   test("says nothing about a unit that is already enabled", () => {
