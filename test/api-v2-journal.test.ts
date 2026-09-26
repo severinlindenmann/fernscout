@@ -374,3 +374,68 @@ describe("T5 — the writable-fields list is the journal's, not one door's", () 
     expect([...JOURNAL_WRITABLE_FIELDS].sort()).toEqual(schemaKeys);
   });
 });
+
+// B2351 — a journal created with `defaultLocale` different from `locales[0]`
+// used to have its default silently flipped by the very next PATCH, because
+// `setJournalV2Fields` derives `defaultLocale` from `locales[0]` (v2 has no
+// field of its own for it) and `createJournal` stored `locales` in whatever
+// order the caller sent, rather than with the default first.
+describe("createJournal — defaultLocale survives an unrelated PATCH", () => {
+  const DL_OWNER = "dl-owner";
+  const DL_EMAIL = "dl@example.test";
+
+  test("a defaultLocale not first in locales is not flipped by a PATCH", async () => {
+    const { createJournal } = await import("@/lib/journals");
+    const { getUser, clearUserCache } = await import("@/lib/users");
+    const { issueCode, verifyCode } = await import("@/lib/auth");
+
+    const created = createJournal({
+      username: DL_OWNER,
+      title: "Deutsch zuerst",
+      ownerEmail: DL_EMAIL,
+      ownerName: "Dana Traveller",
+      ownerNickname: "Dana",
+      defaultLocale: "de",
+      locales: ["en", "de"], // default sent second — the bug's own setup
+    });
+    if (!created.ok) throw new Error(created.message);
+
+    clearUserCache();
+    expect(getUser(DL_OWNER)?.defaultLocale).toBe("de");
+    // createJournal itself already stores the default first.
+    expect(getUser(DL_OWNER)?.locales).toEqual(["de", "en"]);
+
+    const { code } = await issueCode(DL_OWNER, DL_EMAIL, "agent");
+    const result = await verifyCode(DL_OWNER, DL_EMAIL, code, "agent");
+    if (!result.ok) throw new Error("no token");
+    const token = result.token;
+
+    const { GET, PATCH } = await import("@/app/api/v2/[user]/route");
+    const getResponse = await GET(
+      new Request(`https://example.test/api/v2/${DL_OWNER}`, {
+        headers: headers({ authorization: `Bearer ${token}` }),
+      }),
+      { params: Promise.resolve({ user: DL_OWNER }) },
+    );
+    const doc = (await getResponse.json()) as Record<string, unknown>;
+    delete doc.error;
+    delete doc.message;
+
+    const patchResponse = await PATCH(
+      new Request(`https://example.test/api/v2/${DL_OWNER}`, {
+        method: "PATCH",
+        headers: headers({ authorization: `Bearer ${token}` }),
+        body: JSON.stringify({
+          ...doc,
+          title: "Deutsch bleibt zuerst",
+          declined: { tagline: "no tagline yet", figures: "owner prefers the plain map" },
+        }),
+      }),
+      { params: Promise.resolve({ user: DL_OWNER }) },
+    );
+    expect(patchResponse.status, JSON.stringify(await patchResponse.clone().json())).toBe(200);
+
+    clearUserCache();
+    expect(getUser(DL_OWNER)?.defaultLocale).toBe("de");
+  });
+});
