@@ -358,8 +358,16 @@ describe("a draft day's photographs", () => {
     const draft = await fetchPhoto("robins-2026", "unfinished");
     expect(draft.headers.get("Cache-Control")).toBe("private, no-store");
 
+    // B2373 — robins-2026 is a guest trip the gate refuses to strangers, so
+    // even its published photograph is for the reader's own browser only.
     const published = await fetchPhoto("robins-2026", "arrival");
-    expect(published.headers.get("Cache-Control")).toContain("public");
+    expect(published.headers.get("Cache-Control")).toBe("private, max-age=86400, stale-while-revalidate=604800");
+
+    // A public trip's published photograph is what a shared cache is for.
+    as("owner");
+    const open = await fetchPhoto("open-2026", "arrival");
+    expect(open.status).toBe(200);
+    expect(open.headers.get("Cache-Control")).toBe("public, max-age=86400, stale-while-revalidate=604800");
   });
 
   /**
