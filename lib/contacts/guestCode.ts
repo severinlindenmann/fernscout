@@ -117,7 +117,11 @@ export async function sendGuestCode(
     destination: options.destination ?? null,
   });
   try {
-    await sendCodeMail(owner, user, subject, locale, code, linkToken);
+    // B2366 — a contact already `active` (Add a person pre-approves on the
+    // spot, and Let in on a /j/ request activates it too) has nothing left
+    // waiting on the owner; "Nothing opens yet" is only true for the ordinary
+    // `pending` row still asking.
+    await sendCodeMail(owner, user, subject, locale, code, linkToken, contact.status === "active");
   } catch (err) {
     console.error(`[contacts] guest code for ${owner} could not be sent (${channel}):`, err);
     await revokeCodes(owner, subject, "guest").catch(() => {});
