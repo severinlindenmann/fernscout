@@ -26,6 +26,7 @@ vi.mock("next/navigation", async (orig) => ({
 
 const ROOT = path.join(import.meta.dirname, "..");
 const STUDIO_DIRS = ["components/studio", "app/[user]/studio"];
+const APP_DIRS = ["app", "components"];
 const LOCALES = ["en", "de", "hu"] as const;
 
 function walk(dir: string): string[] {
@@ -39,6 +40,9 @@ const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), "utf8");
 const dictionary = (locale: string): Record<string, string> =>
   JSON.parse(read(`site/locales/${locale}.json`));
 const studioFiles = STUDIO_DIRS.flatMap(walk).filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"));
+// B2111 — the whole app, not only the studio: a count read through t()
+// loses its .one the same way anywhere a reader sees it.
+const appFiles = APP_DIRS.flatMap(walk).filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"));
 
 describe("counts read as counts (B2093)", () => {
   test('no locale string writes a plural as "(s)", "(en)" or "(n)"', () => {
@@ -52,7 +56,7 @@ describe("counts read as counts (B2093)", () => {
 
   test("a key with a .one sibling is never rendered through t(), which would ignore it", () => {
     const en = dictionary("en");
-    const hits = studioFiles.flatMap((f) =>
+    const hits = appFiles.flatMap((f) =>
       [...read(f).matchAll(/\bt\(\s*["'`]([\w.]+)["'`]/g)]
         .filter((m) => en[`${m[1]}.one`] !== undefined)
         .map((m) => `${f}: ${m[1]}`),
