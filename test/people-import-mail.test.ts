@@ -29,6 +29,24 @@ function mailsTo(email: string): string[] {
   return fs.readdirSync(folder).filter((f) => f.includes(marker));
 }
 
+function decodeMail(raw: string): { subject: string; body: string } {
+  const subjectLine = raw.match(/^Subject: (.*)$/m)?.[1] ?? "";
+  const subject = subjectLine.replace(/=\?UTF-8\?B\?([^?]+)\?=/g, (_, b64: string) =>
+    Buffer.from(b64, "base64").toString("utf8"),
+  );
+  const parts = raw
+    .split(/--fs-[a-z0-9-]+/)
+    .map((p) => p.split(/\r?\n\r?\n/).slice(1).join("\n").trim())
+    .filter(Boolean);
+  return { subject, body: parts.map((p) => Buffer.from(p, "base64").toString("utf8")).join("\n") };
+}
+
+function lastMailTo(email: string): { subject: string; body: string } {
+  const files = mailsTo(email);
+  const file = files[files.length - 1];
+  return decodeMail(fs.readFileSync(path.join(dir, "mail", OWNER, file), "utf8"));
+}
+
 beforeAll(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "fernscout-people-import-mail-"));
   process.env.CONTENT_DIR = dir;
@@ -126,21 +144,64 @@ describe("the sign-in path", () => {
     const { sendCodeMail } = await import("@/lib/contacts/mail");
     const { getUser } = await import("@/lib/users");
     await sendCodeMail(OWNER, getUser(OWNER)!, "dora@example.test", "en", "424242");
-    const decoded = (raw: string) => {
-      const subjectLine = raw.match(/^Subject: (.*)$/m)?.[1] ?? "";
-      const subject = subjectLine.replace(/=\?UTF-8\?B\?([^?]+)\?=/g, (_, b64: string) =>
-        Buffer.from(b64, "base64").toString("utf8"),
-      );
-      const parts = raw
-        .split(/--fs-[a-z0-9-]+/)
-        .map((p) => p.split(/\r?\n\r?\n/).slice(1).join("\n").trim())
-        .filter(Boolean);
-      return { subject, body: parts.map((p) => Buffer.from(p, "base64").toString("utf8")).join("\n") };
-    };
     const [file] = mailsTo("dora@example.test");
     expect(file).toBeTruthy();
-    const mail = decoded(fs.readFileSync(path.join(dir, "mail", OWNER, file), "utf8"));
+    const mail = decodeMail(fs.readFileSync(path.join(dir, "mail", OWNER, file), "utf8"));
     expect(mail.subject).toBe(`Your code for ${TITLE}`);
     expect(mail.body).toContain("Your code is 424242");
+  });
+});
+
+describe("B2366 — a code mail's promise matches whether the owner already decided", () => {
+  test("a person the owner added is already in: the code mail says so, not that they still wait", async () => {
+    const { addPersonByOwner } = await import("@/lib/contacts");
+    const { sendGuestCode } = await import("@/lib/contacts/guestCode");
+
+    const added = await addPersonByOwner(OWNER, { name: "Eve Added", email: "eve@example.test", locale: "en" });
+    if (!added.ok) throw new Error("addPersonByOwner failed in test setup");
+    expect(added.contact.status).toBe("active");
+
+    const sent = await sendGuestCode(OWNER, added.contact.id, "email", { ip: "203.0.113.9" });
+    expect(sent.ok).toBe(true);
+
+    const mail = lastMailTo("eve@example.test");
+    const { translateIn } = await import("@/lib/locales");
+    expect(mail.body).toContain(translateIn("en", "contact.mailCodeLinkBodyPreapproved"));
+    expect(mail.body).not.toContain(translateIn("en", "contact.mailCodeLinkBody"));
+  });
+
+  test("a person who only asked (not yet let in) still gets told nothing opens yet", async () => {
+    const { addContact } = await import("@/lib/contacts");
+    const { sendGuestCode } = await import("@/lib/contacts/guestCode");
+
+    const added = await addContact(OWNER, { name: "Fred Asked", email: "fred@example.test", locale: "en", createdVia: "owner-import" });
+    if (!added.ok) throw new Error("addContact failed in test setup");
+    expect(added.contact.status).toBe("pending");
+
+    const sent = await sendGuestCode(OWNER, added.contact.id, "email", { ip: "203.0.113.10" });
+    expect(sent.ok).toBe(true);
+
+    const mail = lastMailTo("fred@example.test");
+    const { translateIn } = await import("@/lib/locales");
+    expect(mail.body).toContain(translateIn("en", "contact.mailCodeLinkBody"));
+  });
+});
+
+describe("B2368 — the masked address is the same everywhere it is shown", () => {
+  test("sendGuestCode's masked reply matches the guide's own maskEmail, not a shorter reveal", async () => {
+    // B2368 — the /w/ guide's "to ag•••@…" comes from lib/contacts/welcome.ts's
+    // maskEmail (two letters); guestCode.ts kept its own private copy that
+    // revealed only one, so the address on screen changed between the guide
+    // and the "code sent" line for the same address.
+    const { addPersonByOwner } = await import("@/lib/contacts");
+    const { sendGuestCode } = await import("@/lib/contacts/guestCode");
+    const { maskEmail } = await import("@/lib/contacts/welcome");
+
+    const added = await addPersonByOwner(OWNER, { name: "Gia Guest", email: "giulia@example.test", locale: "en" });
+    if (!added.ok) throw new Error("addPersonByOwner failed in test setup");
+
+    const sent = await sendGuestCode(OWNER, added.contact.id, "email", { ip: "203.0.113.11" });
+    expect(sent.ok && sent.to).toBe(maskEmail("giulia@example.test"));
+    expect(sent.ok && sent.to).toBe("gi•••@example.test");
   });
 });

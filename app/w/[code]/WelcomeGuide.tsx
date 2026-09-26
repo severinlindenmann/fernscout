@@ -49,6 +49,11 @@ export type GuideProps = {
   firstName: string;
   kind: "reader" | "buddy";
   trip: { id: string; title: string } | null;
+  /** Whether any of the owner's trips is open to an approved guest at all
+   * (B2365) — a guest trip's costs are shown to every approved guest who can
+   * read it, so "you won't see costs" is only true when there is no such
+   * trip to begin with. */
+  hasGuestTrip: boolean;
   signedIn: boolean;
   /** Finished the guide before: only the code stands between them and the journal. */
   onboarded: boolean;
@@ -355,7 +360,9 @@ export default function WelcomeGuide(props: GuideProps) {
               ]}
         </ul>
         <p className="text-sm text-ink-secondary">
-          {kind === "buddy" ? t("guide.what.buddyLimits", vars) : t("guide.what.readerLimits")}
+          {kind === "buddy"
+            ? t("guide.what.buddyLimits", vars)
+            : t(props.hasGuestTrip ? "guide.what.readerLimitsCostsVary" : "guide.what.readerLimits", vars)}
         </p>
         <Alert text={error} />
       </Screen>

@@ -204,3 +204,14 @@ test("idempotent: a second real run changes nothing new", async () => {
   const second = runMigration();
   expect(second).toContain("Granted 0, already granted");
 });
+
+test("B2368: a dry run after a real run reports the place as already granted, not as a fresh grant", async () => {
+  // The real run actually grants Robin's place on "named". A dry run
+  // afterwards must see that live trip_people row and say "already granted",
+  // not "would grant" — the bug reported "already granted 0" regardless of
+  // what had already happened.
+  runMigration();
+  const dry = runMigration(["--dry-run"]);
+  expect(dry).not.toContain(`[dry-run] would grant ana/named: R <${ROBIN}>`);
+  expect(dry).toMatch(/Would grant 0, already granted 1,/);
+});

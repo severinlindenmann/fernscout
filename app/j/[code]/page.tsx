@@ -35,8 +35,13 @@ export default async function JoinPage({ params }: PageProps<"/j/[code]">) {
 
   if (!invite || !user || (invite.kind === "buddy" && !trip)) {
     const locale = await requestLocale();
+    // B2368 — a group link was never sent by email; "Links sent by email
+    // expire on purpose" is simply false here.
     return (
-      <NoticeShell title={translateIn(locale, "err.linkExpiredTitle")} body={translateIn(locale, "err.linkExpiredBody")} />
+      <NoticeShell
+        title={translateIn(locale, "err.linkExpiredTitle")}
+        body={translateIn(locale, "err.linkExpiredBodyShared")}
+      />
     );
   }
 

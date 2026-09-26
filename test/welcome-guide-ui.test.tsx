@@ -46,6 +46,7 @@ const base: GuideProps = {
   firstName: "Lena",
   kind: "reader",
   trip: null,
+  hasGuestTrip: true,
   signedIn: true,
   onboarded: false,
   joined: false,
@@ -117,6 +118,22 @@ describe("the reader's guide", () => {
     mount(<WelcomeGuide {...base} joined />);
     expect(heading()).toBe(dict["guide.what.readerTitle"]);
     expect(container!.textContent).toContain(dict["guide.notify.open"]);
+  });
+
+  test("B2365 — on a journal with a guest trip, the promise does not claim costs are hidden", () => {
+    // A guest trip's costs are shown to every approved guest who can read it
+    // (lib/access.ts maySeeCosts), so the blanket "you won't see costs" is
+    // false here; the sentence must say it depends on what the owner shares.
+    mount(<WelcomeGuide {...base} hasGuestTrip />);
+    press(dict["guide.welcome.go"]);
+    expect(container!.textContent).toContain(fill("guide.what.readerLimitsCostsVary", { owner: "Ana" }));
+    expect(container!.textContent).not.toContain(dict["guide.what.readerLimits"]);
+  });
+
+  test("B2365 — on a journal with no guest trip at all, costs really are unseen", () => {
+    mount(<WelcomeGuide {...base} hasGuestTrip={false} />);
+    press(dict["guide.welcome.go"]);
+    expect(container!.textContent).toContain(dict["guide.what.readerLimits"]);
   });
 });
 
