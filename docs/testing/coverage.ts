@@ -106,10 +106,6 @@ export const COVERAGE: Record<FeatureName, CoverageEntry> = {
   extract: {
     todo: "B1751. The capability alone — no route or flow to drive yet.",
   },
-  fulfilmentRelay: {
-    flows: ["operator-fulfilment-webhook-relay"],
-    interfaces: ["admin"],
-  },
   fulfilmentAccept: {
     flows: ["operator-fulfilment-webhook-relay"],
     interfaces: ["admin"],

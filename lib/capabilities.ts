@@ -154,10 +154,6 @@ const REQUIREMENTS: Record<FeatureName, Requirement> = {
       helper: "the questions this asks are helper turns",
     },
   },
-  // B589. Names a `url` in config, checked in configuredEnv() alongside the
-  // other per-feature config problems, so an unset one refuses the same way
-  // a missing environment variable does.
-  fulfilmentRelay: { env: [], db: false },
   // B589. Nothing here fits `needs` — that only asks whether a dependency is
   // `.enabled`, and this depends on postcards/photobook being enabled *with a
   // real provider*, and on a payment method. See fulfilmentAcceptProblem().
@@ -568,21 +564,6 @@ function configuredEnv(name: FeatureName, feature: Record<string, unknown>): {
     // one is a single GET request that works the same against any of them.
     const env = ADDRESS_LOOKUP_PROVIDER_ENV[provider] ?? ["ADDRESS_LOOKUP_API_KEY"];
     return { env };
-  }
-  if (name === "fulfilmentRelay") {
-    // B589. No secret and no enumerable provider — this names another
-    // Fernscout instance, not a printer, and there is no default the way
-    // `photon` is one for addressLookup. An empty url is the shipped default,
-    // so this is what makes "enabled and unconfigured" a boot-time problem
-    // rather than a job that silently goes nowhere.
-    const url = optionOf(feature, "url");
-    if (!url) {
-      return {
-        env: [],
-        problem: `features.fulfilmentRelay is enabled but features.fulfilmentRelay.url is not set (which fulfilment instance to hand jobs to)`,
-      };
-    }
-    return { env: [] };
   }
   return { env: [] };
 }
