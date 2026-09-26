@@ -69,7 +69,10 @@ const ADDRESS = {
   name: "A Reader",
   line1: "Bahnhofstrasse 1",
   line2: "",
-  postcode: "8001",
+  // A space and letters, not a bare digit run — B2320: a UUID or ISO
+  // timestamp is hex digits and separators only, so this cannot appear in
+  // one by chance the way "8001" alone did (seen in a random contact id).
+  postcode: "8001 ZH",
   city: "Zurich",
   country: "Switzerland",
   tel: "",
@@ -221,7 +224,7 @@ describe("postal addresses", () => {
 
     expect(dump).not.toContain("Bahnhofstrasse");
     expect(dump).not.toContain("Zurich");
-    expect(dump).not.toContain("8001");
+    expect(dump).not.toContain("8001 ZH");
     expect(rows[0].postal_cipher).toMatch(/^v1\./);
 
     // …and perfectly readable with it.
