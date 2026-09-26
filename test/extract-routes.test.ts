@@ -243,7 +243,18 @@ describe("the extract routes with the capability on", () => {
     // Simulate the nightly sweep having already warned this run.
     writeManifest("alex", { ...before, warnedAt: "2026-09-01T00:00:00.000Z" });
 
-    await upload(runId, [new File([CAMERA_JPEG], "camera.jpg")]);
+    // `extendOnTouch` calls `new Date()` at upload time — the same
+    // millisecond as `before.expiresAt` was computed in, on a fast machine.
+    // Advance the real clock by a tick so the extension's own rule (later,
+    // not merely different) is what the assertion checks, not wall-clock
+    // luck (B2289).
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date(Date.now() + 1));
+    try {
+      await upload(runId, [new File([CAMERA_JPEG], "camera.jpg")]);
+    } finally {
+      vi.useRealTimers();
+    }
 
     const after = readManifest("alex", runId);
     expect(after?.extendedAt).toBeDefined();
