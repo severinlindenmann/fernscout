@@ -10,9 +10,10 @@ import { describe, expect, test } from "vitest";
  *
  * What that scan actually found, against `main` before this ticket: eight
  * keys, not ten, every one of them a `.one` variant — seven `studio.photos.*`
- * keys plus `me.paymentBalance.one` — where Hungarian's singular carries the
- * same `{count}`/`{balance}` token the plural form has, while English and
- * German hardcode the number ("1 done" / "1 Änderung speichern") instead.
+ * keys plus `me.paymentBalance.one` (deleted by B2112, dead even then) —
+ * where Hungarian's singular carries the same `{count}`/`{balance}` token
+ * the plural form has, while English and German hardcode the number
+ * ("1 done" / "1 Änderung speichern") instead.
  *
  * `plural()`'s own doc comment (lib/i18n.ts) already documents why: a
  * language that does not inflect after a number, like Hungarian, simply
@@ -25,11 +26,10 @@ import { describe, expect, test } from "vitest";
  * grepping every one of those seven call sites for a `count:` var, not by
  * assumption.
  *
- * `me.paymentBalance` (base and `.one`) is not called by `t()`/`tn()`
+ * `me.paymentBalance` (base and `.one`) was not called by `t()`/`tn()`
  * anywhere in the app (`me.paymentBalanceEmpty` is the only one actually
- * wired up in `AccountPageContent.tsx`) — dead, not a live mismatch either
- * way. Left alone here; worth its own "unused translation key" ticket,
- * which is a different defect than this one.
+ * wired up in `AccountPageContent.tsx`) — dead, not a live mismatch. B2112
+ * deleted it as an orphan.
  *
  * So: no live "renders a literal brace" bug existed to fix. What this test
  * fixes into place is the one direction that WOULD be a real bug — a
@@ -91,7 +91,6 @@ describe("No translation drops an interpolation token English has — B1957", ()
     expect(extra.sort()).toEqual(
       [
         "edit.confirmSave.button.one (hu)", // B1880 — added in this same run, same convention.
-        "me.paymentBalance.one (hu)", // dead key, never rendered either way.
         "studio.photos.board.photoCount.one (hu)",
         "studio.photos.board.summary.noPlace.one (hu)",
         "studio.photos.board.summary.withPlace.one (hu)",

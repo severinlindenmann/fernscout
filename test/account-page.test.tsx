@@ -218,7 +218,7 @@ describe("the payment section", () => {
 
   test("offers a slider over the whole buyable range, and prices where it stands", () => {
     const html = render({ payment });
-    expect(html).toContain(dictionaryFor("en")["me.paymentBuyTitle"]);
+    expect(html).toContain(dictionaryFor("en")["me.buyDialogTitle"]);
     expect(html).not.toContain('disabled=""');
     // B854: the two fixed buttons became one `<input type="range">`. The
     // bounds are the module's, not literals — a slider that offers an amount

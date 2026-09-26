@@ -8,6 +8,7 @@
 // render the key text on the page and nothing would fail.
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { computeLocaleScopes, formatLocaleScopes } from "./locale-scopes-lib.mjs";
 
 const ROOT = path.join(import.meta.dirname, "..");
@@ -66,6 +67,78 @@ if (previousScopes === scopes) {
     .map(([name, scope]) => `${name} ${scope.keys.length}`)
     .join(", ");
   console.log(`Wrote lib/localeScopes.json — ${summary}`);
+}
+
+// --- Keys `paid/` alone uses — B2112 ---
+//
+// `test/studio-text-sweep.test.tsx`'s orphan sweep reads every literal,
+// template head and "prefix." in app/, components/, lib/ and scripts/, plus
+// paid/ when a checkout has it. A checkout without it (every worktree but
+// the main one) cannot see what paid/ uses, so a key genuinely read only by
+// a paid area would look orphaned and get deleted out from under it. This
+// file is the fix: computed here, in the one checkout that does have paid/,
+// and committed so every other checkout can still tell "orphaned" from
+// "paid uses this" without paid/ physically present. Regenerated whenever
+// paid/ exists; left alone otherwise, so a worktree lacking paid/ never
+// overwrites it with a smaller, wrong answer.
+function collectFiles(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === "node_modules" ? [] : collectFiles(full);
+    return /\.(tsx?|mjs|js)$/.test(entry.name) ? [full] : [];
+  });
+}
+function usedKeys(files, allKeys) {
+  const literals = new Set();
+  const templates = [];
+  const prefixes = [];
+  const escape = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  for (const file of files) {
+    // Only the `TranslationKey` union itself ships nothing — lib/i18n.ts
+    // also holds real helpers (`telHintKey`, `plural`) that map to real
+    // keys, so the whole file cannot be skipped, only that union.
+    const raw = fs.readFileSync(file, "utf8");
+    const source = file === path.join(ROOT, "lib", "i18n.ts") ? raw.replace(/export type TranslationKey =[\s\S]*?;\n/, "") : raw;
+    const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+    const visit = (node) => {
+      if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+        literals.add(node.text);
+        if (/^[\w-]+(\.[\w-]+)*\.$/.test(node.text)) prefixes.push(node.text);
+      }
+      if (ts.isTemplateExpression(node) && /^[\w-]+\./.test(node.head.text)) {
+        templates.push(new RegExp(`^${escape(node.head.text)}${node.templateSpans.map((sp) => `[\\w.-]*${escape(sp.literal.text)}`).join("")}$`));
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sourceFile);
+  }
+  const used = new Set();
+  for (const key of allKeys) {
+    const base = key.replace(/\.one$/, "");
+    if (literals.has(key) || literals.has(base) || templates.some((r) => r.test(key) || r.test(base)) || prefixes.some((p) => key.startsWith(p) || base.startsWith(p))) {
+      used.add(key);
+    }
+  }
+  return used;
+}
+const paidLocaleKeysFile = path.join(ROOT, "lib", "paidLocaleKeys.json");
+const paidDir = path.join(ROOT, "paid");
+if (fs.existsSync(paidDir)) {
+  const openCoreFiles = ["app", "components", "lib", "scripts"].flatMap((d) => collectFiles(path.join(ROOT, d)));
+  const withPaidFiles = [...openCoreFiles, ...collectFiles(paidDir)];
+  const usedOpenCore = usedKeys(openCoreFiles, keys);
+  const usedWithPaid = usedKeys(withPaidFiles, keys);
+  const paidOnly = keys.filter((k) => !usedOpenCore.has(k) && usedWithPaid.has(k));
+  const paidLocaleKeys = JSON.stringify(paidOnly, null, 2) + "\n";
+  const previousPaidLocaleKeys = fs.existsSync(paidLocaleKeysFile) ? fs.readFileSync(paidLocaleKeysFile, "utf8") : null;
+  if (previousPaidLocaleKeys === paidLocaleKeys) {
+    console.log("Paid-only locale keys already up to date.");
+  } else {
+    fs.writeFileSync(paidLocaleKeysFile, paidLocaleKeys);
+    console.log(`Wrote lib/paidLocaleKeys.json — ${paidOnly.length} keys only paid/ uses.`);
+  }
+} else {
+  console.log("No paid/ here — leaving lib/paidLocaleKeys.json as the main checkout last wrote it.");
 }
 
 // --- Coverage — B1894 ---
