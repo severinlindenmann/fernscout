@@ -75,18 +75,19 @@ export function instanceDocumentation(): string {
   const lines: string[] = [
     `# ${site.name}`,
     "",
-    "> A travel journal whose content is markdown and photographs in a folder the",
-    "> author owns. Reading happens in a browser, where its owner may also write",
-    "> directly in their own studio. Otherwise, writing happens through an agent",
-    "> holding a token — still no CMS, whether that agent is this instance's own",
-    "> helper, over WhatsApp where it offers one, or one you bring yourself.",
+    "> A travel journal whose content is JSON documents and photographs in a folder",
+    "> the author owns. Reading happens in a browser, where its owner may also",
+    "> write directly in their own studio. Otherwise, writing happens through an",
+    "> agent holding a token — still no CMS, whether that agent is this",
+    "> instance's own helper, over WhatsApp where it offers one, or one you",
+    "> bring yourself.",
     "",
-    "## Three ways in",
+    "## Ways in",
     "",
     ...wrap(
       "Whoever you are — a person with no agent, an agent reading this file, or " +
         "the model behind a browser tab — start by working out which of these " +
-        "three you are. It decides what you fetch next.",
+        "you are. It decides what you fetch next.",
       78,
     ),
     "",
@@ -115,21 +116,21 @@ export function instanceDocumentation(): string {
       78,
     ),
     "",
-    ...wrap(
-      (whatsappNumberForDisplay()
-        ? `**A messenger, at ${whatsappNumberForDisplay()}.** `
-        : "**A messenger**, where this instance offers one. ") +
-        "Text it and a model turn answers, on this instance's own model, and " +
-        "spends the journal's credits the same way a WhatsApp announcement " +
-        "does — one per message, never the owner's own (see below). It can " +
-        "start a journal from nothing or add to one that already exists, " +
-        "and it writes through the same drafts-then-publish calls as the other " +
-        "two. What it cannot do is anything this document already says no " +
-        "agent can finish alone, or reach a page only a browser session opens " +
-        "— an owner's own settings still need the owner's own browser.",
-      78,
-    ),
-    "",
+    ...(helperOnWhatsapp
+      ? wrap(
+          `**A messenger, at ${whatsappNumberForDisplay()}.** ` +
+            "Text it and a model turn answers, on this instance's own model, " +
+            "spending the journal's credits — one message, one turn, never the " +
+            "owner's own credits. It can start a journal from nothing or add to " +
+            "one that already exists, and it writes through the same drafts-" +
+            "then-publish calls as the other two. What it cannot do is anything " +
+            "this document already says no agent can finish alone, or reach a " +
+            "page only a browser session opens — an owner's own settings still " +
+            "need the owner's own browser.",
+          78,
+        )
+      : []),
+    ...(helperOnWhatsapp ? [""] : []),
     "## Already holding a token?",
     "",
     ...wrap(
@@ -145,10 +146,12 @@ export function instanceDocumentation(): string {
     ),
     "",
     ...wrap(
-      "**No call returns the owner's email address**, and none will: it is a " +
-        "contact detail rather than a setting. If your token has expired, ask the " +
-        "person which address owns the journal rather than looking for an endpoint " +
-        "that tells you.",
+      "**There is no call that looks up the owner's email address for you.** " +
+        "`GET /api/v2/<user>` echoes it back to a token that already owns the " +
+        "journal, because it is that journal's own document — but nothing hands " +
+        "it to a token that does not already have one. If yours has expired, ask " +
+        "the person which address owns the journal rather than looking for an " +
+        "endpoint that tells you.",
       78,
     ),
     "",
