@@ -317,4 +317,66 @@ describe("POST .../days/{slug}/merge", () => {
     const after = fs.readdirSync(path.join(dir, OTHER, "trips", "secret-trip", "entries")).sort();
     expect(after).toEqual(before);
   });
+
+  // B1688 — the merged survivor is one more media writer, found while
+  // sharing `withoutDeclinedMedia`: a merge that lands photographs on a day
+  // that declined them must retract the same as any other arrival does.
+  test("landing photographs on a declined day through a merge retracts the decline", async () => {
+    writeDayFixture(dir, OWNER, "alps", {
+      slug: "no-camera",
+      date: "2026-02-01",
+      title: "No camera",
+      status: "draft",
+      content: "first",
+      declined: { media: "left the camera at the hut" },
+    });
+    writeDayFixture(dir, OWNER, "alps", {
+      slug: "with-photos",
+      date: "2026-02-02",
+      title: "With photos",
+      status: "draft",
+      content: "second",
+      media: [{ src: "/media/alps/with-photos/a.jpg" }],
+    });
+    const bearer = await token(OWNER, OWNER_EMAIL);
+    const { status, body } = await call(MERGE, { user: OWNER, trip: "alps", slug: "2026-02-01-no-camera" }, {
+      token: bearer,
+      body: { withSlug: "2026-02-02-with-photos" },
+    });
+    expect(status, JSON.stringify(body)).toBe(200);
+    const survivor = JSON.parse(
+      fs.readFileSync(path.join(dir, OWNER, "trips", "alps", "entries", "2026-02-01-no-camera.json"), "utf8"),
+    );
+    expect(survivor.media).toHaveLength(1);
+    expect(survivor.declined?.media).toBeUndefined();
+  });
+
+  test("merging two days with no photographs at all keeps the decline", async () => {
+    writeDayFixture(dir, OWNER, "alps", {
+      slug: "still-no-camera",
+      date: "2026-02-05",
+      title: "Still no camera",
+      status: "draft",
+      content: "first",
+      declined: { media: "left the camera at the hut" },
+    });
+    writeDayFixture(dir, OWNER, "alps", {
+      slug: "also-no-photos",
+      date: "2026-02-06",
+      title: "Also no photos",
+      status: "draft",
+      content: "second",
+    });
+    const bearer = await token(OWNER, OWNER_EMAIL);
+    const { status, body } = await call(MERGE, { user: OWNER, trip: "alps", slug: "2026-02-05-still-no-camera" }, {
+      token: bearer,
+      body: { withSlug: "2026-02-06-also-no-photos" },
+    });
+    expect(status, JSON.stringify(body)).toBe(200);
+    const survivor = JSON.parse(
+      fs.readFileSync(path.join(dir, OWNER, "trips", "alps", "entries", "2026-02-05-still-no-camera.json"), "utf8"),
+    );
+    expect(survivor.media ?? []).toHaveLength(0);
+    expect(survivor.declined?.media).toBe("left the camera at the hut");
+  });
 });

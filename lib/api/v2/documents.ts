@@ -85,6 +85,21 @@ function isRetiredCostsDecline(value: unknown): boolean {
 }
 
 /**
+ * A day that said it had no photographs, and now has some, no longer says
+ * it — B540/B1564, T6's retraction rule. Every writer that appends to a
+ * day's `media` (`lib/ingest/entry.ts`'s `appendGallery`, v1's
+ * `attachGallery` in `lib/api/entries.ts`, v2's `attachDayMedia` below in
+ * `./days.ts`) calls this on the day's existing `declined` map rather than
+ * repeating the retraction inline — B1688, so a fifth writer inherits it for
+ * free instead of quietly missing it the way `attachGallery` once did.
+ */
+export function withoutDeclinedMedia(declined: DayFile["declined"]): DayFile["declined"] {
+  if (!declined || declined.media === undefined) return declined;
+  const { media: _media, ...rest } = declined;
+  return Object.keys(rest).length > 0 ? rest : undefined;
+}
+
+/**
  * A day document → the bytes of `entries/YYYY-MM-DD-slug.json`.
  *
  * Key order is fixed so that serialising the same document twice matches

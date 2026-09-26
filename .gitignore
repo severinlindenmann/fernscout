@@ -97,6 +97,13 @@ content/.mail/
 content/*/trips/*/originals/
 !content/example/
 
+# Sidecars `lib/sidecar.ts` derives from a photo's own bytes (phash,
+# brightness/dominant/sharpness/entropy) the first time it is served —
+# B2109. Opening the example journal locally writes these under the
+# tracked demo trips and dirties the checkout; nothing in them is
+# owner-said, so they are cache, not content.
+content/example/trips/*/meta/
+
 # scratch output from .claude/skills/apply-the-brand/favicon-check.mjs
 favicon-check.png
 

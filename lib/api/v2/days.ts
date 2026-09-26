@@ -26,7 +26,7 @@ import { isVideoSrc, resolveMediaFile } from "@/lib/media";
 import { altTextFor } from "@/lib/entries";
 import type { TripRef } from "@/lib/trips";
 import type { Trip } from "@/lib/types";
-import type { DayFile, TripFile } from "./documents";
+import { withoutDeclinedMedia, type DayFile, type TripFile } from "./documents";
 import { deepEqual, exemptSingleLocaleTranslations } from "./write";
 import { readDayFile, writeDayFile } from "./store";
 import { incompleteFrom, type MissingRow, type ProblemRow } from "./incomplete";
@@ -382,12 +382,6 @@ function existingWireItems(day: DayFile): WireItem[] {
 /** `declined.media` off the document, or the document unchanged if it was
  * never there — T6's retraction rule, applied to the one field this door
  * ever touches rather than the whole `declined` map a full patch handles. */
-function withoutDeclinedMedia(day: DayFile): DayFile["declined"] {
-  if (!day.declined || day.declined.media === undefined) return day.declined;
-  const { media: _media, ...rest } = day.declined;
-  return Object.keys(rest).length > 0 ? rest : undefined;
-}
-
 export type DayMediaAttachOutcome =
   | { ok: true; day: DayFile }
   | { ok: false; error: "unknown_day" }
@@ -442,7 +436,7 @@ export function attachDayMedia(
   const toAdd = items.filter((item) => !already.has(item.src));
   const media = toStoredMedia([...existingWireItems(stored), ...toAdd], stored.media);
 
-  const next: DayFile = { ...stored, media, declined: withoutDeclinedMedia(stored) };
+  const next: DayFile = { ...stored, media, declined: withoutDeclinedMedia(stored.declined) };
   writeDayFile(username, tripId, slug, next);
   return { ok: true, day: next };
 }
