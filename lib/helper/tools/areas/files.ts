@@ -205,18 +205,21 @@ export const FILES_TOOLS: readonly Tool[] = [
   },
   {
     /**
-     * Photographs come in through the room's own pane now — B1220 (D52).
-     * This used to hand people out to the step-wizard page; since B1171
-     * the pane uploads into the inbox and `attach_files` puts things on a
-     * day, so the honest answer is a sentence about the controls already
-     * on this screen. Server text, not the model's — the screen-claim
+     * The web room this used to point people at is retired (B2171); the one
+     * channel that reaches this tool today is WhatsApp (`answerInThread`'s
+     * only remaining caller besides the unreachable, cookie-only `/ask`
+     * route — nothing in the app fetches that one). So the honest answer is
+     * channel-neutral: send the photograph in the conversation itself, where
+     * it lands in the inbox the same way `attach_files` above already
+     * documents, rather than naming a pane or a tab that may not exist for
+     * whoever is asking. Server text, not the model's — the screen-claim
      * guard checks the model's own answer, never a tool's block.
      */
     name: "add_photos",
     kind: "read",
     renders: "say",
     describe:
-      "How photographs are added: say where the controls on this screen are. Use this whenever they want to put pictures on a day.",
+      "How photographs are added: say to send them here in the conversation, and that they wait until a day is named. Use this whenever they want to put pictures on a day.",
     properties: DAY_ARGS,
     run: async () => ({ wrote: false }),
     block: (_data, say) => ({ shape: "say", text: say("agent.tool.addPhotosPane") }),
