@@ -37,8 +37,10 @@ export function mediaKey(src: string): string {
  *
  * The two words mean the same populations they mean on a trip, which is why
  * they are the same two words: `guest` is everybody the owner has let into the
- * journal, plus the people who were on the trip; `private` is the people who
- * were there, and the owner.
+ * journal, plus whoever holds an approved place on the trip; `private` is the
+ * owner, plus whoever holds that approved place — never a bare `people:`
+ * byline entry, which grants nothing on its own (D3, B2297; `lib/tripPeople.ts`
+ * and `isTravellerOn` in `lib/tripGate.ts` are the actual gate).
  */
 export const PHOTO_VISIBILITIES = ["guest", "private"] as const;
 
