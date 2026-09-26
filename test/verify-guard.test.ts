@@ -28,15 +28,15 @@ afterEach(() => {
 
 function run(env: Record<string, string | undefined>) {
   try {
-    execFileSync("node", [path.join(process.cwd(), "scripts/verify.mjs")], {
+    const stdout = execFileSync("node", [path.join(process.cwd(), "scripts/verify.mjs")], {
       cwd: dir,
       env: { ...process.env, ...env },
       stdio: "pipe",
     });
-    return { status: 0, stderr: "" };
+    return { status: 0, stdout: stdout.toString("utf8"), stderr: "" };
   } catch (err) {
-    const e = err as { status: number | null; stderr: Buffer };
-    return { status: e.status, stderr: e.stderr.toString("utf8") };
+    const e = err as { status: number | null; stdout: Buffer; stderr: Buffer };
+    return { status: e.status, stdout: e.stdout.toString("utf8"), stderr: e.stderr.toString("utf8") };
   }
 }
 
@@ -59,5 +59,32 @@ describe("verify.mjs unattended-run guard", () => {
     const { stderr } = run({ CI: undefined, VERIFY_WILL_WAIT: "1" });
     expect(stderr).not.toMatch(/no terminal is attached/);
     expect(stderr).toMatch(/No node_modules here/);
+  });
+});
+
+/**
+ * B1973: `next dev` writes `.next/dev/types/validator.ts` with an import per
+ * route. Delete a route and the file keeps the stale import, so `next
+ * build`'s own type-check fails with a TS2307 naming a path that never
+ * existed on this branch — read as a real dangling reference rather than a
+ * leftover cache. verify.mjs now clears it, unconditionally, before build.
+ */
+describe("verify.mjs clears stale .next/dev/types before building", () => {
+  test("removes it and says so, then proceeds past the build step", () => {
+    fs.mkdirSync(path.join(dir, "node_modules", "next"), { recursive: true });
+    fs.writeFileSync(
+      path.join(dir, "node_modules", "next", "package.json"),
+      JSON.stringify({ version: "0.0.0-test" }),
+    );
+    const staleTypes = path.join(dir, ".next", "dev", "types");
+    fs.mkdirSync(staleTypes, { recursive: true });
+    fs.writeFileSync(
+      path.join(staleTypes, "validator.ts"),
+      'import x from "../../../app/deleted-route/page.js";\n',
+    );
+
+    const { stdout, stderr } = run({ CI: "true", VERIFY_WILL_WAIT: undefined });
+    expect(stdout + stderr).toMatch(/Cleared stale \.next\/dev\/types/);
+    expect(fs.existsSync(staleTypes)).toBe(false);
   });
 });
