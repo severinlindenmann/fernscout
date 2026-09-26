@@ -26,6 +26,8 @@ export default function WelcomeDoor({
   identityEmail,
   signupEnabled,
   siteName,
+  phoneCountryCode,
+  contactEmail,
 }: {
   /** From `CODE_TTL_MINUTES` — `lib/auth` is server-only. */
   codeMinutes: string;
@@ -34,6 +36,15 @@ export default function WelcomeDoor({
   identityEmail: string | null;
   signupEnabled: boolean;
   siteName: string;
+  /** `whatsappCountryCode()` — `lib/contactNumber.ts` is server-only, so this
+   *  instance's own dialling-code convention (`features.whatsapp.defaultCountryCode`)
+   *  arrives as a prop rather than a second import. Absent (or not passed at
+   *  all, the default for a caller that names none) means this instance
+   *  named no convention, and the phone step says nothing country-specific. */
+  phoneCountryCode?: string | null;
+  /** `serverSite().operatorEmail` — B2357. Absent means this instance named
+   *  no monitored address, and the "no WhatsApp" hint says so without one. */
+  contactEmail?: string | null;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -90,6 +101,8 @@ export default function WelcomeDoor({
               codeMinutes={codeMinutes}
               onSignedIn={intoTheStudio}
               onAlreadyOwns={() => setOwns(true)}
+              phoneCountryCode={phoneCountryCode}
+              contactEmail={contactEmail}
             />
             <p className="mt-4">
               <Link href="/?start=1" className="text-sm font-semibold text-ink-strong underline underline-offset-2">

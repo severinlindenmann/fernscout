@@ -4,6 +4,7 @@ import { resolveIdentity } from "@/lib/auth/handshake";
 import { isEnabled } from "@/lib/capabilities";
 import { requestLocale, translateIn } from "@/lib/locales";
 import { serverSite } from "@/lib/site";
+import { whatsappCountryCode } from "@/lib/contactNumber";
 import WelcomeDoor from "@/components/WelcomeDoor";
 
 // Reads the identity cookie to prefill the address; nothing to prerender.
@@ -29,6 +30,8 @@ export default async function Welcome() {
       identityEmail={identity?.email ?? null}
       signupEnabled={isEnabled("signup")}
       siteName={serverSite().name}
+      phoneCountryCode={whatsappCountryCode() ?? null}
+      contactEmail={serverSite().operatorEmail ?? null}
     />
   );
 }

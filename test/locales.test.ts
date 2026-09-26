@@ -333,6 +333,51 @@ describe("German address is consistently informal (B432)", () => {
 });
 
 /**
+ * B2153: de.json mixed ß (standard German) and ss (Swiss German) spellings
+ * of the same words in the same file, sometimes on the same screen. The
+ * operator is Swiss and the file already leaned Swiss, so the decision is
+ * ss everywhere. A regex for "ss" would false-positive on every word that
+ * legitimately has one (dass, muss, …); the only thing worth pinning is
+ * that ß itself never comes back.
+ */
+describe("German locale uses the Swiss ss convention (B2153)", () => {
+  test("de.json contains no ß", () => {
+    const de = fs.readFileSync(path.join(process.cwd(), "site", "locales", "de.json"), "utf8");
+    expect(de.includes("ß")).toBe(false);
+  });
+});
+
+/**
+ * B2357 — the signup phone step used to bake fernscout.ch's own facts
+ * (agent@fernscout.ch, "Swiss (+41) numbers only") straight into the locale
+ * strings, so every fork of this instance greeted its own readers with an
+ * address and a country that were never theirs. Both are tokens now,
+ * filled from `serverSite().operatorEmail` / `whatsappCountryCode()` at the
+ * one call site (`SignupWizard.tsx`) — this pins the strings themselves,
+ * which is what a future hand-edit reverting to a hardcoded literal would
+ * actually touch.
+ */
+describe("the phone step names no operator's own facts (B2357)", () => {
+  const en = dictionaryFor("en");
+
+  test("agent.phoneSmsIntroCountry names the configured prefix, not a fixed country", () => {
+    const filled = translate(en, "agent.phoneSmsIntroCountry" as never, { cc: "+81" });
+    expect(filled).toContain("+81");
+    expect(filled.toLowerCase()).not.toContain("swiss");
+  });
+
+  test("agent.phoneNoWhatsapp interpolates the operator's own address, not fernscout.ch's", () => {
+    const filled = translate(en, "agent.phoneNoWhatsapp" as never, { email: "help@example.test" });
+    expect(filled).toContain("help@example.test");
+    expect(filled).not.toContain("agent@fernscout.ch");
+  });
+
+  test("agent.phoneNoWhatsappNoAddress names no address at all", () => {
+    expect(translateIn("en", "agent.phoneNoWhatsappNoAddress")).not.toMatch(/@/);
+  });
+});
+
+/**
  * B481: the same four sign-in-path keys addressed the reader as "Ön" (formal)
  * in Hungarian while the rest of the dictionary uses "te" (informal). Not a
  * blanket "no Ön" check — "Önmagában" ("by itself") contains the string "Ön"

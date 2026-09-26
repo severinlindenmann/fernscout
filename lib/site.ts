@@ -30,6 +30,10 @@ export function serverSite() {
     credit: config.site.credit,
     /** What the operator says about where `host` stands — see `ConnectionInfo`. */
     hosting: config.site.hosting,
+    /** The operator's own monitored address, already used as the photobook
+     *  contact address (`paid/photobook/routes/[user]/photobooks/page.tsx`) —
+     *  see `config.site.operatorEmail` for its full reasoning. */
+    operatorEmail: config.site.operatorEmail,
   };
 }
 

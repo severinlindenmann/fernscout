@@ -110,6 +110,8 @@ export default function SignupWizard({
   codeMinutes,
   onSignedIn,
   onAlreadyOwns,
+  phoneCountryCode,
+  contactEmail,
 }: {
   /** Prefilled when the visitor already carries an identity cookie — they
    * proved this address once already, but a signup token still needs its
@@ -128,6 +130,17 @@ export default function SignupWizard({
    * person learned it from `createJournal`, after the journal form and a
    * proven phone number. */
   onAlreadyOwns: () => void;
+  /** B2357 — `whatsappCountryCode()`, this instance's own declared dialling
+   *  convention. Used only to prefill the phone step's country box and to
+   *  name the restriction in `agent.phoneSmsIntro`; absent (the default for
+   *  a fresh clone with no such config) prefills nothing and the SMS
+   *  sentence names no country. Never a hardcoded "41" — that guessed at
+   *  every reader being Swiss regardless of which operator ran this code. */
+  phoneCountryCode?: string | null;
+  /** `serverSite().operatorEmail` — B2357. Absent (a fresh clone that has not
+   *  set one) means "no WhatsApp" points nowhere rather than at a
+   *  fernscout.ch address that is not this operator's. */
+  contactEmail?: string | null;
 }) {
   const { t } = useI18n();
   const [step, setStep] = useState<Step>("email");
@@ -182,7 +195,7 @@ export default function SignupWizard({
    * drops the requirement. The passcode arrives over WhatsApp; the step
    * says so, and says where somebody without WhatsApp can turn.
    */
-  const [telCc, setTelCc] = useState("41");
+  const [telCc, setTelCc] = useState(phoneCountryCode ?? "");
   const [telNational, setTelNational] = useState("");
   const [phoneId, setPhoneId] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
@@ -599,10 +612,16 @@ export default function SignupWizard({
             />
           </div>
           <p className="mt-3 text-base leading-7 text-ink-body">
-            {smsChannel ? t("agent.phoneSmsIntro") : t("agent.phoneWhatsapp")}
+            {smsChannel
+              ? phoneCountryCode
+                ? t("agent.phoneSmsIntroCountry", { cc: `+${phoneCountryCode}` })
+                : t("agent.phoneSmsIntro")
+              : t("agent.phoneWhatsapp")}
           </p>
           <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {t("agent.phoneNoWhatsapp")}
+            {contactEmail
+              ? t("agent.phoneNoWhatsapp", { email: contactEmail })
+              : t("agent.phoneNoWhatsappNoAddress")}
           </p>
           <BusyButton
             busy={busy}
@@ -639,7 +658,9 @@ export default function SignupWizard({
             />
           </div>
           <p className="mt-2 text-sm leading-6 text-ink-secondary">
-            {t("agent.phoneNoWhatsapp")}
+            {contactEmail
+              ? t("agent.phoneNoWhatsapp", { email: contactEmail })
+              : t("agent.phoneNoWhatsappNoAddress")}
           </p>
           <BusyButton
             busy={busy}
