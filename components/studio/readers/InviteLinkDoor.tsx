@@ -108,7 +108,7 @@ export default function InviteLinkDoor({
           <path
             d="M17 23l6-6M15 19l-3 3a4 4 0 0 0 6 6l3-3M25 21l3-3a4 4 0 0 0-6-6l-3 3"
             fill="none"
-            className="stroke-navy-900"
+            className="stroke-ink-strong"
             strokeWidth="2.4"
             strokeLinecap="round"
           />

@@ -201,7 +201,7 @@ function ReaderCard({ contact, kind, env }: { contact: AdminContact; kind: CardK
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <span
             aria-hidden
-            className="grid size-10 shrink-0 place-items-center rounded-full bg-navy-900 text-sm font-bold text-on-deep"
+            className="grid size-10 shrink-0 place-items-center rounded-full border border-line-strong bg-navy-900 text-sm font-bold text-on-deep"
           >
             {initials(displayName)}
           </span>
