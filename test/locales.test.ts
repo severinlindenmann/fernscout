@@ -333,6 +333,21 @@ describe("German address is consistently informal (B432)", () => {
 });
 
 /**
+ * B2153: de.json mixed ß (standard German) and ss (Swiss German) spellings
+ * of the same words in the same file, sometimes on the same screen. The
+ * operator is Swiss and the file already leaned Swiss, so the decision is
+ * ss everywhere. A regex for "ss" would false-positive on every word that
+ * legitimately has one (dass, muss, …); the only thing worth pinning is
+ * that ß itself never comes back.
+ */
+describe("German locale uses the Swiss ss convention (B2153)", () => {
+  test("de.json contains no ß", () => {
+    const de = fs.readFileSync(path.join(process.cwd(), "site", "locales", "de.json"), "utf8");
+    expect(de.includes("ß")).toBe(false);
+  });
+});
+
+/**
  * B481: the same four sign-in-path keys addressed the reader as "Ön" (formal)
  * in Hungarian while the rest of the dictionary uses "te" (informal). Not a
  * blanket "no Ön" check — "Önmagában" ("by itself") contains the string "Ön"
