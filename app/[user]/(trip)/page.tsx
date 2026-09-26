@@ -1,15 +1,18 @@
 import { notFound } from "next/navigation";
 import { recordTripView } from "@/lib/analytics/record";
 import { readFor, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
-import { getAllEntries } from "@/lib/entries";
+import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { currentTripOrRedirect } from "@/lib/currentTrip";
 import { requestLocale } from "@/lib/locales";
 import { buildStoryProps } from "@/lib/tripView";
 import { BlogStructuredData } from "@/components/StructuredData";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellerNamesOf, travellersOf } from "@/lib/site";
+import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary } from "@/lib/site";
 import { getDefaultUsername, getUser } from "@/lib/users";
 import TripStory from "@/app/TripStory";
+import RouteBoundary from "@/components/RouteBoundary";
+import type { UserConfig } from "@/lib/config";
+import type { Trip } from "@/lib/types";
 
 export default async function Home({ params }: PageProps<"/[user]">) {
   const { user } = await params;
@@ -18,7 +21,6 @@ export default async function Home({ params }: PageProps<"/[user]">) {
   // No current trip is a normal state, not a missing journal — the four
   // pages `SiteNav` offers all resolve it the same way. See lib/currentTrip.ts.
   const current = currentTripOrRedirect(user);
-  const tripId = current.ref;
   // The layout draws the gate; this stops the page from *running*.
   // See lib/tripGate.ts — a layout gate leaks the page's data into the RSC
   // payload and the document head even when it renders something else.
@@ -41,17 +43,45 @@ export default async function Home({ params }: PageProps<"/[user]">) {
     readFor(current),
     mayViewCosts(current),
   ]);
-  const { trip, index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
+  const userConfig = getUser(user);
+  if (!userConfig) notFound();
+  return (
+    <TripProvider trip={current} isCurrent canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
+      {/* Every answer this page can give other than the story is settled
+          above this line; see the same boundary in
+          app/[user]/trips/[trip]/page.tsx and components/RouteSkeleton.tsx. */}
+      <RouteBoundary shape="story">
+        <CurrentStoryBody trip={current} read={read} showCosts={showCosts} site={site} userConfig={userConfig} />
+      </RouteBoundary>
+    </TripProvider>
+  );
+}
+
+/** The story, below the boundary — see `TripStoryBody` in
+ * app/[user]/trips/[trip]/page.tsx, which this mirrors for the bare URL. */
+async function CurrentStoryBody({
+  trip,
+  read,
+  showCosts,
+  site,
+  userConfig,
+}: {
+  trip: Trip;
+  read: ReadOptions;
+  showCosts: boolean;
+  site: SiteSummary;
+  userConfig: UserConfig;
+}) {
+  const tripId = trip.ref;
+  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(tripId, {
     showCosts,
     ...read,
     // The window's prose is rendered here, in this reader's language — see
     // lib/prose.ts.
     locale: await requestLocale(),
   });
-  const userConfig = getUser(user);
-  if (!userConfig) notFound();
   return (
-    <TripProvider trip={trip} isCurrent canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
+    <>
       <BlogStructuredData
         entries={getAllEntries(tripId)}
         site={site}
@@ -69,6 +99,6 @@ export default async function Home({ params }: PageProps<"/[user]">) {
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}
       />
-    </TripProvider>
+    </>
   );
 }

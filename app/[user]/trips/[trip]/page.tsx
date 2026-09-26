@@ -3,7 +3,7 @@ import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGa
 import { recordTripView } from "@/lib/analytics/record";
 import { notFound, redirect } from "next/navigation";
 import { basemapForRoute } from "@/lib/basemap";
-import { getAllEntries } from "@/lib/entries";
+import { getAllEntries, type ReadOptions } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { buildStoryProps, showsCountdown } from "@/lib/tripView";
 import { getPlan, getPlanPrivate, stopsForReaders } from "@/lib/plan";
@@ -12,12 +12,14 @@ import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { BlogStructuredData } from "@/components/StructuredData";
 import { getUser } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellerNamesOf, travellersOf } from "@/lib/site";
+import { siteSummary, travellerNamesOf, travellersOf, type SiteSummary } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripCountdown from "@/components/TripCountdown";
 import TripStory from "@/app/TripStory";
+import RouteBoundary from "@/components/RouteBoundary";
 import { requestLocale } from "@/lib/locales";
 import { localizedTripTitle } from "@/lib/i18n";
+import type { UserConfig } from "@/lib/config";
 import type { Trip } from "@/lib/types";
 
 export async function generateMetadata({
@@ -132,18 +134,8 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     );
   }
 
-  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
-    showCosts,
-    ...read,
-    // The window's prose is rendered here, in this reader's language — see
-    // lib/prose.ts.
-    locale: await requestLocale(),
-  });
   const userConfig = getUser(user);
   if (!userConfig) notFound();
-  // Not `isOwner` inline: see the note beside the equivalent call in the
-  // gallery page.
-  const photobook = await photobookEntryFor(trip);
   return (
     // `canPublish` is the same viewer fact every sibling route passes
     // (`/day/<slug>`, the gallery, the map) and this one did not — it is read
@@ -151,6 +143,50 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
     // owner's own controls on a past trip's story, `DayNotify` among them,
     // rendered for nobody.
     <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
+      {/* Every answer this page can give other than the story — 404, the
+          redirect, the gate, the countdown — is settled above this line, so
+          the boundary never turns one of them into a streamed 200. See
+          components/RouteSkeleton.tsx. */}
+      <RouteBoundary shape="story">
+        <TripStoryBody trip={trip} read={read} showCosts={showCosts} site={site} userConfig={userConfig} />
+      </RouteBoundary>
+    </TripProvider>
+  );
+}
+
+/**
+ * The story itself, below the page's boundary: the part of this page
+ * whose cost grows with the trip — every day's summary, the opening window's
+ * prose, the basemap — and so the part of a tap on a slow connection worth
+ * not waiting on before the page answers at all. Handed only what the page
+ * above already resolved for this reader; it decides nothing about who may
+ * see what.
+ */
+async function TripStoryBody({
+  trip,
+  read,
+  showCosts,
+  site,
+  userConfig,
+}: {
+  trip: Trip;
+  read: ReadOptions;
+  showCosts: boolean;
+  site: SiteSummary;
+  userConfig: UserConfig;
+}) {
+  const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
+    showCosts,
+    ...read,
+    // The window's prose is rendered here, in this reader's language — see
+    // lib/prose.ts.
+    locale: await requestLocale(),
+  });
+  // Not `isOwner` inline: see the note beside the equivalent call in the
+  // gallery page.
+  const photobook = await photobookEntryFor(trip);
+  return (
+    <>
       <BlogStructuredData
         entries={getAllEntries(trip.ref)}
         site={site}
@@ -169,6 +205,6 @@ export default async function TripPage({ params }: PageProps<"/[user]/trips/[tri
         // only inside the StructuredData script tag above.
         travellerNames={travellerNamesOf(userConfig, trip)}
       />
-    </TripProvider>
+    </>
   );
 }

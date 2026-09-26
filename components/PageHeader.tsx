@@ -302,8 +302,9 @@ export default function PageHeader({
               transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
               className="relative mt-3 max-h-[70vh] origin-top-right overflow-y-auto rounded-2xl border border-line-quiet bg-surface-base p-3 shadow-lg"
             >
-              {/* `children` is not repeated here: the one caller that passes any
-                  (`TripStory`'s day counter) already marks it `xl:block`, so it
+              {/* `children` is not repeated here: the callers that pass any
+                  (`TripStory`'s day counter, and `RouteSkeleton`'s stand-in
+                  for it) already mark it `xl:block`, so it
                   never draws below the width this panel exists for — mounting
                   a second, permanently invisible copy would be for nothing. */}
               {/* The trip switcher takes a row of its own, above the small

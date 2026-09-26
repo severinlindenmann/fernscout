@@ -1788,6 +1788,7 @@ export type TranslationKey =
   | "nav.menu"
   | "nav.myJournals"
   | "nav.overview"
+  | "nav.pageLoading"
   | "nav.search"
   | "nav.signIn"
   | "nav.story"

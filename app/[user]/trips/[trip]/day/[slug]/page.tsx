@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getEntryBySlug } from "@/lib/entries";
+import { getEntryBySlug, type ReadOptions } from "@/lib/entries";
 import { getTrip, tripRef } from "@/lib/trips";
 import { buildStoryProps } from "@/lib/tripView";
 import { readFor, lockedMetadata, mayReadTrip, mayViewCosts } from "@/lib/tripGate";
@@ -8,12 +8,15 @@ import { photobookEntryFor } from "@paid/photobook/lib/photobook/entry";
 import { DayStructuredData } from "@/components/StructuredData";
 import { getUser } from "@/lib/users";
 import TripProvider from "@/components/TripProvider";
-import { siteSummary, travellersOf } from "@/lib/site";
+import { siteSummary, travellersOf, type SiteSummary } from "@/lib/site";
 import { getDefaultUsername } from "@/lib/users";
 import TripStory from "@/app/TripStory";
+import RouteBoundary from "@/components/RouteBoundary";
 import { defaultLocaleFor, requestLocale } from "@/lib/locales";
 import { localizedEntryTitle, titleWithLocation } from "@/lib/i18n";
 import { dayTrack } from "@/lib/gps/track";
+import type { UserConfig } from "@/lib/config";
+import type { Entry, Trip } from "@/lib/types";
 
 /*
  * Per-day permalinks for every non-current trip. Each entry gets a real,
@@ -93,6 +96,39 @@ export default async function TripDayPage({
   const entry = getEntryBySlug(trip.ref, slug, read);
   if (!entry) notFound();
 
+  const userConfig = getUser(user);
+  if (!userConfig) notFound();
+
+  return (
+    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
+      {/* The 404 for a draft or unknown slug and the redirect to the bare URL
+          are both above this line, so neither becomes a streamed 200. See
+          components/RouteSkeleton.tsx. */}
+      <RouteBoundary shape="day">
+        <TripDayBody trip={trip} entry={entry} read={read} site={site} userConfig={userConfig} />
+      </RouteBoundary>
+    </TripProvider>
+  );
+}
+
+/**
+ * The story opened at this day, below the page's boundary — the same
+ * split, for the same reason, as `TripStoryBody` in ../../page.tsx. Handed
+ * only what the page above resolved for this reader.
+ */
+async function TripDayBody({
+  trip,
+  entry,
+  read,
+  site,
+  userConfig,
+}: {
+  trip: Trip;
+  entry: Entry;
+  read: ReadOptions;
+  site: SiteSummary;
+  userConfig: UserConfig;
+}) {
   const { index, days, windowStart, initialDate, stats, basemap, locals } = buildStoryProps(trip.ref, {
     openAt: entry.date,
     showCosts: await mayViewCosts(trip),
@@ -102,9 +138,6 @@ export default async function TripDayPage({
     locale: await requestLocale(),
   });
 
-  const userConfig = getUser(user);
-  if (!userConfig) notFound();
-
   // Not `isOwner` inline: see the note beside the equivalent call in the
   // gallery page.
   const photobook = await photobookEntryFor(trip);
@@ -112,10 +145,10 @@ export default async function TripDayPage({
   // This day's own part of the recorded route — B2199. `visibleDates` is
   // exactly the set this reader is shown an entry for (`index`, drafts and
   // visibility already applied by `buildStoryProps` above).
-  const track = dayTrack(user, trip.id, new Set(index.map((d) => d.date)), entry.date);
+  const track = dayTrack(trip.username, trip.id, new Set(index.map((d) => d.date)), entry.date);
 
   return (
-    <TripProvider trip={trip} isCurrent={false} canPublish={canPublish} reader={read.reader} owner={owner} units={userConfig.units}>
+    <>
       <DayStructuredData
         entry={entry}
         site={site}
@@ -133,6 +166,6 @@ export default async function TripDayPage({
         photobook={photobook}
         dayTrack={track}
       />
-    </TripProvider>
+    </>
   );
 }
