@@ -143,7 +143,7 @@ function Ticker({
       <div className="flex items-end gap-1">
         {segments.map((seg, i) => (
           <div key={seg.unit} className="flex items-end gap-1">
-            {i > 0 && <span className="pb-4 font-mono text-sm text-ink-faint">:</span>}
+            {i > 0 && <span className="pb-4 font-mono text-sm text-ink-secondary">:</span>}
             <span className="flex flex-col items-center gap-0.5">
               <span
                 className={`min-w-10 rounded-md border px-1.5 py-1 text-center font-mono text-lg font-semibold tabular-nums ${DIGIT_CLASS[urgency]} ${

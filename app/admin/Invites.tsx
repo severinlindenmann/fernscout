@@ -101,7 +101,7 @@ export default function Invites({
       </form>
 
       {invites.length === 0 ? (
-        <p className="mt-3 text-sm text-ink-muted">
+        <p className="mt-3 text-sm text-ink-secondary">
           {inviteOnly
             ? "Nobody is on the list, so nobody can sign up yet."
             : "Nobody is on the list."}
@@ -116,7 +116,7 @@ export default function Invites({
               <span className="w-full min-w-0 break-words text-sm text-ink-strong sm:w-auto sm:flex-1">
                 {invite.email}
               </span>
-              <span className="text-xs text-ink-muted">
+              <span className="text-xs text-ink-secondary">
                 added {invite.addedAt.slice(0, 10)}
                 {invite.addedBy ? ` by ${invite.addedBy}` : ""}
               </span>

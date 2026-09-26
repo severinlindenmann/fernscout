@@ -56,7 +56,7 @@ export default async function ApiDocsPage() {
           out now, and two of them is the duplication B470 exists to remove.
           The two agent-facing documents stay, because they are what somebody
           reading an API reference actually wants next. */}
-      <p className="text-sm font-semibold text-ink-muted">
+      <p className="text-sm font-semibold text-ink-secondary">
         <a
           href="/documentation.txt"
           className="underline decoration-line-quiet hover:decoration-line-prominent"
@@ -123,7 +123,7 @@ function Endpoint({ method, op }: { method: string; op: Operation }) {
         </span>
         <span className="text-sm font-semibold text-ink-strong">{op.summary}</span>
         {op.security?.length === 0 && (
-          <span className="ml-auto shrink-0 text-xs font-semibold text-ink-muted">no token</span>
+          <span className="ml-auto shrink-0 text-xs font-semibold text-ink-secondary">no token</span>
         )}
       </summary>
 
@@ -132,7 +132,7 @@ function Endpoint({ method, op }: { method: string; op: Operation }) {
 
         {op.parameters && op.parameters.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold uppercase text-ink-muted">Parameters</h3>
+            <h3 className="text-xs font-bold uppercase text-ink-secondary">Parameters</h3>
             <ul className="mt-1 space-y-0.5 font-mono text-ink-body">
               {op.parameters.map((p) => (
                 <li key={p.name}>
@@ -145,12 +145,12 @@ function Endpoint({ method, op }: { method: string; op: Operation }) {
 
         {bodyContent.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold uppercase text-ink-muted">
+            <h3 className="text-xs font-bold uppercase text-ink-secondary">
               Request body{op.requestBody?.required ? "" : " (optional)"}
             </h3>
             {bodyContent.map(([contentType, { schema }]) => (
               <div key={contentType} className="mt-1">
-                <p className="font-mono text-xs text-ink-muted">{contentType}</p>
+                <p className="font-mono text-xs text-ink-secondary">{contentType}</p>
                 <pre className="mt-1 overflow-x-auto rounded-lg bg-surface-subtle p-3 text-xs text-ink-body">
                   {JSON.stringify(schema, null, 2)}
                 </pre>
@@ -161,7 +161,7 @@ function Endpoint({ method, op }: { method: string; op: Operation }) {
 
         {responses.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold uppercase text-ink-muted">Responses</h3>
+            <h3 className="text-xs font-bold uppercase text-ink-secondary">Responses</h3>
             <dl className="mt-1 space-y-2">
               {responses.map(([status, r]) => (
                 <div key={status} className="flex gap-3">

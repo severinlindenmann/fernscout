@@ -208,7 +208,7 @@ export default function ContactManage({
       <p className="mt-2 text-base text-ink-secondary">
         {`${contact.email} — ${t(STATUS_KEY[contact.status])}`}
       </p>
-      <p className="mt-2 text-sm text-ink-muted">
+      <p className="mt-2 text-sm text-ink-secondary">
         {t("contact.manageLinkCaption")}
       </p>
 

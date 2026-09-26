@@ -236,7 +236,7 @@ export default function PushPrompt({ username }: { username: string }) {
         <button
           type="button"
           onClick={never}
-          className="mt-1 inline-flex min-h-11 items-center text-xs text-ink-muted underline underline-offset-4
+          className="mt-1 inline-flex min-h-11 items-center text-xs text-ink-secondary underline underline-offset-4
                      transition-colors hover:text-ink-strong
                      focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
         >

@@ -632,7 +632,7 @@ export default function TripMap({
                 }`}
               >
                 <span className="truncate">{stop.location}</span>
-                <span className="shrink-0 text-xs tabular-nums text-ink-muted">
+                <span className="shrink-0 text-xs tabular-nums text-ink-secondary">
                   {formatShortDate(stop.date)}
                 </span>
               </button>
@@ -673,7 +673,7 @@ export default function TripMap({
           here rather than in a rail beside the rows because the rail and the
           outbound button were fighting over the same 40 px. */}
       <div className="flex items-center justify-between gap-3 border-t border-line-quiet px-4 py-1.5">
-        <span className="min-w-0 truncate text-xs text-ink-muted">
+        <span className="min-w-0 truncate text-xs text-ink-secondary">
           {t(chosen ? "tripMap.selectedPlace" : "tripMap.lastPlace")} ·{" "}
           {t("tripMap.stopOf", {
             index: String(index + 1),

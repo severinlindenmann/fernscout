@@ -131,7 +131,7 @@ export default function CheckWording({
       </p>
 
       <div className="mt-3 rounded-xl border border-line-strong bg-surface-raised p-3">
-        <span className="text-xs font-semibold tracking-wide text-ink-faint uppercase">
+        <span className="text-xs font-semibold tracking-wide text-ink-secondary uppercase">
           {t("studio.photos.checkWording.heardLabel")}
         </span>
         {editing ? (

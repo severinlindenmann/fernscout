@@ -81,7 +81,7 @@ export default function PushInstallOnboarding() {
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <p className="mt-1.5 text-sm text-ink-muted">{t("push.install.body")}</p>
+        <p className="mt-1.5 text-sm text-ink-secondary">{t("push.install.body")}</p>
         <ol className="mt-5 space-y-3.5">
           {steps.map(([Icon, label], i) => (
             <li key={i} className="flex items-center gap-3 text-sm text-ink-body">

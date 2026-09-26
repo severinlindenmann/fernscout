@@ -853,7 +853,7 @@ export default function EditDay({
           className={at === 0 && inStudioBar ? "" : "mt-4 border-t border-line-quiet pt-3"}
         >
           {day.entries.length > 1 && (
-            <p className="text-xs font-semibold text-ink-muted">
+            <p className="text-xs font-semibold text-ink-secondary">
               {formatLongDate(day.date)} · {at + 1}/{day.entries.length}
             </p>
           )}
